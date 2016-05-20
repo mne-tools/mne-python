@@ -513,7 +513,7 @@ def _plot_raw_onscroll(event, params, len_channels=None):
         _change_channel_group(event.step, params)
         return
     if len_channels is None:
-        len_channels = len(params['info']['ch_names'])
+        len_channels = len(params['inds'])
     orig_start = params['ch_start']
     if event.step < 0:
         params['ch_start'] = min(params['ch_start'] + params['n_channels'],
@@ -570,13 +570,13 @@ def _plot_raw_onkey(event, params):
             _change_channel_group(-1, params)
             return
         params['ch_start'] += params['n_channels']
-        _channels_changed(params, len(params['info']['ch_names']))
+        _channels_changed(params, len(params['inds']))
     elif event.key == 'up':
         if 'fig_selection' in params.keys():
             _change_channel_group(1, params)
             return
         params['ch_start'] -= params['n_channels']
-        _channels_changed(params, len(params['info']['ch_names']))
+        _channels_changed(params, len(params['inds']))
     elif event.key == 'right':
         value = params['t_start'] + params['duration']
         _plot_raw_time(value, params)
@@ -596,7 +596,7 @@ def _plot_raw_onkey(event, params):
     elif event.key == 'pageup' and 'fig_selection' not in params:
         n_channels = params['n_channels'] + 1
         _setup_browser_offsets(params, n_channels)
-        _channels_changed(params, len(params['info']['ch_names']))
+        _channels_changed(params, len(params['inds']))
     elif event.key == 'pagedown' and 'fig_selection' not in params:
         n_channels = params['n_channels'] - 1
         if n_channels == 0:
@@ -605,7 +605,7 @@ def _plot_raw_onkey(event, params):
         if len(params['lines']) > n_channels:  # remove line from view
             params['lines'][n_channels].set_xdata([])
             params['lines'][n_channels].set_ydata([])
-        _channels_changed(params, len(params['info']['ch_names']))
+        _channels_changed(params, len(params['inds']))
     elif event.key == 'home':
         duration = params['duration'] - 1.0
         if duration <= 0:

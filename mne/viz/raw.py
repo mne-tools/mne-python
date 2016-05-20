@@ -261,18 +261,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # put them back to original or modified order for natral plotting
     reord = np.argsort(inds)
     types = [types[ri] for ri in reord]
-    if isinstance(order, str):
+    if isinstance(order, string_types):
         if order == 'original':
             inds = inds[reord]
         elif order in ['selection', 'position']:
             selections, fig_selection = _setup_browser_selection(raw, order)
         elif order != 'type':
             raise ValueError('Unknown order type %s' % order)
-    elif isinstance(order, np.ndarray):
-        if not np.array_equal(np.sort(order),
-                              np.arange(len(info['ch_names']))):
-            raise ValueError('order, if array, must have integers from '
-                             '0 to n_channels - 1')
+    elif isinstance(order, (np.ndarray, list)):
         # put back to original order first, then use new order
         inds = inds[reord][order]
 
@@ -354,7 +350,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
     callback_resize = partial(_helper_raw_resize, params=params)
     params['fig'].canvas.mpl_connect('resize_event', callback_resize)
-    if order in ['selection', 'position']:
+    if isinstance(order, string_types) and order in ['selection', 'position']:
         params['selections'] = selections
         fig_selection.radio.on_clicked(params['radio_clicked'])
 
@@ -373,7 +369,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     callback_proj('none')
     _layout_figure(params)
 
-    if order in ['selection', 'position']:
+    if isinstance(order, string_types) and order in ['selection', 'position']:
         params['ax_vscroll'].set_visible(False)
         params['fig_selection'] = fig_selection
         params['fig'].fig_selection = fig_selection
@@ -595,7 +591,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     # populate vertical and horizontal scrollbars
     info = params['info']
-    for ci in range(len(info['ch_names'])):
+    for ci in range(len(inds)):
         this_color = (bad_color if info['ch_names'][inds[ci]] in info['bads']
                       else color)
         if isinstance(this_color, dict):
@@ -614,7 +610,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     ax_hscroll.add_patch(hsel_patch)
     params['hsel_patch'] = hsel_patch
     ax_hscroll.set_xlim(0, params['n_times'] / float(info['sfreq']))
-    n_ch = len(info['ch_names'])
+    n_ch = len(inds)
     ax_vscroll.set_ylim(n_ch, 0)
     ax_vscroll.set_title('Ch.')
 
@@ -654,7 +650,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         # n_channels per view >= the number of traces available
         if ii >= len(lines):
             break
-        elif ch_ind < len(info['ch_names']):
+        elif ch_ind < len(inds):
             # scale to fit
             ch_name = info['ch_names'][inds[ch_ind]]
             tick_list += [ch_name]

@@ -94,7 +94,8 @@ def test_plot_raw():
         raw.annotations = annot
         fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
         plt.close('all')
-        for order in ['position', 'selection', range(len(raw.ch_names))[::-1]]:
+        for order in ['position', 'selection', range(len(raw.ch_names))[::-1],
+                      [1, 2, 4, 6]]:
             raw.plot(order=order)
             plt.close('all')
 
