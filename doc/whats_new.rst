@@ -25,6 +25,8 @@ API
 
     - Deprecated support for passing a lits of filenames to :class:`mne.io.Raw` constructor, use :func:`mne.io.read_raw_fif` and :func:`mne.concatenate_raws` instead by `Eric Larson`_
 
+    - Added options for setting data and date formats manually in :func:`mne.io.read_raw_cnt` by `Jaakko Leppakangas`_
+
 .. _changes_0_12:
 
 Version 0.12

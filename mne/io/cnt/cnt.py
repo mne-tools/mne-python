@@ -20,7 +20,8 @@ from ..utils import read_str
 
 
 def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
-                 preload=False, verbose=None):
+                 data_format='auto', date_format='mm/dd/yy', preload=False,
+                 verbose=None):
     """Read CNT data as raw object.
 
     .. Note::
@@ -49,18 +50,25 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
         EOG channels. If 'header', VEOG and HEOG channels assigned in the file
         header are used. If 'auto', channel names containing 'EOG' are used.
         Defaults to empty tuple.
-    misc : list or tuple
+    misc : list | tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
-    ecg : list or tuple | 'auto'
+    ecg : list | tuple | 'auto'
         Names of channels or list of indices that should be designated
         ECG channels. If 'auto', the channel names containing 'ECG' are used.
         Defaults to empty tuple.
-    emg : list or tuple
+    emg : list | tuple
         Names of channels or list of indices that should be designated
         EMG channels. If 'auto', the channel names containing 'EMG' are used.
         Defaults to empty tuple.
-    preload : bool or str (default False)
+    data_format : 'auto' | 'int16' | 'int32'
+        Defines the data format the data is read in. If 'auto', it is
+        determined from the file header using ``numsamples`` field.
+        Defaults to 'auto'.
+    date_format : str
+        Format of date in the header. Currently supports 'mm/dd/yy' (default)
+        and 'dd/mm/yy'.
+    preload : bool | str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
@@ -83,10 +91,11 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
     .. versionadded:: 0.12
     """
     return RawCNT(input_fname, montage=montage, eog=eog, misc=misc, ecg=ecg,
-                  emg=emg, preload=preload, verbose=verbose)
+                  emg=emg, data_format=data_format, date_format=date_format,
+                  preload=preload, verbose=verbose)
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     """Helper for reading the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
@@ -129,6 +138,14 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc):
                 date[2] = '20' + date[2]
             time = time.split(':')
             if len(time) == 3:
+                if date_format == 'mm/dd/yy':
+                    pass
+                elif date_format == 'dd/mm/yy':
+                    date[0], date[1] = date[1], date[0]
+                else:
+                    raise ValueError("Only date formats 'mm/dd/yy' and "
+                                     "'dd/mm/yy' supported. "
+                                     "Got '%s'." % date_format)
                 # Assuming mm/dd/yy
                 date = datetime.datetime(int(date[2]), int(date[0]),
                                          int(date[1]), int(time[0]),
@@ -151,6 +168,11 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc):
         fid.seek(438)
         lowpass_toggle = np.fromfile(fid, 'i1', count=1)[0]
         highpass_toggle = np.fromfile(fid, 'i1', count=1)[0]
+
+        # Header has a field for number of samples, but it does not seem to be
+        # too reliable. That's why we have option for setting n_bytes manually.
+        fid.seek(864)
+        n_samples = np.fromfile(fid, dtype='<i4', count=1)[0]
         fid.seek(869)
         lowcutoff = np.fromfile(fid, dtype='f4', count=1)[0]
         fid.seek(2, 1)
@@ -160,14 +182,29 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc):
         event_offset = np.fromfile(fid, dtype='<i4', count=1)[0]
         cnt_info['continuous_seconds'] = np.fromfile(fid, dtype='<f4',
                                                      count=1)[0]
+
+        data_size = event_offset - (900 + 75 * n_channels)
+        if data_format == 'auto':
+            if (n_samples == 0 or
+                    data_size // (n_samples * n_channels) not in [2, 4]):
+                warn('Could not define the number of bytes automatically. '
+                     'Defaulting to 2.')
+                n_bytes = 2
+                n_samples = data_size // (n_bytes * n_channels)
+            else:
+                n_bytes = data_size // (n_samples * n_channels)
+        else:
+            if data_format not in ['int16', 'int32']:
+                raise ValueError("data_format should be 'auto', 'int16' or "
+                                 "'int32'. Got %s." % data_format)
+            n_bytes = 2 if data_format == 'int16' else 4
+            n_samples = data_size // (n_bytes * n_channels)
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info['channel_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
         if cnt_info['channel_offset'] > 1:
-            cnt_info['channel_offset'] //= 2  # Data read as 2 byte ints.
+            cnt_info['channel_offset'] //= n_bytes
         else:
             cnt_info['channel_offset'] = 1
-        n_samples = (event_offset - (900 + 75 * n_channels)) // (2 *
-                                                                 n_channels)
         ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(),
                                                list())
         bads = list()
@@ -208,7 +245,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc):
             event_id = np.fromfile(fid, dtype='u2', count=1)[0]
             fid.seek(event_offset + 9 + i * event_bytes + 4)
             offset = np.fromfile(fid, dtype='<i4', count=1)[0]
-            event_time = (offset - 900 - 75 * n_channels) // (n_channels * 2)
+            event_time = (offset - 900 - 75 * n_channels) // (n_channels *
+                                                              n_bytes)
             stim_channel[event_time - 1] = event_id
 
     info = _empty_info(sfreq)
@@ -245,7 +283,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc):
     chs.append(chan_info)
     baselines.append(0)  # For stim channel
     cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
-                    stim_channel=stim_channel)
+                    stim_channel=stim_channel, n_bytes=n_bytes)
     info.update(filename=input_fname, meas_date=np.array([meas_date, 0]),
                 description=str(session_label), buffer_size_sec=10., bads=bads,
                 subject_info=subject_info, chs=chs)
@@ -281,18 +319,25 @@ class RawCNT(_BaseRaw):
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
         ``EOG`` are used. Defaults to empty tuple.
-    misc : list or tuple
+    misc : list | tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
-    ecg : list or tuple
+    ecg : list | tuple
         Names of channels or list of indices that should be designated
         ECG channels. If 'auto', the channel names beginning with
         ``ECG`` are used. Defaults to empty tuple.
-    emg : list or tuple
+    emg : list | tuple
         Names of channels or list of indices that should be designated
         EMG channels. If 'auto', the channel names beginning with
         ``EMG`` are used. Defaults to empty tuple.
-    preload : bool or str (default False)
+    data_format : 'auto' | 'int16' | 'int32'
+        Defines the data format the data is read in. If 'auto', it is
+        determined from the file header using ``numsamples`` field.
+        Defaults to 'auto'.
+    date_format : str
+        Format of date in the header. Currently supports 'mm/dd/yy' (default)
+        and 'dd/mm/yy'.
+    preload : bool | str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
@@ -306,9 +351,11 @@ class RawCNT(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     def __init__(self, input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
-                 preload=False, verbose=None):
+                 data_format='auto', date_format='mm/dd/yy', preload=False,
+                 verbose=None):
         input_fname = path.abspath(input_fname)
-        info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc)
+        info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
+                                       data_format, date_format)
         last_samps = [cnt_info['n_samples'] - 1]
         _check_update_montage(info, montage)
         super(RawCNT, self).__init__(
@@ -323,7 +370,8 @@ class RawCNT(_BaseRaw):
         channel_offset = self._raw_extras[0]['channel_offset']
         baselines = self._raw_extras[0]['baselines']
         stim_ch = self._raw_extras[0]['stim_channel']
-        n_bytes = 2
+        n_bytes = self._raw_extras[0]['n_bytes']
+        dtype = '<i4' if n_bytes == 4 else '<i2'
         sel = np.arange(n_channels + 1)[idx]
         chunk_size = channel_offset * n_channels  # Size of chunks in file.
         # The data is divided into blocks of samples / channel.
@@ -354,7 +402,7 @@ class RawCNT(_BaseRaw):
                     extra_samps += chunk_size
                 count = n_samps // channel_offset * chunk_size + extra_samps
                 n_chunks = count // chunk_size
-                samps = np.fromfile(fid, dtype='<i2', count=count)
+                samps = np.fromfile(fid, dtype=dtype, count=count)
                 samps = samps.reshape((n_chunks, n_channels, channel_offset),
                                       order='C')
                 # Intermediate shaping to chunk sizes.
