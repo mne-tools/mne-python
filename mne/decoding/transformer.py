@@ -230,8 +230,8 @@ class EpochsVectorizer(TransformerMixin):
         self.n_epochs = n_epochs
         self.n_channels = n_channels
         self.n_times = n_times
- 
-        if (y is  None):
+
+        if (y is None):
             y = epochs.events[:, -1]
         return X, y
 
