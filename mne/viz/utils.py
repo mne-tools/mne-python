@@ -976,7 +976,7 @@ def _process_times(inst, times, n_peaks=None, few=False):
     return times
 
 
-def plot_sensors(info, kind='topomap', ch_type=None, title=None,
+def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
                  show_names=False, show=True):
     """Plot sensors positions.
 
@@ -993,6 +993,11 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%s)' % ch_type``.
+    regions : None | 'position' | array of shape (regions, picks)
+        Regions for coloring the sensors. If None (default), default coloring
+        scheme is used. If 'position', the sensors are divided into 8 regions.
+        See ``order`` kwarg of :func:`mne.viz.plot_raw`. If array, the
+        channels are divided by picks given in the array.
     show_names : bool
         Whether to display all channel names. Defaults to False.
     show : bool
@@ -1038,8 +1043,25 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     def_colors = _handle_default('color')
     ch_names = np.array(info['ch_names'])[picks]
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
-    colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
-              for i, pick in enumerate(picks)]
+    if regions is None:
+        colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
+                  for i, pick in enumerate(picks)]
+    else:
+        import matplotlib.pyplot as plt
+        if regions == 'position':
+            from mne.selection import _divide_to_regions
+            regions = _divide_to_regions(info, add_stim=False)
+            regions = regions.values()
+        if not isinstance(regions, (np.ndarray, list)):
+            raise ValueError("Regions must be None, 'position' or an array. "
+                             "Got %s." % regions)
+        color_vals = np.linspace(0, 1, len(regions))
+        colors = list()
+        for pick in picks:
+            for ind, value in enumerate(regions):
+                if pick in value:
+                    colors.append(plt.cm.jet(color_vals[ind]))
+                    break
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, colors, ch_names, title, show_names, show)
 
@@ -1073,7 +1095,8 @@ def _plot_sensors(pos, colors, ch_names, title, show_names, show):
         ax = Axes3D(fig)
         ax = fig.gca(projection='3d')
         ax.text(0, 0, 0, '', zorder=1)
-        ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors)
+        ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
+                   s=100)
         ax.azim = 90
         ax.elev = 0
     else:
@@ -1085,7 +1108,7 @@ def _plot_sensors(pos, colors, ch_names, title, show_names, show):
                             hspace=None)
         pos, outlines = _check_outlines(pos, 'head')
         _draw_outlines(ax, outlines)
-        ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors)
+        ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=100)
 
     if show_names:
         for idx in range(len(pos)):

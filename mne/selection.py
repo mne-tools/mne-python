@@ -123,14 +123,14 @@ def read_selection(name, fname=None, info=None, verbose=None):
     return sel
 
 
-def _divide_to_regions(raw, add_stim=True):
+def _divide_to_regions(info, add_stim=True):
     """Divides channels to regions by positions."""
     from scipy.stats import zscore
-    picks = _pick_data_channels(raw.info, exclude=[])
+    picks = _pick_data_channels(info, exclude=[])
     frontal = list()
     occipital = list()
     chs_in_lobe = len(picks) // 4
-    pos = np.array([ch['loc'][:3] for ch in raw.info['chs']])
+    pos = np.array([ch['loc'][:3] for ch in info['chs']])
     x, y, z = pos.T
 
     lt, rt = list(), list()
@@ -169,12 +169,12 @@ def _divide_to_regions(raw, add_stim=True):
 
     if add_stim:
         try:
-            stim_ch = _get_stim_channel(None, raw.info)
+            stim_ch = _get_stim_channel(None, info)
         except:
             stim_ch = list()  # if not found
         if len(stim_ch) > 0:
             for region in [lf, rf, lo, ro, lp, rp, lt, rt]:
-                region.append(raw.ch_names.index(stim_ch[0]))
+                region.append(info['ch_names'].index(stim_ch[0]))
     return {'Left-frontal': lf, 'Right-frontal': rf, 'Left-parietal': lp,
             'Right-parietal': rp, 'Left-occipital': lo, 'Right-occipital': ro,
             'Left-temporal': lt, 'Right-temporal': rt}

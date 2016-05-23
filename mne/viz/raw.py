@@ -879,7 +879,7 @@ def _setup_browser_selection(raw, kind):
                              _divide_to_regions)
     from ..utils import _get_stim_channel
     if kind == 'position':
-        order = _divide_to_regions(raw)
+        order = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # no 'Vertex'
     elif 'selection':
         from ..io import RawFIF, RawArray
