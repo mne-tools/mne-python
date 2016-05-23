@@ -96,7 +96,8 @@ def test_plot_raw():
         plt.close('all')
         for order in ['position', 'selection', range(len(raw.ch_names))[::-1],
                       [1, 2, 4, 6]]:
-            raw.plot(order=order)
+            fig = raw.plot(order=order)
+            fig.canvas.key_press_event('s')
             plt.close('all')
 
 

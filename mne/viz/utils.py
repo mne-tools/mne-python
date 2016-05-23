@@ -243,8 +243,11 @@ def _get_help_text(params):
     text.append(u'+ or = : \n')
     text.append(u'Home : \n')
     text.append(u'End : \n')
-    text.append(u'Page down : \n')
-    text.append(u'Page up : \n')
+    if 'fig_selection' in params:
+        text.append((u's : \n'))
+    else:
+        text.append(u'Page down : \n')
+        text.append(u'Page up : \n')
 
     text.append(u'F11 : \n')
     text.append(u'? : \n')
@@ -278,8 +281,11 @@ def _get_help_text(params):
             text.append(u'click channel name :\n')
             text2.insert(2, 'Navigate channels down\n')
             text2.insert(3, 'Navigate channels up\n')
-            text2.insert(8, 'Reduce the number of channels per view\n')
-            text2.insert(9, 'Increase the number of channels per view\n')
+            if 'fig_selection' in params:
+                text2.insert(8, 'Open the selection dialog\n')
+            else:
+                text2.insert(8, 'Reduce the number of channels per view\n')
+                text2.insert(9, 'Increase the number of channels per view\n')
             text2.append('Mark bad channel\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
@@ -563,14 +569,15 @@ def _change_channel_group(step, params):
 def _handle_change_selection(event, params):
     """Helper for handling clicks on vertical scrollbar using selections."""
     radio = params['fig_selection'].radio
-    ax = event.inaxes
-    ylim = ax.get_ylim()[0]
     ydata = event.ydata
     labels = [label._text for label in radio.labels]
-    size = ylim / len(labels)
-    lims = np.linspace(size, ylim, len(labels))
-    idx = np.searchsorted(lims, ydata)
-    radio.set_active(idx)
+    offset = 0
+    for idx, label in enumerate(labels):
+        nchans = len(params['selections'][label])
+        offset += nchans
+        if ydata < offset:
+            radio.set_active(idx)
+            return
 
 
 def _plot_raw_onkey(event, params):
@@ -619,6 +626,8 @@ def _plot_raw_onkey(event, params):
             params['lines'][n_channels].set_xdata([])
             params['lines'][n_channels].set_ydata([])
         _channels_changed(params, len(params['inds']))
+    elif event.key == 's' and 'fig_selection' in params:
+        params['fig_selection'].show()
     elif event.key == 'home':
         duration = params['duration'] - 1.0
         if duration <= 0:
@@ -674,6 +683,20 @@ def _mouse_click(event, params):
         params['pick_bads_fun'](event)
 
 
+def _find_channel_idx(ch_name, params):
+    """Helper for finding all indices when using selections."""
+    indices = list()
+    offset = 0
+    labels = [l._text for l in params['fig_selection'].radio.labels]
+    for label in labels:
+        selection = params['selections'][label]
+        hits = np.where(np.array(params['raw'].ch_names)[selection] == ch_name)
+        for idx in hits[0]:
+            indices.append(offset + idx)
+        offset += len(selection)
+    return indices
+
+
 def _select_bads(event, params, bads):
     """Helper for selecting bad channels onpick. Returns updated bads list."""
     # trade-off, avoid selecting more than one channel when drifts are present
@@ -689,9 +712,9 @@ def _select_bads(event, params, bads):
                 this_chan = vars(line)['ch_name']
                 if this_chan in params['info']['ch_names']:
                     if 'fig_selection' in params:
-                        ch_idx = params['vsel_patch'].xy[1] + lines.index(line)
+                        ch_idx = _find_channel_idx(this_chan, params)
                     else:
-                        ch_idx = params['ch_start'] + lines.index(line)
+                        ch_idx = [params['ch_start'] + lines.index(line)]
                     if this_chan not in bads:
                         bads.append(this_chan)
                         color = params['bad_color']
@@ -702,7 +725,8 @@ def _select_bads(event, params, bads):
                         color = vars(line)['def_color']
                         line.set_zorder(0)
                     line.set_color(color)
-                    params['ax_vscroll'].patches[ch_idx].set_color(color)
+                    for idx in ch_idx:
+                        params['ax_vscroll'].patches[idx].set_color(color)
                     break
     else:
         x = np.array([event.xdata] * 2)

@@ -28,19 +28,26 @@ raw.plot(block=True, events=events)
 ###############################################################################
 # The channels are color coded by channel type. Generally MEG channels are
 # colored in different shades of blue, whereas EEG channels are black. The
-# channels are also sorted by channel type by default. If you want to use a
-# custom order for the channels, you can use ``order`` parameter of
-# :func:`raw.plot`. The scrollbar on right side of the browser window also
-# tells us that two of the channels are marked as ``bad``. Bad channels are
-# color coded gray. By clicking the lines or channel names on the left, you can
-# mark or unmark a bad channel interactively. You can use +/- keys to adjust
-# the scale (also = works for magnifying the data). Note that the initial
-# scaling factors can be set with parameter ``scalings``. If you don't know the
-# scaling factor for channels, you can automatically set them by passing
-# scalings='auto'. With ``pageup/pagedown`` and ``home/end`` keys you can
-# adjust the amount of data viewed at once. To see all the interactive
-# features, hit ``?`` or click ``help`` in the lower left corner of the
-# browser window.
+# scrollbar on right side of the browser window also tells us that two of the
+# channels are marked as ``bad``. Bad channels are color coded gray. By
+# clicking the lines or channel names on the left, you can mark or unmark a bad
+# channel interactively. You can use +/- keys to adjust the scale (also = works
+# for magnifying the data). Note that the initial scaling factors can be set
+# with parameter ``scalings``. If you don't know the scaling factor for
+# channels, you can automatically set them by passing scalings='auto'. With
+# ``pageup/pagedown`` and ``home/end`` keys you can adjust the amount of data
+# viewed at once. To see all the interactive features, hit ``?`` or click
+# ``help`` in the lower left corner of the browser window.
+#
+# The channels are sorted by channel type by default. You can use the ``order``
+# parameter of :func:`raw.plot` to group the channels differently.
+# ``order='selection'`` uses the same channel groups as the c-version of
+# mne_browse_raw. It only works for Neuromag data, but ``order='position'``
+# tries to mimic this behavior for any data. The channels are grouped by sensor
+# locations to 8 evenly sized regions. Notice that for this to work
+# effectively, all the channels in the channel array must be present. The
+# ``order`` parameter can also be passed as an array of ints (picks) to plot
+# the channels in the given order.
 #
 # We read the events from a file and passed it as a parameter when calling the
 # method. The events are plotted as vertical lines so you can see how they

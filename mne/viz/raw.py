@@ -20,8 +20,8 @@ from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (_toggle_options, _toggle_proj, tight_layout,
-                    _layout_figure, _plot_raw_onkey, figure_nobar,
-                    _plot_raw_onscroll, _mouse_click, plt_show,
+                    _layout_figure, _plot_raw_onkey, figure_nobar, plt_show,
+                    _plot_raw_onscroll, _mouse_click, _find_channel_idx,
                     _helper_raw_resize, _select_bads, _onclick_help,
                     _setup_browser_offsets, _compute_scalings)
 from ..defaults import _handle_default
@@ -296,7 +296,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         #params['ax_vscroll'].set_visible(False)
         params['fig_selection'] = fig_selection
         params['selections'] = selections
-        fig_selection.radio.set_active(0)
         params['radio_clicked'] = partial(_radio_clicked, params=params)
         fig_selection.radio.on_clicked(params['radio_clicked'])
     _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
@@ -375,6 +374,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # deal with projectors
     if show_options is True:
         _toggle_options(None, params)
+    # initialize the first selection set
+    if order in ['selection', 'position']:
+        fig_selection.radio.set_active(0)
 
     try:
         plt_show(show, block=block)
@@ -392,17 +394,22 @@ def _label_clicked(pos, params):
     text = labels[line_idx].get_text()
     if len(text) == 0:
         return
-    ch_idx = params['ch_start'] + line_idx
+    if 'fig_selection' in params:
+        ch_idx = _find_channel_idx(text, params)
+    else:
+        ch_idx = [params['ch_start'] + line_idx]
     bads = params['info']['bads']
     if text in bads:
         while text in bads:  # to make sure duplicates are removed
             bads.remove(text)
         color = vars(params['lines'][line_idx])['def_color']
-        params['ax_vscroll'].patches[ch_idx].set_color(color)
+        for idx in ch_idx:
+            params['ax_vscroll'].patches[idx].set_color(color)
     else:
         bads.append(text)
         color = params['bad_color']
-        params['ax_vscroll'].patches[ch_idx].set_color(color)
+        for idx in ch_idx:
+            params['ax_vscroll'].patches[idx].set_color(color)
     params['raw'].info['bads'] = bads
     _plot_update_raw_proj(params, None)
 
@@ -607,7 +614,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                                                        facecolor=this_color,
                                                        edgecolor=this_color))
         ax_vscroll.set_ylim(len(cis), 0)
-        n_channels = len(selections[labels[0]])
+        n_channels = max([len(selections[labels[0]]), n_channels])
     else:
         for ci in range(len(inds)):
             this_color = (bad_color if info['ch_names'][inds[ci]] in
@@ -885,13 +892,17 @@ def _setup_browser_selection(raw, kind):
         except:
             stim_ch = ['']
         keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
+        stim_ch = pick_channels(raw.ch_names, stim_ch)
         for key in keys:
             channels = read_selection(key, info=raw.info)
-            channels.append(stim_ch[0])
-            order[key] = pick_channels(raw.ch_names, channels)
+            picks = pick_channels(raw.ch_names, channels)
+            if len(picks) == 0:
+                continue  # omit empty selections
+            order[key] = np.concatenate([picks, stim_ch])
 
     fig_selection = figure_nobar(figsize=(4, 10), dpi=80)
     fig_selection.canvas.set_window_title('Selection')
     rax = plt.axes()
-    fig_selection.radio = RadioButtons(rax, keys)
+    fig_selection.radio = RadioButtons(rax, [key for key in keys
+                                             if key in order.keys()])
     return order, fig_selection
