@@ -212,8 +212,8 @@ class Xdawn(TransformerMixin, ContainsMixin):
     2011 19th European (pp. 1382-1386). IEEE.
     """
 
-    def __init__(self, n_components=2, signal_cov=None, correct_overlap='auto',
-                 reg=None):
+    def __init__(self, info, n_components=2, signal_cov=None,
+                 correct_overlap='auto', reg=None):
         """init xdawn."""
         self.n_components = n_components
         self.signal_cov = signal_cov
@@ -226,7 +226,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
             raise ValueError('correct_overlap must be a bool or "auto"')
         self.correct_overlap = correct_overlap
 
-    def fit(self, epochs, y=None):
+    def fit(self, X, y=None):
         """Fit Xdawn from epochs.
 
         Parameters
@@ -244,12 +244,14 @@ class Xdawn(TransformerMixin, ContainsMixin):
         if self.correct_overlap == 'auto':
             self.correct_overlap = _check_overlapp(epochs)
 
+        epochs_data = X.reshape(X.shape[0], info['nchan'], X.shape[1] / 
+                                            info['nchan'])
         # Extract signal covariance
         if self.signal_cov is None:
             if self.correct_overlap:
                 sig_data = _construct_signal_from_epochs(epochs)
             else:
-                sig_data = np.hstack(epochs.get_data())
+                sig_data = np.hstack(epochs.data)
             self.signal_cov_ = _regularized_covariance(sig_data, self.reg)
         elif isinstance(self.signal_cov, Covariance):
             self.signal_cov_ = self.signal_cov.data
@@ -270,17 +272,17 @@ class Xdawn(TransformerMixin, ContainsMixin):
         else:
             evokeds = dict()
             toeplitz = dict()
-            for eid in epochs.event_id:
-                evokeds[eid] = epochs[eid].average()
+            for eid in info['event_id']:
+                evokeds[eid] = np.mean(epochs_data[eid])
                 toeplitz[eid] = 1.0
         self.evokeds_ = evokeds
 
-        for eid in epochs.event_id:
-            data = np.dot(evokeds[eid].data, toeplitz[eid])
+        for eid in info['event_id']:
+            data = np.dot(evokeds[eid], toeplitz[eid])
             self.evokeds_cov_[eid] = _regularized_covariance(data, self.reg)
 
         # estimates spatial filters
-        for eid in epochs.event_id:
+        for eid in info['event_id']:
 
             if self.signal_cov_.shape != self.evokeds_cov_[eid].shape:
                 raise ValueError('Size of signal cov must be the same as the'
@@ -295,9 +297,9 @@ class Xdawn(TransformerMixin, ContainsMixin):
             self.patterns_[eid] = linalg.inv(evecs.T)
 
         # store some values
-        self.ch_names = epochs.ch_names
+        self.ch_names = info['ch_names']
         self.exclude = list(range(self.n_components, len(self.ch_names)))
-        self.event_id = epochs.event_id
+        self.event_id = info['event_id']
         return self
 
     def transform(self, epochs):
