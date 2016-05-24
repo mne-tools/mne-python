@@ -855,16 +855,19 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
 
 
 def _radio_clicked(label, params):
-    """Callback for selection radio buttons."""
+    """Callback for radio buttons in selection dialog."""
     labels = [l._text for l in params['fig_selection'].radio.labels]
     idx = labels.index(label)
     channels = params['selections'][label]
     ax_topo = params['fig_selection'].get_axes()[1]
-    mags = pick_types(params['raw'].info, meg='mag', ref_meg=False)
-    colors = np.zeros((len(mags), 4))
-    for idx, pick in enumerate(mags):
+    for type in ('mag', 'grad', 'eeg', 'seeg'):
+        if type in params['types']:
+            types = np.where(np.array(params['types']) == type)[0]
+            break
+    colors = np.zeros((len(types), 4))
+    for color_idx, pick in enumerate(types):
         if pick in channels:
-            colors[idx] = np.array([0., 0., 0., 1.])
+            colors[color_idx] = np.array([0., 0., 0., 1.])
     ax_topo.collections[0]._facecolors = colors
     params['fig_selection'].canvas.draw()
 
@@ -898,7 +901,7 @@ def _setup_browser_selection(raw, kind):
         order = dict()
         try:
             stim_ch = _get_stim_channel(None, raw.info)
-        except:
+        except ValueError:
             stim_ch = ['']
         keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
         stim_ch = pick_channels(raw.ch_names, stim_ch)

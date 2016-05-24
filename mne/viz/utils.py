@@ -627,7 +627,11 @@ def _plot_raw_onkey(event, params):
             params['lines'][n_channels].set_ydata([])
         _channels_changed(params, len(params['inds']))
     elif event.key == 's' and 'fig_selection' in params:
-        params['fig_selection'].show()
+        try:
+            params['fig_selection'].show()  # does not work on old mpl
+        except AttributeError:
+            warn('Could not reopen selection dialog. Update matplotlib to a '
+                 'newer version.')
     elif event.key == 'home':
         duration = params['duration'] - 1.0
         if duration <= 0:
