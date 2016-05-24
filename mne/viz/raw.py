@@ -100,7 +100,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     start : float
         Initial time to show (can be changed dynamically once plotted).
     n_channels : int
-        Number of channels to plot at once. Defaults to 20.
+        Number of channels to plot at once. Defaults to 20. Has no effect if
+        ``order`` is 'position' or 'selection'.
     bgcolor : color object
         Color of the background.
     color : dict | color object | None
@@ -293,7 +294,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   event_nums=event_nums, clipping=clipping, fig_proj=None)
 
     if isinstance(order, string_types) and order in ['selection', 'position']:
-        #params['ax_vscroll'].set_visible(False)
         params['fig_selection'] = fig_selection
         params['selections'] = selections
         params['radio_clicked'] = partial(_radio_clicked, params=params)
@@ -640,14 +640,6 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     ax_vscroll.set_title('Ch.')
 
-    # make shells for plotting traces
-    _setup_browser_offsets(params, n_channels)
-    ax.set_xlim(params['t_start'], params['t_start'] + params['duration'],
-                False)
-
-    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
-                       for _ in range(n_ch)]
-    ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
     vertline_color = (0., 0.75, 0.)
     params['ax_vertline'] = ax.plot([0, 0], ax.get_ylim(),
                                     color=vertline_color, zorder=-1)[0]
@@ -657,6 +649,14 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     params['ax_hscroll_vertline'] = ax_hscroll.plot([0, 0], [0, 1],
                                                     color=vertline_color,
                                                     zorder=2)[0]
+    # make shells for plotting traces
+    _setup_browser_offsets(params, n_channels)
+    ax.set_xlim(params['t_start'], params['t_start'] + params['duration'],
+                False)
+
+    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
+                       for _ in range(n_ch)]
+    ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
 
 
 def _plot_raw_traces(params, color, bad_color, event_lines=None,
@@ -758,7 +758,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
     params['ax'].set_xlim(params['times'][0],
                           params['times'][0] + params['duration'], False)
     params['ax'].set_yticklabels(tick_list)
-    if not 'fig_selection' in params:
+    if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
     # XXX This is a hack to make sure this figure gets drawn last
@@ -900,9 +900,17 @@ def _setup_browser_selection(raw, kind):
                 continue  # omit empty selections
             order[key] = np.concatenate([picks, stim_ch])
 
+    misc = pick_types(raw.info, meg=False, eeg=False, stim=True, eog=True,
+                      ecg=True, emg=True, ref_meg=False, misc=True, resp=True,
+                      chpi=True, exci=True, ias=True, syst=True, seeg=False,
+                      bio=True, ecog=False, exclude=())
+    order['Misc'] = misc
+    keys = np.concatenate([keys, ['Misc']])
     fig_selection = figure_nobar(figsize=(4, 10), dpi=80)
     fig_selection.canvas.set_window_title('Selection')
     rax = plt.axes()
     fig_selection.radio = RadioButtons(rax, [key for key in keys
                                              if key in order.keys()])
+    for circle in fig_selection.radio.circles:
+        circle.set_radius(0.02)  # make them smaller to prevent overlap
     return order, fig_selection

@@ -778,6 +778,8 @@ def _setup_browser_offsets(params, n_channels):
     params['ax'].set_yticks(params['offsets'])
     params['ax'].set_ylim(ylim)
     params['vsel_patch'].set_height(n_channels)
+    line = params['ax_vertline']
+    line.set_data(line._x, np.array(params['ax'].get_ylim()))
 
 
 class ClickableImage(object):

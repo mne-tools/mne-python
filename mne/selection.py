@@ -156,9 +156,9 @@ def _divide_to_regions(info, add_stim=True):
     lp, rp = _divide_side(picks, x)  # Parietal lobe from the remaining picks.
 
     # Finally we check the parietal lobe for outliers.
-    l_outliers = np.array(lp)[(np.abs(zscore(pos[lp])) > 2.8).any(axis=1)]
+    l_outliers = np.array(lp)[(np.abs(zscore(pos[lp])) > 2.75).any(axis=1)]
     lp = list(np.setdiff1d(lp, l_outliers))
-    r_outliers = np.array(rp)[(np.abs(zscore(pos[rp])) > 2.8).any(axis=1)]
+    r_outliers = np.array(rp)[(np.abs(zscore(pos[rp])) > 2.75).any(axis=1)]
     rp = list(np.setdiff1d(rp, r_outliers))
 
     regions = [lf, rf, lo, ro, lt, rt]
