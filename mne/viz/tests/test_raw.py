@@ -98,6 +98,8 @@ def test_plot_raw():
                       [1, 2, 4, 6]]:
             fig = raw.plot(order=order)
             fig.canvas.key_press_event('s')
+            fig.canvas.key_press_event('down')  # change selection
+            _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
             plt.close('all')
 
 

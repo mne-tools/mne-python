@@ -376,7 +376,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         _toggle_options(None, params)
     # initialize the first selection set
     if order in ['selection', 'position']:
-        fig_selection.radio.set_active(0)
+        _radio_clicked(fig_selection.radio.labels[0]._text, params)
 
     try:
         plt_show(show, block=block)

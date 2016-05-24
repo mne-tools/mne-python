@@ -554,20 +554,25 @@ def _plot_raw_time(value, params):
 
 def _change_channel_group(step, params):
     """Deal with change of channel group."""
+    from .raw import _radio_clicked
     radio = params['fig_selection'].radio
     labels = [label._text for label in radio.labels]
-    selected = radio.value_selected
-    idx = labels.index(selected)
-    if step < 0:
-        if idx < len(labels) - 1:
-            radio.set_active(idx + 1)
-    else:
-        if idx > 0:
-            radio.set_active(idx - 1)
+    # XXX: Old versions of matplotlib don't have a way of checking or setting
+    # the active button. Here we check the color of the button.
+    for idx, circle in enumerate(radio.circles):
+        if circle._facecolor == (0., 0., 1., 1.):
+            if step < 0:
+                if idx < len(labels) - 1:
+                    _radio_clicked(labels[idx + 1], params)
+            else:
+                if idx > 0:
+                    _radio_clicked(labels[idx - 1], params)
+            return
 
 
 def _handle_change_selection(event, params):
     """Helper for handling clicks on vertical scrollbar using selections."""
+    from .raw import _radio_clicked
     radio = params['fig_selection'].radio
     ydata = event.ydata
     labels = [label._text for label in radio.labels]
@@ -576,7 +581,7 @@ def _handle_change_selection(event, params):
         nchans = len(params['selections'][label])
         offset += nchans
         if ydata < offset:
-            radio.set_active(idx)
+            _radio_clicked(labels[idx], params)
             return
 
 
