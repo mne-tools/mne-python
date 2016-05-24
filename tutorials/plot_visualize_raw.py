@@ -40,14 +40,14 @@ raw.plot(block=True, events=events)
 # ``help`` in the lower left corner of the browser window.
 #
 # The channels are sorted by channel type by default. You can use the ``order``
-# parameter of :func:`raw.plot` to group the channels differently.
-# ``order='selection'`` uses the same channel groups as the c-version of
-# mne_browse_raw. It only works for Neuromag data, but ``order='position'``
-# tries to mimic this behavior for any data. The channels are grouped by sensor
-# locations to 8 evenly sized regions. Notice that for this to work
-# effectively, all the channels in the channel array must be present. The
-# ``order`` parameter can also be passed as an array of ints (picks) to plot
-# the channels in the given order.
+# parameter of :func:`raw.plot <mne.io.Raw.plot>` to group the channels
+# differently. ``order='selection'`` uses the same channel groups as the
+# c-version of mne_browse_raw. It only works for Neuromag data, but
+# ``order='position'`` tries to mimic this behavior for any data. The channels
+# are grouped by sensor locations to 8 evenly sized regions. Notice that for
+# this to work effectively, all the channels in the channel array must be
+# present. The ``order`` parameter can also be passed as an array of ints
+# (picks) to plot the channels in the given order.
 #
 # We read the events from a file and passed it as a parameter when calling the
 # method. The events are plotted as vertical lines so you can see how they
@@ -56,9 +56,13 @@ raw.plot(block=True, events=events)
 # We can check where the channels reside with ``plot_sensors``. Notice that
 # this method (along with many other MNE plotting functions) is callable using
 # any MNE data container where the channel information is available.
-raw.plot_sensors(kind='3d', ch_type='mag')
+raw.plot_sensors(kind='3d', ch_type='mag', regions='position')
 
 ###############################################################################
+# We used ``regions='position'`` to color code the different regions. This is
+# useful for checking if the ``order='position'`` of
+# :func:`raw.plot <mne.io.Raw.plot>` separated the regions correctly.
+#
 # Now let's add some ssp projectors to the raw data. Here we read them from a
 # file and plot them.
 projs = mne.read_proj(op.join(data_path, 'sample_audvis_eog-proj.fif'))

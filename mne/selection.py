@@ -127,13 +127,10 @@ def _divide_to_regions(info, add_stim=True):
     """Divides channels to regions by positions."""
     from scipy.stats import zscore
     picks = _pick_data_channels(info, exclude=[])
-    frontal = list()
-    occipital = list()
+    frontal, occipital, lt, rt = list(), list(), list(), list()
     chs_in_lobe = len(picks) // 4
     pos = np.array([ch['loc'][:3] for ch in info['chs']])
     x, y, z = pos.T
-
-    lt, rt = list(), list()
     for ch in range(chs_in_lobe):
         if ch % 2 == 0:  # Because _divide_side might break when number is odd.
             pick = np.argmax(x[picks])

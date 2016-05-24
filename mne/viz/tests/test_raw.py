@@ -148,6 +148,7 @@ def test_plot_sensors():
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
     raw.plot_sensors('topomap')
     raw.plot_sensors(regions='position')
+    raw.plot_sensors(regions=[[0, 1, 2], [3, 4]])
     assert_raises(TypeError, plot_sensors, raw)  # needs to be info
     plt.close('all')
 

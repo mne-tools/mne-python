@@ -1049,20 +1049,31 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
         colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
                   for i, pick in enumerate(picks)]
     else:
-        import matplotlib.pyplot as plt
         if regions == 'position':
             from mne.selection import _divide_to_regions
+            colors = {'Left-frontal': (0.2, 1., 0.8, 1.),
+                      'Right-frontal': (0.8, 1., 0.8, 1.),
+                      'Left-parietal': (0.2, 0.5, 1., 1.),
+                      'Right-parietal': (0.8, 0.5, 1., 1.),
+                      'Left-occipital': (0.2, 0, 0.2, 1.),
+                      'Right-occipital': (0.8, 0, 0.2, 1.),
+                      'Left-temporal': (0., 0.5, 0.2, 1.),
+                      'Right-temporal': (1., 0.5, 0.2, 1.)}
             regions = _divide_to_regions(info, add_stim=False)
+            color_vals = [colors[key] for key in regions.keys()]
             regions = regions.values()
+        else:
+            import matplotlib.pyplot as plt
+            colors = np.linspace(0, 1, len(regions))
+            color_vals = [plt.cm.jet(colors[i]) for i in range(len(regions))]
         if not isinstance(regions, (np.ndarray, list)):
             raise ValueError("Regions must be None, 'position' or an array. "
                              "Got %s." % regions)
-        color_vals = np.linspace(0, 1, len(regions))
-        colors = list()
-        for pick in picks:
+        colors = np.zeros((len(picks), 4))
+        for pick_idx, pick in enumerate(picks):
             for ind, value in enumerate(regions):
                 if pick in value:
-                    colors.append(plt.cm.jet(color_vals[ind]))
+                    colors[pick_idx] = color_vals[ind]
                     break
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, colors, ch_names, title, show_names, show)
