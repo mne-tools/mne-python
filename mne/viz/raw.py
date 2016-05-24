@@ -23,7 +23,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _layout_figure, _plot_raw_onkey, figure_nobar, plt_show,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
                     _helper_raw_resize, _select_bads, _onclick_help,
-                    _setup_browser_offsets, _compute_scalings)
+                    _setup_browser_offsets, _compute_scalings, plot_sensors)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
 
@@ -858,9 +858,18 @@ def _radio_clicked(label, params):
     """Callback for selection radio buttons."""
     labels = [l._text for l in params['fig_selection'].radio.labels]
     idx = labels.index(label)
+    channels = params['selections'][label]
+    ax_topo = params['fig_selection'].get_axes()[1]
+    mags = pick_types(params['raw'].info, meg='mag', ref_meg=False)
+    colors = np.zeros((len(mags), 4))
+    for idx, pick in enumerate(mags):
+        if pick in channels:
+            colors[idx] = np.array([0., 0., 0., 1.])
+    ax_topo.collections[0]._facecolors = colors
+    params['fig_selection'].canvas.draw()
+
     nchan = sum([len(params['selections'][l]) for l in labels[:idx]])
     params['vsel_patch'].set_y(nchan)
-    channels = params['selections'][label]
     n_channels = len(channels)
     params['n_channels'] = n_channels
     params['inds'] = channels
@@ -908,7 +917,10 @@ def _setup_browser_selection(raw, kind):
     keys = np.concatenate([keys, ['Misc']])
     fig_selection = figure_nobar(figsize=(4, 10), dpi=80)
     fig_selection.canvas.set_window_title('Selection')
-    rax = plt.axes()
+    rax = plt.subplot2grid((4, 1), (1, 0), rowspan=3, colspan=1)
+    topo_ax = plt.subplot2grid((4, 1), (0, 0), rowspan=1, colspan=1)
+    plot_sensors(raw.info, kind='topomap', ch_type=None, axes=topo_ax,
+                 title='', show=False)
     fig_selection.radio = RadioButtons(rax, [key for key in keys
                                              if key in order.keys()])
     for circle in fig_selection.radio.circles:

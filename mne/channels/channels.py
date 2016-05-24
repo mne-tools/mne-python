@@ -361,7 +361,7 @@ class SetChannelsMixin(object):
         _set_montage(self.info, montage)
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
-                     regions=None, show_names=False, show=True):
+                     regions=None, show_names=False, axes=None, show=True):
         """
         Plot sensors positions.
 
@@ -376,13 +376,16 @@ class SetChannelsMixin(object):
         title : str | None
             Title for the figure. If None (default), equals to
             ``'Sensor positions (%s)' % ch_type``.
-        regions : None | 'position' | array of shape (regions, picks)
+        regions : 'position' | array of shape (regions, picks) | None
             Regions for coloring the sensors. If None (default), default
             coloring scheme is used. If 'position', the sensors are divided
             into 8 regions. See ``order`` kwarg of :func:`mne.viz.plot_raw`. If
             array, the channels are divided by picks given in the array.
         show_names : bool
             Whether to display all channel names. Defaults to False.
+        axes : instance of Axes | instance of Axes3D | None
+            Axes to draw the sensors to. If ``kind='3d'``, axes must be an
+            instance of Axes3D. If None (default), a new axes will be created.
         show : bool
             Show figure if True. Defaults to True.
 

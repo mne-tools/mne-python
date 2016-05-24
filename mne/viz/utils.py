@@ -979,7 +979,7 @@ def _process_times(inst, times, n_peaks=None, few=False):
 
 
 def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
-                 show_names=False, show=True):
+                 show_names=False, axes=None, show=True):
     """Plot sensors positions.
 
     Parameters
@@ -995,13 +995,16 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%s)' % ch_type``.
-    regions : None | 'position' | array of shape (regions, picks)
+    regions : 'position' | array of shape (regions, picks) | None
         Regions for coloring the sensors. If None (default), default coloring
         scheme is used. If 'position', the sensors are divided into 8 regions.
         See ``order`` kwarg of :func:`mne.viz.plot_raw`. If array, the
         channels are divided by picks given in the array.
     show_names : bool
         Whether to display all channel names. Defaults to False.
+    axes : instance of Axes | instance of Axes3D | None
+        Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
+        of Axes3D. If None (default), a new axes will be created.
     show : bool
         Show figure if True. Defaults to True.
 
@@ -1061,7 +1064,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
                       'Right-temporal': (1., 0.5, 0.2, 1.)}
             regions = _divide_to_regions(info, add_stim=False)
             color_vals = [colors[key] for key in regions.keys()]
-            regions = regions.values()
+            regions = list(regions.values())
         else:
             import matplotlib.pyplot as plt
             colors = np.linspace(0, 1, len(regions))
@@ -1076,7 +1079,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
                     colors[pick_idx] = color_vals[ind]
                     break
     title = 'Sensor positions (%s)' % ch_type if title is None else title
-    fig = _plot_sensors(pos, colors, ch_names, title, show_names, show)
+    fig = _plot_sensors(pos, colors, ch_names, title, show_names, axes, show)
 
     return fig
 
@@ -1097,23 +1100,28 @@ def _onpick_sensor(event, fig, ax, pos, ch_names):
     fig.canvas.draw()
 
 
-def _plot_sensors(pos, colors, ch_names, title, show_names, show):
+def _plot_sensors(pos, colors, ch_names, title, show_names, ax, show):
     """Helper function for plotting sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from .topomap import _check_outlines, _draw_outlines
-    fig = plt.figure()
+    if ax is None:
+        fig = plt.figure()
+        if pos.shape[1] == 3:
+            Axes3D(fig)
+            ax = fig.gca(projection='3d')
+        else:
+            ax = fig.add_subplot(111)
+    else:
+        fig = ax.get_figure()
 
     if pos.shape[1] == 3:
-        ax = Axes3D(fig)
-        ax = fig.gca(projection='3d')
         ax.text(0, 0, 0, '', zorder=1)
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
                    s=100)
         ax.azim = 90
         ax.elev = 0
     else:
-        ax = fig.add_subplot(111)
         ax.text(0, 0, '', zorder=1)
         ax.set_xticks([])
         ax.set_yticks([])
