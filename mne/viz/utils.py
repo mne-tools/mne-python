@@ -563,9 +563,13 @@ def _change_channel_group(step, params):
         if circle._facecolor == (0., 0., 1., 1.):
             if step < 0:
                 if idx < len(labels) - 1:
+                    circle.set_facecolor((1., 1., 1., 1.))
+                    radio.circles[idx + 1].set_facecolor((0., 0., 1., 1.))
                     _radio_clicked(labels[idx + 1], params)
             else:
                 if idx > 0:
+                    circle.set_facecolor((1., 1., 1., 1.))
+                    radio.circles[idx - 1].set_facecolor((0., 0., 1., 1.))
                     _radio_clicked(labels[idx - 1], params)
             return
 
