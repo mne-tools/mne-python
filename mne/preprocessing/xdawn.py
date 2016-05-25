@@ -215,6 +215,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
     def __init__(self, info, n_components=2, signal_cov=None,
                  reg=None):
         """init xdawn."""
+        self.info = info
         self.n_components = n_components
         self.signal_cov = signal_cov
         self.reg = reg
@@ -236,8 +237,10 @@ class Xdawn(TransformerMixin, ContainsMixin):
         self : Xdawn instance
             The Xdawn instance.
         """
-        epochs_data = X.reshape(X.shape[0], info['nchan'], X.shape[1] / 
-                                            info['nchan'])
+        if X.ndim is not 2:
+            raise ValueError("Dimension of X should be 2")
+        epochs_data = X.reshape(X.shape[0], self.info['nchan'], X.shape[1] / 
+                                            self.info['nchan'])
         # Extract signal covariance
         if self.signal_cov is None:
             sig_data = np.hstack(epochs_data)
@@ -257,10 +260,10 @@ class Xdawn(TransformerMixin, ContainsMixin):
         classes = np.unique(y)
         shape = epochs_data.shape
         for eid in classes:
-            mean_data = np.mean(epochs_data[eid].reshape(-1, shape[0],
-                                                            shape[1]),
+            mean_data = np.mean(epochs_data[eid].reshape(-1, shape[1],
+                                                            shape[2]),
                                     axis=0)
-            picks = _pick_data_channels(self.info, exclue=[])
+            picks = _pick_data_channels(self.info, exclude=[])
             evokeds[eid] = mean_data[picks]
             toeplitz[eid] = 1.0
         self.evokeds_ = evokeds
