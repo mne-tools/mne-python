@@ -314,8 +314,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         segments = list()
         segment_colors = dict()
         # sort the segments by start time
-        order = raw.annotations.onset.argsort(axis=0)
-        descriptions = raw.annotations.description[order]
+        ann_order = raw.annotations.onset.argsort(axis=0)
+        descriptions = raw.annotations.description[ann_order]
         color_keys = set(descriptions)
         color_vals = np.linspace(0, 1, len(color_keys))
         for idx, key in enumerate(color_keys):
@@ -324,9 +324,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
             else:
                 segment_colors[key] = plt.cm.summer(color_vals[idx])
         params['segment_colors'] = segment_colors
-        for idx, onset in enumerate(raw.annotations.onset[order]):
+        for idx, onset in enumerate(raw.annotations.onset[ann_order]):
             annot_start = _onset_to_seconds(raw, onset)
-            annot_end = annot_start + raw.annotations.duration[order][idx]
+            annot_end = annot_start + raw.annotations.duration[ann_order][idx]
             segments.append([annot_start, annot_end])
             ylim = params['ax_hscroll'].get_ylim()
             dscr = descriptions[idx]
