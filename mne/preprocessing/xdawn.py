@@ -11,7 +11,7 @@ from scipy import linalg
 from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
 from .. import Covariance, EvokedArray, Evoked, EpochsArray
-from ..io.pick import pick_types
+from ..io.pick import pick_types, _pick_data_channels
 from .ica import _get_fast_dot
 from ..utils import logger
 from ..decoding.mixin import TransformerMixin
@@ -213,7 +213,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
     """
 
     def __init__(self, info, n_components=2, signal_cov=None,
-                 correct_overlap='auto', reg=None):
+                 reg=None):
         """init xdawn."""
         self.n_components = n_components
         self.signal_cov = signal_cov
@@ -222,41 +222,25 @@ class Xdawn(TransformerMixin, ContainsMixin):
         self.patterns_ = dict()
         self.evokeds_ = dict()
 
-        if correct_overlap not in ['auto', True, False]:
-            raise ValueError('correct_overlap must be a bool or "auto"')
-        self.correct_overlap = correct_overlap
-
     def fit(self, X, y=None):
         """Fit Xdawn from epochs.
 
         Parameters
         ----------
-        epochs : Epochs object
-            An instance of Epoch on which Xdawn filters will be trained.
-        y : ndarray | None (default None)
-            Not used, here for compatibility with decoding API.
+        X : ndarray, shape(n_channels, n_times * n_freq)
+        y : ndarray shape(n_samples,) | None (default None)
+            labels for the data
 
         Returns
         -------
         self : Xdawn instance
             The Xdawn instance.
         """
-
-        # Ensure epochs order
-        if np.any(np.diff(epochs.events[:, 0].astype(int)) < 0):
-            epochs = epochs[np.argsort(epochs.events[:, 0])]
-
-        if self.correct_overlap == 'auto':
-            self.correct_overlap = _check_overlapp(epochs)
-
         epochs_data = X.reshape(X.shape[0], info['nchan'], X.shape[1] / 
                                             info['nchan'])
         # Extract signal covariance
         if self.signal_cov is None:
-            if self.correct_overlap:
-                sig_data = _construct_signal_from_epochs(epochs)
-            else:
-                sig_data = np.hstack(epochs.data)
+            sig_data = np.hstack(epochs_data)
             self.signal_cov_ = _regularized_covariance(sig_data, self.reg)
         elif isinstance(self.signal_cov, Covariance):
             self.signal_cov_ = self.signal_cov.data
@@ -268,26 +252,25 @@ class Xdawn(TransformerMixin, ContainsMixin):
 
         # estimates evoked covariance
         self.evokeds_cov_ = dict()
-        if self.correct_overlap:
-            if epochs.baseline is not None:
-                raise ValueError('Baseline correction must be None if overlap '
-                                 'correction activated')
-            evokeds, toeplitz = least_square_evoked(epochs,
-                                                    return_toeplitz=True)
-        else:
-            evokeds = dict()
-            toeplitz = dict()
-            for eid in info['event_id']:
-                evokeds[eid] = np.mean(epochs_data[eid])
-                toeplitz[eid] = 1.0
+        evokeds = dict()
+        toeplitz = dict()
+        classes = np.unique(y)
+        shape = epochs_data.shape
+        for eid in classes:
+            mean_data = np.mean(epochs_data[eid].reshape(-1, shape[1],
+                                                            shape[2]),
+                                    axis=0)
+            picks = _pick_data_channels(self.info, exclude=[])
+            evokeds[eid] = mean_data[picks]
+            toeplitz[eid] = 1.0
         self.evokeds_ = evokeds
 
-        for eid in info['event_id']:
+        for eid in classes:
             data = np.dot(evokeds[eid], toeplitz[eid])
             self.evokeds_cov_[eid] = _regularized_covariance(data, self.reg)
 
         # estimates spatial filters
-        for eid in info['event_id']:
+        for eid in classes:
 
             if self.signal_cov_.shape != self.evokeds_cov_[eid].shape:
                 raise ValueError('Size of signal cov must be the same as the'
@@ -304,29 +287,29 @@ class Xdawn(TransformerMixin, ContainsMixin):
         # store some values
         self.ch_names = info['ch_names']
         self.exclude = list(range(self.n_components, len(self.ch_names)))
-        self.event_id = info['event_id']
+        self.event_id = classes
         return self
 
-    def transform(self, epochs):
+    def transform(self, X, y):
         """Apply Xdawn dim reduction.
 
         Parameters
         ----------
-        epochs : Epochs | ndarray, shape (n_epochs, n_channels, n_times)
-            Data on which Xdawn filters will be applied.
+        X : ndarray, shape(n_channels, n_shapes * n_times)
+            data of epochs
+        y : ndarray, shape(n_samples,)
+            labels of data
 
         Returns
         -------
-        X : ndarray, shape (n_epochs, n_components * event_types, n_times)
+        X : ndarray, shape (n_epochs, n_components * event_types * n_times)
             Spatially filtered signals.
         """
-        if isinstance(epochs, _BaseEpochs):
-            data = epochs.get_data()
-        elif isinstance(epochs, np.ndarray):
-            data = epochs
+        if isinstance(X, np.ndarray):
+            data = X
         else:
-            raise ValueError('Data input must be of Epoch '
-                             'type or numpy array')
+            raise ValueError('Data input must be of'
+                             'type numpy array')
 
         # create full matrix of spatial filter
         full_filters = list()
