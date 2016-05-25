@@ -1104,19 +1104,13 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
         colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
                   for i, pick in enumerate(picks)]
     else:
-        colors = {'Vertex': (0., 0., 0., 1.),
-                  'Left-frontal': (0.2, 1., 0.8, 1.),
-                  'Right-frontal': (0.8, 1., 0.8, 1.),
-                  'Left-parietal': (0.2, 0.5, 1., 1.),
-                  'Right-parietal': (0.8, 0.5, 1., 1.),
-                  'Left-occipital': (0.2, 0, 0.2, 1.),
-                  'Right-occipital': (0.8, 0, 0.2, 1.),
-                  'Left-temporal': (0., 0.5, 0.2, 1.),
-                  'Right-temporal': (1., 0.5, 0.2, 1.),
-                  'EEG 1-32': (0.2, 1., 0.8, 1.),
-                  'EEG 33-64': (0.2, 0, 0.2, 1.),
-                  'EEG 65-96': (0.8, 1., 0.8, 1.),
-                  'EEG 97-128': (0.8, 0, 0.2, 1.)}
+        colors = dict(
+            zip(_SELECTIONS + _EEG_SELECTIONS,
+                [(0., 0., 0., 1.), (0.2, 1., 0.8, 1.), (0.8, 1., 0.8, 1.),
+                 (0.2, 0.5, 1., 1.), (0.8, 0.5, 1., 1.), (0.2, 0, 0.2, 1.),
+                 (0.8, 0, 0.2, 1.), (0., 0.5, 0.2, 1.), (1., 0.5, 0.2, 1.),
+                 (0.2, 1., 0.8, 1.), (0.2, 0, 0.2, 1.), (0.8, 1., 0.8, 1.),
+                 (0.8, 0, 0.2, 1.)]))
         if regions == 'position':
             from mne.selection import _divide_to_regions
             regions = _divide_to_regions(info, add_stim=False)
