@@ -215,6 +215,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
     def __init__(self, info, n_components=2, signal_cov=None,
                  reg=None):
         """init xdawn."""
+        self.info = info
         self.n_components = n_components
         self.signal_cov = signal_cov
         self.reg = reg
@@ -236,8 +237,13 @@ class Xdawn(TransformerMixin, ContainsMixin):
         self : Xdawn instance
             The Xdawn instance.
         """
-        epochs_data = X.reshape(X.shape[0], info['nchan'], X.shape[1] / 
-                                            info['nchan'])
+        if X.ndim is not 2:
+            raise ValueError("Dimension of X should be 2")
+        if not isinstance(y, np.ndarray):
+            raise ValueError("Labels must be numpy array")
+
+        epochs_data = X.reshape(X.shape[0], self.info['nchan'], X.shape[1] /
+                                self.info['nchan'])
         # Extract signal covariance
         if self.signal_cov is None:
             sig_data = np.hstack(epochs_data)
