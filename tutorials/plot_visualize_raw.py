@@ -23,7 +23,7 @@ events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
 #
 # To visually inspect your raw data, you can use the python equivalent of
 # ``mne_browse_raw``.
-raw.plot(block=True, events=events)
+raw.plot(block=True)
 
 ###############################################################################
 # The channels are color coded by channel type. Generally MEG channels are
@@ -41,14 +41,20 @@ raw.plot(block=True, events=events)
 #
 # The channels are sorted by channel type by default. You can use the ``order``
 # parameter of :func:`raw.plot <mne.io.Raw.plot>` to group the channels
-# differently. ``order='selection'`` uses the same channel groups as the
-# c-version of mne_browse_raw. It only works for Neuromag data, but
-# ``order='position'`` tries to mimic this behavior for any data. The channels
-# are grouped by sensor locations to 8 evenly sized regions. Notice that for
-# this to work effectively, all the channels in the channel array must be
-# present. The ``order`` parameter can also be passed as an array of ints
-# (picks) to plot the channels in the given order.
-#
+# differently. ``order='selection'`` uses the same channel groups as MNE-C's
+# mne_browse_raw (:ref:`CACCJEJD`). The selections are defined in
+# ``mne-python/mne/data/mne_analyze.sel`` and by modifying it, you can define
+# your own selection groups. Notice that this also affects the selections
+# returned by :func:`mne.read_selection`. By default the selections only work
+# for Neuromag data, but ``order='position'`` tries to mimic this behavior for
+# any data with sensor positions available. The channels are grouped by sensor
+# positions to 8 evenly sized regions. Notice that for this to work
+# effectively, all the data channels in the channel array must be present. The
+# ``order`` parameter can also be passed as an array of ints (picks) to plot
+# the channels in the given order.
+raw.plot(order='selection')
+
+###############################################################################
 # We read the events from a file and passed it as a parameter when calling the
 # method. The events are plotted as vertical lines so you can see how they
 # align with the raw data.

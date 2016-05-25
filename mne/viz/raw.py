@@ -23,7 +23,8 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _layout_figure, _plot_raw_onkey, figure_nobar, plt_show,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
                     _helper_raw_resize, _select_bads, _onclick_help,
-                    _setup_browser_offsets, _compute_scalings, plot_sensors)
+                    _setup_browser_offsets, _compute_scalings, plot_sensors,
+                    _radio_clicked)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
 
@@ -854,35 +855,6 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     return fig
 
 
-def _radio_clicked(label, params):
-    """Callback for radio buttons in selection dialog."""
-    labels = [l._text for l in params['fig_selection'].radio.labels]
-    idx = labels.index(label)
-    channels = params['selections'][label]
-    ax_topo = params['fig_selection'].get_axes()[1]
-    for type in ('mag', 'grad', 'eeg', 'seeg'):
-        if type in params['types']:
-            types = np.where(np.array(params['types']) == type)[0]
-            break
-    colors = np.zeros((len(types), 4))
-    for color_idx, pick in enumerate(types):
-        if pick in channels:
-            colors[color_idx] = np.array([0., 0., 0., 1.])
-    ax_topo.collections[0]._facecolors = colors
-    params['fig_selection'].canvas.draw()
-
-    nchan = sum([len(params['selections'][l]) for l in labels[:idx]])
-    params['vsel_patch'].set_y(nchan)
-    n_channels = len(channels)
-    params['n_channels'] = n_channels
-    params['inds'] = channels
-    for line in params['lines'][n_channels:]:  # To remove lines from view.
-        line.set_xdata([])
-        line.set_ydata([])
-    _setup_browser_offsets(params, n_channels)
-    params['plot_fun']()
-
-
 def _setup_browser_selection(raw, kind):
     """Helper for organizing browser selections."""
     import matplotlib.pyplot as plt
@@ -916,7 +888,8 @@ def _setup_browser_selection(raw, kind):
                       ecg=True, emg=True, ref_meg=False, misc=True, resp=True,
                       chpi=True, exci=True, ias=True, syst=True, seeg=False,
                       bio=True, ecog=False, exclude=())
-    order['Misc'] = misc
+    if len(misc) > 0:
+        order['Misc'] = misc
     keys = np.concatenate([keys, ['Misc']])
     fig_selection = figure_nobar(figsize=(4, 10), dpi=80)
     fig_selection.canvas.set_window_title('Selection')

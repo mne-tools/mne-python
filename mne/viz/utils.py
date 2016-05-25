@@ -22,10 +22,11 @@ from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..io import show_fiff, Info
-from ..io.pick import channel_type, channel_indices_by_type
+from ..io.pick import channel_type, channel_indices_by_type, pick_channels
 from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..fixes import _get_argrelmax
+from ..selection import read_selection, _SELECTIONS, _EEG_SELECTIONS
 
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
@@ -552,31 +553,61 @@ def _plot_raw_time(value, params):
         params['hsel_patch'].set_x(value)
 
 
+def _radio_clicked(label, params):
+    """Callback for radio buttons in selection dialog."""
+    labels = [l._text for l in params['fig_selection'].radio.labels]
+    idx = labels.index(label)
+    params['fig_selection'].radio._active_idx = idx
+    channels = params['selections'][label]
+    ax_topo = params['fig_selection'].get_axes()[1]
+    for type in ('mag', 'grad', 'eeg', 'seeg'):
+        if type in params['types']:
+            types = np.where(np.array(params['types']) == type)[0]
+            break
+    colors = np.zeros((len(types), 4))
+    for color_idx, pick in enumerate(types):
+        if pick in channels:
+            colors[color_idx] = np.array([0., 0., 0., 1.])
+    ax_topo.collections[0]._facecolors = colors
+    params['fig_selection'].canvas.draw()
+
+    nchan = sum([len(params['selections'][l]) for l in labels[:idx]])
+    params['vsel_patch'].set_y(nchan)
+    n_channels = len(channels)
+    params['n_channels'] = n_channels
+    params['inds'] = channels
+    for line in params['lines'][n_channels:]:  # To remove lines from view.
+        line.set_xdata([])
+        line.set_ydata([])
+    _setup_browser_offsets(params, n_channels)
+    params['plot_fun']()
+
+
+def _set_radio_button(idx, params):
+    """Helper for setting radio button."""
+    # XXX: New version of matplotlib has this implemented for radio buttons,
+    # This function is for compatibility with old versions of mpl.
+    radio = params['fig_selection'].radio
+    radio.circles[radio._active_idx].set_facecolor((1., 1., 1., 1.))
+    radio.circles[idx].set_facecolor((0., 0., 1., 1.))
+    _radio_clicked(radio.labels[idx]._text, params)
+
+
 def _change_channel_group(step, params):
     """Deal with change of channel group."""
-    from .raw import _radio_clicked
     radio = params['fig_selection'].radio
-    labels = [label._text for label in radio.labels]
-    # XXX: Old versions of matplotlib don't have a way of checking or setting
-    # the active button. Here we check the color of the button.
-    for idx, circle in enumerate(radio.circles):
-        if circle._facecolor == (0., 0., 1., 1.):
-            if step < 0:
-                if idx < len(labels) - 1:
-                    circle.set_facecolor((1., 1., 1., 1.))
-                    radio.circles[idx + 1].set_facecolor((0., 0., 1., 1.))
-                    _radio_clicked(labels[idx + 1], params)
-            else:
-                if idx > 0:
-                    circle.set_facecolor((1., 1., 1., 1.))
-                    radio.circles[idx - 1].set_facecolor((0., 0., 1., 1.))
-                    _radio_clicked(labels[idx - 1], params)
-            return
+    idx = radio._active_idx
+    if step < 0:
+        if idx < len(radio.labels) - 1:
+            _set_radio_button(idx + 1, params)
+    else:
+        if idx > 0:
+            _set_radio_button(idx - 1, params)
+    return
 
 
 def _handle_change_selection(event, params):
     """Helper for handling clicks on vertical scrollbar using selections."""
-    from .raw import _radio_clicked
     radio = params['fig_selection'].radio
     ydata = event.ydata
     labels = [label._text for label in radio.labels]
@@ -585,7 +616,7 @@ def _handle_change_selection(event, params):
         nchans = len(params['selections'][label])
         offset += nchans
         if ydata < offset:
-            _radio_clicked(labels[idx], params)
+            _set_radio_button(idx, params)
             return
 
 
@@ -1013,11 +1044,17 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
         scheme is used. If 'position', the sensors are divided into 8 regions.
         See ``order`` kwarg of :func:`mne.viz.plot_raw`. If array, the
         channels are divided by picks given in the array.
+
+        .. versionadded:: 0.13
+
     show_names : bool
         Whether to display all channel names. Defaults to False.
     axes : instance of Axes | instance of Axes3D | None
         Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
         of Axes3D. If None (default), a new axes will be created.
+
+        .. versionadded:: 0.13
+
     show : bool
         Show figure if True. Defaults to True.
 
@@ -1054,6 +1091,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
         raise ValueError("ch_type must be one of %s not %s!" % (allowed_types,
                                                                 ch_type))
     picks = ch_indices[ch_type]
+    if len(picks) == 0:
+        raise ValueError('Could not find any channels of type %s.' % ch_type)
     if kind == 'topomap':
         pos = _auto_topomap_coords(info, picks, True)
     else:
@@ -1065,26 +1104,38 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
         colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
                   for i, pick in enumerate(picks)]
     else:
+        colors = {'Vertex': (0., 0., 0., 1.),
+                  'Left-frontal': (0.2, 1., 0.8, 1.),
+                  'Right-frontal': (0.8, 1., 0.8, 1.),
+                  'Left-parietal': (0.2, 0.5, 1., 1.),
+                  'Right-parietal': (0.8, 0.5, 1., 1.),
+                  'Left-occipital': (0.2, 0, 0.2, 1.),
+                  'Right-occipital': (0.8, 0, 0.2, 1.),
+                  'Left-temporal': (0., 0.5, 0.2, 1.),
+                  'Right-temporal': (1., 0.5, 0.2, 1.),
+                  'EEG 1-32': (0.2, 1., 0.8, 1.),
+                  'EEG 33-64': (0.2, 0, 0.2, 1.),
+                  'EEG 65-96': (0.8, 1., 0.8, 1.),
+                  'EEG 97-128': (0.8, 0, 0.2, 1.)}
         if regions == 'position':
             from mne.selection import _divide_to_regions
-            colors = {'Left-frontal': (0.2, 1., 0.8, 1.),
-                      'Right-frontal': (0.8, 1., 0.8, 1.),
-                      'Left-parietal': (0.2, 0.5, 1., 1.),
-                      'Right-parietal': (0.8, 0.5, 1., 1.),
-                      'Left-occipital': (0.2, 0, 0.2, 1.),
-                      'Right-occipital': (0.8, 0, 0.2, 1.),
-                      'Left-temporal': (0., 0.5, 0.2, 1.),
-                      'Right-temporal': (1., 0.5, 0.2, 1.)}
             regions = _divide_to_regions(info, add_stim=False)
             color_vals = [colors[key] for key in regions.keys()]
             regions = list(regions.values())
+        elif regions == 'selection':
+            regions, color_vals = list(), list()
+            for selection in _SELECTIONS + _EEG_SELECTIONS:
+                channels = pick_channels(info['ch_names'],
+                                         read_selection(selection, info=info))
+                regions.append(channels)
+                color_vals.append(colors[selection])
         else:
             import matplotlib.pyplot as plt
             colors = np.linspace(0, 1, len(regions))
             color_vals = [plt.cm.jet(colors[i]) for i in range(len(regions))]
         if not isinstance(regions, (np.ndarray, list)):
-            raise ValueError("Regions must be None, 'position' or an array. "
-                             "Got %s." % regions)
+            raise ValueError("Regions must be None, 'position', 'selection', "
+                             "or an array. Got %s." % regions)
         colors = np.zeros((len(picks), 4))
         for pick_idx, pick in enumerate(picks):
             for ind, value in enumerate(regions):

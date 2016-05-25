@@ -13,11 +13,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-<<<<<<< HEAD
-    -
-=======
     - Add order params 'selection' and 'position' for :func:`mne.viz.plot_raw` to allow plotting of specific brain regions by `Jaakko Leppakangas`_
->>>>>>> Added topomap to selection dialog. Updated whats_new. Fix.
 
 BUG
 ~~~

@@ -1655,7 +1655,7 @@ def _url_to_local_path(url, path):
     return destination
 
 
-def _get_stim_channel(stim_channel, info):
+def _get_stim_channel(stim_channel, info, raise_error=True):
     """Helper to determine the appropriate stim_channel
 
     First, 'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2', etc.
@@ -1702,8 +1702,11 @@ def _get_stim_channel(stim_channel, info):
         stim_channel = [info['ch_names'][ch_] for ch_ in stim_channel]
         return stim_channel
 
-    raise ValueError("No stim channels found. Consider specifying them "
-                     "manually using the 'stim_channel' parameter.")
+    if raise_error:
+        raise ValueError("No stim channels found. Consider specifying them "
+                         "manually using the 'stim_channel' parameter.")
+    else:
+        return ()
 
 
 def _check_fname(fname, overwrite=False, must_exist=False):
