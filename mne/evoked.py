@@ -253,7 +253,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             possible to paint an area to draw topomaps. When False, the
             interactive features are disabled. Disabling interactive features
             reduces memory consumption and is useful when using ``axes``
-            parameter to draw many figures at once.
+            parameter to draw multiaxes figures.
 
             .. versionadded:: 0.13.0
 

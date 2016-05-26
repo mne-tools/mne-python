@@ -468,8 +468,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         Whether to use interactive features. If True (default), it is possible
         to paint an area to draw topomaps. When False, the interactive features
         are disabled. Disabling interactive features reduces memory consumption
-        and is useful when using ``axes`` parameter to draw many figures at
-        once.
+        and is useful when using ``axes`` parameter to draw multiaxes figures.
 
         .. versionadded:: 0.13.0
 
