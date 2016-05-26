@@ -23,6 +23,10 @@ Before running this script do the following:
        appropriate series:
        $ ln -s <FLASH 5 series dir> flash05
        $ ln -s <FLASH 30 series dir> flash30
+       Some partition formats (e.g. FAT32) do not support symbolic links.
+       In this case, copy the file to the appropriate series:
+       $ cp <FLASH 5 series dir> flash05
+       $ cp <FLASH 30 series dir> flash30
     4. cd to the directory where flash05 and flash30 links are
     5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
     6. Run this script
