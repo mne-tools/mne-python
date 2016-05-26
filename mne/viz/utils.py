@@ -26,11 +26,19 @@ from ..io.pick import channel_type, channel_indices_by_type, pick_channels
 from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..fixes import _get_argrelmax
-from ..selection import read_selection, _SELECTIONS, _EEG_SELECTIONS
+from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
+                         _divide_to_regions)
 
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
+CH_GROUP_COLORS = dict(
+    zip(_SELECTIONS + _EEG_SELECTIONS,
+        [(0., 0., 0., 1.), (0.2, 1., 0.8, 1.), (0.8, 1., 0.8, 1.),
+         (0.2, 0.5, 1., 1.), (0.8, 0.5, 1., 1.), (0.2, 0, 0.2, 1.),
+         (0.8, 0, 0.2, 1.), (0., 0.5, 0.2, 1.), (1., 0.5, 0.2, 1.),
+         (0.2, 1., 0.8, 1.), (0.2, 0, 0.2, 1.), (0.8, 1., 0.8, 1.),
+         (0.8, 0, 0.2, 1.)]))
 
 
 def _setup_vmin_vmax(data, vmin, vmax, norm=False):
@@ -1022,8 +1030,8 @@ def _process_times(inst, times, n_peaks=None, few=False):
     return times
 
 
-def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
-                 show_names=False, axes=None, show=True):
+def plot_sensors(info, kind='topomap', ch_type=None, title=None,
+                 ch_groups=None, show_names=False, axes=None, show=True):
     """Plot sensors positions.
 
     Parameters
@@ -1039,13 +1047,13 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%s)' % ch_type``.
-    regions : 'position' | array of shape (regions, picks) | None
-        Regions for coloring the sensors. If None (default), default coloring
-        scheme is used. If 'position', the sensors are divided into 8 regions.
-        See ``order`` kwarg of :func:`mne.viz.plot_raw`. If array, the
-        channels are divided by picks given in the array.
+    ch_groups : 'position' | array of shape (ch_groups, picks) | None
+        Channel groups for coloring the sensors. If None (default), default
+        coloring scheme is used. If 'position', the sensors are divided
+        into 8 regions. See ``order`` kwarg of :func:`mne.viz.plot_raw`. If
+        array, the channels are divided by picks given in the array.
 
-        .. versionadded:: 0.13
+        .. versionadded:: 0.13.0
 
     show_names : bool
         Whether to display all channel names. Defaults to False.
@@ -1053,7 +1061,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
         Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
         of Axes3D. If None (default), a new axes will be created.
 
-        .. versionadded:: 0.13
+        .. versionadded:: 0.13.0
 
     show : bool
         Show figure if True. Defaults to True.
@@ -1100,39 +1108,33 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, regions=None,
     def_colors = _handle_default('color')
     ch_names = np.array(info['ch_names'])[picks]
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
-    if regions is None:
+    if ch_groups is None:
         colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
                   for i, pick in enumerate(picks)]
     else:
-        colors = dict(
-            zip(_SELECTIONS + _EEG_SELECTIONS,
-                [(0., 0., 0., 1.), (0.2, 1., 0.8, 1.), (0.8, 1., 0.8, 1.),
-                 (0.2, 0.5, 1., 1.), (0.8, 0.5, 1., 1.), (0.2, 0, 0.2, 1.),
-                 (0.8, 0, 0.2, 1.), (0., 0.5, 0.2, 1.), (1., 0.5, 0.2, 1.),
-                 (0.2, 1., 0.8, 1.), (0.2, 0, 0.2, 1.), (0.8, 1., 0.8, 1.),
-                 (0.8, 0, 0.2, 1.)]))
-        if regions == 'position':
-            from mne.selection import _divide_to_regions
-            regions = _divide_to_regions(info, add_stim=False)
-            color_vals = [colors[key] for key in regions.keys()]
-            regions = list(regions.values())
-        elif regions == 'selection':
-            regions, color_vals = list(), list()
+        if ch_groups == 'position':
+            colors = CH_GROUP_COLORS
+            ch_groups = _divide_to_regions(info, add_stim=False)
+            color_vals = [colors[key] for key in ch_groups.keys()]
+            ch_groups = list(ch_groups.values())
+        elif ch_groups == 'selection':
+            colors = CH_GROUP_COLORS
+            ch_groups, color_vals = list(), list()
             for selection in _SELECTIONS + _EEG_SELECTIONS:
                 channels = pick_channels(info['ch_names'],
                                          read_selection(selection, info=info))
-                regions.append(channels)
+                ch_groups.append(channels)
                 color_vals.append(colors[selection])
         else:
             import matplotlib.pyplot as plt
-            colors = np.linspace(0, 1, len(regions))
-            color_vals = [plt.cm.jet(colors[i]) for i in range(len(regions))]
-        if not isinstance(regions, (np.ndarray, list)):
-            raise ValueError("Regions must be None, 'position', 'selection', "
-                             "or an array. Got %s." % regions)
+            colors = np.linspace(0, 1, len(ch_groups))
+            color_vals = [plt.cm.jet(colors[i]) for i in range(len(ch_groups))]
+        if not isinstance(ch_groups, (np.ndarray, list)):
+            raise ValueError("ch_groups must be None, 'position', "
+                             "'selection', or an array. Got %s." % ch_groups)
         colors = np.zeros((len(picks), 4))
         for pick_idx, pick in enumerate(picks):
-            for ind, value in enumerate(regions):
+            for ind, value in enumerate(ch_groups):
                 if pick in value:
                     colors[pick_idx] = color_vals[ind]
                     break
