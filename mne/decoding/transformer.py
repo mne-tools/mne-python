@@ -8,12 +8,13 @@ import numpy as np
 
 from .mixin import TransformerMixin
 
-from .. import pick_types
+from .. import pick_types, Epochs,
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       band_stop_filter)
 from ..time_frequency.psd import _psd_multitaper
 from ..externals import six
 from ..utils import _check_type_picks
+from ..epochs import _BaseEpochs
 
 
 class Scaler(TransformerMixin):
@@ -148,8 +149,8 @@ class Scaler(TransformerMixin):
 
 
 class EpochsVectorizer(TransformerMixin):
-    """EpochsVectorizer transforms epochs to data matrix to fit into sklearn
-       pipeline.
+    """EpochsVectorizer transforms epochs to a two dimensional data array to
+       comply with sklearn pipeline.
 
     Parameters
     ----------
@@ -175,26 +176,19 @@ class EpochsVectorizer(TransformerMixin):
 
         Parameters
         ----------
-        epochs : instance of Epochs
-            The data to concatenate channels.
+        epochs : Epochs object
+            The instance of Epochs from which data matrix will be taken.
         y : None | array of shape(n_epochs,)
-            The label of each epoch
+            The label of each epoch. If None, labels from events are used.
 
         Returns
         -------
         self : instance of EpochsVectorizer
             returns the modified instance
         """
-        from mne import Epochs
-
-        if not isinstance(epochs, Epochs):
-            raise ValueError("epochs should be an instance of Epochs (got %s)"
-                             % type(epochs))
-
-        self.epochs_data = epochs.get_data()
-        # save epochs for inverse transform
-        self._epochs = epochs
-
+        if not isinstance(epochs, _BaseEpochs):
+            raise ValueError("Epochs should be an instance of Epochs,  got %s"
+                             "instead" % type(epochs))
         return self
 
     def transform(self, epochs, y=None):
@@ -216,23 +210,20 @@ class EpochsVectorizer(TransformerMixin):
         y : array, shape(n_epochs,)
             The label for each epoch.
         """
-        from mne import Epochs
+        if not isinstance(epochs, _BaseEpochs):
+            raise ValueError("epochs should be an instance of Epochs got %s"
+                             " instead" % type(epochs))
 
-        if not isinstance(epochs, Epochs):
-            raise ValueError("epochs should be an instance of Epochs (got %s)"
-                             % type(epochs))
-
-        self.epochs_data = np.atleast_3d(self.epochs_data)
+        self.epochs_data = epochs._data()
 
         n_epochs, n_channels, n_times = self.epochs_data.shape
         X = self.epochs_data.reshape(n_epochs, n_channels * n_times)
         # save attributes for inverse_transform
-        self.n_epochs = n_epochs
-        self.n_channels = n_channels
-        self.n_times = n_times
+        self.n_epochs = len(X)
+        self.info = epochs.info
 
         if (y is None):
-            y = epochs.events[:, -1]
+            y = epochs.events[:, 2]
         return X, y
 
     def fit_transform(self, epochs, y=None):
@@ -243,6 +234,7 @@ class EpochsVectorizer(TransformerMixin):
         epochs : instance of Epochs
             The data.
         y : None, array of shape(n_epochs,)
+            Label of epochs. If None, events are used.
 
         Returns
         -------
@@ -273,11 +265,12 @@ class EpochsVectorizer(TransformerMixin):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(X))
 
-        X_orig = X.reshape(-1, self.n_channels, self.n_times)
+        X_orig = X.reshape(self.n_epochs, self.info['nchan'], X.shape[1] /
+                           self.info['nchan'])
         if not np.array_equal(self._epochs.get_data(), X_orig):
             raise ValueError("Given X doesn't match epochs used in fit.")
 
-        return self._epochs
+        return self
 
 
 class PSDEstimator(TransformerMixin):
