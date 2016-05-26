@@ -62,12 +62,13 @@ raw.plot(order='selection')
 # We can check where the channels reside with ``plot_sensors``. Notice that
 # this method (along with many other MNE plotting functions) is callable using
 # any MNE data container where the channel information is available.
-raw.plot_sensors(kind='3d', ch_type='mag', regions='position')
+raw.plot_sensors(kind='3d', ch_type='mag', ch_groups='position')
 
 ###############################################################################
-# We used ``regions='position'`` to color code the different regions. This is
-# useful for checking if the ``order='position'`` of
-# :func:`raw.plot <mne.io.Raw.plot>` separated the regions correctly.
+# We used ``ch_groups='position'`` to color code the different regions. It uses
+# the same algorithm for dividing the regions as ``order='position'`` of
+# :func:`raw.plot <mne.io.Raw.plot>`. You can also pass a list of picks to
+# color any channel group with different colors.
 #
 # Now let's add some ssp projectors to the raw data. Here we read them from a
 # file and plot them.
