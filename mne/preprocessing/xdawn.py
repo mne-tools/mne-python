@@ -7,6 +7,7 @@ import copy as cp
 
 import numpy as np
 from scipy import linalg
+from sklearn.preprocessing import LabelEncoder
 
 from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
@@ -229,7 +230,8 @@ class Xdawn(TransformerMixin, ContainsMixin):
         Parameters
         ----------
         X : ndarray, shape(n_channels, n_times * n_freq)
-        y : ndarray shape(n_samples,) | None (default None)
+            Data of epochs
+        y : ndarray shape(n_samples,)
             labels for the data
 
         Returns
@@ -237,8 +239,8 @@ class Xdawn(TransformerMixin, ContainsMixin):
         self : Xdawn instance
             The Xdawn instance.
         """
-        if X.ndim is not 2:
-            raise ValueError("Dimension of X should be 2")
+        if X.ndim is not 2 or not isinstance(X, ndarray):
+            raise ValueError("X should be 2 dimensional ndarray")
         if not isinstance(y, np.ndarray):
             raise ValueError("Labels must be numpy array")
 
@@ -260,7 +262,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
         self.evokeds_cov_ = dict()
         evokeds = dict()
         toeplitz = dict()
-        classes = np.unique(y)
+        classes = LabelEncoder().fit(y).classes_
         shape = epochs_data.shape
         for eid in classes:
             mean_data = np.mean(epochs_data[eid].reshape(-1, shape[1],
@@ -296,15 +298,13 @@ class Xdawn(TransformerMixin, ContainsMixin):
         self.event_id = classes
         return self
 
-    def transform(self, X, y):
+    def transform(self, X):
         """Apply Xdawn dim reduction.
 
         Parameters
         ----------
         X : ndarray, shape(n_channels, n_shapes * n_times)
             data of epochs
-        y : ndarray, shape(n_samples,)
-            labels of data
 
         Returns
         -------
@@ -314,8 +314,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
         if isinstance(X, np.ndarray):
             data = X
         else:
-            raise ValueError('Data input must be of'
-                             'type numpy array')
+            raise ValueError('Data input must be of type numpy array')
 
         # create full matrix of spatial filter
         full_filters = list()
