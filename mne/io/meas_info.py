@@ -1508,24 +1508,25 @@ def _force_update_info(info_base, info_target):
 
 
 def anonymize_info(info):
-    """Anonymize measurement information in place by removing 'subject_info',
-       'meas_date', 'file_id', 'meas_id' if they exist.
+    """Anonymize measurement information in place.
+
+    Reset 'subject_info', 'meas_date', 'file_id', and 'meas_id' keys.
 
     Parameters
     ----------
-        info : dict, instance of Info
+    info : dict, instance of Info
         Measurement information for the dataset.
 
     Returns
     -------
-        info : instance of Info
+    info : instance of Info
         Measurement information for the dataset.
 
     Notes
     -----
-        Operates in place.
+    Operates in place.
     """
-    if not isinstance(info, (dict, Info)):
+    if not isinstance(info, Info):
         raise ValueError('self must be an Info instance.')
     if info.get('subject_info') is not None:
         del info['subject_info']
