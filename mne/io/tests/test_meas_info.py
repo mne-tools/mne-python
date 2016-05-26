@@ -336,11 +336,14 @@ def test_anonymize():
                                     first_name='bar', birthday=(1987, 4, 8),
                                     sex=0, hand=1)
 
+    orig_file_id = raw.info['file_id']['secs']
+    orig_meas_id = raw.info['meas_id']['secs']
     # Test instance method
     events = read_events(event_name)
     epochs = Epochs(raw, events[:1], 2, 0., 0.1)
     for inst in [raw, epochs]:
         assert_true('subject_info' in inst.info.keys())
+        assert_true(inst.info['subject_info'] is not None)
         assert_true(inst.info['file_id']['secs'] != 0)
         assert_true(inst.info['meas_id']['secs'] != 0)
         assert_true(np.any(inst.info['meas_date'] != [0, 0]))
@@ -357,9 +360,10 @@ def test_anonymize():
     raw.save(out_fname, overwrite=True)
     raw = Raw(out_fname)
     assert_true(raw.info.get('subject_info') is None)
-    assert_equal(raw.info['meas_date'], [0, 0])
-    assert_equal(raw.info['file_id']['secs'], 0)
-    assert_equal(raw.info['meas_id']['secs'], 0)
+    assert_array_equal(raw.info['meas_date'], [0, 0])
+    # XXX mne.io.write.write_id necessarily writes secs
+    assert_true(raw.info['file_id']['secs'] != orig_file_id)
+    assert_true(raw.info['meas_id']['secs'] != orig_meas_id)
 
 
 run_tests_if_main()
