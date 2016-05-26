@@ -20,6 +20,8 @@ BUG
 
     - Fixed channel selection order when MEG channels do not come first in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
 
+    - Fixed color ranges to correspond the colors in colorbar when plotting several time instances with :func:`mne.viz.plot_evoked_topomap` by `Jaakko Leppakangas`_
+
 API
 ~~~
 

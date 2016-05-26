@@ -1362,12 +1362,10 @@ class ICA(ContainsMixin):
         fig : instance of matplotlib.pyplot.Figure
             The figure object.
         """
-        return plot_ica_components(self, picks=picks,
-                                   ch_type=ch_type,
-                                   res=res, layout=layout, vmax=vmax,
-                                   cmap=cmap,
-                                   sensors=sensors, colorbar=colorbar,
-                                   title=title, show=show,
+        return plot_ica_components(self, picks=picks, ch_type=ch_type,
+                                   res=res, layout=layout, vmin=vmin,
+                                   vmax=vmax, cmap=cmap, sensors=sensors,
+                                   colorbar=colorbar, title=title, show=show,
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp,
                                    head_pos=head_pos)
