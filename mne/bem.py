@@ -1642,7 +1642,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
-                   verbose=None, force_copy=False):
+                   verbose=None):
     """Create 3-Layer BEM model from prepared flash MRI images
 
     Parameters
@@ -1657,10 +1657,6 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    force_copy : bool
-        Hard-copy files instead of making symbolic links. This parameter needs
-        to be applied on partitions, such as FAT32, that do not support
-        symbolic links.
 
     Notes
     -----
