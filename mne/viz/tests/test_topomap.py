@@ -19,11 +19,12 @@ from mne.io.constants import FIFF
 from mne.channels import read_layout, make_eeg_layout
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
-from mne.utils import slow_test
+from mne.utils import slow_test, run_tests_if_main
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
 from mne.viz.topomap import (_check_outlines, _onselect, plot_topomap)
 from mne.viz.utils import _find_peaks
+
 
 # Set our plotters to test mode
 import matplotlib
@@ -275,3 +276,6 @@ def test_plot_tfr_topomap():
     _onselect(eclick, erelease, tfr, pos, 'mag', 1, 3, 1, 3, 'RdBu_r', list())
     tfr._onselect(eclick, erelease, None, 'mean', None)
     plt.close('all')
+
+
+run_tests_if_main()

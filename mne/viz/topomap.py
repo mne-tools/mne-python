@@ -1263,6 +1263,10 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     else:
         image_mask = None
 
+    vlims = [_setup_vmin_vmax(data[:, i], vmin, vmax, norm=merge_grads)
+             for i in range(len(times))]
+    vmin = np.min(vlims)
+    vmax = np.max(vlims)
     for idx, time in enumerate(times):
         tp, cn = plot_topomap(data[:, idx], pos, vmin=vmin, vmax=vmax,
                               sensors=sensors, res=res, names=names,
