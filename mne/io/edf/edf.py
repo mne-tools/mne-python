@@ -285,10 +285,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
 
     with open(fname, 'rb') as fid:
         assert(fid.tell() == 0)
-        fid.seek(8)
+        fid.seek(168)  # Seek 8 + 80 bytes for Subject id + 80 bytes for rec id
 
-        fid.read(80).strip().decode()  # subject id
-        fid.read(80).strip().decode()  # recording id
         day, month, year = [int(x) for x in re.findall('(\d+)',
                                                        fid.read(8).decode())]
         hour, minute, sec = [int(x) for x in re.findall('(\d+)',
