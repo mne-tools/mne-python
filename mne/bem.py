@@ -1078,7 +1078,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
             else:
                 if op.exists(surf_out):
                     os.remove(surf_out)
-                os.symlink(surf_ws_out, surf_out)
+                _symlink(surf_ws_out, surf_out)
                 skip_symlink = False
 
         if skip_symlink:
@@ -1531,6 +1531,10 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
            appropriate series:
            $ ln -s <FLASH 5 series dir> flash05
            $ ln -s <FLASH 30 series dir> flash30
+           Some partition formats (e.g. FAT32) do not support symbolic links.
+           In this case, copy the file to the appropriate series:
+           $ cp <FLASH 5 series dir> flash05
+           $ cp <FLASH 30 series dir> flash30
         4. cd to the directory where flash05 and flash30 links are
         5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
         6. Run this script
@@ -1768,7 +1772,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         else:
             if op.exists(surf):
                 os.remove(surf)
-            os.symlink(op.join('flash', surf), op.join(surf))
+            _symlink(op.join('flash', surf), op.join(surf))
             skip_symlink = False
     if skip_symlink:
         logger.info("Unable to create all symbolic links to .surf files "
@@ -1788,3 +1792,12 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
     # Go back to initial directory
     os.chdir(curdir)
+
+
+def _symlink(src, dest):
+    try:
+        os.symlink(src, dest)
+    except OSError:
+        warn('Could not create symbolic link %s. Check that your partition '
+             'handles symbolic links. The file will be copied instead.' % dest)
+        shutil.copy(src, dest)
