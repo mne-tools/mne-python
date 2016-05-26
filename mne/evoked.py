@@ -191,7 +191,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
-             spatial_colors=False):
+             spatial_colors=False, selectable=True):
         """Plot evoked data using butterfly plots
 
         Left click to a line shows the channel name. Selecting an area by
@@ -248,18 +248,26 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             coordinates into color values. Spatially similar channels will have
             similar colors. Bad channels will be dotted. If False, the good
             channels are plotted black and bad channels red. Defaults to False.
+        selectable : bool
+            Whether to use interactive features. If True (default), it is
+            possible to paint an area to draw topomaps. When False, the
+            interactive features are disabled. Disabling interactive features
+            reduces memory consumption and is useful when using ``axes``
+            parameter to draw many figures at once.
+
+            .. versionadded:: 0.13.0
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
             Figure containing the butterfly plots.
         """
-        return plot_evoked(self, picks=picks, exclude=exclude, unit=unit,
-                           show=show, ylim=ylim, proj=proj, xlim=xlim,
-                           hline=hline, units=units, scalings=scalings,
-                           titles=titles, axes=axes, gfp=gfp,
-                           window_title=window_title,
-                           spatial_colors=spatial_colors)
+        return plot_evoked(
+            self, picks=picks, exclude=exclude, unit=unit, show=show,
+            ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
+            scalings=scalings, titles=titles, axes=axes, gfp=gfp,
+            window_title=window_title, spatial_colors=spatial_colors,
+            selectable=selectable)
 
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
                    clim=None, xlim='tight', proj=False, units=None,

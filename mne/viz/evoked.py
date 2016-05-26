@@ -31,7 +31,7 @@ from ..channels import find_layout
 def _butterfly_onpick(event, params):
     """Helper to add a channel name on click"""
     params['need_draw'] = True
-    ax = event.artist.get_axes()
+    ax = event.artist.axes
     ax_idx = np.where([ax is a for a in params['axes']])[0]
     if len(ax_idx) == 0:  # this can happen if ax param is used
         return  # let the other axes handle it
@@ -407,7 +407,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
-                window_title=None, spatial_colors=False):
+                window_title=None, spatial_colors=False, selectable=True):
     """Plot evoked data using butteryfly plots
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -464,7 +464,14 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         coordinates into color values. Spatially similar channels will have
         similar colors. Bad channels will be dotted. If False, the good
         channels are plotted black and bad channels red. Defaults to False.
+    selectable : bool
+        Whether to use interactive features. If True (default), it is possible
+        to paint an area to draw topomaps. When False, the interactive features
+        are disabled. Disabling interactive features reduces memory consumption
+        and is useful when using ``axes`` parameter to draw many figures at
+        once.
 
+        .. versionadded:: 0.13.0
 
     Returns
     -------
@@ -476,7 +483,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly",
                         gfp=gfp, window_title=window_title,
-                        spatial_colors=spatial_colors, selectable=True)
+                        spatial_colors=spatial_colors, selectable=selectable)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
