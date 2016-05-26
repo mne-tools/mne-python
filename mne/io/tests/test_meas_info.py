@@ -6,7 +6,6 @@ from nose.tools import assert_false, assert_equal, assert_raises, assert_true
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 
-from mne.datasets import testing
 from mne import Epochs, read_events
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
                     _loc_to_coil_trans, Raw, read_info, write_info,
@@ -26,7 +25,6 @@ event_name = op.join(base_dir, 'test-eve.fif')
 kit_data_dir = op.join(op.dirname(__file__), '..', 'kit', 'tests', 'data')
 hsp_fname = op.join(kit_data_dir, 'test_hsp.txt')
 elp_fname = op.join(kit_data_dir, 'test_elp.txt')
-out_fname = op.join(_TempDir(), 'test_subj_info_raw.fif')
 
 
 def test_coil_trans():
@@ -328,7 +326,6 @@ def test_check_consistency():
     assert_raises(RuntimeError, info2._check_consistency)
 
 
-@testing.requires_testing_data
 def test_anonymize():
     # Checks that contains sensitive information
     assert_raises(ValueError, anonymize_info, 'foo')
@@ -355,6 +352,8 @@ def test_anonymize():
 
     # When we write out with raw.save, these get overwritten with the
     # new save time
+    tempdir = _TempDir()
+    out_fname = op.join(tempdir, 'test_subj_info_raw.fif')
     raw.save(out_fname, overwrite=True)
     raw = Raw(out_fname)
     assert_true(raw.info.get('subject_info') is None)
