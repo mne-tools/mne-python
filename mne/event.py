@@ -905,10 +905,12 @@ class Elekta_event(object):
         self.delay = float(delay)  # delay to stimulus (s)
         self.comment = comment  # verbose comment for the event
         # non-DACQ vars
+        self.index = None  # index of event in DACQ list
         self.in_use = False  # whether event is referred to by a category
 
     def __repr__(self):
         s = '<Elekta_event | '
+        s += 'index: %d ' % self.index
         s += 'name: %s, ' % self.name
         s += 'comment: "%s", ' % self.comment
         s += 'pre-state: %d, ' % self.oldbits
@@ -983,7 +985,7 @@ class Elekta_averager(object):
     acq_var_magic = ['ERF', 'DEF', 'ACQ', 'TCP']
 
     def __init__(self, acq_pars):
-        """ acq_pars usually is obtained as data.info['acq_pars'], where data
+        """ acq_pars is usually obtained as data.info['acq_pars'], where data
         can be instance of Raw, Epochs or Evoked. """
         self.acq_dict = _acqpars_dict(acq_pars)
         # sets instance variables (lowercase versions of DACQ variable names)
@@ -1038,6 +1040,7 @@ class Elekta_averager(object):
                 evdi[class_key] = self.acq_dict[acq_key]
             # events are keyed by number starting from 1
             events[int(evnum)] = Elekta_event(**evdi)
+            events[int(evnum)].index = int(evnum)
         return events
 
     def _categories_from_acq_pars(self, all_categories=False):
@@ -1113,14 +1116,14 @@ class Elekta_averager(object):
         """ Return list of categories in DACQ defined order. Only returns
         categories marked active in DACQ. """
         return sorted(self._categories_in_use,
-                      key=lambda cat: getattr(cat, 'index'))
+                      key=lambda cat: cat.index)
 
     @property
     def events(self):
         """ Return list of events in DACQ order. Only returns events that
         are referred to by a DACQ category. """
         return sorted(self._events_in_use,
-                      key=lambda ev: int(getattr(ev, 'name')))
+                      key=lambda ev: ev.index)
 
     def get_mne_rejection_dict(self):
         """ Makes a mne rejection dict based on the averager parameters. Result
