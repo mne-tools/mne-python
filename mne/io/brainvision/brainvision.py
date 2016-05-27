@@ -38,10 +38,11 @@ class RawBrainVision(_BaseRaw):
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file.
         Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
-    misc : list or tuple
+    misc : list | tuple | 'auto'
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
-        in the vhdr file. Default is ``()``.
+        in the vhdr file. If 'auto', channels that have a unit of 'C', 'µS',
+        'uS', 'ARU' or 'S' are assigned. Default is ``()``.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -261,9 +262,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file.
-    misc : list of str
+    misc : list of str | 'auto'
         Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the vhdr file.
+        should correspond to the electrodes in the vhdr file. If 'auto', the
+        misc channels are inferred using the units.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1.. For microvolts, the scale factor would be 1e-6. This is
@@ -331,6 +333,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     ranges = np.empty(nchan)
     cals.fill(np.nan)
     ch_dict = dict()
+    misc_chs = list()
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0]) - 1
         props = props.split(',')
@@ -347,6 +350,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         unit = unit.replace(u'\xc2', u'')  # Remove unwanted control characters
         cals[n] = float(resolution)
         ranges[n] = _unit_dict.get(unit, unit) * scale
+        if unit in ('C', u'µS', u'uS', 'ARU', 'S'):
+            misc_chs.append(name)
+    misc = misc_chs if misc == 'auto' else misc
 
     # create montage
     if montage is True:
