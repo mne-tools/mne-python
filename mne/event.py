@@ -911,7 +911,7 @@ class Elekta_event(object):
     def __repr__(self):
         s = '<Elekta_event | '
         s += 'index: %d ' % self.index
-        s += 'name: %s, ' % self.name
+        s += 'name: "%s", ' % self.name
         s += 'comment: "%s", ' % self.comment
         s += 'pre-state: %d, ' % self.oldbits
         s += 'pre-mask: %d, ' % self.oldmask
