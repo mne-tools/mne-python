@@ -987,6 +987,8 @@ class Elekta_averager(object):
     def __init__(self, acq_pars):
         """ acq_pars is usually obtained as data.info['acq_pars'], where data
         can be instance of Raw, Epochs or Evoked. """
+        if not acq_pars:
+            raise ValueError('No acquisition parameters')
         self.acq_dict = _acqpars_dict(acq_pars)
         # sets instance variables (lowercase versions of DACQ variable names)
         for var in Elekta_averager.vars:
