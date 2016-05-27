@@ -367,7 +367,7 @@ def test_ica_additional():
         assert_true(sources.shape[1] == ica.n_components_)
 
         for exclude in [[], [0]]:
-            ica.exclude = [0]
+            ica.exclude = exclude
             ica.labels_ = {'foo': [0]}
             ica.save(test_ica_fname)
             ica_read = read_ica(test_ica_fname)
@@ -396,9 +396,12 @@ def test_ica_additional():
         assert_true((d1 != ica_raw._data[0]).any())
 
         ica.n_pca_components = 2
+        ica.method = 'fake'
         ica.save(test_ica_fname)
         ica_read = read_ica(test_ica_fname)
         assert_true(ica.n_pca_components == ica_read.n_pca_components)
+        assert_equal(ica.method, ica_read.method)
+        assert_equal(ica.labels_, ica_read.labels_)
 
         # check type consistency
         attrs = ('mixing_matrix_ unmixing_matrix_ pca_components_ '
@@ -460,6 +463,11 @@ def test_ica_additional():
         assert_equal(len(scores), ica.n_components_)
         idx, scores = ica.find_bads_ecg(raw, method='correlation')
         assert_equal(len(scores), ica.n_components_)
+
+        idx, scores = ica.find_bads_eog(raw)
+        assert_equal(len(scores), ica.n_components_)
+
+        ica.labels_ = None
         idx, scores = ica.find_bads_ecg(epochs, method='ctps')
         assert_equal(len(scores), ica.n_components_)
         assert_raises(ValueError, ica.find_bads_ecg, epochs.average(),
@@ -467,8 +475,6 @@ def test_ica_additional():
         assert_raises(ValueError, ica.find_bads_ecg, raw,
                       method='crazy-coupling')
 
-        idx, scores = ica.find_bads_eog(raw)
-        assert_equal(len(scores), ica.n_components_)
         raw.info['chs'][raw.ch_names.index('EOG 061') - 1]['kind'] = 202
         idx, scores = ica.find_bads_eog(raw)
         assert_true(isinstance(scores, list))

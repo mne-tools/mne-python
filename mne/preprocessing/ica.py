@@ -963,7 +963,7 @@ class ICA(ContainsMixin):
             raise ValueError('Method "%s" not supported.' % method)
         # sort indices by scores
         ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
-        if not hasattr(self, 'labels_'):
+        if not hasattr(self, 'labels_') or self.labels_ is None:
             self.labels_ = dict()
         self.labels_['ecg'] = list(ecg_idx)
         self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
