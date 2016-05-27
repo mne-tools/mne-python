@@ -1071,7 +1071,7 @@ def _process_times(inst, times, n_peaks=None, few=False):
     return times
 
 
-def plot_sensors(info, kind='topomap', ch_type=None, title=None,
+def plot_sensors(info, kind='topomap', ch_type=None, title=None, select=False,
                  show_names=False, ch_groups=None, axes=None, show=True):
     """Plot sensors positions.
 
@@ -1209,6 +1209,11 @@ def _onpick_sensor(event, fig, ax, pos, ch_names):
     fig.canvas.draw()
 
 
+def _close_event(event, fig):
+    fig.selection = fig.lasso.ind
+    fig.lasso.disconnect()
+
+
 def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show):
     """Helper function for plotting sensors."""
     import matplotlib.pyplot as plt
@@ -1230,6 +1235,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show):
         ax.text(0, 0, 0, '', zorder=1)
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
                    s=75, edgecolor=edgecolors, linewidth=2)
+
         ax.azim = 90
         ax.elev = 0
     else:
@@ -1240,8 +1246,11 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show):
                             hspace=None)
         pos, outlines = _check_outlines(pos, 'head')
         _draw_outlines(ax, outlines)
-        ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=75,
-                   edgecolor=edgecolors, linewidth=2)
+
+        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=75,
+                         edgecolor=edgecolors, linewidth=2)
+
+        fig.lasso = SelectFromCollection(ax, pts)
 
     if show_names:
         for idx in range(len(pos)):
@@ -1256,6 +1265,8 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show):
         fig.canvas.mpl_connect('pick_event', picker)
 
     fig.suptitle(title)
+    closed = partial(_close_event, fig=fig)
+    fig.canvas.mpl_connect('close_event', closed)
     plt_show(show)
     return fig
 
@@ -1422,3 +1433,61 @@ class DraggableColorbar(object):
         self.cbar.draw_all()
         self.mappable.set_norm(self.cbar.norm)
         self.cbar.patch.figure.canvas.draw()
+
+
+class SelectFromCollection(object):
+    """Select indices from a matplotlib collection using `LassoSelector`.
+
+    Selected indices are saved in the `ind` attribute. This tool highlights
+    selected points by fading them out (i.e., reducing their alpha values).
+    If your collection has alpha < 1, this tool will permanently alter them.
+
+    Note that this tool selects collection objects based on their *origins*
+    (i.e., `offsets`).
+
+    Parameters
+    ----------
+    ax : :class:`~matplotlib.axes.Axes`
+        Axes to interact with.
+
+    collection : :class:`matplotlib.collections.Collection` subclass
+        Collection you want to select from.
+
+    alpha_other : 0 <= float <= 1
+        To highlight a selection, this tool sets all selected points to an
+        alpha value of 1 and non-selected points to `alpha_other`.
+    """
+
+    def __init__(self, ax, collection, alpha_other=0.3):
+        from matplotlib.widgets import LassoSelector
+        self.canvas = ax.figure.canvas
+        self.collection = collection
+        self.alpha_other = alpha_other
+
+        self.xys = collection.get_offsets()
+        self.Npts = len(self.xys)
+
+        # Ensure that we have separate colors for each object
+        self.fc = collection.get_facecolors()
+        if len(self.fc) == 0:
+            raise ValueError('Collection must have a facecolor')
+        elif len(self.fc) == 1:
+            self.fc = np.tile(self.fc, self.Npts).reshape(self.Npts, -1)
+
+        self.lasso = LassoSelector(ax, onselect=self.onselect)
+        self.ind = []
+
+    def onselect(self, verts):
+        from matplotlib.path import Path
+        path = Path(verts)
+        self.ind = np.nonzero([path.contains_point(xy) for xy in self.xys])[0]
+        self.fc[:, -1] = self.alpha_other
+        self.fc[self.ind, -1] = 1
+        self.collection.set_facecolors(self.fc)
+        self.canvas.draw_idle()
+
+    def disconnect(self):
+        self.lasso.disconnect_events()
+        self.fc[:, -1] = 1
+        self.collection.set_facecolors(self.fc)
+        self.canvas.draw_idle()
