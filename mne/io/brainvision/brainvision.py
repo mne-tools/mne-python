@@ -333,7 +333,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     ranges = np.empty(nchan)
     cals.fill(np.nan)
     ch_dict = dict()
-    misc_chs = list()
+    misc_chs = dict()
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0]) - 1
         props = props.split(',')
@@ -351,8 +351,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         cals[n] = float(resolution)
         ranges[n] = _unit_dict.get(unit, unit) * scale
         if unit in ('C', u'µS', u'uS', 'ARU', 'S'):
-            misc_chs.append(name)
-    misc = misc_chs if misc == 'auto' else misc
+            misc_chs[name] = (FIFF.FIFF_UNIT_CEL if unit == 'C'
+                              else FIFF.FIFF_UNIT_NONE)
+    misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
     # create montage
     if montage is True:
@@ -447,7 +448,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         elif ch_name in misc or idx in misc or idx - nchan in misc:
             kind = FIFF.FIFFV_MISC_CH
             coil_type = FIFF.FIFFV_COIL_NONE
-            unit = FIFF.FIFF_UNIT_V
+            if ch_name in misc_chs.keys():
+                unit = misc_chs[ch_name]
+            else:
+                unit = FIFF.FIFF_UNIT_NONE
         elif ch_name == 'STI 014':
             kind = FIFF.FIFFV_STIM_CH
             coil_type = FIFF.FIFFV_COIL_NONE
