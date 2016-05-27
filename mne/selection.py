@@ -127,18 +127,15 @@ def _divide_to_regions(info, add_stim=True):
     """Divides channels to regions by positions."""
     from scipy.stats import zscore
     picks = _pick_data_channels(info, exclude=[])
-    frontal, occipital, temporal = list(), list(), list()
     chs_in_lobe = len(picks) // 4
     pos = np.array([ch['loc'][:3] for ch in info['chs']])
     x, y, z = pos.T
-    for ch in range(chs_in_lobe):
-        pick = np.argmax(y[picks])
-        frontal.append(picks[pick])
-        picks = np.delete(picks, pick)
 
-        pick = np.argmin(y[picks])
-        occipital.append(picks[pick])
-        picks = np.delete(picks, pick)
+    frontal = picks[np.argsort(y[picks])[-chs_in_lobe:]]
+    picks = np.setdiff1d(picks, frontal)
+
+    occipital = picks[np.argsort(y[picks])[:chs_in_lobe]]
+    picks = np.setdiff1d(picks, occipital)
 
     temporal = picks[np.argsort(z[picks])[:chs_in_lobe]]
     picks = np.setdiff1d(picks, temporal)
@@ -149,14 +146,17 @@ def _divide_to_regions(info, add_stim=True):
     lp, rp = _divide_side(picks, x)  # Parietal lobe from the remaining picks.
 
     # Because of the way the sides are divided, there may be outliers in the
-    # right temporal lobe. Here we reassign them to the left temporal lobe.
-    # For other lobes it is not a big problem because of the vicinity of the
-    # lobes.
+    # temporal lobes. Here we switch the sides for these outliers. For other
+    # lobes it is not a big problem because of the vicinity of the lobes.
     zs = np.abs(zscore(x[rt]))
     outliers = np.array(rt)[np.where(zs > 2.)[0]]
     rt = list(np.setdiff1d(rt, outliers))
-    for outlier in outliers:
-        lt.append(outlier)
+    lt.extend(outliers)
+
+    zs = np.abs(zscore(x[lt]))
+    outliers = np.array(lt)[np.where(zs > 2.)[0]]
+    lt = list(np.setdiff1d(lt, outliers))
+    rt.extend(outliers)
 
     if add_stim:
         stim_ch = _get_stim_channel(None, info, raise_error=False)
