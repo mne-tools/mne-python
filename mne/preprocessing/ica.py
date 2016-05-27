@@ -963,7 +963,7 @@ class ICA(ContainsMixin):
             raise ValueError('Method "%s" not supported.' % method)
         # sort indices by scores
         ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
-        if not hasattr(self, 'labels_'):
+        if not hasattr(self, 'labels_') or self.labels_ is None:
             self.labels_ = dict()
         self.labels_['ecg'] = list(ecg_idx)
         self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
@@ -987,7 +987,7 @@ class ICA(ContainsMixin):
             Object to compute sources from.
         ch_name : str
             The name of the channel to use for EOG peak detection.
-            The argument is mandatory if the dataset contains no ECG
+            The argument is mandatory if the dataset contains no EOG
             channels.
         threshold : int | float
             The value above which a feature is classified as outlier.
@@ -1033,7 +1033,7 @@ class ICA(ContainsMixin):
         if inst.ch_names != self.ch_names:
             inst = inst.copy().pick_channels(self.ch_names)
 
-        if not hasattr(self, 'labels_'):
+        if not hasattr(self, 'labels_') or self.labels_ is None:
             self.labels_ = dict()
 
         for ii, (eog_ch, target) in enumerate(zip(eog_chs, targets)):
@@ -1826,7 +1826,8 @@ def _write_ica(fid, ica):
     # samples on fit
     n_samples = getattr(ica, 'n_samples_', None)
     ica_misc = {'n_samples_': (None if n_samples is None else int(n_samples)),
-                'labels_': getattr(ica, 'labels_', None)}
+                'labels_': getattr(ica, 'labels_', None),
+                'method': getattr(ica, 'method', None)}
 
     write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
                  _serialize(ica_init))
@@ -1961,6 +1962,8 @@ def read_ica(fname):
         ica.n_samples_ = ica_misc['n_samples_']
     if 'labels_' in ica_misc:
         ica.labels_ = ica_misc['labels_']
+    if 'method' in ica_misc:
+        ica.method = ica_misc['method']
 
     logger.info('Ready.')
 

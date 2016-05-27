@@ -176,20 +176,21 @@ reference_ica.plot_components()
 # Which one is the bad EOG component?
 # Here we rely on our previous detection algorithm. You will need to decide
 # yourself in that situation where no other detection is available.
-
 reference_ica.plot_sources(eog_average, exclude=eog_inds)
 
 ###############################################################################
 # Indeed it looks like an EOG, also in the average time course.
 #
-# So our template shall be a tuple like (reference_run_index, component_index):
+# We construct a list so that our reference run is the first element. Then we
+# can detect similar components from the other runs using corrmap. So
+# our template shall be a tuple like (reference_run_index, component_index):
+icas = [reference_ica] + icas_from_other_data
 template = (0, eog_inds[0])
 
 ###############################################################################
 # Now we can do the corrmap.
-fig_template, fig_detected = corrmap(
-    icas_from_other_data, template=template, label="blinks", show=True,
-    threshold=.8, ch_type='mag')
+fig_template, fig_detected = corrmap(icas, template=template, label="blinks",
+                                     show=True, threshold=.8, ch_type='mag')
 
 ###############################################################################
 # Nice, we have found similar ICs from the other runs!
