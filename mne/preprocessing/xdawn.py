@@ -7,7 +7,6 @@ import copy as cp
 
 import numpy as np
 from scipy import linalg
-from sklearn.preprocessing import LabelEncoder
 
 from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
@@ -166,15 +165,13 @@ class Xdawn(TransformerMixin, ContainsMixin):
 
     Parameters
     ----------
+    info : dict
+         The dict containing info of epochs object.
     n_components : int (default 2)
         The number of components to decompose M/EEG signals.
     signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels)
         (default None). The signal covariance used for whitening of the data.
         if None, the covariance is estimated from the epochs signal.
-    correct_overlap : 'auto' or bool (default 'auto')
-        Apply correction for overlaped ERP for the estimation of evokeds
-        responses. if 'auto', the overlapp correction is chosen in function
-        of the events in epochs.events.
     reg : float | str | None (default None)
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
@@ -232,14 +229,16 @@ class Xdawn(TransformerMixin, ContainsMixin):
         X : ndarray, shape(n_channels, n_times * n_freq)
             Data of epochs
         y : ndarray shape(n_samples,)
-            labels for the data
+            Target values
 
         Returns
         -------
         self : Xdawn instance
             The Xdawn instance.
         """
-        if X.ndim is not 2 or not isinstance(X, ndarray):
+        from sklearn.preprocessing import LabelEncoder
+
+        if X.ndim is not 2 or not isinstance(X, np.ndarray):
             raise ValueError("X should be 2 dimensional ndarray")
         if not isinstance(y, np.ndarray):
             raise ValueError("Labels must be numpy array")
@@ -310,7 +309,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
         X : ndarray, shape (n_epochs, n_components * event_types * n_times)
             Spatially filtered signals.
         """
-        if isinstance(X, np.ndarray) and isinstance(y, np.ndarray):
+        if isinstance(X, np.ndarray):
             data = X
             shape = X.shape
             data = X.reshape(X.shape[0], self.info['nchan'], X.shape[1] /
@@ -347,7 +346,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
             spatially filtered signals.
         """
         self.fit(X, y)
-        return self.transform(X, y)
+        return self.transform(X)
 
     def apply(self, inst, event_id=None, include=None, exclude=None):
         """Remove selected components from the signal.

@@ -62,18 +62,18 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
                 add_eeg_ref=False, verbose=False)
 
 # Create classification pipeline
-X, y = EpochsVectorizer().fit_transform(epochs)
+X, labels = EpochsVectorizer().fit_transform(epochs)
 clf = make_pipeline(Xdawn(n_components=3, info=epochs.info),
                     MinMaxScaler(),
                     LogisticRegression(penalty='l1'))
 
 # Cross validator
-cv = StratifiedKFold(y=y, n_folds=10, shuffle=True, random_state=42)
+cv = StratifiedKFold(y=labels, n_folds=10, shuffle=True, random_state=42)
 
 # Do cross-validation
-y_preds = np.empty(len(y))
+y_preds = np.empty(len(labels))
 for train, test in cv:
-    clf.fit(X[train], y[train])
+    clf.fit(X[train], labels[train])
     y_preds[test] = clf.predict(X[test])
 
 # Classification report
