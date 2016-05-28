@@ -8,7 +8,7 @@ import numpy as np
 
 from .mixin import TransformerMixin
 
-from .. import pick_types, Epochs,
+from .. import pick_types
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       band_stop_filter)
 from ..time_frequency.psd import _psd_multitaper
@@ -214,7 +214,7 @@ class EpochsVectorizer(TransformerMixin):
             raise ValueError("epochs should be an instance of Epochs got %s"
                              " instead" % type(epochs))
 
-        self.epochs_data = epochs._data()
+        self.epochs_data = epochs._data
 
         n_epochs, n_channels, n_times = self.epochs_data.shape
         X = self.epochs_data.reshape(n_epochs, n_channels * n_times)
@@ -251,10 +251,9 @@ class EpochsVectorizer(TransformerMixin):
         Parameters
         ----------
         X : array, shape (n_epochs, n_channels * n_times)
-            The feature vector concatenated over channels
+            The feature vector concatenated over channels.
         y : None | array, shape (n_epochs,)
-            The label for each epoch.
-            If None not used. Defaults to None.
+            The target values.
 
         Returns
         -------
@@ -265,12 +264,13 @@ class EpochsVectorizer(TransformerMixin):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(X))
 
+        if X.shape[0] != self.n_epochs:
+            raise ValueError("X doesn't match to value given in fit")
+
         X_orig = X.reshape(self.n_epochs, self.info['nchan'], X.shape[1] /
                            self.info['nchan'])
-        if not np.array_equal(self._epochs.get_data(), X_orig):
-            raise ValueError("Given X doesn't match epochs used in fit.")
 
-        return self
+        return X_orig
 
 
 class PSDEstimator(TransformerMixin):

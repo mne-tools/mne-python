@@ -4,7 +4,7 @@
 
 import numpy as np
 import os.path as op
-from nose.tools import (assert_equal, assert_raises)
+from nose.tools import (assert_raises)
 from numpy.testing import assert_array_equal
 from mne import (io, Epochs, read_events, pick_types,
                  compute_raw_covariance)
@@ -30,6 +30,7 @@ def _get_data():
     return raw, events, picks
 
 
+@requires_sklearn
 def test_xdawn_fit():
     """Test Xdawn fit."""
     # get data
@@ -74,6 +75,7 @@ def test_xdawn_fit():
     assert_raises(ValueError, xd.fit, X, None)
 
 
+@requires_sklearn
 def test_xdawn_apply_transform():
     """Test Xdawn apply and transform."""
     # get data
@@ -97,9 +99,9 @@ def test_xdawn_apply_transform():
     assert_raises(ValueError, xd.apply, 42)
 
     # transform
-    xd.transform(X, y)
+    xd.transform(X)
     # transform on someting else
-    assert_raises(ValueError, xd.transform, 42, 55)
+    assert_raises(ValueError, xd.transform, 42)
 
     # check numerical results with shuffled epochs
     idx = np.arange(len(epochs))

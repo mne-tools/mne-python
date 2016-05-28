@@ -224,7 +224,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
         self.patterns_ = dict()
         self.evokeds_ = dict()
 
-    def fit(self, X, y=None):
+    def fit(self, X, y):
         """Fit Xdawn from epochs.
 
         Parameters
@@ -266,8 +266,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
         shape = epochs_data.shape
         for eid in classes:
             mean_data = np.mean(epochs_data[eid].reshape(-1, shape[1],
-                                                            shape[2]),
-                                    axis=0)
+                                shape[2]), axis=0)
             picks = _pick_data_channels(self.info, exclude=[])
             evokeds[eid] = mean_data[picks]
             toeplitz[eid] = 1.0
@@ -293,7 +292,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
             self.patterns_[eid] = linalg.inv(evecs.T)
 
         # store some values
-        self.ch_names = info['ch_names']
+        self.ch_names = self.info['ch_names']
         self.exclude = list(range(self.n_components, len(self.ch_names)))
         self.event_id = classes
         return self
@@ -303,7 +302,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
 
         Parameters
         ----------
-        X : ndarray, shape(n_channels, n_shapes * n_times)
+        X : ndarray, shape(n_channels, n_times * n_freq)
             data of epochs
 
         Returns
@@ -311,8 +310,12 @@ class Xdawn(TransformerMixin, ContainsMixin):
         X : ndarray, shape (n_epochs, n_components * event_types * n_times)
             Spatially filtered signals.
         """
-        if isinstance(X, np.ndarray):
+        if isinstance(X, np.ndarray) and isinstance(y, np.ndarray):
             data = X
+            shape = X.shape
+            data = X.reshape(X.shape[0], self.info['nchan'], X.shape[1] /
+                             self.info['nchan'])
+
         else:
             raise ValueError('Data input must be of type numpy array')
 
@@ -323,9 +326,28 @@ class Xdawn(TransformerMixin, ContainsMixin):
         full_filters = np.concatenate(full_filters, axis=1)
 
         # Apply spatial filters
-        X = np.dot(full_filters.T, data)
-        X = X.transpose((1, 0, 2))
-        return X
+        result = np.dot(full_filters.T, data)
+        result = result.transpose((1, 0, 2))
+        shape = result.shape
+        return result.reshape(-1, shape[1] * shape[2])
+
+    def fit_transform(self, X, y):
+        """First fit the data, then transform
+
+        Parameters
+        ----------
+        X : ndarray, shape(n_channels, n_times * n_freq)
+            data of epochs
+        y : ndarray, shape(n_samples,)
+            labels of data
+
+        Returns
+        -------
+        X : ndarray, shape(n_epochs, n_components * event_types * n_times)
+            spatially filtered signals.
+        """
+        self.fit(X, y)
+        return self.transform(X)
 
     def apply(self, inst, event_id=None, include=None, exclude=None):
         """Remove selected components from the signal.
