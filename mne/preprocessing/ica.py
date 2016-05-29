@@ -50,6 +50,7 @@ from ..filter import band_pass_filter
 from .bads import find_outliers
 from .ctps_ import ctps
 from ..externals.six import string_types, text_type
+from ..io.pick import channel_type
 
 
 __all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
@@ -270,6 +271,13 @@ class ICA(ContainsMixin):
 
         return '<ICA  |  %s>' % s
 
+    def _check_for_unsupported_ica_channels(self, picks, info):
+        types = _DATA_CH_TYPES_SPLIT + ['eog']
+        n_chan = info['nchan']
+        check = all([channel_type(info, j) in types for j in picks])
+        if not check:
+            1 / 0
+
     @verbose
     def fit(self, inst, picks=None, start=None, stop=None, decim=None,
             reject=None, flat=None, tstep=2.0, verbose=None):
@@ -326,6 +334,8 @@ class ICA(ContainsMixin):
         self : instance of ICA
             Returns the modified instance.
         """
+        if picks is not None:
+            self._check_for_unsupported_ica_channels(picks, inst.info)
         if isinstance(inst, _BaseRaw):
             self._fit_raw(inst, picks, start, stop, decim, reject, flat,
                           tstep, verbose)
@@ -440,7 +450,7 @@ class ICA(ContainsMixin):
             # Scale (z-score) the data by channel type
             info = pick_info(info, picks)
             pre_whitener = np.empty([len(data), 1])
-            for ch_type in _DATA_CH_TYPES_SPLIT:
+            for ch_type in _DATA_CH_TYPES_SPLIT + ['eog']:
                 if _contains_ch_type(info, ch_type):
                     if ch_type == 'seeg':
                         this_picks = pick_types(info, meg=False, seeg=True)
@@ -448,8 +458,10 @@ class ICA(ContainsMixin):
                         this_picks = pick_types(info, meg=False, ecog=True)
                     elif ch_type == 'eeg':
                         this_picks = pick_types(info, meg=False, eeg=True)
-                    else:
+                    elif ch_type == 'mag' or ch_type == 'grad':
                         this_picks = pick_types(info, meg=ch_type)
+                    elif ch_type == 'eog':
+                        this_picks = pick_types(info, meg=False, eog=True)
                     pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener
         elif not has_pre_whitener and self.noise_cov is not None:
