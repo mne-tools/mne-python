@@ -4,11 +4,12 @@ import os
 from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
-                 find_events, pick_events, find_stim_steps, pick_channels)
+                 find_events, pick_events, find_stim_steps, pick_channels,
+                 read_evokeds)
 from mne.io import read_raw_fif
 from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
@@ -24,7 +25,7 @@ fname_txt = op.join(base_dir, 'test-eve.eve')
 fname_txt_1 = op.join(base_dir, 'test-eve-1.eve')
 
 # for testing Elekta averager
-fname_raw_elekta = op.join(base_dir, 'test_elekta_raw.fif')
+fname_raw_elekta = op.join(base_dir, 'trigtest_3ch_raw.fif')
 fname_ave_elekta = op.join(base_dir, 'test_elekta_ave.fif')
 
 # using mne_process_raw --raw test_raw.fif --eventsout test-mpr-eve.eve:
@@ -420,10 +421,21 @@ def test_elekta_averager():
     raw = read_raw_fif(fname_raw_elekta)
     eav = Elekta_averager(raw.info['acq_pars'])
     for cat in eav.categories:
-        eps = cat.epochs(raw)
+        eps = cat.epochs(raw, baseline=(-.05, 0))
         ev = eps.average()
-        ev_ref = read_evokeds(fname_ave_elekta, cat.comment, baseline=None,
-                              proj=False)
-        assert_array_almost_equal(ev.data, ev_ref.data)
+        ev_ref = read_evokeds(fname_ave_elekta, cat.comment,
+                              baseline=(-.05, 0), proj=False)
+        ev_mag = ev.copy()
+        ev_mag.pick_channels(['MEG0111'])
+        ev_grad = ev.copy()
+        ev_grad.pick_channels(['MEG2643', 'MEG1622'])
+        ev_ref_mag = ev_ref.copy()
+        ev_ref_mag.pick_channels(['MEG0111'])
+        ev_ref_grad = ev_ref.copy()
+        ev_ref_grad.pick_channels(['MEG2643', 'MEG1622'])
+        assert_allclose(ev_mag.data, ev_ref_mag.data,
+                        rtol=0, atol=1e-15)  # tol = 1 fT
+        assert_allclose(ev_grad.data, ev_ref_grad.data,
+                        rtol=0, atol=1e-13)  # tol = 1 fT/cm
 
 run_tests_if_main()
