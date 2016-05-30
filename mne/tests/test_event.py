@@ -421,6 +421,8 @@ def test_elekta_averager():
     raw = read_raw_fif(fname_raw_elekta)
     eav = Elekta_averager(raw.info['acq_pars'])
     for cat in eav.categories:
+        # XXX datasets match only when baseline is applied to both,
+        # not sure where relative dc shift comes from
         eps = cat.epochs(raw, baseline=(-.05, 0))
         ev = eps.average()
         ev_ref = read_evokeds(fname_ave_elekta, cat.comment,
