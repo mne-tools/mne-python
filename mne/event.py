@@ -990,6 +990,9 @@ class Elekta_averager(object):
         if not acq_pars:
             raise ValueError('No acquisition parameters')
         self.acq_dict = _acqpars_dict(acq_pars)
+        if 'ERFversion' not in self.acq_dict:
+            raise ValueError('The file may be from DACQ <3.4 which is '
+                             'not supported yet')
         # sets instance variables (lowercase versions of DACQ variable names)
         for var in Elekta_averager.vars:
             val = self.acq_dict['ERF' + var]
