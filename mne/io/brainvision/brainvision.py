@@ -448,7 +448,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         elif ch_name in misc or idx in misc or idx - nchan in misc:
             kind = FIFF.FIFFV_MISC_CH
             coil_type = FIFF.FIFFV_COIL_NONE
-            if ch_name in misc_chs.keys():
+            if ch_name in misc_chs:
                 unit = misc_chs[ch_name]
             else:
                 unit = FIFF.FIFF_UNIT_NONE
