@@ -24,7 +24,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
                     _helper_raw_resize, _select_bads, _onclick_help,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
-                    _radio_clicked)
+                    _radio_clicked, _set_radio_button)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
 
@@ -299,6 +299,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         params['selections'] = selections
         params['radio_clicked'] = partial(_radio_clicked, params=params)
         fig_selection.radio.on_clicked(params['radio_clicked'])
+        pick_callback = partial(_region_picked, params=params)
+        fig_selection.canvas.mpl_connect('pick_event', pick_callback)
     _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels)
 
@@ -356,6 +358,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
     callback_resize = partial(_helper_raw_resize, params=params)
     params['fig'].canvas.mpl_connect('resize_event', callback_resize)
+    callback_close = partial(_close_event, params=params)
+    params['fig'].canvas.mpl_connect('close_event', callback_close)
 
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
@@ -385,6 +389,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         plt_show(show)
 
     return params['fig']
+
+
+def _close_event(event, params):
+    """Callback for closing of raw browser."""
+    import matplotlib.pyplot as plt
+    if 'fig_selection' in params:
+        plt.close(params['fig_selection'])
 
 
 def _label_clicked(pos, params):
@@ -855,6 +866,20 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     return fig
 
 
+def _region_picked(event, params):
+    """Callback for selecting a region by clicking the topomap."""
+    ind = event.ind[0]
+    for type in ('mag', 'grad', 'eeg', 'seeg'):
+        if type in params['types']:
+            types = np.where(np.array(params['types']) == type)[0]
+            break
+    labels = [l._text for l in params['fig_selection'].radio.labels]
+    for idx, label in enumerate(labels):
+        if types[ind] in params['selections'][label]:
+            _set_radio_button(idx, params)
+            return
+
+
 def _setup_browser_selection(raw, kind):
     """Helper for organizing browser selections."""
     import matplotlib.pyplot as plt
@@ -896,9 +921,10 @@ def _setup_browser_selection(raw, kind):
     rax = plt.subplot2grid((4, 1), (1, 0), rowspan=3, colspan=1)
     topo_ax = plt.subplot2grid((4, 1), (0, 0), rowspan=1, colspan=1)
     plot_sensors(raw.info, kind='topomap', ch_type=None, axes=topo_ax,
-                 title='', show=False)
+                 ch_groups=kind, title='', show=False)
     fig_selection.radio = RadioButtons(rax, [key for key in keys
                                              if key in order.keys()])
+
     for circle in fig_selection.radio.circles:
         circle.set_radius(0.02)  # make them smaller to prevent overlap
     return order, fig_selection

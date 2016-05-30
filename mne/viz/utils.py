@@ -565,6 +565,10 @@ def _radio_clicked(label, params):
     """Callback for radio buttons in selection dialog."""
     labels = [l._text for l in params['fig_selection'].radio.labels]
     idx = labels.index(label)
+    if label in CH_GROUP_COLORS:
+        color = CH_GROUP_COLORS[label]
+    else:
+        color = (0., 0., 0., 1.)
     params['fig_selection'].radio._active_idx = idx
     channels = params['selections'][label]
     ax_topo = params['fig_selection'].get_axes()[1]
@@ -575,7 +579,7 @@ def _radio_clicked(label, params):
     colors = np.zeros((len(types), 4))
     for color_idx, pick in enumerate(types):
         if pick in channels:
-            colors[color_idx] = np.array([0., 0., 0., 1.])
+            colors[color_idx] = color
     ax_topo.collections[0]._facecolors = colors
     params['fig_selection'].canvas.draw()
 
@@ -1140,7 +1144,6 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                     break
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, colors, ch_names, title, show_names, axes, show)
-
     return fig
 
 

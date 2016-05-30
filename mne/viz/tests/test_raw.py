@@ -103,6 +103,11 @@ def test_plot_raw():
             fig.canvas.key_press_event('s')
             fig.canvas.key_press_event('down')  # change selection
             _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+            if order == 'position':  # test clicking topo to change selection
+                sel_fig = plt.figure(1)
+                topo_ax = sel_fig.axes[1]
+                _fake_click(sel_fig, topo_ax, [-0.425, 0.20223853],
+                            xform='data')
             plt.close('all')
 
 
