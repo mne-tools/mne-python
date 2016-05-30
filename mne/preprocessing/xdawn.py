@@ -177,6 +177,10 @@ class Xdawn(TransformerMixin, ContainsMixin):
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
         if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
         or Oracle Approximating Shrinkage ('oas').
+    correct_overlap : bool (default False)
+        Apply correction for overlaped ERP for the estimation of evokeds
+        responses. if 'auto', the overlapp correction is chosen in function
+        of the events in epochs.events.
 
     Attributes
     ----------
@@ -211,12 +215,15 @@ class Xdawn(TransformerMixin, ContainsMixin):
     """
 
     def __init__(self, info, n_components=2, signal_cov=None,
-                 reg=None):
+                 reg=None, correct_overlap=False):
         """init xdawn."""
         self.info = info
         self.n_components = n_components
         self.signal_cov = signal_cov
         self.reg = reg
+        if correct_overlap:
+            raise DeprecationWarning("correct_overlap feature is deprecated "
+                                     "temporarily.")
         self.filters_ = dict()
         self.patterns_ = dict()
         self.evokeds_ = dict()
