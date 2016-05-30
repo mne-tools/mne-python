@@ -252,9 +252,7 @@ def _get_help_text(params):
     text.append(u'+ or = : \n')
     text.append(u'Home : \n')
     text.append(u'End : \n')
-    if 'fig_selection' in params:
-        text.append((u's : \n'))
-    else:
+    if 'fig_selection' not in params:
         text.append(u'Page down : \n')
         text.append(u'Page up : \n')
 
@@ -290,9 +288,7 @@ def _get_help_text(params):
             text.append(u'click channel name :\n')
             text2.insert(2, 'Navigate channels down\n')
             text2.insert(3, 'Navigate channels up\n')
-            if 'fig_selection' in params:
-                text2.insert(8, 'Open the selection dialog\n')
-            else:
+            if 'fig_selection' not in params:
                 text2.insert(8, 'Reduce the number of channels per view\n')
                 text2.insert(9, 'Increase the number of channels per view\n')
             text2.append('Mark bad channel\n')
@@ -678,12 +674,6 @@ def _plot_raw_onkey(event, params):
             params['lines'][n_channels].set_xdata([])
             params['lines'][n_channels].set_ydata([])
         _channels_changed(params, len(params['inds']))
-    elif event.key == 's' and 'fig_selection' in params:
-        try:
-            params['fig_selection'].show()  # does not work on old mpl
-        except AttributeError:
-            warn('Could not reopen selection dialog. Update matplotlib to a '
-                 'newer version.')
     elif event.key == 'home':
         duration = params['duration'] - 1.0
         if duration <= 0:

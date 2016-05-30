@@ -358,8 +358,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
     callback_resize = partial(_helper_raw_resize, params=params)
     params['fig'].canvas.mpl_connect('resize_event', callback_resize)
-    callback_close = partial(_close_event, params=params)
-    params['fig'].canvas.mpl_connect('close_event', callback_close)
 
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
@@ -382,6 +380,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # initialize the first selection set
     if order in ['selection', 'position']:
         _radio_clicked(fig_selection.radio.labels[0]._text, params)
+        callback_close = partial(_close_event, params=params)
+        params['fig'].canvas.mpl_connect('close_event', callback_close)
+        params['fig_selection'].canvas.mpl_connect('close_event',
+                                                   callback_close)
+        params['fig_selection'].canvas.mpl_connect('key_press_event',
+                                                   callback_close)
 
     try:
         plt_show(show, block=block)
@@ -392,10 +396,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
 
 def _close_event(event, params):
-    """Callback for closing of raw browser."""
+    """Callback for closing of raw browser with selections."""
     import matplotlib.pyplot as plt
-    if 'fig_selection' in params:
-        plt.close(params['fig_selection'])
+    if event.name == 'key_press_event' and event.key != 'escape':
+        return
+    plt.close(params['fig_selection'])
+    plt.close(params['fig'])
 
 
 def _label_clicked(pos, params):

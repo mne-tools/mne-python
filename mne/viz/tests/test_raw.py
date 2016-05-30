@@ -100,7 +100,6 @@ def test_plot_raw():
             x = fig.get_axes()[0].lines[1].get_xdata()[10]
             y = fig.get_axes()[0].lines[1].get_ydata()[10]
             _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
-            fig.canvas.key_press_event('s')
             fig.canvas.key_press_event('down')  # change selection
             _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
             if order == 'position':  # test clicking topo to change selection
