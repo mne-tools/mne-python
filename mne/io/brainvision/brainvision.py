@@ -38,11 +38,11 @@ class RawBrainVision(_BaseRaw):
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file.
         Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
-    misc : list | tuple | 'auto'
+misc : list or tuple of str | 'auto'
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
-        in the vhdr file. If 'auto', channels that have a unit of 'C', 'µS',
-        'uS', 'ARU' or 'S' are assigned. Default is ``()``.
+        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -71,7 +71,7 @@ class RawBrainVision(_BaseRaw):
     """
     @verbose
     def __init__(self, vhdr_fname, montage=None,
-                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(),
+                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                  scale=1., preload=False, response_trig_shift=0,
                  event_id=None, verbose=None):
         # Channel info and events
@@ -262,10 +262,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file.
-    misc : list of str | 'auto'
-        Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the vhdr file. If 'auto', the
-        misc channels are inferred using the units.
+    misc : list or tuple of str | 'auto'
+        Names of channels or list of indices that should be designated
+        MISC channels. Values should correspond to the electrodes
+        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1.. For microvolts, the scale factor would be 1e-6. This is
@@ -474,7 +475,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
 
 def read_raw_brainvision(vhdr_fname, montage=None,
-                         eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(),
+                         eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                          scale=1., preload=False, response_trig_shift=0,
                          event_id=None, verbose=None):
     """Reader for Brain Vision EEG file
@@ -491,10 +492,11 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file
         Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
-    misc : list or tuple of str
+    misc : list or tuple of str | 'auto'
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
-        in the vhdr file. Default is ``()``.
+        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -526,8 +528,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    raw = RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
-                         misc=misc, scale=scale,
-                         preload=preload, verbose=verbose, event_id=event_id,
-                         response_trig_shift=response_trig_shift)
-    return raw
+    return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
+                          misc=misc, scale=scale, preload=preload,
+                          response_trig_shift=response_trig_shift,
+                          event_id=event_id, verbose=verbose)
