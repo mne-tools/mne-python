@@ -12,7 +12,6 @@ from mne.utils import run_tests_if_main, slow_test
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
-evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
