@@ -22,6 +22,8 @@ BUG
 
     - Fixed color ranges to correspond to the colorbar when plotting several time instances with :func:`mne.viz.plot_evoked_topomap` by `Jaakko Leppakangas`_
 
+    - Added units to :func:`mne.io.read_raw_brainvision` for reading non-data channels and enable default behavior of inferring channel type by unit by `Jaakko Leppakangas`_ and `Pablo-Arias`_
+
 API
 ~~~
 
@@ -1569,3 +1571,5 @@ of commits):
 .. _Natalie Klein: http://www.stat.cmu.edu/people/students/neklein
 
 .. _Jon Houck: http://www.unm.edu/~jhouck/
+
+.. _Pablo-Arias: https://github.com/Pablo-Arias

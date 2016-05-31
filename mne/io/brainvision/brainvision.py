@@ -38,7 +38,7 @@ class RawBrainVision(_BaseRaw):
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file.
         Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
-misc : list or tuple of str | 'auto'
+    misc : list or tuple of str | 'auto'
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
         in the vhdr file. If 'auto', units in vhdr file are used for inferring
