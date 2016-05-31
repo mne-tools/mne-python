@@ -272,11 +272,16 @@ class ICA(ContainsMixin):
         return '<ICA  |  %s>' % s
 
     def _check_for_unsupported_ica_channels(self, picks, info):
+        """Check for ica channels that are not considered
+        actual data channels. These prevents the program from
+        crashing without feedback when a bad channel is provided
+        to ICA whitening
+        """
         types = _DATA_CH_TYPES_SPLIT + ['eog']
-        n_chan = info['nchan']
         check = all([channel_type(info, j) in types for j in picks])
         if not check:
-            1 / 0
+            raise ValueError("""Invalid channel type(s) passed for ICA.
+             Only the following channels are supported {}""".format(types))
 
     @verbose
     def fit(self, inst, picks=None, start=None, stop=None, decim=None,
@@ -458,7 +463,7 @@ class ICA(ContainsMixin):
                         this_picks = pick_types(info, meg=False, ecog=True)
                     elif ch_type == 'eeg':
                         this_picks = pick_types(info, meg=False, eeg=True)
-                    elif ch_type == 'mag' or ch_type == 'grad':
+                    elif ch_type in ['mag', 'grad']:
                         this_picks = pick_types(info, meg=ch_type)
                     elif ch_type == 'eog':
                         this_picks = pick_types(info, meg=False, eog=True)

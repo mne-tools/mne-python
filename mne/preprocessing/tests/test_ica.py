@@ -608,4 +608,32 @@ def test_fit_params():
     ICA(fit_params=fit_params)  # test no side effects
     assert_equal(fit_params, {})
 
+
+def test_bad_channels():
+    """Test if exception is raised when unsupported channels are used"""
+    """Test for raw and evoked data"""
+    raw = Raw(raw_fname)
+    raw.load_data()
+    events = read_events(event_name)
+    picks_bad1 = pick_types(raw.info, meg=False, stim=True, ecg=True,
+                            eog=False, exclude='bads')
+    picks_bad2 = pick_types(raw.info, meg=True, stim=True, ecg=True,
+                            eog=True, exclude='bads')
+    n_components = 0.9
+    decim = 3
+    ica = ICA(n_components=n_components)
+    assert_raises(ValueError, ica.fit, raw, picks=picks_bad1, decim=decim)
+    assert_raises(ValueError, ica.fit, raw, picks=picks_bad2, decim=decim)
+    picks = pick_types(raw.info, meg=True, stim=True, ecg=False,
+                       eog=True, exclude='bads')
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+    picks_bad1 = pick_types(epochs.info, meg=False, stim=True, ecg=True,
+                            eog=False, exclude='bads')
+    picks_bad2 = pick_types(epochs.info, meg=True, stim=True, ecg=True,
+                            eog=True, exclude='bads')
+    assert_raises(ValueError, ica.fit, epochs, picks=picks_bad1, decim=decim)
+    assert_raises(ValueError, ica.fit, epochs, picks=picks_bad2, decim=decim)
+
+
 run_tests_if_main()
