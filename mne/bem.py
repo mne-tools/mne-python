@@ -16,7 +16,8 @@ from scipy import linalg
 
 from .fixes import partial
 from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
-from .transforms import _ensure_trans, apply_trans
+from .transforms import (_ensure_trans, apply_trans, Transform,
+                         transform_surface_to)
 from .io import Info
 from .io.constants import FIFF
 from .io.write import (start_file, start_block, write_float, write_int,
@@ -1063,13 +1064,11 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
 
     if op.isfile(T1_mgz):
-        # XXX : do this with python code
         surfs = ['brain', 'inner_skull', 'outer_skull', 'outer_skin']
         for s in surfs:
             surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))
-            cmd = ['mne_convert_surface', '--surf', surf_ws_out, '--mghmri',
-                   T1_mgz, '--surfout', s, "--replacegeom"]
-            run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+
+            convert_surface(subject, subjects_dir, surf_ws_out, s, T1_mgz)
 
             # Create symbolic links
             surf_out = op.join(bem_dir, '%s.surf' % s)
@@ -1108,10 +1107,110 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
     # Show computed BEM surfaces
     if show:
-        plot_bem(subject=subject, subjects_dir=subjects_dir,
+        plot_bem(subject=subject, sub1jects_dir=subjects_dir,
                  orientation='coronal', slices=None, show=True)
 
     logger.info('Created %s\n\nComplete.' % (fname_head,))
+
+
+def convert_surface(fname_in, fname_out, T1_mgz, useLAS=False):
+    """Convert surface.
+
+    Parameters
+    ----------
+    fname_in : str
+        Path to surface in FreeSurfer surf format.
+    fname_out : str
+        File to write.
+    T1_mgz : str
+        Full path to T1.mgz file.
+    useLAS :
+        Flip x axis.
+
+    Returns
+    -------
+    surf : dict
+        Converted surface.
+    """
+    from .source_space import _get_mgz_header
+    from .surface import _read_surface_geom, write_surface
+    header = _get_mgz_header(T1_mgz)
+    surf_in = _read_surface_geom(fname_in)
+    surf_in['coord_frame'] = FIFF.FIFFV_COORD_MRI
+    ex, ey, ez, _ = header['ras2vox'][:3].T
+    rot = np.zeros((3, 3))
+
+    ex /= np.linalg.norm(ex)
+    ey /= np.linalg.norm(ey)
+    ez /= np.linalg.norm(ez)
+    right = ant = sup = ex
+
+    if (abs(ey[0]) > abs(right[0])):
+        right = ey
+    if (abs(ez[0]) > abs(right[0])):
+        right = ez
+    if (abs(ey[1]) > abs(ant[1])):
+        ant = ey
+    if (abs(ez[1]) > abs(ant[1])):
+        ant = ez
+    if (abs(ey[2]) > abs(sup[2])):
+        sup = ey
+    if (abs(ez[2]) > abs(sup[2])):
+        sup = ez
+
+    if np.all(right == ant) or np.all(right == sup) or np.all(ant == sup):
+        raise ValueError("Cannot decide the RAS directions.")
+
+    if right[0] < 0:
+        right *= -1.
+    if ant[1] < 0:
+        ant *= -1.
+    if sup[2] < 0:
+        sup *= -1.
+    for j in range(3):
+        if useLAS:
+            rot[j][0] = -right[j]
+        else:
+            rot[j][0] = right[j]
+        rot[j][1] = ant[j]
+        rot[j][2] = sup[j]
+
+    corners = np.zeros((8, 3), dtype=float)
+    corners[1][0] = header['dims'][0] - 1.0
+    corners[2][0] = header['dims'][0] - 1.0
+    corners[2][1] = header['dims'][1] - 1.0
+    corners[3][1] = header['dims'][1] - 1.0
+    for j in range(4, 8):
+        corners[j][0] = corners[j - 4][0]
+        corners[j][1] = corners[j - 4][1]
+        corners[j][2] = header['dims'][2] - 1.0
+
+    r0 = np.zeros(3, dtype=float)
+    for j in range(8):
+        corners[j] = apply_trans(header['ras2vox'], corners[j], move=True)
+        r0 += corners[j]
+    r0 /= 8.0
+
+    dir = (-1.0, -1.0, -1.0)
+    maxdot = -1.
+    LPI_RPI = None
+    for j in range(8):
+        corners[j] -= r0
+        thisdot = np.dot(corners[j], dir) / (np.linalg.norm(corners[j]) *
+                                             np.linalg.norm(dir))
+        if thisdot > maxdot:
+            LPI_RPI = corners[j]
+            maxdot = thisdot
+    if LPI_RPI is None:
+        raise ValueError("Could not determine the corner")
+
+    move = LPI_RPI + r0
+    trans = np.vstack((np.vstack((rot, move)).T, np.zeros(4)))
+    trans[3][3] = 1.
+    trans = Transform(FIFF.FIFFV_COORD_UNKNOWN, FIFF.FIFFV_COORD_MRI, trans)
+    surf_out = transform_surface_to(surf_in, FIFF.FIFFV_COORD_MRI, trans)
+    write_surface(fname_out, surf_out['rr'], surf_out['tris'])
+    return surf_out
 
 
 # ############################################################################
