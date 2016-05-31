@@ -36,7 +36,6 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
-evoked_nf_name = op.join(data_dir, 'test-nf-ave.fif')
 test_cov_name = op.join(data_dir, 'test-cov.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.2
