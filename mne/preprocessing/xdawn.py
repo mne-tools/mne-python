@@ -425,19 +425,19 @@ class Xdawn(TransformerMixin, ContainsMixin):
         if not epochs.preload:
             raise ValueError('Epochs must be preloaded to apply Xdawn')
 
-        picks = pick_types(epochs.info, meg=False, ref_meg=False,
-                           include=self.ch_names, exclude='bads')
+       # picks = pick_types(epochs.info, meg=False, ref_meg=False,
+                           # include=self.ch_names, exclude='bads')
 
         # special case where epochs come picked but fit was 'unpicked'.
-        if len(picks) != len(self.ch_names):
-            raise RuntimeError('Epochs don\'t match fitted data: %i channels '
-                               'fitted but %i channels supplied. \nPlease '
-                               'provide Epochs compatible with '
-                               'xdawn.ch_names' % (len(self.ch_names),
-                                                   len(picks)))
+        # if len(picks) != len(self.ch_names):
+          #  raise RuntimeError('Epochs don\'t match fitted data: %i channels '
+           #                    'fitted but %i channels supplied. \nPlease '
+            #                   'provide Epochs compatible with '
+             #                  'xdawn.ch_names' % (len(self.ch_names),
+              #                                     len(picks)))
 
         epochs_dict = dict()
-        data = np.hstack(epochs.get_data()[:, picks])
+        data = np.hstack(epochs.get_data()) # [:, picks])
 
         for eid in event_id:
 
