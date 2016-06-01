@@ -559,12 +559,9 @@ def _plot_raw_time(value, params):
 
 def _radio_clicked(label, params):
     """Callback for radio buttons in selection dialog."""
+    from .evoked import _rgb
     labels = [l._text for l in params['fig_selection'].radio.labels]
     idx = labels.index(label)
-    if label in CH_GROUP_COLORS:
-        color = CH_GROUP_COLORS[label]
-    else:
-        color = (0., 0., 0., 1.)
     params['fig_selection'].radio._active_idx = idx
     channels = params['selections'][label]
     ax_topo = params['fig_selection'].get_axes()[1]
@@ -572,10 +569,13 @@ def _radio_clicked(label, params):
         if type in params['types']:
             types = np.where(np.array(params['types']) == type)[0]
             break
-    colors = np.zeros((len(types), 4))
+    colors = np.zeros((len(types), 4))  # alpha = 0 by default
+    locs3d = np.array([ch['loc'][:3] for ch in params['info']['chs']])
+    x, y, z = locs3d.T
+    color_vals = _rgb(params['info'], x, y, z)
     for color_idx, pick in enumerate(types):
-        if pick in channels:
-            colors[color_idx] = color
+        if pick in channels:  # set color and alpha = 1
+            colors[color_idx] = np.append(color_vals[pick], 1.)
     ax_topo.collections[0]._facecolors = colors
     params['fig_selection'].canvas.draw()
 
