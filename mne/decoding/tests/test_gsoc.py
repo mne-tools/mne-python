@@ -88,7 +88,7 @@ def test_xdawn_transform_and_inverse_transform():
     # transform
     xd.transform(X)
     # transform on someting else
-    assert_raises(ValueError, xd.transform, 42)	
+    assert_raises(ValueError, xd.transform, 42)
 
     # inverse transform testing
     xd.inverse_transform(X)

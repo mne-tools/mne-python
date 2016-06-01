@@ -33,8 +33,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 from mne import io, pick_types, read_events, Epochs
 from mne.datasets import sample
-from mne.preprocessing import Xdawn
-from mne.decoding import EpochsVectorizer
+from mne.decoding import EpochsVectorizer, Xdawntransformer
 from mne.viz import tight_layout
 
 
@@ -63,7 +62,8 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
 
 # Create classification pipeline
 X, labels = EpochsVectorizer().fit_transform(epochs)
-clf = make_pipeline(Xdawn(n_components=3, info=epochs.info),
+clf = make_pipeline(XdawnTransformer(n_components=3,
+                    n_chan=epochs.info['nchan']),
                     MinMaxScaler(),
                     LogisticRegression(penalty='l1'))
 

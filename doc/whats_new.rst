@@ -27,7 +27,7 @@ API
 
     - Added options for setting data and date formats manually in :func:`mne.io.read_raw_cnt` by `Jaakko Leppakangas`_
 
-    - Modified :class:`mne.preprocessing.Xdawn` transformer to work with two dimensional data array to comply with scikit-learn pipeline. Temporarly removed suppport for ``overlap`` case by `Asish Panda`_
+    - Added :class:`mne.decoding.XdawnTransformer` transformer to work with two dimensional data array to comply with scikit-learn pipeline. Does mot support events ``overlap`` case by `Asish Panda`_
 
 .. _changes_0_12:
 
