@@ -12,7 +12,7 @@ from sklearn.preprocessing import LabelEncoder
 from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
 from .. import Covariance, EvokedArray, Evoked, EpochsArray
-from ..io.pick import pick_types, _pick_data_channels
+from ..io.pick import pick_types
 from .ica import _get_fast_dot
 from ..utils import logger
 from ..decoding.mixin import TransformerMixin
@@ -166,15 +166,13 @@ class Xdawn(TransformerMixin, ContainsMixin):
 
     Parameters
     ----------
+    info : dict
+         The dict containing info of epochs object.
     n_components : int (default 2)
         The number of components to decompose M/EEG signals.
     signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels)
         (default None). The signal covariance used for whitening of the data.
         if None, the covariance is estimated from the epochs signal.
-    correct_overlap : 'auto' or bool (default 'auto')
-        Apply correction for overlaped ERP for the estimation of evokeds
-        responses. if 'auto', the overlapp correction is chosen in function
-        of the events in epochs.events.
     reg : float | str | None (default None)
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
