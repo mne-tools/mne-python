@@ -272,16 +272,20 @@ class ICA(ContainsMixin):
         return '<ICA  |  %s>' % s
 
     def _check_for_unsupported_ica_channels(self, picks, info):
-        """Check for ica channels that are not considered
-        actual data channels. These prevents the program from
-        crashing without feedback when a bad channel is provided
-        to ICA whitening
+        """Check for channels in picks that are not considered
+        valid channels. Accepted channels are the data channels
+        ('seeg','ecog','eeg','mag', and 'grad') and 'eog'.
+        This prevents the program from crashing without
+        feedback when a bad channel is provided to ICA whitening.
         """
         types = _DATA_CH_TYPES_SPLIT + ['eog']
         check = all([channel_type(info, j) in types for j in picks])
+        if picks == []:
+            raise ValueError('No channels provided to ICA')
         if not check:
-            raise ValueError("""Invalid channel type(s) passed for ICA.
-             Only the following channels are supported {}""".format(types))
+            raise ValueError('Invalid channel type(s) passed for ICA.'
+                             'Only the following channels are supported {}'
+                             .format(types))
 
     @verbose
     def fit(self, inst, picks=None, start=None, stop=None, decim=None,
@@ -467,6 +471,9 @@ class ICA(ContainsMixin):
                         this_picks = pick_types(info, meg=ch_type)
                     elif ch_type == 'eog':
                         this_picks = pick_types(info, meg=False, eog=True)
+                    else:
+                        raise RuntimeError('Unsupported channel {}'
+                                           .format(ch_type))
                     pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener
         elif not has_pre_whitener and self.noise_cov is not None:
