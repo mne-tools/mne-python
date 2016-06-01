@@ -14,7 +14,8 @@ import numpy as np
 
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
                     _layout_figure, _plot_raw_onscroll, _mouse_click,
-                    _helper_raw_resize, _plot_raw_onkey, plt_show)
+                    _helper_raw_resize, _plot_raw_onkey, plt_show,
+                    _setup_vmin_vmax)
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces
 from .epochs import _prepare_mne_browse_epochs
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
@@ -103,6 +104,187 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     else:
         raise ValueError('Data input must be of Raw or Epochs type')
 
+    return fig
+
+
+def _ica_properties_skeleton():
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    fig.set_facecolor([0.95]*3)
+    ax = list()
+    ax.append(fig.add_axes([0.05, 0.5, 0.3, 0.45]))
+    ax.append(fig.add_axes([0.5, 0.6, 0.45, 0.35]))
+    ax.append(fig.add_axes([0.5, 0.5, 0.45, 0.1]))
+    ax.append(fig.add_axes([0.05, 0.1, 0.35, 0.3]))
+    ax.append(fig.add_axes([0.5, 0.1, 0.45, 0.25]))
+    return fig, ax
+
+
+def plot_ica_properties(ica, inst, picks=None, axes=None):
+    """Display component properties
+    FIX DOCSTRING
+    """
+    import matplotlib.pyplot as plt
+    from scipy import ndimage
+    from mne.time_frequency.psd import psd_multitaper
+
+    # current component (with future interactivity in mind)
+    comp_idx = 0
+
+    picks = range(ica.n_components_) if picks is None else picks
+    picks = [picks] if isinstance(picks, int) else picks
+    if isinstance(picks, int): picks = [picks]
+    if axes is None:
+        fig, ax = _ica_properties_skeleton()
+    else:
+        # TODO check if axes are ok (list length, each element being axes etc.)
+        pass
+
+    # calculations
+    # ------------
+    topo_data = np.dot(ica.mixing_matrix_[:, picks].T,
+        ica.pca_components_[:ica.n_components_])
+
+    src = ica.get_sources(inst)
+    ica_data = src.get_data()[:, picks, :]
+    ica_data = np.swapaxes(ica_data, 0, 1)
+    evoked = src.average(picks)
+    # smooth_data is kept in a separate variable for future interactive changing of sigma
+    smooth_data = ndimage.gaussian_filter1d(ica_data[comp_idx], sigma=1.5, axis=0)
+    vmin, vmax = _setup_vmin_vmax(smooth_data, None, None)
+
+    # spectrum
+    psds, freqs = psd_multitaper(src, picks=picks)
+    psds = psds[:, comp_idx, :]
+    psds_mean = psds.mean(axis=0)
+    diffs = psds - psds_mean
+    # the distribution of power for each frequency bin is highly
+    # skewed so we calculate std for values below and above average
+    # separately - this is used for fill_between shade
+    pos_sd = [np.sqrt((d[d>0]**2).mean(axis=0)) for d in diffs.T]
+    neg_sd = [np.sqrt((d[d<0]**2).mean(axis=0)) for d in diffs.T]
+
+    # epoch variance
+    epoch_var = np.var(ica_data[comp_idx], axis=1)
+
+    # plotting
+    # --------
+    # FIX topoplot - currently works only for eeg
+    data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(ica, 'eeg', None)
+    plot_topomap(topo_data[comp_idx, :].flatten(), pos, axes=ax[0], show=False)
+    # image
+    im = ax[1].imshow(smooth_data, extent=[1e3 * src.times[0], 1e3 * src.times[-1],
+                    0, len(smooth_data)], aspect='auto', origin='lower',
+                    interpolation='nearest', vmin=vmin, vmax=vmax)
+    # erp
+    ax[2].plot(1e3 * evoked.times, evoked.data[comp_idx].ravel())
+    # spectrum
+    ax[3].plot(freqs, psds_mean, color='k')
+    ax[3].fill_between(freqs, psds_mean - neg_sd, psds_mean + pos_sd,
+                       color='k', alpha=.15)
+    # epoch variance
+    ax[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5, facecolor=[0,0,0], lw=0)
+
+    # aesthetics
+    # ----------
+    def set_title_and_labels(ax, title, xlab, ylab):
+        if title: ax.set_title(title)
+        if xlab: ax.set_xlabel(xlab)
+        if ylab: ax.set_ylabel(ylab)
+        ax.axis('auto'); ax.axis('tight')
+
+    ax[0].set_title('IC '+str(picks[comp_idx]))
+
+    set_title_and_labels(ax[1], 'epochs image and ERP', [], 'Epochs')
+    ax[1].axvline(0, color='m', linewidth=3, linestyle='--')
+    # remove xticks - erp plot shows xticks for both image and erp plot
+    ax[1].set_xticks([])
+    yt = ax[1].get_yticks()
+    ax[1].set_yticks(yt[1:])
+
+    # erp
+    set_title_and_labels(ax[2], [], 'time', 'AU')
+    # remove half of yticks if more than 4
+    yt = ax[2].get_yticks()
+    if len(yt) > 4:
+        yt = yt[::2]
+        ax[2].set_yticks(yt)
+    ax[2].axvline(0, color='m', linewidth=3, linestyle='--')
+
+    # spectrum
+    set_title_and_labels(ax[3], 'spectrum', 'frequency', [])
+
+    # epoch variance
+    set_title_and_labels(ax[4], 'epochs variance', 'epoch', 'AU')
+
+    return fig, axes
+
+
+def _plot_ica_grid(sources, start, stop,
+                   source_idx, ncol, exclude,
+                   title, show):
+    """Create panel plots of ICA sources
+
+    Clicking on the plot of an individual source opens a new figure showing
+    the source.
+
+    Parameters
+    ----------
+    sources : ndarray
+        Sources as drawn from ica.get_sources.
+    start : int
+        x-axis start index. If None from the beginning.
+    stop : int
+        x-axis stop index. If None to the end.
+    n_components : int
+        Number of components fitted.
+    source_idx : array-like
+        Indices for subsetting the sources.
+    ncol : int
+        Number of panel-columns.
+    title : str
+        The figure title. If None a default is provided.
+    show : bool
+        If True, all open plots will be shown.
+    """
+    import matplotlib.pyplot as plt
+
+    if source_idx is None:
+        source_idx = np.arange(len(sources))
+    elif isinstance(source_idx, list):
+        source_idx = np.array(source_idx)
+    if exclude is None:
+        exclude = []
+
+    n_components = len(sources)
+    ylims = sources.min(), sources.max()
+    xlims = np.arange(sources.shape[-1])[[0, -1]]
+    fig, axes = _prepare_trellis(n_components, ncol)
+    if title is None:
+        fig.suptitle('Reconstructed latent sources', size=16)
+    elif title:
+        fig.suptitle(title, size=16)
+
+    plt.subplots_adjust(wspace=0.05, hspace=0.05)
+    my_iter = enumerate(zip(source_idx, axes, sources))
+    for i_source, (i_selection, ax, source) in my_iter:
+        component = '[%i]' % i_selection
+        # plot+ emebed idx and comp. name to use in callback
+        color = 'r' if i_selection in exclude else 'k'
+        line = ax.plot(source, linewidth=0.5, color=color, picker=1e9)[0]
+        vars(line)['_mne_src_idx'] = i_source
+        vars(line)['_mne_component'] = i_selection
+        vars(line)['_mne_is_bad'] = i_selection in exclude
+        ax.set_xlim(xlims)
+        ax.set_ylim(ylims)
+        ax.text(0.05, .95, component, transform=ax.transAxes,
+                verticalalignment='top')
+        plt.setp(ax.get_xticklabels(), visible=False)
+        plt.setp(ax.get_yticklabels(), visible=False)
+    # register callback
+    callback = partial(_ica_plot_sources_onpick_, sources=sources, ylims=ylims)
+    fig.canvas.mpl_connect('pick_event', callback)
+    plt_show(show)
     return fig
 
 
