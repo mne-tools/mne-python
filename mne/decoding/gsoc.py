@@ -23,6 +23,7 @@ class EpochsTransformerMixin(TransformerMixin):
         """Recontruct epochs to get a n_trials * n_chan * n_time"""
         if isinstance(X, _BaseEpochs):
             X = X.get_data()
+            # TODO: pick data channels (EEG/MEG/SEEG/ECOG if epochs)
         elif not isinstance(X, np.ndarray):
             raise ValueError('X must be an Epochs or a 2D or 3D array, got '
                              '%s instead' % type(X))
