@@ -1,7 +1,6 @@
 import numpy as np
 import os.path as op
 from nose.tools import (assert_raises)
-from numpy.testing import assert_array_equal
 from mne import (io, Epochs, read_events, pick_types,
                  compute_raw_covariance)
 from mne.utils import requires_sklearn, run_tests_if_main
@@ -40,33 +39,33 @@ def test_xdawn_fit():
     # =========== Basic Fit test =================
     # test base xdawn
     xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
-               signal_cov=None, reg=None)
+                          signal_cov=None, reg=None)
     xd.fit(X, y)
 
     # ========== with signal cov provided ====================
     # provide covariance object
     signal_cov = compute_raw_covariance(raw, picks=picks)
     xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
-               signal_cov=signal_cov, reg=None)
+                          signal_cov=signal_cov, reg=None)
     xd.fit(X, y)
     # provide ndarray
     signal_cov = np.eye(len(picks))
     xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
-               signal_cov=signal_cov, reg=None)
+                          signal_cov=signal_cov, reg=None)
     xd.fit(X, y)
     # provide ndarray of bad shape
     signal_cov = np.eye(len(picks) - 1)
     xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
-               signal_cov=signal_cov, reg=None)
+                          signal_cov=signal_cov, reg=None)
     assert_raises(ValueError, xd.fit, X, y)
     # provide another type
     signal_cov = 42
     xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
-               signal_cov=signal_cov, reg=None)
+                          signal_cov=signal_cov, reg=None)
     assert_raises(ValueError, xd.fit, X, y)
     # fit with y as None results in error
     xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
-               signal_cov=None, reg=None)
+                          signal_cov=None, reg=None)
     assert_raises(ValueError, xd.fit, X, None)
 
 
@@ -95,3 +94,5 @@ def test_xdawn_transform_and_inverse_transform():
 
     # should raise an error if not np.ndarray
     assert_raises(ValueError, xd.inverse_transform, 42)
+
+run_tests_if_main()
