@@ -32,13 +32,6 @@ from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
-CH_GROUP_COLORS = dict(
-    zip(_SELECTIONS + _EEG_SELECTIONS,
-        [(0., 0., 0., 1.), (0.2, 1., 0.8, 1.), (0.8, 1., 0.8, 1.),
-         (0.2, 0.5, 1., 1.), (0.8, 0.5, 1., 1.), (0.2, 0, 0.2, 1.),
-         (0.8, 0, 0.2, 1.), (0., 0.5, 0.2, 1.), (1., 0.5, 0.2, 1.),
-         (0.2, 1., 0.8, 1.), (0.2, 0, 0.2, 1.), (0.8, 1., 0.8, 1.),
-         (0.8, 0, 0.2, 1.)]))
 
 
 def _setup_vmin_vmax(data, vmin, vmax, norm=False):
@@ -1078,6 +1071,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     .. versionadded:: 0.12.0
 
     """
+    from .evoked import _rgb
     if kind not in ['topomap', '3d']:
         raise ValueError("Kind must be 'topomap' or '3d'.")
     if not isinstance(info, Info):
@@ -1095,30 +1089,33 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     picks = ch_indices[ch_type]
     if len(picks) == 0:
         raise ValueError('Could not find any channels of type %s.' % ch_type)
-    if kind == 'topomap':
-        pos = _auto_topomap_coords(info, picks, True)
-    else:
-        pos = np.asarray([ch['loc'][:3] for ch in info['chs']])[picks]
-    def_colors = _handle_default('color')
+
+    pos = np.asarray([ch['loc'][:3] for ch in info['chs']])[picks]
     ch_names = np.array(info['ch_names'])[picks]
-    bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
     if ch_groups is None:
+        def_colors = _handle_default('color')
+        bads = [idx for idx, name in enumerate(ch_names)
+                if name in info['bads']]
         colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
                   for i, pick in enumerate(picks)]
     else:
-        if ch_groups == 'position':
-            colors = CH_GROUP_COLORS
-            ch_groups = _divide_to_regions(info, add_stim=False)
-            color_vals = [colors[key] for key in ch_groups.keys()]
-            ch_groups = list(ch_groups.values())
-        elif ch_groups == 'selection':
-            colors = CH_GROUP_COLORS
-            ch_groups, color_vals = list(), list()
-            for selection in _SELECTIONS + _EEG_SELECTIONS:
-                channels = pick_channels(info['ch_names'],
-                                         read_selection(selection, info=info))
-                ch_groups.append(channels)
-                color_vals.append(colors[selection])
+        if ch_groups in ['position', 'selection']:
+            if ch_groups == 'position':
+                ch_groups = _divide_to_regions(info, add_stim=False)
+                ch_groups = list(ch_groups.values())
+            else:
+                ch_groups, color_vals = list(), list()
+                for selection in _SELECTIONS + _EEG_SELECTIONS:
+                    channels = pick_channels(
+                        info['ch_names'], read_selection(selection, info=info))
+                    ch_groups.append(channels)
+            color_vals = np.ones((len(ch_groups), 4))
+            for idx, ch_group in enumerate(ch_groups):
+                color_picks = [np.where(picks == ch)[0][0] for ch in ch_group
+                               if ch in picks]
+                x, y, z = pos[color_picks].T
+                color = np.mean(_rgb(info, x, y, z), axis=0)
+                color_vals[idx, :3] = color  # mean of spatial color
         else:
             import matplotlib.pyplot as plt
             colors = np.linspace(0, 1, len(ch_groups))
@@ -1132,6 +1129,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 if pick in value:
                     colors[pick_idx] = color_vals[ind]
                     break
+    if kind == 'topomap':
+        pos = _auto_topomap_coords(info, picks, True)
+
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, colors, ch_names, title, show_names, axes, show)
     return fig
@@ -1171,7 +1171,7 @@ def _plot_sensors(pos, colors, ch_names, title, show_names, ax, show):
     if pos.shape[1] == 3:
         ax.text(0, 0, 0, '', zorder=1)
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
-                   s=100)
+                   s=100, edgecolor='gray')
         ax.azim = 90
         ax.elev = 0
     else:
@@ -1182,7 +1182,8 @@ def _plot_sensors(pos, colors, ch_names, title, show_names, ax, show):
                             hspace=None)
         pos, outlines = _check_outlines(pos, 'head')
         _draw_outlines(ax, outlines)
-        ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=100)
+        ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=100,
+                   edgecolor='gray')
 
     if show_names:
         for idx in range(len(pos)):

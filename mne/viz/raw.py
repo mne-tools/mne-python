@@ -933,4 +933,5 @@ def _setup_browser_selection(raw, kind):
 
     for circle in fig_selection.radio.circles:
         circle.set_radius(0.02)  # make them smaller to prevent overlap
+        circle.set_edgecolor('gray')  # make sure the buttons are visible
     return order, fig_selection
