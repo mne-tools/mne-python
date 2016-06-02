@@ -110,7 +110,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
 def _ica_properties_skeleton():
     import matplotlib.pyplot as plt
     fig = plt.figure()
-    fig.set_facecolor([0.95]*3)
+    fig.set_facecolor([0.95] * 3)
     ax = list()
     ax.append(fig.add_axes([0.05, 0.5, 0.3, 0.45]))
     ax.append(fig.add_axes([0.5, 0.6, 0.45, 0.35]))
@@ -124,7 +124,6 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     """Display component properties
     FIX DOCSTRING
     """
-    import matplotlib.pyplot as plt
     from scipy import ndimage
     from mne.time_frequency.psd import psd_multitaper
 
@@ -133,7 +132,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
 
     picks = range(ica.n_components_) if picks is None else picks
     picks = [picks] if isinstance(picks, int) else picks
-    if isinstance(picks, int): picks = [picks]
+    if isinstance(picks, int):
+        picks = [picks]
     if axes is None:
         fig, axes = _ica_properties_skeleton()
     else:
@@ -143,14 +143,16 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     # calculations
     # ------------
     topo_data = np.dot(ica.mixing_matrix_[:, picks].T,
-        ica.pca_components_[:ica.n_components_])
+                       ica.pca_components_[:ica.n_components_])
 
     src = ica.get_sources(inst)
     ica_data = src.get_data()[:, picks, :]
     ica_data = np.swapaxes(ica_data, 0, 1)
     evoked = src.average(picks)
-    # smooth_data is kept in a separate variable for future interactive changing of sigma
-    smooth_data = ndimage.gaussian_filter1d(ica_data[comp_idx], sigma=1.5, axis=0)
+    # smooth_data is kept in a separate variable for future
+    # interactive changing of sigma
+    smooth_data = ndimage.gaussian_filter1d(ica_data[comp_idx],
+                                            sigma=1.5, axis=0)
     vmin, vmax = _setup_vmin_vmax(smooth_data, None, None)
 
     # spectrum
@@ -161,8 +163,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     # the distribution of power for each frequency bin is highly
     # skewed so we calculate std for values below and above average
     # separately - this is used for fill_between shade
-    pos_sd = [np.sqrt((d[d>0]**2).mean(axis=0)) for d in diffs.T]
-    neg_sd = [np.sqrt((d[d<0]**2).mean(axis=0)) for d in diffs.T]
+    pos_sd = [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]
+    neg_sd = [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T]
 
     # epoch variance
     epoch_var = np.var(ica_data[comp_idx], axis=1)
@@ -170,12 +172,12 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     # plotting
     # --------
     # FIX topoplot - currently works only for eeg
-    data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(ica, 'eeg', None)
+    _, pos, merge_grads, names, _ = _prepare_topo_plot(ica, 'eeg', None)
     plot_topomap(topo_data[comp_idx, :].flatten(), pos, axes=axes[0], show=False)
     # image
-    im = axes[1].imshow(smooth_data, extent=[1e3 * src.times[0], 1e3 * src.times[-1],
-                    0, len(smooth_data)], aspect='auto', origin='lower',
-                    interpolation='nearest', vmin=vmin, vmax=vmax)
+    axes[1].imshow(smooth_data, extent=[1e3 * src.times[0], 1e3 * src.times[-1],
+                   0, len(smooth_data)], aspect='auto', origin='lower',
+                   interpolation='nearest', vmin=vmin, vmax=vmax)
     # erp
     axes[2].plot(1e3 * evoked.times, evoked.data[comp_idx].ravel())
     # spectrum
@@ -183,17 +185,22 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     axes[3].fill_between(freqs, psds_mean - neg_sd, psds_mean + pos_sd,
                        color='k', alpha=.15)
     # epoch variance
-    axes[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5, facecolor=[0,0,0], lw=0)
+    axes[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
+                    facecolor=[0, 0, 0], lw=0)
 
     # aesthetics
     # ----------
     def set_title_and_labels(ax, title, xlab, ylab):
-        if title: ax.set_title(title)
-        if xlab: ax.set_xlabel(xlab)
-        if ylab: ax.set_ylabel(ylab)
-        ax.axis('auto'); ax.axis('tight')
+        if title:
+            ax.set_title(title)
+        if xlab:
+            ax.set_xlabel(xlab)
+        if ylab:
+            ax.set_ylabel(ylab)
+        ax.axis('auto')
+        ax.axis('tight')
 
-    axes[0].set_title('IC '+str(picks[comp_idx]))
+    axes[0].set_title('IC ' + str(picks[comp_idx]))
 
     set_title_and_labels(axes[1], 'epochs image and ERP', [], 'Epochs')
     axes[1].axvline(0, color='m', linewidth=3, linestyle='--')
