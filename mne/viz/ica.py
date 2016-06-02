@@ -124,7 +124,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     """Display component properties
     FIX DOCSTRING
     """
+    import matplotlib as mpl
     from scipy import ndimage
+    from ..io.base import _BaseRaw
+    from ..epochs import _BaseEpochs
     from mne.time_frequency.psd import psd_multitaper
 
     # current component (with future interactivity in mind)
@@ -132,13 +135,27 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
 
     picks = range(ica.n_components_) if picks is None else picks
     picks = [picks] if isinstance(picks, int) else picks
+    if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
+        raise ValueError('inst should be an instance of Raw or Epochs,'
+                         ' got %s instead.' % type(inst))
     if isinstance(picks, int):
         picks = [picks]
     if axes is None:
         fig, axes = _ica_properties_skeleton()
     else:
-        # TODO check if axes are ok (list length, each element being axes etc.)
-        pass
+        if not isinstance(axes, list):
+            raise ValueError('axes must be a list of matplotlib axes objects'
+                             ', got %s instead.' % type(axes))
+        is_correct_type = np.array([isinstance(x, mpl.axes._axes.Axes)
+                                   for x in axes])
+        if not np.all(is_correct_type):
+            first_bad = np.where(is_correct_type == False)[0][0]
+            raise ValueError('axes must be a list of matplotlib axes objects'
+                             ', while one of the list elements is %s.' %
+                             type(axes[first_bad]))
+        if not len(axes) == 5:
+            raise ValueError('axes must be a list of length 5, while the'
+                             ' length is %d' % len(axes))
 
     # calculations
     # ------------
