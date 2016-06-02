@@ -45,7 +45,7 @@ class XdawnTransformer(Xdawn):
     patterns_ : dict of ndarray
         If fit, the Xdawn patterns used to restore M/EEG signals for each event
         type, else empty.
- 
+
 
     See Also
     --------
