@@ -190,17 +190,18 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     # --------
     # FIX topoplot - currently works only for eeg
     _, pos, merge_grads, names, _ = _prepare_topo_plot(ica, 'eeg', None)
-    plot_topomap(topo_data[comp_idx, :].flatten(), pos, axes=axes[0], show=False)
+    plot_topomap(topo_data[comp_idx, :].ravel(), pos, axes=axes[0], show=False)
     # image
-    axes[1].imshow(smooth_data, extent=[1e3 * src.times[0], 1e3 * src.times[-1],
-                   0, len(smooth_data)], aspect='auto', origin='lower',
-                   interpolation='nearest', vmin=vmin, vmax=vmax)
+    img_extent = [1e3 * src.times[0], 1e3 * src.times[-1], 0, len(smooth_data)]
+    axes[1].imshow(smooth_data, extent=img_extent, aspect='auto',
+                   origin='lower', interpolation='nearest',
+                   vmin=vmin, vmax=vmax)
     # erp
     axes[2].plot(1e3 * evoked.times, evoked.data[comp_idx].ravel())
     # spectrum
     axes[3].plot(freqs, psds_mean, color='k')
     axes[3].fill_between(freqs, psds_mean - neg_sd, psds_mean + pos_sd,
-                       color='k', alpha=.15)
+                         color='k', alpha=.15)
     # epoch variance
     axes[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
                     facecolor=[0, 0, 0], lw=0)
