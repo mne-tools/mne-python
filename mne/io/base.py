@@ -29,9 +29,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, write_name_list, _get_split_size)
 
-from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
-                      notch_filter, band_stop_filter, resample,
-                      _resample_stim_channels)
+from ..filter import filter_, notch_filter, resample, _resample_stim_channels
 from ..fixes import in1d
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
@@ -896,78 +894,40 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         mne.Epochs.savgol_filter
         mne.io.Raw.notch_filter
         mne.io.Raw.resample
+        mne.filter.filter_
         """
-        fs = float(self.info['sfreq'])
-        if l_freq == 0:
-            l_freq = None
-        if h_freq is not None and h_freq > (fs / 2.):
-            h_freq = None
-        if l_freq is not None and not isinstance(l_freq, float):
-            l_freq = float(l_freq)
-        if h_freq is not None and not isinstance(h_freq, float):
-            h_freq = float(h_freq)
         _check_preload(self, 'raw.filter')
+        data_picks = _pick_data_or_ica(self.info)
+        update_info = False
         if picks is None:
-            picks = _pick_data_or_ica(self.info)
+            picks = data_picks
+            update_info = True
             # let's be safe.
-            if len(picks) < 1:
+            if len(picks) == 0:
                 raise RuntimeError('Could not find any valid channels for '
                                    'your Raw object. Please contact the '
                                    'MNE-Python developers.')
-
-            # update info if filter is applied to all data channels,
-            # and it's not a band-stop filter
-            if h_freq is not None:
-                if (l_freq is None or l_freq < h_freq) and \
-                   (self.info["lowpass"] is None or
-                   h_freq < self.info['lowpass']):
-                        self.info['lowpass'] = h_freq
-            if l_freq is not None:
-                if (h_freq is None or l_freq < h_freq) and \
-                   (self.info["highpass"] is None or
-                   l_freq > self.info['highpass']):
-                        self.info['highpass'] = l_freq
-        else:
-            if h_freq is not None or l_freq is not None:
+        elif h_freq is not None or l_freq is not None:
+            if in1d(data_picks, picks).all():
+                update_info = True
+            else:
                 logger.info('Filtering a subset of channels. The highpass and '
                             'lowpass values in the measurement info will not '
                             'be updated.')
-
-        if l_freq is None and h_freq is not None:
-            logger.info('Low-pass filtering at %0.2g Hz' % h_freq)
-            low_pass_filter(self._data, fs, h_freq,
-                            filter_length=filter_length,
-                            trans_bandwidth=h_trans_bandwidth, method=method,
-                            iir_params=iir_params, picks=picks, n_jobs=n_jobs,
-                            copy=False)
-        if l_freq is not None and h_freq is None:
-            logger.info('High-pass filtering at %0.2g Hz' % l_freq)
-            high_pass_filter(self._data, fs, l_freq,
-                             filter_length=filter_length,
-                             trans_bandwidth=l_trans_bandwidth, method=method,
-                             iir_params=iir_params, picks=picks, n_jobs=n_jobs,
-                             copy=False)
-        if l_freq is not None and h_freq is not None:
-            if l_freq < h_freq:
-                logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
-                            % (l_freq, h_freq))
-                self._data = band_pass_filter(
-                    self._data, fs, l_freq, h_freq,
-                    filter_length=filter_length,
-                    l_trans_bandwidth=l_trans_bandwidth,
-                    h_trans_bandwidth=h_trans_bandwidth,
-                    method=method, iir_params=iir_params, picks=picks,
-                    n_jobs=n_jobs, copy=False)
-            else:
-                logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
-                            % (h_freq, l_freq))
-                self._data = band_stop_filter(
-                    self._data, fs, h_freq, l_freq,
-                    filter_length=filter_length,
-                    l_trans_bandwidth=h_trans_bandwidth,
-                    h_trans_bandwidth=l_trans_bandwidth, method=method,
-                    iir_params=iir_params, picks=picks, n_jobs=n_jobs,
-                    copy=False)
+        filter_(self._data, self.info['sfreq'], l_freq, h_freq, picks,
+                filter_length, l_trans_bandwidth, h_trans_bandwidth,
+                n_jobs, method, iir_params, copy=False)
+        # update info if filter is applied to all data channels,
+        # and it's not a band-stop filter
+        if update_info:
+            if h_freq is not None and (l_freq is None or l_freq < h_freq) and \
+                    (self.info["lowpass"] is None or
+                     h_freq < self.info['lowpass']):
+                self.info['lowpass'] = h_freq
+            if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
+                    (self.info["highpass"] is None or
+                     l_freq > self.info['highpass']):
+                self.info['highpass'] = l_freq
         return self
 
     @verbose
