@@ -641,10 +641,10 @@ def filter_(data, sfreq, l_freq, h_freq, picks=None, filter_length='10s',
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
 
-        Returns
-        -------
-        data : ndarray, shape (n_channels, n_time)
-            The filtered data.
+    Returns
+    -------
+    data : ndarray, shape (n_channels, n_times)
+        The filtered data.
     """
     if not isinstance(data, np.ndarray) or data.ndim != 2:
         raise ValueError('data must be an array with two dimensions')
