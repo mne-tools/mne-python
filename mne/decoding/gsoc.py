@@ -52,9 +52,9 @@ class UnsupervisedSpatialFilter(EpochsTransformerMixin):
             raise ValueError('n_chan must be None or an int, got %s '
                              'instead' % type(n_chan))
         self.estimator = estimator
-        if not isinstance(estimator, TransformerMixin):
-            # XXX just check if has fit transform etc attributes?
-            raise ValueError('estimator must be a scikit-learn transformer')
+        for attr in ['fit', 'transform', 'fit_transform']:
+            if not hasattr(estimator, attr):
+                raise ValueError('estimator must be a sklearn transformer')
 
     def fit(self, X, y=None):
         X = self._reshape(X)
