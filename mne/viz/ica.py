@@ -159,6 +159,18 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
 
     # calculations
     # ------------
+    if isinstance(inst, _BaseRaw):
+        # calculate segment length that gives us about 250
+        # segments and then break up continuous signal into segments
+        from ..epochs import segment_raw
+        plot_line_at_zero = False
+        seg_len = np.arange(0.5, 10., 0.5)
+        nice_len = inst._data.shape[1] / (250. * inst.info['sfreq'])
+        seg_len = seg_len[np.argmin(np.abs(seg_len - nice_len))]
+        inst = segment_raw(inst, segment_length=seg_len, verbose=False)
+    else:
+        plot_line_at_zero = True
+
     topo_data = np.dot(ica.mixing_matrix_[:, picks].T,
                        ica.pca_components_[:ica.n_components_])
 
@@ -221,11 +233,11 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     axes[0].set_title('IC ' + str(picks[comp_idx]))
 
     set_title_and_labels(axes[1], 'epochs image and ERP', [], 'Epochs')
-    axes[1].axvline(0, color='m', linewidth=3, linestyle='--')
     # remove xticks - erp plot shows xticks for both image and erp plot
     axes[1].set_xticks([])
     yt = axes[1].get_yticks()
     axes[1].set_yticks(yt[1:])
+    axes[1].set_ylim([-0.5, len(smooth_data) + 0.5])
 
     # erp
     set_title_and_labels(axes[2], [], 'time', 'AU')
@@ -234,7 +246,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     if len(yt) > 4:
         yt = yt[::2]
         axes[2].set_yticks(yt)
-    axes[2].axvline(0, color='m', linewidth=3, linestyle='--')
+
+    if plot_line_at_zero:
+        axes[1].axvline(0, color='m', linewidth=3, linestyle='--')
+        axes[2].axvline(0, color='m', linewidth=3, linestyle='--')
 
     # spectrum
     set_title_and_labels(axes[3], 'spectrum', 'frequency', [])
