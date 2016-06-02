@@ -4,6 +4,7 @@
 
 import numpy as np
 from .mixin import TransformerMixin
+from ..epochs import _BaseEpochs
 
 
 class EpochsTransformerMixin(TransformerMixin):
@@ -19,13 +20,13 @@ class EpochsTransformerMixin(TransformerMixin):
         return self.transform(X)
 
     def _reshape(self, X):
-        # XXX Currently, we only accepts X as a 2D or 3D numpy array as but we
-        # may eventually allow epochs too.
-
-        # Recontruct epochs
-        if (X.ndim == 3) and (self.n_chan is None):
-            return X
-        else:
+        """Recontruct epochs to get a n_trials * n_chan * n_time"""
+        if isinstance(X, _BaseEpochs):
+            X = X.get_data()
+        elif not isinstance(X, np.ndarray):
+            raise ValueError('X must be an Epochs or a 2D or 3D array, got '
+                             '%s instead' % type(X))
+        elif (X.ndim != 3) or (self.n_chan is None):
             n_epoch = len(X)
             n_time = np.prod(X.shape[1:]) // self.n_chan
             X = np.reshape(X, [n_epoch, self.n_chan, n_time])
