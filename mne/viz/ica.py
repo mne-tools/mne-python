@@ -135,7 +135,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     picks = [picks] if isinstance(picks, int) else picks
     if isinstance(picks, int): picks = [picks]
     if axes is None:
-        fig, ax = _ica_properties_skeleton()
+        fig, axes = _ica_properties_skeleton()
     else:
         # TODO check if axes are ok (list length, each element being axes etc.)
         pass
@@ -171,19 +171,19 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     # --------
     # FIX topoplot - currently works only for eeg
     data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(ica, 'eeg', None)
-    plot_topomap(topo_data[comp_idx, :].flatten(), pos, axes=ax[0], show=False)
+    plot_topomap(topo_data[comp_idx, :].flatten(), pos, axes=axes[0], show=False)
     # image
-    im = ax[1].imshow(smooth_data, extent=[1e3 * src.times[0], 1e3 * src.times[-1],
+    im = axes[1].imshow(smooth_data, extent=[1e3 * src.times[0], 1e3 * src.times[-1],
                     0, len(smooth_data)], aspect='auto', origin='lower',
                     interpolation='nearest', vmin=vmin, vmax=vmax)
     # erp
-    ax[2].plot(1e3 * evoked.times, evoked.data[comp_idx].ravel())
+    axes[2].plot(1e3 * evoked.times, evoked.data[comp_idx].ravel())
     # spectrum
-    ax[3].plot(freqs, psds_mean, color='k')
-    ax[3].fill_between(freqs, psds_mean - neg_sd, psds_mean + pos_sd,
+    axes[3].plot(freqs, psds_mean, color='k')
+    axes[3].fill_between(freqs, psds_mean - neg_sd, psds_mean + pos_sd,
                        color='k', alpha=.15)
     # epoch variance
-    ax[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5, facecolor=[0,0,0], lw=0)
+    axes[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5, facecolor=[0,0,0], lw=0)
 
     # aesthetics
     # ----------
@@ -193,29 +193,29 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
         if ylab: ax.set_ylabel(ylab)
         ax.axis('auto'); ax.axis('tight')
 
-    ax[0].set_title('IC '+str(picks[comp_idx]))
+    axes[0].set_title('IC '+str(picks[comp_idx]))
 
-    set_title_and_labels(ax[1], 'epochs image and ERP', [], 'Epochs')
-    ax[1].axvline(0, color='m', linewidth=3, linestyle='--')
+    set_title_and_labels(axes[1], 'epochs image and ERP', [], 'Epochs')
+    axes[1].axvline(0, color='m', linewidth=3, linestyle='--')
     # remove xticks - erp plot shows xticks for both image and erp plot
-    ax[1].set_xticks([])
-    yt = ax[1].get_yticks()
-    ax[1].set_yticks(yt[1:])
+    axes[1].set_xticks([])
+    yt = axes[1].get_yticks()
+    axes[1].set_yticks(yt[1:])
 
     # erp
-    set_title_and_labels(ax[2], [], 'time', 'AU')
+    set_title_and_labels(axes[2], [], 'time', 'AU')
     # remove half of yticks if more than 4
-    yt = ax[2].get_yticks()
+    yt = axes[2].get_yticks()
     if len(yt) > 4:
         yt = yt[::2]
-        ax[2].set_yticks(yt)
-    ax[2].axvline(0, color='m', linewidth=3, linestyle='--')
+        axes[2].set_yticks(yt)
+    axes[2].axvline(0, color='m', linewidth=3, linestyle='--')
 
     # spectrum
-    set_title_and_labels(ax[3], 'spectrum', 'frequency', [])
+    set_title_and_labels(axes[3], 'spectrum', 'frequency', [])
 
     # epoch variance
-    set_title_and_labels(ax[4], 'epochs variance', 'epoch', 'AU')
+    set_title_and_labels(axes[4], 'epochs variance', 'epoch', 'AU')
 
     return fig, axes
 
