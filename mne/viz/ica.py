@@ -107,16 +107,16 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     return fig
 
 
-def _ica_properties_skeleton():
+def _create_properties_layout():
+    """creates main figure and axes layout used by plot_ica_properties"""
     import matplotlib.pyplot as plt
-    fig = plt.figure()
-    fig.set_facecolor([0.95] * 3)
+    fig = plt.figure(figsize=[7., 6.], facecolor=[0.95] * 3)
     ax = list()
-    ax.append(fig.add_axes([0.05, 0.5, 0.3, 0.45]))
-    ax.append(fig.add_axes([0.5, 0.6, 0.45, 0.35]))
-    ax.append(fig.add_axes([0.5, 0.5, 0.45, 0.1]))
-    ax.append(fig.add_axes([0.05, 0.1, 0.35, 0.3]))
-    ax.append(fig.add_axes([0.5, 0.1, 0.45, 0.25]))
+    ax.append(fig.add_axes([0.05, 0.5, 0.3, 0.45], label='topo'))
+    ax.append(fig.add_axes([0.5, 0.6, 0.45, 0.35], label='image'))
+    ax.append(fig.add_axes([0.5, 0.5, 0.45, 0.1], label='erp'))
+    ax.append(fig.add_axes([0.05, 0.1, 0.35, 0.3], label='spectrum'))
+    ax.append(fig.add_axes([0.5, 0.1, 0.45, 0.25], label='variance'))
     return fig, ax
 
 
@@ -141,7 +141,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     if isinstance(picks, int):
         picks = [picks]
     if axes is None:
-        fig, axes = _ica_properties_skeleton()
+        fig, axes = _create_properties_layout()
     else:
         if not isinstance(axes, list):
             raise ValueError('axes must be a list of matplotlib axes objects'
