@@ -78,7 +78,7 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
     """Define new events by co-occurrence of existing events.
 
     This function can be used to evaluate events depending on the
-    temporal lag to another event. For example, this can be used to
+    temporal lag to other events. For example, this can be used to
     analyze evoked responses which were followed by a button press within
     a defined time window.
 
@@ -86,11 +86,11 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
     ----------
     events : ndarray
         Array as returned by mne.find_events.
-    reference_id : int
-        The reference event. The event defining the epoch of interest.
-    target_id : int
-        The target event. The event co-occurring in within a certain time
-        window around the reference event.
+    reference_id : list[int] or int
+        The reference events. The events defining the epoch of interest.
+    target_id : list[int] or int
+        The target events. The events co-occurring in within a certain time
+        window around the reference events.
     sfreq : float
         The sampling frequency of the data.
     tmin : float
@@ -110,8 +110,12 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
     lag : ndarray
         time lag between reference and target in milliseconds.
     """
-    if new_id is None:
-        new_id = reference_id
+
+    if isinstance(reference_id, int):
+        reference_id = [reference_id]
+
+    if isinstance(target_id, int):
+        target_id = [target_id]
 
     tsample = 1e3 / sfreq
     imin = int(tmin * sfreq)
@@ -119,15 +123,20 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
 
     new_events = []
     lag = []
+
     for event in events.copy().astype(int):
-        if event[2] == reference_id:
+        if event[2] in reference_id:
             lower = event[0] + imin
             upper = event[0] + imax
+            matching_events = \
+                (len(set(events[:, 2]).intersection(target_id)) > 0)
+
             res = events[(events[:, 0] > lower) &
-                         (events[:, 0] < upper) & (events[:, 2] == target_id)]
+                         (events[:, 0] < upper) & matching_events]
             if res.any():
                 lag += [event[0] - res[0][0]]
-                event[2] = new_id
+                if new_id is not None:
+                    event[2] = new_id
                 new_events += [event]
             elif fill_na is not None:
                 event[2] = fill_na
