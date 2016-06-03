@@ -12,6 +12,7 @@ from numpy.testing import assert_array_equal
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.io.eeglab.eeglab import _read_eeglab_events
 from mne.datasets import testing
 from mne.utils import _TempDir, run_tests_if_main, requires_version
 
@@ -61,6 +62,15 @@ def test_io_set():
         assert_equal(len(w), 4)
         # 1 for preload=False / str with fname_onefile, 3 for dropped events
         raw0.filter(1, None)  # test that preloading works
+
+    # test old EEGLAB version event import
+    eeg = io.loadmat(raw_fname, struct_as_record=False,
+                     squeeze_me=True)['EEG']
+    events1 = _read_eeglab_events(eeg)
+    for event in eeg.event:  # old version allows integer events
+        event.type = int(event.type)
+    events2 = _read_eeglab_events(eeg)
+    assert_array_equal(events1, events2)
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
