@@ -728,8 +728,8 @@ def _handle_topomap_bads(ch_name, params):
         if type in params['types']:
             types = np.where(np.array(params['types']) == type)[0]
             break
-    color_ind = np.where(np.array(params['info']['ch_names'])[types]
-                         == ch_name)[0]
+    color_ind = np.where(np.array(
+        params['info']['ch_names'])[types] == ch_name)[0]
     if len(color_ind) > 0:
         sensors = params['fig_selection'].axes[1].collections[0]
         this_color = sensors._edgecolors[color_ind][0]
