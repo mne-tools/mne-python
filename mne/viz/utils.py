@@ -109,6 +109,27 @@ def _check_delayed_ssp(container):
         raise RuntimeError('No projs found in evoked.')
 
 
+def _validate_if_list_of_axes(axes, obligatory_len=None):
+    """ Helper function that validates whether input is a list of axes"""
+    import matplotlib as mpl
+    if obligatory_len is not None and not isinstance(obligatory_len, int):
+        raise ValueError('obligatory_len must be None or int, got %d',
+                         'instead' % type(obligatory_len))
+    if not isinstance(axes, list):
+        raise ValueError('axes must be a list of matplotlib axes objects'
+                         ', got %s instead.' % type(axes))
+    is_correct_type = np.array([isinstance(x, mpl.axes._axes.Axes)
+                               for x in axes])
+    if not np.all(is_correct_type):
+        first_bad = np.where(is_correct_type == False)[0][0]
+        raise ValueError('axes must be a list of matplotlib axes objects'
+                         ', while one of the list elements is %s.' %
+                         type(axes[first_bad]))
+    if obligatory_len is not None and not len(axes) == obligatory_len:
+        raise ValueError('axes must be a list of length %d, while the'
+                         ' length is %d' % (obligatory_len, len(axes)))
+
+
 def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
     """Return a colormap similar to that used by mne_analyze
 

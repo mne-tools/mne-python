@@ -143,19 +143,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     if axes is None:
         fig, axes = _create_properties_layout()
     else:
-        if not isinstance(axes, list):
-            raise ValueError('axes must be a list of matplotlib axes objects'
-                             ', got %s instead.' % type(axes))
-        is_correct_type = np.array([isinstance(x, mpl.axes._axes.Axes)
-                                   for x in axes])
-        if not np.all(is_correct_type):
-            first_bad = np.where(is_correct_type == False)[0][0]
-            raise ValueError('axes must be a list of matplotlib axes objects'
-                             ', while one of the list elements is %s.' %
-                             type(axes[first_bad]))
-        if not len(axes) == 5:
-            raise ValueError('axes must be a list of length 5, while the'
-                             ' length is %d' % len(axes))
+        from .utils import _validate_if_list_of_axes
+        _validate_if_list_of_axes(axes, obligatory_len=5)
 
     # calculations
     # ------------
