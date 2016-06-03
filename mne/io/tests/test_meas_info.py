@@ -327,7 +327,8 @@ def test_check_consistency():
 
 
 def test_anonymize():
-    # Checks that contains sensitive information
+    """Checks that sensitive information can be anonymized.
+    """
     assert_raises(ValueError, anonymize_info, 'foo')
 
     # Fake some subject data
