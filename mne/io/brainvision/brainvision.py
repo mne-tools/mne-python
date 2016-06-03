@@ -38,10 +38,11 @@ class RawBrainVision(_BaseRaw):
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file.
         Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
-    misc : list or tuple
+    misc : list or tuple of str | 'auto'
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
-        in the vhdr file. Default is ``()``.
+        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -70,7 +71,7 @@ class RawBrainVision(_BaseRaw):
     """
     @verbose
     def __init__(self, vhdr_fname, montage=None,
-                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(),
+                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                  scale=1., preload=False, response_trig_shift=0,
                  event_id=None, verbose=None):
         # Channel info and events
@@ -241,7 +242,14 @@ _orientation_dict = dict(MULTIPLEXED='F', VECTORIZED='C')
 _fmt_dict = dict(INT_16='short', INT_32='int', IEEE_FLOAT_32='single')
 _fmt_byte_dict = dict(short=2, int=4, single=4)
 _fmt_dtype_dict = dict(short='<i2', int='<i4', single='<f4')
-_unit_dict = {'V': 1., u'µV': 1e-6, 'uV': 1e-6}
+_unit_dict = {'V': 1.,  # V stands for Volt
+              u'µV': 1e-6,
+              'uV': 1e-6,
+              'C': 1,  # C stands for celsius
+              u'µS': 1e-6,  # S stands for Siemens
+              u'uS': 1e-6,
+              u'ARU': 1,  # ARU is the unity for the breathing data
+              'S': 1}
 
 
 def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
@@ -254,9 +262,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file.
-    misc : list of str
-        Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the vhdr file.
+    misc : list or tuple of str | 'auto'
+        Names of channels or list of indices that should be designated
+        MISC channels. Values should correspond to the electrodes
+        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1.. For microvolts, the scale factor would be 1e-6. This is
@@ -324,6 +334,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     ranges = np.empty(nchan)
     cals.fill(np.nan)
     ch_dict = dict()
+    misc_chs = dict()
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0]) - 1
         props = props.split(',')
@@ -340,6 +351,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         unit = unit.replace(u'\xc2', u'')  # Remove unwanted control characters
         cals[n] = float(resolution)
         ranges[n] = _unit_dict.get(unit, unit) * scale
+        if unit in ('C', u'µS', u'uS', 'ARU', 'S'):
+            misc_chs[name] = (FIFF.FIFF_UNIT_CEL if unit == 'C'
+                              else FIFF.FIFF_UNIT_NONE)
+    misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
     # create montage
     if montage is True:
@@ -434,7 +449,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         elif ch_name in misc or idx in misc or idx - nchan in misc:
             kind = FIFF.FIFFV_MISC_CH
             coil_type = FIFF.FIFFV_COIL_NONE
-            unit = FIFF.FIFF_UNIT_V
+            if ch_name in misc_chs:
+                unit = misc_chs[ch_name]
+            else:
+                unit = FIFF.FIFF_UNIT_NONE
         elif ch_name == 'STI 014':
             kind = FIFF.FIFFV_STIM_CH
             coil_type = FIFF.FIFFV_COIL_NONE
@@ -457,7 +475,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
 
 def read_raw_brainvision(vhdr_fname, montage=None,
-                         eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(),
+                         eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                          scale=1., preload=False, response_trig_shift=0,
                          event_id=None, verbose=None):
     """Reader for Brain Vision EEG file
@@ -474,10 +492,11 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file
         Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
-    misc : list or tuple of str
+    misc : list or tuple of str | 'auto'
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
-        in the vhdr file. Default is ``()``.
+        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -509,8 +528,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    raw = RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
-                         misc=misc, scale=scale,
-                         preload=preload, verbose=verbose, event_id=event_id,
-                         response_trig_shift=response_trig_shift)
-    return raw
+    return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
+                          misc=misc, scale=scale, preload=preload,
+                          response_trig_shift=response_trig_shift,
+                          event_id=event_id, verbose=verbose)

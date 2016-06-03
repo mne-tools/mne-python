@@ -22,12 +22,16 @@ BUG
 
     - Fixed color ranges to correspond to the colorbar when plotting several time instances with :func:`mne.viz.plot_evoked_topomap` by `Jaakko Leppakangas`_
 
+    - Added units to :func:`mne.io.read_raw_brainvision` for reading non-data channels and enable default behavior of inferring channel type by unit by `Jaakko Leppakangas`_ and `Pablo-Arias`_
+
 API
 ~~~
 
     - Deprecated support for passing a lits of filenames to :class:`mne.io.Raw` constructor, use :func:`mne.io.read_raw_fif` and :func:`mne.concatenate_raws` instead by `Eric Larson`_
 
     - Added options for setting data and date formats manually in :func:`mne.io.read_raw_cnt` by `Jaakko Leppakangas`_
+
+    - Now channels with units of 'C', 'µS', 'uS', 'ARU' and 'S' will be turned to misc by default in :func:`mne.io.read_raw_brainvision` by `Jaakko Leppakangas`_
 
 .. _changes_0_12:
 
@@ -1569,3 +1573,5 @@ of commits):
 .. _Natalie Klein: http://www.stat.cmu.edu/people/students/neklein
 
 .. _Jon Houck: http://www.unm.edu/~jhouck/
+
+.. _Pablo-Arias: https://github.com/Pablo-Arias
