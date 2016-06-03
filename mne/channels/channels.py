@@ -410,8 +410,8 @@ class SetChannelsMixin(object):
 
         Returns
         -------
-        inst : instance of Raw, Epochs or Evoked
-            The instance object.
+        self : instance of Raw | Epochs | Evoked
+            The data container.
 
         Notes
         -----
