@@ -722,6 +722,24 @@ def _mouse_click(event, params):
         params['pick_bads_fun'](event)
 
 
+def _handle_topomap_bads(ch_name, params):
+    """Helper for coloring channels in selection topomap when selecting bads"""
+    for type in ('mag', 'grad', 'eeg', 'seeg'):
+        if type in params['types']:
+            types = np.where(np.array(params['types']) == type)[0]
+            break
+    color_ind = np.where(np.array(params['info']['ch_names'])[types]
+                         == ch_name)[0]
+    if len(color_ind) > 0:
+        sensors = params['fig_selection'].axes[1].collections[0]
+        this_color = sensors._edgecolors[color_ind][0]
+        if all(this_color == [1., 0., 0., 1.]):  # is red
+            sensors._edgecolors[color_ind] = [0., 0., 0., 1.]
+        else:  # is black
+            sensors._edgecolors[color_ind] = [1., 0., 0., 1.]
+        params['fig_selection'].canvas.draw()
+
+
 def _find_channel_idx(ch_name, params):
     """Helper for finding all indices when using selections."""
     indices = list()
@@ -752,8 +770,10 @@ def _select_bads(event, params, bads):
                 if this_chan in params['info']['ch_names']:
                     if 'fig_selection' in params:
                         ch_idx = _find_channel_idx(this_chan, params)
+                        _handle_topomap_bads(this_chan, params)
                     else:
                         ch_idx = [params['ch_start'] + lines.index(line)]
+
                     if this_chan not in bads:
                         bads.append(this_chan)
                         color = params['bad_color']
@@ -772,6 +792,7 @@ def _select_bads(event, params, bads):
         params['ax_vertline'].set_data(x, np.array(params['ax'].get_ylim()))
         params['ax_hscroll_vertline'].set_data(x, np.array([0., 1.]))
         params['vertline_t'].set_text('%0.3f' % x[0])
+
     return bads
 
 
@@ -1092,10 +1113,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     pos = np.asarray([ch['loc'][:3] for ch in info['chs']])[picks]
     ch_names = np.array(info['ch_names'])[picks]
+    bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
     if ch_groups is None:
         def_colors = _handle_default('color')
-        bads = [idx for idx, name in enumerate(ch_names)
-                if name in info['bads']]
         colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
                   for i, pick in enumerate(picks)]
     else:
@@ -1133,7 +1153,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         pos = _auto_topomap_coords(info, picks, True)
 
     title = 'Sensor positions (%s)' % ch_type if title is None else title
-    fig = _plot_sensors(pos, colors, ch_names, title, show_names, axes, show)
+    fig = _plot_sensors(pos, colors, bads, ch_names, title, show_names, axes,
+                        show)
     return fig
 
 
@@ -1153,11 +1174,13 @@ def _onpick_sensor(event, fig, ax, pos, ch_names):
     fig.canvas.draw()
 
 
-def _plot_sensors(pos, colors, ch_names, title, show_names, ax, show):
+def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show):
     """Helper function for plotting sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from .topomap import _check_outlines, _draw_outlines
+    edgecolors = np.repeat('black', len(colors))
+    edgecolors[bads] = 'red'
     if ax is None:
         fig = plt.figure()
         if pos.shape[1] == 3:
@@ -1171,7 +1194,7 @@ def _plot_sensors(pos, colors, ch_names, title, show_names, ax, show):
     if pos.shape[1] == 3:
         ax.text(0, 0, 0, '', zorder=1)
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
-                   s=100, edgecolor='gray')
+                   s=75, edgecolor=edgecolors)
         ax.azim = 90
         ax.elev = 0
     else:
@@ -1182,8 +1205,8 @@ def _plot_sensors(pos, colors, ch_names, title, show_names, ax, show):
                             hspace=None)
         pos, outlines = _check_outlines(pos, 'head')
         _draw_outlines(ax, outlines)
-        ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=100,
-                   edgecolor='gray')
+        ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=75,
+                   edgecolor=edgecolors)
 
     if show_names:
         for idx in range(len(pos)):
@@ -1196,6 +1219,7 @@ def _plot_sensors(pos, colors, ch_names, title, show_names, ax, show):
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
                          ch_names=ch_names)
         fig.canvas.mpl_connect('pick_event', picker)
+
     fig.suptitle(title)
     plt_show(show)
     return fig

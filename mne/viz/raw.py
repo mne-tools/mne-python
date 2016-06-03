@@ -24,7 +24,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
                     _helper_raw_resize, _select_bads, _onclick_help,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
-                    _radio_clicked, _set_radio_button)
+                    _radio_clicked, _set_radio_button, _handle_topomap_bads)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
 
@@ -414,6 +414,7 @@ def _label_clicked(pos, params):
         return
     if 'fig_selection' in params:
         ch_idx = _find_channel_idx(text, params)
+        _handle_topomap_bads(text, params)
     else:
         ch_idx = [params['ch_start'] + line_idx]
     bads = params['info']['bads']
@@ -922,10 +923,10 @@ def _setup_browser_selection(raw, kind):
     if len(misc) > 0:
         order['Misc'] = misc
     keys = np.concatenate([keys, ['Misc']])
-    fig_selection = figure_nobar(figsize=(4, 10), dpi=80)
+    fig_selection = figure_nobar(figsize=(2, 6), dpi=80)
     fig_selection.canvas.set_window_title('Selection')
-    rax = plt.subplot2grid((4, 1), (1, 0), rowspan=3, colspan=1)
-    topo_ax = plt.subplot2grid((4, 1), (0, 0), rowspan=1, colspan=1)
+    rax = plt.subplot2grid((6, 1), (2, 0), rowspan=4, colspan=1)
+    topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
     plot_sensors(raw.info, kind='topomap', ch_type=None, axes=topo_ax,
                  ch_groups=kind, title='', show=False)
     fig_selection.radio = RadioButtons(rax, [key for key in keys
