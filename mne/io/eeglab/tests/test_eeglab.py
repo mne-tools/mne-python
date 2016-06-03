@@ -66,11 +66,9 @@ def test_io_set():
     # test old EEGLAB version event import
     eeg = io.loadmat(raw_fname, struct_as_record=False,
                      squeeze_me=True)['EEG']
-    events1 = _read_eeglab_events(eeg)
     for event in eeg.event:  # old version allows integer events
-        event.type = int(event.type)
-    events2 = _read_eeglab_events(eeg)
-    assert_array_equal(events1, events2)
+        event.type = 1
+    assert_equal(_read_eeglab_events(eeg)[-1, -1], 1)
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
