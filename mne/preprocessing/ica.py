@@ -89,6 +89,25 @@ def get_score_funcs():
     return score_funcs
 
 
+def _check_for_unsupported_ica_channels(picks, info):
+    """Check for channels in picks that are not considered
+    valid channels. Accepted channels are the data channels
+    ('seeg','ecog','eeg','mag', and 'grad') and 'eog'.
+    This prevents the program from crashing without
+    feedback when a bad channel is provided to ICA whitening.
+    """
+    if picks is None:
+        return
+    elif len(picks) == 0:
+        raise ValueError('No channels provided to ICA')
+    types = _DATA_CH_TYPES_SPLIT + ['eog']
+    check = all([channel_type(info, j) in types for j in picks])
+    if not check:
+        raise ValueError('Invalid channel type(s) passed for ICA.'
+                         'Only the following channels are supported {}'
+                         .format(types))
+
+
 class ICA(ContainsMixin):
     """M/EEG signal decomposition using Independent Component Analysis (ICA)
 
@@ -271,22 +290,6 @@ class ICA(ContainsMixin):
 
         return '<ICA  |  %s>' % s
 
-    def _check_for_unsupported_ica_channels(self, picks, info):
-        """Check for channels in picks that are not considered
-        valid channels. Accepted channels are the data channels
-        ('seeg','ecog','eeg','mag', and 'grad') and 'eog'.
-        This prevents the program from crashing without
-        feedback when a bad channel is provided to ICA whitening.
-        """
-        types = _DATA_CH_TYPES_SPLIT + ['eog']
-        check = all([channel_type(info, j) in types for j in picks])
-        if picks == []:
-            raise ValueError('No channels provided to ICA')
-        if not check:
-            raise ValueError('Invalid channel type(s) passed for ICA.'
-                             'Only the following channels are supported {}'
-                             .format(types))
-
     @verbose
     def fit(self, inst, picks=None, start=None, stop=None, decim=None,
             reject=None, flat=None, tstep=2.0, verbose=None):
@@ -343,13 +346,13 @@ class ICA(ContainsMixin):
         self : instance of ICA
             Returns the modified instance.
         """
-        if picks is not None:
-            self._check_for_unsupported_ica_channels(picks, inst.info)
-        if isinstance(inst, _BaseRaw):
-            self._fit_raw(inst, picks, start, stop, decim, reject, flat,
-                          tstep, verbose)
-        elif isinstance(inst, _BaseEpochs):
-            self._fit_epochs(inst, picks, decim, verbose)
+        if isinstance(inst, _BaseRaw) or isinstance(inst, _BaseEpochs):
+            _check_for_unsupported_ica_channels(picks, inst.info)
+            if isinstance(inst, _BaseRaw):
+                self._fit_raw(inst, picks, start, stop, decim, reject, flat,
+                              tstep, verbose)
+            elif isinstance(inst, _BaseEpochs):
+                self._fit_epochs(inst, picks, decim, verbose)
         else:
             raise ValueError('Data input must be of Raw or Epochs type')
         return self
