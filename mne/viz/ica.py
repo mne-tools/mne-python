@@ -213,6 +213,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
             ax.set_ylabel(ylab)
         ax.axis('auto')
         ax.axis('tight')
+        ax.tick_params('both', labelsize=8)
 
     axes[0].set_title('IC ' + str(picks[comp_idx]))
 
