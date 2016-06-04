@@ -149,12 +149,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     if isinstance(inst, _BaseRaw):
         # calculate segment length that gives us about 250
         # segments and then break up continuous signal into segments
-        from ..epochs import segment_raw
+        from ..epochs import _segment_raw
         plot_line_at_zero = False
-        seg_len = np.arange(0.5, 10., 0.5)
-        nice_len = inst._data.shape[1] / (250. * inst.info['sfreq'])
-        seg_len = seg_len[np.argmin(np.abs(seg_len - nice_len))]
-        inst = segment_raw(inst, segment_length=seg_len, verbose=False)
+        inst = _segment_raw(inst, segment_length=2., verbose=False)
     else:
         plot_line_at_zero = True
 
