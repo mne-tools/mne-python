@@ -128,7 +128,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     from scipy import ndimage
     from ..io.base import _BaseRaw
     from ..epochs import _BaseEpochs
-    from mne.time_frequency.psd import psd_multitaper
+    from ..time_frequency.psd import psd_multitaper
 
     # current component (with future interactivity in mind)
     comp_idx = 0
@@ -138,8 +138,6 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
         raise ValueError('inst should be an instance of Raw or Epochs,'
                          ' got %s instead.' % type(inst))
-    if isinstance(picks, int):
-        picks = [picks]
     if axes is None:
         fig, axes = _create_properties_layout()
     else:

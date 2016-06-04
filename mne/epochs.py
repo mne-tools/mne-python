@@ -3114,7 +3114,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     return (evoked, mapping) if return_mapping else evoked
 
 
-def segment_raw(raw, segment_length=1., verbose=True):
+def _segment_raw(raw, segment_length=1., verbose=True):
     """Divide continuous raw data into equal-sized
     consecutive chunks.
 
