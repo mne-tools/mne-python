@@ -121,7 +121,7 @@ def _validate_if_list_of_axes(axes, obligatory_len=None):
     is_correct_type = np.array([isinstance(x, mpl.axes._axes.Axes)
                                for x in axes])
     if not np.all(is_correct_type):
-        first_bad = np.where(is_correct_type == False)[0][0]
+        first_bad = np.where(np.logical_not(is_correct_type))[0][0]
         raise ValueError('axes must be a list of matplotlib axes objects'
                          ', while one of the list elements is %s.' %
                          type(axes[first_bad]))
