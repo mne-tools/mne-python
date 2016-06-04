@@ -120,20 +120,29 @@ def _create_properties_layout():
     return fig, ax
 
 
-def plot_ica_properties(ica, inst, picks=None, axes=None):
+def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
+                    cmap=None, topo_kws=None, image_kws=None):
     """Display component properties
     FIX DOCSTRING
     """
     import matplotlib as mpl
     from scipy import ndimage
     from .epochs import plot_epochs_image
+    from .topomap import plot_topomap
     from ..io.base import _BaseRaw
     from ..epochs import _BaseEpochs
+    from ..preprocessing import ICA
     from ..time_frequency.psd import psd_multitaper
 
-    # current component (with future interactivity in mind)
-    comp_idx = 0
+    # current component/channel (with future interactivity in mind)
+    idx = 0
 
+    if ica is None:
+        raise NotImplementedError('channel properties are not '
+                                  'currently implemented')
+    elif not isinstance(ica, ICA):
+        raise ValueError('ica has to be an instance of ICA, '
+                         'got %s instead' % type(ica))
     picks = range(ica.n_components_) if picks is None else picks
     picks = [picks] if isinstance(picks, int) else picks
     if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
@@ -144,6 +153,14 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     else:
         from .utils import _validate_if_list_of_axes
         _validate_if_list_of_axes(axes, obligatory_len=5)
+    topo_kws = {} if topo_kws is None else topo_kws
+    image_kws = {} if image_kws is None else image_kws
+    if cmap is not None:
+        topo_kws.update(cmap=cmap)
+        image_kws.update(cmap=cmap)
+    if dB is not None and isinstance(dB, bool) is False:
+        raise ValueError('dB should be bool, got %s instead' %
+                         type(dB))
 
     # calculations
     # ------------
@@ -165,7 +182,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
 
     # spectrum
     psds, freqs = psd_multitaper(src, picks=picks)
-    psds = psds[:, comp_idx, :]
+    psds = psds[:, idx, :]
+    if dB:
+        psds = 10 * np.log10(psds)
     psds_mean = psds.mean(axis=0)
     diffs = psds - psds_mean
     # the distribution of power for each frequency bin is highly
@@ -175,17 +194,18 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     neg_sd = [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T]
 
     # epoch variance
-    epoch_var = np.var(ica_data[comp_idx], axis=1)
+    epoch_var = np.var(ica_data[idx], axis=1)
 
     # plotting
     # --------
-    # FIX topoplot - currently works only for eeg
-    _, pos, merge_grads, names, _ = _prepare_topo_plot(ica, 'eeg', None)
-    plot_topomap(topo_data[comp_idx, :].ravel(), pos, axes=axes[0], show=False)
+    # FIX - channels used by ica and present in inst may not match
+    #       (because bad channels were not used in ica)
+    plot_topomap(topo_data[idx, :].ravel(), inst.info, axes=axes[0], show=False,
+                 **topo_kws)
     # image and erp
     # FIX - should take something like **image_kwargs
-    plot_epochs_image(src, picks=picks[comp_idx], axes=axes[1:3],
-                      colorbar=False, show=False)
+    plot_epochs_image(src, picks=picks[idx], axes=axes[1:3],
+                      colorbar=False, show=False, **image_kws)
 
     # spectrum
     axes[3].plot(freqs, psds_mean, color='k')
@@ -208,7 +228,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
         ax.axis('tight')
         ax.tick_params('both', labelsize=8)
 
-    axes[0].set_title('IC ' + str(picks[comp_idx]))
+    axes[0].set_title('IC ' + str(picks[idx]))
 
     set_title_and_labels(axes[1], 'epochs image and ERP', [], 'Epochs')
     # remove xticks - erp plot shows xticks for both image and erp plot
@@ -232,12 +252,16 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
         pass
 
     # spectrum
-    set_title_and_labels(axes[3], 'spectrum', 'frequency', [])
+    ylabel = 'dB' if dB else 'power'
+    set_title_and_labels(axes[3], 'spectrum', 'frequency', ylabel)
+    ylim = axes[3].get_ylim()
+    air = np.diff(ylim)[0] * 0.1
+    axes[3].set_ylim(ylim[0] - air, ylim[1] + air)
 
     # epoch variance
     set_title_and_labels(axes[4], 'epochs variance', 'epoch', 'AU')
 
-    return fig, axes
+    return fig
 
 
 def _plot_ica_grid(sources, start, stop,
