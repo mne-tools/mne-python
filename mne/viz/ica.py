@@ -126,6 +126,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     """
     import matplotlib as mpl
     from scipy import ndimage
+    from .epochs import plot_epochs_image
     from ..io.base import _BaseRaw
     from ..epochs import _BaseEpochs
     from ..time_frequency.psd import psd_multitaper
@@ -161,12 +162,6 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     src = ica.get_sources(inst)
     ica_data = src.get_data()[:, picks, :]
     ica_data = np.swapaxes(ica_data, 0, 1)
-    evoked = src.average(picks)
-    # smooth_data is kept in a separate variable for future
-    # interactive changing of sigma
-    smooth_data = ndimage.gaussian_filter1d(ica_data[comp_idx],
-                                            sigma=1.5, axis=0)
-    vmin, vmax = _setup_vmin_vmax(smooth_data, None, None)
 
     # spectrum
     psds, freqs = psd_multitaper(src, picks=picks)
@@ -187,13 +182,11 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     # FIX topoplot - currently works only for eeg
     _, pos, merge_grads, names, _ = _prepare_topo_plot(ica, 'eeg', None)
     plot_topomap(topo_data[comp_idx, :].ravel(), pos, axes=axes[0], show=False)
-    # image
-    img_extent = [1e3 * src.times[0], 1e3 * src.times[-1], 0, len(smooth_data)]
-    axes[1].imshow(smooth_data, extent=img_extent, aspect='auto',
-                   origin='lower', interpolation='nearest',
-                   vmin=vmin, vmax=vmax)
-    # erp
-    axes[2].plot(1e3 * evoked.times, evoked.data[comp_idx].ravel())
+    # image and erp
+    # FIX - should take something like **image_kwargs
+    plot_epochs_image(src, picks=picks[comp_idx], axes=axes[1:3],
+                      colorbar=False, show=False)
+
     # spectrum
     axes[3].plot(freqs, psds_mean, color='k')
     axes[3].fill_between(freqs, psds_mean - neg_sd, psds_mean + pos_sd,
@@ -222,7 +215,6 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
     axes[1].set_xticks([])
     yt = axes[1].get_yticks()
     axes[1].set_yticks(yt[1:])
-    axes[1].set_ylim([-0.5, len(smooth_data) + 0.5])
 
     # erp
     set_title_and_labels(axes[2], [], 'time', 'AU')
@@ -233,8 +225,11 @@ def plot_ica_properties(ica, inst, picks=None, axes=None):
         axes[2].set_yticks(yt)
 
     if plot_line_at_zero:
-        axes[1].axvline(0, color='m', linewidth=3, linestyle='--')
-        axes[2].axvline(0, color='m', linewidth=3, linestyle='--')
+        # this will require another change, either:
+        # * adding an argument to plot_epochs_image
+        # * digging up the lines here, and throwing them away
+        #   if plot_line_at_zero is False
+        pass
 
     # spectrum
     set_title_and_labels(axes[3], 'spectrum', 'frequency', [])
