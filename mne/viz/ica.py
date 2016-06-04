@@ -14,8 +14,7 @@ import numpy as np
 
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
                     _layout_figure, _plot_raw_onscroll, _mouse_click,
-                    _helper_raw_resize, _plot_raw_onkey, plt_show,
-                    _setup_vmin_vmax)
+                    _helper_raw_resize, _plot_raw_onkey, plt_show)
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces
 from .epochs import _prepare_mne_browse_epochs
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
@@ -125,8 +124,6 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     """Display component properties
     FIX DOCSTRING
     """
-    import matplotlib as mpl
-    from scipy import ndimage
     from .epochs import plot_epochs_image
     from .topomap import plot_topomap
     from ..io.base import _BaseRaw
@@ -200,8 +197,8 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     # --------
     # FIX - channels used by ica and present in inst may not match
     #       (because bad channels were not used in ica)
-    plot_topomap(topo_data[idx, :].ravel(), inst.info, axes=axes[0], show=False,
-                 **topo_kws)
+    plot_topomap(topo_data[idx, :].ravel(), inst.info, axes=axes[0],
+                 show=False, **topo_kws)
     # image and erp
     # FIX - should take something like **image_kwargs
     plot_epochs_image(src, picks=picks[idx], axes=axes[1:3],
