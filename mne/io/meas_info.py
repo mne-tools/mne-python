@@ -226,14 +226,6 @@ class Info(dict):
         st %= non_empty
         return st
 
-    def _anonymize(self):
-        if self.get('subject_info') is not None:
-            del self['subject_info']
-        self['meas_date'] = [0, 0]
-        for key_1 in ('file_id', 'meas_id'):
-            for key_2 in ('secs', 'msecs', 'usecs'):
-                self[key_1][key_2] = 0
-
     def _check_consistency(self):
         """Do some self-consistency checks and datatype tweaks"""
         missing = [bad for bad in self['bads'] if bad not in self['ch_names']]
@@ -1513,3 +1505,33 @@ def _force_update_info(info_base, info_target):
             continue
         for i_targ in info_target:
             i_targ[key] = val
+
+
+def anonymize_info(info):
+    """Anonymize measurement information in place.
+
+    Reset 'subject_info', 'meas_date', 'file_id', and 'meas_id' keys.
+
+    Parameters
+    ----------
+    info : dict, instance of Info
+        Measurement information for the dataset.
+
+    Returns
+    -------
+    info : instance of Info
+        Measurement information for the dataset.
+
+    Notes
+    -----
+    Operates in place.
+    """
+    if not isinstance(info, Info):
+        raise ValueError('self must be an Info instance.')
+    if info.get('subject_info') is not None:
+        del info['subject_info']
+    info['meas_date'] = [0, 0]
+    for key_1 in ('file_id', 'meas_id'):
+        for key_2 in ('secs', 'msecs', 'usecs'):
+            info[key_1][key_2] = 0
+    return info

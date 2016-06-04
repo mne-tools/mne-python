@@ -15,6 +15,7 @@ from scipy import sparse
 from ..externals.six import string_types
 
 from ..utils import verbose, logger, warn
+from ..io.meas_info import anonymize_info
 from ..io.pick import (channel_type, pick_info, pick_types,
                        _check_excludes_includes, _PICK_TYPES_KEYS)
 from ..io.constants import FIFF
@@ -401,6 +402,25 @@ class SetChannelsMixin(object):
         from ..viz.utils import plot_sensors
         return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
                             show_names=show_names, show=show)
+
+    def anonymize(self):
+        """Anonymize measurement information in place by removing
+        'subject_info', 'meas_date', 'file_id', 'meas_id' if they exist in
+        ``info``.
+
+        Returns
+        -------
+        self : instance of Raw | Epochs | Evoked
+            The data container.
+
+        Notes
+        -----
+        Operates in place.
+
+        .. versionadded:: 0.13.0
+        """
+        anonymize_info(self.info)
+        return self
 
 
 class UpdateChannelsMixin(object):

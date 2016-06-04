@@ -8,7 +8,8 @@ from numpy.testing import assert_array_equal, assert_allclose
 
 from mne import Epochs, read_events
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
-                    _loc_to_coil_trans, Raw, read_info, write_info)
+                    _loc_to_coil_trans, Raw, read_info, write_info,
+                    anonymize_info)
 from mne.io.constants import FIFF
 from mne.io.meas_info import (Info, create_info, _write_dig_points,
                               _read_dig_points, _make_dig_points, _merge_info,
@@ -323,6 +324,47 @@ def test_check_consistency():
     info2 = info.copy()
     info2['chs'][2]['ch_name'] = 'b'
     assert_raises(RuntimeError, info2._check_consistency)
+
+
+def test_anonymize():
+    """Checks that sensitive information can be anonymized.
+    """
+    assert_raises(ValueError, anonymize_info, 'foo')
+
+    # Fake some subject data
+    raw = Raw(raw_fname)
+    raw.info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
+                                    first_name='bar', birthday=(1987, 4, 8),
+                                    sex=0, hand=1)
+
+    orig_file_id = raw.info['file_id']['secs']
+    orig_meas_id = raw.info['meas_id']['secs']
+    # Test instance method
+    events = read_events(event_name)
+    epochs = Epochs(raw, events[:1], 2, 0., 0.1)
+    for inst in [raw, epochs]:
+        assert_true('subject_info' in inst.info.keys())
+        assert_true(inst.info['subject_info'] is not None)
+        assert_true(inst.info['file_id']['secs'] != 0)
+        assert_true(inst.info['meas_id']['secs'] != 0)
+        assert_true(np.any(inst.info['meas_date'] != [0, 0]))
+        inst.anonymize()
+        assert_true('subject_info' not in inst.info.keys())
+        assert_equal(inst.info['file_id']['secs'], 0)
+        assert_equal(inst.info['meas_id']['secs'], 0)
+        assert_equal(inst.info['meas_date'], [0, 0])
+
+    # When we write out with raw.save, these get overwritten with the
+    # new save time
+    tempdir = _TempDir()
+    out_fname = op.join(tempdir, 'test_subj_info_raw.fif')
+    raw.save(out_fname, overwrite=True)
+    raw = Raw(out_fname)
+    assert_true(raw.info.get('subject_info') is None)
+    assert_array_equal(raw.info['meas_date'], [0, 0])
+    # XXX mne.io.write.write_id necessarily writes secs
+    assert_true(raw.info['file_id']['secs'] != orig_file_id)
+    assert_true(raw.info['meas_id']['secs'] != orig_meas_id)
 
 
 run_tests_if_main()

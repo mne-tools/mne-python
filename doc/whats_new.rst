@@ -13,7 +13,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - 
+    -
 
 BUG
 ~~~
@@ -32,6 +32,9 @@ API
     - Added options for setting data and date formats manually in :func:`mne.io.read_raw_cnt` by `Jaakko Leppakangas`_
 
     - Now channels with units of 'C', 'µS', 'uS', 'ARU' and 'S' will be turned to misc by default in :func:`mne.io.read_raw_brainvision` by `Jaakko Leppakangas`_
+
+    - Add :func:`mne.io.anonymize_info` function to anonymize measurements and add methods to :class:`mne.io.Raw`, :class:`mne.Epochs` and :class:`mne.Evoked`, by `Jean-Remi King`_
+
 
 .. _changes_0_12:
 
@@ -153,7 +156,7 @@ BUG
     - Fix bug in source normal adjustment that occurred when 1) patch information is available (e.g., when distances have been calculated) and 2) points are excluded from the source space (by inner skull distance) by `Eric Larson`_
 
     - Fix bug when merging info that has a field with list of dicts by `Jaakko Leppakangas`_
-    
+
     - The BTI/4D reader now considers user defined channel labels instead of the hard-ware names, however only for channels other than MEG. By `Denis Engemann`_ and `Alex Gramfort`_.
 
     - Fix bug in :func:`mne.compute_raw_covariance` where rejection by non-data channels (e.g. EOG) was not done properly by `Eric Larson`_.
