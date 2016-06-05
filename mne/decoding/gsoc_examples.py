@@ -24,7 +24,7 @@ raw = mne.io.read_raw_fif(raw_fname, preload=True)
 events = mne.read_events(events_fname)
 event_id = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
 picks = pick_types(raw.info, meg=False, eeg=True, stim=False,
-                    ecg=False, eog=False,  exclude='bads')
+                   ecg=False, eog=False,  exclude='bads')
 epochs = mne.Epochs(raw, events, event_id, -0.050, 0.400, decim=2)
 ch_names = [epochs.ch_names[p] for p in picks]
 epochs.pick_channels(ch_names)

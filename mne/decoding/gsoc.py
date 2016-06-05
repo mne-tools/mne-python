@@ -63,7 +63,7 @@ class _EpochsTransformerMixin(TransformerMixin):
         return X
 
     def _reshape(self, X):
-        """Recontruct epochs to get a n_trials * n_chan * n_time
+        """Recontruct epochs to get a n_trials * n_chans * n_times.
 
         Parameters
         ----------
@@ -145,8 +145,9 @@ class UnsupervisedSpatialFilter(_EpochsTransformerMixin):
 
         Parameters
         ----------
-        X : numpy array of dimensions [2,3,4]
-            The data to be reshaped.
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
+            The data to be filtered.
         y : None
             Used for scikit-learn compatibility.
 
