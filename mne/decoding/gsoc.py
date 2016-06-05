@@ -31,7 +31,8 @@ class _EpochsTransformerMixin(TransformerMixin):
 
         Parameters
         ----------
-        X : numpy array of dimensions [2,3,4]
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
             The data to be reshaped into 3D. `n_chan` is used in 3D or 4D
             matrix.
         y : None
@@ -49,7 +50,8 @@ class _EpochsTransformerMixin(TransformerMixin):
 
         Parameters
         ----------
-        X : numpy array of dimensions [2,3,4]
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
             The data to be reshaped into 3D. `n_chan` is used in 3D or 4D
             matrix.
 
@@ -65,18 +67,20 @@ class _EpochsTransformerMixin(TransformerMixin):
 
         Parameters
         ----------
-        X : numpy array of dimensions [2,3,4]
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
             The data to be reshaped into 3D. `n_chan` is used in 3D or 4D
             matrix.
 
         Returns
         -------
-        X : numpy ndarray of shape (n_trials, n_chan, n_times)
+        X : numpy ndarray of shape (n_trials, n_chans, n_times)
             Transformed data.
         """
         if isinstance(X, _BaseEpochs):
-            X = X.get_data()
-            # TODO: pick data channels (EEG/MEG/SEEG/ECOG if epochs)
+            picks = pick_types(X.info, meg=True, eeg=True, seeg=True,
+                               ecog=True)
+            X = X.get_data()[picks]
         elif not isinstance(X, np.ndarray):
             raise ValueError('X must be an Epochs or a 2D or 3D array, got '
                              '%s instead' % type(X))
@@ -118,7 +122,8 @@ class UnsupervisedSpatialFilter(_EpochsTransformerMixin):
 
         Parameters
         ----------
-        X : numpy array of dimensions [2,3,4]
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
             The data to be filtered.
         y : None
             Used for scikit-learn compatibility.

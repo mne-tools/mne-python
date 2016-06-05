@@ -27,8 +27,10 @@ def _get_data():
 
 def test_EpochsTransformerMixin():
     raw, events, picks = _get_data()
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, baseline=None, verbose=False)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True,
+                    baseline=None, verbose=False)
+    ch_names = [epochs.ch_names[p] for p in picks]
+    epochs.pick_channels(ch_names)
 
     # Test _rehsape method wrong input
     etm = _EpochsTransformerMixin(n_chan=epochs.info['nchan'])
