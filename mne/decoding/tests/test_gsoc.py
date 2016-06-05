@@ -1,8 +1,8 @@
 import os.path as op
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_equal
 from nose.tools import assert_raises
 from mne import io, Epochs, read_events,  pick_types
-from mne.decoding.gsoc import (EpochsTransformerMixin,
+from mne.decoding.gsoc import (_EpochsTransformerMixin,
                                UnsupervisedSpatialFilter)
 from mne.decoding.transformer import EpochsVectorizer
 from mne.utils import run_tests_if_main, requires_sklearn
@@ -27,16 +27,19 @@ def _get_data():
 
 def test_EpochsTransformerMixin():
     raw, events, picks = _get_data()
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, baseline=None, verbose=False)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True,
+                    baseline=None, verbose=False)
+    ch_names = [epochs.ch_names[p] for p in picks]
+    epochs.pick_channels(ch_names)
 
     # Test _rehsape method wrong input
-    etm = EpochsTransformerMixin(n_chan=epochs.info['nchan'])
+    etm = _EpochsTransformerMixin(n_chan=epochs.info['nchan'])
     assert_raises(ValueError, etm._reshape, raw)
 
     # Test _reshape correctness
     X = EpochsVectorizer().fit(epochs._data, None).transform(epochs._data)
     assert_array_equal(etm._reshape(X), epochs._data)
+    assert_equal(etm._reshape(X).ndim, epochs._data.ndim)
 
 
 @requires_sklearn
@@ -52,10 +55,13 @@ def test_UnsupervisedSpatialFilter():
     usf.fit(X)
     usf1 = UnsupervisedSpatialFilter(PCA(5), n_chan=epochs.info['nchan'])
 
-    # test tranform
-    assert(usf.transform(X).ndim, 3)
+    # test transform
+    assert_equal(usf.transform(X).ndim, 3)
 
     # test fit_trasnform
     assert_array_equal(usf.transform(X), usf1.fit_transform(X))
+
+    # assert shape
+    assert_equal(usf.transform(X).shape[1], 5)
 
 run_tests_if_main()

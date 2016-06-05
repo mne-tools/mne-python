@@ -1,4 +1,5 @@
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>
+#          Asish Panda <asishrocks95@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -7,18 +8,18 @@ from .mixin import TransformerMixin
 from ..epochs import _BaseEpochs
 
 
-class EpochsTransformerMixin(TransformerMixin):
+class _EpochsTransformerMixin(TransformerMixin):
     """Mixin class for reshaping data to Epoch's standard shape
 
-    This class is meant to be inherited by transformers meant to be
-    used in scikit-learn pipeline. Useful utility for making data
-    compatible with mne internal functions.
+    This class is meant to be inherited by transformers that are to be
+    used in scikit-learn pipeline. It provides functionality to convert
+    data matrix into 3D.
 
     Parameters
     ----------
-    n_chan : int | None
-
-        The number of channels.
+    n_chan : int (default : None)
+        The number of channels. Used for reshaping data matrix into 3D.
+        If none the matrix should be 3D else error is raised.
     """
 
     def __init__(self, n_chan=None):
@@ -30,10 +31,12 @@ class EpochsTransformerMixin(TransformerMixin):
 
         Parameters
         ----------
-        X : numpy array of dimensions [2,3,4]
-            The data to be reshaped.
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
+            The data to be reshaped into 3D. `n_chan` is used in 3D or 4D
+            matrix.
         y : None
-            Used for scikit-learn compatibilty
+            Used for scikit-learn compatibility
 
         Returns
         -------
@@ -42,36 +45,20 @@ class EpochsTransformerMixin(TransformerMixin):
         """
         return self
 
-    def fit_transform(self, X, y=None):
-        """No use here. Added for scikit-learn compatibility.
-
-        Parameters
-        ----------
-        X : numpy array of dimensions [2,3,4]
-            The data to be reshaped.
-        y : None
-            Used for scikit-learn compatibilty
-
-        Returns
-        -------
-        X : numpy ndarray
-            The same array
-        """
-        self.fit(X, y)
-        return self.transform(X)
-
     def transform(self, X):
         """No use here. Added for scikit-learn compatibility.
 
         Parameters
         ----------
-        X : numpy array of dimensions [2,3,4]
-            The data to be reshaped.
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
+            The data to be reshaped into 3D. `n_chan` is used in 3D or 4D
+            matrix.
 
         Returns
         -------
         X : numpy ndarray
-            The same array
+            The same array.
         """
         return X
 
@@ -80,17 +67,20 @@ class EpochsTransformerMixin(TransformerMixin):
 
         Parameters
         ----------
-        X : numpy array of dimensions [2,3,4]
-            The data to be reshaped.
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
+            The data to be reshaped into 3D. `n_chan` is used in 3D or 4D
+            matrix.
 
         Returns
         -------
-        X : numpy ndarray of shape (n_trails, n_chan, n_times)
-            reshaped ndarray.
+        X : numpy ndarray of shape (n_trials, n_chans, n_times)
+            Transformed data.
         """
         if isinstance(X, _BaseEpochs):
-            X = X.get_data()
-            # TODO: pick data channels (EEG/MEG/SEEG/ECOG if epochs)
+            picks = pick_types(X.info, meg=True, eeg=True, seeg=True,
+                               ecog=True)
+            X = X.get_data()[picks]
         elif not isinstance(X, np.ndarray):
             raise ValueError('X must be an Epochs or a 2D or 3D array, got '
                              '%s instead' % type(X))
@@ -108,26 +98,20 @@ class EpochsTransformerMixin(TransformerMixin):
                              'instead.' % self.n_chan)
 
 
-class UnsupervisedSpatialFilter(EpochsTransformerMixin):
+class UnsupervisedSpatialFilter(_EpochsTransformerMixin):
     """Fit and transform with an unsupervised spatial filtering across time
     and samples.
 
     Parameters
     ----------
     estimator : scikit-learn estimator
-        Estimator using some decomposition algorithm
+        Estimator using some decomposition algorithm.
     n_chan : int | None
         The number of channels.
-
-    e.g.
-    filter = UnsupervisedSpatialFilter(PCA())
-    filter.fit_transform(X, y=None)
     """
     def __init__(self, estimator, n_chan=None):
         self.n_chan = n_chan
-        if self.n_chan is not None and not isinstance(self.n_chan, int):
-            raise ValueError('n_chan must be None or an int, got %s '
-                             'instead' % type(n_chan))
+        self._check_init()
         self.estimator = estimator
         for attr in ['fit', 'transform', 'fit_transform']:
             if not hasattr(estimator, attr):
@@ -138,10 +122,11 @@ class UnsupervisedSpatialFilter(EpochsTransformerMixin):
 
         Parameters
         ----------
-        X : numpy array of dimensions [2,3,4]
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
             The data to be filtered.
         y : None
-            Used for scikit-learn compatibilty.
+            Used for scikit-learn compatibility.
 
         Returns
         -------
@@ -163,7 +148,7 @@ class UnsupervisedSpatialFilter(EpochsTransformerMixin):
         X : numpy array of dimensions [2,3,4]
             The data to be reshaped.
         y : None
-            Used for scikit-learn compatibilty.
+            Used for scikit-learn compatibility.
 
         Returns
         -------
@@ -174,7 +159,7 @@ class UnsupervisedSpatialFilter(EpochsTransformerMixin):
         return self.transform(X)
 
     def transform(self, X):
-        """Transform the data to its filtered components.
+        """Transform the data to its spatial filters.
 
         Parameters
         ----------
