@@ -743,6 +743,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
                       image_mask=image_mask, contours=contours,
                       image_interp=image_interp, show=False)[0]
     if colorbar:
+        import matplotlib.pyplot as plt
         from mpl_toolkits.axes_grid import make_axes_locatable
         divider = make_axes_locatable(axis)
         cax = divider.append_axes("right", size="5%", pad=0.05)

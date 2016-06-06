@@ -175,7 +175,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
 
     if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
         raise ValueError('inst should be an instance of Raw or Epochs,'
-        ' got %s instead.' % type(inst))
+                         ' got %s instead.' % type(inst))
     if ica is None:
         raise NotImplementedError('channel properties are not '
                                   'currently implemented')
@@ -220,9 +220,6 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     else:
         plot_line_at_zero = True
 
-    topo_data = np.dot(ica.mixing_matrix_[:, picks].T,
-                       ica.pca_components_[:ica.n_components_])
-
     src = ica.get_sources(inst)
     ica_data = src.get_data()[:, picks, :]
     ica_data = np.swapaxes(ica_data, 0, 1)
@@ -238,7 +235,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     # skewed so we calculate std for values below and above average
     # separately - this is used for fill_between shade
     spectrum_std = [[np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
-                   [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
+                    [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
     spectrum_std = np.array(spectrum_std) * num_std
 
     # erp std
@@ -293,7 +290,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     if plot_std:
         erp_xdata = axes[2].lines[0].get_data()[0]
         axes[2].fill_between(erp_xdata, erp - erp_std[0],
-                     erp + erp_std[1], color='k', alpha=.15)
+                             erp + erp_std[1], color='k', alpha=.15)
         axes[2].autoscale(enable=True, axis='y')
         axes[2].axis('auto')
         axes[2].set_xlim(erp_xdata[[0, -1]])
