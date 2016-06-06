@@ -120,8 +120,9 @@ def _create_properties_layout():
 
 
 def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
-                    cmap=None, topo_kws=None, image_kws=None):
-    """Display component properties
+                    cmap=None, plot_std=True, topo_kws=None, image_kws=None):
+    """Display component properties: topography, epochs image, ERP,
+    power spectrum and epoch variance.
     FIX DOCSTRING
     """
     from .epochs import plot_epochs_image
@@ -141,6 +142,15 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
                          'got %s instead' % type(ica))
     else:
         from .topomap import _plot_ica_topomap
+    if not isinstance(plot_std, (bool, float, int)):
+        raise ValueError('plot_std has to be a bool, int or float, '
+                         'got %s instead' % type(ica))
+    elif isinstance(plot_std, bool) and plot_std:
+        num_std = 1.
+    elif isinstance(plot_std, (float, int)):
+        num_std = plot_std
+        plot_std = True
+
     picks = range(ica.n_components_) if picks is None else picks
     picks = [picks] if isinstance(picks, int) else picks
     if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
@@ -188,8 +198,17 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     # the distribution of power for each frequency bin is highly
     # skewed so we calculate std for values below and above average
     # separately - this is used for fill_between shade
-    pos_sd = [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]
-    neg_sd = [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T]
+    spectrum_std = [[np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
+                   [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
+    spectrum_std = np.array(spectrum_std) * num_std
+
+    # erp std
+    if plot_std:
+        erp = ica_data[idx].mean(axis=0)
+        diffs = ica_data[idx] - erp
+        erp_std = [[np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
+                   [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
+        erp_std = np.array(erp_std) * num_std
 
     # epoch variance
     epoch_var = np.var(ica_data[idx], axis=1)
@@ -205,8 +224,9 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
 
     # spectrum
     axes[3].plot(freqs, psds_mean, color='k')
-    axes[3].fill_between(freqs, psds_mean - neg_sd, psds_mean + pos_sd,
-                         color='k', alpha=.15)
+    if plot_std:
+        axes[3].fill_between(freqs, psds_mean - spectrum_std[0],
+                             psds_mean + spectrum_std[1], color='k', alpha=.15)
     # epoch variance
     axes[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
                     facecolor=[0, 0, 0], lw=0)
@@ -234,18 +254,24 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
 
     # erp
     set_title_and_labels(axes[2], [], 'time', 'AU')
+    # line color and std
+    axes[2].lines[0].set_color('k')
+    if plot_std:
+        erp_xdata = axes[2].lines[0].get_data()[0]
+        axes[2].fill_between(erp_xdata, erp - erp_std[0],
+                     erp + erp_std[1], color='k', alpha=.15)
+        axes[2].autoscale(enable=True, axis='y')
+        axes[2].axis('auto')
+        axes[2].set_xlim(erp_xdata[[0, -1]])
     # remove half of yticks if more than 4
     yt = axes[2].get_yticks()
     if len(yt) > 4:
         yt = yt[::2]
         axes[2].set_yticks(yt)
 
-    if plot_line_at_zero:
-        # this will require another change, either:
-        # * adding an argument to plot_epochs_image
-        # * digging up the lines here, and throwing them away
-        #   if plot_line_at_zero is False
-        pass
+    if not plot_line_at_zero:
+        axes[1].lines[0].remove()
+        axes[2].lines[1].remove()
 
     # spectrum
     ylabel = 'dB' if dB else 'power'
