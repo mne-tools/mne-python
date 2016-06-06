@@ -33,8 +33,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 from mne import io, pick_types, read_events, Epochs
 from mne.datasets import sample
-from mne.preprocessing import Xdawn
-from mne.decoding import EpochsVectorizer
+from mne.decoding import EpochsVectorizer, XdawnTransformer
 from mne.viz import tight_layout
 
 
@@ -62,30 +61,28 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
                 add_eeg_ref=False, verbose=False)
 
 # Create classification pipeline
-clf = make_pipeline(Xdawn(n_components=3),
-                    EpochsVectorizer(),
+X, labels = EpochsVectorizer().fit_transform(epochs)
+clf = make_pipeline(XdawnTransformer(n_components=3,
+                    n_chan=epochs.info['nchan']),
                     MinMaxScaler(),
                     LogisticRegression(penalty='l1'))
-
-# Get the labels
-labels = epochs.events[:, -1]
 
 # Cross validator
 cv = StratifiedKFold(y=labels, n_folds=10, shuffle=True, random_state=42)
 
 # Do cross-validation
-preds = np.empty(len(labels))
+y_preds = np.empty(len(labels))
 for train, test in cv:
-    clf.fit(epochs[train], labels[train])
-    preds[test] = clf.predict(epochs[test])
+    clf.fit(X[train], labels[train])
+    y_preds[test] = clf.predict(X[test])
 
 # Classification report
 target_names = ['aud_l', 'aud_r', 'vis_l', 'vis_r']
-report = classification_report(labels, preds, target_names=target_names)
+report = classification_report(labels, y_preds, target_names=target_names)
 print(report)
 
 # Normalized confusion matrix
-cm = confusion_matrix(labels, preds)
+cm = confusion_matrix(labels, y_preds)
 cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
 
 # Plot confusion matrix
