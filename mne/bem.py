@@ -1663,8 +1663,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
     degrees, in mgz format.
 
-    This function assumes that the flash images are available in the
-    folder mri/bem/flash within the freesurfer subject reconstruction.
+    This function assumes that the flash images are available in the current
+    folder.
 
     See Also
     --------
@@ -1769,13 +1769,14 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                 os.remove(surf)
             _symlink(op.join('flash', surf), op.join(surf))
             skip_symlink = False
-    if skip_symlink:
-        logger.info("Unable to create all symbolic links to .surf files "
-                    "in bem folder. Use --overwrite option to recreate them.")
-        dest = op.join(bem_dir, 'flash')
-    else:
-        logger.info("Symbolic links to .surf files created in bem folder")
-        dest = bem_dir
+        if skip_symlink:
+            logger.info("Unable to create all symbolic links to .surf files "
+                        "in bem folder. Use --overwrite option to recreate "
+                        "them.")
+            dest = op.join(bem_dir, 'flash')
+        else:
+            logger.info("Symbolic links to .surf files created in bem folder")
+            dest = bem_dir
     logger.info("\nThank you for waiting.\nThe BEM triangulations for this "
                 "subject are now available at:\n%s.\nWe hope the BEM meshes "
                 "created will facilitate your MEG and EEG data analyses."
