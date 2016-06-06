@@ -177,6 +177,6 @@ def _divide_side(lobe, x):
     right = lobe[np.where(x[lobe] > median)[0]]
     medians = np.where(x[lobe] == median)[0]
 
-    left = np.concatenate([left, lobe[medians[1::2]]])
-    right = np.concatenate([right, lobe[medians[::2]]])
+    left = np.sort(np.concatenate([left, lobe[medians[1::2]]]))
+    right = np.sort(np.concatenate([right, lobe[medians[::2]]]))
     return list(left), list(right)
