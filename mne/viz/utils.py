@@ -1194,7 +1194,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show):
     if pos.shape[1] == 3:
         ax.text(0, 0, 0, '', zorder=1)
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
-                   s=75, edgecolor=edgecolors)
+                   s=75, edgecolor=edgecolors, linewidth=2)
         ax.azim = 90
         ax.elev = 0
     else:
@@ -1206,7 +1206,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show):
         pos, outlines = _check_outlines(pos, 'head')
         _draw_outlines(ax, outlines)
         ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=75,
-                   edgecolor=edgecolors)
+                   edgecolor=edgecolors, linewidth=2)
 
     if show_names:
         for idx in range(len(pos)):
