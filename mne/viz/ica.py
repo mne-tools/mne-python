@@ -120,6 +120,8 @@ def _create_properties_layout():
 
 
 def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
+                    cmap=None, plot_std=True, topo_kws=None, image_kws=None,
+                    show=True):
     """Display component properties: topography, epochs image, ERP/ERF,
     power spectrum and epoch variance.
 
@@ -317,6 +319,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     # epoch variance
     set_title_and_labels(axes[4], 'epochs variance', 'epoch', 'AU')
 
+    plt_show(show)
     return fig
 
 
