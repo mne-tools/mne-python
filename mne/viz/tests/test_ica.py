@@ -6,11 +6,12 @@
 import os.path as op
 import warnings
 
-from numpy.testing import assert_raises
+from numpy.testing import assert_raises, assert_equal
 
 from mne import io, read_events, Epochs, read_cov
 from mne import pick_types
 from mne.utils import run_tests_if_main, requires_sklearn
+from mne.viz.ica import _create_properties_layout
 from mne.viz.utils import _fake_click
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 
@@ -68,6 +69,38 @@ def test_plot_ica_components():
     ica.info = None
     assert_raises(ValueError, ica.plot_components, 1)
     assert_raises(RuntimeError, ica.plot_components, 1, ch_type='mag')
+    plt.close('all')
+
+
+@requires_sklearn
+def test_plot_ica_properties():
+    """Test plotting of ICA scores
+    """
+    import matplotlib.pyplot as plt
+    raw = _get_raw()
+    picks = _get_picks(raw)
+    epochs = _get_epochs()
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=3, n_pca_components=3)
+    with warnings.catch_warnings(record=True):  # bad proj
+        ica.fit(raw, picks=picks)
+
+    # test _create_properties_layout
+    fig, ax = _create_properties_layout()
+    assert_equal(len(ax), 5)
+
+    ica.plot_properties(raw, picks=0)
+    # fig = ica.plot_properties(raw, picks=[0, 1, 2])
+    ica.plot_properties(epochs, picks=1)
+    ica.plot_properties(epochs, picks=1, dB=True)
+    ica.plot_properties(epochs, picks=1, dB=True, cmap='jet')
+    ica.plot_properties(epochs, picks=1, image_kws={'sigma':1.5})
+    ica.plot_properties(epochs, picks=1, topo_kws={'res':10})
+    ica.plot_properties(epochs, picks=1, plot_std=False)
+    assert_raises(ValueError, ica.plot_properties, epochs, dB=list('abc'))
+    assert_raises(ValueError, ica.plot_properties, epochs, plot_std=[])
+    assert_raises(ValueError, ica.plot_properties, ica)
+    assert_raises(ValueError, ica.plot_properties, [0.2])
     plt.close('all')
 
 
