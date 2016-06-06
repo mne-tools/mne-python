@@ -3113,6 +3113,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     logger.info('Created Evoked dataset from %s epochs' % (count,))
     return (evoked, mapping) if return_mapping else evoked
 
+
 @verbose
 def _segment_raw(raw, segment_length=1., verbose=None):
     """Divide continuous raw data into equal-sized

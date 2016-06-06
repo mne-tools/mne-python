@@ -1436,8 +1436,8 @@ class ICA(ContainsMixin):
             Dictionary of arguments to plot_topomap. If None - doesn't pass any
             additional arguments. Defaults to None.
         image_kws : dict | None
-            Dictionary of arguments to plot_epochs_image. If None - doesn't pass
-            any additional arguments. Defaults to None.
+            Dictionary of arguments to plot_epochs_image. If None - doesn't
+            pass any additional arguments. Defaults to None.
         show : bool
             Show figure if True.
 
