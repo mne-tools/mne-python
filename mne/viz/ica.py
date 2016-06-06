@@ -123,6 +123,44 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
                     cmap=None, plot_std=True, topo_kws=None, image_kws=None):
     """Display component properties: topography, epochs image, ERP,
     power spectrum and epoch variance.
+
+    Parameters
+    ----------
+    inst: instance of Epochs or Raw
+        The data to use in plotting properties.
+    ica : instance of mne.preprocessing.ICA | None
+        The ICA solution.
+    picks : int | array_like of int | None.
+        The components to be displayed. If None, plot will show the
+        sources in the order as fitted. If more than one components were
+        chosen in the picks - each one will be plotted in a separate figure.
+        Defaults to None.
+    axes: list of matplotlib axes | None
+        List of five matplotlib axes to use in plotting: [topo_axis,
+        image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
+        figure with relevant axes is created. Defaults to None.
+    dB: bool
+        Whether to plot spectrum in dB. Defaults to False.
+    cmap: matplotlib colormap | None
+        Colormap to use in both topoplot and epochs image. If None topoplot
+        and epochs image use their default "RdBu_r" colormap. Defaults to None.
+    plot_std: bool | float
+        Whether to plot standard deviation in erp and spectrum plots. Defaults to True, which plots one standard deviation above/below. If set to float
+        allows to control how many standard deviations are plotted. For example
+        2.5 will plot 2.5 standard deviation above/below.
+    topo_kws : dict | None
+        Dictionary of arguments to plot_topomap. If None - doesn't pass any additional arguments. Defaults to None.
+    image_kws : dict | None
+        Dictionary of arguments to plot_epochs_image. If None - doesn't pass
+        any additional arguments. Defaults to None.
+    show : bool
+        Show figure if True.
+
+    Returns
+    -------
+    fig : instance of pyplot.Figure
+        The figure.
+
     FIX DOCSTRING
     """
     from .epochs import plot_epochs_image
@@ -134,6 +172,9 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     # current component/channel (with future interactivity in mind)
     idx = 0
 
+    if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
+        raise ValueError('inst should be an instance of Raw or Epochs,'
+        ' got %s instead.' % type(inst))
     if ica is None:
         raise NotImplementedError('channel properties are not '
                                   'currently implemented')
@@ -153,9 +194,6 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
 
     picks = range(ica.n_components_) if picks is None else picks
     picks = [picks] if isinstance(picks, int) else picks
-    if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
-        raise ValueError('inst should be an instance of Raw or Epochs,'
-                         ' got %s instead.' % type(inst))
     if axes is None:
         fig, axes = _create_properties_layout()
     else:
@@ -218,7 +256,6 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     _plot_ica_topomap(ica, picks[idx], show=False, axis=axes[0], **topo_kws)
 
     # image and erp
-    # FIX - should take something like **image_kwargs
     plot_epochs_image(src, picks=picks[idx], axes=axes[1:3],
                       colorbar=False, show=False, **image_kws)
 
@@ -247,10 +284,6 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     axes[0].set_title('IC ' + str(picks[idx]))
 
     set_title_and_labels(axes[1], 'epochs image and ERP', [], 'Epochs')
-    # remove xticks - erp plot shows xticks for both image and erp plot
-    axes[1].set_xticks([])
-    yt = axes[1].get_yticks()
-    axes[1].set_yticks(yt[1:])
 
     # erp
     set_title_and_labels(axes[2], [], 'time', 'AU')
@@ -265,7 +298,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         axes[2].set_xlim(erp_xdata[[0, -1]])
     # remove half of yticks if more than 4
     yt = axes[2].get_yticks()
-    if len(yt) > 4:
+    if len(yt) > 5:
         yt = yt[::2]
         axes[2].set_yticks(yt)
 
@@ -273,9 +306,16 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         axes[1].lines[0].remove()
         axes[2].lines[1].remove()
 
+    # remove xticks - erp plot shows xticks for both image and erp plot
+    axes[1].set_xticks([])
+    yt = axes[1].get_yticks()
+    axes[1].set_yticks(yt[1:])
+    axes[1].set_ylim([-0.5, ica_data.shape[1] + 0.5])
+
     # spectrum
     ylabel = 'dB' if dB else 'power'
     set_title_and_labels(axes[3], 'spectrum', 'frequency', ylabel)
+    axes[3].set_xlim(freqs[[0, -1]])
     ylim = axes[3].get_ylim()
     air = np.diff(ylim)[0] * 0.1
     axes[3].set_ylim(ylim[0] - air, ylim[1] + air)
