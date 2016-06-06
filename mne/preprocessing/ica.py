@@ -35,6 +35,7 @@ from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
 from ..viz import (plot_ica_components, plot_ica_scores,
                    plot_ica_sources, plot_ica_overlay)
+from ..viz.ica import plot_properties
 from ..viz.utils import (_prepare_trellis, tight_layout, plt_show,
                          _setup_vmin_vmax)
 from ..viz.topomap import (_prepare_topo_plot, _check_outlines,
@@ -1399,6 +1400,55 @@ class ICA(ContainsMixin):
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp,
                                    head_pos=head_pos)
+
+    def plot_properties(self, inst, picks=None, axes=None, dB=False,
+                        cmap=None, plot_std=True, topo_kws=None,
+                        image_kws=None):
+        """Display component properties: topography, epochs image, ERP,
+        power spectrum and epoch variance.
+
+        Parameters
+        ----------
+        inst: instance of Epochs or Raw
+            The data to use in plotting properties.
+        picks : int | array_like of int | None.
+            The components to be displayed. If None, plot will show the
+            sources in the order as fitted. If more than one components were
+            chosen in the picks - each one will be plotted in a separate
+            figure. Defaults to None.
+        axes: list of matplotlib axes | None
+            List of five matplotlib axes to use in plotting: [topo_axis,
+            image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
+            figure with relevant axes is created. Defaults to None.
+        dB: bool
+            Whether to plot spectrum in dB. Defaults to False.
+        cmap: matplotlib colormap | None
+            Colormap to use in both topoplot and epochs image. If None topoplot
+            and epochs image use their default "RdBu_r" colormap.
+            Defaults to None.
+        plot_std: bool | float
+            Whether to plot standard deviation in erp and spectrum plots.
+            Defaults to True, which plots one standard deviation above/below.
+            If set to float allows to control how many standard deviations are
+            plotted. For example 2.5 will plot 2.5 standard deviation
+            above/below.
+        topo_kws : dict | None
+            Dictionary of arguments to plot_topomap. If None - doesn't pass any
+            additional arguments. Defaults to None.
+        image_kws : dict | None
+            Dictionary of arguments to plot_epochs_image. If None - doesn't pass
+            any additional arguments. Defaults to None.
+        show : bool
+            Show figure if True.
+
+        Returns
+        -------
+        fig : instance of pyplot.Figure
+            The figure.
+        """
+        return plot_properties(inst, ica=self, picks=picks, axes=axes,
+                               dB=dB, cmap=cmap, plot_std=plot_std,
+                               topo_kws=topo_kws, image_kws=image_kws)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, title=None, show=True, block=False):

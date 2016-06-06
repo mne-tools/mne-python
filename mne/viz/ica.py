@@ -145,11 +145,13 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         Colormap to use in both topoplot and epochs image. If None topoplot
         and epochs image use their default "RdBu_r" colormap. Defaults to None.
     plot_std: bool | float
-        Whether to plot standard deviation in erp and spectrum plots. Defaults to True, which plots one standard deviation above/below. If set to float
+        Whether to plot standard deviation in erp and spectrum plots. Defaults
+        to True, which plots one standard deviation above/below. If set to float
         allows to control how many standard deviations are plotted. For example
         2.5 will plot 2.5 standard deviation above/below.
     topo_kws : dict | None
-        Dictionary of arguments to plot_topomap. If None - doesn't pass any additional arguments. Defaults to None.
+        Dictionary of arguments to plot_topomap. If None - doesn't pass any
+        additional arguments. Defaults to None.
     image_kws : dict | None
         Dictionary of arguments to plot_epochs_image. If None - doesn't pass
         any additional arguments. Defaults to None.
@@ -161,7 +163,6 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     fig : instance of pyplot.Figure
         The figure.
 
-    FIX DOCSTRING
     """
     from .epochs import plot_epochs_image
     from ..io.base import _BaseRaw
