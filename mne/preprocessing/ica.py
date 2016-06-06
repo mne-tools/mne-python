@@ -1427,7 +1427,7 @@ class ICA(ContainsMixin):
             and epochs image use their default "RdBu_r" colormap.
             Defaults to None.
         plot_std: bool | float
-            Whether to plot standard deviation in erp and spectrum plots.
+            Whether to plot standard deviation in ERP/ERF and spectrum plots.
             Defaults to True, which plots one standard deviation above/below.
             If set to float allows to control how many standard deviations are
             plotted. For example 2.5 will plot 2.5 standard deviation

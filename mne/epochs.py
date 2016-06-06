@@ -3113,17 +3113,17 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     logger.info('Created Evoked dataset from %s epochs' % (count,))
     return (evoked, mapping) if return_mapping else evoked
 
-
-def _segment_raw(raw, segment_length=1., verbose=True):
+@verbose
+def _segment_raw(raw, segment_length=1.):
     """Divide continuous raw data into equal-sized
-    consecutive chunks.
+    consecutive epochs.
 
     Parameters
     ----------
     raw : instance of Raw
         Raw data to divide into segments.
-    segment_length : float | 1.
-        Length of each segment in seconds.
+    segment_length : float
+        Length of each segment in seconds. Defaults to 1.
     verbose: bool | True
         Whether to report what is being done by printing text.
 

@@ -134,7 +134,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
-        if fig is None or axes is not None:
+        if fig is None:
             this_fig = plt.figure()
         else:
             this_fig = fig

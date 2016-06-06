@@ -120,17 +120,16 @@ def _create_properties_layout():
 
 
 def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
-                    cmap=None, plot_std=True, topo_kws=None, image_kws=None):
-    """Display component properties: topography, epochs image, ERP,
+    """Display component properties: topography, epochs image, ERP/ERF,
     power spectrum and epoch variance.
 
     Parameters
     ----------
     inst: instance of Epochs or Raw
         The data to use in plotting properties.
-    ica : instance of mne.preprocessing.ICA | None
+    ica : instance of mne.preprocessing.ICA
         The ICA solution.
-    picks : int | array_like of int | None.
+    picks : int | array-like of int | None.
         The components to be displayed. If None, plot will show the
         sources in the order as fitted. If more than one components were
         chosen in the picks - each one will be plotted in a separate figure.
@@ -145,7 +144,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         Colormap to use in both topoplot and epochs image. If None topoplot
         and epochs image use their default "RdBu_r" colormap. Defaults to None.
     plot_std: bool | float
-        Whether to plot standard deviation in erp and spectrum plots. Defaults
+        Whether to plot standard deviation in ERP/ERF and spectrum plots. Defaults
         to True, which plots one standard deviation above/below. If set to float
         allows to control how many standard deviations are plotted. For example
         2.5 will plot 2.5 standard deviation above/below.
@@ -176,9 +175,6 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
         raise ValueError('inst should be an instance of Raw or Epochs,'
                          ' got %s instead.' % type(inst))
-    if ica is None:
-        raise NotImplementedError('channel properties are not '
-                                  'currently implemented')
     elif not isinstance(ica, ICA):
         raise ValueError('ica has to be an instance of ICA, '
                          'got %s instead' % type(ica))
@@ -220,12 +216,12 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     else:
         plot_line_at_zero = True
 
-    src = ica.get_sources(inst)
-    ica_data = src.get_data()[:, picks, :]
+    epochs_src = ica.get_sources(inst)
+    ica_data = epochs_src.get_data()[:, picks, :]
     ica_data = np.swapaxes(ica_data, 0, 1)
 
     # spectrum
-    psds, freqs = psd_multitaper(src, picks=picks)
+    psds, freqs = psd_multitaper(epochs_src, picks=picks)
     psds = psds[:, idx, :]
     if dB:
         psds = 10 * np.log10(psds)
@@ -254,7 +250,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     _plot_ica_topomap(ica, picks[idx], show=False, axis=axes[0], **topo_kws)
 
     # image and erp
-    plot_epochs_image(src, picks=picks[idx], axes=axes[1:3],
+    plot_epochs_image(epochs_src, picks=picks[idx], axes=axes[1:3],
                       colorbar=False, show=False, **image_kws)
 
     # spectrum
@@ -281,7 +277,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
 
     axes[0].set_title('IC ' + str(picks[idx]))
 
-    set_title_and_labels(axes[1], 'epochs image and ERP', [], 'Epochs')
+    set_title_and_labels(axes[1], 'epochs image and ERP/ERF', [], 'Epochs')
 
     # erp
     set_title_and_labels(axes[2], [], 'time', 'AU')
@@ -294,7 +290,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         axes[2].autoscale(enable=True, axis='y')
         axes[2].axis('auto')
         axes[2].set_xlim(erp_xdata[[0, -1]])
-    # remove half of yticks if more than 4
+    # remove half of yticks if more than 5
     yt = axes[2].get_yticks()
     if len(yt) > 5:
         yt = yt[::2]
