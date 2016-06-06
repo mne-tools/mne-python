@@ -1,9 +1,12 @@
+import numpy as np
 import os.path as op
 from numpy.testing import assert_array_equal, assert_equal
 from nose.tools import assert_raises
-from mne import io, Epochs, read_events,  pick_types
+from mne import (io, Epochs, read_events, pick_types,
+                compute_raw_covariance)
 from mne.decoding.gsoc import (_EpochsTransformerMixin,
-                               UnsupervisedSpatialFilter)
+                               UnsupervisedSpatialFilter,
+                               XdawnTransformer)
 from mne.decoding.transformer import EpochsVectorizer
 from mne.utils import run_tests_if_main, requires_sklearn
 
@@ -37,7 +40,7 @@ def test_EpochsTransformerMixin():
     assert_raises(ValueError, etm._reshape, raw)
 
     # Test _reshape correctness
-    X = EpochsVectorizer().fit(epochs._data, None).transform(epochs._data)
+    X, y = EpochsVectorizer().fit_transform(epochs)
     assert_array_equal(etm._reshape(X), epochs._data)
     assert_equal(etm._reshape(X).ndim, epochs._data.ndim)
 
@@ -50,7 +53,7 @@ def test_UnsupervisedSpatialFilter():
                     preload=True, baseline=None, verbose=False)
 
     # Test fit
-    X = EpochsVectorizer().fit(epochs._data, None).transform(epochs._data)
+    X, y = EpochsVectorizer().fit_transform(epochs)
     usf = UnsupervisedSpatialFilter(PCA(5), n_chan=epochs.info['nchan'])
     usf.fit(X)
     usf1 = UnsupervisedSpatialFilter(PCA(5), n_chan=epochs.info['nchan'])
@@ -63,34 +66,6 @@ def test_UnsupervisedSpatialFilter():
 
     # assert shape
     assert_equal(usf.transform(X).shape[1], 5)
-
-run_tests_if_main()
-import numpy as np
-import os.path as op
-from nose.tools import (assert_raises)
-from mne import (io, Epochs, read_events, pick_types,
-                 compute_raw_covariance)
-from mne.utils import requires_sklearn, run_tests_if_main
-from mne.decoding.transformer import EpochsVectorizer
-from ..gsoc import XdawnTransformer
-
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
-evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
-
-tmin, tmax = -0.1, 0.2
-event_id = dict(cond2=2, cond3=3)
-
-
-def _get_data():
-    raw = io.read_raw_fif(raw_fname, add_eeg_ref=False, verbose=False,
-                          preload=True)
-    events = read_events(event_name)
-    picks = pick_types(raw.info, meg=False, eeg=True, stim=False,
-                       ecg=False, eog=False,
-                       exclude='bads')[::8]
-    return raw, events, picks
 
 
 @requires_sklearn

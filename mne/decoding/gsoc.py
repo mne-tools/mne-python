@@ -4,8 +4,14 @@
 # License: BSD (3-clause)
 
 import numpy as np
+import warnings
+from scipy import linalg
+
 from .mixin import TransformerMixin
 from ..epochs import _BaseEpochs
+from ..import Covariance
+from ..cov import _regularized_covariance
+from ..preprocessing import Xdawn
 
 
 class _EpochsTransformerMixin(TransformerMixin):
@@ -179,15 +185,6 @@ class UnsupervisedSpatialFilter(_EpochsTransformerMixin):
         X = self.estimator.transform(X)
         X = np.reshape(X.T, [-1, n_epoch, n_time]).transpose([1, 0, 2])
         return X
-"""Contains refactored transformers compatible with scikit-learn"""
-
-import numpy as np
-import warnings
-from scipy import linalg
-
-from .. import Covariance
-from ..cov import _regularized_covariance
-from ..preprocessing import Xdawn
 
 
 class XdawnTransformer(Xdawn):
