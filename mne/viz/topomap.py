@@ -703,6 +703,56 @@ def _inside_contour(pos, contour):
     return check_mask
 
 
+def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
+                      layout=None, vmin=None, vmax=None, cmap='RdBu_r',
+                      sensors=True, colorbar=False, title=None,
+                      show=True, outlines='head', contours=6,
+                      image_interp='bilinear', head_pos=None, axis=None):
+    """plot single ica map to axes"""
+    import matplotlib as mpl
+    from ..channels import _get_ch_type
+
+    if ica.info is None:
+        raise RuntimeError('The ICA\'s measurement info is missing. Please '
+                           'fit the ICA or add the corresponding info object.')
+    if not isinstance(axis, mpl.axes.Axes):
+        raise ValueError('axis has to be an instance of matplotlib Axes, '
+                         'got %s instead.' % type(axis))
+    ch_type = _get_ch_type(ica, ch_type)
+
+    data = np.dot(ica.mixing_matrix_[:, [idx]].T,
+                  ica.pca_components_[:ica.n_components_])
+    data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
+        ica, ch_type, layout)
+    pos, outlines = _check_outlines(pos, outlines, head_pos)
+    if outlines not in (None, 'head'):
+        image_mask, pos = _make_image_mask(outlines, pos, res)
+    else:
+        image_mask = None
+
+    data = np.atleast_2d(data)
+    data = data[:, data_picks]
+
+    if merge_grads:
+        from ..channels.layout import _merge_grad_data
+        data = _merge_grad_data(data)
+    axis.set_title('IC #%03d' % idx, fontsize=12)
+    vmin_, vmax_ = _setup_vmin_vmax(data, vmin, vmax)
+    im = plot_topomap(data.ravel(), pos, vmin=vmin_, vmax=vmax_,
+                      res=res, axes=axis, cmap=cmap, outlines=outlines,
+                      image_mask=image_mask, contours=contours,
+                      image_interp=image_interp, show=False)[0]
+    if colorbar:
+        from mpl_toolkits.axes_grid import make_axes_locatable
+        divider = make_axes_locatable(axis)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        cbar = plt.colorbar(im, cax=cax, format='%3.2f', cmap=cmap)
+        cbar.ax.tick_params(labelsize=12)
+        cbar.set_ticks((vmin_, vmax_))
+        cbar.ax.set_title('AU', fontsize=10)
+    _hide_frame(axis)
+
+
 def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                         sensors=True, colorbar=False, title=None,

@@ -125,7 +125,6 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     FIX DOCSTRING
     """
     from .epochs import plot_epochs_image
-    from .topomap import plot_topomap
     from ..io.base import _BaseRaw
     from ..epochs import _BaseEpochs
     from ..preprocessing import ICA
@@ -140,6 +139,8 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     elif not isinstance(ica, ICA):
         raise ValueError('ica has to be an instance of ICA, '
                          'got %s instead' % type(ica))
+    else:
+        from .topomap import _plot_ica_topomap
     picks = range(ica.n_components_) if picks is None else picks
     picks = [picks] if isinstance(picks, int) else picks
     if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
@@ -195,10 +196,8 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
 
     # plotting
     # --------
-    # FIX - channels used by ica and present in inst may not match
-    #       (because bad channels were not used in ica)
-    plot_topomap(topo_data[idx, :].ravel(), inst.info, axes=axes[0],
-                 show=False, **topo_kws)
+    _plot_ica_topomap(ica, picks[idx], show=False, axis=axes[0], **topo_kws)
+
     # image and erp
     # FIX - should take something like **image_kwargs
     plot_epochs_image(src, picks=picks[idx], axes=axes[1:3],
