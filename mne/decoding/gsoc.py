@@ -9,7 +9,7 @@ from scipy import linalg
 
 from .mixin import TransformerMixin
 from ..epochs import _BaseEpochs
-from ..import Covariance
+from ..import Covariance, pick_types
 from ..cov import _regularized_covariance
 from ..preprocessing import Xdawn
 
@@ -86,13 +86,13 @@ class _EpochsTransformerMixin(TransformerMixin):
         if isinstance(X, _BaseEpochs):
             picks = pick_types(X.info, meg=True, eeg=True, seeg=True,
                                ecog=True)
-            X = X.get_data()[picks]
+            X = X._data[picks]
         elif not isinstance(X, np.ndarray):
             raise ValueError('X must be an Epochs or a 2D or 3D array, got '
                              '%s instead' % type(X))
         elif (X.ndim != 3) and (self.n_chan is None):
             raise ValueError("n_chan must be provided to convert it to 3D")
-        elif (X.ndim != 3) or (self.n_chan is not None):
+        elif (X.ndim != 3) and (self.n_chan is not None):
             n_epoch = len(X)
             n_time = np.prod(X.shape[1:]) // self.n_chan
             X = np.reshape(X, [n_epoch, self.n_chan, n_time])
@@ -187,7 +187,7 @@ class UnsupervisedSpatialFilter(_EpochsTransformerMixin):
         return X
 
 
-class XdawnTransformer(Xdawn):
+class XdawnTransformer(Xdawn, _EpochsTransformerMixin):
 
     """Implementation of the Xdawn Algorithm.
 
@@ -337,7 +337,7 @@ class XdawnTransformer(Xdawn):
 
         Returns
         -------
-        X : ndarray, shape (n_epochs, n_components * event_types * n_times)
+        X : ndarray, shape (n_epochs, n_components * event_types, n_times)
             Spatially filtered signals.
         """
         if isinstance(X, np.ndarray):
@@ -358,8 +358,8 @@ class XdawnTransformer(Xdawn):
         # Apply spatial filters
         result = np.dot(full_filters.T, data)
         result = result.transpose((1, 0, 2))
-        shape = result.shape
-        return result.reshape(-1, shape[1] * shape[2])
+        self._reshape(result)
+        return result
 
     def fit_transform(self, X, y):
         """First fit the data, then transform
@@ -456,3 +456,67 @@ class XdawnTransformer(Xdawn):
                       "xdawn. Use inverse_transform method instead.")
 
         pass
+
+
+class Vectorizer(TransformerMixin):
+    """Class to chain mne transformer output to scikit-learn estimators.
+
+    MNE transformer have three, four dimensional output. This class converts
+    them into two dimension so as to comply with scikit-learn API.
+    """
+
+    def fit(self, X, y=None):
+        """Does nothing. Added for scikit-learn compatibility.
+
+        Parameters
+        ----------
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times) or
+                              (n_epochs, n_chans * n_times * n_freqs)
+            The data to be transformed
+        y : None
+            Used for scikit-learn compatibility.
+
+        Returns
+        -------
+        self : Instance of Vectorizer
+            Return the modified instance.
+        """
+        return self
+
+    def transform(self, X):
+        """Convert matrix data into two dimensions.
+
+        Parameters
+        ----------
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
+                              (n_epochs, n_chans * n_times * n_freqs)
+            The data to be transformed.
+
+        Returns
+        -------
+        X : numpy ndarray of shape(n_trials, n_chan * n_times * n_freqs)
+            The transformed data.
+        """
+        return X.reshape(len(X), -1)
+
+    def fit_transform(self, X, y=None):
+        """Fit the data, then transform in one step.
+
+        Parameters
+        ----------
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
+                              (n_epochs, n_chans * n_times * n_freqs)
+            The data to be transformed.
+        y : None
+            Used for scikit-learn compatibility.
+
+        Returns
+        -------
+        X : numpy ndarray of shape(n_trials, n_chan * n_times * n_freqs)
+            The transformed data.
+        """
+        return self.fit(X).transform(X)
+
