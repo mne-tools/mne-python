@@ -9,7 +9,7 @@ import os
 import os.path as op
 import warnings
 
-from nose.tools import assert_true, assert_raises, assert_equal
+from nose.tools import assert_true, assert_raises, assert_equal, assert_false
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
@@ -646,11 +646,17 @@ def test_eog_channel():
     n_components = 0.9
     decim = 3
     ica = ICA(n_components=n_components)
+    # Test case for MEG and EOG data. Should have EOG channel
     for inst in [raw, epochs]:
-        # Test case for meg data and eog data
         picks1 = pick_types(inst.info, meg=True, stim=False, ecg=False,
                             eog=True, exclude='bads')
         ica.fit(inst, picks=picks1, decim=decim)
         assert_true(any('EOG' in ch for ch in ica.ch_names))
+    # Test case for MEG data. Should have no EOG channel
+    for inst in [raw, epochs]:
+        picks1 = pick_types(inst.info, meg=True, stim=False, ecg=False,
+                            eog=False, exclude='bads')
+        ica.fit(inst, picks=picks1, decim=decim)
+        assert_false(any('EOG' in ch for ch in ica.ch_names))
 
 run_tests_if_main()
