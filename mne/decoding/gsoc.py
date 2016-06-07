@@ -1,6 +1,7 @@
 """Contains refactored transformers compatible with scikit-learn"""
 
 import numpy as np
+import warnings
 from scipy import linalg
 
 from .. import Covariance
@@ -44,7 +45,7 @@ class XdawnTransformer(Xdawn):
     patterns_ : dict of ndarray
         If fit, the Xdawn patterns used to restore M/EEG signals for each event
         type, else empty.
-    
+
 
     See Also
     --------
