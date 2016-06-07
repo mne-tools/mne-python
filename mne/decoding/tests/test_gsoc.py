@@ -1,9 +1,12 @@
+import numpy as np
 import os.path as op
 from numpy.testing import assert_array_equal, assert_equal
 from nose.tools import assert_raises
-from mne import io, Epochs, read_events,  pick_types
+from mne import (io, Epochs, read_events, pick_types,
+                compute_raw_covariance)
 from mne.decoding.gsoc import (_EpochsTransformerMixin,
-                               UnsupervisedSpatialFilter)
+                               UnsupervisedSpatialFilter,
+                               XdawnTransformer, Vectorizer)
 from mne.decoding.transformer import EpochsVectorizer
 from mne.utils import run_tests_if_main, requires_sklearn
 
@@ -37,7 +40,7 @@ def test_EpochsTransformerMixin():
     assert_raises(ValueError, etm._reshape, raw)
 
     # Test _reshape correctness
-    X = EpochsVectorizer().fit(epochs._data, None).transform(epochs._data)
+    X, y = EpochsVectorizer().fit_transform(epochs)
     assert_array_equal(etm._reshape(X), epochs._data)
     assert_equal(etm._reshape(X).ndim, epochs._data.ndim)
 
@@ -50,7 +53,7 @@ def test_UnsupervisedSpatialFilter():
                     preload=True, baseline=None, verbose=False)
 
     # Test fit
-    X = EpochsVectorizer().fit(epochs._data, None).transform(epochs._data)
+    X, y = EpochsVectorizer().fit_transform(epochs)
     usf = UnsupervisedSpatialFilter(PCA(5), n_chan=epochs.info['nchan'])
     usf.fit(X)
     usf1 = UnsupervisedSpatialFilter(PCA(5), n_chan=epochs.info['nchan'])
@@ -63,5 +66,84 @@ def test_UnsupervisedSpatialFilter():
 
     # assert shape
     assert_equal(usf.transform(X).shape[1], 5)
+
+
+@requires_sklearn
+def test_xdawn_fit():
+    """Test Xdawn fit."""
+    # get data
+    raw, events, picks = _get_data()
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    preload=True, baseline=None, verbose=False)
+    e = EpochsVectorizer()
+    X, y = e.fit_transform(epochs)
+    print(y)
+    # =========== Basic Fit test =================
+    # test base xdawn
+    xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
+                          signal_cov=None, reg=None)
+    xd.fit(X, y)
+
+    # ========== with signal cov provided ====================
+    # provide covariance object
+    signal_cov = compute_raw_covariance(raw, picks=picks)
+    xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
+                          signal_cov=signal_cov, reg=None)
+    xd.fit(X, y)
+    # provide ndarray
+    signal_cov = np.eye(len(picks))
+    xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
+                          signal_cov=signal_cov, reg=None)
+    xd.fit(X, y)
+    # provide ndarray of bad shape
+    signal_cov = np.eye(len(picks) - 1)
+    xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
+                          signal_cov=signal_cov, reg=None)
+    assert_raises(ValueError, xd.fit, X, y)
+    # provide another type
+    signal_cov = 42
+    xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
+                          signal_cov=signal_cov, reg=None)
+    assert_raises(ValueError, xd.fit, X, y)
+    # fit with y as None results in error
+    xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
+                          signal_cov=None, reg=None)
+    assert_raises(ValueError, xd.fit, X, None)
+
+
+@requires_sklearn
+def test_xdawn_transform_and_inverse_transform():
+    """Test Xdawn apply and transform."""
+    # get data
+    raw, events, picks = _get_data()
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    preload=True, baseline=None, verbose=False)
+    e = EpochsVectorizer()
+    X, y = e.fit_transform(epochs)
+    n_components = 2
+    # Fit Xdawn
+    xd = XdawnTransformer(n_chan=epochs.info['nchan'],
+                          n_components=n_components)
+    xd.fit(X, y)
+
+    # transform
+    xd.transform(X)
+    # transform on someting else
+    assert_raises(ValueError, xd.transform, 42)
+
+    # inverse transform testing
+    xd.inverse_transform(X)
+
+    # should raise an error if not np.ndarray
+    assert_raises(ValueError, xd.inverse_transform, 42)
+
+def test_vectorizer():
+    """Test Vectorizer."""
+
+    raw, events, picks = _get_data()
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    preload=True, baseline=None, verbose=False)
+    vector_data = Vectorizer().fit_transform(epochs._data)
+    assert_equal(vector_data.ndim, 2)
 
 run_tests_if_main()

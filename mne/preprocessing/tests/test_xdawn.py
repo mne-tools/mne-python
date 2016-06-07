@@ -14,7 +14,6 @@ from mne.preprocessing.xdawn import Xdawn
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
-evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 
 tmin, tmax = -0.1, 0.2
 event_id = dict(cond2=2, cond3=3)
