@@ -11,7 +11,7 @@ from numpy.testing import assert_raises, assert_equal
 from mne import io, read_events, Epochs, read_cov
 from mne import pick_types
 from mne.utils import run_tests_if_main, requires_sklearn
-from mne.viz.ica import _create_properties_layout
+from mne.viz.ica import _create_properties_layout, plot_properties
 from mne.viz.utils import _fake_click
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 
@@ -74,7 +74,7 @@ def test_plot_ica_components():
 
 @requires_sklearn
 def test_plot_ica_properties():
-    """Test plotting of ICA scores
+    """Test plotting of ICA properties
     """
     import matplotlib.pyplot as plt
     raw = _get_raw()
@@ -97,10 +97,16 @@ def test_plot_ica_properties():
     ica.plot_properties(epochs, picks=1, image_kws={'sigma': 1.5})
     ica.plot_properties(epochs, picks=1, topo_kws={'res': 10})
     ica.plot_properties(epochs, picks=1, plot_std=False)
+    ica.plot_properties(epochs, picks=1, plot_std=1.5)
     assert_raises(ValueError, ica.plot_properties, epochs, dB=list('abc'))
     assert_raises(ValueError, ica.plot_properties, epochs, plot_std=[])
     assert_raises(ValueError, ica.plot_properties, ica)
     assert_raises(ValueError, ica.plot_properties, [0.2])
+    assert_raises(ValueError, plot_properties, epochs, ica=epochs)
+    fig, ax = plt.subplots(2, 3)
+    ax = ax.ravel()[:-1]
+    ica.plot_properties(epochs, picks=1, axes=ax)
+
     plt.close('all')
 
 

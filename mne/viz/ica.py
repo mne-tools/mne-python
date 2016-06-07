@@ -198,6 +198,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     else:
         from .utils import _validate_if_list_of_axes
         _validate_if_list_of_axes(axes, obligatory_len=5)
+        fig = axes[0].get_figure()
     topo_kws = {} if topo_kws is None else topo_kws
     image_kws = {} if image_kws is None else image_kws
     if cmap is not None:
