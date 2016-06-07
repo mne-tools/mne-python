@@ -1227,6 +1227,27 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return raw
 
     @verbose
+    def segment(self, segment_length=1., verbose=None, **kwargs):
+        """Divide continuous raw data into equal-sized
+        consecutive epochs.
+
+        Parameters
+        ----------
+        segment_length : float
+            Length of each segment in seconds. Defaults to 1.
+        verbose: bool | True
+            Whether to report what is being done by printing text.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            Segmented data.
+        """
+        from ..epochs import _segment_raw
+        return _segment_raw(self, segment_length, verbose, **kwargs)
+
+
+    @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False, proj=False, fmt='single',
              overwrite=False, split_size='2GB', verbose=None):

@@ -3115,7 +3115,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
 
 @verbose
-def _segment_raw(raw, segment_length=1., verbose=None):
+def _segment_raw(raw, segment_length=1., verbose=None, **kwargs):
     """Divide continuous raw data into equal-sized
     consecutive epochs.
 
@@ -3133,12 +3133,6 @@ def _segment_raw(raw, segment_length=1., verbose=None):
     epochs : instance of Epochs
         Segmented data.
     """
-    if not isinstance(raw, _BaseRaw):
-        raise ValueError('Input data must be an instance of Raw, got'
-                         ' %s instead.' % (type(raw)))
-    if not isinstance(segment_length, float):
-        raise ValueError('segment_length must be a float, got'
-                         ' %s instead.' % (type(segment_length)))
     events = make_fixed_length_events(raw, 1, duration=segment_length)
     return Epochs(raw, events, event_id=[1], tmin=0., tmax=segment_length,
-                  preload=True, verbose=verbose)
+                  preload=True, verbose=verbose, **kwargs)
