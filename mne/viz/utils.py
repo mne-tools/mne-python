@@ -1039,7 +1039,7 @@ def _process_times(inst, times, n_peaks=None, few=False):
 
 
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
-                 ch_groups=None, show_names=False, axes=None, show=True):
+                 show_names=False, ch_groups=None, axes=None, show=True):
     """Plot sensors positions.
 
     Parameters
