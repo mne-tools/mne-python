@@ -16,9 +16,9 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
 from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
-                 grand_average, combine_evoked, create_info)
+                 grand_average, combine_evoked, create_info, read_events, io,
+                 Epochs, EpochsArray)
 from mne.evoked import _get_peak, Evoked, EvokedArray
-from mne.epochs import EpochsArray
 from mne.tests.common import assert_naming
 from mne.utils import (_TempDir, requires_pandas, slow_test, requires_version,
                        run_tests_if_main)
@@ -26,10 +26,51 @@ from mne.externals.six.moves import cPickle as pickle
 
 warnings.simplefilter('always')
 
-fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
-                'test-ave.fif')
-fname_gz = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
-                   'test-ave.fif.gz')
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
+fname = op.join(base_dir, 'test-ave.fif')
+fname_gz = op.join(base_dir, 'test-ave.fif.gz')
+raw_fname = op.join(base_dir, 'test_raw.fif')
+event_name = op.join(base_dir, 'test-eve.fif')
+
+
+def test_decim():
+    """Test evoked decimation"""
+    rng = np.random.RandomState(0)
+    n_epochs, n_channels, n_times = 5, 10, 20
+    dec_1, dec_2 = 2, 3
+    decim = dec_1 * dec_2
+    sfreq = 1000.
+    sfreq_new = sfreq / decim
+    data = rng.randn(n_epochs, n_channels, n_times)
+    events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
+    info = create_info(n_channels, sfreq, 'eeg')
+    info['lowpass'] = sfreq_new / float(decim)
+    epochs = EpochsArray(data, info, events)
+    data_epochs = epochs.copy().decimate(decim).get_data()
+    data_epochs_2 = epochs.copy().decimate(decim, offset=1).get_data()
+    data_epochs_3 = epochs.decimate(dec_1).decimate(dec_2).get_data()
+    assert_array_equal(data_epochs, data[:, :, ::decim])
+    assert_array_equal(data_epochs_2, data[:, :, 1::decim])
+    assert_array_equal(data_epochs, data_epochs_3)
+
+    # Now let's do it with some real data
+    raw = io.Raw(raw_fname)
+    events = read_events(event_name)
+    sfreq_new = raw.info['sfreq'] / decim
+    raw.info['lowpass'] = sfreq_new / 4.  # suppress aliasing warnings
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude=())
+    epochs = Epochs(raw, events, 1, -0.2, 0.5, picks=picks, preload=True)
+    for offset in (0, 1):
+        ev_ep_decim = epochs.copy().decimate(decim, offset).average()
+        ev_decim = epochs.average().decimate(decim, offset)
+        expected_times = epochs.times[offset::decim]
+        assert_allclose(ev_decim.times, expected_times)
+        assert_allclose(ev_ep_decim.times, expected_times)
+        expected_data = epochs.get_data()[:, :, offset::decim].mean(axis=0)
+        assert_allclose(ev_decim.data, expected_data)
+        assert_allclose(ev_ep_decim.data, expected_data)
+        assert_equal(ev_decim.info['sfreq'], sfreq_new)
+        assert_array_equal(ev_decim.times, expected_times)
 
 
 @requires_version('scipy', '0.14')

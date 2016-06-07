@@ -32,7 +32,7 @@ from .io.pick import (pick_types, channel_indices_by_type, channel_type,
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import _BaseRaw, ToDataFrameMixin, TimeMixin
 from .bem import _check_origin
-from .evoked import EvokedArray
+from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
@@ -356,6 +356,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         epochs : instance of Epochs
             The decimated Epochs object.
 
+        See Also
+        --------
+        Evoked.decimate
+
         Notes
         -----
         Decimation can be done multiple times. For example,
@@ -364,36 +368,17 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         .. versionadded:: 0.10.0
         """
-        if decim < 1 or decim != int(decim):
-            raise ValueError('decim must be an integer > 0')
-        decim = int(decim)
-        new_sfreq = self.info['sfreq'] / float(decim)
-        lowpass = self.info['lowpass']
-        if decim > 1 and lowpass is None:
-            warn('The measurement information indicates data is not low-pass '
-                 'filtered. The decim=%i parameter will result in a sampling '
-                 'frequency of %g Hz, which can cause aliasing artifacts.'
-                 % (decim, new_sfreq))
-        elif decim > 1 and new_sfreq < 2.5 * lowpass:
-            warn('The measurement information indicates a low-pass frequency '
-                 'of %g Hz. The decim=%i parameter will result in a sampling '
-                 'frequency of %g Hz, which can cause aliasing artifacts.'
-                 % (lowpass, decim, new_sfreq))  # > 50% nyquist lim
-        offset = int(offset)
-        if not 0 <= offset < decim:
-            raise ValueError('decim must be at least 0 and less than %s, got '
-                             '%s' % (decim, offset))
+        decim, offset, new_sfreq = _check_decim(self.info, decim, offset)
+        start_idx = int(round(-self._raw_times[0] * (self.info['sfreq'] *
+                                                     self._decim)))
         self._decim *= decim
-        start_idx = int(round(self._raw_times[0] * (self.info['sfreq'] *
-                                                    self._decim)))
-        i_start = start_idx % self._decim
-        decim_slice = slice(i_start + offset, len(self._raw_times),
-                            self._decim)
+        i_start = start_idx % self._decim + offset
+        decim_slice = slice(i_start, None, self._decim)
         self.info['sfreq'] = new_sfreq
         if self.preload:
             self._data = self._data[:, :, decim_slice].copy()
             self._raw_times = self._raw_times[decim_slice].copy()
-            self._decim_slice = slice(None, None, None)
+            self._decim_slice = slice(None)
             self._decim = 1
             self.times = self._raw_times
         else:
@@ -2112,7 +2097,8 @@ class Epochs(_BaseEpochs):
         event_samp = self.events[idx, 0]
         # Read a data segment
         first_samp = self._raw.first_samp
-        start = int(round(event_samp + self.tmin * sfreq)) - first_samp
+        start = int(round(event_samp + self._raw_times[0] * sfreq))
+        start -= first_samp
         stop = start + len(self._raw_times)
         data = self._raw._check_bad_segment(start, stop, self.picks,
                                             self.reject_by_annotation)

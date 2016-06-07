@@ -278,9 +278,9 @@ def test_decim():
     """Test epochs decimation
     """
     # First with EpochsArray
-    n_epochs, n_channels, n_times = 5, 10, 20
     dec_1, dec_2 = 2, 3
     decim = dec_1 * dec_2
+    n_epochs, n_channels, n_times = 5, 10, 20
     sfreq = 1000.
     sfreq_new = sfreq / decim
     data = rng.randn(n_epochs, n_channels, n_times)
@@ -297,13 +297,33 @@ def test_decim():
 
     # Now let's do it with some real data
     raw, events, picks = _get_data()
+    events = events[events[:, 2] == 1][:2]
+    raw.load_data().pick_channels([raw.ch_names[pick] for pick in picks[::30]])
+    raw.info.normalize_proj()
+    del picks
     sfreq_new = raw.info['sfreq'] / decim
-    raw.info['lowpass'] = sfreq_new / 4.  # suppress aliasing warnings
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=False)
+    raw.info['lowpass'] = sfreq_new / 12.  # suppress aliasing warnings
     assert_raises(ValueError, epochs.decimate, -1)
     assert_raises(ValueError, epochs.decimate, 2, offset=-1)
     assert_raises(ValueError, epochs.decimate, 2, offset=2)
+    for this_offset in range(decim):
+        epochs = Epochs(raw, events, event_id,
+                        tmin=-this_offset / raw.info['sfreq'],
+                        tmax=tmax, preload=False)
+        idx_offsets = np.arange(decim) + this_offset
+        for offset, idx_offset in zip(np.arange(decim), idx_offsets):
+            expected_times = epochs.times[idx_offset::decim]
+            expected_data = epochs.get_data()[:, :, idx_offset::decim]
+            must_have = offset / float(epochs.info['sfreq'])
+            assert_true(np.isclose(must_have, expected_times).any())
+            ep_decim = epochs.copy().decimate(decim, offset)
+            assert_true(np.isclose(must_have, ep_decim.times).any())
+            assert_allclose(ep_decim.times, expected_times)
+            assert_allclose(ep_decim.get_data(), expected_data)
+            assert_equal(ep_decim.info['sfreq'], sfreq_new)
+
+    # More complex cases
+    epochs = Epochs(raw, events, event_id, tmin, tmax, preload=False)
     expected_data = epochs.get_data()[:, :, ::decim]
     expected_times = epochs.times[::decim]
     for preload in (True, False):

@@ -15,6 +15,8 @@ Changelog
 
     - Add order params 'selection' and 'position' for :func:`mne.viz.plot_raw` to allow plotting of specific brain regions by `Jaakko Leppakangas`_
 
+    - Added the ability to decimate :class:`mne.Evoked` objects with :func:`mne.Evoked.decimate` by `Eric Larson`_
+
 BUG
 ~~~
 
