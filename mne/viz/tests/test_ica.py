@@ -6,6 +6,7 @@
 import os.path as op
 import warnings
 
+import numpy as np
 from numpy.testing import assert_raises, assert_equal
 
 from mne import io, read_events, Epochs, read_cov

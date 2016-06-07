@@ -121,7 +121,7 @@ def _create_properties_layout():
 
 def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
                     cmap=None, plot_std=True, topo_kws=None, image_kws=None,
-                    show=True):
+                    psd_kws=None, show=True):
     """Display component properties: topography, epochs image, ERP/ERF,
     power spectrum and epoch variance.
 
@@ -207,6 +207,10 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     psd_kws = dict() if psd_kws is None else psd_kws
     topo_kws = dict() if topo_kws is None else topo_kws
     image_kws = dict() if image_kws is None else image_kws
+    for d in (psd_kws, topo_kws, image_kws):
+        if not isinstance(d, dict):
+            raise ValueError('topo_kws, image_kws and psd_kws have to be'
+                             ' dictionaries, got %s instead.' % type(d))
     if cmap is not None:
         topo_kws.update(cmap=cmap)
         image_kws.update(cmap=cmap)
