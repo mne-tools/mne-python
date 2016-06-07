@@ -24,6 +24,7 @@ from ..utils import _clean_names, _time_mask, verbose, logger, warn
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times)
+from ..preprocessing import _get_ica_map
 from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
@@ -720,8 +721,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
                          'got %s instead.' % type(axis))
     ch_type = _get_ch_type(ica, ch_type)
 
-    data = np.dot(ica.mixing_matrix_[:, [idx]].T,
-                  ica.pca_components_[:ica.n_components_])
+    data = _get_ica_map(ica, components=idx)
     data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
         ica, ch_type, layout)
     pos, outlines = _check_outlines(pos, outlines, head_pos)

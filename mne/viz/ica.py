@@ -132,8 +132,8 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
     picks : int | array-like of int | None.
-        The components to be displayed. If None, plot will show the
-        sources in the order as fitted. If more than one components were
+        The components to be displayed. If None, plot will show the first
+        five sources in the order as fitted. If more than one components were
         chosen in the picks - each one will be plotted in a separate figure.
         Defaults to None.
     axes: list of matplotlib axes | None
@@ -163,7 +163,6 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     -------
     fig : instance of pyplot.Figure
         The figure.
-
     """
     from .epochs import plot_epochs_image
     from ..io.base import _BaseRaw
@@ -177,30 +176,33 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
         raise ValueError('inst should be an instance of Raw or Epochs,'
                          ' got %s instead.' % type(inst))
-    elif not isinstance(ica, ICA):
+    if not isinstance(ica, ICA):
         raise ValueError('ica has to be an instance of ICA, '
                          'got %s instead' % type(ica))
     else:
         from .topomap import _plot_ica_topomap
-    if not isinstance(plot_std, (bool, float, int)):
-        raise ValueError('plot_std has to be a bool, int or float, '
-                         'got %s instead' % type(ica))
-    elif isinstance(plot_std, bool) and plot_std:
-        num_std = 1.
+    if isinstance(plot_std, bool):
+        num_std = 1. if plot_std else 0.
     elif isinstance(plot_std, (float, int)):
         num_std = plot_std
         plot_std = True
+    else:
+        raise ValueError('plot_std has to be a bool, int or float, '
+                         'got %s instead' % type(plot_std))
 
-    picks = range(ica.n_components_) if picks is None else picks
+    # if no picks given - plot the first 5 components
+    picks = list(range(min(5, ica.n_components_))) if picks is None else picks
     picks = [picks] if isinstance(picks, int) else picks
     if axes is None:
         fig, axes = _create_properties_layout()
     else:
+        if len(picks) > 1:
+            ValueError('Only single pick can be drawn to a set of axes.')
         from .utils import _validate_if_list_of_axes
         _validate_if_list_of_axes(axes, obligatory_len=5)
         fig = axes[0].get_figure()
-    topo_kws = {} if topo_kws is None else topo_kws
-    image_kws = {} if image_kws is None else image_kws
+    topo_kws = dict() if topo_kws is None else topo_kws
+    image_kws = dict() if image_kws is None else image_kws
     if cmap is not None:
         topo_kws.update(cmap=cmap)
         image_kws.update(cmap=cmap)
