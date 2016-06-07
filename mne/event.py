@@ -11,7 +11,8 @@
 import numpy as np
 from os.path import splitext
 
-from .utils import check_fname, logger, verbose, _get_stim_channel, warn
+from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
+                    deprecated)
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -187,8 +188,10 @@ def _read_events_fif(fid, tree):
     event_list = event_list.reshape(len(event_list) // 3, 3)
     return event_list, mappings
 
-
-def read_events(filename, include=None, exclude=None, mask=0):
+@deprecated("The default setting for the argument 'mask_type' will change "
+            "from None to 'and' in v0.14.")
+def read_events(filename, include=None, exclude=None, mask=0,
+                mask_type=None):
     """Reads events from fif or text file
 
     Parameters
@@ -210,6 +213,11 @@ def read_events(filename, include=None, exclude=None, mask=0):
     mask : int | None
         The value of the digital mask to apply to the stim channel values.
         The default value is 0. ``None`` skips masking.
+    mask_type: 'and' | 'not_and'
+        The type of operation between the mask and the trigger.
+        Choose 'and' for MNE-C masking behavior.
+
+        .. versionadded:: 0.13
 
     Returns
     -------
@@ -265,7 +273,7 @@ def read_events(filename, include=None, exclude=None, mask=0):
     event_list = pick_events(event_list, include, exclude)
     unmasked_len = event_list.shape[0]
     if mask is not None:
-        event_list = _mask_trigs(event_list, mask)
+        event_list = _mask_trigs(event_list, mask, mask_type)
         masked_len = event_list.shape[0]
         if masked_len < unmasked_len:
             warn('{0} of {1} events masked'.format(unmasked_len - masked_len,
@@ -415,7 +423,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
 
 def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0, mask=0,
-                 uint_cast=False):
+                 uint_cast=False, mask_type=None):
     """Helper function for find events"""
     if min_samples > 0:
         merge = int(min_samples // 1)
@@ -435,7 +443,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
         data = np.abs(data)  # make sure trig channel is positive
 
     events = _find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
-    events = _mask_trigs(events, mask)
+    events = _mask_trigs(events, mask, mask_type)
 
     # Determine event onsets and offsets
     if consecutive == 'increasing':
@@ -483,11 +491,13 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 
     return events
 
-
 @verbose
+@deprecated("The default setting for the argument 'mask_type' will change "
+            "from None to 'and' in v0.14.")
 def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
-                shortest_event=2, mask=0, uint_cast=False, verbose=None):
+                shortest_event=2, mask=0, uint_cast=False,
+                mask_type=None, verbose=None):
     """Find events from raw file
 
     Parameters
@@ -527,6 +537,12 @@ def find_events(raw, stim_channel=None, output='onset',
         in MNE-C.
 
         .. versionadded:: 0.12
+
+    mask_type: 'and' | 'not_and' | None
+        The type of operation between the mask and the trigger.
+        Choose 'and' for MNE-C masking behavior.
+
+        .. versionadded:: 0.13
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -593,9 +609,18 @@ def find_events(raw, stim_channel=None, output='onset',
         ...                   min_duration=0.002))
         [[ 1  0 32]]
 
-    For the digital mask, it will take the binary representation of the
-    digital mask, e.g. 5 -> '00000101', and will block the values
-    where mask is one, e.g.::
+    For the digital mask, if mask_type is set to 'and' it will take the
+    binary representation of the digital mask, e.g. 5 -> '00000101', and will
+    allow the values to pass where mask is one, e.g.::
+
+              7 '0000111' <- trigger value
+             37 '0100101' <- mask
+         ----------------
+              5 '0000101'
+
+    For the digital mask, if mask_type is set to 'not_and' it will take the
+    binary representation of the digital mask, e.g. 5 -> '00000101', and will
+    block the values where mask is one, e.g.::
 
               7 '0000111' <- trigger value
              37 '0100101' <- mask
@@ -618,7 +643,7 @@ def find_events(raw, stim_channel=None, output='onset',
 
     events = _find_events(data, raw.first_samp, verbose=verbose, output=output,
                           consecutive=consecutive, min_samples=min_samples,
-                          mask=mask, uint_cast=uint_cast)
+                          mask=mask, uint_cast=uint_cast, mask_type=mask_type)
 
     # add safety check for spurious events (for ex. from neuromag syst.) by
     # checking the number of low sample events
@@ -633,7 +658,7 @@ def find_events(raw, stim_channel=None, output='onset',
     return events
 
 
-def _mask_trigs(events, mask):
+def _mask_trigs(events, mask, mask_type):
     """Helper function for masking digital trigger values"""
     if not isinstance(mask, int):
         raise TypeError('You provided a(n) %s. Mask must be an int.'
@@ -642,7 +667,14 @@ def _mask_trigs(events, mask):
     if n_events == 0:
         return events.copy()
 
-    mask = np.bitwise_not(mask)
+    if mask_type is None:
+        warn("The default setting will change from 'not_and' "
+             "to 'and' in v0.14.")
+    if mask_type in ('not_and', None):
+        mask = np.bitwise_not(mask)
+    elif mask_type != 'and':
+        raise ValueError("'mask_type' should be either 'and' or 'not_and', "
+                         "instead of '%s'" % mask_type)
     events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
     events = events[events[:, 1] != events[:, 2]]
 

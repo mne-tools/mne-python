@@ -156,6 +156,7 @@ API
 
     - Deprecated :func:`mne.time_frequency.cwt_morlet` and :func:`mne.time_frequency.single_trial_power` in favour of :func:`mne.time_frequency.tfr_morlet` with parameter average=False, by `Jean-Remi King`_ and `Alex Gramfort`_
 
+    - Add argument `mask_type` to func:`mne.read_events` and func:`mne.find_events` to support MNE-C style of trigger masking by `Teon Brooks`_
 
 .. _changes_0_12:
 
