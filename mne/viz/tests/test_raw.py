@@ -107,6 +107,10 @@ def test_plot_raw():
                 topo_ax = sel_fig.axes[1]
                 _fake_click(sel_fig, topo_ax, [-0.425, 0.20223853],
                             xform='data')
+                fig.canvas.key_press_event('down')
+                fig.canvas.key_press_event('up')
+                fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
+                fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
             plt.close('all')
 
 

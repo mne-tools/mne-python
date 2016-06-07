@@ -24,7 +24,8 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
                     _helper_raw_resize, _select_bads, _onclick_help,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
-                    _radio_clicked, _set_radio_button, _handle_topomap_bads)
+                    _radio_clicked, _set_radio_button, _handle_topomap_bads,
+                    _change_channel_group)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
 
@@ -380,12 +381,16 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # initialize the first selection set
     if order in ['selection', 'position']:
         _radio_clicked(fig_selection.radio.labels[0]._text, params)
+        callback_selection_key = partial(_selection_key_press, params=params)
+        callback_selection_scroll = partial(_selection_scroll, params=params)
         callback_close = partial(_close_event, params=params)
         params['fig'].canvas.mpl_connect('close_event', callback_close)
         params['fig_selection'].canvas.mpl_connect('close_event',
                                                    callback_close)
         params['fig_selection'].canvas.mpl_connect('key_press_event',
-                                                   callback_close)
+                                                   callback_selection_key)
+        params['fig_selection'].canvas.mpl_connect('scroll_event',
+                                                   callback_selection_scroll)
 
     try:
         plt_show(show, block=block)
@@ -395,11 +400,27 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     return params['fig']
 
 
+def _selection_scroll(event, params):
+    """Callback for scroll in selection dialog."""
+    if event.step < 0:
+        _change_channel_group(-1, params)
+    elif event.step > 0:
+        _change_channel_group(1, params)
+
+
+def _selection_key_press(event, params):
+    """Callback for keys in selection dialog."""
+    if event.key == 'down':
+        _change_channel_group(-1, params)
+    elif event.key == 'up':
+        _change_channel_group(1, params)
+    elif event.key == 'escape':
+        _close_event(event, params)
+
+
 def _close_event(event, params):
     """Callback for closing of raw browser with selections."""
     import matplotlib.pyplot as plt
-    if event.name == 'key_press_event' and event.key != 'escape':
-        return
     plt.close(params['fig_selection'])
     plt.close(params['fig'])
 
@@ -935,4 +956,5 @@ def _setup_browser_selection(raw, kind):
     for circle in fig_selection.radio.circles:
         circle.set_radius(0.02)  # make them smaller to prevent overlap
         circle.set_edgecolor('gray')  # make sure the buttons are visible
+
     return order, fig_selection

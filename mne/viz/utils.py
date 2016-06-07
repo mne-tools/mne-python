@@ -1133,6 +1133,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
             for idx, ch_group in enumerate(ch_groups):
                 color_picks = [np.where(picks == ch)[0][0] for ch in ch_group
                                if ch in picks]
+                if len(color_picks) == 0:
+                    continue
                 x, y, z = pos[color_picks].T
                 color = np.mean(_rgb(info, x, y, z), axis=0)
                 color_vals[idx, :3] = color  # mean of spatial color
