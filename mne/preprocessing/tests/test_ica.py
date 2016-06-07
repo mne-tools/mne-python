@@ -636,8 +636,7 @@ def test_bad_channels():
 
 @requires_sklearn
 def test_eog_channel():
-    """Test if ICA works when EOG channel is included for raw
-    and epoched data"""
+    """Test that EOG channel is included when performing ICA"""
     raw = Raw(raw_fname, preload=True)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=True, ecg=False,
@@ -652,4 +651,6 @@ def test_eog_channel():
         picks1 = pick_types(inst.info, meg=True, stim=False, ecg=False,
                             eog=True, exclude='bads')
         ica.fit(inst, picks=picks1, decim=decim)
+        assert_true(any('EOG' in ch for ch in ica.ch_names))
+
 run_tests_if_main()
