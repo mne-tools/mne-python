@@ -156,6 +156,9 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     image_kws : dict | None
         Dictionary of arguments to plot_epochs_image. If None - doesn't pass
         any additional arguments. Defaults to None.
+    psd_kws : dict | None
+        Dictionary of arguments to psd_multitaper. If None - doesn't pass
+        any additional arguments. Defaults to None.
     show : bool
         Show figure if True.
 
@@ -201,6 +204,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         from .utils import _validate_if_list_of_axes
         _validate_if_list_of_axes(axes, obligatory_len=5)
         fig = axes[0].get_figure()
+    psd_kws = dict() if psd_kws is None else psd_kws
     topo_kws = dict() if topo_kws is None else topo_kws
     image_kws = dict() if image_kws is None else image_kws
     if cmap is not None:
@@ -226,7 +230,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     ica_data = np.swapaxes(ica_data, 0, 1)
 
     # spectrum
-    psds, freqs = psd_multitaper(epochs_src, picks=picks)
+    psds, freqs = psd_multitaper(epochs_src, picks=picks, **psd_kws)
     psds = psds[:, idx, :]
     if dB:
         psds = 10 * np.log10(psds)

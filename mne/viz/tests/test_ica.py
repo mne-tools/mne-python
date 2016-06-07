@@ -98,6 +98,8 @@ def test_plot_ica_properties():
     ica.plot_properties(epochs, picks=1, topo_kws={'res': 10})
     ica.plot_properties(epochs, picks=1, plot_std=False)
     ica.plot_properties(epochs, picks=1, plot_std=1.5)
+    ica.plot_properties(epochs, picks=1, psd_kws={'freqs':
+                                                  np.arange(1., 65.1)})
     assert_raises(ValueError, ica.plot_properties, epochs, dB=list('abc'))
     assert_raises(ValueError, ica.plot_properties, epochs, plot_std=[])
     assert_raises(ValueError, ica.plot_properties, ica)
