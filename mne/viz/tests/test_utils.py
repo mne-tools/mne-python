@@ -121,11 +121,19 @@ def test_auto_scale():
 def test_validate_if_list_of_axes():
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(2, 2)
+    assert_raises(ValueError, _validate_if_list_of_axes, ax)
+    ax_flat = ax.ravel()
     ax = ax.ravel().tolist()
+    _validate_if_list_of_axes(ax_flat)
+    _validate_if_list_of_axes(ax_flat, 4)
+    assert_raises(ValueError, _validate_if_list_of_axes, ax_flat, 5)
+    assert_raises(ValueError, _validate_if_list_of_axes, ax, 3)
     assert_raises(ValueError, _validate_if_list_of_axes, 'error')
     assert_raises(ValueError, _validate_if_list_of_axes, ['error'] * 2)
     assert_raises(ValueError, _validate_if_list_of_axes, ax[0])
     assert_raises(ValueError, _validate_if_list_of_axes, ax, 3)
+    ax_flat[2] = 23
+    assert_raises(ValueError, _validate_if_list_of_axes, ax_flat)
     _validate_if_list_of_axes(ax, 4)
 
 

@@ -110,23 +110,28 @@ def _check_delayed_ssp(container):
 
 
 def _validate_if_list_of_axes(axes, obligatory_len=None):
-    """ Helper function that validates whether input is a list of axes"""
+    """ Helper function that validates whether input is a list/array of axes"""
     import matplotlib as mpl
     if obligatory_len is not None and not isinstance(obligatory_len, int):
         raise ValueError('obligatory_len must be None or int, got %d',
                          'instead' % type(obligatory_len))
-    if not isinstance(axes, list):
-        raise ValueError('axes must be a list of matplotlib axes objects'
-                         ', got %s instead.' % type(axes))
-    is_correct_type = np.array([isinstance(x, mpl.axes._axes.Axes)
+    if not isinstance(axes, (list, np.ndarray)):
+        raise ValueError('axes must be a list or numpy array of matplotlib '
+                         'axes objects, got %s instead.' % type(axes))
+    if isinstance(axes, np.ndarray) and axes.ndim > 1:
+        raise ValueError('if input is a numpy array, it must be '
+                         'one-dimensional. The received numpy array has %d '
+                         'dimensions however. Try using ravel or flatten '
+                         'method of the array.' % axes.ndim)
+    is_correct_type = np.array([isinstance(x, mpl.axes.Axes)
                                for x in axes])
     if not np.all(is_correct_type):
         first_bad = np.where(np.logical_not(is_correct_type))[0][0]
-        raise ValueError('axes must be a list of matplotlib axes objects'
-                         ', while one of the list elements is %s.' %
-                         type(axes[first_bad]))
+        raise ValueError('axes must be a list or numpy array of matplotlib '
+                         'axes objects while one of the list elements is '
+                         '%s.' % type(axes[first_bad]))
     if obligatory_len is not None and not len(axes) == obligatory_len:
-        raise ValueError('axes must be a list of length %d, while the'
+        raise ValueError('axes must be a list/array of length %d, while the'
                          ' length is %d' % (obligatory_len, len(axes)))
 
 
