@@ -56,6 +56,7 @@ def test_plot_topomap():
     """
     import matplotlib.pyplot as plt
     from matplotlib.patches import Circle
+    from matplotlib import backend_bases
     # evoked
     warnings.simplefilter('always')
     res = 16
@@ -195,6 +196,24 @@ def test_plot_topomap():
 
     # Pass custom outlines without patch
     evoked.plot_topomap(times, ch_type='eeg', outlines=outlines)
+    plt.close('all')
+
+    # Test interactive cmap
+    fig = plot_evoked_topomap(evoked, times=[0., 0.1], ch_type='eeg',
+                              cmap='interactive')
+    cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
+    event = backend_bases.MouseEvent('button_press_event', fig.canvas, 0.1,
+                                     0.1, button=1)
+    event.inaxes = fig.get_axes()[-1]
+    cbar.on_press(event)
+    event.y = 0.2
+    cbar.on_motion(event)
+    cbar.on_release(event)
+    event.button = 3
+    cbar.on_press(event)
+    event.y = 0.3
+    cbar.on_motion(event)
+    cbar.on_release(event)
     plt.close('all')
 
     # Pass custom outlines with patch callable

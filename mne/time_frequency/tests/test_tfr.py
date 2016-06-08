@@ -12,6 +12,7 @@ from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
                                     _dpss_wavelet, tfr_multitaper,
                                     AverageTFR, read_tfrs, write_tfrs,
                                     combine_tfr, cwt)
+from mne.viz.utils import _fake_click
 
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -353,6 +354,7 @@ def test_io():
 def test_plot():
     """Test TFR plotting."""
     import matplotlib.pyplot as plt
+    from matplotlib import backend_bases
 
     data = np.zeros((3, 2, 3))
     times = np.array([.1, .2, .3])
@@ -375,7 +377,23 @@ def test_plot():
     tfr.plot_topo(picks=[1, 2])
     plt.close('all')
 
-    tfr.plot(picks=[1, 2], cmap='interactive')
+    fig = tfr.plot(picks=[1, 2], cmap='interactive')  # test interactive cmap
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('down')
+
+    cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
+    event = backend_bases.MouseEvent('button_press_event', fig.canvas, 0.1,
+                                     0.1, button=1)
+    event.inaxes = fig.get_axes()[1]
+    cbar.on_press(event)
+    event.y = 0.2
+    cbar.on_motion(event)
+    cbar.on_release(event)
+    event.button = 3
+    cbar.on_press(event)
+    event.y = 0.3
+    cbar.on_motion(event)
+    cbar.on_release(event)
     plt.close('all')
 
 

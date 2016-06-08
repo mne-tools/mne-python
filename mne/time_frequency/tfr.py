@@ -678,7 +678,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             clicking and dragging the colorbar with left and right mouse
             button. Left mouse button moves the scale up and down and right
             mouse button adjusts the range. Up and down arrows can be used to
-            change the colormap. Defaults to 'RdBu_r'.
+            change the colormap. Interactive mode works smoothly only for a
+            small amount of images. Defaults to 'RdBu_r'.
         dB : bool
             If True, 20*log10 is applied to the data to get dB.
         colorbar : bool
@@ -741,8 +742,9 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                         colorbar=colorbar, picker=False, cmap=cmap)
             if title:
                 fig.suptitle(title)
-            if cmap != 'interactive':
-                colorbar = False  # only one colorbar for multiple axes
+            # Only draw 1 cbar. For interactive mode we pass the ref to cbar.
+            colorbar = ax.CB if cmap == 'interactive' else False
+
         plt_show(show)
         return fig
 

@@ -259,11 +259,11 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     from matplotlib.widgets import RectangleSelector
 
     extent = (tmin, tmax, freq[0], freq[-1])
+    interactive_cmap = False
     if cmap == 'interactive':
         cmap = 'RdBu_r'
         interactive_cmap = True
-    else:
-        interactive_cmap = False
+
     img = ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
                     vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
     if isinstance(ax, plt.Axes):
@@ -277,11 +277,14 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         if y_label is not None:
             plt.ylabel(y_label)
     if colorbar:
-        cbar = plt.colorbar(mappable=img)
+        if isinstance(colorbar, DraggableColorbar):
+            cbar = colorbar.cbar  # this happens with multiaxes case
+        else:
+            cbar = plt.colorbar(mappable=img)
         if interactive_cmap:
             cbar = DraggableColorbar(cbar, img)
             cbar.connect()
-            ax.colorbar = cbar  # For keeping reference
+            ax.CB = cbar  # For keeping reference
     if title:
         plt.title(title)
     if not isinstance(ax, plt.Axes):
