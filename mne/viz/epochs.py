@@ -107,11 +107,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         oblig_len = 3 if colorbar else 2
         _validate_if_list_of_axes(axes, obligatory_len=oblig_len)
         ax1, ax2 = axes[:2]
+        # if axes were passed - we ignore fig param and get figure from axes
+        fig = ax1.get_figure()
         if colorbar:
             ax3 = axes[-1]
-        if fig is not None:
-            # ignore fig if both fig and axes passed
-            fig = ax1.get_figure()
     evoked = epochs.average(picks)
     data = epochs.get_data()[:, picks, :]
     scale_vmin = True if vmin is None else False
