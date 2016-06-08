@@ -1402,7 +1402,7 @@ class ICA(ContainsMixin):
                                    head_pos=head_pos)
 
     def plot_properties(self, inst, picks=None, axes=None, dB=False,
-                        cmap=None, plot_std=True, topo_kws=None,
+                        cmap=None, plot_std=True, sigma=None, topo_kws=None,
                         image_kws=None, psd_kws=None, show=True):
         """Display component properties: topography, epochs image, ERP,
         power spectrum and epoch variance.
@@ -1432,6 +1432,10 @@ class ICA(ContainsMixin):
             If set to float allows to control how many standard deviations are
             plotted. For example 2.5 will plot 2.5 standard deviation
             above/below.
+        sigma: float | None
+            The standard deviation of the Gaussian smoothing to apply along
+            the epoch axis in the image. If 0. or None - no smoothing
+            is applied. Defaults to None
         topo_kws : dict | None
             Dictionary of arguments to plot_topomap. If None - doesn't pass any
             additional arguments. Defaults to None.
@@ -1451,8 +1455,8 @@ class ICA(ContainsMixin):
         """
         return plot_properties(inst, ica=self, picks=picks, axes=axes,
                                dB=dB, cmap=cmap, plot_std=plot_std,
-                               topo_kws=topo_kws, image_kws=image_kws,
-                               psd_kws=psd_kws, show=True)
+                               sigma=sigma, topo_kws=topo_kws,
+                               image_kws=image_kws, psd_kws=psd_kws, show=True)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, title=None, show=True, block=False):

@@ -98,6 +98,7 @@ def test_plot_ica_properties():
     ica.plot_properties(epochs, picks=1, plot_std=False)
     ica.plot_properties(epochs, picks=1, plot_std=1.5)
     ica.plot_properties(epochs, picks=1, psd_kws={'fmax': 65.})
+    ica.plot_properties(epochs, picks=0, sigma=1.5)
     plt.close('all')
 
     assert_raises(ValueError, ica.plot_properties, epochs, dB=list('abc'))

@@ -120,8 +120,8 @@ def _create_properties_layout():
 
 
 def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
-                    cmap=None, plot_std=True, topo_kws=None, image_kws=None,
-                    psd_kws=None, show=True):
+                    cmap=None, plot_std=True, sigma=None, topo_kws=None,
+                    image_kws=None, psd_kws=None, show=True):
     """Display component properties: topography, epochs image, ERP/ERF,
     power spectrum and epoch variance.
 
@@ -150,6 +150,10 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         Defaults to True, which plots one standard deviation above/below.
         If set to float allows to control how many standard deviations are
         plotted. For example 2.5 will plot 2.5 standard deviation above/below.
+    sigma: float | None
+        The standard deviation of the Gaussian smoothing to apply along
+        the epoch axis in the image. If 0. or None - no smoothing is applied.
+        Defaults to None
     topo_kws : dict | None
         Dictionary of arguments to plot_topomap. If None - doesn't pass any
         additional arguments. Defaults to None.
@@ -215,6 +219,8 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     if cmap is not None:
         topo_kws.update(cmap=cmap)
         image_kws.update(cmap=cmap)
+    if sigma is not None:
+        image_kws.update(sigma=sigma)
     if dB is not None and isinstance(dB, bool) is False:
         raise ValueError('dB should be bool, got %s instead' %
                          type(dB))
@@ -266,8 +272,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         # separately - this is used for fill_between shade
         spectrum_std = [
             [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
-            [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]
-            ]
+            [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
         spectrum_std = np.array(spectrum_std) * num_std
 
         # erp std
@@ -276,8 +281,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
             diffs = ica_data[idx] - erp
             erp_std = [
                 [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
-                [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]
-                ]
+                [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
             erp_std = np.array(erp_std) * num_std
 
         # epoch variance
