@@ -101,11 +101,13 @@ def _check_for_unsupported_ica_channels(picks, info):
     elif len(picks) == 0:
         raise ValueError('No channels provided to ICA')
     types = _DATA_CH_TYPES_SPLIT + ['eog']
-    check = all([channel_type(info, j) in types for j in picks])
+    chs = list(set([channel_type(info, j) for j in picks]))
+    check = all([ch in types for ch in chs])
     if not check:
-        raise ValueError('Invalid channel type(s) passed for ICA.'
-                         'Only the following channels are supported {}'
-                         .format(types))
+        raise ValueError('Invalid channel type(s) passed for ICA.\n'
+                         'Only the following channels are supported {}\n'
+                         'Following types were passed {}\n'
+                         .format(types, chs))
 
 
 class ICA(ContainsMixin):
