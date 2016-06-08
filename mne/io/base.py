@@ -1246,7 +1246,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         from ..epochs import _segment_raw
         return _segment_raw(self, segment_length, verbose, **kwargs)
 
-
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False, proj=False, fmt='single',

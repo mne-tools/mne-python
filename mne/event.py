@@ -770,7 +770,7 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
         raise ValueError('Input data must be an instance of Raw, got'
                          ' %s instead.' % (type(raw)))
     if not isinstance(id, int):
-         raise ValueError('id must be an integer')
+        raise ValueError('id must be an integer')
     if not isinstance(duration, (int, float)):
         raise ValueError('duration must be an integer of a float, '
                          'got %s instead.' % (type(duration)))
