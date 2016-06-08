@@ -12,7 +12,6 @@ from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
                                     _dpss_wavelet, tfr_multitaper,
                                     AverageTFR, read_tfrs, write_tfrs,
                                     combine_tfr, cwt)
-from mne.viz.utils import _fake_click
 
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -384,7 +383,7 @@ def test_plot():
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
     event = backend_bases.MouseEvent('button_press_event', fig.canvas, 0.1,
                                      0.1, button=1)
-    event.inaxes = fig.get_axes()[1]
+    event.inaxes = cbar.cbar.ax
     cbar.on_press(event)
     event.y = 0.2
     cbar.on_motion(event)

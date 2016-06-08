@@ -204,7 +204,7 @@ def test_plot_topomap():
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
     event = backend_bases.MouseEvent('button_press_event', fig.canvas, 0.1,
                                      0.1, button=1)
-    event.inaxes = fig.get_axes()[-1]
+    event.inaxes = cbar.cbar.ax
     cbar.on_press(event)
     event.y = 0.2
     cbar.on_motion(event)
