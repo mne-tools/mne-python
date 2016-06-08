@@ -59,7 +59,7 @@ epochs.plot_psd_topomap(ch_type='grad', normalize=True)
 
 ###############################################################################
 # Alternatively, you can also create PSDs from Epochs objects with functions
-# that start with psd_ such as
+# that start with ``psd_`` such as
 # :func:`mne.time_frequency.psd_multitaper` and
 # :func:`mne.time_frequency.psd_welch`.
 

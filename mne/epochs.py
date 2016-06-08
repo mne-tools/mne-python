@@ -1538,29 +1538,30 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         Epochs can be accessed as ``epochs[...]`` in several ways:
 
-        1. ``epochs[idx]``: Return ``Epochs`` object with a subset of
-           epochs (supports single index and python-style slicing).
+            1. ``epochs[idx]``: Return ``Epochs`` object with a subset of
+               epochs (supports single index and python-style slicing).
 
-        2. ``epochs['name']``: Return ``Epochs`` object with a copy of the
-           subset of epochs corresponding to an experimental condition as
-           specified by 'name'.
+            2. ``epochs['name']``: Return ``Epochs`` object with a copy of the
+               subset of epochs corresponding to an experimental condition as
+               specified by 'name'.
 
-            If conditions are tagged by names separated by '/' (e.g.
-            'audio/left', 'audio/right'), and 'name' is not in itself an
-            event key, this selects every event whose condition contains
-            the 'name' tag (e.g., 'left' matches 'audio/left' and
-            'visual/left'; but not 'audio_left'). Note that tags like
-            'auditory/left' and 'left/auditory' will be treated the
-            same way when accessed using tags.
+               If conditions are tagged by names separated by '/' (e.g.
+               'audio/left', 'audio/right'), and 'name' is not in itself an
+               event key, this selects every event whose condition contains
+               the 'name' tag (e.g., 'left' matches 'audio/left' and
+               'visual/left'; but not 'audio_left'). Note that tags like
+               'auditory/left' and 'left/auditory' will be treated the
+               same way when accessed using tags.
 
-        3. ``epochs[['name_1', 'name_2', ... ]]``: Return ``Epochs`` object
-           with a copy of the subset of epochs corresponding to multiple
-            experimental conditions as specified by
-            ``'name_1', 'name_2', ...`` .
+            3. ``epochs[['name_1', 'name_2', ... ]]``: Return ``Epochs`` object
+               with a copy of the subset of epochs corresponding to multiple
+               experimental conditions as specified by
+               ``'name_1', 'name_2', ...`` .
 
-            If conditions are separated by '/', selects every item containing
-            every list tag (e.g. ['audio', 'left'] selects 'audio/left' and
-            'audio/center/left', but not 'audio/right').
+               If conditions are separated by '/', selects every item
+               containing every list tag (e.g. ['audio', 'left'] selects
+               'audio/left' and 'audio/center/left', but not 'audio/right').
+
         """
         data = self._data
         del self._data

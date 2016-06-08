@@ -373,7 +373,7 @@ Arbitrary (e.g., simulated or manually read in) raw data can be constructed
 from memory by making use of :class:`mne.io.RawArray`, :class:`mne.EpochsArray`
 or :class:`mne.EvokedArray` in combination with :func:`mne.create_info`.
 
-This functionality is illustrated in :ref:`example_io_plot_objects_from_arrays.py` .
+This functionality is illustrated in :ref:`sphx_glr_auto_examples_io_plot_objects_from_arrays.py`.
 Using 3rd party libraries such as NEO (https://pythonhosted.org/neo/) in combination
 with these functions abundant electrophysiological file formats can be easily loaded
 into MNE.

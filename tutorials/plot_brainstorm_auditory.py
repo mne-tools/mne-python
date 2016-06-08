@@ -82,6 +82,7 @@ raw_erm = read_raw_ctf(erm_fname, preload=preload)
 # Data channel array consisted of 274 MEG axial gradiometers, 26 MEG reference
 # sensors and 2 EEG electrodes (Cz and Pz).
 # In addition:
+#
 #   - 1 stim channel for marking presentation times for the stimuli
 #   - 1 audio channel for the sent signal
 #   - 1 response channel for recording the button presses
@@ -89,6 +90,7 @@ raw_erm = read_raw_ctf(erm_fname, preload=preload)
 #   - 2 EOG bipolar (vertical and horizontal)
 #   - 12 head tracking channels
 #   - 20 unused channels
+#
 # The head tracking channels and the unused channels are marked as misc
 # channels. Here we define the EOG and ECG channels.
 raw.set_channel_types({'HEOG': 'eog', 'VEOG': 'eog', 'ECG': 'ecg'})

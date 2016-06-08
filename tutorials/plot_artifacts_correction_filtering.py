@@ -1,8 +1,8 @@
 """
 .. _tut_artifacts_filter:
 
-Filtering and Resampling
-========================
+Filtering and resampling data
+=============================
 
 Certain artifacts are restricted to certain frequencies and can therefore
 be fixed by filtering. An artifact that typically affects only some
@@ -13,6 +13,10 @@ It is composed of sharp peaks at 50Hz (or 60Hz depending on your
 geographical location). Some peaks may also be present at the harmonic
 frequencies, i.e. the integer multiples of
 the power-line frequency, e.g. 100Hz, 150Hz, ... (or 120Hz, 180Hz, ...).
+
+This tutorial covers some basics of how to filter data in MNE-Python.
+For more in-depth information about filter design in general and in
+MNE-Python in particular, check out _tut_background_filtering_.
 """
 
 import numpy as np

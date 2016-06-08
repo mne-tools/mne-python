@@ -264,7 +264,11 @@ latex_use_parts = True
 trim_doctests_flags = True
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None}
+intersphinx_mapping = {
+    'python': ('http://docs.python.org/', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy-dev/', None),
+    'scipy': ('http://scipy.github.io/devdocs/', None),
+}
 
 examples_dirs = ['../examples', '../tutorials']
 gallery_dirs = ['auto_examples', 'auto_tutorials']

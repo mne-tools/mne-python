@@ -84,8 +84,7 @@ If you want to write your own data to disk (e.g., subject behavioral
 scores), we strongly recommend using `h5io <https://github.com/h5io/h5io>`_,
 which is based on the
 `HDF5 format <https://en.wikipedia.org/wiki/Hierarchical_Data_Format>`_ and
-`h5py <http://www.h5py.org/>`_,
-to save data in a fast, future-compatible, standard format.
+h5py_, to save data in a fast, future-compatible, standard format.
 
 
 Resampling and decimating data

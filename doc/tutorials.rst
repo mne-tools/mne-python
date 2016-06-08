@@ -54,6 +54,17 @@ For further reading:
 
   .. raw:: html
 
+    <h2>Background information</h2>
+ 
+  .. toctree::
+    :maxdepth: 1
+
+    auto_tutorials/plot_background_filtering.rst
+
+.. container:: span box
+
+  .. raw:: html
+
     <h2>Preprocessing</h2>
 
   .. toctree::

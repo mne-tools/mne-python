@@ -198,11 +198,13 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
     effects : str
         A string denoting the effect to be returned. The following
         mapping is currently supported:
-            'A': main effect of A
-            'B': main effect of B
-            'A:B': interaction effect
-            'A+B': both main effects
-            'A*B': all three effects
+
+            * ``'A'``: main effect of A
+            * ``'B'``: main effect of B
+            * ``'A:B'``: interaction effect
+            * ``'A+B'``: both main effects
+            * ``'A*B'``: all three effects
+
     pvalue : float
         The p-value to be thresholded.
 

@@ -184,7 +184,7 @@ Using the UNIX tools :ref:`mne_inverse_operator`, the values
 :math:`\varepsilon_k` can be adjusted with the regularization options
 ``--magreg`` , ``--gradreg`` , and ``--eegreg`` specified at the time of the
 inverse operator decomposition, see :ref:`inverse_operator`. The convenience script
-:ref:`mne_do_inverse_solution` has the ``--magreg`` and ``--gradreg`` combined to
+:ref:`mne_do_inverse_operator` has the ``--magreg`` and ``--gradreg`` combined to
 a single option, ``--megreg`` , see :ref:`CIHCFJEI`.
 Suggested range of values for :math:`\varepsilon_k` is :math:`0.05 \dotso 0.2`.
 

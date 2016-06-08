@@ -44,7 +44,7 @@ dependencies:
 
   override:
     - cd /home/ubuntu/mne-python && python setup.py develop;
-    - if [ "$CIRCLE_BRANCH" == "master" ] || [ "$CIRCLE_BRANCH" == "maint/0.12" ]; then
+    - if [ "$CIRCLE_BRANCH" == "master" ] || [ "$CIRCLE_BRANCH" == "maint/0.12" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
         mkdir -p ~/mne_data;
         python -c "import mne; mne.datasets._download_all_example_data()";
       fi
@@ -57,12 +57,12 @@ dependencies:
 
 test:
   override:
-    - if [ "$CIRCLE_BRANCH" == "master" ] || [ "$CIRCLE_BRANCH" == "maint/0.12" ]; then
+    - if [ "$CIRCLE_BRANCH" == "master" ] || [ "$CIRCLE_BRANCH" == "maint/0.12" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
         make test-doc;
       else
         cd doc && make html_dev-noplot;
       fi
-    - if [ "$CIRCLE_BRANCH" == "master" ]; then cd doc && make html_dev; fi:
+    - if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then cd doc && make html_dev; fi:
           timeout: 1500
     - if [ "$CIRCLE_BRANCH" == "maint/0.12" ]; then cd doc && make html_stable; fi:
           timeout: 1500

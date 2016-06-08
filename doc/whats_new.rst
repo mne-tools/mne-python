@@ -17,6 +17,8 @@ Changelog
 
     - Added the ability to decimate :class:`mne.Evoked` objects with :func:`mne.Evoked.decimate` by `Eric Larson`_
 
+    - Add generic array-filtering function :func:`mne.filter.filter_` by `Eric Larson`_
+
 BUG
 ~~~
 
