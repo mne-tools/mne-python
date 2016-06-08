@@ -1363,7 +1363,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
     ----------
     ch_names : list of str | int
         Channel names. If an int, a list of channel names will be created
-        from range(ch_names)
+        from :func:`range(ch_names) <range>`.
     sfreq : float
         Sample rate of the data.
     ch_types : list of str | str
@@ -1378,6 +1378,11 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
         digitizer information will be updated. A list of unique montages,
         can be specifed and applied to the info. See also the documentation of
         :func:`mne.channels.read_montage` for more information.
+
+    Returns
+    -------
+    info : instance of Info
+        The measurement info.
 
     Notes
     -----
@@ -1402,7 +1407,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
     if isinstance(ch_types, string_types):
         ch_types = [ch_types] * nchan
     if len(ch_types) != nchan:
-        raise ValueError('ch_types and ch_names must be the same length')
+        raise ValueError('ch_types and ch_names must be the same length '
+                         '(%s != %s)' % (len(ch_types), nchan))
     info = _empty_info(sfreq)
     info['meas_date'] = np.array([0, 0], np.int32)
     loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)

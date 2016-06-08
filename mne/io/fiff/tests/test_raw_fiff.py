@@ -818,6 +818,34 @@ def test_filter():
     data, _ = raw[picks, :]
     assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)
 
+    # filter should set the "lowpass" and "highpass" parameters
+    raw = RawArray(np.random.randn(3, 1000),
+                   create_info(3, 1000., ['eeg'] * 2 + ['stim']))
+    raw.info['lowpass'] = raw.info['highpass'] = None
+    for kind in ('lowpass', 'highpass'):
+        if kind == 'lowpass':
+            l_freq, h_freq = None, 50
+        else:
+            l_freq, h_freq = 50, None
+        assert_true(raw.info['lowpass'] is None)
+        assert_true(raw.info['highpass'] is None)
+        kwargs = dict(l_trans_bandwidth=20, h_trans_bandwidth=20,
+                      filter_length=100)
+        raw_filt = raw.copy().filter(l_freq, h_freq, picks=np.arange(1),
+                                     **kwargs)
+        assert_true(raw.info['lowpass'] is None)
+        assert_true(raw.info['highpass'] is None)
+        raw_filt = raw.copy().filter(l_freq, h_freq, **kwargs)
+        has = 'lowpass' if kind == 'lowpass' else 'highpass'
+        non = 'highpass' if kind == 'lowpass' else 'lowpass'
+        assert_true(raw_filt.info[non] is None)
+        assert_equal(raw_filt.info[has], 50)
+        # Using all data channels should still set the params (GH#3259)
+        raw_filt = raw.copy().filter(l_freq, h_freq, picks=np.arange(2),
+                                     **kwargs)
+        assert_true(raw_filt.info[non] is None)
+        assert_equal(raw_filt.info[has], 50)
+
 
 def test_filter_picks():
     """Test filtering default channel picks"""
@@ -1007,28 +1035,6 @@ def test_resample():
     raw.resample(10, npad='auto')
     assert_equal(raw.info['lowpass'], 5.)
     assert_equal(len(raw), 10)
-
-    # filter should set the "lowpass" and "highpass" parameters
-    raw = RawArray(np.random.randn(10, 100), create_info(10, 1000., ['eeg']))
-    for kind in ('lowpass', 'highpass'):
-        if kind == 'lowpass':
-            l_freq, h_freq = 50, None
-        else:
-            l_freq, h_freq = None, 50
-        assert_true(raw.info['lowpass'] is None)
-        assert_true(raw.info['highpass'] is None)
-        raw_filt = raw.copy().filter(l_freq, h_freq, picks=np.arange(9))
-        assert_true(raw.info['lowpass'] is None)
-        assert_true(raw.info['highpass'] is None)
-        raw_filt = raw.copy().filter(l_freq, h_freq, picks=np.arange(9))
-        has = 'lowpass' if kind == 'lowpass' else 'highpass'
-        non = 'highpass' if kind == 'lowpass' else 'lowpass'
-        assert_true(raw_filt.info[non] is None)
-        assert_equal(raw_filt.info[has], 50)
-        # Using all data channels should still set the params (GH#3259)
-        raw_filt = raw.copy().filter(l_freq, h_freq, picks=np.arange(10))
-        assert_true(raw_filt.info[non] is None)
-        assert_equal(raw_filt.info[has], 50)
 
 
 @testing.requires_testing_data

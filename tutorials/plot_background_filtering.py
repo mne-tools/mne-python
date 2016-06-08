@@ -127,7 +127,7 @@ def plot_ideal(freq, gain, ax):
             ys += [ylim[1]] * 2
     gain = 10 * np.log10(np.maximum(gain, 10 ** (ylim[0] / 10.)))
     ax.fill_between(xs, ylim[0], ys, color='r', alpha=0.25)
-    ax.semilogx(freq, gain, 'r:', alpha=0.25, linewidth=4, zorder=3)
+    ax.semilogx(freq, gain, 'r--', alpha=0.25, linewidth=4, zorder=3)
     xticks = [1, 2, 4, 10, 20, 40, 100, 200, 400]
     ax.set(xlim=xlim, ylim=ylim, xticks=xticks, xlabel='Frequency (Hz)',
            ylabel='Amplitude (dB)')
