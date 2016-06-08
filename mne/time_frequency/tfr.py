@@ -736,7 +736,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                         colorbar=colorbar, picker=False, cmap=cmap)
             if title:
                 fig.suptitle(title)
-            colorbar = False  # only one colorbar for multiple axes
+            if cmap != 'interactive':
+                colorbar = False  # only one colorbar for multiple axes
         plt_show(show)
         return fig
 
@@ -766,7 +767,14 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         if 'mag' in self:
             types.append('mag')
         if 'grad' in self:
-            types.append('grad')
+            chs = [ch for ch in self.ch_names if ch.startswith('MEG') and
+                   ch.endswith(('2', '3'))]
+            if len(chs) < 2:
+                warn('No grad pairs found.')
+                if len(types) == 0:
+                    return  # Don't draw a figure for nothing.
+            else:
+                types.append('grad')
         fig = figure_nobar()
         fig.suptitle('{:.2f} s - {:.2f} s, {:.2f} Hz - {:.2f} Hz'.format(tmin,
                                                                          tmax,

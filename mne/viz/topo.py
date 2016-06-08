@@ -21,7 +21,8 @@ from ..utils import _clean_names, warn
 from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
-                    add_background_image, plt_show, _setup_vmin_vmax)
+                    add_background_image, plt_show, _setup_vmin_vmax,
+                    DraggableColorbar)
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -258,6 +259,11 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     from matplotlib.widgets import RectangleSelector
 
     extent = (tmin, tmax, freq[0], freq[-1])
+    if cmap == 'interactive':
+        cmap = 'RdBu_r'
+        interactive_cmap = True
+    else:
+        interactive_cmap = False
     img = ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
                     vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
     if isinstance(ax, plt.Axes):
@@ -271,7 +277,11 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         if y_label is not None:
             plt.ylabel(y_label)
     if colorbar:
-        plt.colorbar(mappable=img)
+        cbar = plt.colorbar(mappable=img)
+        if interactive_cmap:
+            cbar = DraggableColorbar(cbar, img)
+            cbar.connect()
+            ax.colorbar = cbar  # For keeping reference
     if title:
         plt.title(title)
     if not isinstance(ax, plt.Axes):

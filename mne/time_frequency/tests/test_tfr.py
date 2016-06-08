@@ -375,6 +375,9 @@ def test_plot():
     tfr.plot_topo(picks=[1, 2])
     plt.close('all')
 
+    tfr.plot(picks=[1, 2], cmap='interactive')
+    plt.close('all')
+
 
 def test_add_channels():
     """Test tfr splitting / re-appending channel types
