@@ -1438,6 +1438,9 @@ class ICA(ContainsMixin):
         image_kws : dict | None
             Dictionary of arguments to plot_epochs_image. If None - doesn't
             pass any additional arguments. Defaults to None.
+        psd_kws : dict | None
+            Dictionary of arguments to psd_multitaper. If None - doesn't pass
+            any additional arguments. Defaults to None.
         show : bool
             Show figure if True.
 
@@ -1449,7 +1452,7 @@ class ICA(ContainsMixin):
         return plot_properties(inst, ica=self, picks=picks, axes=axes,
                                dB=dB, cmap=cmap, plot_std=plot_std,
                                topo_kws=topo_kws, image_kws=image_kws,
-                               show=True)
+                               psd_kws=psd_kws, show=True)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, title=None, show=True, block=False):
