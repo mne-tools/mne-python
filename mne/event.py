@@ -746,7 +746,7 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
         A raw object to use the data from.
     id : int
         The id to use.
-    start : float
+    start : int | float
         Time of first event.
     stop : float | None
         Maximum time of last event. If None, events extend to the end
@@ -771,9 +771,9 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
                          ' %s instead.' % (type(raw)))
     if not isinstance(id, int):
          raise ValueError('id must be an integer')
-    if not isinstance(duration, float):
-        raise ValueError('duration must be a float, got %s instead.' %
-                         (type(segment_length)))
+    if not isinstance(duration, (int, float)):
+        raise ValueError('duration must be an integer of a float, '
+                         'got %s instead.' % (type(duration)))
     start = raw.time_as_index(start)[0]
     if stop is not None:
         stop = raw.time_as_index(stop)[0]

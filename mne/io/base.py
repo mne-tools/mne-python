@@ -1233,7 +1233,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        segment_length : float
+        segment_length : int | float
             Length of each segment in seconds. Defaults to 1.
         verbose: bool | True
             Whether to report what is being done by printing text.

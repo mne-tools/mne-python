@@ -3123,7 +3123,7 @@ def _segment_raw(raw, segment_length=1., verbose=None, **kwargs):
     ----------
     raw : instance of Raw
         Raw data to divide into segments.
-    segment_length : float
+    segment_length : int | float
         Length of each segment in seconds. Defaults to 1.
     verbose: bool | True
         Whether to report what is being done by printing text.
