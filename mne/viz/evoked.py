@@ -22,6 +22,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
 from ..utils import logger, _clean_names, warn
 from ..fixes import partial
 from ..io.pick import pick_info
+from ..io.constants import FIFF
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation)
@@ -71,6 +72,16 @@ def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
     """Function for drawing topomaps from the selected area."""
     import matplotlib.pyplot as plt
     ch_types = [type for type in ch_types if type in ('eeg', 'grad', 'mag')]
+    if ('grad' in ch_types and FIFF.FIFFV_COIL_VV_PLANAR_T1 in np.unique(
+            [ch['coil_type'] for ch in evoked.info['chs']])):
+        chs = [ch for ch in evoked.info['ch_names'] if
+               ch.startswith('MEG') and ch.endswith(('2', '3'))]
+        if len(chs) < 2:
+            warn('No grad pairs found.')
+            ch_types.remove('grad')
+            if len(ch_types) == 0:
+                return
+
     vert_lines = list()
     if text is not None:
         text.set_visible(True)
@@ -91,9 +102,8 @@ def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
     fig, axarr = plt.subplots(1, len(ch_types), squeeze=False,
                               figsize=(3 * len(ch_types), 3))
     for idx, ch_type in enumerate(ch_types):
-        picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
-                                                                 ch_type,
-                                                                 layout=None)
+        picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(
+            evoked, ch_type, layout=None)
         data = evoked.data[picks, minidx:maxidx]
         if merge_grads:
             from ..channels.layout import _merge_grad_data

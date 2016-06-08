@@ -1327,8 +1327,8 @@ def _compute_scalings(scalings, inst):
 
 class DraggableColorbar(object):
     """Class for enabling interactive colorbar.
-    See http://www.ster.kuleuven.be/~pieterd/python/html/plotting/interactive_colorbar.html  # doctest: +SKIP
-    """
+    See http://www.ster.kuleuven.be/~pieterd/python/html/plotting/interactive_colorbar.html
+    """  # noqa
     def __init__(self, cbar, mappable):
         import matplotlib.pyplot as plt
         self.cbar = cbar
@@ -1364,7 +1364,7 @@ class DraggableColorbar(object):
         else:
             return
         if self.index < 0:
-            self.index = len(self.cycle)
+            self.index = len(self.cycle) - 1
         elif self.index >= len(self.cycle):
             self.index = 0
         cmap = self.cycle[self.index]

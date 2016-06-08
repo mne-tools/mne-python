@@ -22,6 +22,7 @@ from ..utils import logger, verbose, _time_mask, warn, check_fname
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
+from ..io.constants import FIFF
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar, plt_show
 from ..externals.h5io import write_hdf5, read_hdf5
@@ -673,7 +674,11 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             The maxinum value an the color scale. If vmax is None, the data
             maximum value is used.
         cmap : matplotlib colormap | str
-            The colormap to use. Defaults to 'RdBu_r'.
+            The colormap to use. If 'interactive', the colors are adjustable by
+            clicking and dragging the colorbar with left and right mouse
+            button. Left mouse button moves the scale up and down and right
+            mouse button adjusts the range. Up and down arrows can be used to
+            change the colormap. Defaults to 'RdBu_r'.
         dB : bool
             If True, 20*log10 is applied to the data to get dB.
         colorbar : bool
@@ -767,20 +772,19 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         if 'mag' in self:
             types.append('mag')
         if 'grad' in self:
-            chs = [ch for ch in self.ch_names if ch.startswith('MEG') and
-                   ch.endswith(('2', '3'))]
-            if len(chs) < 2:
-                warn('No grad pairs found.')
-                if len(types) == 0:
-                    return  # Don't draw a figure for nothing.
+            if (FIFF.FIFFV_COIL_VV_PLANAR_T1 in
+                    np.unique([ch['coil_type'] for ch in self.info['chs']])):
+                chs = [ch for ch in self.ch_names if ch.startswith('MEG') and
+                       ch.endswith(('2', '3'))]
+                if len(chs) < 2:
+                    warn('No grad pairs found.')
+                    if len(types) == 0:
+                        return  # Don't draw a figure for nothing.
             else:
                 types.append('grad')
         fig = figure_nobar()
-        fig.suptitle('{:.2f} s - {:.2f} s, {:.2f} Hz - {:.2f} Hz'.format(tmin,
-                                                                         tmax,
-                                                                         fmin,
-                                                                         fmax),
-                     y=0.04)
+        fig.suptitle('{:.2f} s - {:.2f} s, {:.2f} Hz - {:.2f} Hz'.format(
+            tmin, tmax, fmin, fmax), y=0.04)
         for idx, ch_type in enumerate(types):
             ax = plt.subplot(1, len(types), idx + 1)
             plot_tfr_topomap(self, ch_type=ch_type, tmin=tmin, tmax=tmax,

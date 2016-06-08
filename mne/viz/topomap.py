@@ -1120,7 +1120,12 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         If None, the maximum absolute value is used. If callable, the output
         equals vmax(data). Defaults to None.
     cmap : matplotlib colormap | None
-        Colormap to use. If None, 'Reds' is used for all positive data,
+        Colormap to use. If 'interactive', the colors are adjustable by
+        clicking and dragging the colorbar with left and right mouse button.
+        Left mouse button moves the scale up and down and right mouse button
+        adjusts the range. Up and down arrows can be used to change the
+        colormap. Interactive mode works smoothly only for a small amount of
+        topomaps. If None (default), 'Reds' is used for all positive data,
         otherwise defaults to 'RdBu_r'.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
@@ -1317,6 +1322,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
              for i in range(len(times))]
     vmin = np.min(vlims)
     vmax = np.max(vlims)
+    if cmap == 'interactive':
+        cmap = None
+        interactive_cmap = True
+    else:
+        interactive_cmap = False
     for idx, time in enumerate(times):
         tp, cn = plot_topomap(data[:, idx], pos, vmin=vmin, vmax=vmax,
                               sensors=sensors, res=res, names=names,
@@ -1352,6 +1362,12 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             cax.set_title(unit)
         cbar = fig.colorbar(images[-1], ax=cax, cax=cax, format=cbar_fmt)
         cbar.set_ticks([cbar.vmin, 0, cbar.vmax])
+        if interactive_cmap:
+            from .utils import DraggableColorbar
+            for im in images:
+                cb = DraggableColorbar(cbar, im)
+                cb.connect()
+                im.colorbar = cb  # For keeping reference
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
