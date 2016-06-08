@@ -200,7 +200,8 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         fig, axes = _create_properties_layout()
     else:
         if len(picks) > 1:
-            ValueError('Only single pick can be drawn to a set of axes.')
+            raise ValueError('Only a single pick can be drawn '
+                             'to a set of axes.')
         from .utils import _validate_if_list_of_axes
         _validate_if_list_of_axes(axes, obligatory_len=5)
         fig = axes[0].get_figure()
@@ -235,48 +236,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
 
     # spectrum
     psds, freqs = psd_multitaper(epochs_src, picks=picks, **psd_kws)
-    psds = psds[:, idx, :]
-    if dB:
-        psds = 10 * np.log10(psds)
-    psds_mean = psds.mean(axis=0)
-    diffs = psds - psds_mean
-    # the distribution of power for each frequency bin is highly
-    # skewed so we calculate std for values below and above average
-    # separately - this is used for fill_between shade
-    spectrum_std = [[np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
-                    [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
-    spectrum_std = np.array(spectrum_std) * num_std
 
-    # erp std
-    if plot_std:
-        erp = ica_data[idx].mean(axis=0)
-        diffs = ica_data[idx] - erp
-        erp_std = [[np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
-                   [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
-        erp_std = np.array(erp_std) * num_std
-
-    # epoch variance
-    epoch_var = np.var(ica_data[idx], axis=1)
-
-    # plotting
-    # --------
-    _plot_ica_topomap(ica, picks[idx], show=False, axis=axes[0], **topo_kws)
-
-    # image and erp
-    plot_epochs_image(epochs_src, picks=picks[idx], axes=axes[1:3],
-                      colorbar=False, show=False, **image_kws)
-
-    # spectrum
-    axes[3].plot(freqs, psds_mean, color='k')
-    if plot_std:
-        axes[3].fill_between(freqs, psds_mean - spectrum_std[0],
-                             psds_mean + spectrum_std[1], color='k', alpha=.15)
-    # epoch variance
-    axes[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
-                    facecolor=[0, 0, 0], lw=0)
-
-    # aesthetics
-    # ----------
     def set_title_and_labels(ax, title, xlab, ylab):
         if title:
             ax.set_title(title)
@@ -288,50 +248,108 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         ax.axis('tight')
         ax.tick_params('both', labelsize=8)
 
-    axes[0].set_title('IC ' + str(picks[idx]))
+    more_fig = len(picks) > 0
+    all_fig = list()
+    # the rest is component-specific
+    for idx, pick in enumerate(picks):
+        if idx > 0:
+            fig, axes = _create_properties_layout()
 
-    set_title_and_labels(axes[1], 'epochs image and ERP/ERF', [], 'Epochs')
+        # spectrum
+        this_psds = psds[:, idx, :]
+        if dB:
+            this_psds = 10 * np.log10(this_psds)
+        psds_mean = this_psds.mean(axis=0)
+        diffs = this_psds - psds_mean
+        # the distribution of power for each frequency bin is highly
+        # skewed so we calculate std for values below and above average
+        # separately - this is used for fill_between shade
+        spectrum_std = [
+            [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
+            [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]
+            ]
+        spectrum_std = np.array(spectrum_std) * num_std
 
-    # erp
-    set_title_and_labels(axes[2], [], 'time', 'AU')
-    # line color and std
-    axes[2].lines[0].set_color('k')
-    if plot_std:
-        erp_xdata = axes[2].lines[0].get_data()[0]
-        axes[2].fill_between(erp_xdata, erp - erp_std[0],
-                             erp + erp_std[1], color='k', alpha=.15)
-        axes[2].autoscale(enable=True, axis='y')
-        axes[2].axis('auto')
-        axes[2].set_xlim(erp_xdata[[0, -1]])
-    # remove half of yticks if more than 5
-    yt = axes[2].get_yticks()
-    if len(yt) > 5:
-        yt = yt[::2]
-        axes[2].set_yticks(yt)
+        # erp std
+        if plot_std:
+            erp = ica_data[idx].mean(axis=0)
+            diffs = ica_data[idx] - erp
+            erp_std = [
+                [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
+                [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]
+                ]
+            erp_std = np.array(erp_std) * num_std
 
-    if not plot_line_at_zero:
-        axes[1].lines[0].remove()
-        axes[2].lines[1].remove()
+        # epoch variance
+        epoch_var = np.var(ica_data[idx], axis=1)
 
-    # remove xticks - erp plot shows xticks for both image and erp plot
-    axes[1].set_xticks([])
-    yt = axes[1].get_yticks()
-    axes[1].set_yticks(yt[1:])
-    axes[1].set_ylim([-0.5, ica_data.shape[1] + 0.5])
+        # plotting
+        # --------
+        _plot_ica_topomap(ica, pick, show=False, axis=axes[0], **topo_kws)
 
-    # spectrum
-    ylabel = 'dB' if dB else 'power'
-    set_title_and_labels(axes[3], 'spectrum', 'frequency', ylabel)
-    axes[3].set_xlim(freqs[[0, -1]])
-    ylim = axes[3].get_ylim()
-    air = np.diff(ylim)[0] * 0.1
-    axes[3].set_ylim(ylim[0] - air, ylim[1] + air)
+        # image and erp
+        plot_epochs_image(epochs_src, picks=pick, axes=axes[1:3],
+                          colorbar=False, show=False, **image_kws)
 
-    # epoch variance
-    set_title_and_labels(axes[4], 'epochs variance', 'epoch', 'AU')
+        # spectrum
+        axes[3].plot(freqs, psds_mean, color='k')
+        if plot_std:
+            axes[3].fill_between(freqs, psds_mean - spectrum_std[0],
+                                 psds_mean + spectrum_std[1],
+                                 color='k', alpha=.15)
+        # epoch variance
+        axes[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
+                        facecolor=[0, 0, 0], lw=0)
+
+        # aesthetics
+        # ----------
+        axes[0].set_title('IC ' + str(pick))
+
+        set_title_and_labels(axes[1], 'epochs image and ERP/ERF', [], 'Epochs')
+
+        # erp
+        set_title_and_labels(axes[2], [], 'time', 'AU')
+        # line color and std
+        axes[2].lines[0].set_color('k')
+        if plot_std:
+            erp_xdata = axes[2].lines[0].get_data()[0]
+            axes[2].fill_between(erp_xdata, erp - erp_std[0],
+                                 erp + erp_std[1], color='k', alpha=.15)
+            axes[2].autoscale(enable=True, axis='y')
+            axes[2].axis('auto')
+            axes[2].set_xlim(erp_xdata[[0, -1]])
+        # remove half of yticks if more than 5
+        yt = axes[2].get_yticks()
+        if len(yt) > 5:
+            yt = yt[::2]
+            axes[2].set_yticks(yt)
+
+        if not plot_line_at_zero:
+            axes[1].lines[0].remove()
+            axes[2].lines[1].remove()
+
+        # remove xticks - erp plot shows xticks for both image and erp plot
+        axes[1].set_xticks([])
+        yt = axes[1].get_yticks()
+        axes[1].set_yticks(yt[1:])
+        axes[1].set_ylim([-0.5, ica_data.shape[1] + 0.5])
+
+        # spectrum
+        ylabel = 'dB' if dB else 'power'
+        set_title_and_labels(axes[3], 'spectrum', 'frequency', ylabel)
+        axes[3].set_xlim(freqs[[0, -1]])
+        ylim = axes[3].get_ylim()
+        air = np.diff(ylim)[0] * 0.1
+        axes[3].set_ylim(ylim[0] - air, ylim[1] + air)
+
+        # epoch variance
+        set_title_and_labels(axes[4], 'epochs variance', 'epoch', 'AU')
+
+        if more_fig:
+            all_fig.append(fig)
 
     plt_show(show)
-    return fig
+    return all_fig if len(picks) > 1 else fig
 
 
 def _plot_ica_grid(sources, start, stop,

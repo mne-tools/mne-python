@@ -90,7 +90,6 @@ def test_plot_ica_properties():
     assert_equal(len(ax), 5)
 
     ica.plot_properties(raw, picks=0)
-    # fig = ica.plot_properties(raw, picks=[0, 1, 2])
     ica.plot_properties(epochs, picks=1)
     ica.plot_properties(epochs, picks=1, dB=True)
     ica.plot_properties(epochs, picks=1, dB=True, cmap='jet')
@@ -99,15 +98,21 @@ def test_plot_ica_properties():
     ica.plot_properties(epochs, picks=1, plot_std=False)
     ica.plot_properties(epochs, picks=1, plot_std=1.5)
     ica.plot_properties(epochs, picks=1, psd_kws={'fmax': 65.})
+    plt.close('all')
+
     assert_raises(ValueError, ica.plot_properties, epochs, dB=list('abc'))
     assert_raises(ValueError, ica.plot_properties, epochs, plot_std=[])
     assert_raises(ValueError, ica.plot_properties, ica)
     assert_raises(ValueError, ica.plot_properties, [0.2])
     assert_raises(ValueError, plot_properties, epochs, ica=epochs)
+
     fig, ax = plt.subplots(2, 3)
     ax = ax.ravel()[:-1]
     ica.plot_properties(epochs, picks=1, axes=ax)
-
+    fig = ica.plot_properties(raw, picks=[0, 1])
+    assert_equal(len(fig), 2)
+    assert_raises(ValueError, plot_properties, epochs, ica=ica, picks=[0, 1],
+                  axes=ax)
     plt.close('all')
 
 
