@@ -98,6 +98,7 @@ sfreq = 1000.
 f_p = 40.
 ylim = [-60, 10]  # for dB plots
 xlim = [2, sfreq / 2.]
+blue = '#1f77b4'
 
 ###############################################################################
 # Take for example an ideal low-pass filter, which would give a value of 1 in
@@ -126,7 +127,7 @@ def plot_ideal(freq, gain, ax):
             xs += [freq[ii], freq[ii + 1]]
             ys += [ylim[1]] * 2
     gain = 10 * np.log10(np.maximum(gain, 10 ** (ylim[0] / 10.)))
-    ax.fill_between(xs, ylim[0], ys, color='r', alpha=0.25)
+    ax.fill_between(xs, ylim[0], ys, color='r', alpha=0.1)
     ax.semilogx(freq, gain, 'r--', alpha=0.25, linewidth=4, zorder=3)
     xticks = [1, 2, 4, 10, 20, 40, 100, 200, 400]
     ax.set(xlim=xlim, ylim=ylim, xticks=xticks, xlabel='Frequency (Hz)',
@@ -160,13 +161,13 @@ h = np.sinc(2 * f_p * t) / (4 * np.pi)
 def plot_filter(h, title, freq, gain):
     fig, axs = plt.subplots(2)
     t = np.arange(len(h)) / sfreq
-    axs[0].plot(t, h)
+    axs[0].plot(t, h, color=blue)
     axs[0].set(xlim=t[[0, -1]], xlabel='Time (sec)',
                ylabel='Amplitude h(n)', title=title)
     box_off(axs[0])
     f, H = signal.freqz(h)
     f *= sfreq / (2 * np.pi)
-    axs[1].semilogx(f, 10 * np.log10((H * H.conj()).real), color='#1f77b4',
+    axs[1].semilogx(f, 10 * np.log10((H * H.conj()).real), color=blue,
                     linewidth=2, zorder=4)
     plot_ideal(freq, gain, axs[1])
     mne.viz.tight_layout()
