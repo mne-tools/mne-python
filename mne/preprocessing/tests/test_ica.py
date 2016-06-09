@@ -625,15 +625,15 @@ def test_bad_channels():
     epochs = EpochsArray(data, info)
 
     n_components = 0.9
-    ica = ICA(n_components=n_components)
+    ica = ICA(n_components=n_components, method='fastica')
 
     for inst in [raw, epochs]:
         for ch in chs_bad:
             # Test case for only bad channels
-            picks_bad1 = pick_types(inst.info, exclude='bads',
+            picks_bad1 = pick_types(inst.info, meg=False,
                                     **{str(ch): True})
             # Test case for good and bad channels
-            picks_bad2 = pick_types(inst.info, exclude='bads',
+            picks_bad2 = pick_types(inst.info, meg=True,
                                     **{str(ch): True})
             assert_raises(ValueError, ica.fit, inst, picks=picks_bad1)
             assert_raises(ValueError, ica.fit, inst, picks=picks_bad2)
@@ -650,17 +650,20 @@ def test_eog_channel():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     n_components = 0.9
-    ica = ICA(n_components=n_components)
+    ica = ICA(n_components=n_components, method='fastica')
     # Test case for MEG and EOG data. Should have EOG channel
     for inst in [raw, epochs]:
-        picks1 = pick_types(inst.info, meg=True, stim=False, ecg=False,
-                            eog=True, exclude='bads')
+        picks1a = pick_types(inst.info, meg=True, stim=False, ecg=False,
+                             eog=False, exclude='bads')[:4]
+        picks1b = pick_types(inst.info, meg=False, stim=False, ecg=False,
+                             eog=True, exclude='bads')
+        picks1 = np.append(picks1a, picks1b)
         ica.fit(inst, picks=picks1)
         assert_true(any('EOG' in ch for ch in ica.ch_names))
     # Test case for MEG data. Should have no EOG channel
     for inst in [raw, epochs]:
         picks1 = pick_types(inst.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                            eog=False, exclude='bads')[:4]
         ica.fit(inst, picks=picks1)
         assert_false(any('EOG' in ch for ch in ica.ch_names))
 
