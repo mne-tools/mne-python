@@ -123,7 +123,7 @@ Direct financial support for the project has been provided by:
 
    <h2>Community</h2>
 
-* `Analysis talk: join the MNE mailing list  <MNE mailing list_>`_
+* `Analysis talk: join the MNE mailing list <MNE mailing list_>`_
 
 * `Feature requests and bug reports on GitHub <https://github.com/mne-tools/mne-python/issues/>`_
 
