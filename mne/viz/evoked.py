@@ -383,9 +383,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                 cbar = plt.colorbar(im, ax=ax)
                 cbar.ax.set_title(ch_unit)
                 if interactive_cbar:
-                    cbar = DraggableColorbar(cbar, im)
-                    cbar.connect()
-                    ax.CB = cbar  # For keeping reference
+                    ax.CB = DraggableColorbar(cbar, im)
                     cmap = 'interactive'  # For other channel types
                 ax.set_ylabel('channels (%s)' % 'index')
             else:

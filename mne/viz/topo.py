@@ -282,9 +282,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         else:
             cbar = plt.colorbar(mappable=img)
         if interactive_cmap:
-            cbar = DraggableColorbar(cbar, img)
-            cbar.connect()
-            ax.CB = cbar  # For keeping reference
+            ax.CB = DraggableColorbar(cbar, img)
     if title:
         plt.title(title)
     if not isinstance(ax, plt.Axes):

@@ -1337,6 +1337,7 @@ class DraggableColorbar(object):
         self.cycle = sorted([i for i in dir(plt.cm) if
                              hasattr(getattr(plt.cm, i), 'N')])
         self.index = self.cycle.index(cbar.get_cmap().name)
+        self.connect()
 
     def connect(self):
         """Connect to all the events we need."""

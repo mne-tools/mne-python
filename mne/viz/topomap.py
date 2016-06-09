@@ -1365,9 +1365,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         if interactive_cmap:
             from .utils import DraggableColorbar
             for im in images:
-                cb = DraggableColorbar(cbar, im)
-                cb.connect()
-                im.axes.CB = cb  # For keeping reference
+                im.axes.CB = DraggableColorbar(cbar, im)
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)

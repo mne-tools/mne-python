@@ -185,6 +185,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         if scale_vmax:
             this_vmax = vmax * scalings[ch_type]
 
+        interactive_cmap = False
         if cmap == 'interactive':
             interactive_cmap = True
             cmap = 'RdBu_r'
@@ -216,9 +217,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         if colorbar:
             cbar = plt.colorbar(im, cax=ax3)
             if interactive_cmap:
-                cbar = DraggableColorbar(cbar, im)
-                cbar.connect()
-                ax1.CB = cbar  # For keeping reference
+                ax1.CB = DraggableColorbar(cbar, im)
                 cmap = 'interactive'  # For other channels
             tight_layout(fig=this_fig)
     plt_show(show)
