@@ -311,7 +311,7 @@ plot_filter(h, 'MNE-Python 0.12 default', freq, gain)
 # ringing (long-lasting ripples) in the time domain. Ripple can occur with
 # steep filters, especially on signals with frequency content around the
 # transition band. Our Morlet wavelet signal has power in our transition band,
-# and the time-domain ringing is thus more pronouced for the steep-slope,
+# and the time-domain ringing is thus more pronounced for the steep-slope,
 # long-duration filter than the shorter, shallower-slope filter:
 
 axs = plt.subplots(2)[1]
