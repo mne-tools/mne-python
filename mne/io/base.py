@@ -1421,7 +1421,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         start : float
             Initial time to show (can be changed dynamically once plotted).
         n_channels : int
-            Number of channels to plot at once. Defaults to 20.
+            Number of channels to plot at once. Defaults to 20. Has no effect
+            if ``order`` is 'position' or 'selection'.
         bgcolor : color object
             Color of the background.
         color : dict | color object | None
@@ -1449,10 +1450,13 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         remove_dc : bool
             If True remove DC component when plotting data.
-        order : 'type' | 'original' | array
+        order : 'type' | 'original' | 'selection' | 'position' | array of int
             Order in which to plot data. 'type' groups by channel type,
-            'original' plots in the order of ch_names, array gives the
-            indices to use in plotting.
+            'original' plots in the order of ch_names, 'selection' uses
+            Elekta's channel groupings (only works for Neuromag data) and
+            'positions' groups the channels by the positions of the sensors.
+            If array, the order is determined by the indices in the array.
+            Defaults to 'type'.
         show_options : bool
             If True, a dialog for options related to projection is shown.
         title : str | None

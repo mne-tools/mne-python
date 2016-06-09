@@ -361,7 +361,7 @@ class SetChannelsMixin(object):
         _set_montage(self.info, montage)
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
-                     show_names=False, show=True):
+                     show_names=False, ch_groups=None, axes=None, show=True):
         """
         Plot sensors positions.
 
@@ -378,6 +378,20 @@ class SetChannelsMixin(object):
             ``'Sensor positions (%s)' % ch_type``.
         show_names : bool
             Whether to display all channel names. Defaults to False.
+        ch_groups : 'position' | array of shape (ch_groups, picks) | None
+            Channel groups for coloring the sensors. If None (default), default
+            coloring scheme is used. If 'position', the sensors are divided
+            into 8 regions. See ``order`` kwarg of :func:`mne.viz.plot_raw`. If
+            array, the channels are divided by picks given in the array.
+
+            .. versionadded:: 0.13.0
+
+        axes : instance of Axes | instance of Axes3D | None
+            Axes to draw the sensors to. If ``kind='3d'``, axes must be an
+            instance of Axes3D. If None (default), a new axes will be created.
+
+            .. versionadded:: 0.13.0
+
         show : bool
             Show figure if True. Defaults to True.
 
@@ -401,7 +415,8 @@ class SetChannelsMixin(object):
         """
         from ..viz.utils import plot_sensors
         return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
-                            show_names=show_names, show=show)
+                            show_names=show_names, ch_groups=ch_groups,
+                            axes=axes, show=show)
 
     def anonymize(self):
         """Anonymize measurement information in place by removing

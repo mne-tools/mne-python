@@ -191,6 +191,7 @@ def test_read_ctf():
         assert_true(all('MISC channel' in str(ww.message) for ww in w))
         assert_allclose(raw[:][0], raw_c[:][0])
     raw.plot(show=False)  # Test plotting with ref_meg channels.
+    assert_raises(ValueError, raw.plot, order='selection')
     assert_raises(TypeError, read_raw_ctf, 1)
     assert_raises(ValueError, read_raw_ctf, ctf_fname_continuous + 'foo.ds')
     # test ignoring of system clock

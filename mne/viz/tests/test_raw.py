@@ -94,6 +94,24 @@ def test_plot_raw():
         raw.annotations = annot
         fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
         plt.close('all')
+        for order in ['position', 'selection', range(len(raw.ch_names))[::-1],
+                      [1, 2, 4, 6]]:
+            fig = raw.plot(order=order)
+            x = fig.get_axes()[0].lines[1].get_xdata()[10]
+            y = fig.get_axes()[0].lines[1].get_ydata()[10]
+            _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
+            fig.canvas.key_press_event('down')  # change selection
+            _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+            if order == 'position':  # test clicking topo to change selection
+                sel_fig = plt.figure(1)
+                topo_ax = sel_fig.axes[1]
+                _fake_click(sel_fig, topo_ax, [-0.425, 0.20223853],
+                            xform='data')
+                fig.canvas.key_press_event('down')
+                fig.canvas.key_press_event('up')
+                fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
+                fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
+            plt.close('all')
 
 
 @requires_version('scipy', '0.10')
@@ -142,6 +160,11 @@ def test_plot_sensors():
     fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
     raw.plot_sensors('topomap')
+    ax = plt.subplot(111)
+    raw.plot_sensors(ch_groups='position', axes=ax)
+    raw.plot_sensors(ch_groups='selection')
+    raw.plot_sensors(ch_groups=[[0, 1, 2], [3, 4]])
+    assert_raises(ValueError, raw.plot_sensors, ch_groups='asd')
     assert_raises(TypeError, plot_sensors, raw)  # needs to be info
     plt.close('all')
 

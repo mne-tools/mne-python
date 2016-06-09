@@ -13,7 +13,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-    -
+    - Add order params 'selection' and 'position' for :func:`mne.viz.plot_raw` to allow plotting of specific brain regions by `Jaakko Leppakangas`_
 
 BUG
 ~~~
@@ -35,6 +35,7 @@ API
 
     - Add :func:`mne.io.anonymize_info` function to anonymize measurements and add methods to :class:`mne.io.Raw`, :class:`mne.Epochs` and :class:`mne.Evoked`, by `Jean-Remi King`_
 
+    - Now it is possible to plot only a subselection of channels in :func:`mne.viz.plot_raw` by using an array for order parameter by `Jaakko Leppakangas`_
 
 .. _changes_0_12:
 
