@@ -307,9 +307,12 @@ x_steep = np.convolve(h, x)[len(h) // 2:]
 plot_filter(h, 'MNE-Python 0.12 default', freq, gain)
 
 ###############################################################################
-# It has excellent frequency attenuation, but this comes at a cost of ringing
-# in the time domain for signals in the transition band, such as our
-# Morlet wavelet:
+# It has excellent frequency attenuation, but this comes at a cost of potential
+# ringing (long-lasting ripples) in the time domain. Ripple can occur with
+# steep filters, especially on signals with frequency content around the
+# transition band. Our Morlet wavelet signal has power in our transition band,
+# and the time-domain ringing is thus more pronouced for the steep-slope,
+# long-duration filter than the shorter, shallower-slope filter:
 
 axs = plt.subplots(2)[1]
 

@@ -278,11 +278,10 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
     gain : 1d array
         Filter gain at frequency sampling points.
     filter_length : str (Default: '10s') | int | None
-        Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, if int, overlap-add
-        filtering with a filter of the specified length in samples) is
-        used (faster for long signals). If str, a human-readable time in
-        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+        Length of the filter to use. If None or ``len(x) < filter_length``,
+        the filter length used is ``len(x)``. If int, a filter of the
+        specified length in samples is used. If str, a human-readable time
+        in units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
     picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
@@ -609,21 +608,18 @@ def filter_(data, sfreq, l_freq, h_freq, picks=None, filter_length='10s',
         Indices of channels to filter. If None all channels will be
         filtered.
     filter_length : str (Default: '10s') | int | None
-        Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, if int, overlap-add
-        filtering with a filter of the specified length in samples) is
-        used (faster for long signals). If str, a human-readable time in
-        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+        Length of the filter to use. If None or ``len(x) < filter_length``,
+        the filter length used is ``len(x)``. If int, a filter of the
+        specified length in samples is used. If str, a human-readable time
+        in units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
         Not used for 'iir' filters.
     l_trans_bandwidth : float
         Width of the transition band at the low cut-off frequency in Hz
-        (high pass or cutoff 1 in bandpass). Not used if 'order' is
-        specified in iir_params.
+        (high pass or cutoff 1 in bandpass). Not used for 'iir' filters.
     h_trans_bandwidth : float
         Width of the transition band at the high cut-off frequency in Hz
-        (low pass or cutoff 2 in bandpass). Not used if 'order' is
-        specified in iir_params.
+        (low pass or cutoff 2 in bandpass). Not used for 'iir' filters.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly, CUDA is initialized, and method='fft'.
