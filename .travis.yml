@@ -67,12 +67,7 @@ install:
         fi;
       fi;
     - if [ "${DEPS}" == "nodata" ]; then
-        pip install -q flake8;
-        wget -q https://github.com/lucasdemarchi/codespell/archive/v1.8.tar.gz;
-        tar xzf v1.8.tar.gz;
-        cp codespell-1.8/codespell.py ~/miniconda/envs/testenv/bin;
-        rm v1.8.tar.gz;
-        rm -r codespell-1.8;
+        pip install -q flake8 codespell;
       fi;
     - pip install -q codecov nose-timer
     - if [ "${PYTHON}" == "2.6" ]; then

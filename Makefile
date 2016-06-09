@@ -104,7 +104,7 @@ codespell:  # running manually
 	@codespell.py -w -i 3 -q 3 -S $(CODESPELL_SKIPS) -D ./dictionary.txt $(CODESPELL_DIRS)
 
 codespell-error:  # running on travis
-	@codespell.py -i 0 -q 7 -S $(CODESPELL_SKIPS) -D ./dictionary.txt $(CODESPELL_DIRS) | tee /dev/tty | wc -l | xargs test 0 -eq
+	@codespell.py -i 0 -q 7 -S $(CODESPELL_SKIPS) -D ./dictionary.txt $(CODESPELL_DIRS)
 
 manpages:
 	@echo "I: generating manpages"
