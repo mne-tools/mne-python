@@ -54,7 +54,7 @@ def test_decim():
     assert_array_equal(data_epochs, data_epochs_3)
 
     # Now let's do it with some real data
-    raw = io.Raw(raw_fname)
+    raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
     sfreq_new = raw.info['sfreq'] / decim
     raw.info['lowpass'] = sfreq_new / 4.  # suppress aliasing warnings

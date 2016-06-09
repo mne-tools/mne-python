@@ -1175,7 +1175,7 @@ def test_resample():
     assert_true(epochs_resampled is epochs)
 
     # test proper setting of times (#2645)
-    n_trial, n_chan, n_time, sfreq = 1, 1, 10, 1000
+    n_trial, n_chan, n_time, sfreq = 1, 1, 10, 1000.
     data = np.zeros((n_trial, n_chan, n_time))
     events = np.zeros((n_trial, 3), int)
     info = create_info(n_chan, sfreq, 'eeg')
@@ -1188,6 +1188,20 @@ def test_resample():
     for e in epochs1, epochs2, epochs:
         assert_equal(e.times[0], epochs.tmin)
         assert_equal(e.times[-1], epochs.tmax)
+    # test that cropping after resampling works (#3296)
+    this_tmin = -0.002
+    epochs = EpochsArray(data, deepcopy(info), events, tmin=this_tmin)
+    for times in (epochs.times, epochs._raw_times):
+        assert_allclose(times, np.arange(n_time) / sfreq + this_tmin)
+    epochs.resample(info['sfreq'] * 2.)
+    for times in (epochs.times, epochs._raw_times):
+        assert_allclose(times, np.arange(2 * n_time) / (sfreq * 2) + this_tmin)
+    epochs.crop(0, None)
+    for times in (epochs.times, epochs._raw_times):
+        assert_allclose(times, np.arange((n_time - 2) * 2) / (sfreq * 2))
+    epochs.resample(sfreq)
+    for times in (epochs.times, epochs._raw_times):
+        assert_allclose(times, np.arange(n_time - 2) / sfreq)
 
 
 def test_detrend():

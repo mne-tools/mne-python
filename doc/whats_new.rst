@@ -26,6 +26,8 @@ BUG
 
     - Added units to :func:`mne.io.read_raw_brainvision` for reading non-data channels and enable default behavior of inferring channel type by unit by `Jaakko Leppakangas`_ and `Pablo-Arias`_
 
+    - Fixed minor bugs with :func:`mne.Epochs.resample` and :func:`mne.Epochs.decimate` by `Eric Larson`_
+
 API
 ~~~
 

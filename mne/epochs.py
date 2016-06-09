@@ -340,6 +340,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def decimate(self, decim, offset=0):
         """Decimate the epochs
 
+        .. note:: No filtering is performed. To avoid aliasing, ensure
+                  your data are properly lowpassed.
+
         Parameters
         ----------
         decim : int
@@ -359,6 +362,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         See Also
         --------
         Evoked.decimate
+        Epochs.resample
+        Raw.resample
 
         Notes
         -----
@@ -1692,6 +1697,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.info['sfreq'] = float(sfreq)
         self.times = (np.arange(self._data.shape[2], dtype=np.float) /
                       sfreq + self.times[0])
+        self._raw_times = self.times
         return self
 
     def copy(self):

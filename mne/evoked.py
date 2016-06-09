@@ -163,6 +163,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def decimate(self, decim, offset=0):
         """Decimate the evoked data
 
+        .. note:: No filtering is performed. To avoid aliasing, ensure
+                  your data are properly lowpassed.
+
         Parameters
         ----------
         decim : int
@@ -180,6 +183,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         See Also
         --------
         Epochs.decimate
+        Epochs.resample
+        Raw.resample
 
         Notes
         -----
