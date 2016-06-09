@@ -18,7 +18,7 @@ from ..io.pick import (channel_type, pick_types, _picks_by_type,
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
-                    plt_show, _process_times)
+                    plt_show, _process_times, DraggableColorbar)
 from ..utils import logger, _clean_names, warn
 from ..fixes import partial
 from ..io.pick import pick_info
@@ -373,11 +373,20 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                                      horizontalalignment='left',
                                      fontweight='bold', alpha=0))
             elif plot_type == 'image':
+                interactive_cbar = False
+                if cmap == 'interactive':
+                    interactive_cbar = True
+                    cmap = 'RdBu_r'
                 im = ax.imshow(D, interpolation='nearest', origin='lower',
                                extent=[times[0], times[-1], 0, D.shape[0]],
                                aspect='auto', cmap=cmap)
                 cbar = plt.colorbar(im, ax=ax)
                 cbar.ax.set_title(ch_unit)
+                if interactive_cbar:
+                    cbar = DraggableColorbar(cbar, im)
+                    cbar.connect()
+                    ax.CB = cbar  # For keeping reference
+                    cmap = 'interactive'  # For other channel types
                 ax.set_ylabel('channels (%s)' % 'index')
             else:
                 raise ValueError("plot_type has to be 'butterfly' or 'image'."
@@ -690,8 +699,11 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
-    cmap : matplotlib colormap
-        Colormap.
+    cmap : matplotlib colormap | 'interactive'
+        Colormap. If 'interactive', the colors are adjustable by clicking and
+        dragging the colorbar with left and right mouse button. Left mouse
+        button moves the scale up and down and right mouse button adjusts the
+        range. Up and down arrows can be used to change the colormap.
 
     Returns
     -------

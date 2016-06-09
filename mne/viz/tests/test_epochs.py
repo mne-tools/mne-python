@@ -137,7 +137,7 @@ def test_plot_epochs_image():
     epochs.plot_image(picks=[1, 2])
     overlay_times = [0.1]
     epochs.plot_image(order=[0], overlay_times=overlay_times)
-    epochs.plot_image(overlay_times=overlay_times)
+    epochs.plot_image(overlay_times=overlay_times, cmap='interactive')
     assert_raises(ValueError, epochs.plot_image,
                   overlay_times=[0.1, 0.2])
     assert_raises(ValueError, epochs.plot_image,

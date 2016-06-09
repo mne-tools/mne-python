@@ -116,7 +116,7 @@ def test_plot_evoked():
 
         evoked.plot_image(proj=True)
         # plot with bad channels excluded
-        evoked.plot_image(exclude='bads')
+        evoked.plot_image(exclude='bads', cmap='interactive')
         evoked.plot_image(exclude=evoked.info['bads'])  # does the same thing
         plt.close('all')
 

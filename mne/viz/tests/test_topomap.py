@@ -200,7 +200,9 @@ def test_plot_topomap():
 
     # Test interactive cmap
     fig = plot_evoked_topomap(evoked, times=[0., 0.1], ch_type='eeg',
-                              cmap='interactive')
+                              cmap='interactive', title='title')
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('down')
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
     event = backend_bases.MouseEvent('button_press_event', fig.canvas, 0.1,
                                      0.1, button=1)
