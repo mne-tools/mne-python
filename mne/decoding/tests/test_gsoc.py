@@ -78,10 +78,9 @@ def test_xdawn_transform_and_inverse_transform():
                     preload=True, baseline=None, verbose=False)
     e = EpochsVectorizer()
     X, y = e.fit_transform(epochs)
-    n_components = 2
     # Fit Xdawn
     xd = XdawnTransformer(n_chan=epochs.info['nchan'],
-                          n_components=n_components)
+                          n_components=2)
     xd.fit(X, y)
 
     # transform

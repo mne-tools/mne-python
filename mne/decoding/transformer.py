@@ -214,10 +214,8 @@ class EpochsVectorizer(TransformerMixin):
             raise ValueError("epochs should be an instance of Epochs got %s"
                              " instead" % type(epochs))
 
-        self.epochs_data = epochs._data
-
-        n_epochs, n_channels, n_times = self.epochs_data.shape
-        X = self.epochs_data.reshape(n_epochs, n_channels * n_times)
+        n_epochs, n_channels, n_times = epochs._data.shape
+        X = epochs._data.reshape(n_epochs, n_channels * n_times)
         # save attributes for inverse_transform
         self.n_epochs = len(X)
         self.info = epochs.info

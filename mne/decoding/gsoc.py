@@ -1,15 +1,12 @@
 """Contains refactored transformers compatible with scikit-learn"""
 
 import numpy as np
-import warnings
-from scipy import linalg
 
-from .. import Covariance
 from ..cov import _regularized_covariance
-from ..preprocessing import Xdawn
+from ..preprocessing.xdawn import _Xdawn
 
 
-class XdawnTransformer(Xdawn):
+class XdawnTransformer(_Xdawn):
 
     """Implementation of the Xdawn Algorithm.
 
@@ -71,9 +68,7 @@ class XdawnTransformer(Xdawn):
             raise ValueError("n_chan cannot be none. Please provide the "
                              "number of channels")
         self.n_chan = n_chan
-        self.n_components = n_components
-        self.signal_cov = signal_cov
-        self.reg = reg
+        super(XdawnTransformer, self).__init__(n_components, signal_cov, reg)
 
     def fit(self, X, y):
         """Fit Xdawn from epochs.
@@ -97,52 +92,29 @@ class XdawnTransformer(Xdawn):
         if not isinstance(y, np.ndarray):
             raise ValueError("Labels must be numpy array")
 
-        epochs_data = X.reshape(X.shape[0], self.n_chan, X.shape[1] /
+        epochs_data = X.reshape(X.shape[0], self.n_chan, X.shape[1] //
                                 self.n_chan)
         # Extract signal covariance
-        if self.signal_cov is None:
-            sig_data = np.hstack(epochs_data)
-            self.signal_cov_ = _regularized_covariance(sig_data, self.reg)
-        elif isinstance(self.signal_cov, Covariance):
-            self.signal_cov_ = self.signal_cov.data
-        elif isinstance(self.signal_cov, np.ndarray):
-            self.signal_cov_ = self.signal_cov
-        else:
-            raise ValueError('signal_cov must be None, a covariance instance '
-                             'or a ndarray')
+        self._get_signal_cov(epochs_data)
 
         # estimates evoked covariance
-        self.filters_ = dict()
-        self.patterns_ = dict()
-        event_id_cov_ = dict()
-        event_id_mean = dict()
+        evokeds = dict()
         toeplitz = dict()
         classes = LabelEncoder().fit(y).classes_
         shape = epochs_data.shape
         for eid in classes:
             mean_data = np.mean(epochs_data[eid].reshape(-1, shape[1],
                                 shape[2]), axis=0)
-            event_id_mean[eid] = mean_data
+            evokeds[eid] = mean_data
             toeplitz[eid] = 1.0
 
         for eid in classes:
-            data = np.dot(event_id_mean[eid], toeplitz[eid])
-            event_id_cov_[eid] = _regularized_covariance(data, self.reg)
+            data = np.dot(evokeds[eid], toeplitz[eid])
+            self.evokeds_cov_[eid] = _regularized_covariance(data, self.reg)
 
         # estimates spatial filters
         for eid in classes:
-
-            if self.signal_cov_.shape != event_id_cov_[eid].shape:
-                raise ValueError('Size of signal cov must be the same as the'
-                                 ' number of channels in the epochs')
-
-            evals, evecs = linalg.eigh(event_id_cov_[eid],
-                                       self.signal_cov_)
-            evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
-            evecs /= np.sqrt(np.sum(evecs ** 2, axis=0))
-
-            self.filters_[eid] = evecs
-            self.patterns_[eid] = linalg.inv(evecs.T)
+            self._fit_xdawn(eid)
 
         # store some values
         self.event_id = classes
@@ -172,14 +144,7 @@ class XdawnTransformer(Xdawn):
             raise ValueError('Data input must be of type numpy array')
 
         # create full matrix of spatial filter
-        full_filters = list()
-        for filt in self.filters_.values():
-            full_filters.append(filt[:, :self.n_components])
-        full_filters = np.concatenate(full_filters, axis=1)
-
-        # Apply spatial filters
-        result = np.dot(full_filters.T, data)
-        result = result.transpose((1, 0, 2))
+        result = self._transform_xdawn(data)
         shape = result.shape
         return result.reshape(-1, shape[1] * shape[2])
 
@@ -249,32 +214,3 @@ class XdawnTransformer(Xdawn):
             data_dict[eid] = data_r
 
         return data_dict
-
-    def apply(self, inst, event_id=None, include=None, exclude=None):
-        """apply in this version of xdawn is not supported.
-
-        Parameters
-        ----------
-        inst : instance of Raw | Epochs | Evoked
-            The data to be processed.
-        event_id : dict | list of str | None (default None)
-            The kind of event to apply. if None, a dict of inst will be return
-            one for each type of event xdawn has been fitted.
-        include : array_like of int | None (default None)
-            The indices referring to columns in the ummixing matrix. The
-            components to be kept. If None, the first n_components (as defined
-            in the Xdawn constructor) will be kept.
-        exclude : array_like of int | None (default None)
-            The indices referring to columns in the ummixing matrix. The
-            components to be zeroed out. If None, all the components except the
-            first n_components will be exclude.
-
-        Returns
-        -------
-        None
-        """
-
-        warnings.warn("Warning, apply is not supported in this version of "
-                      "xdawn. Use inverse_transform method instead.")
-
-        pass
