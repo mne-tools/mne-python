@@ -160,6 +160,49 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.data = self.data[:, mask]
         return self
 
+    def decimate(self, decim, offset=0):
+        """Decimate the evoked data
+
+        .. note:: No filtering is performed. To avoid aliasing, ensure
+                  your data are properly lowpassed.
+
+        Parameters
+        ----------
+        decim : int
+            The amount to decimate data.
+        offset : int
+            Apply an offset to where the decimation starts relative to the
+            sample corresponding to t=0. The offset is in samples at the
+            current sampling rate.
+
+        Returns
+        -------
+        evoked : instance of Evoked
+            The decimated Evoked object.
+
+        See Also
+        --------
+        Epochs.decimate
+        Epochs.resample
+        Raw.resample
+
+        Notes
+        -----
+        Decimation can be done multiple times. For example,
+        ``evoked.decimate(2).decimate(2)`` will be the same as
+        ``evoked.decimate(4)``.
+
+        .. versionadded:: 0.13.0
+        """
+        decim, offset, new_sfreq = _check_decim(self.info, decim, offset)
+        start_idx = int(round(self.times[0] * (self.info['sfreq'] * decim)))
+        i_start = start_idx % decim + offset
+        decim_slice = slice(i_start, None, decim)
+        self.info['sfreq'] = new_sfreq
+        self.data = self.data[:, decim_slice].copy()
+        self.times = self.times[decim_slice].copy()
+        return self
+
     def shift_time(self, tshift, relative=True):
         """Shift time scale in evoked data
 
@@ -898,6 +941,30 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         return (ch_names[ch_idx],
                 time_idx if time_as_index else self.times[time_idx])
+
+
+def _check_decim(info, decim, offset):
+    """Helper to check decimation parameters"""
+    if decim < 1 or decim != int(decim):
+        raise ValueError('decim must be an integer > 0')
+    decim = int(decim)
+    new_sfreq = info['sfreq'] / float(decim)
+    lowpass = info['lowpass']
+    if decim > 1 and lowpass is None:
+        warn('The measurement information indicates data is not low-pass '
+             'filtered. The decim=%i parameter will result in a sampling '
+             'frequency of %g Hz, which can cause aliasing artifacts.'
+             % (decim, new_sfreq))
+    elif decim > 1 and new_sfreq < 2.5 * lowpass:
+        warn('The measurement information indicates a low-pass frequency '
+             'of %g Hz. The decim=%i parameter will result in a sampling '
+             'frequency of %g Hz, which can cause aliasing artifacts.'
+             % (lowpass, decim, new_sfreq))  # > 50% nyquist lim
+    offset = int(offset)
+    if not 0 <= offset < decim:
+        raise ValueError('decim must be at least 0 and less than %s, got '
+                         '%s' % (decim, offset))
+    return decim, offset, new_sfreq
 
 
 class EvokedArray(Evoked):

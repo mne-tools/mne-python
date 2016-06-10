@@ -15,6 +15,8 @@ Changelog
 
     - Add order params 'selection' and 'position' for :func:`mne.viz.plot_raw` to allow plotting of specific brain regions by `Jaakko Leppakangas`_
 
+    - Added the ability to decimate :class:`mne.Evoked` objects with :func:`mne.Evoked.decimate` by `Eric Larson`_
+
 BUG
 ~~~
 
@@ -23,6 +25,8 @@ BUG
     - Fixed color ranges to correspond to the colorbar when plotting several time instances with :func:`mne.viz.plot_evoked_topomap` by `Jaakko Leppakangas`_
 
     - Added units to :func:`mne.io.read_raw_brainvision` for reading non-data channels and enable default behavior of inferring channel type by unit by `Jaakko Leppakangas`_ and `Pablo-Arias`_
+
+    - Fixed minor bugs with :func:`mne.Epochs.resample` and :func:`mne.Epochs.decimate` by `Eric Larson`_
 
 API
 ~~~
