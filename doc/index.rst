@@ -1,5 +1,7 @@
 .. title:: MNE
 
+.. include:: links.inc
+
 .. raw:: html
 
     <div class="container"><div class="row">
