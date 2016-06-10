@@ -135,18 +135,17 @@ class XdawnTransformer(_Xdawn):
             Spatially filtered signals.
         """
         if isinstance(X, np.ndarray):
-            data = X
+            epochs_data = X
             shape = X.shape
-            data = X.reshape(X.shape[0], self.n_chan, X.shape[1] /
+            epochs_data = X.reshape(X.shape[0], self.n_chan, X.shape[1] //
                              self.n_chan)
 
         else:
             raise ValueError('Data input must be of type numpy array')
 
         # create full matrix of spatial filter
-        result = self._transform_xdawn(data)
-        shape = result.shape
-        return result.reshape(-1, shape[1] * shape[2])
+        result = self._transform_xdawn(epochs_data)
+        return result.reshape(-1, np.prod(result.shape[1:]))
 
     def fit_transform(self, X, y):
         """First fit the data, then transform
@@ -166,7 +165,7 @@ class XdawnTransformer(_Xdawn):
         self.fit(X, y)
         return self.transform(X)
 
-    def inverse_transform(self, X, event_id=None, include=None, exclude=None):
+    def inverse_transform(self, X):
         """Remove selected components from the signal.
 
         Given the unmixing matrix, transform data,
@@ -201,15 +200,14 @@ class XdawnTransformer(_Xdawn):
             raise ValueError("Given data should be numpy array, got "
                              "%s instead" % type(X))
 
-        data = np.hstack(X.reshape(X.shape[0], self.n_chan, X.shape[1] /
+        data = np.hstack(X.reshape(X.shape[0], self.n_chan, X.shape[1] //
                                    self.n_chan))
         data_dict = dict()
-        if event_id is None:
-            event_id = self.event_id
+        event_id = self.event_id
 
         for eid in event_id:
 
-            data_r = self._pick_sources(data, include, exclude, eid)
+            data_r = self._pick_sources(data, None, None, eid)
             data_r = np.array(np.split(data_r, self.n_chan, 1))
             data_dict[eid] = data_r
 
