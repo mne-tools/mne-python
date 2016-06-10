@@ -9,19 +9,21 @@ import os
 import os.path as op
 import warnings
 
-from nose.tools import assert_true, assert_raises, assert_equal
+from nose.tools import assert_true, assert_raises, assert_equal, assert_false
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
 from scipy import stats
 from itertools import product
 
-from mne import Epochs, read_events, pick_types
+from mne import Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
 from mne.preprocessing.ica import get_score_funcs, corrmap, _get_ica_map
-from mne.io import Raw, Info
+from mne.io import Raw, Info, RawArray
+from mne.io.meas_info import _kind_dict
+from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.tests.common import assert_naming
 from mne.utils import (catch_logging, _TempDir, requires_sklearn, slow_test,
                        run_tests_if_main)
@@ -607,5 +609,62 @@ def test_fit_params():
     fit_params = {}
     ICA(fit_params=fit_params)  # test no side effects
     assert_equal(fit_params, {})
+
+
+@requires_sklearn
+def test_bad_channels():
+    """Test if exception is raised when unsupported channels are used.
+    Test for raw and evoked data"""
+    chs = [i for i in _kind_dict]
+    data_chs = _DATA_CH_TYPES_SPLIT + ['eog']
+    chs_bad = list(set(chs) - set(data_chs))
+    info = create_info(len(chs), 500, chs)
+    data = np.random.rand(len(chs), 50)
+    raw = RawArray(data, info)
+    data = np.random.rand(100, len(chs), 50)
+    epochs = EpochsArray(data, info)
+
+    n_components = 0.9
+    ica = ICA(n_components=n_components, method='fastica')
+
+    for inst in [raw, epochs]:
+        for ch in chs_bad:
+            # Test case for only bad channels
+            picks_bad1 = pick_types(inst.info, meg=False,
+                                    **{str(ch): True})
+            # Test case for good and bad channels
+            picks_bad2 = pick_types(inst.info, meg=True,
+                                    **{str(ch): True})
+            assert_raises(ValueError, ica.fit, inst, picks=picks_bad1)
+            assert_raises(ValueError, ica.fit, inst, picks=picks_bad2)
+        assert_raises(ValueError, ica.fit, inst, picks=[])
+
+
+@requires_sklearn
+def test_eog_channel():
+    """Test that EOG channel is included when performing ICA"""
+    raw = Raw(raw_fname, preload=True)
+    events = read_events(event_name)
+    picks = pick_types(raw.info, meg=True, stim=True, ecg=False,
+                       eog=True, exclude='bads')
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+    n_components = 0.9
+    ica = ICA(n_components=n_components, method='fastica')
+    # Test case for MEG and EOG data. Should have EOG channel
+    for inst in [raw, epochs]:
+        picks1a = pick_types(inst.info, meg=True, stim=False, ecg=False,
+                             eog=False, exclude='bads')[:4]
+        picks1b = pick_types(inst.info, meg=False, stim=False, ecg=False,
+                             eog=True, exclude='bads')
+        picks1 = np.append(picks1a, picks1b)
+        ica.fit(inst, picks=picks1)
+        assert_true(any('EOG' in ch for ch in ica.ch_names))
+    # Test case for MEG data. Should have no EOG channel
+    for inst in [raw, epochs]:
+        picks1 = pick_types(inst.info, meg=True, stim=False, ecg=False,
+                            eog=False, exclude='bads')[:4]
+        ica.fit(inst, picks=picks1)
+        assert_false(any('EOG' in ch for ch in ica.ch_names))
 
 run_tests_if_main()

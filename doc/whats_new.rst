@@ -41,6 +41,8 @@ API
 
     - Now it is possible to plot only a subselection of channels in :func:`mne.viz.plot_raw` by using an array for order parameter by `Jaakko Leppakangas`_
 
+    - EOG channels can now be incuded when calling :funf:`mne.preprocessing.ICA.fit` and a proper error is raised when trying to include unsupported channels by `Alexander Rudiuk`_
+
 .. _changes_0_12:
 
 Version 0.12
