@@ -477,8 +477,8 @@ class ICA(ContainsMixin):
                     elif ch_type == 'eog':
                         this_picks = pick_types(info, meg=False, eog=True)
                     else:
-                        raise RuntimeError("""Should not be reached.
-                                           Unsupported channel {}"""
+                        raise RuntimeError('Should not be reached.'
+                                           'Unsupported channel {}'
                                            .format(ch_type))
                     pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener
