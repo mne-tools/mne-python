@@ -822,29 +822,33 @@ def test_filter():
     raw = RawArray(np.random.randn(3, 1000),
                    create_info(3, 1000., ['eeg'] * 2 + ['stim']))
     raw.info['lowpass'] = raw.info['highpass'] = None
-    for kind in ('lowpass', 'highpass'):
-        if kind == 'lowpass':
-            l_freq, h_freq = None, 50
-        else:
-            l_freq, h_freq = 50, None
+    for kind in ('none', 'lowpass', 'highpass', 'bandpass', 'bandstop'):
+        print(kind)
+        h_freq = l_freq = None
+        if kind in ('lowpass', 'bandpass'):
+            h_freq = 70
+        if kind in ('highpass', 'bandpass'):
+            l_freq = 30
+        if kind == 'bandstop':
+            l_freq, h_freq = 70, 30
         assert_true(raw.info['lowpass'] is None)
         assert_true(raw.info['highpass'] is None)
         kwargs = dict(l_trans_bandwidth=20, h_trans_bandwidth=20,
-                      filter_length=100)
+                      filter_length=200)
         raw_filt = raw.copy().filter(l_freq, h_freq, picks=np.arange(1),
                                      **kwargs)
         assert_true(raw.info['lowpass'] is None)
         assert_true(raw.info['highpass'] is None)
         raw_filt = raw.copy().filter(l_freq, h_freq, **kwargs)
-        has = 'lowpass' if kind == 'lowpass' else 'highpass'
-        non = 'highpass' if kind == 'lowpass' else 'lowpass'
-        assert_true(raw_filt.info[non] is None)
-        assert_equal(raw_filt.info[has], 50)
+        wanted_h = h_freq if kind != 'bandstop' else None
+        wanted_l = l_freq if kind != 'bandstop' else None
+        assert_equal(raw_filt.info['lowpass'], wanted_h)
+        assert_equal(raw_filt.info['highpass'], wanted_l)
         # Using all data channels should still set the params (GH#3259)
         raw_filt = raw.copy().filter(l_freq, h_freq, picks=np.arange(2),
                                      **kwargs)
-        assert_true(raw_filt.info[non] is None)
-        assert_equal(raw_filt.info[has], 50)
+        assert_equal(raw_filt.info['lowpass'], wanted_h)
+        assert_equal(raw_filt.info['highpass'], wanted_l)
 
 
 def test_filter_picks():

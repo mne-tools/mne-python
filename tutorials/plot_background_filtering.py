@@ -81,8 +81,13 @@ MNE-Python.
 """
 
 ###############################################################################
-# Designing an FIR filter
-# -----------------------
+# Designing FIR filters
+# ---------------------
+# Here we'll try designing a low-pass filter, and look at trade-offs in terms
+# of time- and frequency-domain filter characteristics. Later, in
+# :ref:`effect_on_signals`, we'll look at how such filters can affect
+# signals when they are used.
+#
 # First let's import some useful tools for filtering, and set some default
 # values for our data that are reasonable for M/EEG data.
 
@@ -128,7 +133,7 @@ def plot_ideal(freq, gain, ax):
             ys += [ylim[1]] * 2
     gain = 10 * np.log10(np.maximum(gain, 10 ** (ylim[0] / 10.)))
     ax.fill_between(xs, ylim[0], ys, color='r', alpha=0.1)
-    ax.semilogx(freq, gain, 'r--', alpha=0.25, linewidth=4, zorder=3)
+    ax.semilogx(freq, gain, 'r--', alpha=0.5, linewidth=4, zorder=3)
     xticks = [1, 2, 4, 10, 20, 40, 100, 200, 400]
     ax.set(xlim=xlim, ylim=ylim, xticks=xticks, xlabel='Frequency (Hz)',
            ylabel='Amplitude (dB)')
@@ -151,7 +156,8 @@ mne.viz.tight_layout()
 # time, to represent. So although this filter has ideal frequency suppression,
 # it has poor time-domain characteristics.
 #
-# Let's try to naïvely make a brick-wall filter of length 0.1 sec:
+# Let's try to naïvely make a brick-wall filter of length 0.1 sec, and look
+# at the filter itself in the time domain and the frequency domain:
 
 n = int(round(0.1 * sfreq)) + 1
 t = np.arange(-n // 2, n // 2) / sfreq  # center our sinc
@@ -177,7 +183,7 @@ plot_filter(h, 'Sinc (0.1 sec)', freq, gain)
 ###############################################################################
 # This is not so good! Making the filter 10 times longer (1 sec) gets us a
 # bit better stop-band suppression, but still has a lot of ringing in
-# the time domain:
+# the time domain. Note the x-axis is an order of magnitude longer here:
 
 n = int(round(1. * sfreq)) + 1
 t = np.arange(-n // 2, n // 2) / sfreq
@@ -185,7 +191,8 @@ h = np.sinc(2 * f_p * t) / (4 * np.pi)
 plot_filter(h, 'Sinc (1.0 sec)', freq, gain)
 
 ###############################################################################
-# Let's make the stop-band tighter still with a longer filter (10 sec):
+# Let's make the stop-band tighter still with a longer filter (10 sec),
+# with a resulting larger x-axis:
 
 n = int(round(10. * sfreq)) + 1
 t = np.arange(-n // 2, n // 2) / sfreq
@@ -256,10 +263,17 @@ h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, 'Windowed 50-Hz transition (0.2 sec)', freq, gain)
 
 ###############################################################################
-# Now lets look at some practical effects of these filters.
+# .. _effect_on_signals:
+#
+# Applying FIR filters
+# --------------------
+# Now lets look at some practical effects of these filters by applying
+# them to some data.
+#
 # Let's construct a Gaussian-windowed sinusoid (i.e., Morlet imaginary part)
 # plus noise (random + line). Note that the original, clean signal contains
-# frequency content in both the pass band and transition bands.
+# frequency content in both the pass band and transition bands of our
+# low-pass filter.
 
 dur = 10.
 center = 2.
@@ -345,6 +359,18 @@ axs[1].set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)',
 box_off(axs[0])
 box_off(axs[1])
 mne.viz.tight_layout()
+
+###############################################################################
+# Summary
+# -------
+# When filtering, there are always tradeoffs that should be considered.
+# One important tradeoff is between time-domain characteristics (like ringing)
+# and frequency-domain attenuation characteristics (like effective transition
+# bandwidth). Filters with sharp frequency cutoffs can produce outputs that
+# ring for a long time when they operate on signals with frequency content
+# in the transition band. In general, therefore, the wider a transition band
+# that can be tolerated, the better behaved the filter will be in the time
+# domain.
 
 ###############################################################################
 # References
