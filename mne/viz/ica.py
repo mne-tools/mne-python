@@ -111,10 +111,10 @@ def _create_properties_layout():
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=[7., 6.], facecolor=[0.95] * 3)
     ax = list()
-    ax.append(fig.add_axes([0.05, 0.5, 0.3, 0.45], label='topo'))
+    ax.append(fig.add_axes([0.1, 0.5, 0.25, 0.45], label='topo'))
     ax.append(fig.add_axes([0.5, 0.6, 0.45, 0.35], label='image'))
     ax.append(fig.add_axes([0.5, 0.5, 0.45, 0.1], label='erp'))
-    ax.append(fig.add_axes([0.05, 0.1, 0.35, 0.3], label='spectrum'))
+    ax.append(fig.add_axes([0.08, 0.1, 0.32, 0.3], label='spectrum'))
     ax.append(fig.add_axes([0.5, 0.1, 0.45, 0.25], label='variance'))
     return fig, ax
 
@@ -340,7 +340,8 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
 
         # spectrum
         ylabel = 'dB' if dB else 'power'
-        set_title_and_labels(axes[3], 'spectrum', 'frequency', ylabel)
+        set_title_and_labels(axes[3], 'spectrum', 'frequency', [])
+        axes[3].set_ylabel(ylabel, labelpad=1)
         axes[3].set_xlim(freqs[[0, -1]])
         ylim = axes[3].get_ylim()
         air = np.diff(ylim)[0] * 0.1
