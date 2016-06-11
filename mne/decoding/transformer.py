@@ -243,7 +243,7 @@ class EpochsVectorizer(TransformerMixin):
         """
         return self.fit(epochs, y).transform(epochs, y)
 
-    def inverse_transform(self, X, y):
+    def inverse_transform(self, X):
         """Return the original instance of epochs
 
         Parameters

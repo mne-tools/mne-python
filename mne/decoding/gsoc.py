@@ -136,9 +136,8 @@ class XdawnTransformer(_Xdawn):
         """
         if isinstance(X, np.ndarray):
             epochs_data = X
-            shape = X.shape
             epochs_data = X.reshape(X.shape[0], self.n_chan, X.shape[1] //
-                             self.n_chan)
+                                    self.n_chan)
 
         else:
             raise ValueError('Data input must be of type numpy array')
@@ -177,17 +176,6 @@ class XdawnTransformer(_Xdawn):
         ----------
         X : np.ndarray, shape(n_epochs, n_components * event_types * n_times)
             The signal data to undergo inverse transform.
-        event_id : dict | list of str | None (default None)
-            The kind of event to apply. if None, a dict of inst will be return
-            one for each type of event xdawn has been fitted.
-        include : array_like of int | None (default None)
-            The indices referring to columns in the ummixing matrix. The
-            components to be kept. If None, the first n_components (as defined
-            in the Xdawn constructor) will be kept.
-        exclude : array_like of int | None (default None)
-            The indices referring to columns in the ummixing matrix. The
-            components to be zeroed out. If None, all the components except the
-            first n_components will be exclude.
 
         Returns
         -------
