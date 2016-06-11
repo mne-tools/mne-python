@@ -35,7 +35,7 @@ coefficients :math:`a_k` can be used to obtain our output data
             - a_1 y(n-1) - a_2 y(n - 2) - ... - a_N y(n - N)\\
          &= \sum_0^M b_k x(n-k) - \sum_1^N a_k y(n-k)
 
-In other words, the output at time :math:`n` is determened by a sum over:
+In other words, the output at time :math:`n` is determined by a sum over:
 
     1. The numerator coefficients :math:`b_k`, which get multiplied by
        the previous input :math:`x(n-k)` values, and
@@ -145,6 +145,7 @@ ax = plt.subplots(1, figsize=half_height)[1]
 plot_ideal(freq, gain, ax)
 ax.set(title='Ideal %s Hz lowpass' % f_p)
 mne.viz.tight_layout()
+plt.show()
 
 ###############################################################################
 # This filter hypothetically achieves zero ripple in the frequency domain,
@@ -152,7 +153,7 @@ mne.viz.tight_layout()
 # in the frequency response, the filter would require infinite ringing in the
 # time domain (i.e., infinite order) to be realized. Another way to think of
 # this is that a rectangular window in frequency is actually sinc_ function
-# in time, which requires an infinite number of samples, and thus infite
+# in time, which requires an infinite number of samples, and thus infinite
 # time, to represent. So although this filter has ideal frequency suppression,
 # it has poor time-domain characteristics.
 #
@@ -164,7 +165,7 @@ t = np.arange(-n // 2, n // 2) / sfreq  # center our sinc
 h = np.sinc(2 * f_p * t) / (4 * np.pi)
 
 
-def plot_filter(h, title, freq, gain):
+def plot_filter(h, title, freq, gain, show=True):
     fig, axs = plt.subplots(2)
     t = np.arange(len(h)) / sfreq
     axs[0].plot(t, h, color=blue)
@@ -177,6 +178,8 @@ def plot_filter(h, title, freq, gain):
                     linewidth=2, zorder=4)
     plot_ideal(freq, gain, axs[1])
     mne.viz.tight_layout()
+    if show:
+        plt.show()
 
 plot_filter(h, 'Sinc (0.1 sec)', freq, gain)
 
@@ -225,6 +228,7 @@ ax = plt.subplots(1, figsize=half_height)[1]
 plot_ideal(freq, gain, ax)
 ax.set(title='%s Hz lowpass with a %s Hz transition' % (f_p, trans_bandwidth))
 mne.viz.tight_layout()
+plt.show()
 
 ###############################################################################
 # Accepting a shallower roll-off of the filter in the frequency domain makes
@@ -345,7 +349,7 @@ def plot_signal(x, offset):
     axs[1].set(xlim=xlim)
 
 yticks = np.arange(4) / -30.
-yticklabels = ['Original', 'Noisy', 'FIR-shallow$', 'FIR-steep$']
+yticklabels = ['Original', 'Noisy', 'FIR-shallow', 'FIR-steep']
 plot_signal(x_orig, offset=yticks[0])
 plot_signal(x, offset=yticks[1])
 plot_signal(x_shallow, offset=yticks[2])
@@ -359,6 +363,7 @@ axs[1].set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)',
 box_off(axs[0])
 box_off(axs[1])
 mne.viz.tight_layout()
+plt.show()
 
 ###############################################################################
 # Summary

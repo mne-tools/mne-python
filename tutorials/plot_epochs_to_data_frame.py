@@ -203,7 +203,7 @@ print(max_latency)
 df.condition = df.condition.apply(lambda name: name + ' ')
 
 plt.figure()
-max_latency.plot(kind='barh', title='Latency of Maximum Reponse',
+max_latency.plot(kind='barh', title='Latency of Maximum Response',
                  color=['steelblue'])
 mne.viz.tight_layout()
 
