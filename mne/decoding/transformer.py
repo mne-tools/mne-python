@@ -171,24 +171,30 @@ class EpochsVectorizer(TransformerMixin):
         self.n_times = None
 
     def fit(self, epochs, y=None):
-        """For each epoch, concatenate data from different channels into a single
-        feature vector.
+        """Fit has no function here. Present only for compability with
+        scikit-learn.
 
         Parameters
         ----------
-        epochs : Epochs object
-            The instance of Epochs from which data matrix will be taken.
+        epochs : Epochs object | np.ndarray shape (n_epochs, n_chans, n_times)
+            The instance of Epochs from which data matrix will be taken or
+            the data matrix of epochs.
         y : None | array of shape(n_epochs,)
             The label of each epoch. If None, labels from events are used.
+            y cannot be none if data matrix is passed.
 
         Returns
         -------
         self : instance of EpochsVectorizer
             returns the modified instance
         """
-        if not isinstance(epochs, _BaseEpochs):
-            raise ValueError("Epochs should be an instance of Epochs,  got %s"
-                             "instead" % type(epochs))
+        if isinstance(epochs, np.ndarray) and y is None:
+            raise ValueError("y (labels) should be provided in case of X is "
+                             "of type %s" % type(epochs))
+        if not (isinstance(epochs, _BaseEpochs) or
+                isinstance(epochs, np.ndarray)):
+            raise ValueError("epochs should be an Epochs or np.ndarray got %s"
+                             " instead" % type(epochs))
         return self
 
     def transform(self, epochs, y=None):
@@ -197,53 +203,64 @@ class EpochsVectorizer(TransformerMixin):
 
         Parameters
         ----------
-        epochs : instance of Epochs
-            The data.
-        y : None | array, shape (n_epochs,)
-            The label for each epoch.
-            If None not used. Defaults to None.
-
+        epochs : Epochs object | np.ndarray shape (n_epochs, n_chans, n_times)
+            The instance of Epochs from which data matrix will be taken or
+            the data matrix of epochs.
+        y : None | array of shape (n_epochs,)
+            The label of each epoch. If None, labels from events are used.
+            y cannot be none if data matrix is passed.
         Returns
         -------
         X : array, shape (n_epochs, n_channels * n_times)
-            The data concatenated over channels
-        y : array, shape(n_epochs,)
+            The data concatenated over channels.
+        y : array, shape (n_epochs,)
             The label for each epoch.
         """
-        if not isinstance(epochs, _BaseEpochs):
-            raise ValueError("epochs should be an instance of Epochs got %s"
+        if isinstance(epochs, np.ndarray) and y is None:
+            raise ValueError("y (labels) should be provided in case of X is "
+                             "of type %s" % type(epochs))
+        if not (isinstance(epochs, _BaseEpochs) or
+                isinstance(epochs, np.ndarray)):
+            raise ValueError("epochs should be an Epochs or np.ndarray got %s"
                              " instead" % type(epochs))
 
-        n_epochs, n_channels, n_times = epochs._data.shape
-        X = epochs._data.reshape(n_epochs, n_channels * n_times)
+        if isinstance(epochs, _BaseEpochs):
+            n_epochs, n_channels, n_times = epochs._data.shape
+            X = epochs._data.reshape(n_epochs, n_channels * n_times)
+        else:
+            n_epochs, n_channels, n_times = epochs.shape
+            X = epochs.reshape(n_epochs, n_channels * n_times)
         # save attributes for inverse_transform
-        self.n_epochs = len(X)
-        self.info = epochs.info
+        self.n_epochs_ = len(X)
+        self.n_channels_ = n_channels
 
-        if (y is None):
+        if y is None:
             y = epochs.events[:, 2]
         return X, y
 
     def fit_transform(self, epochs, y=None):
-        """First fit the data, then transform it
+        """Directly transform the data into 2D vector, without having to call
+        fit. As fit here has no role, fit_transform is same as transform.
 
         Parameters
         ----------
-        epochs : instance of Epochs
-            The data.
-        y : None, array of shape(n_epochs,)
-            Label of epochs. If None, events are used.
+        epochs : Epochs object | np.ndarray shape (n_epochs, n_chans, n_times)
+            The instance of Epochs from which data matrix will be taken or
+            the data matrix of epochs.
+        y : None | array of shape (n_epochs,)
+            The label of each epoch. If None, labels from events are used.
+            y cannot be none if data matrix is passed.
 
         Returns
         -------
         X : array, shape (n_epochs, n_channels * n_times)
-            The data concatenated over channels
+            The data concatenated over channels.
         y : array, shape(n_epochs,)
             The label for each epoch.
         """
-        return self.fit(epochs, y).transform(epochs, y)
+        return self.transform(epochs, y)
 
-    def inverse_transform(self, X):
+    def inverse_transform(self, X, y=None):
         """Return the original instance of epochs
 
         Parameters
@@ -265,8 +282,8 @@ class EpochsVectorizer(TransformerMixin):
         if X.shape[0] != self.n_epochs:
             raise ValueError("X doesn't match to value given in fit")
 
-        X_orig = X.reshape(self.n_epochs, self.info['nchan'], X.shape[1] /
-                           self.info['nchan'])
+        X_orig = X.reshape(self.n_epochs_, self.n_channels_, X.shape[1] /
+                           self.n_channels_)
 
         return X_orig
 

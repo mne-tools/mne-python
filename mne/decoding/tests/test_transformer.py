@@ -152,5 +152,8 @@ def test_epochs_vectorizer():
     # assert(epochs_i == epochs)
 
     # Test init exception
-    assert_raises(ValueError, vector.fit, epochs_data, y)
-    assert_raises(ValueError, vector.transform, epochs_data, y)
+    assert_raises(ValueError, vector.fit, 24, y)
+    assert_raises(ValueError, vector.transform, 0.1, y)
+
+    # Test when y is None if X is ndarray
+    assert_raises(ValueError, vector.fit, epochs_data)

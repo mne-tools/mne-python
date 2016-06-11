@@ -1,4 +1,8 @@
-"""Contains refactored transformers compatible with scikit-learn"""
+"""Contains refactored Xdawn class."""
+
+# Authors: Asish Panda <asishrocks95@gmail.com>
+#
+# License: BSD (3-clause)
 
 import numpy as np
 
