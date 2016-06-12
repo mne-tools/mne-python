@@ -78,16 +78,16 @@ ica.plot_components()  # can you see some potential bad guys?
 # components: IC 6, IC 14 and IC 28
 
 # first, component 28:
-ica.plot_properties(raw, picks=28, dB=True);
+ica.plot_properties(raw, picks=28, dB=True)
 
 ###############################################################################
 # it looks like a blink component, but because the data were filtered
 # the spectrum plot is not very informative, let's change that:
-ica.plot_properties(raw, picks=28, dB=True, psd_args={'fmax': 35.});
+ica.plot_properties(raw, picks=28, dB=True, psd_args={'fmax': 35.})
 
 ###############################################################################
 # now let's inspect properties of components 6 and 14
-ica.plot_properties(raw, picks=[6, 14], psd_args={'fmax': 35.});
+ica.plot_properties(raw, picks=[6, 14], psd_args={'fmax': 35.})
 
 
 ###############################################################################
@@ -116,7 +116,7 @@ ica.plot_sources(eog_average, exclude=eog_inds)  # look at source time course
 # We will also use a little bit of smoothing along the trials axis in the
 # epochs image:
 ica.plot_properties(eog_epochs, picks=eog_inds, dB=True,
-                    psd_args={'fmax': 35.}, image_args={'sigma': 1.});
+                    psd_args={'fmax': 35.}, image_args={'sigma': 1.})
 
 ###############################################################################
 # That component is showing a prototypical average vertical EOG time course.
