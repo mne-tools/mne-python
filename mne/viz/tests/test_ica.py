@@ -97,15 +97,13 @@ def test_plot_ica_properties():
     fig, ax = _create_properties_layout()
     assert_equal(len(ax), 5)
 
-    ica.plot_properties(raw, picks=0)
-    ica.plot_properties(epochs, picks=1)
-    ica.plot_properties(epochs, picks=1, dB=True)
-    ica.plot_properties(epochs, picks=1, dB=True, cmap='jet')
-    ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5})
-    ica.plot_properties(epochs, picks=1, topo_args={'res': 10})
-    ica.plot_properties(epochs, picks=1, plot_std=False)
-    ica.plot_properties(epochs, picks=1, plot_std=1.5)
-    ica.plot_properties(epochs, picks=1, psd_args={'fmax': 65.})
+    topoargs = dict(topo_args={'res': 10})
+    ica.plot_properties(raw, picks=0, **topoargs)
+    ica.plot_properties(epochs, picks=1, dB=False, cmap='jet',
+                        plot_std=1.5, **topoargs)
+    ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
+                        topo_args={'res': 10}, psd_args={'fmax': 65.},
+                        plot_std=False)
     plt.close('all')
 
     assert_raises(ValueError, ica.plot_properties, epochs, dB=list('abc'))
@@ -113,6 +111,8 @@ def test_plot_ica_properties():
     assert_raises(ValueError, ica.plot_properties, ica)
     assert_raises(ValueError, ica.plot_properties, [0.2])
     assert_raises(ValueError, plot_properties, epochs, ica=epochs)
+    assert_raises(ValueError, ica.plot_properties, epochs,
+                  psd_args='not dict')
 
     fig, ax = plt.subplots(2, 3)
     ax = ax.ravel()[:-1]
@@ -121,6 +121,7 @@ def test_plot_ica_properties():
     assert_equal(len(fig), 2)
     assert_raises(ValueError, plot_properties, epochs, ica=ica, picks=[0, 1],
                   axes=ax)
+    assert_raises(ValueError, ica.plot_properties, epochs, axes='not axes')
     plt.close('all')
 
 
