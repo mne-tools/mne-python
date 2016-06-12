@@ -77,13 +77,21 @@ def test_plot_ica_properties():
     """Test plotting of ICA properties
     """
     import matplotlib.pyplot as plt
-    raw = _get_raw()
-    picks = _get_picks(raw)
-    epochs = _get_epochs()
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              max_pca_components=3, n_pca_components=3)
+
+    raw = _get_raw(preload=True)
+    events = _get_events()
+    picks = _get_picks(raw)[:6]
+    pick_names = [raw.ch_names[k] for k in picks]
+    raw.pick_channels(pick_names)
+
     with warnings.catch_warnings(record=True):  # bad proj
-        ica.fit(raw, picks=picks)
+        epochs = Epochs(raw, events[:10], event_id, tmin, tmax,
+                        baseline=(None, 0), preload=True)
+
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=2, n_pca_components=2)
+    with warnings.catch_warnings(record=True):  # bad proj
+        ica.fit(raw)
 
     # test _create_properties_layout
     fig, ax = _create_properties_layout()
@@ -93,12 +101,11 @@ def test_plot_ica_properties():
     ica.plot_properties(epochs, picks=1)
     ica.plot_properties(epochs, picks=1, dB=True)
     ica.plot_properties(epochs, picks=1, dB=True, cmap='jet')
-    ica.plot_properties(epochs, picks=1, image_kws={'sigma': 1.5})
-    ica.plot_properties(epochs, picks=1, topo_kws={'res': 10})
+    ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5})
+    ica.plot_properties(epochs, picks=1, topo_args={'res': 10})
     ica.plot_properties(epochs, picks=1, plot_std=False)
     ica.plot_properties(epochs, picks=1, plot_std=1.5)
-    ica.plot_properties(epochs, picks=1, psd_kws={'fmax': 65.})
-    ica.plot_properties(epochs, picks=0, sigma=1.5)
+    ica.plot_properties(epochs, picks=1, psd_args={'fmax': 65.})
     plt.close('all')
 
     assert_raises(ValueError, ica.plot_properties, epochs, dB=list('abc'))

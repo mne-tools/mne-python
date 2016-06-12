@@ -1402,8 +1402,8 @@ class ICA(ContainsMixin):
                                    head_pos=head_pos)
 
     def plot_properties(self, inst, picks=None, axes=None, dB=False,
-                        cmap=None, plot_std=True, sigma=None, topo_kws=None,
-                        image_kws=None, psd_kws=None, show=True):
+                        cmap=None, plot_std=True, topo_args=None,
+                        image_args=None, psd_args=None, show=True):
         """Display component properties: topography, epochs image, ERP,
         power spectrum and epoch variance.
 
@@ -1411,17 +1411,17 @@ class ICA(ContainsMixin):
         ----------
         inst: instance of Epochs or Raw
             The data to use in plotting properties.
-        picks : int | array_like of int | None.
-            The components to be displayed. If None, plot will show the
-            sources in the order as fitted. If more than one components were
-            chosen in the picks - each one will be plotted in a separate
+        picks : int | array-like of int | None.
+            The components to be displayed. If None, plot will show the first
+            five sources in the order as fitted. If more than one components
+            were chosen in the picks - each one will be plotted in a separate
             figure. Defaults to None.
         axes: list of matplotlib axes | None
             List of five matplotlib axes to use in plotting: [topo_axis,
             image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
             figure with relevant axes is created. Defaults to None.
         dB: bool
-            Whether to plot spectrum in dB. Defaults to False.
+            Whether to plot spectrum in dB. Defaults to True.
         cmap: matplotlib colormap | None
             Colormap to use in both topoplot and epochs image. If None topoplot
             and epochs image use their default "RdBu_r" colormap.
@@ -1432,17 +1432,13 @@ class ICA(ContainsMixin):
             If set to float allows to control how many standard deviations are
             plotted. For example 2.5 will plot 2.5 standard deviation
             above/below.
-        sigma: float | None
-            The standard deviation of the Gaussian smoothing to apply along
-            the epoch axis in the image. If 0. or None - no smoothing
-            is applied. Defaults to None
-        topo_kws : dict | None
+        topo_args : dict | None
             Dictionary of arguments to plot_topomap. If None - doesn't pass any
             additional arguments. Defaults to None.
-        image_kws : dict | None
+        image_args : dict | None
             Dictionary of arguments to plot_epochs_image. If None - doesn't
             pass any additional arguments. Defaults to None.
-        psd_kws : dict | None
+        psd_args : dict | None
             Dictionary of arguments to psd_multitaper. If None - doesn't pass
             any additional arguments. Defaults to None.
         show : bool
@@ -1455,8 +1451,8 @@ class ICA(ContainsMixin):
         """
         return plot_properties(inst, ica=self, picks=picks, axes=axes,
                                dB=dB, cmap=cmap, plot_std=plot_std,
-                               sigma=sigma, topo_kws=topo_kws,
-                               image_kws=image_kws, psd_kws=psd_kws, show=True)
+                               topo_args=topo_args, image_args=image_args,
+                               psd_args=psd_args, show=True)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, title=None, show=True, block=False):

@@ -353,6 +353,9 @@ def test_make_fixed_length_events():
     # With bad limits (no resulting events)
     assert_raises(ValueError, make_fixed_length_events, raw, 1,
                   tmin, tmax - 1e-3, duration)
+    # bad id or duration
+    assert_raises(ValueError, make_fixed_length_events, raw, 2.3)
+    assert_raises(ValueError, make_fixed_length_events, raw, 23, 'abc')
 
 
 def test_define_events():

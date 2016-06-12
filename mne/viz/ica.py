@@ -111,7 +111,7 @@ def _create_properties_layout():
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=[7., 6.], facecolor=[0.95] * 3)
     ax = list()
-    ax.append(fig.add_axes([0.1, 0.5, 0.25, 0.45], label='topo'))
+    ax.append(fig.add_axes([0.08, 0.5, 0.3, 0.45], label='topo'))
     ax.append(fig.add_axes([0.5, 0.6, 0.45, 0.35], label='image'))
     ax.append(fig.add_axes([0.5, 0.5, 0.45, 0.1], label='erp'))
     ax.append(fig.add_axes([0.08, 0.1, 0.32, 0.3], label='spectrum'))
@@ -119,9 +119,9 @@ def _create_properties_layout():
     return fig, ax
 
 
-def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
-                    cmap=None, plot_std=True, sigma=None, topo_kws=None,
-                    image_kws=None, psd_kws=None, show=True):
+def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
+                    plot_std=True, topo_args=None, image_args=None,
+                    psd_args=None, show=True):
     """Display component properties: topography, epochs image, ERP/ERF,
     power spectrum and epoch variance.
 
@@ -141,7 +141,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
         figure with relevant axes is created. Defaults to None.
     dB: bool
-        Whether to plot spectrum in dB. Defaults to False.
+        Whether to plot spectrum in dB. Defaults to True.
     cmap: matplotlib colormap | None
         Colormap to use in both topoplot and epochs image. If None topoplot
         and epochs image use their default "RdBu_r" colormap. Defaults to None.
@@ -150,17 +150,13 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         Defaults to True, which plots one standard deviation above/below.
         If set to float allows to control how many standard deviations are
         plotted. For example 2.5 will plot 2.5 standard deviation above/below.
-    sigma: float | None
-        The standard deviation of the Gaussian smoothing to apply along
-        the epoch axis in the image. If 0. or None - no smoothing is applied.
-        Defaults to None
-    topo_kws : dict | None
+    topo_args : dict | None
         Dictionary of arguments to plot_topomap. If None - doesn't pass any
         additional arguments. Defaults to None.
-    image_kws : dict | None
+    image_args : dict | None
         Dictionary of arguments to plot_epochs_image. If None - doesn't pass
         any additional arguments. Defaults to None.
-    psd_kws : dict | None
+    psd_args : dict | None
         Dictionary of arguments to psd_multitaper. If None - doesn't pass
         any additional arguments. Defaults to None.
     show : bool
@@ -209,18 +205,16 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         from .utils import _validate_if_list_of_axes
         _validate_if_list_of_axes(axes, obligatory_len=5)
         fig = axes[0].get_figure()
-    psd_kws = dict() if psd_kws is None else psd_kws
-    topo_kws = dict() if topo_kws is None else topo_kws
-    image_kws = dict() if image_kws is None else image_kws
-    for d in (psd_kws, topo_kws, image_kws):
+    psd_args = dict() if psd_args is None else psd_args
+    topo_args = dict() if topo_args is None else topo_args
+    image_args = dict() if image_args is None else image_args
+    for d in (psd_args, topo_args, image_args):
         if not isinstance(d, dict):
-            raise ValueError('topo_kws, image_kws and psd_kws have to be'
+            raise ValueError('topo_args, image_args and psd_args have to be'
                              ' dictionaries, got %s instead.' % type(d))
     if cmap is not None:
-        topo_kws.update(cmap=cmap)
-        image_kws.update(cmap=cmap)
-    if sigma is not None:
-        image_kws.update(sigma=sigma)
+        topo_args.update(cmap=cmap)
+        image_args.update(cmap=cmap)
     if dB is not None and isinstance(dB, bool) is False:
         raise ValueError('dB should be bool, got %s instead' %
                          type(dB))
@@ -241,7 +235,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
     ica_data = np.swapaxes(ica_data, 0, 1)
 
     # spectrum
-    psds, freqs = psd_multitaper(epochs_src, picks=picks, **psd_kws)
+    psds, freqs = psd_multitaper(epochs_src, picks=picks, **psd_args)
 
     def set_title_and_labels(ax, title, xlab, ylab):
         if title:
@@ -251,8 +245,8 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
         if ylab:
             ax.set_ylabel(ylab)
         ax.axis('auto')
-        ax.axis('tight')
         ax.tick_params('both', labelsize=8)
+        ax.axis('tight')
 
     more_fig = len(picks) > 0
     all_fig = list()
@@ -289,11 +283,11 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
 
         # plotting
         # --------
-        _plot_ica_topomap(ica, pick, show=False, axis=axes[0], **topo_kws)
+        _plot_ica_topomap(ica, pick, show=False, axis=axes[0], **topo_args)
 
         # image and erp
         plot_epochs_image(epochs_src, picks=pick, axes=axes[1:3],
-                          colorbar=False, show=False, **image_kws)
+                          colorbar=False, show=False, **image_args)
 
         # spectrum
         axes[3].plot(freqs, psds_mean, color='k')
@@ -307,7 +301,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
 
         # aesthetics
         # ----------
-        axes[0].set_title('IC ' + str(pick))
+        axes[0].set_title('ICA' + '{:0>3}'.format(str(pick)))
 
         set_title_and_labels(axes[1], 'epochs image and ERP/ERF', [], 'Epochs')
 
@@ -340,8 +334,8 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=False,
 
         # spectrum
         ylabel = 'dB' if dB else 'power'
-        set_title_and_labels(axes[3], 'spectrum', 'frequency', [])
-        axes[3].set_ylabel(ylabel, labelpad=1)
+        set_title_and_labels(axes[3], 'spectrum', 'frequency', ylabel)
+        axes[3].yaxis.labelpad = 0
         axes[3].set_xlim(freqs[[0, -1]])
         ylim = axes[3].get_ylim()
         air = np.diff(ylim)[0] * 0.1
