@@ -1401,7 +1401,7 @@ class ICA(ContainsMixin):
                                    image_interp=image_interp,
                                    head_pos=head_pos)
 
-    def plot_properties(self, inst, picks=None, axes=None, dB=False,
+    def plot_properties(self, inst, picks=None, axes=None, dB=True,
                         cmap=None, plot_std=True, topo_args=None,
                         image_args=None, psd_args=None, show=True):
         """Display component properties: topography, epochs image, ERP,

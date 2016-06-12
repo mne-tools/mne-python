@@ -44,3 +44,4 @@ ecg_epochs = create_ecg_epochs(raw, tmin=-.5, tmax=.5)
 ecg_inds, scores = ica.find_bads_ecg(ecg_epochs)
 
 ica.plot_components(ecg_inds)
+ica.plot_properties(epochs, picks=ecg_inds)

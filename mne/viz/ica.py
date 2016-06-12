@@ -222,8 +222,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
     # calculations
     # ------------
     if isinstance(inst, _BaseRaw):
-        # calculate segment length that gives us about 250
-        # segments and then break up continuous signal into segments
+        # break up continuous signal into segments
         from ..epochs import _segment_raw
         plot_line_at_zero = False
         inst = _segment_raw(inst, segment_length=2., verbose=False)
