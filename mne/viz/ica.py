@@ -106,10 +106,12 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     return fig
 
 
-def _create_properties_layout():
+def _create_properties_layout(figsize=None):
     """creates main figure and axes layout used by plot_ica_properties"""
     import matplotlib.pyplot as plt
-    fig = plt.figure(figsize=[7., 6.], facecolor=[0.95] * 3)
+    if figsize is None:
+        figsize = [7., 6.]
+    fig = plt.figure(figsize=figsize, facecolor=[0.95] * 3)
     ax = list()
     ax.append(fig.add_axes([0.08, 0.5, 0.3, 0.45], label='topo'))
     ax.append(fig.add_axes([0.5, 0.6, 0.45, 0.35], label='image'))
@@ -121,7 +123,7 @@ def _create_properties_layout():
 
 def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
                     plot_std=True, topo_args=None, image_args=None,
-                    psd_args=None, show=True):
+                    psd_args=None, figsize=None, show=True):
     """Display component properties: topography, epochs image, ERP/ERF,
     power spectrum and epoch variance.
 
@@ -197,7 +199,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
     picks = list(range(min(5, ica.n_components_))) if picks is None else picks
     picks = [picks] if isinstance(picks, int) else picks
     if axes is None:
-        fig, axes = _create_properties_layout()
+        fig, axes = _create_properties_layout(figsize=figsize)
     else:
         if len(picks) > 1:
             raise ValueError('Only a single pick can be drawn '
@@ -252,7 +254,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
     # the rest is component-specific
     for idx, pick in enumerate(picks):
         if idx > 0:
-            fig, axes = _create_properties_layout()
+            fig, axes = _create_properties_layout(figsize=figsize)
 
         # spectrum
         this_psds = psds[:, idx, :]
@@ -300,7 +302,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
 
         # aesthetics
         # ----------
-        axes[0].set_title('ICA' + '{:0>3}'.format(str(pick)))
+        axes[0].set_title('IC #{:0>3}'.format(str(pick)))
 
         set_title_and_labels(axes[1], 'epochs image and ERP/ERF', [], 'Epochs')
 

@@ -1403,7 +1403,8 @@ class ICA(ContainsMixin):
 
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
                         cmap=None, plot_std=True, topo_args=None,
-                        image_args=None, psd_args=None, show=True):
+                        image_args=None, psd_args=None, figsize=None,
+                        show=True):
         """Display component properties: topography, epochs image, ERP,
         power spectrum and epoch variance.
 
@@ -1452,7 +1453,7 @@ class ICA(ContainsMixin):
         return plot_properties(inst, ica=self, picks=picks, axes=axes,
                                dB=dB, cmap=cmap, plot_std=plot_std,
                                topo_args=topo_args, image_args=image_args,
-                               psd_args=psd_args, show=True)
+                               psd_args=psd_args, figsize=figsize, show=show)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, title=None, show=True, block=False):
