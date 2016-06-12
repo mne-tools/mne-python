@@ -1442,6 +1442,9 @@ class ICA(ContainsMixin):
         psd_args : dict | None
             Dictionary of arguments to psd_multitaper. If None - doesn't pass
             any additional arguments. Defaults to None.
+        figsize : array-like of size (2,) | None
+            Allows to control size of the figure. If None the figure size
+            defauls to [7., 6.].
         show : bool
             Show figure if True.
 
