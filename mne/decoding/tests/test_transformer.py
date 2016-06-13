@@ -133,27 +133,26 @@ def test_epochs_vectorizer():
                         baseline=(None, 0), preload=True)
     vector = EpochsVectorizer(epochs.info)
     epochs_data = epochs.get_data()
-    X, y = vector.fit_transform(epochs)
+    X = vector.fit_transform(epochs)
+    y = epochs.events[:, -1]
 
     # Check data dimensions
     assert_true(X.shape[0] == epochs_data.shape[0])
     assert_true(X.shape[1] == epochs_data.shape[1] * epochs_data.shape[2])
 
-    assert_array_equal(vector.fit(epochs).transform(epochs)[0], X)
-    assert_array_equal(vector.fit(epochs).transform(epochs)[1],
-                       epochs.events[:, -1])
+    assert_array_equal(vector.fit(epochs).transform(epochs), X)
 
     # Check if data is preserved
     n_times = epochs_data.shape[2]
     assert_array_equal(epochs_data[0, 0, 0:n_times], X[0, 0:n_times])
 
     # Check inverse transform
-    # epochs_i = vector.inverse_transform(X, y)
-    # assert(epochs_i == epochs)
+    epochs_i = vector.inverse_transform(X)
+    assert_array_equal(epochs_i, epochs._data)
 
     # Test init exception
     assert_raises(ValueError, vector.fit, 24, y)
     assert_raises(ValueError, vector.transform, 0.1, y)
 
     # Test when y is None if X is ndarray
-    assert_raises(ValueError, vector.fit, epochs_data)
+    vector.fit(epochs_data)

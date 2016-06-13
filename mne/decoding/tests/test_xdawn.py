@@ -34,7 +34,8 @@ def test_xdawn_fit():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=True, baseline=None, verbose=False)
     e = EpochsVectorizer()
-    X, y = e.fit_transform(epochs)
+    X = e.fit_transform(epochs)
+    y = epochs.events[:, -1]
     print(y)
     # =========== Basic Fit test =================
     # test base xdawn
@@ -77,7 +78,8 @@ def test_xdawn_transform_and_inverse_transform():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=True, baseline=None, verbose=False)
     e = EpochsVectorizer()
-    X, y = e.fit_transform(epochs)
+    X = e.fit_transform(epochs)
+    y = epochs.events[:, -1]
     # Fit Xdawn
     xd = XdawnTransformer(n_chan=epochs.info['nchan'],
                           n_components=2)
