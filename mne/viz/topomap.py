@@ -1999,8 +1999,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
                                    frames=len(frames), interval=interval,
                                    blit=blit)
     fig.mne_animation = anim  # to make sure anim is not garbage collected
-    if show:
-        plt.show()
+    plt_show(show, block=False)
     if 'line' in params:
         # Finally remove the vertical line so it does not appear in saved fig.
         params['line'].remove()
