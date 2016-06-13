@@ -12,6 +12,7 @@ from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
                                     _dpss_wavelet, tfr_multitaper,
                                     AverageTFR, read_tfrs, write_tfrs,
                                     combine_tfr, cwt)
+from mne.viz.utils import _fake_click
 
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -353,7 +354,6 @@ def test_io():
 def test_plot():
     """Test TFR plotting."""
     import matplotlib.pyplot as plt
-    from matplotlib import backend_bases
 
     data = np.zeros((3, 2, 3))
     times = np.array([.1, .2, .3])
@@ -381,18 +381,18 @@ def test_plot():
     fig.canvas.key_press_event('down')
 
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
-    event = backend_bases.MouseEvent('button_press_event', fig.canvas, 0.1,
-                                     0.1, button=1)
-    event.inaxes = cbar.cbar.ax
-    cbar.on_press(event)
-    event.y = 0.2
-    cbar.on_motion(event)
-    cbar.on_release(event)
-    event.button = 3
-    cbar.on_press(event)
-    event.y = 0.3
-    cbar.on_motion(event)
-    cbar.on_release(event)
+    ax = cbar.cbar.ax
+    _fake_click(fig, ax, (0.1, 0.1))
+    _fake_click(fig, ax, (0.1, 0.2), kind='motion')
+    _fake_click(fig, ax, (0.1, 0.3), kind='release')
+
+    _fake_click(fig, ax, (0.1, 0.1), button=3)
+    _fake_click(fig, ax, (0.1, 0.2), button=3, kind='motion')
+    _fake_click(fig, ax, (0.1, 0.3), kind='release')
+
+    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+
     plt.close('all')
 
 

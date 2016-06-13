@@ -18,11 +18,11 @@ from ..io.pick import (channel_type, pick_types, _picks_by_type,
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
-                    plt_show, _process_times, DraggableColorbar)
+                    plt_show, _process_times, DraggableColorbar,
+                    _check_grad_pairs)
 from ..utils import logger, _clean_names, warn
 from ..fixes import partial
 from ..io.pick import pick_info
-from ..io.constants import FIFF
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation)
@@ -72,12 +72,9 @@ def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
     """Function for drawing topomaps from the selected area."""
     import matplotlib.pyplot as plt
     ch_types = [type for type in ch_types if type in ('eeg', 'grad', 'mag')]
-    if ('grad' in ch_types and FIFF.FIFFV_COIL_VV_PLANAR_T1 in np.unique(
-            [ch['coil_type'] for ch in evoked.info['chs']])):
-        chs = [ch for ch in evoked.info['ch_names'] if
-               ch.startswith('MEG') and ch.endswith(('2', '3'))]
+    if 'grad' in ch_types:
+        chs = _check_grad_pairs(evoked.info)
         if len(chs) < 2:
-            warn('No grad pairs found.')
             ch_types.remove('grad')
             if len(ch_types) == 0:
                 return

@@ -493,14 +493,17 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If None, the maximum absolute value is used. If vmin is None,
             but vmax is not, defaults to np.max(data).
             If callable, the output equals vmax(data).
-        cmap : matplotlib colormap | None
+        cmap : matplotlib colormap | 'interactive' | None
             Colormap to use. If 'interactive', the colors are adjustable by
             clicking and dragging the colorbar with left and right mouse
             button. Left mouse button moves the scale up and down and right
             mouse button adjusts the range. Up and down arrows can be used to
-            change the colormap. Interactive mode works smoothly only for a
-            small amount of topomaps. If None (default), 'Reds' is used for all
+            change the colormap. If None (default), 'Reds' is used for all
             positive data, otherwise defaults to 'RdBu_r'.
+
+            .. warning::  Interactive mode works smoothly only for a small
+                amount of topomaps.
+
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True, a circle

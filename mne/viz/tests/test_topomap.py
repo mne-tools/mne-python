@@ -23,7 +23,7 @@ from mne.utils import slow_test, run_tests_if_main
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
 from mne.viz.topomap import (_check_outlines, _onselect, plot_topomap)
-from mne.viz.utils import _find_peaks
+from mne.viz.utils import _find_peaks, _fake_click
 
 
 # Set our plotters to test mode
@@ -56,7 +56,6 @@ def test_plot_topomap():
     """
     import matplotlib.pyplot as plt
     from matplotlib.patches import Circle
-    from matplotlib import backend_bases
     # evoked
     warnings.simplefilter('always')
     res = 16
@@ -204,18 +203,18 @@ def test_plot_topomap():
     fig.canvas.key_press_event('up')
     fig.canvas.key_press_event('down')
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
-    event = backend_bases.MouseEvent('button_press_event', fig.canvas, 0.1,
-                                     0.1, button=1)
-    event.inaxes = cbar.cbar.ax
-    cbar.on_press(event)
-    event.y = 0.2
-    cbar.on_motion(event)
-    cbar.on_release(event)
-    event.button = 3
-    cbar.on_press(event)
-    event.y = 0.3
-    cbar.on_motion(event)
-    cbar.on_release(event)
+    ax = cbar.cbar.ax
+    _fake_click(fig, ax, (0.1, 0.1))
+    _fake_click(fig, ax, (0.1, 0.2), kind='motion')
+    _fake_click(fig, ax, (0.1, 0.3), kind='release')
+
+    _fake_click(fig, ax, (0.1, 0.1), button=3)
+    _fake_click(fig, ax, (0.1, 0.2), button=3, kind='motion')
+    _fake_click(fig, ax, (0.1, 0.3), kind='release')
+
+    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+
     plt.close('all')
 
     # Pass custom outlines with patch callable

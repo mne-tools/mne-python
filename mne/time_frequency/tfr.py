@@ -22,11 +22,11 @@ from ..utils import logger, verbose, _time_mask, warn, check_fname
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
-from ..io.constants import FIFF
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar, plt_show
 from ..externals.h5io import write_hdf5, read_hdf5
 from ..externals.six import string_types
+from ..viz.utils import _check_grad_pairs
 
 
 def _get_data(inst, return_itc):
@@ -678,8 +678,11 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             clicking and dragging the colorbar with left and right mouse
             button. Left mouse button moves the scale up and down and right
             mouse button adjusts the range. Up and down arrows can be used to
-            change the colormap. Interactive mode works smoothly only for a
-            small amount of images. Defaults to 'RdBu_r'.
+            change the colormap. Defaults to 'RdBu_r'.
+
+            .. warning:: Interactive mode works smoothly only for a small
+                amount of images.
+
         dB : bool
             If True, 20*log10 is applied to the data to get dB.
         colorbar : bool
@@ -774,16 +777,11 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         if 'mag' in self:
             types.append('mag')
         if 'grad' in self:
-            if (FIFF.FIFFV_COIL_VV_PLANAR_T1 in
-                    np.unique([ch['coil_type'] for ch in self.info['chs']])):
-                chs = [ch for ch in self.ch_names if ch.startswith('MEG') and
-                       ch.endswith(('2', '3'))]
-                if len(chs) < 2:
-                    warn('No grad pairs found.')
-                    if len(types) == 0:
-                        return  # Don't draw a figure for nothing.
-            else:
+            chs = _check_grad_pairs(self.info)
+            if len(chs) >= 2:
                 types.append('grad')
+            elif len(types) == 0:
+                return  # Don't draw a figure for nothing.
         fig = figure_nobar()
         fig.suptitle('{:.2f} s - {:.2f} s, {:.2f} Hz - {:.2f} Hz'.format(
             tmin, tmax, fmin, fmax), y=0.04)

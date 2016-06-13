@@ -1119,14 +1119,17 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         The value specifying the upper bound of the color range.
         If None, the maximum absolute value is used. If callable, the output
         equals vmax(data). Defaults to None.
-    cmap : matplotlib colormap | None
+    cmap : matplotlib colormap | 'interactive' | None
         Colormap to use. If 'interactive', the colors are adjustable by
         clicking and dragging the colorbar with left and right mouse button.
         Left mouse button moves the scale up and down and right mouse button
         adjusts the range. Up and down arrows can be used to change the
-        colormap. Interactive mode works smoothly only for a small amount of
-        topomaps. If None (default), 'Reds' is used for all positive data,
+        colormap. If None (default), 'Reds' is used for all positive data,
         otherwise defaults to 'RdBu_r'.
+
+        .. warning::  Interactive mode works smoothly only for a small amount
+            of topomaps.
+
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be
@@ -1323,6 +1326,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     vmin = np.min(vlims)
     vmax = np.max(vlims)
     if cmap == 'interactive':
+        if nax > 2:
+            warn('Interactive colorbar may be slow for multiple axes.')
         cmap = None
         interactive_cmap = True
     else:

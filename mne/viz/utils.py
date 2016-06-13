@@ -23,6 +23,7 @@ from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..io import show_fiff, Info
 from ..io.pick import channel_type, channel_indices_by_type, pick_channels
+from ..io.constants import FIFF
 from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..fixes import _get_argrelmax
@@ -868,6 +869,18 @@ def _setup_browser_offsets(params, n_channels):
     line.set_data(line._x, np.array(params['ax'].get_ylim()))
 
 
+def _check_grad_pairs(info):
+    """Helper for checking gradiometer pairs."""
+    if FIFF.FIFFV_COIL_VV_PLANAR_T1 in np.unique(
+            [ch['coil_type'] for ch in info['chs']]):
+        chs = [ch for ch in info['ch_names'] if
+               ch.startswith('MEG') and ch.endswith(('2', '3'))]
+        if len(chs) < 2:
+            warn('No grad pairs found. Cannot compute RMS.')
+        return chs
+    return list()
+
+
 class ClickableImage(object):
 
     """
@@ -958,7 +971,7 @@ class ClickableImage(object):
         return lt
 
 
-def _fake_click(fig, ax, point, xform='ax', button=1):
+def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
     """Helper to fake a click at a relative point within axes."""
     if xform == 'ax':
         x, y = ax.transAxes.transform_point(point)
@@ -966,10 +979,18 @@ def _fake_click(fig, ax, point, xform='ax', button=1):
         x, y = ax.transData.transform_point(point)
     else:
         raise ValueError('unknown transform')
+    if kind == 'press':
+        func = partial(fig.canvas.button_press_event, x=x, y=y, button=button,
+                       dblclick=False)
+    elif kind == 'release':
+        func = partial(fig.canvas.button_release_event, x=x, y=y,
+                       button=button)
+    elif kind == 'motion':
+        func = partial(fig.canvas.motion_notify_event, x=x, y=y)
     try:
-        fig.canvas.button_press_event(x, y, button, False, None)
+        func(guiEvent=None)
     except Exception:  # for old MPL
-        fig.canvas.button_press_event(x, y, button, False)
+        func()
 
 
 def add_background_image(fig, im, set_ratios=None):
@@ -1349,6 +1370,8 @@ class DraggableColorbar(object):
             'motion_notify_event', self.on_motion)
         self.keypress = self.cbar.patch.figure.canvas.mpl_connect(
             'key_press_event', self.key_press)
+        self.scroll = self.cbar.patch.figure.canvas.mpl_connect(
+            'scroll_event', self.on_scroll)
 
     def on_press(self, event):
         """Callback for button press."""
@@ -1400,3 +1423,8 @@ class DraggableColorbar(object):
         self.press = None
         self.mappable.set_norm(self.cbar.norm)
         self.cbar.patch.figure.canvas.draw()
+
+    def on_scroll(self, event):
+        """Callback for scroll."""
+        event.key = 'down' if event.step < 0 else 'up'
+        self.key_press(event)
