@@ -82,7 +82,7 @@ def test_brainvision_data():
             assert_equal(ch['kind'], FIFF.FIFFV_EOG_CH)
         elif ch['ch_name'] == 'STI 014':
             assert_equal(ch['kind'], FIFF.FIFFV_STIM_CH)
-        elif ch['ch_name'] == 'CP6':
+        elif ch['ch_name'] in ('CP5', 'CP6'):
             assert_equal(ch['kind'], FIFF.FIFFV_MISC_CH)
             assert_equal(ch['unit'], FIFF.FIFF_UNIT_NONE)
         elif ch['ch_name'] == 'ReRef':
