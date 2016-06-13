@@ -29,7 +29,8 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, write_name_list, _get_split_size)
 
-from ..filter import filter_, notch_filter, resample, _resample_stim_channels
+from ..filter import (filter_data, notch_filter, resample,
+                      _resample_stim_channels)
 from ..fixes import in1d
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
@@ -891,7 +892,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         mne.Epochs.savgol_filter
         mne.io.Raw.notch_filter
         mne.io.Raw.resample
-        mne.filter.filter_
+        mne.filter.filter_data
         """
         _check_preload(self, 'raw.filter')
         data_picks = _pick_data_or_ica(self.info)
@@ -911,9 +912,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 logger.info('Filtering a subset of channels. The highpass and '
                             'lowpass values in the measurement info will not '
                             'be updated.')
-        filter_(self._data, self.info['sfreq'], l_freq, h_freq, picks,
-                filter_length, l_trans_bandwidth, h_trans_bandwidth,
-                n_jobs, method, iir_params, copy=False)
+        filter_data(self._data, self.info['sfreq'], l_freq, h_freq, picks,
+                    filter_length, l_trans_bandwidth, h_trans_bandwidth,
+                    n_jobs, method, iir_params, copy=False)
         # update info if filter is applied to all data channels,
         # and it's not a band-stop filter
         if update_info:

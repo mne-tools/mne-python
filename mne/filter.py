@@ -573,9 +573,9 @@ def _check_method(method, iir_params, extra_types):
 
 
 @verbose
-def filter_(data, sfreq, l_freq, h_freq, picks=None, filter_length='10s',
-            l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-            method='fft', iir_params=None, copy=True, verbose=None):
+def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='10s',
+                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
+                method='fft', iir_params=None, copy=True, verbose=None):
     """Filter a subset of channels.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
