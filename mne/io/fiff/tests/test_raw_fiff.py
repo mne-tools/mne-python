@@ -46,12 +46,10 @@ bad_file_works = op.join(base_dir, 'test_bads.txt')
 bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
-rng = np.random.RandomState(0)
 
 
 def test_fix_types():
-    """Test fixing of channel types
-    """
+    """Test fixing of channel types"""
     for fname, change in ((hp_fif_fname, True), (test_fif_fname, False),
                           (ctf_fname, False)):
         raw = Raw(fname)
@@ -75,8 +73,7 @@ def test_fix_types():
 
 
 def test_concat():
-    """Test RawFIF concatenation
-    """
+    """Test RawFIF concatenation"""
     # we trim the file to save lots of memory and some time
     tempdir = _TempDir()
     raw = read_raw_fif(test_fif_fname)
@@ -89,8 +86,7 @@ def test_concat():
 
 @testing.requires_testing_data
 def test_hash_raw():
-    """Test hashing raw objects
-    """
+    """Test hashing raw objects"""
     raw = read_raw_fif(fif_fname)
     assert_raises(RuntimeError, raw.__hash__)
     raw = Raw(fif_fname).crop(0, 0.5, copy=False)
@@ -107,8 +103,7 @@ def test_hash_raw():
 
 @testing.requires_testing_data
 def test_maxshield():
-    """Test maxshield warning
-    """
+    """Test maxshield warning"""
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         Raw(ms_fname, allow_maxshield=True)
@@ -118,8 +113,7 @@ def test_maxshield():
 
 @testing.requires_testing_data
 def test_subject_info():
-    """Test reading subject information
-    """
+    """Test reading subject information"""
     tempdir = _TempDir()
     raw = Raw(fif_fname).crop(0, 1, copy=False)
     assert_true(raw.info['subject_info'] is None)
@@ -141,8 +135,7 @@ def test_subject_info():
 
 @testing.requires_testing_data
 def test_copy_append():
-    """Test raw copying and appending combinations
-    """
+    """Test raw copying and appending combinations"""
     raw = Raw(fif_fname, preload=True).copy()
     raw_full = Raw(fif_fname)
     raw_full.append(raw)
@@ -153,8 +146,7 @@ def test_copy_append():
 @slow_test
 @testing.requires_testing_data
 def test_rank_estimation():
-    """Test raw rank estimation
-    """
+    """Test raw rank estimation"""
     iter_tests = itt.product(
         [fif_fname, hp_fif_fname],  # sss
         ['norm', dict(mag=1e11, grad=1e9, eeg=1e5)]
@@ -196,8 +188,7 @@ def test_rank_estimation():
 
 @testing.requires_testing_data
 def test_output_formats():
-    """Test saving and loading raw data using multiple formats
-    """
+    """Test saving and loading raw data using multiple formats"""
     tempdir = _TempDir()
     formats = ['short', 'int', 'single', 'double']
     tols = [1e-4, 1e-7, 1e-7, 1e-15]
@@ -227,8 +218,7 @@ def _compare_combo(raw, new, times, n_times):
 @slow_test
 @testing.requires_testing_data
 def test_multiple_files():
-    """Test loading multiple files simultaneously
-    """
+    """Test loading multiple files simultaneously"""
     # split file
     tempdir = _TempDir()
     raw = Raw(fif_fname).crop(0, 10, copy=False)
@@ -354,8 +344,7 @@ def test_multiple_files():
 
 @testing.requires_testing_data
 def test_split_files():
-    """Test writing and reading of split raw files
-    """
+    """Test writing and reading of split raw files"""
     tempdir = _TempDir()
     raw_1 = Raw(fif_fname, preload=True)
     # Test a very close corner case
@@ -442,8 +431,7 @@ def test_split_files():
 
 
 def test_load_bad_channels():
-    """Test reading/writing of bad channels
-    """
+    """Test reading/writing of bad channels"""
     tempdir = _TempDir()
     # Load correctly marked file (manually done in mne_process_raw)
     raw_marked = Raw(fif_bad_marked_fname)
@@ -485,8 +473,8 @@ def test_load_bad_channels():
 @slow_test
 @testing.requires_testing_data
 def test_io_raw():
-    """Test IO for raw data (Neuromag + CTF + gz)
-    """
+    """Test IO for raw data (Neuromag + CTF + gz)"""
+    rng = np.random.RandomState(0)
     tempdir = _TempDir()
     # test unicode io
     for chars in [b'\xc3\xa4\xc3\xb6\xc3\xa9', b'a']:
@@ -600,8 +588,7 @@ def test_io_raw():
 
 @testing.requires_testing_data
 def test_io_complex():
-    """Test IO with complex data types
-    """
+    """Test IO with complex data types"""
     rng = np.random.RandomState(0)
     tempdir = _TempDir()
     dtypes = [np.complex64, np.complex128]
@@ -640,8 +627,7 @@ def test_io_complex():
 
 @testing.requires_testing_data
 def test_getitem():
-    """Test getitem/indexing of Raw
-    """
+    """Test getitem/indexing of Raw"""
     for preload in [False, True, 'memmap.dat']:
         raw = Raw(fif_fname, preload=preload)
         data, times = raw[0, :]
@@ -663,8 +649,7 @@ def test_getitem():
 
 @testing.requires_testing_data
 def test_proj():
-    """Test SSP proj operations
-    """
+    """Test SSP proj operations"""
     tempdir = _TempDir()
     for proj in [True, False]:
         raw = Raw(fif_fname, preload=False, proj=proj)
@@ -734,9 +719,9 @@ def test_proj():
 
 @testing.requires_testing_data
 def test_preload_modify():
-    """Test preloading and modifying data
-    """
+    """Test preloading and modifying data"""
     tempdir = _TempDir()
+    rng = np.random.RandomState(0)
     for preload in [False, True, 'memmap.dat']:
         raw = Raw(fif_fname, preload=preload)
 
@@ -765,8 +750,7 @@ def test_preload_modify():
 @slow_test
 @testing.requires_testing_data
 def test_filter():
-    """Test filtering (FIR and IIR) and Raw.apply_function interface
-    """
+    """Test filtering (FIR and IIR) and Raw.apply_function interface"""
     raw = Raw(fif_fname).crop(0, 7, copy=False)
     raw.load_data()
     sig_dec = 11
@@ -834,6 +818,38 @@ def test_filter():
     data, _ = raw[picks, :]
     assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)
 
+    # filter should set the "lowpass" and "highpass" parameters
+    raw = RawArray(np.random.randn(3, 1000),
+                   create_info(3, 1000., ['eeg'] * 2 + ['stim']))
+    raw.info['lowpass'] = raw.info['highpass'] = None
+    for kind in ('none', 'lowpass', 'highpass', 'bandpass', 'bandstop'):
+        print(kind)
+        h_freq = l_freq = None
+        if kind in ('lowpass', 'bandpass'):
+            h_freq = 70
+        if kind in ('highpass', 'bandpass'):
+            l_freq = 30
+        if kind == 'bandstop':
+            l_freq, h_freq = 70, 30
+        assert_true(raw.info['lowpass'] is None)
+        assert_true(raw.info['highpass'] is None)
+        kwargs = dict(l_trans_bandwidth=20, h_trans_bandwidth=20,
+                      filter_length=200)
+        raw_filt = raw.copy().filter(l_freq, h_freq, picks=np.arange(1),
+                                     **kwargs)
+        assert_true(raw.info['lowpass'] is None)
+        assert_true(raw.info['highpass'] is None)
+        raw_filt = raw.copy().filter(l_freq, h_freq, **kwargs)
+        wanted_h = h_freq if kind != 'bandstop' else None
+        wanted_l = l_freq if kind != 'bandstop' else None
+        assert_equal(raw_filt.info['lowpass'], wanted_h)
+        assert_equal(raw_filt.info['highpass'], wanted_l)
+        # Using all data channels should still set the params (GH#3259)
+        raw_filt = raw.copy().filter(l_freq, h_freq, picks=np.arange(2),
+                                     **kwargs)
+        assert_equal(raw_filt.info['lowpass'], wanted_h)
+        assert_equal(raw_filt.info['highpass'], wanted_l)
+
 
 def test_filter_picks():
     """Test filtering default channel picks"""
@@ -864,8 +880,7 @@ def test_filter_picks():
 
 @testing.requires_testing_data
 def test_crop():
-    """Test cropping raw files
-    """
+    """Test cropping raw files"""
     # split a concatenated file to test a difficult case
     raw = concatenate_raws([Raw(f) for f in [fif_fname, fif_fname]])
     split_size = 10.  # in seconds
@@ -915,8 +930,7 @@ def test_crop():
 
 @testing.requires_testing_data
 def test_resample():
-    """Test resample (with I/O and multiple files)
-    """
+    """Test resample (with I/O and multiple files)"""
     tempdir = _TempDir()
     raw = Raw(fif_fname).crop(0, 3, copy=False)
     raw.load_data()
@@ -1029,8 +1043,7 @@ def test_resample():
 
 @testing.requires_testing_data
 def test_hilbert():
-    """Test computation of analytic signal using hilbert
-    """
+    """Test computation of analytic signal using hilbert"""
     raw = Raw(fif_fname, preload=True)
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
@@ -1059,8 +1072,7 @@ def test_hilbert():
 
 @testing.requires_testing_data
 def test_raw_copy():
-    """Test Raw copy
-    """
+    """Test Raw copy"""
     raw = Raw(fif_fname, preload=True)
     data, _ = raw[:, :]
     copied = raw.copy()
@@ -1093,8 +1105,8 @@ def test_to_data_frame():
 
 
 def test_add_channels():
-    """Test raw splitting / re-appending channel types
-    """
+    """Test raw splitting / re-appending channel types"""
+    rng = np.random.RandomState(0)
     raw = Raw(test_fif_fname).crop(0, 1, copy=False).load_data()
     raw_nopre = Raw(test_fif_fname, preload=False)
     raw_eeg_meg = raw.copy().pick_types(meg=True, eeg=True)
@@ -1116,7 +1128,7 @@ def test_add_channels():
     # Testing force updates
     raw_arr_info = create_info(['1', '2'], raw_meg.info['sfreq'], 'eeg')
     orig_head_t = raw_arr_info['dev_head_t']
-    raw_arr = np.random.randn(2, raw_eeg.n_times)
+    raw_arr = rng.randn(2, raw_eeg.n_times)
     raw_arr = RawArray(raw_arr, raw_arr_info)
     # This should error because of conflicts in Info
     assert_raises(ValueError, raw_meg.copy().add_channels, [raw_arr])
@@ -1166,15 +1178,14 @@ def test_save():
 
 @testing.requires_testing_data
 def test_with_statement():
-    """ Test with statement """
+    """Test with statement"""
     for preload in [True, False]:
         with Raw(fif_fname, preload=preload) as raw_:
             print(raw_)
 
 
 def test_compensation_raw():
-    """Test Raw compensation
-    """
+    """Test Raw compensation"""
     tempdir = _TempDir()
     raw1 = Raw(ctf_comp_fname, compensation=None)
     assert_true(raw1.comp is None)
@@ -1213,8 +1224,7 @@ def test_compensation_raw():
 
 @requires_mne
 def test_compensation_raw_mne():
-    """Test Raw compensation by comparing with MNE
-    """
+    """Test Raw compensation by comparing with MNE"""
     tempdir = _TempDir()
 
     def compensate_mne(fname, grad):
@@ -1239,8 +1249,7 @@ def test_compensation_raw_mne():
 
 @testing.requires_testing_data
 def test_drop_channels_mixin():
-    """Test channels-dropping functionality
-    """
+    """Test channels-dropping functionality"""
     raw = Raw(fif_fname, preload=True)
     drop_ch = raw.ch_names[:3]
     ch_names = raw.ch_names[3:]
@@ -1259,8 +1268,7 @@ def test_drop_channels_mixin():
 
 @testing.requires_testing_data
 def test_pick_channels_mixin():
-    """Test channel-picking functionality
-    """
+    """Test channel-picking functionality"""
     # preload is True
 
     raw = Raw(fif_fname, preload=True)
@@ -1285,8 +1293,7 @@ def test_pick_channels_mixin():
 
 @testing.requires_testing_data
 def test_equalize_channels():
-    """Test equalization of channels
-    """
+    """Test equalization of channels"""
     raw1 = Raw(fif_fname, preload=True)
 
     raw2 = raw1.copy()

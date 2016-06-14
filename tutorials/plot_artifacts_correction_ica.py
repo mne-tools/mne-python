@@ -91,7 +91,8 @@ ica.plot_sources(eog_average, exclude=eog_inds)  # look at source time course
 # That component is also showing a prototypical average vertical EOG time
 # course.
 #
-# Pay attention to the labels, a customized read-out of the ica.labels_
+# Pay attention to the labels, a customized read-out of the
+# :attr:`ica.labels_ <mne.preprocessing.ICA.labels_>`
 print(ica.labels_)
 
 ###############################################################################

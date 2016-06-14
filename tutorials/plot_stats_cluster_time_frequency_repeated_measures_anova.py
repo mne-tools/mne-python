@@ -132,15 +132,15 @@ print(data.shape)
 # makes sure the first two dimensions are organized as expected (with A =
 # modality and B = location):
 #
-# .. table::
+# .. table:: Sample data layout
 #
-# ===== ==== ==== ==== ====
-# trial A1B1 A1B2 A2B1 B2B2
-# ===== ==== ==== ==== ====
-# 1     1.34 2.53 0.97 1.74
-# ...   .... .... .... ....
-# 56    2.45 7.90 3.09 4.76
-# ===== ==== ==== ==== ====
+#    ===== ==== ==== ==== ====
+#    trial A1B1 A1B2 A2B1 B2B2
+#    ===== ==== ==== ==== ====
+#    1     1.34 2.53 0.97 1.74
+#    ...   ...  ...  ...  ...
+#    56    2.45 7.90 3.09 4.76
+#    ===== ==== ==== ==== ====
 #
 # Now we're ready to run our repeated measures ANOVA.
 #
@@ -192,8 +192,8 @@ effects = 'A:B'
 def stat_fun(*args):
     return f_mway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
                      effects=effects, return_pvals=False)[0]
-    # The ANOVA returns a tuple f-values and p-values, we will pick the former.
 
+# The ANOVA returns a tuple f-values and p-values, we will pick the former.
 pthresh = 0.00001  # set threshold rather high to save some time
 f_thresh = f_threshold_mway_rm(n_replications, factor_levels, effects,
                                pthresh)
@@ -204,8 +204,8 @@ T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
     n_permutations=n_permutations, buffer_size=None)
 
 ###############################################################################
-# Create new stats image with only significant clusters
-# -----------------------------------------------------
+# Create new stats image with only significant clusters:
+
 good_clusers = np.where(cluster_p_values < .05)[0]
 T_obs_plot = np.ma.masked_array(T_obs,
                                 np.invert(clusters[np.squeeze(good_clusers)]))
@@ -222,8 +222,8 @@ plt.title('Time-locked response for \'modality by location\' (%s)\n'
 plt.show()
 
 ###############################################################################
-# Now using FDR
-# -------------
+# Now using FDR:
+
 mask, _ = fdr_correction(pvals[2])
 T_obs_plot2 = np.ma.masked_array(T_obs, np.invert(mask))
 
@@ -239,5 +239,6 @@ plt.title('Time-locked response for \'modality by location\' (%s)\n'
           ' FDR corrected (p <= 0.05)' % ch_name)
 plt.show()
 
-# Both, cluster level and FDR correction help getting rid of
+###############################################################################
+# Both cluster level and FDR correction help get rid of
 # putatively spots we saw in the naive f-images.

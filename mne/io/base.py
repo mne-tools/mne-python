@@ -29,8 +29,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, write_name_list, _get_split_size)
 
-from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
-                      notch_filter, band_stop_filter, resample,
+from ..filter import (filter_data, notch_filter, resample,
                       _resample_stim_channels)
 from ..fixes import in1d
 from ..parallel import parallel_func
@@ -857,21 +856,18 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Indices of channels to filter. If None only the data (MEG/EEG)
             channels will be filtered.
         filter_length : str (Default: '10s') | int | None
-            Length of the filter to use. If None or "len(x) < filter_length",
-            the filter length used is len(x). Otherwise, if int, overlap-add
-            filtering with a filter of the specified length in samples) is
-            used (faster for long signals). If str, a human-readable time in
-            units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+            Length of the filter to use. If None or ``len(x) < filter_length``,
+            the filter length used is ``len(x)``. If int, a filter of the
+            specified length in samples is used. If str, a human-readable time
+            in units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
             to the shortest power-of-two length at least that duration.
             Not used for 'iir' filters.
         l_trans_bandwidth : float
             Width of the transition band at the low cut-off frequency in Hz
-            (high pass or cutoff 1 in bandpass). Not used if 'order' is
-            specified in iir_params.
+            (high pass or cutoff 1 in bandpass). Not used for 'iir' filters.
         h_trans_bandwidth : float
             Width of the transition band at the high cut-off frequency in Hz
-            (low pass or cutoff 2 in bandpass). Not used if 'order' is
-            specified in iir_params.
+            (low pass or cutoff 2 in bandpass). Not used for 'iir' filters.
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
             is installed properly, CUDA is initialized, and method='fft'.
@@ -896,78 +892,40 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         mne.Epochs.savgol_filter
         mne.io.Raw.notch_filter
         mne.io.Raw.resample
+        mne.filter.filter_data
         """
-        fs = float(self.info['sfreq'])
-        if l_freq == 0:
-            l_freq = None
-        if h_freq is not None and h_freq > (fs / 2.):
-            h_freq = None
-        if l_freq is not None and not isinstance(l_freq, float):
-            l_freq = float(l_freq)
-        if h_freq is not None and not isinstance(h_freq, float):
-            h_freq = float(h_freq)
         _check_preload(self, 'raw.filter')
+        data_picks = _pick_data_or_ica(self.info)
+        update_info = False
         if picks is None:
-            picks = _pick_data_or_ica(self.info)
+            picks = data_picks
+            update_info = True
             # let's be safe.
-            if len(picks) < 1:
+            if len(picks) == 0:
                 raise RuntimeError('Could not find any valid channels for '
                                    'your Raw object. Please contact the '
                                    'MNE-Python developers.')
-
-            # update info if filter is applied to all data channels,
-            # and it's not a band-stop filter
-            if h_freq is not None:
-                if (l_freq is None or l_freq < h_freq) and \
-                   (self.info["lowpass"] is None or
-                   h_freq < self.info['lowpass']):
-                        self.info['lowpass'] = h_freq
-            if l_freq is not None:
-                if (h_freq is None or l_freq < h_freq) and \
-                   (self.info["highpass"] is None or
-                   l_freq > self.info['highpass']):
-                        self.info['highpass'] = l_freq
-        else:
-            if h_freq is not None or l_freq is not None:
+        elif h_freq is not None or l_freq is not None:
+            if in1d(data_picks, picks).all():
+                update_info = True
+            else:
                 logger.info('Filtering a subset of channels. The highpass and '
                             'lowpass values in the measurement info will not '
                             'be updated.')
-
-        if l_freq is None and h_freq is not None:
-            logger.info('Low-pass filtering at %0.2g Hz' % h_freq)
-            low_pass_filter(self._data, fs, h_freq,
-                            filter_length=filter_length,
-                            trans_bandwidth=h_trans_bandwidth, method=method,
-                            iir_params=iir_params, picks=picks, n_jobs=n_jobs,
-                            copy=False)
-        if l_freq is not None and h_freq is None:
-            logger.info('High-pass filtering at %0.2g Hz' % l_freq)
-            high_pass_filter(self._data, fs, l_freq,
-                             filter_length=filter_length,
-                             trans_bandwidth=l_trans_bandwidth, method=method,
-                             iir_params=iir_params, picks=picks, n_jobs=n_jobs,
-                             copy=False)
-        if l_freq is not None and h_freq is not None:
-            if l_freq < h_freq:
-                logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
-                            % (l_freq, h_freq))
-                self._data = band_pass_filter(
-                    self._data, fs, l_freq, h_freq,
-                    filter_length=filter_length,
-                    l_trans_bandwidth=l_trans_bandwidth,
-                    h_trans_bandwidth=h_trans_bandwidth,
-                    method=method, iir_params=iir_params, picks=picks,
-                    n_jobs=n_jobs, copy=False)
-            else:
-                logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
-                            % (h_freq, l_freq))
-                self._data = band_stop_filter(
-                    self._data, fs, h_freq, l_freq,
-                    filter_length=filter_length,
-                    l_trans_bandwidth=h_trans_bandwidth,
-                    h_trans_bandwidth=l_trans_bandwidth, method=method,
-                    iir_params=iir_params, picks=picks, n_jobs=n_jobs,
-                    copy=False)
+        filter_data(self._data, self.info['sfreq'], l_freq, h_freq, picks,
+                    filter_length, l_trans_bandwidth, h_trans_bandwidth,
+                    n_jobs, method, iir_params, copy=False)
+        # update info if filter is applied to all data channels,
+        # and it's not a band-stop filter
+        if update_info:
+            if h_freq is not None and (l_freq is None or l_freq < h_freq) and \
+                    (self.info["lowpass"] is None or
+                     h_freq < self.info['lowpass']):
+                self.info['lowpass'] = h_freq
+            if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
+                    (self.info["highpass"] is None or
+                     l_freq > self.info['highpass']):
+                self.info['highpass'] = l_freq
         return self
 
     @verbose

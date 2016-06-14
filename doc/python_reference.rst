@@ -819,7 +819,6 @@ Functions that operate on ``np.ndarray`` objects:
    cwt_morlet
    dpss_windows
    morlet
-   multitaper_psd
    single_trial_power
    stft
    istft

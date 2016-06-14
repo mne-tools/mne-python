@@ -27,7 +27,8 @@ subject = 'sample'
 # ------------------------------
 #
 # To compute a forward operator we need:
-#    - a -trans.fif file that contains the coregistration info.
+#
+#    - a ``-trans.fif`` file that contains the coregistration info.
 #    - a source space
 #    - the BEM surfaces
 
@@ -171,6 +172,7 @@ print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
 # By looking at :ref:`sphx_glr_auto_examples_forward_plot_read_forward.py`
 # plot the sensitivity maps for EEG and compare it with the MEG, can you
 # justify the claims that:
+#
 #   - MEG is not sensitive to radial sources
 #   - EEG is more sensitive to deep sources
 #
