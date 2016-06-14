@@ -1402,7 +1402,7 @@ class ICA(ContainsMixin):
                                    head_pos=head_pos)
 
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
-                        cmap=None, plot_std=True, topo_args=None,
+                        cmap=None, plot_std=True, topomap_args=None,
                         image_args=None, psd_args=None, figsize=None,
                         show=True):
         """Display component properties: topography, epochs image, ERP,
@@ -1412,11 +1412,10 @@ class ICA(ContainsMixin):
         ----------
         inst: instance of Epochs or Raw
             The data to use in plotting properties.
-        picks : int | array-like of int | None.
+        picks : int | array-like of int | None
             The components to be displayed. If None, plot will show the first
-            five sources in the order as fitted. If more than one components
-            were chosen in the picks - each one will be plotted in a separate
-            figure. Defaults to None.
+            five sources. If more than one components were chosen in the picks,
+            each one will be plotted in a separate figure. Defaults to None.
         axes: list of matplotlib axes | None
             List of five matplotlib axes to use in plotting: [topo_axis,
             image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
@@ -1433,15 +1432,15 @@ class ICA(ContainsMixin):
             If set to float allows to control how many standard deviations are
             plotted. For example 2.5 will plot 2.5 standard deviation
             above/below.
-        topo_args : dict | None
-            Dictionary of arguments to plot_topomap. If None - doesn't pass any
-            additional arguments. Defaults to None.
+        topomap_args : dict | None
+            Dictionary of arguments to ``plot_topomap``. If None, doesn't pass
+            any additional arguments. Defaults to None.
         image_args : dict | None
-            Dictionary of arguments to plot_epochs_image. If None - doesn't
+            Dictionary of arguments to ``plot_epochs_image``. If None, doesn't
             pass any additional arguments. Defaults to None.
         psd_args : dict | None
-            Dictionary of arguments to psd_multitaper. If None - doesn't pass
-            any additional arguments. Defaults to None.
+            Dictionary of arguments to ``psd_multitaper``. If None, doesn't
+            pass any additional arguments. Defaults to None.
         figsize : array-like of size (2,) | None
             Allows to control size of the figure. If None the figure size
             defauls to [7., 6.].
@@ -1455,8 +1454,9 @@ class ICA(ContainsMixin):
         """
         return plot_properties(inst, ica=self, picks=picks, axes=axes,
                                dB=dB, cmap=cmap, plot_std=plot_std,
-                               topo_args=topo_args, image_args=image_args,
-                               psd_args=psd_args, figsize=figsize, show=show)
+                               topomap_args=topomap_args,
+                               image_args=image_args, psd_args=psd_args,
+                               figsize=figsize, show=show)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, title=None, show=True, block=False):

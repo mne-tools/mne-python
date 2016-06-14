@@ -3127,10 +3127,12 @@ def _segment_raw(raw, segment_length=1., verbose=None, **kwargs):
         Length of each segment in seconds. Defaults to 1.
     verbose: bool | True
         Whether to report what is being done by printing text.
+    **kwargs
+        Any additional keyword arguments are passed to ``Epochs`` constructor.
 
     Returns
     -------
-    epochs : instance of Epochs
+    epochs : instance of ``Epochs``
         Segmented data.
     """
     events = make_fixed_length_events(raw, 1, duration=segment_length)

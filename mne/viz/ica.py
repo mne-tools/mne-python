@@ -113,7 +113,7 @@ def _create_properties_layout(figsize=None):
         figsize = [7., 6.]
     fig = plt.figure(figsize=figsize, facecolor=[0.95] * 3)
     ax = list()
-    ax.append(fig.add_axes([0.08, 0.5, 0.3, 0.45], label='topo'))
+    ax.append(fig.add_axes([0.08, 0.5, 0.3, 0.45], label='topomap'))
     ax.append(fig.add_axes([0.5, 0.6, 0.45, 0.35], label='image'))
     ax.append(fig.add_axes([0.5, 0.5, 0.45, 0.1], label='erp'))
     ax.append(fig.add_axes([0.08, 0.1, 0.32, 0.3], label='spectrum'))
@@ -122,7 +122,7 @@ def _create_properties_layout(figsize=None):
 
 
 def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
-                    plot_std=True, topo_args=None, image_args=None,
+                    plot_std=True, topomap_args=None, image_args=None,
                     psd_args=None, figsize=None, show=True):
     """Display component properties: topography, epochs image, ERP/ERF,
     power spectrum and epoch variance.
@@ -133,13 +133,12 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
         The data to use in plotting properties.
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
-    picks : int | array-like of int | None.
+    picks : int | array-like of int | None
         The components to be displayed. If None, plot will show the first
-        five sources in the order as fitted. If more than one components were
-        chosen in the picks - each one will be plotted in a separate figure.
-        Defaults to None.
+        five sources. If more than one components were chosen in the picks,
+        each one will be plotted in a separate figure. Defaults to None.
     axes: list of matplotlib axes | None
-        List of five matplotlib axes to use in plotting: [topo_axis,
+        List of five matplotlib axes to use in plotting: [topomap_axis,
         image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
         figure with relevant axes is created. Defaults to None.
     dB: bool
@@ -152,17 +151,17 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
         Defaults to True, which plots one standard deviation above/below.
         If set to float allows to control how many standard deviations are
         plotted. For example 2.5 will plot 2.5 standard deviation above/below.
-    topo_args : dict | None
-        Dictionary of arguments to plot_topomap. If None - doesn't pass any
+    topomap_args : dict | None
+        Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
         additional arguments. Defaults to None.
     image_args : dict | None
-        Dictionary of arguments to plot_epochs_image. If None - doesn't pass
+        Dictionary of arguments to ``plot_epochs_image``. If None, doesn't pass
         any additional arguments. Defaults to None.
     psd_args : dict | None
-        Dictionary of arguments to psd_multitaper. If None - doesn't pass
+        Dictionary of arguments to ``psd_multitaper``. If None, doesn't pass
         any additional arguments. Defaults to None.
     figsize : array-like of size (2,) | None
-        Allows to control size of the figure. If None the figure size
+        Allows to control size of the figure. If None, the figure size
         defauls to [7., 6.].
     show : bool
         Show figure if True.
@@ -211,14 +210,14 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
         _validate_if_list_of_axes(axes, obligatory_len=5)
         fig = axes[0].get_figure()
     psd_args = dict() if psd_args is None else psd_args
-    topo_args = dict() if topo_args is None else topo_args
+    topomap_args = dict() if topomap_args is None else topomap_args
     image_args = dict() if image_args is None else image_args
-    for d in (psd_args, topo_args, image_args):
+    for d in (psd_args, topomap_args, image_args):
         if not isinstance(d, dict):
-            raise ValueError('topo_args, image_args and psd_args have to be'
+            raise ValueError('topomap_args, image_args and psd_args have to be'
                              ' dictionaries, got %s instead.' % type(d))
     if cmap is not None:
-        topo_args.update(cmap=cmap)
+        topomap_args.update(cmap=cmap)
         image_args.update(cmap=cmap)
     if dB is not None and isinstance(dB, bool) is False:
         raise ValueError('dB should be bool, got %s instead' %
@@ -226,17 +225,16 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
 
     # calculations
     # ------------
+    plot_line_at_zero = False
     if isinstance(inst, _BaseRaw):
         # break up continuous signal into segments
         from ..epochs import _segment_raw
-        plot_line_at_zero = False
         inst = _segment_raw(inst, segment_length=2., verbose=False)
-    else:
+    if inst.times[0] < 0. and inst.times[-1] > 0.:
         plot_line_at_zero = True
 
     epochs_src = ica.get_sources(inst)
-    ica_data = epochs_src.get_data()[:, picks, :]
-    ica_data = np.swapaxes(ica_data, 0, 1)
+    ica_data = np.swapaxes(epochs_src.get_data()[:, picks, :], 0, 1)
 
     # spectrum
     psds, freqs = psd_multitaper(epochs_src, picks=picks, **psd_args)
@@ -260,11 +258,11 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
             fig, axes = _create_properties_layout(figsize=figsize)
 
         # spectrum
-        this_psds = psds[:, idx, :]
+        this_psd = psds[:, idx, :]
         if dB:
-            this_psds = 10 * np.log10(this_psds)
-        psds_mean = this_psds.mean(axis=0)
-        diffs = this_psds - psds_mean
+            this_psd = 10 * np.log10(this_psd)
+        psds_mean = this_psd.mean(axis=0)
+        diffs = this_psd - psds_mean
         # the distribution of power for each frequency bin is highly
         # skewed so we calculate std for values below and above average
         # separately - this is used for fill_between shade
@@ -287,7 +285,8 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
 
         # plotting
         # --------
-        _plot_ica_topomap(ica, pick, show=False, axis=axes[0], **topo_args)
+        # component topomap
+        _plot_ica_topomap(ica, pick, show=False, axis=axes[0], **topomap_args)
 
         # image and erp
         plot_epochs_image(epochs_src, picks=pick, axes=axes[1:3],
@@ -327,8 +326,10 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
             axes[2].set_yticks(yt)
 
         if not plot_line_at_zero:
-            axes[1].lines[0].remove()
-            axes[2].lines[1].remove()
+            xlims = [1e3 * inst.times[0], 1e3 * inst.times[-1]]
+            for k, ax in enumerate(axes[1:3]):
+                ax.lines[k].remove()
+                ax.set_xlim(xlims)
 
         # remove xticks - erp plot shows xticks for both image and erp plot
         axes[1].set_xticks([])

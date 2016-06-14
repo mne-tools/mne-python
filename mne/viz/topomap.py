@@ -738,7 +738,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
         data = _merge_grad_data(data)
     axis.set_title('IC #%03d' % idx, fontsize=12)
     vmin_, vmax_ = _setup_vmin_vmax(data, vmin, vmax)
-    im = plot_topomap(data.ravel(), pos, vmin=vmin_, vmax=vmax_,
+    im, _ = plot_topomap(data.ravel(), pos, vmin=vmin_, vmax=vmax_,
                       res=res, axes=axis, cmap=cmap, outlines=outlines,
                       image_mask=image_mask, contours=contours,
                       image_interp=image_interp, show=False)[0]

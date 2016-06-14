@@ -77,7 +77,7 @@ ica.plot_components()  # can you see some potential bad guys?
 # Let's take a closer look at three potential candidates for artifact-related
 # components: IC 12, IC 15 and IC 21
 
-# first, component 28:
+# first, component 12:
 ica.plot_properties(raw, picks=12, dB=True)
 
 ###############################################################################
@@ -86,7 +86,7 @@ ica.plot_properties(raw, picks=12, dB=True)
 ica.plot_properties(raw, picks=12, dB=True, psd_args={'fmax': 35.})
 
 ###############################################################################
-# now let's inspect properties of components 6 and 14
+# now let's inspect properties of components 15 and 21 (cardiac activity):
 ica.plot_properties(raw, picks=[15, 21], psd_args={'fmax': 35.})
 
 
