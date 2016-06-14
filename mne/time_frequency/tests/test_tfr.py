@@ -376,8 +376,9 @@ def test_plot():
     tfr.plot_topo(picks=[1, 2])
     plt.close('all')
 
-    fig = tfr.plot(picks=[1], cmap='interactive')  # test interactive cmap
+    fig = tfr.plot(picks=[1], cmap='RdBu_r')  # interactive mode on by default
     fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event(' ')
     fig.canvas.key_press_event('down')
 
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.

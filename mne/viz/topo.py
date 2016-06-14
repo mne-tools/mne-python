@@ -252,17 +252,17 @@ def _check_vlim(vlim):
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, vline=None, x_label=None, y_label=None,
-                colorbar=False, picker=True, cmap='RdBu_r', title=None,
+                colorbar=False, picker=True, cmap=('RdBu_r', True), title=None,
                 hline=None):
     """ Aux function to show time-freq map on topo """
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
 
     extent = (tmin, tmax, freq[0], freq[-1])
-    interactive_cmap = False
-    if cmap == 'interactive':
-        cmap = 'RdBu_r'
-        interactive_cmap = True
+    cmap, interactive_cmap = cmap
+    #if cmap[1]:
+    #    cmap = 'RdBu_r'
+    #    interactive_cmap = True
 
     img = ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
                     vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)

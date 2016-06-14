@@ -188,7 +188,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                            ' for interactive SSP selection.')
     if isinstance(gfp, string_types) and gfp != 'only':
         raise ValueError('gfp must be boolean or "only". Got %s' % gfp)
-
+    if not isinstance(cmap, tuple):
+        cmap = (cmap, True)
     scalings = _handle_default('scalings', scalings)
     titles = _handle_default('titles', titles)
     units = _handle_default('units', units)
@@ -370,18 +371,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                                      horizontalalignment='left',
                                      fontweight='bold', alpha=0))
             elif plot_type == 'image':
-                interactive_cbar = False
-                if cmap == 'interactive':
-                    interactive_cbar = True
-                    cmap = 'RdBu_r'
                 im = ax.imshow(D, interpolation='nearest', origin='lower',
                                extent=[times[0], times[-1], 0, D.shape[0]],
-                               aspect='auto', cmap=cmap)
+                               aspect='auto', cmap=cmap[0])
                 cbar = plt.colorbar(im, ax=ax)
                 cbar.ax.set_title(ch_unit)
-                if interactive_cbar:
+                if cmap[1]:
                     ax.CB = DraggableColorbar(cbar, im)
-                    cmap = 'interactive'  # For other channel types
                 ax.set_ylabel('channels (%s)' % 'index')
             else:
                 raise ValueError("plot_type has to be 'butterfly' or 'image'."
@@ -694,11 +690,14 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
-    cmap : matplotlib colormap | 'interactive'
-        Colormap. If 'interactive', the colors are adjustable by clicking and
-        dragging the colorbar with left and right mouse button. Left mouse
-        button moves the scale up and down and right mouse button adjusts the
-        range. Up and down arrows can be used to change the colormap.
+    cmap : matplotlib colormap | (colormap, bool)
+        Colormap. If tuple, the first value indicates the colormap to use and
+        the second value is a boolean defining interactivity. In interactive
+        mode the colors are adjustable by clicking and dragging the colorbar
+        with left and right mouse button. Left mouse button moves the scale up
+        and down and right mouse button adjusts the range. Hitting space bar
+        resets the scale. Up and down arrows can be used to change the
+        colormap. Defaults to 'RdBu_r'.
 
     Returns
     -------

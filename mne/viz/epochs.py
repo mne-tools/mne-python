@@ -180,20 +180,16 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             if colorbar:
                 ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
 
-        if scale_vmin:
-            this_vmin = vmin * scalings[ch_type]
-        if scale_vmax:
-            this_vmax = vmax * scalings[ch_type]
+        this_vmin = vmin * scalings[ch_type] if scale_vmin else vmin
+        this_vmax = vmax * scalings[ch_type] if scale_vmax else vmax
 
-        interactive_cmap = False
-        if cmap == 'interactive':
-            interactive_cmap = True
-            cmap = 'RdBu_r'
+        if not isinstance(cmap, tuple):
+            cmap = (cmap, True)
         im = ax1.imshow(this_data,
                         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
                                 0, len(data)],
                         aspect='auto', origin='lower', interpolation='nearest',
-                        vmin=this_vmin, vmax=this_vmax, cmap=cmap)
+                        vmin=this_vmin, vmax=this_vmax, cmap=cmap[0])
         if this_overlay_times is not None:
             plt.plot(1e3 * this_overlay_times, 0.5 + np.arange(len(this_data)),
                      'k', linewidth=2)
@@ -216,9 +212,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         ax2.axvline(0, color='m', linewidth=3, linestyle='--')
         if colorbar:
             cbar = plt.colorbar(im, cax=ax3)
-            if interactive_cmap:
+            if cmap[1]:
                 ax1.CB = DraggableColorbar(cbar, im)
-                cmap = 'interactive'  # For other channels
             tight_layout(fig=this_fig)
     plt_show(show)
 

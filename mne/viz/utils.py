@@ -1358,6 +1358,7 @@ class DraggableColorbar(object):
         self.cycle = sorted([i for i in dir(plt.cm) if
                              hasattr(getattr(plt.cm, i), 'N')])
         self.index = self.cycle.index(cbar.get_cmap().name)
+        self.lims = (self.cbar.norm.vmin, self.cbar.norm.vmax)
         self.connect()
 
     def connect(self):
@@ -1385,6 +1386,9 @@ class DraggableColorbar(object):
             self.index += 1
         elif event.key == 'up':
             self.index -= 1
+        elif event.key == ' ':  # space key resets scale
+            self.cbar.norm.vmin = self.lims[0]
+            self.cbar.norm.vmax = self.lims[1]
         else:
             return
         if self.index < 0:

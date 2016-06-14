@@ -364,12 +364,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The axes to plot to. If list, the list must be a list of Axes of
             the same length as the number of channel types. If instance of
             Axes, there must be only one channel type plotted.
-        cmap : matplotlib colormap | 'interactive'
-            Colormap. If 'interactive', the colors are adjustable by clicking
-            and dragging the colorbar with left and right mouse button. Left
-            mouse button moves the scale up and down and right mouse button
-            adjusts the range. Up and down arrows can be used to change the
-            colormap.
+        cmap : matplotlib colormap | (colormap, bool)
+            Colormap. If tuple, the first value indicates the colormap to use
+            and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging
+            the colorbar with left and right mouse button. Left mouse button
+            moves the scale up and down and right mouse button adjusts the
+            range. Hitting space bar resets the scale. Up and down arrows can
+            be used to change the colormap. Defaults to 'RdBu_r'.
 
         Returns
         -------
@@ -493,13 +495,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If None, the maximum absolute value is used. If vmin is None,
             but vmax is not, defaults to np.max(data).
             If callable, the output equals vmax(data).
-        cmap : matplotlib colormap | 'interactive' | None
-            Colormap to use. If 'interactive', the colors are adjustable by
-            clicking and dragging the colorbar with left and right mouse
-            button. Left mouse button moves the scale up and down and right
-            mouse button adjusts the range. Up and down arrows can be used to
-            change the colormap. If None (default), 'Reds' is used for all
-            positive data, otherwise defaults to 'RdBu_r'.
+        cmap : matplotlib colormap | (colormap, bool) | None
+            Colormap to use. If tuple, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging
+            the colorbar with left and right mouse button. Left mouse button
+            moves the scale up and down and right mouse button adjusts the
+            range. Hitting space bar resets the range. Up and down arrows can
+            be used to change the colormap. If None (default), 'Reds' is used
+            for all positive data, otherwise defaults to 'RdBu_r'.
 
             .. warning::  Interactive mode works smoothly only for a small
                 amount of topomaps.

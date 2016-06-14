@@ -1119,12 +1119,14 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         The value specifying the upper bound of the color range.
         If None, the maximum absolute value is used. If callable, the output
         equals vmax(data). Defaults to None.
-    cmap : matplotlib colormap | 'interactive' | None
-        Colormap to use. If 'interactive', the colors are adjustable by
-        clicking and dragging the colorbar with left and right mouse button.
-        Left mouse button moves the scale up and down and right mouse button
-        adjusts the range. Up and down arrows can be used to change the
-        colormap. If None (default), 'Reds' is used for all positive data,
+    cmap : matplotlib colormap | (colormap, bool) | None
+        Colormap to use. If tuple, the first value indicates the colormap to
+        use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If None (default), 'Reds' is used for all positive data,
         otherwise defaults to 'RdBu_r'.
 
         .. warning::  Interactive mode works smoothly only for a small amount
@@ -1325,17 +1327,17 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
              for i in range(len(times))]
     vmin = np.min(vlims)
     vmax = np.max(vlims)
-    if cmap == 'interactive':
-        if nax > 2:
-            warn('Interactive colorbar may be slow for multiple axes.')
-        cmap = None
-        interactive_cmap = True
-    else:
-        interactive_cmap = False
+    if not isinstance(cmap, tuple):
+        if len(times) > 2:
+            warn('Disabling interactive colorbar for multiple axes. Turn '
+                 'interactivity on explicitly by passing cmap as a tuple.')
+            cmap = (cmap, False)
+        else:
+            cmap = (cmap, True)
     for idx, time in enumerate(times):
         tp, cn = plot_topomap(data[:, idx], pos, vmin=vmin, vmax=vmax,
                               sensors=sensors, res=res, names=names,
-                              show_names=show_names, cmap=cmap,
+                              show_names=show_names, cmap=cmap[0],
                               mask=mask_[:, idx] if mask is not None else None,
                               mask_params=mask_params, axes=axes[idx],
                               outlines=outlines, image_mask=image_mask,
@@ -1367,7 +1369,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             cax.set_title(unit)
         cbar = fig.colorbar(images[-1], ax=cax, cax=cax, format=cbar_fmt)
         cbar.set_ticks([cbar.vmin, 0, cbar.vmax])
-        if interactive_cmap:
+        if cmap[1]:
             from .utils import DraggableColorbar
             for im in images:
                 im.axes.CB = DraggableColorbar(cbar, im)

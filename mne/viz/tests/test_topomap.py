@@ -199,8 +199,9 @@ def test_plot_topomap():
 
     # Test interactive cmap
     fig = plot_evoked_topomap(evoked, times=[0., 0.1], ch_type='eeg',
-                              cmap='interactive', title='title')
+                              cmap=('Reds', True), title='title')
     fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event(' ')
     fig.canvas.key_press_event('down')
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
     ax = cbar.cbar.ax
