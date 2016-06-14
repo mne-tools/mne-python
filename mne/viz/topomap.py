@@ -1329,7 +1329,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     vmin = np.min(vlims)
     vmax = np.max(vlims)
     if cmap == 'interactive':
-        cmap = (None. True)
+        cmap = (None, True)
     elif not isinstance(cmap, tuple):
         if len(times) > 2:
             warn('Disabling interactive colorbar for multiple axes. Turn '
