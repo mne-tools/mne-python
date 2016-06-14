@@ -188,7 +188,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                            ' for interactive SSP selection.')
     if isinstance(gfp, string_types) and gfp != 'only':
         raise ValueError('gfp must be boolean or "only". Got %s' % gfp)
-    if not isinstance(cmap, tuple):
+    if cmap == 'interactive':
+        cmap = ('RdBu_r', True)
+    elif not isinstance(cmap, tuple):
         cmap = (cmap, True)
     scalings = _handle_default('scalings', scalings)
     titles = _handle_default('titles', titles)
@@ -690,14 +692,15 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
-    cmap : matplotlib colormap | (colormap, bool)
+    cmap : matplotlib colormap | (colormap, bool) | 'interactive'
         Colormap. If tuple, the first value indicates the colormap to use and
         the second value is a boolean defining interactivity. In interactive
         mode the colors are adjustable by clicking and dragging the colorbar
         with left and right mouse button. Left mouse button moves the scale up
         and down and right mouse button adjusts the range. Hitting space bar
         resets the scale. Up and down arrows can be used to change the
-        colormap. Defaults to 'RdBu_r'.
+        colormap. If 'interactive', translates to ('RdBu_r', True). Defaults to
+        'RdBu_r'.
 
     Returns
     -------

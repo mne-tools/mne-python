@@ -673,14 +673,15 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         vmax : float | None
             The maxinum value an the color scale. If vmax is None, the data
             maximum value is used.
-        cmap : matplotlib colormap | str | (colormap, bool)
+        cmap : matplotlib colormap | 'interactive' | (colormap, bool)
             The colormap to use. If tuple, the first value indicates the
             colormap to use and the second value is a boolean defining
             interactivity. In interactive mode the colors are adjustable by
             clicking and dragging the colorbar with left and right mouse
             button. Left mouse button moves the scale up and down and right
             mouse button adjusts the range. Hitting space bar resets the range.
-            Up and down arrows can be used to change the colormap. Defaults to
+            Up and down arrows can be used to change the colormap. If
+            'interactive', translates to ('RdBu_r', True). Defaults to
             'RdBu_r'.
 
             .. warning:: Interactive mode works smoothly only for a small
@@ -733,7 +734,9 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                 raise RuntimeError('There must be an axes for each picked '
                                    'channel.')
 
-        if not isinstance(cmap, tuple):
+        if cmap == 'interactive':
+            cmap = ('RdBu_r', True)
+        elif not isinstance(cmap, tuple):
             cmap = (cmap, True)
         for idx in range(len(data)):
             if axes is None:

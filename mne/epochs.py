@@ -1198,12 +1198,15 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The scalings of the channel types to be applied for plotting.
             If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
             eog=1e6)`.
-        cmap : matplotlib colormap | 'interactive'
-            Colormap. If 'interactive', the colors are adjustable by clicking
-            and dragging the colorbar with left and right mouse button. Left
-            mouse button moves the scale up and down and right mouse button
-            adjusts the range. Up and down arrows can be used to change the
-            colormap.
+        cmap : matplotlib colormap | (colormap, bool) | 'interactive'
+            Colormap. If tuple, the first value indicates the colormap to use
+            and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging
+            the colorbar with left and right mouse button. Left mouse button
+            moves the scale up and down and right mouse button adjusts the
+            range. Hitting space bar resets the scale. Up and down arrows can
+            be used to change the colormap. If 'interactive', translates to
+            ('RdBu_r', True). Defaults to 'RdBu_r'.
         fig : matplotlib figure | None
             Figure instance to draw the image to. Figure must contain two
             axes for drawing the single trials and evoked responses. If

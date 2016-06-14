@@ -260,9 +260,6 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
 
     extent = (tmin, tmax, freq[0], freq[-1])
     cmap, interactive_cmap = cmap
-    #if cmap[1]:
-    #    cmap = 'RdBu_r'
-    #    interactive_cmap = True
 
     img = ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
                     vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
