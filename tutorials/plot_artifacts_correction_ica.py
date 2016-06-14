@@ -49,19 +49,21 @@ n_components = 25  # if float, select n_components by explained variance of PCA
 method = 'fastica'  # for comparison with EEGLAB try "extended-infomax" here
 decim = 3  # we need sufficient statistics, not all time points -> save time
 
+# we will also set state of the random number generator - ICA is a
+# non-deterministic algorithm, but we want to have the same decomposition
+# and the same order of components each time this tutorial is run
+random_state = 23
+
 ###############################################################################
 # Define the ICA object instance
-ica = ICA(n_components=n_components, method=method)
+ica = ICA(n_components=n_components, method=method, random_state=random_state)
 print(ica)
 
 ###############################################################################
 # we avoid fitting ICA on crazy environmental artifacts that would
 # dominate the variance and decomposition
-# we also set state of the random number generator - ICA is a non-deterministic
-# algorithm, but we want to have the same decomposition and the same order of
-# components each time this tutorial is run
 reject = dict(mag=5e-12, grad=4000e-13)
-ica.fit(raw, picks=picks_meg, decim=decim, reject=reject, random_state=23)
+ica.fit(raw, picks=picks_meg, decim=decim, reject=reject)
 print(ica)
 
 ###############################################################################
