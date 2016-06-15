@@ -237,6 +237,11 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
     ica_data = np.swapaxes(epochs_src.get_data()[:, picks, :], 0, 1)
 
     # spectrum
+    Nyquist = inst.info['sfreq'] / 2.
+    if 'fmax' not in psd_args:
+        psd_args['fmax'] = min(inst.info['lowpass'] * 1.25, Nyquist)
+    plot_lowpass_edge = inst.info['lowpass'] < Nyquist and (
+        psd_args['fmax'] > inst.info['lowpass'])
     psds, freqs = psd_multitaper(epochs_src, picks=picks, **psd_args)
 
     def set_title_and_labels(ax, title, xlab, ylab):
@@ -298,6 +303,10 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
             axes[3].fill_between(freqs, psds_mean - spectrum_std[0],
                                  psds_mean + spectrum_std[1],
                                  color='k', alpha=.15)
+        if plot_lowpass_edge:
+            axes[3].axvline(inst.info['lowpass'], lw=2, linestyle='--',
+                            color='k', alpha=0.15)
+
         # epoch variance
         axes[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
                         facecolor=[0, 0, 0], lw=0)
