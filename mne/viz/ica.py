@@ -172,6 +172,7 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
         The figure.
     """
     from .epochs import plot_epochs_image
+    from .topomap import _plot_ica_topomap
     from ..io.base import _BaseRaw
     from ..epochs import _BaseEpochs
     from ..preprocessing import ICA
@@ -186,8 +187,6 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
     if not isinstance(ica, ICA):
         raise ValueError('ica has to be an instance of ICA, '
                          'got %s instead' % type(ica))
-    else:
-        from .topomap import _plot_ica_topomap
     if isinstance(plot_std, bool):
         num_std = 1. if plot_std else 0.
     elif isinstance(plot_std, (float, int)):
