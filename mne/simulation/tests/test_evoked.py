@@ -13,7 +13,6 @@ import warnings
 from mne.datasets import testing
 from mne import read_forward_solution
 from mne.simulation import simulate_sparse_stc, simulate_evoked
-
 from mne import read_cov
 from mne.io import Raw
 from mne import pick_types_forward, read_evokeds

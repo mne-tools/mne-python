@@ -142,6 +142,5 @@ def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
     tmp = 10 * np.log10(np.mean((evoked.data[:, tmask] ** 2).ravel()) /
                         np.mean((noise.data ** 2).ravel()))
     noise.data = 10 ** ((tmp - float(snr)) / 20) * noise.data
-
     evoked.data += noise.data
     return evoked
