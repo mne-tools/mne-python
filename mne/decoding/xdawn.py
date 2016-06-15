@@ -71,6 +71,9 @@ class XdawnTransformer(_Xdawn):
         if n_chan is None:
             raise ValueError("n_chan cannot be none. Please provide the "
                              "number of channels")
+
+        # correct_overlap is not yet supported
+        self.correct_overlap = False
         self.n_chan = n_chan
         super(XdawnTransformer, self).__init__(n_components, signal_cov, reg)
 
@@ -89,12 +92,15 @@ class XdawnTransformer(_Xdawn):
         self : XdawnTransformer instance
             The XdawnTransformer instance.
         """
-        from sklearn.preprocessing import LabelEncoder
 
         if X.ndim != 2 or not isinstance(X, np.ndarray):
             raise ValueError("X should be 2 dimensional ndarray")
         if not isinstance(y, np.ndarray):
             raise ValueError("Labels must be numpy array")
+
+        event_id = dict()
+        for idx in y:
+            event_id['cond'+str(idx)] = idx
 
         epochs_data = X.reshape(X.shape[0], self.n_chan, X.shape[1] //
                                 self.n_chan)
@@ -102,26 +108,9 @@ class XdawnTransformer(_Xdawn):
         self._get_signal_cov(epochs_data)
 
         # estimates evoked covariance
-        evokeds = dict()
-        toeplitz = dict()
-        classes = LabelEncoder().fit(y).classes_
-        shape = epochs_data.shape
-        for eid in classes:
-            mean_data = np.mean(epochs_data[eid].reshape(-1, shape[1],
-                                shape[2]), axis=0)
-            evokeds[eid] = mean_data
-            toeplitz[eid] = 1.0
-
-        for eid in classes:
-            data = np.dot(evokeds[eid], toeplitz[eid])
-            self.evokeds_cov_[eid] = _regularized_covariance(data, self.reg)
-
-        # estimates spatial filters
-        for eid in classes:
-            self._fit_xdawn(eid)
-
-        # store some values
-        self.event_id = classes
+        self._fit_xdawn(epochs_data, y, event_id)
+        
+        self.event_id = event_id
         self.exclude = list(range(self.n_components, self.n_chan))
         return self
 

@@ -27,7 +27,7 @@ def _get_data():
 
 
 @requires_sklearn
-def test_xdawn_fit():
+def test_xdawntransformer_fit():
     """Test Xdawn fit."""
     # get data
     raw, events, picks = _get_data()
