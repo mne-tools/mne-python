@@ -189,7 +189,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     if isinstance(gfp, string_types) and gfp != 'only':
         raise ValueError('gfp must be boolean or "only". Got %s' % gfp)
     if cmap == 'interactive':
-        cmap = ('RdBu_r', True)
+        cmap = (None, True)
     elif not isinstance(cmap, tuple):
         cmap = (cmap, True)
     scalings = _handle_default('scalings', scalings)
