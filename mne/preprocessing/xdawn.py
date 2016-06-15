@@ -334,11 +334,10 @@ class Xdawn(_Xdawn):
     def _preproc_epochs(self, epochs):
         """Extract necessary items from epochs."""
         events = epochs.events
-        picks = pick_types(epochs.info,eeg=True, meg=True, exclude=[])
+        picks = pick_types(epochs.info, eeg=True, meg=True, exclude=[])
         epochs_data = epochs._data[:, picks, :]
         event_id = epochs.event_id
         return events, epochs_data, event_id
-
 
     def fit(self, epochs, y=None):
         """Fit Xdawn from epochs.

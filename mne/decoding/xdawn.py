@@ -108,9 +108,9 @@ class XdawnTransformer(_Xdawn):
         self._get_signal_cov(epochs_data)
 
         # estimates evoked covariance
-        self._fit_xdawn(epochs_data, y, event_id)
-        
+        self._fit_xdawn(epochs_data, y, event_id) 
         self.event_id = event_id
+        self.epochs_data = epochs_data
         self.exclude = list(range(self.n_components, self.n_chan))
         return self
 
