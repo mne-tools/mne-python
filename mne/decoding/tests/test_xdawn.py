@@ -1,11 +1,13 @@
 import numpy as np
 import os.path as op
 from nose.tools import (assert_raises)
+from numpy.testing import assert_array_equal
 from mne import (io, Epochs, read_events, pick_types,
                  compute_raw_covariance)
 from mne.utils import requires_sklearn, run_tests_if_main
 from mne.decoding.transformer import EpochsVectorizer
 from ..xdawn import XdawnTransformer
+from ...preprocessing import Xdawn
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -69,6 +71,14 @@ def test_xdawntransformer_fit():
                           signal_cov=None, reg=None)
     assert_raises(ValueError, xd.fit, X, None)
 
+    # compare xdawn and xdawntransforer
+    xd = Xdawn()
+    xd.fit(epochs)
+
+    xdt = XdawnTransformer(n_chan=epochs.info['nchan'])
+    xdt.fit(X, y)
+    assert_array_equal(xdt.filters_['cond2'], xd.filters_['cond2'])
+    
 
 @requires_sklearn
 def test_xdawn_transform_and_inverse_transform():
