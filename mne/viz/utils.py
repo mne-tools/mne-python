@@ -1071,7 +1071,7 @@ def _process_times(inst, times, n_peaks=None, few=False):
     return times
 
 
-def plot_sensors(info, kind='topomap', ch_type=None, title=None, select=False,
+def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                  show_names=False, ch_groups=None, axes=None, show=True):
     """Plot sensors positions.
 
@@ -1080,8 +1080,11 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, select=False,
     info : Instance of Info
         Info structure containing the channel locations.
     kind : str
-        Whether to plot the sensors as 3d or as topomap. Available options
-        'topomap', '3d'. Defaults to 'topomap'.
+        Whether to plot the sensors as 3d, topomap or as an interactive sensor
+        selection dialog. Available options 'topomap', '3d', 'select'. If
+        'select', a set of channels can be selected interactively by using
+        lasso selector. The selected channels are returned along with the
+        figure instance. Defaults to 'topomap'.
     ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
         The channel type to plot. If None, then channels are chosen in the
         order given above.
@@ -1111,6 +1114,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, select=False,
     -------
     fig : instance of matplotlib figure
         Figure containing the sensor topography.
+    selection : list
+        A list of selected channels if ``kind=='select'``.
 
     See Also
     --------
@@ -1126,8 +1131,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, select=False,
 
     """
     from .evoked import _rgb
-    if kind not in ['topomap', '3d']:
-        raise ValueError("Kind must be 'topomap' or '3d'.")
+    if kind not in ['topomap', '3d', 'select']:
+        raise ValueError("Kind must be 'topomap', '3d' or 'select'. Got %s." %
+                         kind)
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info not %s' % type(info))
     ch_indices = channel_indices_by_type(info)
@@ -1184,12 +1190,14 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None, select=False,
                 if pick in value:
                     colors[pick_idx] = color_vals[ind]
                     break
-    if kind == 'topomap':
+    if kind in ('topomap', 'select'):
         pos = _auto_topomap_coords(info, picks, True)
 
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, colors, bads, ch_names, title, show_names, axes,
-                        show)
+                        show, kind == 'select')
+    if kind == 'select':
+        return fig, fig.lasso.selection
     return fig
 
 
@@ -1210,11 +1218,11 @@ def _onpick_sensor(event, fig, ax, pos, ch_names):
 
 
 def _close_event(event, fig):
-    fig.selection = fig.lasso.ind
     fig.lasso.disconnect()
 
 
-def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show):
+def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
+                  select):
     """Helper function for plotting sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -1249,8 +1257,8 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show):
 
         pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=75,
                          edgecolor=edgecolors, linewidth=2)
-
-        fig.lasso = SelectFromCollection(ax, pts)
+        if select:
+            fig.lasso = SelectFromCollection(ax, pts, ch_names)
 
     if show_names:
         for idx in range(len(pos)):
@@ -1267,7 +1275,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show):
     fig.suptitle(title)
     closed = partial(_close_event, fig=fig)
     fig.canvas.mpl_connect('close_event', closed)
-    plt_show(show)
+    plt_show(show, block=select)
     return fig
 
 
@@ -1458,10 +1466,11 @@ class SelectFromCollection(object):
         alpha value of 1 and non-selected points to `alpha_other`.
     """
 
-    def __init__(self, ax, collection, alpha_other=0.3):
+    def __init__(self, ax, collection, ch_names, alpha_other=0.3):
         from matplotlib.widgets import LassoSelector
         self.canvas = ax.figure.canvas
         self.collection = collection
+        self.ch_names = ch_names
         self.alpha_other = alpha_other
 
         self.xys = collection.get_offsets()
@@ -1475,14 +1484,15 @@ class SelectFromCollection(object):
             self.fc = np.tile(self.fc, self.Npts).reshape(self.Npts, -1)
 
         self.lasso = LassoSelector(ax, onselect=self.onselect)
-        self.ind = []
+        self.selection = list()
 
     def onselect(self, verts):
         from matplotlib.path import Path
         path = Path(verts)
-        self.ind = np.nonzero([path.contains_point(xy) for xy in self.xys])[0]
+        inds = np.nonzero([path.contains_point(xy) for xy in self.xys])[0]
+        self.selection = self.ch_names[inds]
         self.fc[:, -1] = self.alpha_other
-        self.fc[self.ind, -1] = 1
+        self.fc[inds, -1] = 1
         self.collection.set_facecolors(self.fc)
         self.canvas.draw_idle()
 

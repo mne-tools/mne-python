@@ -368,8 +368,11 @@ class SetChannelsMixin(object):
         Parameters
         ----------
         kind : str
-            Whether to plot the sensors as 3d or as topomap. Available options
-            'topomap', '3d'. Defaults to 'topomap'.
+            Whether to plot the sensors as 3d, topomap or as an interactive
+            sensor selection dialog. Available options 'topomap', '3d',
+            'select'. If 'select', a set of channels can be selected
+            interactively by using lasso selector. The selected channels are
+            returned along with the figure instance. Defaults to 'topomap'.
         ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | 'ecog' | None
             The channel type to plot. If None, then channels are chosen in the
             order given above.

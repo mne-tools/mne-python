@@ -170,5 +170,7 @@ def test_plot_sensors():
     assert_raises(ValueError, raw.plot_sensors, ch_groups='asd')
     assert_raises(TypeError, plot_sensors, raw)  # needs to be info
     plt.close('all')
+    fig, sels = raw.plot_sensors('select')
+    _fake_click(fig, ax, (0.1, 0.1), xform='ax', button=1)
 
 run_tests_if_main()
