@@ -1771,7 +1771,6 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
         data = np.mean(data[indices, ifmin:ifmax, itmin:itmax], axis=0)
         chs = [tfr.ch_names[picks[x]] for x in indices]
     elif ch_type == 'grad':
-        picks = pick_types(tfr.info, meg=ch_type, ref_meg=False)
         from ..channels.layout import _pair_grad_sensors
         grads = _pair_grad_sensors(tfr.info, layout=layout,
                                    topomap_coords=False)

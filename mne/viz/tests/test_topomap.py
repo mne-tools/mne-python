@@ -152,7 +152,7 @@ def test_plot_topomap():
         warnings.simplefilter('always')
         projs = read_proj(ecg_fname)
     projs = [pp for pp in projs if pp['desc'].lower().find('eeg') < 0]
-    plot_projs_topomap(projs, res=res)
+    plot_projs_topomap(projs, res=res, colorbar=True)
     plt.close('all')
     ax = plt.subplot(111)
     plot_projs_topomap([projs[0]], res=res, axes=ax)  # test axes param
@@ -294,6 +294,7 @@ def test_plot_tfr_topomap():
     erelease.xdata = 0.3
     erelease.ydata = 0.2
     pos = [[0.11, 0.11], [0.25, 0.5], [0.0, 0.2], [0.2, 0.39]]
+    _onselect(eclick, erelease, tfr, pos, 'grad', 1, 3, 1, 3, 'RdBu_r', list())
     _onselect(eclick, erelease, tfr, pos, 'mag', 1, 3, 1, 3, 'RdBu_r', list())
     tfr._onselect(eclick, erelease, None, 'mean', None)
     plt.close('all')

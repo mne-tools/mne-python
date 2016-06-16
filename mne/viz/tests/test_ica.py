@@ -65,7 +65,8 @@ def test_plot_ica_components():
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
         for components in [0, [0], [0, 1], [0, 1] * 2, None]:
-            ica.plot_components(components, image_interp='bilinear', res=16)
+            ica.plot_components(components, image_interp='bilinear', res=16,
+                                colorbar=True)
     ica.info = None
     assert_raises(ValueError, ica.plot_components, 1)
     assert_raises(RuntimeError, ica.plot_components, 1, ch_type='mag')
