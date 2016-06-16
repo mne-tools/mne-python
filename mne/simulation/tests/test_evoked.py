@@ -5,7 +5,8 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_almost_equal)
 from nose.tools import assert_true, assert_raises
 import warnings
 
@@ -71,5 +72,19 @@ def test_simulate_evoked():
     evoked_2 = simulate_evoked(fwd, stc, evoked_template.info, cov, np.inf,
                                tmin=0.0, tmax=0.2)
     assert_array_equal(evoked_1.data, evoked_2.data)
+
+    # test snr definition in dB
+    evoked_noise = simulate_evoked(fwd, stc, evoked_template.info, cov,
+                                   snr=snr, tmin=None, tmax=None,
+                                   iir_filter=None)
+    evoked_clean = simulate_evoked(fwd, stc, evoked_template.info, cov,
+                                   snr=np.inf, tmin=None, tmax=None,
+                                   iir_filter=None)
+    noise = evoked_noise.data - evoked_clean.data
+
+    empirical_snr = 10 * np.log10(np.mean((evoked_clean.data**2).ravel()) /
+                                  np.mean((noise**2).ravel()))
+
+    assert_almost_equal(snr, empirical_snr, decimal=5)
 
 run_tests_if_main()
