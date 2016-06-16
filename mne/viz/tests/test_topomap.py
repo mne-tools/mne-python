@@ -286,8 +286,7 @@ def test_plot_tfr_topomap():
 
     eclick = mpl.backend_bases.MouseEvent('button_press_event',
                                           plt.gcf().canvas, 0, 0, 1)
-    eclick.xdata = 0.1
-    eclick.ydata = 0.1
+    eclick.xdata = eclick.ydata = 0.1
     eclick.inaxes = plt.gca()
     erelease = mpl.backend_bases.MouseEvent('button_release_event',
                                             plt.gcf().canvas, 0.9, 0.9, 1)
@@ -296,6 +295,8 @@ def test_plot_tfr_topomap():
     pos = [[0.11, 0.11], [0.25, 0.5], [0.0, 0.2], [0.2, 0.39]]
     _onselect(eclick, erelease, tfr, pos, 'grad', 1, 3, 1, 3, 'RdBu_r', list())
     _onselect(eclick, erelease, tfr, pos, 'mag', 1, 3, 1, 3, 'RdBu_r', list())
+    eclick.xdata = eclick.ydata = 0.
+    erelease.xdata = erelease.ydata = 0.9
     tfr._onselect(eclick, erelease, None, 'mean', None)
     plt.close('all')
 
