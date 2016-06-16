@@ -201,6 +201,11 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
         elif len(vertno[idx]) == 1:
             vertno[idx] = vertno[idx][0]
     vertno = [np.array(v) for v in vertno]
+    for v, hemi in zip(vertno, ('left', 'right')):
+        d = len(v) - len(np.unique(v))
+        if d > 0:
+            raise RuntimeError('Labels had %s overlaps in the %s hemisphere, '
+                               'they must be non-overlapping' % (d, hemi))
 
     # the data is in the order left, right
     data = list()
