@@ -392,3 +392,254 @@ def _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info):
             kind='average')  # nave and kind are technically incorrect
         cumul += tmax_ - tmin_
     return evokeds
+
+
+class EncodingModel(object):
+    def __init__(self, delays=None, est=None, preproc_y=True):
+        """Fit a STRF model.
+
+        Fit a receptive field using time lags and a custom estimator or
+        pipeline. This implementation uses Ridge regression and scikit-learn.
+        It creates time lags for the input matrix, then does cross validation
+        to fit a STRF model.
+
+        Parameters
+        ----------
+        delays : array, shape (n_delays,)
+            The delays to include when creating time lags. The input array X
+            will end up having shape (n_feats * n_delays, n_times)
+        est : model estimator | pipeline with estimator
+            The estimator to use for fitting. This is any object that contains
+            a `fit` and `predict` method, which takes inputs of the form
+            (X, y), and which creates a `.coef_` attribute upon fitting.
+            This may be a pipeline, in which case the final estimator must
+            follow the same conventions described above.
+
+        References
+        ----------
+        .. [1] Smith, N. J., & Kutas, M. (2015). Regression-based estimation of
+               ERP waveforms: II. Non-linear effects, overlap correction, and
+               practical considerations. Psychophysiology, 52(2), 169-189.
+        .. [2] Theunissen, F. E. et al. Estimating spatio-temporal receptive
+               fields of auditory and visual neurons from their responses to
+               natural stimuli. Network 12, 289-316 (2001).
+        .. [3] Willmore, B. & Smyth, D. Methods for first-order kernel
+               estimation: simple-cell receptive fields from responses to
+               natural scenes. Network 14, 553-77 (2003).
+        """
+        self.delays = np.array([0]) if delays is None else delays
+        self.n_delays = len(self.delays)
+        self.est = _check_estimator(est)
+        self.preproc_y = preproc_y
+
+    def fit(self, raw, continuous=None, events=None, event_id=None,
+            picks=None, fit_ixs=None, continuous_names=None, verbose=False):
+        """Fit the model.
+
+        Fits a receptive field model. Model results are stored as attributes.
+
+        Parameters
+        ----------
+        raw : instance of MNE Raw
+            The data on which we want to fit a regression model.
+        events : array, shape (n_events, 3)
+            An MNE events array specifying indices for event onsets
+        event_id : dictionary | None
+            A dictionary of (event_name: event_int) pairs, corresponding to the
+            mapping from event name strings to the 3rd column of events.
+        continuous : array, shape (n_feats, n_times)
+            Continuous input features in the regression.
+        continuous_names : array, shape (n_feats,) | None
+            Names for the input continuous variables.
+        picks : array, shape (n_picks,) | None
+            Indices for channels to use in model fitting. If None, all channels
+            will be fit.
+        fit_ixs : array, dtype int | None
+            An array specifying indices of timepoints to use in the regression.
+            Useful if a subset of datapoints is needed but lags must be
+            calculated on the whole input.
+        verbose : bool
+            If True, will display a progress bar during fits for CVs remaining.
+
+        Attributes
+        ----------
+        coefs_ : array, shape (n_features, n_lags, len(picks))
+            The average coefficients across CV splits
+        coefs_all_ : array, shape(n_cv, n_features * n_lags)
+            The raw coefficients for each iteration of cross-validation.
+        coef_names : array, shape (n_features * n_lags, 2)
+            A list of coefficient names, useful for keeping track of time lags
+        """
+        self.sfreq = raw.info['sfreq']
+        if fit_ixs is None:
+            fit_ixs = np.arange(raw.n_times)
+        if picks is None:
+            picks = np.arange(len(raw.ch_names))
+        if raw.preload is False:
+            raise ValueError('Data must be preloaded')
+
+        # Prepare the input feature matrix
+        X = []
+        X_names = []
+        if events is not None:
+            X_ev, X_ev_names = _events_to_continuous(raw, events, event_id)
+            X.append(X_ev)
+            X_names = X_names + X_ev_names
+        elif continuous is not None:
+            if continuous_names is None:
+                continuous_names = ['feat_%s' % ii
+                                    for ii in range(continuous.shape[0])]
+            if continuous.shape[-1] != raw.n_times:
+                raise ValueError('Continuous data must have same'
+                                 ' n_times as raw.')
+            if len(continuous_names) != continuous.shape[0]:
+                raise ValueError(
+                    'feat_names and X.shape[0] must be the same size')
+            X.append(continuous)
+            X_names = X_names + continuous_names
+        else:
+            raise ValueError('Must supply either events or continuous inputs')
+        X = np.vstack(X)
+
+        # Delay X
+        X_delayed = delay_timeseries(X, self.sfreq, self.delays)
+        X_names = [(iname, idelay)
+                   for iname in X_names for idelay in self.delays]
+        self.coef_names_ = np.array(X_names).T
+
+        # Fit the model and assign coefficients
+        X_delayed = X_delayed[:, fit_ixs]
+        Y = raw._data[:, fit_ixs]
+        self.ch_names = [raw.ch_names[ii] for ii in picks]
+        self.coef_ = np.zeros([len(picks), X_delayed.shape[0]])
+        self.X_ = X_delayed
+        for ii, ipick in enumerate(picks):
+            y = Y[ipick][:, np.newaxis]
+            if self.preproc_y:
+                y = self.est._pre_transform(y)[0]
+            self.est.fit(X_delayed.T, y)
+            self.coef_[ii, :] = self.est.steps[-1][-1].coef_
+
+    def predict(self, X):
+        """Generate predictions using fit coefficients.
+
+        This uses the `coef_` attribute for predictions.
+        """
+        X_lag = delay_timeseries(X, self.sfreq, self.delays)
+
+        Xt = self.est._pre_transform(X_lag.T)[0]
+        preds = np.dot(self.coef_, Xt.T)
+        return preds
+
+    def coefs_to_series(self):
+        """Return the raw coefficients as a pandas series.
+
+        Outputs
+        -------
+        sr : pandas Series, shape (n_coefficients,)
+            The coefficients as a pandas series object.
+        """
+        import pandas as pd
+        if not hasattr(self, 'coef_'):
+            raise ValueError('Fit the model first...')
+        ix = pd.MultiIndex.from_arrays(self.coef_names,
+                                       names=['feat', 'lag'])
+        sr = []
+        for ich, icoef in enumerate(self.coefs_):
+            isr = pd.DataFrame(icoef[:, np.newaxis], index=ix)
+            isr['ch'] = self.ch_names[ich]
+            isr = isr.set_index('ch', append=True).squeeze()
+            sr.append(isr)
+        sr = pd.concat(sr, axis=0)
+        return sr
+
+
+def delay_timeseries(ts, sfreq, delays):
+    """Return a time-lagged input timeseries.
+
+    Parameters
+    ----------
+    ts: array, shape (n_feats, n_times)
+        The timeseries to delay
+    sfreq: int
+        The sampling frequency of the series
+    delays: list of floats
+        The time (in seconds) of each delay. Negative means
+        timepoints in the past, positive means timepoints in
+        the future.
+
+    Returns
+    -------
+    delayed: array, shape(n_feats * n_delays, n_times)
+        The delayed matrix
+    """
+    delayed = np.zeros([len(delays), ts.shape[-1]])
+    for ii, delay in enumerate(delays):
+        roll_amount = -1 * int(delay * sfreq)
+        rolled = np.roll(ts, roll_amount, axis=-1)
+        if roll_amount < 0:
+            rolled[:, roll_amount:0] = 0
+        elif roll_amount > 0:
+            rolled[:, 0:roll_amount] = 0
+        delayed[ii] = rolled
+    delayed = np.vstack(delayed)
+    return delayed
+
+
+def _events_to_continuous(raw, events, event_id):
+    """Turn an MNE events array into a binary matrix of (n_times, n_events)."""
+    # Prep events for this raw instance and pull unique event types
+    if events.ndim != 2:
+        raise ValueError("events must be shape (n_trials, 3),"
+                         " found shape %s" % events.shape)
+    events = events.copy()
+    events[:, 0] -= raw.first_samp
+    unique_event_types = np.unique(events[:, 2])
+
+    # Iterate through event types and create columns of event onsets for each.
+    events_continuous = np.zeros([len(unique_event_types), raw.n_times])
+    for ii, ev_type in enumerate(unique_event_types):
+        msk_events = events[:, 2] == ev_type
+        i_ev_rows = events[msk_events, 0]
+        events_continuous[ii, i_ev_rows] = 1
+
+    # Handle event names
+    if event_id is None:
+        event_names = ['event_%s' % ii
+                       for ii in range(len(unique_event_types))]
+    else:
+        event_names = [event_id[ii] for ii in unique_event_types]
+    return events_continuous, event_names
+
+
+def _check_estimator(est):
+    from sklearn.linear_model import Ridge
+    from sklearn.pipeline import Pipeline
+    if est is None:
+        est = Ridge()
+    elif isinstance(est, string_types):
+        if est not in estimator_dict.keys():
+            raise ValueError("No such solver: {0}".format(est))
+        est = estimator_dict[est]
+
+    # Make sure we have a pipeline
+    if not isinstance(est, Pipeline):
+        est = Pipeline([('est', est)])
+    for imethod in ['fit', 'predict']:
+        if not hasattr(est.steps[-1][-1], imethod):
+            raise ValueError('estimator must have a %s method' % imethod)
+    return est
+
+
+# Custom string-supported estimators
+class Cholesky(object):
+    def fit(self, X, y):
+        a = (X.T * X).toarray()  # dot product of sparse matrices
+        self.coef_ = linalg.solve(a, X.T * y.T, sym_pos=True,
+                                  overwrite_a=True, overwrite_b=True).T
+
+    def predict(self, X):
+        return np.dot(self.coef_, X)
+
+
+estimator_dict = dict(cholesky=Cholesky)
