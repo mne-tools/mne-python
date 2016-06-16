@@ -1429,5 +1429,9 @@ class DraggableColorbar(object):
 
     def on_scroll(self, event):
         """Callback for scroll."""
-        event.key = 'down' if event.step < 0 else 'up'
-        self.key_press(event)
+        scale = 1.1 if event.step < 0 else 1. / 1.1
+        self.cbar.norm.vmin *= scale
+        self.cbar.norm.vmax *= scale
+        self.cbar.draw_all()
+        self.mappable.set_norm(self.cbar.norm)
+        self.cbar.patch.figure.canvas.draw()

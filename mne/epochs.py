@@ -944,9 +944,16 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             file is inferred from the data; if no appropriate layout file was
             found, the layout is automatically generated from the sensor
             locations.
-        cmap : matplotlib colormap
-            Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
-            'Reds'.
+        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+            Colormap to use. If tuple, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging
+            the colorbar with left and right mouse button. Left mouse button
+            moves the scale up and down and right mouse button adjusts the
+            range. Hitting space bar resets the range. Up and down arrows can
+            be used to change the colormap. If None (default), 'Reds' is used
+            for all positive data, otherwise defaults to 'RdBu_r'. If
+            'interactive', translates to (None, True).
         agg_fun : callable
             The function used to aggregate over frequencies.
             Defaults to np.sum. if normalize is True, else np.mean.

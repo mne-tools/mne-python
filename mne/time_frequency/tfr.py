@@ -1027,10 +1027,16 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             The value specifying the upper bound of the color range. If None,
             the maximum value is used. If callable, the output equals
             vmax(data). Defaults to None.
-        cmap : matplotlib colormap | None
-            Colormap. If None and the plotted data is all positive, defaults to
-            'Reds'. If None and data contains also negative values, defaults to
-            'RdBu_r'. Defaults to None.
+        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+            Colormap to use. If tuple, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging
+            the colorbar with left and right mouse button. Left mouse button
+            moves the scale up and down and right mouse button adjusts the
+            range. Hitting space bar resets the range. Up and down arrows can
+            be used to change the colormap. If None (default), 'Reds' is used
+            for all positive data, otherwise defaults to 'RdBu_r'. If
+            'interactive', translates to (None, True).
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True, a circle
