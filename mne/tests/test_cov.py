@@ -67,6 +67,11 @@ def test_cov_mismatch():
             assert_raises(ValueError, compute_covariance, epochs,
                           on_mismatch='x')
         assert_true(any('transform mismatch' in str(ww.message) for ww in w))
+    # This should work
+    epochs.info['dev_head_t'] = None
+    epochs_2.info['dev_head_t'] = None
+    compute_covariance([epochs, epochs_2])
+
 
 
 def test_ad_hoc_cov():

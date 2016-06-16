@@ -2830,8 +2830,9 @@ def _compare_epochs_infos(info1, info2, ind):
            zip(info2['projs'], info1['projs'])):
         raise ValueError('SSP projectors in epochs files must be the same')
     if (info1['dev_head_t'] is None) != (info2['dev_head_t'] is None) or \
-            not np.allclose(info1['dev_head_t']['trans'],
-                            info2['dev_head_t']['trans'], rtol=1e-6):
+            (info1['dev_head_t'] is not None and not
+             np.allclose(info1['dev_head_t']['trans'],
+                         info2['dev_head_t']['trans'], rtol=1e-6)):
         raise ValueError('epochs[%d][\'info\'][\'dev_head_t\'] must match'
                          % ind)
 

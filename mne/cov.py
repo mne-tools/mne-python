@@ -616,7 +616,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     on_mismatch : str
         What to do when the MEG<->Head transformations do not match between
         epochs. If "raise" (default) an error is raised, if "warn" then a
-        warinng is emitted, if "ignore" then nothing is printed. Having
+        warning is emitted, if "ignore" then nothing is printed. Having
         mismatched transforms can in some cases lead to unexpected or
         unstable results in covariance calculation, e.g. when data
         have been processed with Maxwell filtering but not transformed
@@ -695,7 +695,6 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         epochs = _unpack_epochs(epochs)
     else:
         epochs = sum([_unpack_epochs(epoch) for epoch in epochs], [])
-    assert isinstance(epochs, list)
 
     # check for baseline correction
     if any(epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5 and
@@ -710,8 +709,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                          'got %s' % on_mismatch)
     for ei, epoch in enumerate(epochs):
         epoch.info._check_consistency()
-        if (orig is None) ^ (epoch.info['dev_head_t'] is None) or not \
-                np.allclose(orig['trans'], epoch.info['dev_head_t']['trans']):
+        if (orig is None) != (epoch.info['dev_head_t'] is None) or \
+                (orig is not None and not
+                 np.allclose(orig['trans'],
+                             epoch.info['dev_head_t']['trans'])):
             msg = ('MEG<->Head transform mismatch between epochs[0]:\n%s\n\n'
                    'and epochs[%s]:\n%s'
                    % (orig, ei, epoch.info['dev_head_t']))

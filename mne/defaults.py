@@ -36,7 +36,6 @@ DEFAULTS = dict(
                      linewidth=0,
                      markeredgewidth=1,
                      markersize=4),
-    on_mismatch=dict(dev_head_t='raise'),
 )
 
 
