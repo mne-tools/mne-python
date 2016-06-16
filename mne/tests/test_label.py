@@ -792,6 +792,7 @@ def test_label_sign_flip():
                               len(idx))
 
 
+@testing.requires_testing_data
 def test_label_center_of_mass():
     """Test computing the center of mass of a label"""
     stc = read_source_estimate(stc_fname)
