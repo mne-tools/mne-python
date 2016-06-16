@@ -21,7 +21,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
                        create_slices, _time_mask, random_permutation,
                        _get_call_line, compute_corr, sys_info, verbose,
-                       check_fname, requires_ftp)
+                       check_fname, requires_ftp, get_config_path)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -354,6 +354,15 @@ def test_config():
         warnings.simplefilter('always')
         set_config(key, value, home_dir=tempdir)
     assert_equal(get_config(home_dir=tempdir), config)
+    # Check what happens when we use a corrupted file
+    json_fname = get_config_path(home_dir=tempdir)
+    with open(json_fname, 'w') as fid:
+        fid.write('foo{}')
+    with warnings.catch_warnings(record=True) as w:
+        assert_equal(get_config(home_dir=tempdir), dict())
+    assert_true(any('not a valid JSON' in str(ww.message) for ww in w))
+    with warnings.catch_warnings(record=True) as w:  # non-standard key
+        assert_raises(RuntimeError, set_config, key, 'true', home_dir=tempdir)
 
 
 def test_show_fiff():
