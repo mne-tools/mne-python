@@ -2829,10 +2829,22 @@ def _compare_epochs_infos(info1, info2, ind):
     if any(not _proj_equal(p1, p2) for p1, p2 in
            zip(info2['projs'], info1['projs'])):
         raise ValueError('SSP projectors in epochs files must be the same')
+    if (info1['dev_head_t'] is None) != (info2['dev_head_t'] is None) or \
+            not np.allclose(info1['dev_head_t']['trans'],
+                            info2['dev_head_t']['trans'], rtol=1e-6):
+        raise ValueError('epochs[%d][\'info\'][\'dev_head_t\'] must match'
+                         % ind)
 
 
 def _concatenate_epochs(epochs_list, with_data=True):
     """Auxiliary function for concatenating epochs."""
+    if not isinstance(epochs_list, (list, tuple)):
+        raise TypeError('epochs_list must be a list or tuple, got %s'
+                        % (type(epochs_list),))
+    for ei, epochs in enumerate(epochs_list):
+        if not isinstance(epochs, _BaseEpochs):
+            raise TypeError('epochs_list[%d] must be an instance of Epochs, '
+                            'got %s' % (ei, type(epochs)))
     out = epochs_list[0]
     data = [out.get_data()] if with_data else None
     events = [out.events]

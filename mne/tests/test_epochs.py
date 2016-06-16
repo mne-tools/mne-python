@@ -2065,6 +2065,14 @@ def test_concatenate_epochs():
     epochs2.baseline = (-0.1, None)
     assert_raises(ValueError, concatenate_epochs, [epochs, epochs2])
 
+    # check if dev_head_t is same
+    epochs2 = epochs.copy()
+    concatenate_epochs([epochs, epochs2])
+    epochs2.info['dev_head_t']['trans'][:3, 3] += 0.0001
+    assert_raises(ValueError, concatenate_epochs, [epochs, epochs2])
+    assert_raises(TypeError, concatenate_epochs, 'foo')
+    assert_raises(TypeError, concatenate_epochs, [epochs, 'foo'])
+
 
 def test_add_channels():
     """Test epoch splitting / re-appending channel types
