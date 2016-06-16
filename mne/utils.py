@@ -1214,6 +1214,22 @@ known_config_wildcards = (
 )
 
 
+def _load_config(config_path, raise_error=False):
+    """Helper to safely load a config file"""
+    with open(config_path, 'r') as fid:
+        try:
+            config = json.load(fid)
+        except ValueError:
+            # No JSON object could be decoded --> corrupt file?
+            msg = ('The MNE-Python config file (%s) is not a valid JSON '
+                   'file and might be corrupted' % config_path)
+            if raise_error:
+                raise RuntimeError(msg)
+            warn(msg)
+            config = dict()
+    return config
+
+
 def get_config(key=None, default=None, raise_error=False, home_dir=None):
     """Read mne(-python) preference from env, then mne-python config
 
@@ -1255,13 +1271,11 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
         key_found = False
         val = default
     else:
-        with open(config_path, 'r') as fid:
-            config = json.load(fid)
-            if key is None:
-                return config
+        config = _load_config(config_path)
+        if key is None:
+            return config
         key_found = key in config
         val = config.get(key, default)
-
     if not key_found and raise_error is True:
         meth_1 = 'os.environ["%s"] = VALUE' % key
         meth_2 = 'mne.utils.set_config("%s", VALUE)' % key
@@ -1310,8 +1324,7 @@ def set_config(key, value, home_dir=None):
     # Read all previous values
     config_path = get_config_path(home_dir=home_dir)
     if op.isfile(config_path):
-        with open(config_path, 'r') as fid:
-            config = json.load(fid)
+        config = _load_config(config_path, raise_error=True)
     else:
         config = dict()
         logger.info('Attempting to create new mne-python configuration '
