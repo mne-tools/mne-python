@@ -45,6 +45,8 @@ API
 
     - EOG channels can now be incuded when calling :funf:`mne.preprocessing.ICA.fit` and a proper error is raised when trying to include unsupported channels by `Alexander Rudiuk`_
 
+    - :func:`mne.compute_covariance` now checks to see if all :class:`Epochs` instances have the same MEG-to-Head transformation, and errors by default if they do not. This can be controlled by the new ``on_mismatch`` parameter. Changes by `Eric Larson`_
+
 .. _changes_0_12:
 
 Version 0.12

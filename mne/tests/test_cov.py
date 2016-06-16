@@ -42,6 +42,33 @@ erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 
+def test_cov_mismatch():
+    """Test estimation with MEG<->Head mismatch"""
+    raw = Raw(raw_fname).crop(0, 5).load_data()
+    events = find_events(raw, stim_channel='STI 014')
+    raw.pick_channels(raw.ch_names[:5])
+    raw.add_proj([], remove_existing=True)
+    epochs = Epochs(raw, events, None, tmin=-0.2, tmax=0., preload=True)
+    for kind in ('shift', 'None'):
+        epochs_2 = epochs.copy()
+        # This should be fine
+        with warnings.catch_warnings(record=True) as w:
+            compute_covariance([epochs, epochs_2])
+            assert_equal(len(w), 0)
+            if kind == 'shift':
+                epochs_2.info['dev_head_t']['trans'][:3, 3] += 0.001
+            else:  # None
+                epochs_2.info['dev_head_t'] = None
+            assert_raises(RuntimeError, compute_covariance, [epochs, epochs_2])
+            assert_equal(len(w), 0)
+            compute_covariance([epochs, epochs_2], on_mismatch='ignore')
+            assert_equal(len(w), 0)
+            compute_covariance([epochs, epochs_2], on_mismatch='warn')
+            assert_raises(ValueError, compute_covariance, epochs,
+                          on_mismatch='x')
+        assert_true(any('transform mismatch' in str(ww.message) for ww in w))
+
+
 def test_ad_hoc_cov():
     """Test ad hoc cov creation and I/O"""
     tempdir = _TempDir()

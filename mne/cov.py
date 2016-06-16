@@ -505,7 +505,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                        projs=None, method='empirical', method_params=None,
                        cv=3, scalings=None, n_jobs=1, return_estimators=False,
-                       verbose=None):
+                       on_mismatch='raise', verbose=None):
     """Estimate noise covariance matrix from epochs.
 
     The noise covariance is typically estimated on pre-stim periods
@@ -613,6 +613,14 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     return_estimators : bool (default False)
         Whether to return all estimators or the best. Only considered if
         method equals 'auto' or is a list of str. Defaults to False
+    on_mismatch : str
+        What to do when the MEG<->Head transformations do not match between
+        epochs. If "raise" (default) an error is raised, if "warn" then a
+        warinng is emitted, if "ignore" then nothing is printed. Having
+        mismatched transforms can in some cases lead to unexpected or
+        unstable results in covariance calculation, e.g. when data
+        have been processed with Maxwell filtering but not transformed
+        to the same head position.
     verbose : bool | str | int | or None (default None)
         If not None, override default verbose level (see mne.verbose).
 
@@ -687,16 +695,31 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         epochs = _unpack_epochs(epochs)
     else:
         epochs = sum([_unpack_epochs(epoch) for epoch in epochs], [])
+    assert isinstance(epochs, list)
 
     # check for baseline correction
-    for epochs_t in epochs:
-        if epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5 and \
-                keep_sample_mean:
-            warn('Epochs are not baseline corrected, covariance '
-                 'matrix may be inaccurate')
+    if any(epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5 and
+           keep_sample_mean for epochs_t in epochs):
+        warn('Epochs are not baseline corrected, covariance '
+             'matrix may be inaccurate')
 
-    for epoch in epochs:
+    orig = epochs[0].info['dev_head_t']
+    if not isinstance(on_mismatch, string_types) or \
+            on_mismatch not in ['raise', 'warn', 'ignore']:
+        raise ValueError('on_mismatch must be "raise", "warn", or "ignore", '
+                         'got %s' % on_mismatch)
+    for ei, epoch in enumerate(epochs):
         epoch.info._check_consistency()
+        if (orig is None) ^ (epoch.info['dev_head_t'] is None) or not \
+                np.allclose(orig['trans'], epoch.info['dev_head_t']['trans']):
+            msg = ('MEG<->Head transform mismatch between epochs[0]:\n%s\n\n'
+                   'and epochs[%s]:\n%s'
+                   % (orig, ei, epoch.info['dev_head_t']))
+            if on_mismatch == 'raise':
+                raise RuntimeError(msg)
+            elif on_mismatch == 'warn':
+                warn(msg)
+
     bads = epochs[0].info['bads']
     if projs is None:
         projs = cp.deepcopy(epochs[0].info['projs'])
