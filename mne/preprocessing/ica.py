@@ -1449,10 +1449,10 @@ class ICA(ContainsMixin):
 
         Returns
         -------
-        fig : instance of pyplot.Figure
-            The figure.
+        fig : list
+            List of matplotlib figures.
         """
-        return plot_properties(inst, ica=self, picks=picks, axes=axes,
+        return plot_properties(inst, self, picks=picks, axes=axes,
                                dB=dB, cmap=cmap, plot_std=plot_std,
                                topomap_args=topomap_args,
                                image_args=image_args, psd_args=psd_args,

@@ -15,15 +15,17 @@ import numpy as np
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
                     _layout_figure, _plot_raw_onscroll, _mouse_click,
                     _helper_raw_resize, _plot_raw_onkey, plt_show)
+from .topomap import (_prepare_topo_plot, plot_topomap, _hide_frame,
+                      _plot_ica_topomap)
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces
-from .epochs import _prepare_mne_browse_epochs
+from .epochs import _prepare_mne_browse_epochs, plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
-from .topomap import _prepare_topo_plot, plot_topomap, _hide_frame
 from ..utils import warn
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types
 from ..externals.six import string_types
+from ..time_frequency.psd import psd_multitaper
 
 
 def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
@@ -121,7 +123,7 @@ def _create_properties_layout(figsize=None):
     return fig, ax
 
 
-def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
+def plot_properties(inst, ica, picks=None, axes=None, dB=True, cmap=None,
                     plot_std=True, topomap_args=None, image_args=None,
                     psd_args=None, figsize=None, show=True):
     """Display component properties: topography, epochs image, ERP/ERF,
@@ -168,18 +170,12 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
 
     Returns
     -------
-    fig : instance of pyplot.Figure
-        The figure.
+    fig : list
+        List of matplotlib figures.
     """
-    from .epochs import plot_epochs_image
-    from .topomap import _plot_ica_topomap
     from ..io.base import _BaseRaw
     from ..epochs import _BaseEpochs
     from ..preprocessing import ICA
-    from ..time_frequency.psd import psd_multitaper
-
-    # current component/channel (with future interactivity in mind)
-    idx = 0
 
     if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
         raise ValueError('inst should be an instance of Raw or Epochs,'
@@ -228,7 +224,8 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
     if isinstance(inst, _BaseRaw):
         # break up continuous signal into segments
         from ..epochs import _segment_raw
-        inst = _segment_raw(inst, segment_length=2., verbose=False)
+        inst = _segment_raw(inst, segment_length=2., verbose=False,
+                            preload=True)
     if inst.times[0] < 0. and inst.times[-1] > 0.:
         plot_line_at_zero = True
 
@@ -254,7 +251,6 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
         ax.tick_params('both', labelsize=8)
         ax.axis('tight')
 
-    more_fig = len(picks) > 0
     all_fig = list()
     # the rest is component-specific
     for idx, pick in enumerate(picks):
@@ -357,11 +353,10 @@ def plot_properties(inst, ica=None, picks=None, axes=None, dB=True, cmap=None,
         # epoch variance
         set_title_and_labels(axes[4], 'epochs variance', 'epoch', 'AU')
 
-        if more_fig:
-            all_fig.append(fig)
+        all_fig.append(fig)
 
     plt_show(show)
-    return all_fig if len(picks) > 1 else fig
+    return all_fig
 
 
 def _plot_ica_grid(sources, start, stop,

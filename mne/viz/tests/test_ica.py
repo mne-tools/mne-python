@@ -102,15 +102,16 @@ def test_plot_ica_properties():
     ica.plot_properties(epochs, picks=1, dB=False, cmap='jet',
                         plot_std=1.5, **topoargs)
     ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
-                        topomap_args={'res': 10}, psd_args={'fmax': 65.},
-                        plot_std=False)
+                        topomap_args={'res': 10, 'colorbar': True},
+                        psd_args={'fmax': 65.}, plot_std=False,
+                        figsize=[4.5, 4.5])
     plt.close('all')
 
     assert_raises(ValueError, ica.plot_properties, epochs, dB=list('abc'))
     assert_raises(ValueError, ica.plot_properties, epochs, plot_std=[])
     assert_raises(ValueError, ica.plot_properties, ica)
     assert_raises(ValueError, ica.plot_properties, [0.2])
-    assert_raises(ValueError, plot_properties, epochs, ica=epochs)
+    assert_raises(ValueError, plot_properties, epochs, epochs)
     assert_raises(ValueError, ica.plot_properties, epochs,
                   psd_args='not dict')
 
@@ -119,7 +120,7 @@ def test_plot_ica_properties():
     ica.plot_properties(epochs, picks=1, axes=ax)
     fig = ica.plot_properties(raw, picks=[0, 1], **topoargs)
     assert_equal(len(fig), 2)
-    assert_raises(ValueError, plot_properties, epochs, ica=ica, picks=[0, 1],
+    assert_raises(ValueError, plot_properties, epochs, ica, picks=[0, 1],
                   axes=ax)
     assert_raises(ValueError, ica.plot_properties, epochs, axes='not axes')
     plt.close('all')
