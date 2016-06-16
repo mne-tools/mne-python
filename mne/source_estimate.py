@@ -6,7 +6,7 @@
 # License: BSD (3-clause)
 
 import copy
-import os
+import os.path as op
 from math import ceil
 import warnings
 
@@ -27,7 +27,6 @@ from .viz import plot_source_estimates
 from .fixes import in1d, sparse_block_diag
 from .io.base import ToDataFrameMixin, TimeMixin
 from .externals.six.moves import zip
-from .externals.six import string_types
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -247,7 +246,7 @@ def read_source_estimate(fname, subject=None):
 
     # make sure corresponding file(s) can be found
     ftype = None
-    if os.path.exists(fname):
+    if op.exists(fname):
         if fname.endswith('-vl.stc') or fname.endswith('-vol.stc') or \
                 fname.endswith('-vl.w') or fname.endswith('-vol.w'):
             ftype = 'volume'
@@ -276,11 +275,11 @@ def read_source_estimate(fname, subject=None):
             raise RuntimeError('Unknown extension for file %s' % fname_arg)
 
     if ftype is not 'volume':
-        stc_exist = [os.path.exists(f)
+        stc_exist = [op.exists(f)
                      for f in [fname + '-rh.stc', fname + '-lh.stc']]
-        w_exist = [os.path.exists(f)
+        w_exist = [op.exists(f)
                    for f in [fname + '-rh.w', fname + '-lh.w']]
-        h5_exist = os.path.exists(fname + '-stc.h5')
+        h5_exist = op.exists(fname + '-stc.h5')
         if all(stc_exist) and (ftype is not 'w'):
             ftype = 'surface'
         elif all(w_exist):
@@ -910,6 +909,24 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return stcs
 
 
+def _center_of_mass(vertices, values, hemi, subject, subjects_dir,
+                    restrict_vertices):
+    """Helper to find the center of mass on a surface"""
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    surf = read_surface(op.join(subjects_dir, subject, 'surf',
+                                hemi + '.sphere'))
+    if restrict_vertices is True:
+        restrict_vertices = vertices
+    elif restrict_vertices is False:
+        restrict_vertices = np.arange(surf[0].shape[0])
+    pos = surf[0][vertices, :].T
+    c_o_m = np.sum(pos * values, axis=1) / np.sum(values)
+    vertex = np.argmin(np.sqrt(np.mean((surf[0][restrict_vertices, :] -
+                                        c_o_m) ** 2, axis=1)))
+    vertex = restrict_vertices[vertex]
+    return vertex
+
+
 class SourceEstimate(_BaseSourceEstimate):
     """Container for surface source estimates
 
@@ -1195,14 +1212,18 @@ class SourceEstimate(_BaseSourceEstimate):
 
     def center_of_mass(self, subject=None, hemi=None, restrict_vertices=False,
                        subjects_dir=None):
-        """Return the vertex on a given surface that is at the center of mass
-        of  the activity in stc. Note that all activity must occur in a single
-        hemisphere, otherwise an error is returned. The "mass" of each point in
-        space for computing the spatial center of mass is computed by summing
-        across time, and vice-versa for each point in time in computing the
-        temporal center of mass. This is useful for quantifying spatio-temporal
-        cluster locations, especially when combined with the function
-        mne.source_space.vertex_to_mni().
+        """Compute the the center of mass of activity
+
+        This function computes the spatial center of mass on the surface
+        as well as the temporal center of mass as in [1]_.
+
+        .. note:: All activity must occur in a single hemisphere, otherwise
+                  an error is raised. The "mass" of each point in space for
+                  computing the spatial center of mass is computed by summing
+                  across time, and vice-versa for each point in time in
+                  computing the temporal center of mass. This is useful for
+                  quantifying spatio-temporal cluster locations, especially
+                  when combined with :func:`mne.source_space.vertex_to_mni`.
 
         Parameters
         ----------
@@ -1222,6 +1243,11 @@ class SourceEstimate(_BaseSourceEstimate):
             Path to the SUBJECTS_DIR. If None, the path is obtained by using
             the environment variable SUBJECTS_DIR.
 
+        See Also
+        --------
+        Label.center_of_mass
+        vertex_to_mni
+
         Returns
         -------
         vertex : int
@@ -1235,12 +1261,14 @@ class SourceEstimate(_BaseSourceEstimate):
             Time of the temporal center of mass (weighted by the sum across
             source vertices).
 
-        References:
-            Used in Larson and Lee, "The cortical dynamics underlying effective
-            switching of auditory spatial attention", NeuroImage 2012.
+        References
+        ----------
+        .. [1] Larson and Lee, "The cortical dynamics underlying effective
+               switching of auditory spatial attention", NeuroImage 2012.
         """
         subject = _check_subject(self.subject, subject)
-
+        if np.any(self.data < 0):
+            raise ValueError('Cannot compute COM with negative values')
         values = np.sum(self.data, axis=1)  # sum across time
         vert_inds = [np.arange(len(self.vertices[0])),
                      np.arange(len(self.vertices[1])) + len(self.vertices[0])]
@@ -1252,34 +1280,12 @@ class SourceEstimate(_BaseSourceEstimate):
             hemi = hemi[0]
         if hemi not in [0, 1]:
             raise ValueError('hemi must be 0 or 1')
-
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
-        values = values[vert_inds[hemi]]
-
-        hemis = ['lh', 'rh']
-        surf = os.path.join(subjects_dir, subject, 'surf',
-                            hemis[hemi] + '.sphere')
-
-        if isinstance(surf, string_types):  # read in surface
-            surf = read_surface(surf)
-
-        if restrict_vertices is False:
-            restrict_vertices = np.arange(surf[0].shape[0])
-        elif restrict_vertices is True:
-            restrict_vertices = self.vertices[hemi]
-
-        if np.any(self.data < 0):
-            raise ValueError('Cannot compute COM with negative values')
-
-        pos = surf[0][self.vertices[hemi], :].T
-        c_o_m = np.sum(pos * values, axis=1) / np.sum(values)
-
-        # Find the vertex closest to the COM
-        vertex = np.argmin(np.sqrt(np.mean((surf[0][restrict_vertices, :] -
-                                            c_o_m) ** 2, axis=1)))
-        vertex = restrict_vertices[vertex]
-
+        vertices = self.vertices[hemi]
+        values = values[vert_inds[hemi]]  # left or right
+        del vert_inds
+        vertex = _center_of_mass(vertices, values, hemi=['lh', 'rh'][hemi],
+                                 subject=subject, subjects_dir=subjects_dir,
+                                 restrict_vertices=restrict_vertices)
         # do time center of mass by using the values across space
         masses = np.sum(self.data, axis=0).astype(float)
         t_ind = np.sum(masses * np.arange(self.shape[1])) / np.sum(masses)
@@ -1993,8 +1999,8 @@ def _morph_mult(data, e, use_sparse, idx_use_data, idx_use_out=None):
 
 
 def _get_subject_sphere_tris(subject, subjects_dir):
-    spheres = [os.path.join(subjects_dir, subject, 'surf',
-                            xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    spheres = [op.join(subjects_dir, subject, 'surf',
+                       xh + '.sphere.reg') for xh in ['lh', 'rh']]
     tris = [read_surface(s)[1] for s in spheres]
     return tris
 
@@ -2246,8 +2252,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
         return [np.arange(10242), np.arange(10242)]
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
-    spheres_to = [os.path.join(subjects_dir, subject, 'surf',
-                               xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    spheres_to = [op.join(subjects_dir, subject, 'surf',
+                          xh + '.sphere.reg') for xh in ['lh', 'rh']]
     lhs, rhs = [read_surface(s)[0] for s in spheres_to]
 
     if grade is not None:  # fill a subset of vertices
