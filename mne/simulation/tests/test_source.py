@@ -2,7 +2,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.datasets import testing
 from mne import read_label, read_forward_solution, pick_types_forward
@@ -46,6 +46,7 @@ def test_simulate_stc():
 
     stc_data = np.ones((len(labels), n_times))
     stc = simulate_stc(fwd['src'], mylabels, stc_data, tmin, tstep)
+    assert_equal(stc.subject, 'sample')
 
     for label in labels:
         if label.hemi == 'lh':
@@ -108,6 +109,7 @@ def test_simulate_sparse_stc():
 
     stc_1 = simulate_sparse_stc(fwd['src'], len(labels), times,
                                 labels=labels, random_state=0)
+    assert_equal(stc_1.subject, 'sample')
 
     assert_true(stc_1.data.shape[0] == len(labels))
     assert_true(stc_1.data.shape[1] == n_times)

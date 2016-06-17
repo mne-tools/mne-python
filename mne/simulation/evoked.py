@@ -18,6 +18,13 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
                     iir_filter=None, random_state=None, verbose=None):
     """Generate noisy evoked data
 
+    .. note:: No projections from ``info`` will be present in the
+              output ``evoked``. You can use e.g.
+              :func:`evoked.add_proj <mne.Evoked.add_proj>` or
+              :func:`evoked.add_eeg_average_proj
+              <mne.Evoked.add_eeg_average_proj>`
+              to add them afterward as necessary.
+
     Parameters
     ----------
     fwd : dict
