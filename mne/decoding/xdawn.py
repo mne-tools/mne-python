@@ -8,9 +8,10 @@ import numpy as np
 
 from ..cov import _regularized_covariance
 from ..preprocessing.xdawn import _Xdawn
+from . import TransformerMixin
 
 
-class XdawnTransformer(_Xdawn):
+class XdawnTransformer(TransformerMixin, _Xdawn):
 
     """Implementation of the Xdawn Algorithm.
 

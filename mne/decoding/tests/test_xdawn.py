@@ -6,8 +6,8 @@ from mne import (io, Epochs, read_events, pick_types,
                  compute_raw_covariance)
 from mne.utils import requires_sklearn, run_tests_if_main
 from mne.decoding.transformer import EpochsVectorizer
-from ..xdawn import XdawnTransformer
-from ...preprocessing import Xdawn
+from mne.decoding import XdawnTransformer
+from mne.preprocessing import Xdawn
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')

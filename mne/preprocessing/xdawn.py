@@ -14,7 +14,6 @@ from .. import Covariance, EvokedArray, Evoked, EpochsArray
 from ..io.pick import pick_types
 from .ica import _get_fast_dot
 from ..utils import logger
-from ..decoding.mixin import TransformerMixin
 from ..cov import _regularized_covariance
 from ..channels.channels import ContainsMixin
 
@@ -149,7 +148,7 @@ def least_square_evoked(epochs_data, events, event_id, tmin, tmax, info,
     return evokeds
 
 
-class _Xdawn(TransformerMixin, ContainsMixin):
+class _Xdawn(object):
     """Private class containing common functions for Xdawn and
        XdawnTransformer.
     """
@@ -263,7 +262,7 @@ class _Xdawn(TransformerMixin, ContainsMixin):
         return data
 
 
-class Xdawn(_Xdawn):
+class Xdawn(_Xdawn, ContainsMixin):
 
     """Implementation of the Xdawn Algorithm.
 
@@ -366,6 +365,8 @@ class Xdawn(_Xdawn):
         self.ch_names = epochs.ch_names
         self.exclude = list(range(self.n_components, len(self.ch_names)))
         self.event_id = event_id
+        self._info = epochs.info
+        self._tmin = epochs.tmin
         return self
 
     def transform(self, epochs):
@@ -390,6 +391,14 @@ class Xdawn(_Xdawn):
                              'type or numpy array')
 
         return self._transform_xdawn(epochs_data)
+
+    @property
+    def get_evoked(self, cond):
+        """EvokedArray of specified condition."""
+        return EvokedArray(xdawn.evoked_[cond], info = self._info,
+                           tmin = self._tmin)
+
+
 
     def apply(self, inst, event_id=None, include=None, exclude=None):
         """Remove selected components from the signal.

@@ -29,8 +29,6 @@ Changelog
 
     - Add interactive colormap option to image plotting functions by `Jaakko Leppakangas`_
 
-    - Add support for the University of Maryland KIT system by `Christian Brodbeck`_
-
 BUG
 ~~~
 

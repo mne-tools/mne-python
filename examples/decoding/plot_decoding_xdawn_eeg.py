@@ -73,7 +73,7 @@ clf = make_pipeline(XdawnTransformer(n_components=3,
 cv = StratifiedKFold(y=labels, n_folds=10, shuffle=True, random_state=42)
 
 # Do cross-validation
-y_preds = np.empty(len(labels))
+y_pred = np.empty(len(labels))
 for train, test in cv:
     clf.fit(X[train], labels[train])
     y_preds[test] = clf.predict(X[test])
