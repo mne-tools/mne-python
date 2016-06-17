@@ -20,13 +20,13 @@ from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import logger, verbose, _time_mask, warn, check_fname
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
+from ..channels.layout import _pair_grad_sensors
 from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar, plt_show
 from ..externals.h5io import write_hdf5, read_hdf5
 from ..externals.six import string_types
-from ..viz.utils import _check_grad_pairs
 
 
 def _get_data(inst, return_itc):
@@ -785,8 +785,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         if 'mag' in self:
             types.append('mag')
         if 'grad' in self:
-            chs = _check_grad_pairs(self.info)
-            if len(chs) >= 2:
+            if len(_pair_grad_sensors(self.info, topomap_coords=False,
+                                      raise_error=False)) >= 2:
                 types.append('grad')
             elif len(types) == 0:
                 return  # Don't draw a figure for nothing.

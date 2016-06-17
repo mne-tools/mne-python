@@ -18,8 +18,7 @@ from ..io.pick import (channel_type, pick_types, _picks_by_type,
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
-                    plt_show, _process_times, DraggableColorbar,
-                    _check_grad_pairs)
+                    plt_show, _process_times, DraggableColorbar)
 from ..utils import logger, _clean_names, warn
 from ..fixes import partial
 from ..io.pick import pick_info
@@ -27,6 +26,7 @@ from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation)
 from ..channels import find_layout
+from ..channels.layout import _pair_grad_sensors
 
 
 def _butterfly_onpick(event, params):
@@ -72,12 +72,12 @@ def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
     """Function for drawing topomaps from the selected area."""
     import matplotlib.pyplot as plt
     ch_types = [type for type in ch_types if type in ('eeg', 'grad', 'mag')]
-    if 'grad' in ch_types:
-        chs = _check_grad_pairs(evoked.info)
-        if len(chs) < 2:
-            ch_types.remove('grad')
-            if len(ch_types) == 0:
-                return
+    if ('grad' in ch_types and
+            len(_pair_grad_sensors(evoked.info, topomap_coords=False,
+                                   raise_error=False)) < 2):
+        ch_types.remove('grad')
+        if len(ch_types) == 0:
+            return
 
     vert_lines = list()
     if text is not None:

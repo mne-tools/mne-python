@@ -23,7 +23,6 @@ from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..io import show_fiff, Info
 from ..io.pick import channel_type, channel_indices_by_type, pick_channels
-from ..io.constants import FIFF
 from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..fixes import _get_argrelmax
@@ -867,18 +866,6 @@ def _setup_browser_offsets(params, n_channels):
     params['vsel_patch'].set_height(n_channels)
     line = params['ax_vertline']
     line.set_data(line._x, np.array(params['ax'].get_ylim()))
-
-
-def _check_grad_pairs(info):
-    """Helper for checking gradiometer pairs."""
-    if FIFF.FIFFV_COIL_VV_PLANAR_T1 in np.unique(
-            [ch['coil_type'] for ch in info['chs']]):
-        chs = [ch for ch in info['ch_names'] if
-               ch.startswith('MEG') and ch.endswith(('2', '3'))]
-        if len(chs) < 2:
-            warn('No grad pairs found. Cannot compute RMS.')
-        return chs
-    return list()
 
 
 class ClickableImage(object):

@@ -20,7 +20,7 @@ from ..bem import fit_sphere_to_headshape
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import Info
-from ..utils import _clean_names
+from ..utils import _clean_names, warn
 from ..externals.six.moves import map
 
 
@@ -705,7 +705,8 @@ def _topo_to_sphere(pos, eegs):
     return np.column_stack([xs, ys, zs])
 
 
-def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
+def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads',
+                       raise_error=True):
     """Find the picks for pairing grad channels
 
     Parameters
@@ -720,6 +721,9 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any (default).
         If 'bads', exclude channels in info['bads']. Defaults to 'bads'.
+    raise_error : bool
+        Whether to raise an error when no pairs are found. If False, raises a
+        warning.
 
     Returns
     -------
@@ -741,7 +745,11 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
                 pairs[key].append(ch)
     pairs = [p for p in pairs.values() if len(p) == 2]
     if len(pairs) == 0:
-        raise ValueError("No 'grad' channel pairs found.")
+        if raise_error:
+            raise ValueError("No 'grad' channel pairs found.")
+        else:
+            warn("No 'grad' channel pairs found.")
+            return list()
 
     # find the picks corresponding to the grad channels
     grad_chs = sum(pairs, [])
