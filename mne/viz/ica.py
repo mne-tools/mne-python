@@ -286,7 +286,7 @@ def plot_properties(inst, ica, picks=None, axes=None, dB=True, cmap=None,
         # plotting
         # --------
         # component topomap
-        _plot_ica_topomap(ica, pick, show=False, axis=axes[0], **topomap_args)
+        _plot_ica_topomap(ica, pick, show=False, axes=axes[0], **topomap_args)
 
         # image and erp
         plot_epochs_image(epochs_src, picks=pick, axes=axes[1:3],
@@ -327,7 +327,7 @@ def plot_properties(inst, ica, picks=None, axes=None, dB=True, cmap=None,
         yt = axes[2].get_yticks()
         if len(yt) > 5:
             yt = yt[::2]
-            axes[2].set_yticks(yt)
+            axes[2].yaxis.set_ticks(yt)
 
         if not plot_line_at_zero:
             xlims = [1e3 * inst.times[0], 1e3 * inst.times[-1]]
@@ -338,7 +338,7 @@ def plot_properties(inst, ica, picks=None, axes=None, dB=True, cmap=None,
         # remove xticks - erp plot shows xticks for both image and erp plot
         axes[1].xaxis.set_ticks([])
         yt = axes[1].get_yticks()
-        axes[1].set_yticks(yt[1:])
+        axes[1].yaxis.set_ticks(yt[1:])
         axes[1].set_ylim([-0.5, ica_data.shape[1] + 0.5])
 
         # spectrum
