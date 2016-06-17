@@ -104,6 +104,16 @@ class Transform(dict):
     def to_str(self):
         return _coord_frame_name(self['to'])
 
+    def save(self, fname):
+        """Save the transform as -trans.fif file
+
+        Parameters
+        ----------
+        fname : str
+            The name of the file, which should end in '-trans.fif'.
+        """
+        write_trans(fname, self)
+
 
 def _coord_frame_name(cframe):
     """Map integers to human-readable (verbose) names"""
