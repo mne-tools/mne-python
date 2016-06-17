@@ -48,12 +48,12 @@ use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
 backend_is_wx = False  # is there a way to determine this?
 if backend_is_wx:
     # wx backend allows labels for wildcards
-    hsp_points_wildcard = ['Head Shape Points (*.txt)|*.txt']
-    hsp_fid_wildcard = ['Head Shape Fiducials (*.txt)|*.txt']
+    hsp_wildcard = ['Head Shape Points (*.hsp;*.txt)|*.hsp;*.txt']
+    elp_wildcard = ['Head Shape Fiducials (*.elp;*.txt)|*.elp;*.txt']
     kit_con_wildcard = ['Continuous KIT Files (*.sqd;*.con)|*.sqd;*.con']
 else:
-    hsp_points_wildcard = ['*.txt']
-    hsp_fid_wildcard = ['*.txt']
+    hsp_wildcard = ['*.hsp;*.txt']
+    elp_wildcard = ['*.elp;*.txt']
     kit_con_wildcard = ['*.sqd;*.con']
 
 
@@ -71,10 +71,8 @@ class Kit2FiffModel(HasPrivateTraits):
     # Input Traits
     markers = Instance(CombineMarkersModel, ())
     sqd_file = File(exists=True, filter=kit_con_wildcard)
-    hsp_file = File(exists=True, filter=hsp_points_wildcard, desc="Digitizer "
-                    "head shape")
-    fid_file = File(exists=True, filter=hsp_fid_wildcard, desc="Digitizer "
-                    "fiducials")
+    hsp_file = File(exists=True, filter=hsp_wildcard)
+    fid_file = File(exists=True, filter=elp_wildcard)
     stim_coding = Enum(">", "<", "channel")
     stim_chs = Str("")
     stim_chs_array = Property(depends_on='stim_chs')
@@ -397,9 +395,11 @@ class Kit2FiffPanel(HasPrivateTraits):
         VGroup(VGroup(Item('sqd_file', label="Data",
                            tooltip=tooltips['sqd_file']),
                       Item('sqd_fname', show_label=False, style='readonly'),
-                      Item('hsp_file', label='Dig Head Shape'),
+                      Item('hsp_file', label='Digitizer\nHead Shape',
+                           tooltip=tooltips['hsp_file']),
                       Item('hsp_fname', show_label=False, style='readonly'),
-                      Item('fid_file', label='Dig Points'),
+                      Item('fid_file', label='Digitizer\nFiducials',
+                           tooltip=tooltips['fid_file']),
                       Item('fid_fname', show_label=False, style='readonly'),
                       Item('reset_dig', label='Clear Digitizer Files',
                            show_label=False),
