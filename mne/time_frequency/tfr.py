@@ -791,7 +791,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             elif len(types) == 0:
                 return  # Don't draw a figure for nothing.
         fig = figure_nobar()
-        fig.suptitle('{:.2f} s - {:.2f} s, {:.2f} Hz - {:.2f} Hz'.format(
+        fig.suptitle('{0:.2f} s - {1:.2f} s, {2:.2f} Hz - {3:.2f} Hz'.format(
             tmin, tmax, fmin, fmax), y=0.04)
         for idx, ch_type in enumerate(types):
             ax = plt.subplot(1, len(types), idx + 1)
