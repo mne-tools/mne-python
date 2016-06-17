@@ -3123,9 +3123,9 @@ def _segment_raw(raw, segment_length=1., verbose=None, **kwargs):
     ----------
     raw : instance of Raw
         Raw data to divide into segments.
-    segment_length : int | float
+    segment_length : float
         Length of each segment in seconds. Defaults to 1.
-    verbose: bool | True
+    verbose: bool
         Whether to report what is being done by printing text.
     **kwargs
         Any additional keyword arguments are passed to ``Epochs`` constructor.

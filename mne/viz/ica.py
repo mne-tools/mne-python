@@ -308,7 +308,7 @@ def plot_properties(inst, ica, picks=None, axes=None, dB=True, cmap=None,
 
         # aesthetics
         # ----------
-        axes[0].set_title('IC #{:0>3}'.format(str(pick)))
+        axes[0].set_title('IC #{0:0>3}'.format(pick))
 
         set_title_and_labels(axes[1], 'epochs image and ERP/ERF', [], 'Epochs')
 
@@ -336,7 +336,7 @@ def plot_properties(inst, ica, picks=None, axes=None, dB=True, cmap=None,
                 ax.set_xlim(xlims)
 
         # remove xticks - erp plot shows xticks for both image and erp plot
-        axes[1].set_xticks([])
+        axes[1].xaxis.set_ticks([])
         yt = axes[1].get_yticks()
         axes[1].set_yticks(yt[1:])
         axes[1].set_ylim([-0.5, ica_data.shape[1] + 0.5])

@@ -746,7 +746,7 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
         A raw object to use the data from.
     id : int
         The id to use.
-    start : int | float
+    start : float
         Time of first event.
     stop : float | None
         Maximum time of last event. If None, events extend to the end
