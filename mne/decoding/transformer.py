@@ -312,10 +312,6 @@ class PSDEstimator(TransformerMixin):
         self.sfreq = sfreq
         self.fmin = fmin
         self.fmax = fmax
-        self.fmin = fmin
-        self.fmax = fmax
-        self.fmin = fmin
-        self.fmax = fmax
         self.bandwidth = bandwidth
         self.adaptive = adaptive
         self.low_bias = low_bias
