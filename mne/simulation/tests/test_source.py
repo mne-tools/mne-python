@@ -2,7 +2,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 
 from mne.datasets import testing
 from mne import read_label, read_forward_solution, pick_types_forward
@@ -83,6 +83,15 @@ def test_simulate_stc():
 
         res = ((2. * i) ** 2.) * np.ones((len(idx), n_times))
         assert_array_almost_equal(stc.data[idx], res)
+
+    # degenerate conditions
+    label_subset = mylabels[:2]
+    data_subset = stc_data[:2]
+    stc = simulate_stc(fwd['src'], label_subset, data_subset, tmin, tstep, fun)
+    assert_raises(ValueError, simulate_stc, fwd['src'],
+                  label_subset, data_subset[:-1], tmin, tstep, fun)
+    assert_raises(RuntimeError, simulate_stc, fwd['src'], label_subset * 2,
+                  np.concatenate([data_subset] * 2, axis=0), tmin, tstep, fun)
 
 
 @testing.requires_testing_data

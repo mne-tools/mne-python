@@ -30,6 +30,8 @@ BUG
 
     - Fixed minor bugs with :func:`mne.Epochs.resample` and :func:`mne.Epochs.decimate` by `Eric Larson`_
 
+    - Fixed a bug where duplicate vertices were not strictly checked by :func:`mne.simulation.simulate_stc` by `Eric Larson`_
+
 API
 ~~~
 
