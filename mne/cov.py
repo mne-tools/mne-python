@@ -717,7 +717,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                    'and epochs[%s]:\n%s'
                    % (orig, ei, epoch.info['dev_head_t']))
             if on_mismatch == 'raise':
-                raise RuntimeError(msg)
+                raise ValueError(msg)
             elif on_mismatch == 'warn':
                 warn(msg)
 
