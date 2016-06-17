@@ -44,7 +44,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                  blink=False, ecg=False, chpi=False, head_pos=None,
                  mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
                  random_state=None, verbose=None):
-    """Simulate raw data with head movements
+    """Simulate raw data
+
+    Head movements can optionally be simulated using the ``head_pos``
+    parameter.
 
     Parameters
     ----------
@@ -114,6 +117,9 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     See Also
     --------
     read_head_pos
+    simulate_evoked
+    simulate_stc
+    simalute_sparse_stc
 
     Notes
     -----

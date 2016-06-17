@@ -56,6 +56,12 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     evoked : Evoked object
         The simulated evoked data
 
+    See Also
+    --------
+    simulate_raw
+    simulate_stc
+    simulate_sparse_stc
+
     Notes
     -----
     .. versionadded:: 0.10.0

@@ -914,6 +914,9 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,
                     restrict_vertices):
     """Helper to find the center of mass on a surface"""
+    if (values == 0).all() or (values < 0).any():
+        raise ValueError('All values must be non-negative and at least one '
+                         'must be non-zero, cannot compute COM')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     surf = read_surface(op.join(subjects_dir, subject, 'surf',
                                 hemi + '.' + surf))
