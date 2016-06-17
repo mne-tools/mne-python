@@ -35,7 +35,7 @@ except Exception:
         NoButtons = CheckListEditor = SceneEditor = TextEditor = trait_wraith
 
 from ..io.kit.kit import RawKIT, KIT
-from ..transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
+from ..transforms import (apply_trans, als_ras_trans,
                           get_ras_to_neuromag_trans, Transform)
 from ..coreg import _decimate_points, fit_matched_points
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
@@ -238,11 +238,9 @@ class Kit2FiffModel(HasPrivateTraits):
     def _get_polhemus_neuromag_trans(self):
         if self.elp_raw is None:
             return
-        pts = apply_trans(als_ras_trans_mm, self.elp_raw[:3])
-        nasion, lpa, rpa = pts
+        nasion, lpa, rpa = apply_trans(als_ras_trans, self.elp_raw[:3])
         trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-        trans = np.dot(trans, als_ras_trans_mm)
-        return trans
+        return np.dot(trans, als_ras_trans)
 
     @cached_property
     def _get_sqd_fname(self):

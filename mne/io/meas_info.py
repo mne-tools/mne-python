@@ -376,7 +376,7 @@ def _read_dig_points(fname, comments='%'):
     Returns
     -------
     dig_points : np.ndarray, shape (n_points, 3)
-        Array of dig points in [mm].
+        Array of dig points in [m].
     """
     _, ext = op.splitext(fname)
     if ext == '.elp' or ext == '.hsp':
@@ -389,9 +389,9 @@ def _read_dig_points(fname, comments='%'):
         points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
                                                       re.MULTILINE)]
         dig_points = np.array(points_str, dtype=float)
-        dig_points *= 1000
     else:
         dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
+        dig_points /= 1000
 
     if dig_points.shape[-1] != 3:
         err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
