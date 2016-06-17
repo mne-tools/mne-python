@@ -699,8 +699,8 @@ class Label(object):
         return label_tris
 
     def center_of_mass(self, subject=None, restrict_vertices=False,
-                       subjects_dir=None):
-        """Compute the the center of mass of the label
+                       subjects_dir=None, surf='sphere'):
+        """Compute the center of mass of the label
 
         This function computes the spatial center of mass on the surface
         as in [1]_.
@@ -717,6 +717,11 @@ class Label(object):
         subjects_dir : str, or None
             Path to the SUBJECTS_DIR. If None, the path is obtained by using
             the environment variable SUBJECTS_DIR.
+        surf : str
+            The surface to use for Euclidean distance center of mass
+            finding. The default here is "sphere", which finds the center
+            of mass on the spherical surface to help avoid potential issues
+            with cortical folding.
 
         Returns
         -------
@@ -734,10 +739,12 @@ class Label(object):
         .. [1] Larson and Lee, "The cortical dynamics underlying effective
                switching of auditory spatial attention", NeuroImage 2012.
         """
+        if not isinstance(surf, string_types):
+            raise TypeError('surf must be a string, got %s' % (type(surf),))
         subject = _check_subject(self.subject, subject)
         if np.any(self.values < 0):
             raise ValueError('Cannot compute COM with negative values')
-        vertex = _center_of_mass(self.vertices, self.values, self.hemi,
+        vertex = _center_of_mass(self.vertices, self.values, self.hemi, surf,
                                  subject, subjects_dir, restrict_vertices)
         return vertex
 

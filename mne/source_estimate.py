@@ -26,6 +26,8 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose,
 from .viz import plot_source_estimates
 from .fixes import in1d, sparse_block_diag
 from .io.base import ToDataFrameMixin, TimeMixin
+
+from .externals.six import string_types
 from .externals.six.moves import zip
 from .externals.h5io import read_hdf5, write_hdf5
 
@@ -909,16 +911,18 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return stcs
 
 
-def _center_of_mass(vertices, values, hemi, subject, subjects_dir,
+def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,
                     restrict_vertices):
     """Helper to find the center of mass on a surface"""
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     surf = read_surface(op.join(subjects_dir, subject, 'surf',
-                                hemi + '.sphere'))
+                                hemi + '.' + surf))
     if restrict_vertices is True:
         restrict_vertices = vertices
     elif restrict_vertices is False:
         restrict_vertices = np.arange(surf[0].shape[0])
+    else:
+        restrict_vertices = np.array(restrict_vertices, int)
     pos = surf[0][vertices, :].T
     c_o_m = np.sum(pos * values, axis=1) / np.sum(values)
     vertex = np.argmin(np.sqrt(np.mean((surf[0][restrict_vertices, :] -
@@ -1211,8 +1215,8 @@ class SourceEstimate(_BaseSourceEstimate):
         return label_tc
 
     def center_of_mass(self, subject=None, hemi=None, restrict_vertices=False,
-                       subjects_dir=None):
-        """Compute the the center of mass of activity
+                       subjects_dir=None, surf='sphere'):
+        """Compute the center of mass of activity
 
         This function computes the spatial center of mass on the surface
         as well as the temporal center of mass as in [1]_.
@@ -1242,6 +1246,11 @@ class SourceEstimate(_BaseSourceEstimate):
         subjects_dir : str, or None
             Path to the SUBJECTS_DIR. If None, the path is obtained by using
             the environment variable SUBJECTS_DIR.
+        surf : str
+            The surface to use for Euclidean distance center of mass
+            finding. The default here is "sphere", which finds the center
+            of mass on the spherical surface to help avoid potential issues
+            with cortical folding.
 
         See Also
         --------
@@ -1266,6 +1275,8 @@ class SourceEstimate(_BaseSourceEstimate):
         .. [1] Larson and Lee, "The cortical dynamics underlying effective
                switching of auditory spatial attention", NeuroImage 2012.
         """
+        if not isinstance(surf, string_types):
+            raise TypeError('surf must be a string, got %s' % (type(surf),))
         subject = _check_subject(self.subject, subject)
         if np.any(self.data < 0):
             raise ValueError('Cannot compute COM with negative values')
@@ -1283,9 +1294,10 @@ class SourceEstimate(_BaseSourceEstimate):
         vertices = self.vertices[hemi]
         values = values[vert_inds[hemi]]  # left or right
         del vert_inds
-        vertex = _center_of_mass(vertices, values, hemi=['lh', 'rh'][hemi],
-                                 subject=subject, subjects_dir=subjects_dir,
-                                 restrict_vertices=restrict_vertices)
+        vertex = _center_of_mass(
+            vertices, values, hemi=['lh', 'rh'][hemi], surf=surf,
+            subject=subject, subjects_dir=subjects_dir,
+            restrict_vertices=restrict_vertices)
         # do time center of mass by using the values across space
         masses = np.sum(self.data, axis=0).astype(float)
         t_ind = np.sum(masses * np.arange(self.shape[1])) / np.sum(masses)

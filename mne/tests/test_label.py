@@ -815,5 +815,15 @@ def test_label_center_of_mass():
                       subjects_dir=subjects_dir)
         label.values[:] = 1
         assert_equal(label.center_of_mass(subjects_dir=subjects_dir), expected)
+        assert_equal(label.center_of_mass(subjects_dir=subjects_dir,
+                                          restrict_vertices=label.vertices),
+                     expected)
+    # degenerate cases
+    assert_raises(ValueError, label.center_of_mass, subjects_dir=subjects_dir,
+                  restrict_vertices='foo')
+    assert_raises(TypeError, label.center_of_mass, subjects_dir=subjects_dir,
+                  surf=1)
+    assert_raises(IOError, label.center_of_mass, subjects_dir=subjects_dir,
+                  surf='foo')
 
 run_tests_if_main()
