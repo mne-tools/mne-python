@@ -78,7 +78,7 @@ def test_xdawntransformer_fit():
     xdt = XdawnTransformer(n_chan=epochs.info['nchan'])
     xdt.fit(X, y)
     assert_array_equal(xdt.filters_['cond2'], xd.filters_['cond2'])
-    
+
 
 @requires_sklearn
 def test_xdawn_transform_and_inverse_transform():

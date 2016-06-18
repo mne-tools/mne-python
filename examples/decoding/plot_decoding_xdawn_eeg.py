@@ -76,15 +76,15 @@ cv = StratifiedKFold(y=labels, n_folds=10, shuffle=True, random_state=42)
 y_pred = np.empty(len(labels))
 for train, test in cv:
     clf.fit(X[train], labels[train])
-    y_preds[test] = clf.predict(X[test])
+    y_pred[test] = clf.predict(X[test])
 
 # Classification report
 target_names = ['aud_l', 'aud_r', 'vis_l', 'vis_r']
-report = classification_report(labels, y_preds, target_names=target_names)
+report = classification_report(labels, y_pred, target_names=target_names)
 print(report)
 
 # Normalized confusion matrix
-cm = confusion_matrix(labels, y_preds)
+cm = confusion_matrix(labels, y_pred)
 cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
 
 # Plot confusion matrix

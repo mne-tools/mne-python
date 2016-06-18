@@ -6,7 +6,6 @@
 
 import numpy as np
 
-from ..cov import _regularized_covariance
 from ..preprocessing.xdawn import _Xdawn
 from . import TransformerMixin
 
@@ -101,7 +100,7 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
 
         event_id = dict()
         for idx in y:
-            event_id['cond'+str(idx)] = idx
+            event_id['cond' + str(idx)] = idx
 
         epochs_data = X.reshape(X.shape[0], self.n_chan, X.shape[1] //
                                 self.n_chan)
@@ -109,7 +108,7 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
         self._get_signal_cov(epochs_data)
 
         # estimates evoked covariance
-        self._fit_xdawn(epochs_data, y, event_id) 
+        self._fit_xdawn(epochs_data, y, event_id)
         self.event_id = event_id
         self.epochs_data = epochs_data
         self.exclude = list(range(self.n_components, self.n_chan))

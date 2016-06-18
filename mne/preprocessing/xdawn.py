@@ -395,10 +395,8 @@ class Xdawn(_Xdawn, ContainsMixin):
     @property
     def get_evoked(self, cond):
         """EvokedArray of specified condition."""
-        return EvokedArray(xdawn.evoked_[cond], info = self._info,
-                           tmin = self._tmin)
-
-
+        return EvokedArray(self.evoked_[cond], info=self._info,
+                           tmin=self._tmin)
 
     def apply(self, inst, event_id=None, include=None, exclude=None):
         """Remove selected components from the signal.
