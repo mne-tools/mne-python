@@ -39,7 +39,7 @@ fname_trans = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
-fname_xfit_dip = op.join(data_path, 'misc', 'fam_115_LH.fif')
+fname_xfit_dip = op.join(data_path, 'dip', 'fixed_auto.fif')
 subjects_dir = op.join(data_path, 'subjects')
 
 

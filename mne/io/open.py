@@ -179,8 +179,11 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
     if output not in [list, str]:
         raise ValueError('output must be list or str')
     f, tree, directory = fiff_open(fname)
+    # This gets set to 0 (unknown) by fiff_open, but FIFFB_ROOT probably
+    # makes more sense for display
+    tree['block'] = FIFF.FIFFB_ROOT
     with f as fid:
-        out = _show_tree(fid, tree['children'][0], indent=indent, level=0,
+        out = _show_tree(fid, tree, indent=indent, level=0,
                          read_limit=read_limit, max_str=max_str)
     if output == str:
         out = '\n'.join(out)
@@ -189,6 +192,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
 
 def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
     """Helper to find matching values"""
+    value = int(value)
     vals = [k for k, v in six.iteritems(FIFF)
             if v == value and any(fmt in k for fmt in fmts) and
             not any(exc in k for exc in exclude)]
@@ -203,7 +207,7 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information
-    out = [this_idt + str(tree['block'][0]) + ' = ' +
+    out = [this_idt + str(int(tree['block'])) + ' = ' +
            '/'.join(_find_type(tree['block'], fmts=['FIFFB_']))]
     if tree['directory'] is not None:
         kinds = [ent.kind for ent in tree['directory']] + [-1]

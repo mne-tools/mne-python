@@ -32,6 +32,8 @@ BUG
 
     - Fixed a bug where duplicate vertices were not strictly checked by :func:`mne.simulation.simulate_stc` by `Eric Larson`_
 
+    - Fixed a bug where some FIF files could not be read with :func:`mne.io.show_fiff` by `Christian Brodbeck`_ and `Eric Larson`_
+
 API
 ~~~
 
