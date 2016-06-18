@@ -22,8 +22,9 @@ def run():
         sys.exit(1)
     # This works around an annoying bug on Windows for show_fiff, see:
     # https://pythonhosted.org/kitchen/unicode-frustrations.html
-    UTF8Writer = codecs.getwriter('utf8')
-    sys.stdout = UTF8Writer(sys.stdout)
+    if int(sys.version[0]) < 3:
+        UTF8Writer = codecs.getwriter('utf8')
+        sys.stdout = UTF8Writer(sys.stdout)
     print(mne.io.show_fiff(args[0]))
 
 
