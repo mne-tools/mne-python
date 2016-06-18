@@ -8,6 +8,7 @@ import os
 import warnings
 
 from mne import read_evokeds
+from mne.datasets import testing
 from mne.externals.six.moves import StringIO
 from mne.io import show_fiff
 from mne.utils import (set_log_level, set_log_file, _TempDir,
@@ -31,6 +32,10 @@ fname_evoked = op.join(base_dir, 'test-ave.fif')
 fname_raw = op.join(base_dir, 'test_raw.fif')
 fname_log = op.join(base_dir, 'test-ave.log')
 fname_log_2 = op.join(base_dir, 'test-ave-2.log')
+
+data_path = testing.data_path(download=False)
+fname_fsaverage_trans = op.join(data_path, 'subjects', 'fsaverage', 'bem',
+                                'fsaverage-trans.fif')
 
 
 def clean_lines(lines=[]):
@@ -365,6 +370,7 @@ def test_config():
         assert_raises(RuntimeError, set_config, key, 'true', home_dir=tempdir)
 
 
+@testing.requires_testing_data
 def test_show_fiff():
     """Test show_fiff
     """
@@ -375,6 +381,7 @@ def test_show_fiff():
             'FIFF_EPOCH']
     assert_true(all(key in info for key in keys))
     info = show_fiff(fname_raw, read_limit=1024)
+    assert_true('COORD_TRANS' in show_fiff(fname_fsaverage_trans))
 
 
 @deprecated('message')
