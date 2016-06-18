@@ -86,6 +86,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
     """
     rng = check_random_state(random_state)
     src = _ensure_src(src, verbose=False)
+    subject = src[0].get('subject_his_id')
     data = np.zeros((n_dipoles, len(times)))
     for i_dip in range(n_dipoles):
         data[i_dip, :] = data_fun(times)
@@ -131,7 +132,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
     tmin, tstep = times[0], np.diff(times[:2])[0]
     assert datas.shape == data.shape
     cls = SourceEstimate if len(vs) == 2 else VolSourceEstimate
-    stc = cls(datas, vertices=vs, tmin=tmin, tstep=tstep)
+    stc = cls(datas, vertices=vs, tmin=tmin, tstep=tstep, subject=subject)
     return stc
 
 
@@ -154,7 +155,7 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
 
     Parameters
     ----------
-    src : list of dict
+    src : instance of SourceSpaces
         The source space
     labels : list of Labels
         The labels
@@ -221,5 +222,7 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
 
     data = np.concatenate(data)
 
-    stc = SourceEstimate(data, vertices=vertno, tmin=tmin, tstep=tstep)
+    subject = src[0].get('subject_his_id')
+    stc = SourceEstimate(data, vertices=vertno, tmin=tmin, tstep=tstep,
+                         subject=subject)
     return stc
