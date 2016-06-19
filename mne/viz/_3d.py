@@ -361,6 +361,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
 
     # determine points
     meg_rrs, meg_tris = list(), list()
+    hpi_loc = list()
     ext_loc = list()
     car_loc = list()
     eeg_loc = list()
@@ -408,15 +409,19 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             meg_rrs = np.concatenate(meg_rrs, axis=0)
             meg_tris = np.concatenate(meg_tris, axis=0)
     if dig:
+        hpi_loc = np.array([d['r'] for d in info['dig']
+                            if d['kind'] == FIFF.FIFFV_POINT_HPI])
         ext_loc = np.array([d['r'] for d in info['dig']
                            if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
         car_loc = np.array([d['r'] for d in info['dig']
                             if d['kind'] == FIFF.FIFFV_POINT_CARDINAL])
         if coord_frame == 'meg':
             t = invert_transform(info['dev_head_t'])
+            hpi_loc = apply_trans(t, hpi_loc)
             ext_loc = apply_trans(t, ext_loc)
             car_loc = apply_trans(t, car_loc)
         elif coord_frame == 'mri':
+            hpi_loc = apply_trans(head_mri_t, hpi_loc)
             ext_loc = apply_trans(head_mri_t, ext_loc)
             car_loc = apply_trans(head_mri_t, car_loc)
         if len(car_loc) == len(ext_loc) == 0:
@@ -441,10 +446,10 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         mesh.data.cell_data.normals = None
         mlab.pipeline.surface(mesh, color=colors[key], opacity=alphas[key])
 
-    datas = (eeg_loc, car_loc, ext_loc)
-    colors = ((1., 0., 0.), (1., 1., 0.), (1., 0.5, 0.))
-    alphas = (1.0, 0.5, 0.25)
-    scales = (0.005, 0.015, 0.0075)
+    datas = (eeg_loc, hpi_loc, car_loc, ext_loc)
+    colors = ((1., 0., 0.), (0., 1., 0.), (1., 1., 0.), (1., 0.5, 0.))
+    alphas = (1.0, 0.5, 0.5, 0.25)
+    scales = (0.005, 0.015, 0.015, 0.0075)
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits
