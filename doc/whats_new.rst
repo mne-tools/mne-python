@@ -19,6 +19,8 @@ Changelog
 
     - Add generic array-filtering function :func:`mne.filter.filter_data` by `Eric Larson`_
 
+    - :func:`mne.viz.plot_trans` now also shows head position indicators by `Christian Brodbeck`_
+
 BUG
 ~~~
 
