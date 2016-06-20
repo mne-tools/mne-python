@@ -49,7 +49,7 @@ rng = np.random.RandomState(0)
 
 
 @testing.requires_testing_data
-def test_aaspatial_inter_hemi_connectivity():
+def test_spatial_inter_hemi_connectivity():
     """Test spatial connectivity between hemispheres"""
     # trivial cases
     conn = spatial_inter_hemi_connectivity(fname_src_3, 5e-6)
@@ -441,6 +441,11 @@ def test_morph_data():
     stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12, buffer_size=1000,
                              subjects_dir=subjects_dir)
     stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
+    # Morphing to a density that is too high should raise an informative error
+    # (here we need to push to grade=6, but for some subjects even grade=5
+    # will break)
+    assert_raises(ValueError, stc_to1.morph, subject_from, grade=6,
+                  subjects_dir=subjects_dir)
     # make sure we can specify vertices
     vertices_to = grade_to_vertices(subject_to, grade=3,
                                     subjects_dir=subjects_dir)

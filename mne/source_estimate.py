@@ -2271,6 +2271,13 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
                                 for xhs in [lhs, rhs])
             # Make sure the vertices are ordered
             vertices = [np.sort(verts) for verts in vertices]
+            for verts in vertices:
+                if (np.diff(verts) == 0).any():
+                    raise ValueError(
+                        'Cannot use icosahedral grade %s with subject %s, '
+                        'mapping %s vertices onto the high-resolution mesh '
+                        'yields repeated vertices'
+                        % (grade, subject, len(verts)))
     else:  # potentially fill the surface
         vertices = [np.arange(lhs.shape[0]), np.arange(rhs.shape[0])]
 
