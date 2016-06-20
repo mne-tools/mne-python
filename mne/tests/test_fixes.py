@@ -14,9 +14,10 @@ from mne.utils import run_tests_if_main
 from mne.fixes import (_in1d, _tril_indices, _copysign, _unravel_index,
                        _Counter, _unique, _bincount, _digitize,
                        _sparse_block_diag, _matrix_rank, _meshgrid,
-                       _isclose)
-from mne.fixes import _firwin2 as mne_firwin2
-from mne.fixes import _filtfilt as mne_filtfilt
+                       _isclose,
+                       _firwin2 as mne_firwin2,
+                       _filtfilt as mne_filtfilt,
+                       _sosfiltfilt as mne_sosfiltfilt)
 
 rng = np.random.RandomState(0)
 
@@ -147,6 +148,8 @@ def test_filtfilt():
     x = np.r_[1, np.zeros(100)]
     # Filter with an impulse
     y = mne_filtfilt([1, 0], [1, 0], x, padlen=0)
+    assert_array_equal(x, y)
+    y = mne_sosfiltfilt(np.array([[1., 0., 0., 1, 0., 0.]]), x, padlen=0)
     assert_array_equal(x, y)
 
 

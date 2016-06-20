@@ -589,25 +589,233 @@ def get_firwin2():
     return firwin2
 
 
-def _filtfilt(*args, **kwargs):
-    """wrap filtfilt, excluding padding arguments"""
-    from scipy.signal import filtfilt
-    # cut out filter args
-    if len(args) > 4:
-        args = args[:4]
-    if 'padlen' in kwargs:
-        del kwargs['padlen']
-    return filtfilt(*args, **kwargs)
+def _filtfilt(b, a, x, axis=-1, padtype='odd', padlen=None, method='pad',
+              irlen=None):
+    """copy of modern SciPy filtfilt"""
+    from scipy.signal import lfilter_zi, lfilter
+    b = np.atleast_1d(b)
+    a = np.atleast_1d(a)
+    x = np.asarray(x)
+
+    if method not in ["pad", "gust"]:
+        raise ValueError("method must be 'pad' or 'gust'.")
+
+    if method == "gust":
+        y, z1, z2 = _filtfilt_gust(b, a, x, axis=axis, irlen=irlen)
+        return y
+
+    # method == "pad"
+    edge, ext = _validate_pad(padtype, padlen, x, axis,
+                              ntaps=max(len(a), len(b)))
+
+    # Get the steady state of the filter's step response.
+    zi = lfilter_zi(b, a)
+
+    # Reshape zi and create x0 so that zi*x0 broadcasts
+    # to the correct value for the 'zi' keyword argument
+    # to lfilter.
+    zi_shape = [1] * x.ndim
+    zi_shape[axis] = zi.size
+    zi = np.reshape(zi, zi_shape)
+    x0 = axis_slice(ext, stop=1, axis=axis)
+
+    # Forward filter.
+    (y, zf) = lfilter(b, a, ext, axis=axis, zi=zi * x0)
+
+    # Backward filter.
+    # Create y0 so zi*y0 broadcasts appropriately.
+    y0 = axis_slice(y, start=-1, axis=axis)
+    (y, zf) = lfilter(b, a, axis_reverse(y, axis=axis), axis=axis, zi=zi * y0)
+
+    # Reverse y.
+    y = axis_reverse(y, axis=axis)
+
+    if edge > 0:
+        # Slice the actual signal from the extended signal.
+        y = axis_slice(y, start=edge, stop=-edge, axis=axis)
+
+    return y
+
+
+def _sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
+    """copy of SciPy sosfiltfilt"""
+    from scipy.signal import sosfilt
+    sos, n_sections = _validate_sos(sos)
+
+    # `method` is "pad"...
+    ntaps = 2 * n_sections + 1
+    ntaps -= min((sos[:, 2] == 0).sum(), (sos[:, 5] == 0).sum())
+    edge, ext = _validate_pad(padtype, padlen, x, axis,
+                              ntaps=ntaps)
+
+    # These steps follow the same form as filtfilt with modifications
+    zi = sosfilt_zi(sos)  # shape (n_sections, 2) --> (n_sections, ..., 2, ...)
+    zi_shape = [1] * x.ndim
+    zi_shape[axis] = 2
+    zi.shape = [n_sections] + zi_shape
+    x_0 = axis_slice(ext, stop=1, axis=axis)
+    (y, zf) = sosfilt(sos, ext, axis=axis, zi=zi * x_0)
+    y_0 = axis_slice(y, start=-1, axis=axis)
+    (y, zf) = sosfilt(sos, axis_reverse(y, axis=axis), axis=axis, zi=zi * y_0)
+    y = axis_reverse(y, axis=axis)
+    if edge > 0:
+        y = axis_slice(y, start=edge, stop=-edge, axis=axis)
+    return y
+
+
+def axis_slice(a, start=None, stop=None, step=None, axis=-1):
+    """Take a slice along axis 'axis' from 'a'"""
+    a_slice = [slice(None)] * a.ndim
+    a_slice[axis] = slice(start, stop, step)
+    b = a[a_slice]
+    return b
+
+
+def axis_reverse(a, axis=-1):
+    """Reverse the 1-d slices of `a` along axis `axis`."""
+    return axis_slice(a, step=-1, axis=axis)
+
+
+def _validate_pad(padtype, padlen, x, axis, ntaps):
+    """Helper to validate padding for filtfilt"""
+    if padtype not in ['even', 'odd', 'constant', None]:
+        raise ValueError(("Unknown value '%s' given to padtype.  padtype "
+                          "must be 'even', 'odd', 'constant', or None.") %
+                         padtype)
+
+    if padtype is None:
+        padlen = 0
+
+    if padlen is None:
+        # Original padding; preserved for backwards compatibility.
+        edge = ntaps * 3
+    else:
+        edge = padlen
+
+    # x's 'axis' dimension must be bigger than edge.
+    if x.shape[axis] <= edge:
+        raise ValueError("The length of the input vector x must be at least "
+                         "padlen, which is %d." % edge)
+
+    if padtype is not None and edge > 0:
+        # Make an extension of length `edge` at each
+        # end of the input array.
+        if padtype == 'even':
+            ext = even_ext(x, edge, axis=axis)
+        elif padtype == 'odd':
+            ext = odd_ext(x, edge, axis=axis)
+        else:
+            ext = const_ext(x, edge, axis=axis)
+    else:
+        ext = x
+    return edge, ext
+
+
+def _validate_sos(sos):
+    """Helper to validate a SOS input"""
+    sos = np.atleast_2d(sos)
+    if sos.ndim != 2:
+        raise ValueError('sos array must be 2D')
+    n_sections, m = sos.shape
+    if m != 6:
+        raise ValueError('sos array must be shape (n_sections, 6)')
+    if not (sos[:, 3] == 1).all():
+        raise ValueError('sos[:, 3] should be all ones')
+    return sos, n_sections
+
+
+def odd_ext(x, n, axis=-1):
+    """Generate a new ndarray by making an odd extension of x along an axis."""
+    if n < 1:
+        return x
+    if n > x.shape[axis] - 1:
+        raise ValueError(("The extension length n (%d) is too big. " +
+                         "It must not exceed x.shape[axis]-1, which is %d.")
+                         % (n, x.shape[axis] - 1))
+    left_end = axis_slice(x, start=0, stop=1, axis=axis)
+    left_ext = axis_slice(x, start=n, stop=0, step=-1, axis=axis)
+    right_end = axis_slice(x, start=-1, axis=axis)
+    right_ext = axis_slice(x, start=-2, stop=-(n + 2), step=-1, axis=axis)
+    ext = np.concatenate((2 * left_end - left_ext,
+                          x,
+                          2 * right_end - right_ext),
+                         axis=axis)
+    return ext
+
+
+def even_ext(x, n, axis=-1):
+    """Create an ndarray that is an even extension of x along an axis."""
+    if n < 1:
+        return x
+    if n > x.shape[axis] - 1:
+        raise ValueError(("The extension length n (%d) is too big. " +
+                         "It must not exceed x.shape[axis]-1, which is %d.")
+                         % (n, x.shape[axis] - 1))
+    left_ext = axis_slice(x, start=n, stop=0, step=-1, axis=axis)
+    right_ext = axis_slice(x, start=-2, stop=-(n + 2), step=-1, axis=axis)
+    ext = np.concatenate((left_ext,
+                          x,
+                          right_ext),
+                         axis=axis)
+    return ext
+
+
+def const_ext(x, n, axis=-1):
+    """Create an ndarray that is a constant extension of x along an axis"""
+    if n < 1:
+        return x
+    left_end = axis_slice(x, start=0, stop=1, axis=axis)
+    ones_shape = [1] * x.ndim
+    ones_shape[axis] = n
+    ones = np.ones(ones_shape, dtype=x.dtype)
+    left_ext = ones * left_end
+    right_end = axis_slice(x, start=-1, axis=axis)
+    right_ext = ones * right_end
+    ext = np.concatenate((left_ext,
+                          x,
+                          right_ext),
+                         axis=axis)
+    return ext
+
+
+def sosfilt_zi(sos):
+    """Compute an initial state `zi` for the sosfilt function"""
+    from scipy.signal import lfilter_zi
+    sos = np.asarray(sos)
+    if sos.ndim != 2 or sos.shape[1] != 6:
+        raise ValueError('sos must be shape (n_sections, 6)')
+
+    n_sections = sos.shape[0]
+    zi = np.empty((n_sections, 2))
+    scale = 1.0
+    for section in range(n_sections):
+        b = sos[section, :3]
+        a = sos[section, 3:]
+        zi[section] = scale * lfilter_zi(b, a)
+        # If H(z) = B(z)/A(z) is this section's transfer function, then
+        # b.sum()/a.sum() is H(1), the gain at omega=0.  That's the steady
+        # state value of this section's step response.
+        scale *= b.sum() / a.sum()
+
+    return zi
 
 
 def get_filtfilt():
     """Helper to get filtfilt from scipy"""
     from scipy.signal import filtfilt
-
     if 'padlen' in _get_args(filtfilt):
         return filtfilt
+    else:
+        return _filtfilt
 
-    return _filtfilt
+
+def get_sosfiltfilt():
+    """Helper to get sosfiltfilt from scipy"""
+    try:
+        from scipy.signal import sosfiltfilt
+    except ImportError:
+        sosfiltfilt = _sosfiltfilt
+    return sosfiltfilt
 
 
 def _get_argrelmax():
