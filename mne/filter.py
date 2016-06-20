@@ -409,7 +409,7 @@ def _filtfilt(x, iir_params, picks, n_jobs, copy):
         for p in picks:
             x[p] = fun(x=x[p])
     else:
-        parallel, p_fun, _ = parallel_func(filtfilt, n_jobs)
+        parallel, p_fun, _ = parallel_func(fun, n_jobs)
         data_new = parallel(p_fun(x=x[p]) for p in picks)
         for pp, p in enumerate(picks):
             x[p] = data_new[pp]
@@ -534,7 +534,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     filter 'N' and the type of filtering 'ftype' are specified. To get
     coefficients for a 4th-order Butterworth filter, this would be:
 
-    >>> iir_params = dict(order=4, ftype='butter')
+    >>> iir_params = dict(order=4, ftype='butter', output='sos')
     >>> iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low', return_copy=False)
     >>> print((2 * len(iir_params['sos']), iir_params['padlen']))
     (4, 82)
@@ -544,7 +544,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     pass and stop bands (assuming the desired stop band is at 45 Hz), this
     would be a filter with much longer ringing:
 
-    >>> iir_params = dict(ftype='cheby1', gpass=3, gstop=20)
+    >>> iir_params = dict(ftype='cheby1', gpass=3, gstop=20, output='sos')
     >>> iir_params = construct_iir_filter(iir_params, 40, 50, 1000, 'low')
     >>> print((2 * len(iir_params['sos']), iir_params['padlen']))
     (6, 439)
