@@ -709,11 +709,12 @@ class Label(object):
         ----------
         subject : string | None
             The subject the stc is defined for.
-        restrict_vertices : bool, or array of int
-            If True, returned vertex will be one from the label. Otherwise,
-            it could be any vertex from surf. If an array of int, the
-            returned vertex will come from that array. For most accuruate
-            estimates, do not restrict vertices.
+        restrict_vertices : bool | array of int | instance of SourceSpaces
+            If True, returned vertex will be one from stc. Otherwise, it could
+            be any vertex from surf. If an array of int, the returned vertex
+            will come from that array. If instance of SourceSpaces (as of
+            0.13), the returned vertex will be from the given source space.
+            For most accuruate estimates, do not restrict vertices.
         subjects_dir : str, or None
             Path to the SUBJECTS_DIR. If None, the path is obtained by using
             the environment variable SUBJECTS_DIR.
@@ -733,6 +734,10 @@ class Label(object):
         --------
         SourceEstimate.center_of_mass
         vertex_to_mni
+
+        Notes
+        -----
+        .. versionadded: 0.13
 
         References
         ----------

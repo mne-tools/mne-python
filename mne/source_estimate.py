@@ -20,7 +20,7 @@ from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
                       _compute_nearest, mesh_edges)
 from .source_space import (_ensure_src, _get_morph_src_reordering,
-                           _ensure_src_subject)
+                           _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_)
 from .viz import plot_source_estimates
@@ -921,6 +921,9 @@ def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,
         restrict_vertices = vertices
     elif restrict_vertices is False:
         restrict_vertices = np.arange(surf[0].shape[0])
+    elif isinstance(restrict_vertices, SourceSpaces):
+        idx = 1 if restrict_vertices.kind == 'surface' and hemi == 'rh' else 0
+        restrict_vertices = restrict_vertices[idx]['vertno']
     else:
         restrict_vertices = np.array(restrict_vertices, int)
     pos = surf[0][vertices, :].T
@@ -1238,11 +1241,12 @@ class SourceEstimate(_BaseSourceEstimate):
             hemisphere. If None, one of the hemispheres must be all zeroes,
             and the center of mass will be calculated for the other
             hemisphere (useful for getting COM for clusters).
-        restrict_vertices : bool, or array of int
+        restrict_vertices : bool | array of int | instance of SourceSpaces
             If True, returned vertex will be one from stc. Otherwise, it could
             be any vertex from surf. If an array of int, the returned vertex
-            will come from that array. For most accuruate estimates, do not
-            restrict vertices.
+            will come from that array. If instance of SourceSpaces (as of
+            0.13), the returned vertex will be from the given source space.
+            For most accuruate estimates, do not restrict vertices.
         subjects_dir : str, or None
             Path to the SUBJECTS_DIR. If None, the path is obtained by using
             the environment variable SUBJECTS_DIR.

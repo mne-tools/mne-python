@@ -84,24 +84,29 @@ class SourceSpaces(list):
         ss_repr = []
         for ss in self:
             ss_type = ss['type']
+            r = "'%r'" % ss_type
             if ss_type == 'vol':
                 if 'seg_name' in ss:
-                    r = ("'vol' (%s), n_used=%i"
-                         % (ss['seg_name'], ss['nuse']))
+                    r += " (%s)" % (ss['seg_name'],)
                 else:
-                    r = ("'vol', shape=%s, n_used=%i"
-                         % (repr(ss['shape']), ss['nuse']))
+                    r += ", shape=%s" % (ss['shape'],)
             elif ss_type == 'surf':
-                r = "'surf', n_vertices=%i, n_used=%i" % (ss['np'], ss['nuse'])
-            else:
-                r = "%r" % ss_type
-            coord_frame = ss['coord_frame']
-            if isinstance(coord_frame, np.ndarray):
-                coord_frame = coord_frame[0]
-            r += ', coordinate_frame=%s' % _coord_frame_name(coord_frame)
+                r += (" (%s), n_vertices=%i" % (ss['hemi'], ss['np']))
+            r += (', n_used=%i, coordinate_frame=%s'
+                  % (ss['nuse'], _coord_frame_name(int(ss['coord_frame']))))
             ss_repr.append('<%s>' % r)
-        ss_repr = ', '.join(ss_repr)
-        return "<SourceSpaces: [{ss}]>".format(ss=ss_repr)
+        return "<SourceSpaces: [%s]>" % ', '.join(ss_repr)
+
+    @property
+    def kind(self):
+        """The kind of source space (surface, volume, discrete)"""
+        ss_types = [ss['type'] for ss in self]
+        if len(ss_types) == 2 and list(set(ss_types)) == ['surf']:
+            return 'surface'
+        ss_types = list(set(ss_types))
+        if len(ss_types) != 1:
+            return 'unknown'
+        return ss_types[0]
 
     def __add__(self, other):
         return SourceSpaces(list.__add__(self, other))
