@@ -589,20 +589,12 @@ def get_firwin2():
     return firwin2
 
 
-def _filtfilt(b, a, x, axis=-1, padtype='odd', padlen=None, method='pad',
-              irlen=None):
-    """copy of modern SciPy filtfilt"""
+def _filtfilt(b, a, x, axis=-1, padtype='odd', padlen=None):
+    """copy of modern SciPy filtfilt without "method" or "irlen" arguments"""
     from scipy.signal import lfilter_zi, lfilter
     b = np.atleast_1d(b)
     a = np.atleast_1d(a)
     x = np.asarray(x)
-
-    if method not in ["pad", "gust"]:
-        raise ValueError("method must be 'pad' or 'gust'.")
-
-    if method == "gust":
-        y, z1, z2 = _filtfilt_gust(b, a, x, axis=axis, irlen=irlen)
-        return y
 
     # method == "pad"
     edge, ext = _validate_pad(padtype, padlen, x, axis,
