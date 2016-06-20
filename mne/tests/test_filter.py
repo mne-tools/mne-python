@@ -9,7 +9,7 @@ from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
                         band_stop_filter, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
                         _overlap_add_filter, _smart_pad,
-                        _estimate_ringing_samples)
+                        _estimate_ringing_samples, filter_data)
 
 from mne.utils import (sum_squared, run_tests_if_main, slow_test,
                        catch_logging, requires_version)
@@ -100,7 +100,20 @@ def test_iir_stability():
     # This one should work just fine
     high_pass_filter(sig, sfreq, 0.6, method='iir',
                      iir_params=dict(ftype='butter', order=8, output='sos'))
-    # can't pass iir_params if method='fir'
+    # bad system type
+    assert_raises(ValueError, high_pass_filter, sig, sfreq, 0.6, method='iir',
+                  iir_params=dict(ftype='butter', order=8, output='foo'))
+    # missing ftype
+    assert_raises(RuntimeError, high_pass_filter, sig, sfreq, 0.6,
+                  method='iir', iir_params=dict(order=8, output='sos'))
+    # bad ftype
+    assert_raises(RuntimeError, high_pass_filter, sig, sfreq, 0.6,
+                  method='iir',
+                  iir_params=dict(order=8, ftype='foo', output='sos'))
+    # missing gstop
+    assert_raises(RuntimeError, high_pass_filter, sig, sfreq, 0.6,
+                  method='iir', iir_params=dict(gpass=0.5, output='sos'))
+    # can't pass iir_params if method='fft'
     assert_raises(ValueError, high_pass_filter, sig, sfreq, 0.1,
                   method='fft', iir_params=dict(ftype='butter', order=2,
                                                 output='sos'))
@@ -117,9 +130,14 @@ def test_iir_stability():
                   method='fft', iir_params=dict())
 
     # should pass because dafault trans_bandwidth is not relevant
+    iir_params = dict(ftype='butter', order=2, output='sos')
     x_sos = high_pass_filter(sig, 250, 0.5, method='iir',
-                             iir_params=dict(ftype='butter', order=2,
-                                             output='sos'))
+                             iir_params=iir_params)
+    iir_params_sos = construct_iir_filter(iir_params, f_pass=0.5, sfreq=250,
+                                          btype='highpass')
+    x_sos_2 = high_pass_filter(sig, 250, 0.5, method='iir',
+                               iir_params=iir_params_sos)
+    assert_allclose(x_sos[100:-100], x_sos_2[100:-100])
     x_ba = high_pass_filter(sig, 250, 0.5, method='iir',
                             iir_params=dict(ftype='butter', order=2,
                                             output='ba'))
@@ -340,6 +358,12 @@ def test_filters():
         x_filt = low_pass_filter(x, sfreq, lp, '1s')
     # the firwin2 function gets us this close
     assert_allclose(x, x_filt, rtol=1e-3, atol=1e-3)
+
+    # degenerate conditions
+    assert_raises(ValueError, filter_data, x, sfreq, 1, 10)  # not 2D
+    assert_raises(ValueError, filter_data, x[np.newaxis], -sfreq, 1, 10)
+    assert_raises(ValueError, filter_data, x[np.newaxis], sfreq, 1,
+                  sfreq * 0.75)
 
 
 def test_cuda():
