@@ -1242,3 +1242,61 @@ if LooseVersion(np.__version__) < LooseVersion('1.7'):
     isclose = _isclose
 else:
     isclose = np.isclose
+
+
+def _read_volume_info(fobj):
+    """An implementation of nibabel.freesurfer.io._read_volume_info, since old
+    versions of nibabel (<=2.1.0) don't have it.
+    """
+    volume_info = dict()
+    head = np.fromfile(fobj, '>i4', 1)
+    if not np.array_equal(head, [20]):  # Read two bytes more
+        head = np.concatenate([head, np.fromfile(fobj, '>i4', 2)])
+        if not np.array_equal(head, [2, 0, 20]):
+            warnings.warn("Unknown extension code.")
+            return volume_info
+
+    volume_info['head'] = head
+    for key in ['valid', 'filename', 'volume', 'voxelsize', 'xras', 'yras',
+                'zras', 'cras']:
+        pair = fobj.readline().decode('utf-8').split('=')
+        if pair[0].strip() != key or len(pair) != 2:
+            raise IOError('Error parsing volume info.')
+        if key in ('valid', 'filename'):
+            volume_info[key] = pair[1].strip()
+        elif key == 'volume':
+            volume_info[key] = np.array(pair[1].split()).astype(int)
+        else:
+            volume_info[key] = np.array(pair[1].split()).astype(float)
+    # Ignore the rest
+    return volume_info
+
+
+def _serialize_volume_info(volume_info):
+    """An implementation of nibabel.freesurfer.io._serialize_volume_info, since
+    old versions of nibabel (<=2.1.0) don't have it."""
+    keys = ['head', 'valid', 'filename', 'volume', 'voxelsize', 'xras', 'yras',
+            'zras', 'cras']
+    diff = set(volume_info.keys()).difference(keys)
+    if len(diff) > 0:
+        raise ValueError('Invalid volume info: %s.' % diff.pop())
+
+    strings = list()
+    for key in keys:
+        if key == 'head':
+            if not (np.array_equal(volume_info[key], [20]) or np.array_equal(
+                    volume_info[key], [2, 0, 20])):
+                warnings.warn("Unknown extension code.")
+            strings.append(np.array(volume_info[key], dtype='>i4').tostring())
+        elif key in ('valid', 'filename'):
+            val = volume_info[key]
+            strings.append('{0} = {1}\n'.format(key, val).encode('utf-8'))
+        elif key == 'volume':
+            val = volume_info[key]
+            strings.append('{0} = {1} {2} {3}\n'.format(
+                key, val[0], val[1], val[2]).encode('utf-8'))
+        else:
+            val = volume_info[key]
+            strings.append('{0} = {1:0.10g} {2:0.10g} {3:0.10g}\n'.format(
+                key.ljust(6), val[0], val[1], val[2]).encode('utf-8'))
+    return b''.join(strings)

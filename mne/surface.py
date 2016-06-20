@@ -9,22 +9,24 @@ from os import path as op
 import sys
 from struct import pack
 from glob import glob
+from distutils.version import LooseVersion
 
 import numpy as np
 from scipy.sparse import coo_matrix, csr_matrix, eye as speye
+import nibabel as nib
 
 from .bem import read_bem_surfaces
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tree import dir_tree_find
 from .io.tag import find_tag
-from .io.write import (write_int, start_file, end_block,
-                       start_block, end_file, write_string,
-                       write_float_sparse_rcs)
+from .io.write import (write_int, start_file, end_block, start_block, end_file,
+                       write_string, write_float_sparse_rcs)
 from .channels.channels import _get_meg_system
 from .transforms import transform_surface_to
 from .utils import logger, verbose, get_subjects_dir, warn
 from .externals.six import string_types
+from .fixes import _read_volume_info, _serialize_volume_info
 
 
 ###############################################################################
@@ -406,7 +408,7 @@ def read_curvature(filepath):
 
 
 @verbose
-def read_surface(fname, verbose=None):
+def read_surface(fname, read_metadata=False, verbose=None):
     """Load a Freesurfer surface mesh in triangular format
 
     Parameters
@@ -428,6 +430,9 @@ def read_surface(fname, verbose=None):
     --------
     write_surface
     """
+    if LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
+        return nib.freesurfer.read_geometry(fname, read_metadata=read_metadata)
+
     TRIANGLE_MAGIC = 16777214
     QUAD_MAGIC = 16777215
     NEW_QUAD_MAGIC = 16777213
@@ -462,6 +467,8 @@ def read_surface(fname, verbose=None):
             fnum = np.fromfile(fobj, ">i4", 1)[0]
             coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
             faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
+            if read_metadata:
+                volume_info = _read_volume_info(fobj)
         else:
             raise ValueError("%s does not appear to be a Freesurfer surface"
                              % fname)
@@ -469,19 +476,25 @@ def read_surface(fname, verbose=None):
                     % (create_stamp.strip(), len(coords), len(faces)))
 
     coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
-    return coords, faces
+
+    ret = (coords, faces)
+    if read_metadata:
+        if len(volume_info) == 0:
+            warn('No volume information contained in the file')
+        ret += (volume_info,)
+    return ret
 
 
 @verbose
-def _read_surface_geom(fname, patch_stats=True, norm_rr=False, verbose=None):
+def _read_surface_geom(fname, patch_stats=True, norm_rr=False,
+                       read_metadata=False, verbose=None):
     """Load the surface as dict, optionally add the geometry information"""
     # based on mne_load_surface_geom() in mne_surface_io.c
     if isinstance(fname, string_types):
-        rr, tris = read_surface(fname)  # mne_read_triangle_file()
-        nvert = len(rr)
-        ntri = len(tris)
-        s = dict(rr=rr, tris=tris, use_tris=tris, ntri=ntri,
-                 np=nvert)
+        ret = read_surface(fname, read_metadata=read_metadata)
+        nvert = len(ret[0])
+        ntri = len(ret[1])
+        s = dict(rr=ret[0], tris=ret[1], use_tris=ret[1], ntri=ntri, np=nvert)
     elif isinstance(fname, dict):
         s = fname
     else:
@@ -490,6 +503,8 @@ def _read_surface_geom(fname, patch_stats=True, norm_rr=False, verbose=None):
         s = _complete_surface_info(s)
     if norm_rr is True:
         _normalize_vectors(s['rr'])
+    if read_metadata:
+        return s, ret[2]
     return s
 
 
@@ -671,7 +686,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
     return surf
 
 
-def write_surface(fname, coords, faces, create_stamp=''):
+def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
     """Write a triangular Freesurfer surface mesh
 
     Accepts the same data format as is returned by read_surface().
@@ -688,6 +703,20 @@ def write_surface(fname, coords, faces, create_stamp=''):
     create_stamp : str
         Comment that is written to the beginning of the file. Can not contain
         line breaks.
+    volume_info : dict-like or None
+        Key-value pairs to encode at the end of the file.
+        Valid keys:
+            * 'head' : array of int
+            * 'valid' : str
+            * 'filename' : str
+            * 'volume' : array of int, shape (3,)
+            * 'voxelsize' : array of float, shape (3,)
+            * 'xras' : array of float, shape (3,)
+            * 'yras' : array of float, shape (3,)
+            * 'zras' : array of float, shape (3,)
+            * 'cras' : array of float, shape (3,)
+
+        .. versionadded:: 0.13.0
 
     See Also
     --------
@@ -696,6 +725,11 @@ def write_surface(fname, coords, faces, create_stamp=''):
     if len(create_stamp.splitlines()) > 1:
         raise ValueError("create_stamp can only contain one line")
 
+    if LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
+        nib.freesurfer.io.write_geometry(fname, coords, faces,
+                                         create_stamp=create_stamp,
+                                         volume_info=volume_info)
+        return
     with open(fname, 'wb') as fid:
         fid.write(pack('>3B', 255, 255, 254))
         strs = ['%s\n' % create_stamp, '\n']
@@ -706,6 +740,10 @@ def write_surface(fname, coords, faces, create_stamp=''):
         fid.write(pack('>2i', vnum, fnum))
         fid.write(np.array(coords, dtype='>f4').tostring())
         fid.write(np.array(faces, dtype='>i4').tostring())
+
+        # Add volume info, if given
+        if volume_info is not None and len(volume_info) > 0:
+            fid.write(_serialize_volume_info(volume_info))
 
 
 ###############################################################################

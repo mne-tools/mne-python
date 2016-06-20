@@ -1062,21 +1062,26 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     os.makedirs(op.join(ws_dir, 'ws'))
     run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
 
-    surfs = ['brain', 'inner_skull', 'outer_skull', 'outer_skin']
-    for s in surfs:
-        surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))
+    if op.isfile(T1_mgz):
+        new_info = _read_volume_info(T1_mgz)
+        surfs = ['brain', 'inner_skull', 'outer_skull', 'outer_skin']
+        for s in surfs:
+            surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))
 
-        surf = _read_surface_geom(surf_ws_out)
-        write_surface(s, surf['rr'], surf['tris'])
-        # Create symbolic links
-        surf_out = op.join(bem_dir, '%s.surf' % s)
-        if not overwrite and op.exists(surf_out):
-            skip_symlink = True
-        else:
-            if op.exists(surf_out):
-                os.remove(surf_out)
-            _symlink(surf_ws_out, surf_out)
-            skip_symlink = False
+            surf, volume_info = _read_surface_geom(surf_ws_out,
+                                                   read_metadata=True)
+            volume_info.update(new_info)  # replace geometry, 'head' stays
+
+            write_surface(s, surf['rr'], surf['tris'], volume_info=volume_info)
+            # Create symbolic links
+            surf_out = op.join(bem_dir, '%s.surf' % s)
+            if not overwrite and op.exists(surf_out):
+                skip_symlink = True
+            else:
+                if op.exists(surf_out):
+                    os.remove(surf_out)
+                _symlink(surf_ws_out, surf_out)
+                skip_symlink = False
 
     if skip_symlink:
         logger.info("Unable to create all symbolic links to .surf files in "
@@ -1108,6 +1113,25 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                  orientation='coronal', slices=None, show=True)
 
     logger.info('Created %s\n\nComplete.' % (fname_head,))
+
+
+def _read_volume_info(T1):
+    """Helper for extracting volume info from T1.mgz."""
+    import nibabel as nib
+    header = nib.load(T1).header
+    new_info = dict()
+    version = header['version']
+    if version == 1:
+        version = '%s  # volume info valid' % version
+    else:
+        raise ValueError('Volume info invalid.')
+    new_info['valid'] = version
+    new_info['filename'] = T1
+    new_info['volume'] = header['dims'][:3]
+    new_info['voxelsize'] = header['delta']
+    new_info['xras'], new_info['yras'], new_info['zras'] = header['Mdc'].T
+    new_info['cras'] = header['Pxyz_c']
+    return new_info
 
 
 # ############################################################################
