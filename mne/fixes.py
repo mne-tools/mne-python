@@ -639,7 +639,6 @@ def _filtfilt(b, a, x, axis=-1, padtype='odd', padlen=None, method='pad',
 
 def _sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
     """copy of SciPy sosfiltfilt"""
-    from scipy.signal import sosfilt
     sos, n_sections = _validate_sos(sos)
 
     # `method` is "pad"...
@@ -798,6 +797,42 @@ def sosfilt_zi(sos):
         scale *= b.sum() / a.sum()
 
     return zi
+
+
+def sosfilt(sos, x, axis=-1, zi=None):
+    """Filter data along one dimension using cascaded second-order sections"""
+    from scipy.signal import lfilter
+    x = np.asarray(x)
+
+    sos = np.atleast_2d(sos)
+    if sos.ndim != 2:
+        raise ValueError('sos array must be 2D')
+
+    n_sections, m = sos.shape
+    if m != 6:
+        raise ValueError('sos array must be shape (n_sections, 6)')
+
+    use_zi = zi is not None
+    if use_zi:
+        zi = np.asarray(zi)
+        x_zi_shape = list(x.shape)
+        x_zi_shape[axis] = 2
+        x_zi_shape = tuple([n_sections] + x_zi_shape)
+        if zi.shape != x_zi_shape:
+            raise ValueError('Invalid zi shape.  With axis=%r, an input with '
+                             'shape %r, and an sos array with %d sections, zi '
+                             'must have shape %r.' %
+                             (axis, x.shape, n_sections, x_zi_shape))
+        zf = np.zeros_like(zi)
+
+    for section in range(n_sections):
+        if use_zi:
+            x, zf[section] = lfilter(sos[section, :3], sos[section, 3:],
+                                     x, axis, zi=zi[section])
+        else:
+            x = lfilter(sos[section, :3], sos[section, 3:], x, axis)
+    out = (x, zf) if use_zi else x
+    return out
 
 
 def get_filtfilt():

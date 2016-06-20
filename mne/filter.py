@@ -465,14 +465,20 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     function) with the filter coefficients ('b' and 'a') and an estimate
     of the padding necessary ('padlen') so IIR filtering can be performed.
 
+    .. note:: As of 0.14, second-order sections will be used in filter
+              design by default (replacing ``output='ba'`` by
+              ``output='sos'``) to help ensure filter stability and
+              reduce numerical error. Second-order sections filtering
+              requires SciPy >= 16.0.
+
+
     Parameters
     ----------
     iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         
             * If ``iir_params['sos']`` exists, it will be used as
-              second-order sections to perform IIR filtering. Note that
-              second-order sections requires SciPy >= 0.16.
+              second-order sections to perform IIR filtering.
               
               .. versionadded:: 0.13
 
@@ -489,8 +495,8 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
               (and an estimate will be calculated if it is not given).
               See Notes for more details.
             * ``iir_params['output']`` defines the system output kind when
-                designing filters, either "sos" or "ba". The default is 'ba'
-                for 0.13 but will change to 'sos' in 0.14.
+              designing filters, either "sos" or "ba". For 0.13 the
+              default is 'ba' but will change to 'sos' in 0.14.
 
     f_pass : float or list of float
         Frequency for the pass-band. Low-pass and high-pass filters should
@@ -518,12 +524,9 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
 
     Notes
     -----
-    This function triages calls to `scipy.signal.iirfilter` and iirdesign
-    based on the input arguments (see descriptions of these functions
-    and scipy's `scipy.signal.filter_design` documentation for details).
-
-    As of 0.13, second-order sections will be used in filter design to help
-    ensure filter stability.
+    This function triages calls to :func:`scipy.signal.iirfilter` and
+    :func:`scipy.signal.iirdesign` based on the input arguments (see
+    linked functions for more details).
 
     Examples
     --------
@@ -534,9 +537,9 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     filter 'N' and the type of filtering 'ftype' are specified. To get
     coefficients for a 4th-order Butterworth filter, this would be:
 
-    >>> iir_params = dict(order=4, ftype='butter', output='sos')
-    >>> iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low', return_copy=False)
-    >>> print((2 * len(iir_params['sos']), iir_params['padlen']))
+    >>> iir_params = dict(order=4, ftype='butter', output='sos')  # doctest:+SKIP
+    >>> iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low', return_copy=False)  # doctest:+SKIP
+    >>> print((2 * len(iir_params['sos']), iir_params['padlen']))  # doctest:+SKIP
     (4, 82)
 
     Filters can also be constructed using filter design methods. To get a
@@ -544,9 +547,9 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     pass and stop bands (assuming the desired stop band is at 45 Hz), this
     would be a filter with much longer ringing:
 
-    >>> iir_params = dict(ftype='cheby1', gpass=3, gstop=20, output='sos')
-    >>> iir_params = construct_iir_filter(iir_params, 40, 50, 1000, 'low')
-    >>> print((2 * len(iir_params['sos']), iir_params['padlen']))
+    >>> iir_params = dict(ftype='cheby1', gpass=3, gstop=20, output='sos')  # doctest:+SKIP
+    >>> iir_params = construct_iir_filter(iir_params, 40, 50, 1000, 'low')  # doctest:+SKIP
+    >>> print((2 * len(iir_params['sos']), iir_params['padlen']))  # doctest:+SKIP
     (6, 439)
 
     Padding and/or filter coefficients can also be manually specified. For
