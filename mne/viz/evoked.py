@@ -312,10 +312,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                             if i in idx:
                                 colors[idx.index(i)] = 'r'
 
-                    # find the channels with the least activity,
-                    # and map them in front of the more active ones
-                    auc = np.trapz((np.abs(D - D.mean(1).reshape(-1, 1))))
-                    z_ord = auc.argsort()
+                    # find the channels with the least activity
+                    # to map them in front of the more active ones
+                    z_ord = D.std(axis=1).argsort()
 
                     # plot channels
                     for ch_idx, zorder in enumerate(z_ord):
