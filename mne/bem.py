@@ -1070,7 +1070,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
             surf, volume_info = _read_surface_geom(surf_ws_out,
                                                    read_metadata=True)
-            volume_info.update(new_info)  # replace geometry, 'head' stays
+            volume_info.update(new_info)  # replace volume info, 'head' stays
 
             write_surface(s, surf['rr'], surf['tris'], volume_info=volume_info)
             # Create symbolic links

@@ -16,6 +16,7 @@ from mne.surface import (read_morph_map, _compute_nearest,
 from mne.utils import _TempDir, requires_mayavi, run_tests_if_main, slow_test
 from mne.io import read_info
 from mne.transforms import _get_trans
+from mne.io.meas_info import _is_equal_dict
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -130,11 +131,13 @@ def test_io_surface():
     fname_tri = op.join(data_path, 'subjects', 'fsaverage', 'surf',
                         'lh.inflated')
     for fname in (fname_quad, fname_tri):
-        pts, tri = read_surface(fname)
-        write_surface(op.join(tempdir, 'tmp'), pts, tri)
-        c_pts, c_tri = read_surface(op.join(tempdir, 'tmp'))
+        pts, tri, vol_info = read_surface(fname, read_metadata=True)
+        write_surface(op.join(tempdir, 'tmp'), pts, tri, volume_info=vol_info)
+        c_pts, c_tri, c_vol_info = read_surface(op.join(tempdir, 'tmp'),
+                                                read_metadata=True)
         assert_array_equal(pts, c_pts)
         assert_array_equal(tri, c_tri)
+        _is_equal_dict([vol_info, c_vol_info])
 
 
 @testing.requires_testing_data

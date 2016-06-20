@@ -417,6 +417,20 @@ def read_surface(fname, read_metadata=False, verbose=None):
         The name of the file containing the surface.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    read_metadata : bool
+        Read metadata as key-value pairs.
+        Valid keys:
+            * 'head' : array of int
+            * 'valid' : str
+            * 'filename' : str
+            * 'volume' : array of int, shape (3,)
+            * 'voxelsize' : array of float, shape (3,)
+            * 'xras' : array of float, shape (3,)
+            * 'yras' : array of float, shape (3,)
+            * 'zras' : array of float, shape (3,)
+            * 'cras' : array of float, shape (3,)
+
+        .. versionadded:: 0.13.0
 
     Returns
     -------
@@ -425,14 +439,18 @@ def read_surface(fname, read_metadata=False, verbose=None):
     tris : int array, shape=(n_faces, 3)
         Triangulation (each line contains indexes for three points which
         together form a face).
-
+    volume_info : dict-like
+        If read_metadata is true, key-value pairs found in the geometry file.
     See Also
     --------
     write_surface
     """
-    if LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
-        return nib.freesurfer.read_geometry(fname, read_metadata=read_metadata)
+    # XXX: Tests fail here due to numerical error.
+    # if LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
+    #     return nib.freesurfer.read_geometry(fname,
+    #                                         read_metadata=read_metadata)
 
+    volume_info = dict()
     TRIANGLE_MAGIC = 16777214
     QUAD_MAGIC = 16777215
     NEW_QUAD_MAGIC = 16777213
