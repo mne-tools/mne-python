@@ -775,6 +775,7 @@ def test_grow_labels():
 
 @testing.requires_testing_data
 def test_label_sign_flip():
+    """Test label sign flip computation"""
     src = read_source_spaces(src_fname)
     label = Label(vertices=src[0]['vertno'][:5], hemi='lh')
     src[0]['nn'][label.vertices] = np.array(
@@ -790,5 +791,56 @@ def test_label_sign_flip():
     assert_array_almost_equal(np.abs(np.dot(flip[idx], known_flips[idx])),
                               len(idx))
 
+
+@testing.requires_testing_data
+def test_label_center_of_mass():
+    """Test computing the center of mass of a label"""
+    stc = read_source_estimate(stc_fname)
+    stc.lh_data[:] = 0
+    vertex_stc = stc.center_of_mass('sample', subjects_dir=subjects_dir)[0]
+    assert_equal(vertex_stc, 124791)
+    label = Label(stc.vertices[1], pos=None, values=stc.rh_data.mean(axis=1),
+                  hemi='rh', subject='sample')
+    vertex_label = label.center_of_mass(subjects_dir=subjects_dir)
+    assert_equal(vertex_label, vertex_stc)
+
+    labels = read_labels_from_annot('sample', parc='aparc.a2009s',
+                                    subjects_dir=subjects_dir)
+    src = read_source_spaces(src_fname)
+    # Try a couple of random ones, one from left and one from right
+    # Visually verified in about the right place using mne_analyze
+    for label, expected in zip([labels[2], labels[3], labels[-5]],
+                               [141162, 145221, 55979]):
+        label.values[:] = -1
+        assert_raises(ValueError, label.center_of_mass,
+                      subjects_dir=subjects_dir)
+        label.values[:] = 1
+        assert_equal(label.center_of_mass(subjects_dir=subjects_dir), expected)
+        assert_equal(label.center_of_mass(subjects_dir=subjects_dir,
+                                          restrict_vertices=label.vertices),
+                     expected)
+        # restrict to source space
+        idx = 0 if label.hemi == 'lh' else 1
+        # this simple nearest version is not equivalent, but is probably
+        # close enough for many labels (including the test ones):
+        pos = label.pos[np.where(label.vertices == expected)[0][0]]
+        pos = (src[idx]['rr'][src[idx]['vertno']] - pos)
+        pos = np.argmin(np.sum(pos * pos, axis=1))
+        src_expected = src[idx]['vertno'][pos]
+        # see if we actually get the same one
+        src_restrict = np.intersect1d(label.vertices, src[idx]['vertno'])
+        assert_equal(label.center_of_mass(subjects_dir=subjects_dir,
+                                          restrict_vertices=src_restrict),
+                     src_expected)
+        assert_equal(label.center_of_mass(subjects_dir=subjects_dir,
+                                          restrict_vertices=src),
+                     src_expected)
+    # degenerate cases
+    assert_raises(ValueError, label.center_of_mass, subjects_dir=subjects_dir,
+                  restrict_vertices='foo')
+    assert_raises(TypeError, label.center_of_mass, subjects_dir=subjects_dir,
+                  surf=1)
+    assert_raises(IOError, label.center_of_mass, subjects_dir=subjects_dir,
+                  surf='foo')
 
 run_tests_if_main()

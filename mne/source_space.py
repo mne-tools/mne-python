@@ -53,6 +53,13 @@ def _get_lut_id(lut, label, use_lut):
     return lut['id'][mask]
 
 
+_src_kind_dict = {
+    'vol': 'volume',
+    'surf': 'surface',
+    'discrete': 'discrete',
+}
+
+
 class SourceSpaces(list):
     """Represent a list of source space
 
@@ -84,24 +91,26 @@ class SourceSpaces(list):
         ss_repr = []
         for ss in self:
             ss_type = ss['type']
+            r = _src_kind_dict[ss_type]
             if ss_type == 'vol':
                 if 'seg_name' in ss:
-                    r = ("'vol' (%s), n_used=%i"
-                         % (ss['seg_name'], ss['nuse']))
+                    r += " (%s)" % (ss['seg_name'],)
                 else:
-                    r = ("'vol', shape=%s, n_used=%i"
-                         % (repr(ss['shape']), ss['nuse']))
+                    r += ", shape=%s" % (ss['shape'],)
             elif ss_type == 'surf':
-                r = "'surf', n_vertices=%i, n_used=%i" % (ss['np'], ss['nuse'])
-            else:
-                r = "%r" % ss_type
-            coord_frame = ss['coord_frame']
-            if isinstance(coord_frame, np.ndarray):
-                coord_frame = coord_frame[0]
-            r += ', coordinate_frame=%s' % _coord_frame_name(coord_frame)
+                r += (" (%s), n_vertices=%i" % (_get_hemi(ss)[0], ss['np']))
+            r += (', n_used=%i, coordinate_frame=%s'
+                  % (ss['nuse'], _coord_frame_name(int(ss['coord_frame']))))
             ss_repr.append('<%s>' % r)
-        ss_repr = ', '.join(ss_repr)
-        return "<SourceSpaces: [{ss}]>".format(ss=ss_repr)
+        return "<SourceSpaces: [%s]>" % ', '.join(ss_repr)
+
+    @property
+    def kind(self):
+        """The kind of source space (surface, volume, discrete)"""
+        ss_types = list(set([ss['type'] for ss in self]))
+        if len(ss_types) != 1:
+            return 'combined'
+        return _src_kind_dict[ss_types[0]]
 
     def __add__(self, other):
         return SourceSpaces(list.__add__(self, other))
@@ -1174,7 +1183,7 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
 def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
                        overwrite=False, subjects_dir=None, add_dist=True,
                        n_jobs=1, verbose=None):
-    """Setup a source space with subsampling
+    """Setup a bilater hemisphere surface-based source space with subsampling
 
     Parameters
     ----------
@@ -1206,6 +1215,10 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
     -------
     src : list
         The source space for each hemisphere.
+
+    See Also
+    --------
+    setup_volume_source_space
     """
     cmd = ('setup_source_space(%s, fname=%s, spacing=%s, surface=%s, '
            'overwrite=%s, subjects_dir=%s, add_dist=%s, verbose=%s)'
@@ -1364,7 +1377,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     surface : str | dict | None
         Define source space bounds using a FreeSurfer surface file. Can
         also be a dictionary with entries `'rr'` and `'tris'`, such as
-        those returned by `read_surface()`.
+        those returned by :func:`mne.read_surface`.
     mindist : float
         Exclude points closer than this distance (mm) to the bounding surface.
     exclude : float
@@ -1388,6 +1401,10 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         The source space. Note that this list will have length 1 for
         compatibility reasons, as most functions expect source spaces
         to be provided as lists).
+
+    See Also
+    --------
+    setup_source_space
 
     Notes
     -----

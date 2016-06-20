@@ -21,6 +21,8 @@ Changelog
 
     - :func:`mne.viz.plot_trans` now also shows head position indicators by `Christian Brodbeck`_
 
+    - Add label center of mass function :func:`mne.Label.center_of_mass` by `Eric Larson`_
+
 BUG
 ~~~
 

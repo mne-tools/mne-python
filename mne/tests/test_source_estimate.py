@@ -271,8 +271,7 @@ def test_stc_arithmetic():
 @slow_test
 @testing.requires_testing_data
 def test_stc_methods():
-    """Test stc methods lh_data, rh_data, bin(), center_of_mass(), resample()
-    """
+    """Test stc methods lh_data, rh_data, bin, center_of_mass, resample"""
     stc = read_source_estimate(fname_stc)
 
     # lh_data / rh_data
@@ -286,6 +285,8 @@ def test_stc_methods():
     assert a[0] == bin.data[0, 0]
 
     assert_raises(ValueError, stc.center_of_mass, 'sample')
+    assert_raises(TypeError, stc.center_of_mass, 'sample',
+                  subjects_dir=subjects_dir, surf=1)
     stc.lh_data[:] = 0
     vertex, hemi, t = stc.center_of_mass('sample', subjects_dir=subjects_dir)
     assert_true(hemi == 1)
