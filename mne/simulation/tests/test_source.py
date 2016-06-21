@@ -117,7 +117,7 @@ def test_simulate_sparse_stc():
         random_state = 0 if location == 'random' else None
         stc_1 = simulate_sparse_stc(fwd['src'], len(labels), times,
                                     labels=labels, random_state=random_state,
-                                    location=location, subject='sample',
+                                    location=location,
                                     subjects_dir=subjects_dir)
         assert_equal(stc_1.subject, 'sample')
 
@@ -127,12 +127,16 @@ def test_simulate_sparse_stc():
         # make sure we get the same result when using the same seed
         stc_2 = simulate_sparse_stc(fwd['src'], len(labels), times,
                                     labels=labels, random_state=random_state,
-                                    location=location, subject='sample',
+                                    location=location,
                                     subjects_dir=subjects_dir)
 
         assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
         assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
     # Degenerate cases
+    assert_raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
+                  times, labels=labels, location='center', subject='foo',
+                  subjects_dir=subjects_dir)  # wrong subject
+    del fwd['src'][0]['subject_his_id']
     assert_raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
                   times, labels=labels, location='center',
                   subjects_dir=subjects_dir)  # no subject

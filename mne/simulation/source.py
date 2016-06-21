@@ -160,7 +160,12 @@ def simulate_sparse_stc(src, n_dipoles, times,
     """
     rng = check_random_state(random_state)
     src = _ensure_src(src, verbose=False)
-    subject = src[0].get('subject_his_id')
+    subject_src = src[0].get('subject_his_id')
+    if subject is None:
+        subject = subject_src
+    elif subject_src is not None and subject != subject_src:
+        raise ValueError('subject argument (%s) did not match the source '
+                         'space subject_his_id (%s)' % (subject, subject_src))
     data = np.zeros((n_dipoles, len(times)))
     for i_dip in range(n_dipoles):
         data[i_dip, :] = data_fun(times)
