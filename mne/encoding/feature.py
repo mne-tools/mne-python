@@ -7,19 +7,28 @@ class DataDelayer(object):
 
     Parameters
     ----------
-    delays : array-like, shape (n_delays,)
-        The delays to create for the data. If sfreq is 1, it is assumed
-        that these are in samples. If sfreq != 1, these should be in
-        seconds.
-    sfreq : float | int
-        The sampling frequency to use when constructing delays. If 1, then
-        delays should contain sample indices, not time in seconds.
+    time_window : array, shape (2,)
+        Specifies a minimum/maximum delay in seconds. In this case, all
+        delays between `min(time_window)` and `max(time_window)`
+        will be calculated using `sfreq`.
+    delays: array of floats, shape (n_delays,)
+        The time (in seconds) of each delay for specifying
+        pre-defined delays. Negative means timepoints in the past,
+        positive means timepoints in the future.
+    sfreq: int
+        The sampling frequency of the series
     """
-    def __init__(self, delays=[0.], sfreq=1.):
+    def __init__(self, delays=None, time_window=None, sfreq=1.):
+        # Check if we need to create delays ourselves
+        if time_window is not None:
+            delays = np.linspace(time_window[0], time_window[1], sfreq)
+        elif delays is None:
+            raise ValueError('One of `time_window` or `delays` must be given.')
         self.delays = np.asarray(delays)
         self.sfreq = float(sfreq)
+        self.feature_type = 'delay'
 
-    def fit(self, X, X_names=None):
+    def fit(self, X, y=None):
         """Create a time-lagged representation of X.
 
         Parameters
@@ -27,29 +36,35 @@ class DataDelayer(object):
         X : array-like, shape (n_features, n_times)
             The input data to be time-lagged and returned.
         """
-        self.X_delayed = delay_timeseries(X, self.sfreq, self.delays)
-        self.X_names = X_names
+        self.X_delayed, self.names = _delay_timeseries(
+            X, self.delays, sfreq=self.sfreq)
 
     def transform(self, X=None, y=None):
-        if self.X_names is None:
-            return self.X_delayed
-        else:
-            return self.X_delayed, self.X_names
+        return self.X_delayed
 
-    def fit_transform(self, X, X_names=None):
+    def fit_transform(self, X, y=None):
         """See `transform` method."""
-        self.fit(X, X_names=X_names)
+        self.fit(X)
         return self.transform()
 
 
 class EventsBinarizer(object):
-    """Create a continuous events-based feature set from event indices."""
+    """Create a continuous-representation of event onsets.
+
+    Patameters
+    ----------
+    n_times : int
+        The total number of times in the output array
+    sfreq : float
+        The sampling frequency used to convert times to sample indices.
+    """
     def __init__(self, n_times, sfreq=1.):
         self.n_times = n_times
         self.sfreq = sfreq
+        self.feature_type = 'eventid'
 
     def fit(self, event_ixs, event_ids=None, event_dict=None):
-        """Create a continuous-representation of event onsets.
+        """Binarize the events.
 
         Parameters
         ----------
@@ -87,7 +102,7 @@ class EventsBinarizer(object):
 
             # Handle event names
             event_names.append(event_dict[ev_type])
-        self.event_names = event_names
+        self.names = event_names
         self.events_continuous = events_continuous
         self.unique_event_types = unique_event_types
 
@@ -108,16 +123,36 @@ class EventsBinarizer(object):
 
 
 class DataSubsetter(object):
-    """Return a subset of data."""
+    """Use for returning a subset of data.
+
+    Parameters
+    ----------
+    ixs : array, shape (n_ixs,)
+        The indices to select from the data."""
     def __init__(self, ixs):
         self.ixs = ixs.astype(int)
 
     def fit(self, data, y=None):
+        """Pull a subset of data points.
+
+        Parameters
+        ----------
+        data : array, shape (n_features, n_samples)
+            The data to be subsetted. The data points specified by
+            `self.ixs` will be taken from columns of this array.
+        """
         if data.shape[-1] < self.ixs.max():
             raise ValueError('ixs exceed data shape')
         self.data = np.asarray(data)
 
     def transform(self, X=None, y=None):
+        """Return a subset of data points.
+
+        Returns
+        -------
+        data : array, shape (n_features, n_ixs)
+            A subset of columns from the input array.
+        """
         return self.data[..., self.ixs]
 
     def fit_transform(self, ixs, y=None):
@@ -125,33 +160,43 @@ class DataSubsetter(object):
         return self.transform()
 
 
-def delay_timeseries(ts, sfreq, delays):
+def _delay_timeseries(ts, delays, sfreq=1.):
     """Return a time-lagged input timeseries.
 
     Parameters
     ----------
     ts: array, shape (n_feats, n_times)
         The timeseries to delay
+    delays: array of floats, shape (n_delays,)
+        The time (in seconds) of each delay for specifying
+        pre-defined delays. Negative means timepoints in the past,
+        positive means timepoints in the future.
     sfreq: int
         The sampling frequency of the series
-    delays: list of floats
-        The time (in seconds) of each delay. Negative means
-        timepoints in the past, positive means timepoints in
-        the future.
 
     Returns
     -------
     delayed: array, shape(n_feats * n_delays, n_times)
         The delayed matrix
     """
-    delayed = np.zeros([len(delays), ts.shape[-1]])
-    for ii, delay in enumerate(delays):
-        roll_amount = -1 * int(delay * sfreq)
+    n_feats, n_times = ts.shape
+    delays_ixs = -1 * (delays * sfreq).astype(int)
+    delays_ixs = np.unique(delays_ixs)  # Remove duplicated ixs
+
+    # Iterate through indices and append
+    delayed = []
+    delayed_names = []
+    for ii, roll_amount in enumerate(delays_ixs):
+        # Convert to sample indices
         rolled = np.roll(ts, roll_amount, axis=-1)
         if roll_amount < 0:
-            rolled[:, roll_amount:0] = 0
+            rolled[:, roll_amount:] = 0
         elif roll_amount > 0:
-            rolled[:, 0:roll_amount] = 0
-        delayed[ii] = rolled
+            rolled[:, :roll_amount] = 0
+        delayed.append(rolled)
+        # Save (feat_ix, delay) pairs
+        delayed_names.append([(ii, roll_amount / float(sfreq))
+                              for ii in range(n_feats)])
     delayed = np.vstack(delayed)
-    return delayed
+    delayed_names = np.hstack(delayed_names)
+    return delayed, delayed_names

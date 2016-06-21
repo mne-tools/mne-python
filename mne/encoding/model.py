@@ -1,18 +1,59 @@
 import numpy as np
 from sklearn.base import BaseEstimator
 from scipy import linalg
+from .feature import EventsBinarizer, DataDelayer
 from ..externals.six import string_types
+from ..utils import warn
+from sklearn.base import is_regressor
+
+
+class EventRelatedRegressor(object):
+    def __init__(self, raw, events, est=None, event_id=None, tmin=-.5, tmax=.5,
+                 preproc_x=None, preproc_y=None):
+        if events.shape[-1] != 3:
+            raise ValueError('Events must be shape (n_events, 3)')
+        if raw.preloaded is False:
+            raise ValueError('Data must be preloaded')
+
+        # Create events representation
+        self.ev_ixs = events[:, 0]
+        self.ev_types = events[:, 2]
+        self.event_id = event_id
+        binarizer = EventsBinarizer(raw.n_times, sfreq=raw.info['sfreq'])
+        self.X = binarizer.fit_transform(self.ev_ixs, self.ev_types,
+                                         self.event_id)
+
+        # Prep output data
+        self.raw = raw
+
+        # Prepare data preprocessors + design matrix
+        delayer = DataDelayer(time_window=[tmin, tmax],
+                              sfreq=sig_cont.info['sfreq'])
+        _check_preproc(preproc_x)
+        _check_preproc(preproc_y)
+        if preproc_x is not None:
+            # Add the delays to the end of preproc_x
+            preproc_x = Pipeline(preproc_x.steps + [('delayer', DataDelayer)])
+
+        # Create model and attributes
+        self.est = EncodingModel(est, preproc_x=preproc_x, preproc_y=preproc_y)
+        self.tmin = tmin
+        self.tmax = tmax
+
+    def fit(self, picks=None):
+        if picks is None:
+            picks = np.arange(len(self.raw.ch_names))
+        Y = self.raw._data[picks]
+        self.est.fit(self.X, Y)
+        self.coef_ = self.est.coef_
 
 
 class EncodingModel(object):
-    def __init__(self, est=None, delays=[0.], preproc_x=None, preproc_y=None):
-        """Fit a STRF model.
+    def __init__(self, est=None, preproc_x=None, preproc_y=None):
+        """Base structure for encoding models of neural signals.
 
-        Fit an encoding model using time lags and a custom estimator.
-        Compatible either with continuous or events-based input
-        stimuli. It creates time lags for the input matrix, performs
-        preprocessing according to any transformers in the pipeline in `est`,
-        and then fits a model with the final estimator in `est`.
+        Fit an encoding model using arbitrary input transformations and a
+        custom estimator.
 
         Parameters
         ----------
@@ -20,9 +61,6 @@ class EncodingModel(object):
             The estimator to use for fitting. This is any object that contains
             a `fit` and `predict` method, which takes inputs of the form
             (X, y), and which creates a `.coef_` attribute upon fitting.
-        delays : array, shape (n_delays,)
-            The delays to include when creating time lags. The input array X
-            will end up having shape (n_feats * n_delays, n_times)
         preproc_x : instance of sklearn-style pipeline | None
             An object for preprocessing / transforming input data before the
             call to `est`. If None, no preprocessing will occur.
@@ -42,8 +80,6 @@ class EncodingModel(object):
                estimation: simple-cell receptive fields from responses to
                natural scenes. Network 14, 553-77 (2003).
         """
-        self.delays = np.asarray(delays)
-        self.n_delays = len(self.delays)
         self.est = _check_estimator(est)
         self.preproc_y = _check_preproc(preproc_y)
         self.preproc_x = _check_preproc(preproc_x)
@@ -55,20 +91,9 @@ class EncodingModel(object):
 
         Parameters
         ----------
-        raw : instance of MNE Raw
+        X : array, shape (n_times, n_features)
             The data on which we want to fit a regression model.
-        events : array, shape (n_events, 3)
-            An MNE events array specifying indices for event onsets
-        event_id : dictionary | None
-            A dictionary of (event_name: event_int) pairs, corresponding to the
-            mapping from event name strings to the 3rd column of events.
-        continuous : array, shape (n_feats, n_times)
-            Continuous input features in the regression.
-        continuous_names : array, shape (n_feats,) | None
-            Names for the input continuous variables.
-        picks : array, shape (n_picks,) | None
-            Indices for channels to use in model fitting. If None, all channels
-            will be fit.
+        y : array, shape (n_times, n_channels)
 
         Attributes
         ----------
@@ -91,24 +116,26 @@ class EncodingModel(object):
         n_features = X.shape[0]
 
         # Fit the model and assign coefficients
-        self.coef_ = np.zeros([n_chs, n_features])
-        for ii in range(n_chs):
-            i_y = y[ii][:, np.newaxis]
-            self.est.fit(X.T, i_y)
-            self.coef_[ii, :] = self.est.steps[-1][-1].coef_
+        self.est.fit(X.T, y.T)
+        self.coef_ = self.est._final_estimator.coef_
         self.X = X
         self.y = y
 
     def predict(self, X, preproc_x=None):
         """Generate predictions using fit coefficients.
 
-        This uses the `coef_` attribute for predictions.
+        This uses the predict method of the final estimator in the
+        `est` attribute.
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_features)
+            The input feature array.
         """
+        # Preprocess X with the pipeline
         if preproc_x is not None:
             X = preproc_x.fit_transform(X)
-        X = self.est._pre_transform(X.T)[0].T
-        preds = np.dot(self.coef_, X)
-        return preds
+        return self.est.predict(X.T)
 
 
 def _check_estimator(est):
@@ -116,6 +143,10 @@ def _check_estimator(est):
     from sklearn.pipeline import Pipeline
     if est is None:
         est = Ridge()
+    if not isinstance(est, str) and not is_regressor(est):
+        warn("Custom estimators should have a `fit` and `predict` method,"
+             " and should produce continuous output")
+
     elif isinstance(est, string_types):
         if est not in estimator_dict.keys():
             raise ValueError("No such solver: {0}".format(est))
@@ -124,9 +155,6 @@ def _check_estimator(est):
     # Make sure we have a pipeline
     if not isinstance(est, Pipeline):
         est = Pipeline([('est', est)])
-    for imethod in ['fit', 'predict']:
-        if not hasattr(est.steps[-1][-1], imethod):
-            raise ValueError('estimator must have a %s method' % imethod)
     return est
 
 
