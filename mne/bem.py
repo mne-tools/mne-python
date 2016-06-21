@@ -1063,7 +1063,11 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
 
     if op.isfile(T1_mgz):
-        new_info = _read_volume_info(T1_mgz)
+        new_info = _extract_volume_info(T1_mgz)
+        if new_info is None:
+            warn('nibabel is required to replace the volume info. Volume info'
+                 'not updated in the written surface.')
+            new_info = dict()
         surfs = ['brain', 'inner_skull', 'outer_skull', 'outer_skin']
         for s in surfs:
             surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))
@@ -1116,10 +1120,13 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     logger.info('Created %s\n\nComplete.' % (fname_head,))
 
 
-def _read_volume_info(T1):
-    """Helper for extracting volume info from T1.mgz."""
-    import nibabel as nib
-    header = nib.load(T1).header
+def _extract_volume_info(mgz, raise_error=True):
+    """Helper for extracting volume info from a mgz file."""
+    try:
+        import nibabel as nib
+    except ImportError:
+        return  # warning raised elsewhere
+    header = nib.load(mgz).header
     new_info = dict()
     version = header['version']
     if version == 1:
@@ -1127,7 +1134,7 @@ def _read_volume_info(T1):
     else:
         raise ValueError('Volume info invalid.')
     new_info['valid'] = version
-    new_info['filename'] = T1
+    new_info['filename'] = mgz
     new_info['volume'] = header['dims'][:3]
     new_info['voxelsize'] = header['delta']
     new_info['xras'], new_info['yras'], new_info['zras'] = header['Mdc'].T
@@ -1767,10 +1774,14 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     for surf in surfs:
         shutil.move(op.join(bem_dir, surf + '.tri'), surf + '.tri')
         nodes, tris = _load_ascii_surface(surf + '.tri', swap=True)
-        vol_info = _read_volume_info(op.join(subjects_dir, subject, 'mri',
-                                             'flash', 'parameter_maps',
-                                             'flash5_reg.mgz'))
-        vol_info['head'] = np.array([20])
+        vol_info = _extract_volume_info(op.join(subjects_dir, subject, 'mri',
+                                                'flash', 'parameter_maps',
+                                                'flash5_reg.mgz'))
+        if vol_info is None:
+            warn('nibabel is required to update the volume info. Volume info '
+                 'omitted from the written surface.')
+        else:
+            vol_info['head'] = np.array([20])
         write_surface(surf + '.surf', nodes, tris, volume_info=vol_info)
 
     # Cleanup section

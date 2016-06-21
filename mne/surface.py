@@ -445,13 +445,13 @@ def read_surface(fname, read_metadata=False, verbose=None):
     --------
     write_surface
     """
-    import nibabel as nib
-    if LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
-        ret = nib.freesurfer.read_geometry(fname, read_metadata=read_metadata)
-        coords = ret[0].astype(np.float)  # XXX: due to mayavi bug on mac 32b
-        if read_metadata:
-            return coords, ret[1], ret[2]
-        return coords, ret[1]
+    try:
+        import nibabel as nib
+        has_nibabel = True
+    except ImportError:
+        has_nibabel = False
+    if has_nibabel and LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
+        return nib.freesurfer.read_geometry(fname, read_metadata=read_metadata)
 
     volume_info = dict()
     TRIANGLE_MAGIC = 16777214
@@ -743,15 +743,19 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
     --------
     read_surface
     """
-    import nibabel as nib
-    if len(create_stamp.splitlines()) > 1:
-        raise ValueError("create_stamp can only contain one line")
-
-    if LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
+    try:
+        import nibabel as nib
+        has_nibabel = True
+    except ImportError:
+        has_nibabel = False
+    if has_nibabel and LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
         nib.freesurfer.io.write_geometry(fname, coords, faces,
                                          create_stamp=create_stamp,
                                          volume_info=volume_info)
         return
+    if len(create_stamp.splitlines()) > 1:
+        raise ValueError("create_stamp can only contain one line")
+
     with open(fname, 'wb') as fid:
         fid.write(pack('>3B', 255, 255, 254))
         strs = ['%s\n' % create_stamp, '\n']
