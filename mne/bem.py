@@ -1670,7 +1670,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
-                   verbose=None):
+                   flash_path=None, verbose=None):
     """Create 3-Layer BEM model from prepared flash MRI images
 
     Parameters
@@ -1683,6 +1683,9 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         Show surfaces to visually inspect all three BEM surfaces (recommended).
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
+    flash_path : str | None
+        Path to the flash images. If None (default), the current folder is
+        used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1694,9 +1697,6 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     This function extracts the BEM surfaces (outer skull, inner skull, and
     outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
     degrees, in mgz format.
-
-    This function assumes that the flash images are available in the current
-    folder.
 
     See Also
     --------
@@ -1719,13 +1719,19 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                                        op.join(bem_dir, 'flash')))
     # Step 4 : Register with MPRAGE
     logger.info("\n---- Registering flash 5 with MPRAGE ----")
-    if not op.exists('flash5_reg.mgz'):
+    if flash_path is None:
+        flash5 = 'flash5.mgz'
+        flash5_reg = 'flash5_reg.mgz'
+    else:
+        flash5 = op.join(flash_path, 'flash5.mgz')
+        flash5_reg = op.join(flash_path, 'flash5_reg.mgz')
+    if not op.exists(flash5_reg):
         if op.exists(op.join(mri_dir, 'T1.mgz')):
             ref_volume = op.join(mri_dir, 'T1.mgz')
         else:
             ref_volume = op.join(mri_dir, 'T1')
-        cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', 'flash5.mgz',
-               '-o', 'flash5_reg.mgz']
+        cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', flash5,
+               '-o', flash5_reg]
         run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
     else:
         logger.info("Registered flash 5 image is already there")
@@ -1733,7 +1739,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     logger.info("\n---- Converting flash5 volume into COR format ----")
     shutil.rmtree(op.join(mri_dir, 'flash5'), ignore_errors=True)
     os.makedirs(op.join(mri_dir, 'flash5'))
-    cmd = ['mri_convert', 'flash5_reg.mgz', op.join(mri_dir, 'flash5')]
+    cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
     run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
     # Step 5b and c : Convert the mgz volumes into COR
     os.chdir(mri_dir)
@@ -1776,7 +1782,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         nodes, tris = _load_ascii_surface(surf + '.tri', swap=True)
         vol_info = _extract_volume_info(op.join(subjects_dir, subject, 'mri',
                                                 'flash', 'parameter_maps',
-                                                'flash5_reg.mgz'))
+                                                flash5_reg))
         if vol_info is None:
             warn('nibabel is required to update the volume info. Volume info '
                  'omitted from the written surface.')
