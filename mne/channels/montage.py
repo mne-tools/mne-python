@@ -585,9 +585,10 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                        if name not in names_lower]
             if missing:
                 raise ValueError("The points %s are missing, but are needed "
-                                 "to transform the points to the MNE coordinate "
-                                 "system. Either add the points, or read the "
-                                 "montage with transform=False." % str(missing))
+                                 "to transform the points to the MNE "
+                                 "coordinate system. Either add the points, "
+                                 "or read the montage with transform=False."
+                                 % str(missing))
 
             nasion = elp[names_lower.index('nasion')]
             lpa = elp[names_lower.index('lpa')]
