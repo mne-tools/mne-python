@@ -13,7 +13,6 @@ from distutils.version import LooseVersion
 
 import numpy as np
 from scipy.sparse import coo_matrix, csr_matrix, eye as speye
-import nibabel as nib
 
 from .bem import read_bem_surfaces
 from .io.constants import FIFF
@@ -415,8 +414,6 @@ def read_surface(fname, read_metadata=False, verbose=None):
     ----------
     fname : str
         The name of the file containing the surface.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     read_metadata : bool
         Read metadata as key-value pairs.
         Valid keys:
@@ -432,6 +429,9 @@ def read_surface(fname, read_metadata=False, verbose=None):
 
         .. versionadded:: 0.13.0
 
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
     Returns
     -------
     rr : array, shape=(n_vertices, 3)
@@ -445,10 +445,13 @@ def read_surface(fname, read_metadata=False, verbose=None):
     --------
     write_surface
     """
-    # XXX: Tests fail here due to numerical error.
-    # if LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
-    #     return nib.freesurfer.read_geometry(fname,
-    #                                         read_metadata=read_metadata)
+    import nibabel as nib
+    if LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
+        ret = nib.freesurfer.read_geometry(fname, read_metadata=read_metadata)
+        coords = ret[0].astype(np.float)  # XXX: due to mayavi bug on mac 32b
+        if read_metadata:
+            return coords, ret[1], ret[2]
+        return coords, ret[1]
 
     volume_info = dict()
     TRIANGLE_MAGIC = 16777214
@@ -740,6 +743,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
     --------
     read_surface
     """
+    import nibabel as nib
     if len(create_stamp.splitlines()) > 1:
         raise ValueError("create_stamp can only contain one line")
 

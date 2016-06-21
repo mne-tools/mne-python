@@ -1083,13 +1083,14 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                 _symlink(surf_ws_out, surf_out)
                 skip_symlink = False
 
-    if skip_symlink:
-        logger.info("Unable to create all symbolic links to .surf files in "
-                    "bem folder. Use --overwrite option to recreate them.")
-        dest = op.join(bem_dir, 'watershed')
-    else:
-        logger.info("Symbolic links to .surf files created in bem folder")
-        dest = bem_dir
+        if skip_symlink:
+            logger.info("Unable to create all symbolic links to .surf files "
+                        "in bem folder. Use --overwrite option to recreate "
+                        "them.")
+            dest = op.join(bem_dir, 'watershed')
+        else:
+            logger.info("Symbolic links to .surf files created in bem folder")
+            dest = bem_dir
 
     logger.info("\nThank you for waiting.\nThe BEM triangulations for this "
                 "subject are now available at:\n%s." % dest)
@@ -1765,8 +1766,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     surfs = ['inner_skull', 'outer_skull', 'outer_skin']
     for surf in surfs:
         shutil.move(op.join(bem_dir, surf + '.tri'), surf + '.tri')
-        surf_out = _load_ascii_surface(surf + '.tri', swap=True)
-        write_surface(surf + '.surf', surf_out[0], surf_out[1])
+        nodes, tris = _load_ascii_surface(surf + '.tri', swap=True)
+        write_surface(surf + '.surf', nodes, tris)
 
     # Cleanup section
     logger.info("\n---- Cleaning up ----")
@@ -1793,14 +1794,14 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                 os.remove(surf)
             _symlink(op.join('flash', surf), op.join(surf))
             skip_symlink = False
-        if skip_symlink:
-            logger.info("Unable to create all symbolic links to .surf files "
-                        "in bem folder. Use --overwrite option to recreate "
-                        "them.")
-            dest = op.join(bem_dir, 'flash')
-        else:
-            logger.info("Symbolic links to .surf files created in bem folder")
-            dest = bem_dir
+    if skip_symlink:
+        logger.info("Unable to create all symbolic links to .surf files "
+                    "in bem folder. Use --overwrite option to recreate "
+                    "them.")
+        dest = op.join(bem_dir, 'flash')
+    else:
+        logger.info("Symbolic links to .surf files created in bem folder")
+        dest = bem_dir
     logger.info("\nThank you for waiting.\nThe BEM triangulations for this "
                 "subject are now available at:\n%s.\nWe hope the BEM meshes "
                 "created will facilitate your MEG and EEG data analyses."
