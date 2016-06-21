@@ -508,7 +508,8 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         The sample rate.
     btype : str
         Type of filter. Should be 'lowpass', 'highpass', or 'bandpass'
-        (or analogous string representations known to `scipy.signal`).
+        (or analogous string representations known to
+        :func:`scipy.signal.iirfilter`).
     return_copy : bool
         If False, the 'sos', 'b', 'a', and 'padlen' entries in
         ``iir_params`` will be set inplace (if they weren't already).
