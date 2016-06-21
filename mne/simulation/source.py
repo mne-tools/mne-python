@@ -28,7 +28,7 @@ def select_source_in_label(src, label, random_state=None, location='random',
         To specify the random generator state.
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
-        ot use :func:`mne.Label.center_of_mass` (restricting to vertices
+        to use :func:`mne.Label.center_of_mass` (restricting to vertices
         both in the label and in the source space). Note that for 'center'
         mode the label values are used as weights.
 
@@ -117,7 +117,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
         To specify the random generator state.
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
-        ot use :func:`mne.Label.center_of_mass`. Note that for 'center'
+        to use :func:`mne.Label.center_of_mass`. Note that for 'center'
         mode the label values are used as weights.
 
         .. versionadded:: 0.13
