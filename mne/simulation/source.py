@@ -28,7 +28,8 @@ def select_source_in_label(src, label, random_state=None, location='random',
         To specify the random generator state.
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
-        ot use :func:`mne.Label.center_of_mass`. Note that for 'center'
+        ot use :func:`mne.Label.center_of_mass` (restricting to vertices
+        both in the label and in the source space). Note that for 'center'
         mode the label values are used as weights.
 
         .. versionadded:: 0.13
@@ -75,15 +76,14 @@ def select_source_in_label(src, label, random_state=None, location='random',
     else:
         vertno = rh_vertno
         hemi_idx = 1
+    src_sel = np.intersect1d(src[hemi_idx]['vertno'], label.vertices)
     if location == 'random':
-        src_sel = np.intersect1d(src[hemi_idx]['vertno'], label.vertices)
-        idx_select = rng.randint(0, len(src_sel), 1)
-        vertno.append(src_sel[idx_select][0])
-    else:
+        idx = src_sel[rng.randint(0, len(src_sel), 1)[0]]
+    else:  # 'center'
         idx = label.center_of_mass(
-            subject, restrict_vertices=src[hemi_idx]['vertno'],
-            subjects_dir=subjects_dir, surf=surf)
-        vertno.append(idx)
+            subject, restrict_vertices=src_sel, subjects_dir=subjects_dir,
+            surf=surf)
+    vertno.append(idx)
     return lh_vertno, rh_vertno
 
 
