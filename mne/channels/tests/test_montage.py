@@ -160,7 +160,7 @@ def test_montage():
 def test_read_dig_montage():
     """Test read_dig_montage"""
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
-    montage = read_dig_montage(hsp, hpi, elp, names, unit='m', transform=False)
+    montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
     elp_points = _read_dig_points(elp)
     hsp_points = _read_dig_points(hsp)
     hpi_points = read_mrk(hpi)
@@ -199,7 +199,7 @@ def test_set_dig_montage():
     nasion_point, lpa_point, rpa_point = elp_points[:3]
     hsp_points = apply_trans(nm_trans, hsp_points)
 
-    montage = read_dig_montage(hsp, hpi, elp, names, unit='m', transform=True)
+    montage = read_dig_montage(hsp, hpi, elp, names, transform=True)
     info = create_info(['Test Ch'], 1e3, ['eeg'])
     _set_montage(info, montage)
     hs = np.array([p['r'] for i, p in enumerate(info['dig'])

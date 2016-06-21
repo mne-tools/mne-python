@@ -359,7 +359,7 @@ def _read_dig_fif(fid, meas_info):
     return dig
 
 
-def _read_dig_points(fname, comments='%'):
+def _read_dig_points(fname, comments='%', unit='auto'):
     """Read digitizer data from a text file.
 
     If fname ends in .hsp or .esp, the function assumes digitizer files in [m],
@@ -372,12 +372,20 @@ def _read_dig_points(fname, comments='%'):
     comments : str
         The character used to indicate the start of a comment;
         Default: '%'.
+    unit : 'auto' | 'm' | 'cm' | 'mm'
+        Unit of the digitizer files (hsp and elp). If not 'm', coordinates will
+        be rescaled to 'm'. Default is 'auto', which assumes 'm' for *.hsp and
+        *.elp files and 'mm' for *.txt files, corresponding to the known
+        Polhemus export formats.
 
     Returns
     -------
     dig_points : np.ndarray, shape (n_points, 3)
         Array of dig points in [m].
     """
+    if unit not in('auto', 'm', 'mm', 'cm'):
+        raise ValueError('unit must be one of "auto", "m", "mm", or "cm"')
+
     _, ext = op.splitext(fname)
     if ext == '.elp' or ext == '.hsp':
         with open(fname) as fid:
@@ -391,11 +399,17 @@ def _read_dig_points(fname, comments='%'):
         dig_points = np.array(points_str, dtype=float)
     else:
         dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
-        dig_points /= 1000
+        if unit == 'auto':
+            unit = 'mm'
 
     if dig_points.shape[-1] != 3:
         err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
         raise ValueError(err)
+
+    if unit == 'mm':
+        dig_points /= 1000.
+    elif unit == 'cm':
+        dig_points /= 100.
 
     return dig_points
 

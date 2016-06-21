@@ -200,7 +200,7 @@ def test_io_dig_points():
     assert_raises(ValueError, _write_dig_points, dest, points[:, :2])
     assert_raises(ValueError, _write_dig_points, dest_bad, points)
     _write_dig_points(dest, points)
-    points1 = _read_dig_points(dest)
+    points1 = _read_dig_points(dest, unit='m')
     err = "Dig points diverged after writing and reading."
     assert_array_equal(points, points1, err)
 
@@ -217,7 +217,7 @@ def test_make_dig_points():
 
     info['dig'] = _make_dig_points(dig_points=dig_points)
     assert_true(info['dig'])
-    assert_array_equal(info['dig'][0]['r'], [-106.93, 99.80, 68.81])
+    assert_allclose(info['dig'][0]['r'], [-.10693, .09980, .06881])
 
     dig_points = _read_dig_points(elp_fname)
     nasion, lpa, rpa = dig_points[:3]
@@ -228,7 +228,7 @@ def test_make_dig_points():
     assert_true(info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
     assert_array_equal(info['dig'][idx]['r'],
-                       np.array([1.3930, 13.1613, -4.6967]))
+                       np.array([.0013930, .0131613, -.0046967]))
     assert_raises(ValueError, _make_dig_points, nasion[:2])
     assert_raises(ValueError, _make_dig_points, None, lpa[:2])
     assert_raises(ValueError, _make_dig_points, None, None, rpa[:2])

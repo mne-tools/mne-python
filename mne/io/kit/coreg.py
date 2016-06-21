@@ -43,7 +43,7 @@ def read_mrk(fname):
                 pts.append(np.fromfile(fid, dtype='d', count=3))
                 mrk_points = np.array(pts)
     elif ext == '.txt':
-        mrk_points = _read_dig_points(fname)
+        mrk_points = _read_dig_points(fname, unit='m')
     elif ext == '.pickled':
         with open(fname, 'rb') as fid:
             food = pickle.load(fid)
@@ -53,9 +53,8 @@ def read_mrk(fname):
             err = ("%r does not contain marker points." % fname)
             raise ValueError(err)
     else:
-        err = ('KIT marker file must be *.sqd, *.txt or *.pickled, '
-               'not *%s.' % ext)
-        raise ValueError(err)
+        raise ValueError('KIT marker file must be *.sqd, *.mrk, *.txt or '
+                         '*.pickled, *%s is not supported.' % ext)
 
     # check output
     mrk_points = np.asarray(mrk_points)
