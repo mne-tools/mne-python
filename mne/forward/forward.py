@@ -57,9 +57,9 @@ class Forward(dict):
 
         entr = '<Forward'
 
-        nchan = len(pick_types(self['info'], meg=True, eeg=False))
+        nchan = len(pick_types(self['info'], meg=True, eeg=False, exclude=[]))
         entr += ' | ' + 'MEG channels: %d' % nchan
-        nchan = len(pick_types(self['info'], meg=False, eeg=True))
+        nchan = len(pick_types(self['info'], meg=False, eeg=True, exclude=[]))
         entr += ' | ' + 'EEG channels: %d' % nchan
 
         src_types = np.array([src['type'] for src in self['src']])
