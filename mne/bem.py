@@ -1767,7 +1767,11 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     for surf in surfs:
         shutil.move(op.join(bem_dir, surf + '.tri'), surf + '.tri')
         nodes, tris = _load_ascii_surface(surf + '.tri', swap=True)
-        write_surface(surf + '.surf', nodes, tris)
+        vol_info = _read_volume_info(op.join(subjects_dir, subject, 'mri',
+                                             'flash', 'parameter_maps',
+                                             'flash5_reg.mgz'))
+        vol_info['head'] = np.array([20])
+        write_surface(surf + '.surf', nodes, tris, volume_info=vol_info)
 
     # Cleanup section
     logger.info("\n---- Cleaning up ----")
@@ -1796,8 +1800,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
             skip_symlink = False
     if skip_symlink:
         logger.info("Unable to create all symbolic links to .surf files "
-                    "in bem folder. Use --overwrite option to recreate "
-                    "them.")
+                    "in bem folder. Use --overwrite option to recreate them.")
         dest = op.join(bem_dir, 'flash')
     else:
         logger.info("Symbolic links to .surf files created in bem folder")
