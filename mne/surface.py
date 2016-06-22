@@ -1181,6 +1181,7 @@ def mesh_dist(tris, vert):
 
 def _load_ascii_surface(filepath, swap=False):
     """Function for reading triangle definitions from an ascii file.
+
     Parameters
     ----------
     fname_in : str
@@ -1188,6 +1189,7 @@ def _load_ascii_surface(filepath, swap=False):
     swap : bool
         Assume the ASCII file vertex ordering is clockwise instead of
         counterclockwise.
+
     Returns
     -------
     surf : tuple (nodes, tris)

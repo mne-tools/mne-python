@@ -1684,8 +1684,11 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     flash_path : str | None
-        Path to the flash images. If None (default), the current folder is
-        used.
+        Path to the flash images. If None (default), mri/flash/parameter_maps
+        within the subject reconstruction is used.
+
+        .. versionadded:: 0.13.0
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1704,10 +1707,15 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     """
     from .viz.misc import plot_bem
     from .surface import write_surface, _load_ascii_surface
+
+    # Hack to enable testing with travis.
+    istest = os.environ.get('FREESURFER_HOME', '').endswith('MNE-testing-data')
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
                                          requires_freesurfer=True,
                                          requires_mne=True)
 
+    if flash_path is None:
+        flash_path = op.join(mri_dir, 'flash', 'parameter_maps')
     curdir = os.getcwd()
     subjects_dir = env['SUBJECTS_DIR']
 
@@ -1719,12 +1727,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                                        op.join(bem_dir, 'flash')))
     # Step 4 : Register with MPRAGE
     logger.info("\n---- Registering flash 5 with MPRAGE ----")
-    if flash_path is None:
-        flash5 = 'flash5.mgz'
-        flash5_reg = 'flash5_reg.mgz'
-    else:
-        flash5 = op.join(flash_path, 'flash5.mgz')
-        flash5_reg = op.join(flash_path, 'flash5_reg.mgz')
+    flash5 = op.join(flash_path, 'flash5.mgz')
+    flash5_reg = op.join(flash_path, 'flash5_reg.mgz')
     if not op.exists(flash5_reg):
         if op.exists(op.join(mri_dir, 'T1.mgz')):
             ref_volume = op.join(mri_dir, 'T1.mgz')
@@ -1739,8 +1743,9 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     logger.info("\n---- Converting flash5 volume into COR format ----")
     shutil.rmtree(op.join(mri_dir, 'flash5'), ignore_errors=True)
     os.makedirs(op.join(mri_dir, 'flash5'))
-    cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
-    run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+    if not istest:
+        cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
+        run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
     # Step 5b and c : Convert the mgz volumes into COR
     os.chdir(mri_dir)
     convert_T1 = False
@@ -1768,9 +1773,11 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     else:
         logger.info("Brain volume is already in COR format")
     # Finally ready to go
-    logger.info("\n---- Creating the BEM surfaces ----")
-    cmd = ['mri_make_bem_surfaces', subject]
-    run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+    if not istest:
+        logger.info("\n---- Creating the BEM surfaces ----")
+        cmd = ['mri_make_bem_surfaces', subject]
+        run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+
     logger.info("\n---- Converting the tri files into surf files ----")
     os.chdir(bem_dir)
     if not op.exists('flash'):
@@ -1780,9 +1787,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     for surf in surfs:
         shutil.move(op.join(bem_dir, surf + '.tri'), surf + '.tri')
         nodes, tris = _load_ascii_surface(surf + '.tri', swap=True)
-        vol_info = _extract_volume_info(op.join(subjects_dir, subject, 'mri',
-                                                'flash', 'parameter_maps',
-                                                flash5_reg))
+        vol_info = _extract_volume_info(flash5_reg)
         if vol_info is None:
             warn('nibabel is required to update the volume info. Volume info '
                  'omitted from the written surface.')

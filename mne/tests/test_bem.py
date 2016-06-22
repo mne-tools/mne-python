@@ -20,8 +20,12 @@ from mne.datasets import testing
 from mne.utils import run_tests_if_main, _TempDir, slow_test, catch_logging
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
-                     _check_surface_size, _bem_find_surface)
+                     _check_surface_size, _bem_find_surface, make_flash_bem)
+from mne.surface import read_surface
 from mne.io import read_info
+
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')
 
@@ -332,5 +336,22 @@ def test_fit_sphere_to_headshape():
     assert_raises(ValueError, fit_sphere_to_headshape, info, units='m')
     assert_raises(TypeError, fit_sphere_to_headshape, 1, units='m')
 
+
+@testing.requires_testing_data
+def test_make_flash_bem():
+    """Test computing bem from flash images."""
+    import matplotlib.pyplot as plt
+    flash_path = op.join(subjects_dir, 'sample', 'mri', 'flash')
+    # This function deletes some files at the end.
+    make_flash_bem('sample', overwrite=True, subjects_dir=subjects_dir,
+                   flash_path=flash_path)
+    plt.close('all')
+    inner_skull = op.join(subjects_dir, 'sample', 'bem', 'inner_skull.surf')
+    outer_skull = op.join(subjects_dir, 'sample', 'bem', 'outer_skull.surf')
+    outer_skin = op.join(subjects_dir, 'sample', 'bem', 'outer_skin.surf')
+    for surf in (inner_skull, outer_skull, outer_skin):
+        coords, faces = read_surface(surf)
+        assert_equal(0, faces.min())
+        assert_equal(coords.shape[0], faces.max() + 1)
 
 run_tests_if_main()

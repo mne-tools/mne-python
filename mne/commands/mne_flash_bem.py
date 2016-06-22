@@ -87,7 +87,7 @@ def run():
     convert_flash_mris(subject=subject, subjects_dir=subjects_dir,
                        flash30=flash30, convert=convert, unwarp=unwarp)
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
-                   overwrite=overwrite, show=show)
+                   overwrite=overwrite, show=show, flash_path='.')
 
 is_main = (__name__ == '__main__')
 if is_main:
