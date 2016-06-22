@@ -1711,7 +1711,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     # Hack to enable testing with travis.
     istest = os.environ.get('FREESURFER_HOME', '').endswith('MNE-testing-data')
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
-                                         requires_freesurfer=True,
+                                         requires_freesurfer=not istest,
                                          requires_mne=True)
 
     if flash_path is None:
