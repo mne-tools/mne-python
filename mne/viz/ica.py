@@ -719,7 +719,7 @@ def _label_clicked(pos, params):
         if merge_grads:
             from ..channels.layout import _merge_grad_data
         for ii, data_ in zip(ic_idx, this_data):
-            ax.set_title('IC #%03d ' % (ii + 1) + ch_type, fontsize=12)
+            ax.set_title('IC #%03d ' % ii + ch_type, fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
             plot_topomap(data_.flatten(), pos, axes=ax, show=False)
             _hide_frame(ax)

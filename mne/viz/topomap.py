@@ -825,7 +825,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     if merge_grads:
         from ..channels.layout import _merge_grad_data
     for ii, data_, ax in zip(picks, data, axes):
-        ax.set_title('IC #%03d' % (ii + 1), fontsize=12)
+        ax.set_title('IC #%03d' % ii, fontsize=12)
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
         im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
