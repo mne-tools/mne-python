@@ -390,6 +390,8 @@ def test_ica_additional():
         d1 = ica_raw._data[0].copy()
         with warnings.catch_warnings(record=True):  # dB warning
             ica_raw.filter(4, 20)
+            assert_equal(type(ica_raw.info['lowpass']), float)
+            assert_equal(type(ica_raw.info['highpass']), float)
         assert_true((d1 != ica_raw._data[0]).any())
         d1 = ica_raw._data[0].copy()
         with warnings.catch_warnings(record=True):  # dB warning

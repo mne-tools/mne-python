@@ -921,11 +921,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if h_freq is not None and (l_freq is None or l_freq < h_freq) and \
                     (self.info["lowpass"] is None or
                      h_freq < self.info['lowpass']):
-                self.info['lowpass'] = h_freq
+                self.info['lowpass'] = float(h_freq)
             if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
                     (self.info["highpass"] is None or
                      l_freq > self.info['highpass']):
-                self.info['highpass'] = l_freq
+                self.info['highpass'] = float(l_freq)
         return self
 
     @verbose
