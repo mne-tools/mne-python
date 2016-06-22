@@ -383,7 +383,7 @@ def _read_dig_points(fname, comments='%', unit='auto'):
     dig_points : np.ndarray, shape (n_points, 3)
         Array of dig points in [m].
     """
-    if unit not in('auto', 'm', 'mm', 'cm'):
+    if unit not in ('auto', 'm', 'mm', 'cm'):
         raise ValueError('unit must be one of "auto", "m", "mm", or "cm"')
 
     _, ext = op.splitext(fname)
