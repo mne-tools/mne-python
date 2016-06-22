@@ -5,7 +5,7 @@
 import os.path as op
 import warnings
 
-from nose.tools import assert_equal, assert_true
+from nose.tools import assert_equal, assert_true, assert_raises
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_almost_equal,
@@ -182,6 +182,21 @@ def test_read_dig_montage():
     dev_head_t = fit_matched_points(tgt_pts=montage.elp,
                                     src_pts=montage.hpi, out='trans')
     assert_array_equal(montage.dev_head_t, dev_head_t)
+
+    # Digitizer as array
+    m2 = read_dig_montage(hsp_points, hpi_points, elp_points, names, unit='m')
+    assert_array_equal(m2.hsp, montage.hsp)
+    m3 = read_dig_montage(hsp_points * 1000, hpi_points, elp_points * 1000,
+                          names)
+    assert_allclose(m3.hsp, montage.hsp)
+
+    # test unit parameter
+    montage_cm = read_dig_montage(hsp, hpi, elp, names, unit='cm')
+    assert_allclose(montage_cm.hsp, montage.hsp * 10.)
+    assert_allclose(montage_cm.elp, montage.elp * 10.)
+    assert_array_equal(montage_cm.hpi, montage.hpi)
+    assert_raises(ValueError, read_dig_montage, hsp, hpi, elp, names,
+                  unit='km')
 
 
 def test_set_dig_montage():
