@@ -6,9 +6,13 @@ Encoding models attempt to model the activity of a neural signal with
 continuous covariates. They can be either event-based dummy variables
 signifying event type onsets (rER[P/F]s), or continuously-varying variables
 that represent another timeseries occurring simultaneously (often called
-receptive fields). This example simulates a signal that modulated by
+receptive fields). This example shows how feature extraction classes
+can be used to build a custom encoding model that mixes continuous and
+binary features. It simulates a signal that modulated by
 1. A sine wave, and 2. Arbitrary event onset times. It uses regularized
-regression to find the weights that predict the neural signal.
+regression to find the weights that predict the neural signal. It also
+provides a demonstration of how cross-validation can be used in order
+to make predictions on held-out data.
 
 rER[P/F]s are described in:
 
@@ -28,7 +32,6 @@ is described in:
   natural scenes. Network 14, 553-77 (2003).
 """
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.de>
 #
 #
 # License: BSD (3-clause)
@@ -48,8 +51,8 @@ print(__doc__)
 # Helper function to create data
 def modulate_noise(signal, sfreq, delays, weights, snr=1):
     """Simulate white noise and modulate it with values in `signal`."""
-    sig_delayed, _ = _delay_timeseries(signal[np.newaxis, :], delays, sfreq)
-    output = np.dot(weights, sig_delayed)
+    sig_delayed, _ = _delay_timeseries(signal[:, np.newaxis], delays, sfreq)
+    output = np.dot(sig_delayed, weights)
     noise = (np.percentile(output, 95) / snr) * np.random.randn(len(output))
     return output + noise
 
@@ -59,10 +62,11 @@ np.random.seed(1337)
 # Define our continuous signal
 sfreq = 1000.
 n_sec = 10.
+n_times = sfreq * n_sec
 freq = 3.
-amp = .1
+amp = .5
 snr = 4
-time = np.linspace(0, n_sec, sfreq * n_sec)
+time = np.linspace(0, n_sec, n_times)
 info = mne.create_info(['ch'], sfreq, ch_types=['eeg'])
 
 # Define events
@@ -74,23 +78,28 @@ events = np.vstack([events, np.zeros_like(events), np.ones_like(events)]).T
 delays_sig = np.arange(0, -.4, -.01)
 weights = stt.norm.pdf(delays_sig, -.2, .05)
 
-# Now create our stimulus-modulated signal
-stim_cont = amp * np.sin(2 * np.pi * freq * time)
+# Now create our stimulus-modulated signal (autocorrelated noise)
+stim_base = np.random.randn(time.shape[0]) * amp
+stim_cont = stim_base.copy()
+n_roll_avg = 100
+for i in np.arange(n_roll_avg, int(n_times)):
+    stim_cont[i] = np.mean(stim_base[i - n_roll_avg:i])
+
 sig_cont = modulate_noise(stim_cont, sfreq, delays_sig,
                           weights=weights, snr=snr)
 sig_cont = mne.io.RawArray(sig_cont[np.newaxis, :], info)
-stim_cont = stim_cont[np.newaxis, :]
+stim_cont = stim_cont[:, np.newaxis]
 
 # And a signal that responds to event onsets
-binarizer = EventsBinarizer(stim_cont.shape[-1], sfreq=1)
+binarizer = EventsBinarizer(stim_cont.shape[0], sfreq=1)
 stim_events = binarizer.fit_transform(events[:, 0], event_ids=events[:, -1])
-sig_event = modulate_noise(stim_events[0], sfreq, delays_sig,
+sig_event = modulate_noise(stim_events[:, 0], sfreq, delays_sig,
                            weights=weights, snr=snr)
 sig_event = mne.io.RawArray(sig_event[np.newaxis, :], info)
 
 # Combine the two together
 sig_combined = mne.io.RawArray(sig_event._data + sig_cont._data, info)
-stim_combined = np.vstack([stim_events, stim_cont])
+stim_combined = np.hstack([stim_events, stim_cont])
 
 # -- Preparing model features --
 # Iterate through our events-based and continuous datasets
@@ -107,7 +116,7 @@ tt = ixs[ix_split:]
 
 # -- Define preprocessing pipelines for X/y --
 # For creating time lags
-delays_model = np.arange(0, -.4, -.01)
+delays_model = np.arange(.2, -.4, -.01)
 delayer = DataDelayer(delays=delays_model, sfreq=sig_cont.info['sfreq'])
 
 # To subset training data
@@ -137,16 +146,18 @@ for alpha, axcol_coef, axcol_pred in zip(alphas, axs_coef.T, axs_pred.T):
     # Fit the model and plot coefficients
     iter_fit = zip(data_iterator, axcol_coef, axcol_pred)
     for (X, y, title), ax_coef, ax_pred in iter_fit:
-        mod.fit(X, y._data)
+        mod.fit(X, y._data.T)
 
         # Plot coefficients
         ax = ax_coef
+        coefs = mod.est._final_estimator.coef_.squeeze()
+
         if title != 'Combined':
-            ax.plot(delays_model, mod.coef_.squeeze())
+            ax.plot(delays_model, coefs)
             ax.plot(delays_sig, weights)
             ax.set_xlabel('Lag (s)')
         else:
-            for i, i_weight in enumerate(mod.coef_.reshape([-1, 2]).T):
+            for i, i_weight in enumerate(coefs.reshape([2, -1])):
                 # Plot both sets of weights in this case
                 ax.plot(delays_model, i_weight + (i * 10))
                 ax.plot(delays_sig, weights + (i * 10))
