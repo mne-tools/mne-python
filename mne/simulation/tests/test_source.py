@@ -17,6 +17,7 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
 label_names = ['Aud-lh', 'Aud-rh', 'Vis-rh']
 
 label_names_single_hemi = ['Aud-rh', 'Vis-rh']
+subjects_dir = op.join(data_path, 'subjects')
 
 
 def read_forward_solution_meg(*args, **kwargs):
@@ -107,19 +108,40 @@ def test_simulate_sparse_stc():
     tstep = 1e-3
     times = np.arange(n_times, dtype=np.float) * tstep + tmin
 
-    stc_1 = simulate_sparse_stc(fwd['src'], len(labels), times,
-                                labels=labels, random_state=0)
-    assert_equal(stc_1.subject, 'sample')
+    assert_raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
+                  times, labels=labels, location='center', subject='sample',
+                  subjects_dir=subjects_dir)  # no non-zero values
+    for label in labels:
+        label.values.fill(1.)
+    for location in ('random', 'center'):
+        random_state = 0 if location == 'random' else None
+        stc_1 = simulate_sparse_stc(fwd['src'], len(labels), times,
+                                    labels=labels, random_state=random_state,
+                                    location=location,
+                                    subjects_dir=subjects_dir)
+        assert_equal(stc_1.subject, 'sample')
 
-    assert_true(stc_1.data.shape[0] == len(labels))
-    assert_true(stc_1.data.shape[1] == n_times)
+        assert_true(stc_1.data.shape[0] == len(labels))
+        assert_true(stc_1.data.shape[1] == n_times)
 
-    # make sure we get the same result when using the same seed
-    stc_2 = simulate_sparse_stc(fwd['src'], len(labels), times,
-                                labels=labels, random_state=0)
+        # make sure we get the same result when using the same seed
+        stc_2 = simulate_sparse_stc(fwd['src'], len(labels), times,
+                                    labels=labels, random_state=random_state,
+                                    location=location,
+                                    subjects_dir=subjects_dir)
 
-    assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
-    assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
+        assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
+        assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
+    # Degenerate cases
+    assert_raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
+                  times, labels=labels, location='center', subject='foo',
+                  subjects_dir=subjects_dir)  # wrong subject
+    del fwd['src'][0]['subject_his_id']
+    assert_raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
+                  times, labels=labels, location='center',
+                  subjects_dir=subjects_dir)  # no subject
+    assert_raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
+                  times, labels=labels, location='foo')  # bad location
 
 
 @testing.requires_testing_data
