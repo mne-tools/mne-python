@@ -53,6 +53,8 @@ API
 
     - EOG channels can now be incuded when calling :funf:`mne.preprocessing.ICA.fit` and a proper error is raised when trying to include unsupported channels by `Alexander Rudiuk`_
 
+    - :func:`mne.concatenate_epochs` and :func:`mne.compute_covariance` now check to see if all :class:`Epochs` instances have the same MEG-to-Head transformation, and errors by default if they do not by `Eric Larson`_
+
 .. _changes_0_12:
 
 Version 0.12
