@@ -440,8 +440,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         If str, this corresponds to the filename of the headshape points.
         This is typically used with the Polhemus FastSCAN system.
         If numpy.array, this corresponds to an array of positions of the
-        headshape points in 3d. These points are in the native
-        digitizer space.
+        headshape points in 3d. These points are assumed to be in the native
+        digitizer space and will be rescaled according to the unit parameter.
     hpi : None | str | array, shape (n_hpi, 3)
         If str, this corresponds to the filename of Head Position Indicator
         (HPI) points. If numpy.array, this corresponds to an array
@@ -451,8 +451,9 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         points. This is typically used with the Polhemus FastSCAN system.
         Fiducials should be listed first: nasion, left periauricular point,
         right periauricular point, then the points corresponding to the HPI.
-        These points are in the native digitizer space.
-        If numpy.array, this corresponds to an array of fids + HPI points.
+        If numpy.array, this corresponds to an array of digitizer points in
+        the same order. These points are assumed to be in the native digitizer
+        space and will be rescaled according to the unit parameter.
     point_names : None | list
         If list, this corresponds to a list of point names. This must be
         specified if elp is defined.
