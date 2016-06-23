@@ -34,6 +34,7 @@ except Exception:
         Str = Array = spring = View = Item = HGroup = VGroup = EnumEditor = \
         NoButtons = CheckListEditor = SceneEditor = TextEditor = trait_wraith
 
+from ..io.constants import FIFF
 from ..io.kit.kit import RawKIT, KIT
 from ..transforms import (apply_trans, als_ras_trans,
                           get_ras_to_neuromag_trans, Transform)
@@ -101,6 +102,11 @@ class Kit2FiffModel(HasPrivateTraits):
     # trans
     dev_head_trans = Property(depends_on=['elp', 'mrk', 'use_mrk'])
     head_dev_trans = Property(depends_on=['dev_head_trans'])
+
+    # event preview
+    raw = Property(depends_on='sqd_file')
+    misc_chs = Property(List, depends_on='raw')
+    misc_chs_desc = Property(Str, depends_on='misc_chs')
 
     # info
     sqd_fname = Property(Str, depends_on='sqd_file')
@@ -229,6 +235,22 @@ class Kit2FiffModel(HasPrivateTraits):
             return pts
 
     @cached_property
+    def _get_misc_chs(self):
+        if not self.raw:
+            return
+        return [i for i, ch in enumerate(self.raw.info['chs']) if
+                ch['kind'] == FIFF.FIFFV_MISC_CH]
+
+    @cached_property
+    def _get_misc_chs_desc(self):
+        if self.misc_chs is None:
+            return "No SQD file selected..."
+        elif np.all(np.diff(self.misc_chs) == 1):
+            return "%i:%i" % (self.misc_chs[0], self.misc_chs[-1] + 1)
+        else:
+            return "%i... (discontinuous)" % self.misc_chs[0]
+
+    @cached_property
     def _get_mrk(self):
         return apply_trans(als_ras_trans, self.markers.mrk3.points)
 
@@ -239,6 +261,18 @@ class Kit2FiffModel(HasPrivateTraits):
         nasion, lpa, rpa = apply_trans(als_ras_trans, self.elp_raw[:3])
         trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
         return np.dot(trans, als_ras_trans)
+
+    @cached_property
+    def _get_raw(self):
+        if not self.sqd_file:
+            return
+        try:
+            return RawKIT(self.sqd_file, stim=None)
+        except Exception as err:
+            error(None, "Error reading SQD data file: %s (Check the terminal "
+                  "output for details)" % str(err), "Error Reading SQD file")
+            self.reset_traits(['sqd_file'])
+            raise
 
     @cached_property
     def _get_sqd_fname(self):
@@ -371,6 +405,7 @@ class Kit2FiffPanel(HasPrivateTraits):
     sqd_fname = DelegatesTo('model')
     hsp_fname = DelegatesTo('model')
     fid_fname = DelegatesTo('model')
+    misc_chs_desc = DelegatesTo('model')
 
     # Source Files
     reset_dig = Button
@@ -406,7 +441,9 @@ class Kit2FiffPanel(HasPrivateTraits):
                       Item('use_mrk', editor=use_editor, style='custom',
                            tooltip=tooltips['use_mrk']),
                       label="Sources", show_border=True),
-               VGroup(Item('stim_slope', label="Event Onset", style='custom',
+               VGroup(Item('misc_chs_desc', label='MISC Channels',
+                           style='readonly'),
+                      Item('stim_slope', label="Event Onset", style='custom',
                            tooltip=tooltips['stim_slope'],
                            editor=EnumEditor(
                                values={'+': '2:Peak (0 to 5 V)',
