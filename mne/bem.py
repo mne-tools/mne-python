@@ -1709,9 +1709,10 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     from .surface import write_surface, _load_ascii_surface
 
     # Hack to enable testing with travis.
-    istest = os.environ.get('FREESURFER_HOME', '').endswith('MNE-testing-data')
+    is_test = not os.environ.get('FREESURFER_HOME', '').endswith(
+        'MNE-testing-data')
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
-                                         requires_freesurfer=not istest,
+                                         requires_freesurfer=not is_test,
                                          requires_mne=True)
 
     if flash_path is None:
@@ -1743,7 +1744,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     logger.info("\n---- Converting flash5 volume into COR format ----")
     shutil.rmtree(op.join(mri_dir, 'flash5'), ignore_errors=True)
     os.makedirs(op.join(mri_dir, 'flash5'))
-    if not istest:
+    if not is_test:
         cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
         run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
     # Step 5b and c : Convert the mgz volumes into COR
@@ -1773,7 +1774,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     else:
         logger.info("Brain volume is already in COR format")
     # Finally ready to go
-    if not istest:
+    if not is_test:
         logger.info("\n---- Creating the BEM surfaces ----")
         cmd = ['mri_make_bem_surfaces', subject]
         run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
