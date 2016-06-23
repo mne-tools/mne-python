@@ -250,17 +250,24 @@ class FiducialsSource(HasTraits):
         if not os.path.exists(self.file):
             return None
 
-        points = np.zeros((3, 3))
-        fids, _ = read_fiducials(self.file)
-        for fid in fids:
-            ident = fid['ident']
-            if ident == FIFF.FIFFV_POINT_LPA:
-                points[0] = fid['r']
-            elif ident == FIFF.FIFFV_POINT_NASION:
-                points[1] = fid['r']
-            elif ident == FIFF.FIFFV_POINT_RPA:
-                points[2] = fid['r']
-        return points
+        try:
+            points = np.zeros((3, 3))
+            fids, _ = read_fiducials(self.file)
+            for fid in fids:
+                ident = fid['ident']
+                if ident == FIFF.FIFFV_POINT_LPA:
+                    points[0] = fid['r']
+                elif ident == FIFF.FIFFV_POINT_NASION:
+                    points[1] = fid['r']
+                elif ident == FIFF.FIFFV_POINT_RPA:
+                    points[2] = fid['r']
+            return points
+        except Exception as err:
+            error(None, "Error reading fiducials from %s: %s (See terminal "
+                  "for more information)" % (self.fname, str(err)),
+                  "Error Reading Fiducials")
+            self.reset_traits(['file'])
+            raise
 
 
 class InstSource(HasPrivateTraits):
