@@ -4,7 +4,9 @@
 #
 # License: BSD (3-clause)
 
+from collections import Counter
 import os
+
 import numpy as np
 from scipy.linalg import inv
 from threading import Thread
@@ -35,10 +37,11 @@ except Exception:
         NoButtons = CheckListEditor = SceneEditor = TextEditor = trait_wraith
 
 from ..io.constants import FIFF
-from ..io.kit.kit import RawKIT, KIT
+from ..io.kit.kit import RawKIT, KIT, _make_stim_channel, _default_stim_chs
 from ..transforms import (apply_trans, als_ras_trans,
                           get_ras_to_neuromag_trans, Transform)
 from ..coreg import _decimate_points, fit_matched_points
+from ..event import _find_events
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._help import read_tooltips
 from ._viewer import (HeadViewController, headview_item, PointObject,
@@ -76,7 +79,7 @@ class Kit2FiffModel(HasPrivateTraits):
     fid_file = File(exists=True, filter=elp_wildcard)
     stim_coding = Enum(">", "<", "channel")
     stim_chs = Str("")
-    stim_chs_array = Property(depends_on='stim_chs')
+    stim_chs_array = Property(depends_on=['raw', 'stim_chs', 'stim_coding'])
     stim_chs_ok = Property(depends_on='stim_chs_array')
     stim_chs_comment = Property(depends_on='stim_chs_array')
     stim_slope = Enum("-", "+")
@@ -107,6 +110,8 @@ class Kit2FiffModel(HasPrivateTraits):
     raw = Property(depends_on='sqd_file')
     misc_chs = Property(List, depends_on='raw')
     misc_chs_desc = Property(Str, depends_on='misc_chs')
+    misc_data = Property(Array, depends_on='raw')
+    can_test_stim = Property(Bool, depends_on='raw')
 
     # info
     sqd_fname = Property(Str, depends_on='sqd_file')
@@ -128,6 +133,10 @@ class Kit2FiffModel(HasPrivateTraits):
 
         has_any_hsp = self.hsp_file or self.fid_file or np.any(self.mrk)
         return not has_any_hsp
+
+    @cached_property
+    def _get_can_test_stim(self):
+        return self.raw is not None
 
     @cached_property
     def _get_dev_head_trans(self):
@@ -251,6 +260,13 @@ class Kit2FiffModel(HasPrivateTraits):
             return "%i... (discontinuous)" % self.misc_chs[0]
 
     @cached_property
+    def _get_misc_data(self):
+        if not self.raw:
+            return
+        data, times = self.raw[self.misc_chs]
+        return data
+
+    @cached_property
     def _get_mrk(self):
         return apply_trans(als_ras_trans, self.markers.mrk3.points)
 
@@ -283,23 +299,29 @@ class Kit2FiffModel(HasPrivateTraits):
 
     @cached_property
     def _get_stim_chs_array(self):
-        if not self.stim_chs.strip():
-            return True
-        try:
-            out = eval("r_[%s]" % self.stim_chs, vars(np))
-            if out.dtype.kind != 'i':
-                raise TypeError("Need array of int")
-        except:
-            return None
+        if self.raw is None:
+            return
+        elif not self.stim_chs.strip():
+            picks = _default_stim_chs(self.raw.info)
         else:
-            return out
+            try:
+                picks = eval("r_[%s]" % self.stim_chs, vars(np))
+                if picks.dtype.kind != 'i':
+                    raise TypeError("Need array of int")
+            except:
+                return None
+
+        if self.stim_coding == '<':  # Big-endian
+            return picks[::-1]
+        else:
+            return picks
 
     @cached_property
     def _get_stim_chs_comment(self):
-        if self.stim_chs_array is None:
+        if self.raw is None:
+            return ""
+        elif self.stim_chs_array is None:
             return "Invalid!"
-        elif self.stim_chs_array is True:
-            return "Ok: Default channels"
         else:
             return "Ok: %i channels" % len(self.stim_chs_array)
 
@@ -313,19 +335,27 @@ class Kit2FiffModel(HasPrivateTraits):
         self.reset_traits(['sqd_file', 'hsp_file', 'fid_file', 'use_mrk'])
 
     def get_event_info(self):
-        """
-        Return a string with the number of events found for each trigger value
-        """
-        if len(self.events) == 0:
-            return "No events found."
+        """Count events with current stim channel settings
 
-        count = ["Events found:"]
-        events = np.array(self.events)
-        for i in np.unique(events):
-            n = np.sum(events == i)
-            count.append('%3i: %i' % (i, n))
-
-        return os.linesep.join(count)
+        Returns
+        -------
+        event_count : Counter
+            Counter mapping event ID to number of occurrences.
+        """
+        if self.misc_data is None:
+            return
+        idx = [self.misc_chs.index(ch) for ch in self.stim_chs_array]
+        data = self.misc_data[idx]
+        if self.stim_coding == 'channel':
+            coding = 'channel'
+        else:
+            coding = 'binary'
+        stim_ch = _make_stim_channel(data, self.stim_slope,
+                                     self.stim_threshold, coding,
+                                     self.stim_chs_array)
+        events = _find_events(stim_ch, self.raw.first_samp, consecutive=True,
+                              min_samples=3)
+        return Counter(events[:, 2])
 
     def get_raw(self, preload=False):
         """Create a raw object based on the current model settings
@@ -334,30 +364,17 @@ class Kit2FiffModel(HasPrivateTraits):
             raise ValueError("Not all necessary parameters are set")
 
         # stim channels and coding
-        if self.stim_chs_array is True:
-            if self.stim_coding == 'channel':
-                stim_code = 'channel'
-                raise NotImplementedError("Finding default event channels")
-            else:
-                stim = self.stim_coding
-                stim_code = 'binary'
+        if self.stim_coding == 'channel':
+            stim_code = 'channel'
+        elif self.stim_coding in '<>':
+            stim_code = 'binary'
         else:
-            stim = self.stim_chs_array
-            if self.stim_coding == 'channel':
-                stim_code = 'channel'
-            elif self.stim_coding == '<':
-                stim_code = 'binary'
-            elif self.stim_coding == '>':
-                # if stim is
-                stim = stim[::-1]
-                stim_code = 'binary'
-            else:
-                raise RuntimeError("stim_coding=%r" % self.stim_coding)
+            raise RuntimeError("stim_coding=%r" % self.stim_coding)
 
         logger.info("Creating raw with stim=%r, slope=%r, stim_code=%r, "
-                    "stimthresh=%r", stim, self.stim_slope, stim_code,
-                    self.stim_threshold)
-        raw = RawKIT(self.sqd_file, preload=preload, stim=stim,
+                    "stimthresh=%r", self.stim_chs_array, self.stim_slope,
+                    stim_code, self.stim_threshold)
+        raw = RawKIT(self.sqd_file, preload=preload, stim=self.stim_chs_array,
                      slope=self.stim_slope, stim_code=stim_code,
                      stimthresh=self.stim_threshold)
 
@@ -406,6 +423,8 @@ class Kit2FiffPanel(HasPrivateTraits):
     hsp_fname = DelegatesTo('model')
     fid_fname = DelegatesTo('model')
     misc_chs_desc = DelegatesTo('model')
+    can_test_stim = DelegatesTo('model')
+    test_stim = Button(label="Find Events")
 
     # Source Files
     reset_dig = Button
@@ -462,6 +481,8 @@ class Kit2FiffPanel(HasPrivateTraits):
                       Item('stim_chs_comment', label='>', style='readonly'),
                       Item('stim_threshold', label='Threshold',
                            tooltip=tooltips['stim_threshold']),
+                      Item('test_stim', enabled_when='can_test_stim',
+                           show_label=False),
                       label='Events', show_border=True),
                HGroup(Item('save_as', enabled_when='can_save'), spring,
                       'clear_all', show_labels=False),
@@ -562,6 +583,17 @@ class Kit2FiffPanel(HasPrivateTraits):
 
         self.queue.put((raw, fname))
         self.queue_len += 1
+
+    def _test_stim_fired(self):
+        events = self.model.get_event_info()
+        if len(events) == 0:
+            information(None, "No events were found with the current "
+                        "settings.", "No Events Found")
+        else:
+            lines = ["Events found (ID: n events):"]
+            for id_ in sorted(events):
+                lines.append("%3i: \t%i" % (id_, events[id_]))
+            information(None, '\n'.join(lines), "Events in SQD File")
 
 
 class Kit2FiffFrame(HasTraits):
