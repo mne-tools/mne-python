@@ -1694,8 +1694,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
     Notes
     -----
-    This program assumes that FreeSurfer and MNE are installed and
-    sourced properly.
+    This program assumes that FreeSurfer is installed and sourced properly.
 
     This function extracts the BEM surfaces (outer skull, inner skull, and
     outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
