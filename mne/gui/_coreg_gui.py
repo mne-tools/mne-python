@@ -1268,7 +1268,7 @@ class CoregFrame(HasTraits):
         color = defaults['mri_color']
         self.mri_obj = SurfaceObject(points=self.model.transformed_mri_points,
                                      color=color, tri=self.model.mri.tris,
-                                     scene=self.scene)
+                                     scene=self.scene, name="MRI Scalp")
         # on_trait_change was unreliable, so link it another way:
         self.model.mri.on_trait_change(self._on_mri_src_change, 'tris')
         self.model.sync_trait('transformed_mri_points', self.mri_obj, 'points',
@@ -1278,18 +1278,18 @@ class CoregFrame(HasTraits):
         # MRI Fiducials
         point_scale = defaults['mri_fid_scale']
         self.lpa_obj = PointObject(scene=self.scene, color=lpa_color,
-                                   point_scale=point_scale)
+                                   point_scale=point_scale, name='LPA')
         self.model.mri.sync_trait('lpa', self.lpa_obj, 'points', mutual=False)
         self.model.sync_trait('scale', self.lpa_obj, 'trans', mutual=False)
 
         self.nasion_obj = PointObject(scene=self.scene, color=nasion_color,
-                                      point_scale=point_scale)
+                                      point_scale=point_scale, name='Nasion')
         self.model.mri.sync_trait('nasion', self.nasion_obj, 'points',
                                   mutual=False)
         self.model.sync_trait('scale', self.nasion_obj, 'trans', mutual=False)
 
         self.rpa_obj = PointObject(scene=self.scene, color=rpa_color,
-                                   point_scale=point_scale)
+                                   point_scale=point_scale, name='RPA')
         self.model.mri.sync_trait('rpa', self.rpa_obj, 'points', mutual=False)
         self.model.sync_trait('scale', self.rpa_obj, 'trans', mutual=False)
 
@@ -1297,7 +1297,7 @@ class CoregFrame(HasTraits):
         color = defaults['hsp_point_color']
         point_scale = defaults['hsp_points_scale']
         p = PointObject(view='cloud', scene=self.scene, color=color,
-                        point_scale=point_scale, resolution=5)
+                        point_scale=point_scale, resolution=5, name='HSP')
         self.hsp_obj = p
         self.model.hsp.sync_trait('points', p, mutual=False)
         self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
@@ -1307,21 +1307,21 @@ class CoregFrame(HasTraits):
         point_scale = defaults['hsp_fid_scale']
         opacity = defaults['hsp_fid_opacity']
         p = PointObject(scene=self.scene, color=lpa_color, opacity=opacity,
-                        point_scale=point_scale)
+                        point_scale=point_scale, name='HSP-LPA')
         self.hsp_lpa_obj = p
         self.model.hsp.sync_trait('lpa', p, 'points', mutual=False)
         self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
         p = PointObject(scene=self.scene, color=nasion_color, opacity=opacity,
-                        point_scale=point_scale)
+                        point_scale=point_scale, name='HSP-Nasion')
         self.hsp_nasion_obj = p
         self.model.hsp.sync_trait('nasion', p, 'points', mutual=False)
         self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
         p = PointObject(scene=self.scene, color=rpa_color, opacity=opacity,
-                        point_scale=point_scale)
+                        point_scale=point_scale, name='HSP-RPA')
         self.hsp_rpa_obj = p
         self.model.hsp.sync_trait('rpa', p, 'points', mutual=False)
         self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
