@@ -297,6 +297,25 @@ else:
     qr_economic = _qr_economic_new
 
 
+def _safe_svd(A, **kwargs):
+    """Wrapper to get around the SVD did not converge error of death"""
+    # Intel has a bug with their GESVD driver:
+    #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa
+    # For SciPy 0.18 and up, we can work around it by using
+    # lapack_driver='gesvd' instead.
+    if kwargs.get('overwrite_a', False):
+        raise ValueError('Cannot set overwrite_a=True with this function')
+    try:
+        return linalg.svd(A, **kwargs)
+    except np.linalg.LinAlgError as exp:
+        if 'lapack_driver' in _get_args(linalg.svd):
+            warn('SVD error (%s), attempting to use GESVD instead of GESDD'
+                 % (exp,))
+            return linalg.svd(A, lapack_driver='gesvd', **kwargs)
+        else:
+            raise
+
+
 def savemat(file_name, mdict, oned_as="column", **kwargs):
     """MATLAB-format output routine that is compatible with SciPy 0.7's.
 
