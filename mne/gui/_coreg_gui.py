@@ -492,7 +492,7 @@ class CoregModel(HasPrivateTraits):
                                     subject=subject_from, name=bem_name)
         if not os.path.exists(bem_file):
             pattern = bem_fname.format(subjects_dir=subjects_dir,
-                                       subject=subject_to, name='(.+-bem)')
+                                       subject=subject_from, name='(.+-bem)')
             bem_dir, bem_file = os.path.split(pattern)
             m = None
             bem_file_pattern = re.compile(bem_file)
@@ -503,10 +503,9 @@ class CoregModel(HasPrivateTraits):
 
             if m is None:
                 pattern = bem_fname.format(subjects_dir=subjects_dir,
-                                           subject=subject_to, name='*-bem')
-                err = ("No bem file found; looking for files matching "
-                       "%s" % pattern)
-                error(None, err)
+                                           subject=subject_from, name='*-bem')
+                error(None, "No BEM file found (looking for files matching "
+                      "%s)" % pattern)
 
             bem_name = m.group(1)
 
