@@ -26,30 +26,6 @@ from ..io.pick import pick_types
 from ..externals.six import string_types
 
 
-def _ica_plot_sources_onpick_(event, sources=None, ylims=None):
-    """Onpick callback for plot_ica_panel"""
-
-    # make sure that the swipe gesture in OS-X doesn't open many figures
-    if event.mouseevent.inaxes is None or event.mouseevent.button != 1:
-        return
-
-    artist = event.artist
-    try:
-        import matplotlib.pyplot as plt
-        plt.figure()
-        src_idx = artist._mne_src_idx
-        component = artist._mne_component
-        plt.plot(sources[src_idx], 'r' if artist._mne_is_bad else 'k')
-        plt.ylim(ylims)
-        plt.grid(linestyle='-', color='gray', linewidth=.25)
-        plt.title('ICA #%i' % component)
-    except Exception as err:
-        # matplotlib silently ignores exceptions in event handlers, so we print
-        # it here to know what went wrong
-        print(err)
-        raise err
-
-
 def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
                      stop=None, show=True, title=None, block=False):
     """Plot estimated latent sources given the unmixing matrix.
@@ -118,83 +94,15 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
                                    stop=stop, show=show, title=title,
                                    block=block)
     elif isinstance(inst, Evoked):
-        sources = ica.get_sources(inst)
         if start is not None or stop is not None:
             inst = inst.copy().crop(start, stop)
+        sources = ica.get_sources(inst)
         fig = _plot_ica_sources_evoked(
             evoked=sources, picks=picks, exclude=exclude, title=title,
             labels=getattr(ica, 'labels_', None), show=show)
     else:
         raise ValueError('Data input must be of Raw or Epochs type')
 
-    return fig
-
-
-def _plot_ica_grid(sources, start, stop,
-                   source_idx, ncol, exclude,
-                   title, show):
-    """Create panel plots of ICA sources
-
-    Clicking on the plot of an individual source opens a new figure showing
-    the source.
-
-    Parameters
-    ----------
-    sources : ndarray
-        Sources as drawn from ica.get_sources.
-    start : int
-        x-axis start index. If None from the beginning.
-    stop : int
-        x-axis stop index. If None to the end.
-    n_components : int
-        Number of components fitted.
-    source_idx : array-like
-        Indices for subsetting the sources.
-    ncol : int
-        Number of panel-columns.
-    title : str
-        The figure title. If None a default is provided.
-    show : bool
-        If True, all open plots will be shown.
-    """
-    import matplotlib.pyplot as plt
-
-    if source_idx is None:
-        source_idx = np.arange(len(sources))
-    elif isinstance(source_idx, list):
-        source_idx = np.array(source_idx)
-    if exclude is None:
-        exclude = []
-
-    n_components = len(sources)
-    ylims = sources.min(), sources.max()
-    xlims = np.arange(sources.shape[-1])[[0, -1]]
-    fig, axes = _prepare_trellis(n_components, ncol)
-    if title is None:
-        fig.suptitle('Reconstructed latent sources', size=16)
-    elif title:
-        fig.suptitle(title, size=16)
-
-    plt.subplots_adjust(wspace=0.05, hspace=0.05)
-    my_iter = enumerate(zip(source_idx, axes, sources))
-    for i_source, (i_selection, ax, source) in my_iter:
-        component = '[%i]' % i_selection
-        # plot+ emebed idx and comp. name to use in callback
-        color = 'r' if i_selection in exclude else 'k'
-        line = ax.plot(source, linewidth=0.5, color=color, picker=1e9)[0]
-        vars(line)['_mne_src_idx'] = i_source
-        vars(line)['_mne_component'] = i_selection
-        vars(line)['_mne_is_bad'] = i_selection in exclude
-        ax.set_xlim(xlims)
-        ax.set_ylim(ylims)
-        ax.text(0.05, .95, component, transform=ax.transAxes,
-                verticalalignment='top')
-        plt.setp(ax.get_xticklabels(), visible=False)
-        plt.setp(ax.get_yticklabels(), visible=False)
-    # register callback
-    callback = partial(_ica_plot_sources_onpick_, sources=sources, ylims=ylims)
-    fig.canvas.mpl_connect('pick_event', callback)
-    plt_show(show)
     return fig
 
 
@@ -225,7 +133,6 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
     fig, axes = plt.subplots(1)
     ax = axes
     axes = [axes]
-    idxs = [0]
     times = evoked.times * 1e3
 
     # plot unclassified sources and label excluded ones
@@ -235,7 +142,6 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
         picks = np.arange(evoked.data.shape[0])
     picks = np.sort(picks)
     idxs = [picks]
-    color = 'r'
 
     if labels is not None:
         labels_used = [k for k in labels if '/' not in k]
@@ -314,11 +220,8 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
     return fig
 
 
-def plot_ica_scores(ica, scores,
-                    exclude=None, labels=None,
-                    axhline=None,
-                    title='ICA component scores',
-                    figsize=(12, 6), show=True):
+def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
+                    title='ICA component scores', figsize=(12, 6), show=True):
     """Plot scores related to detected components.
 
     Use this function to asses how well your score describes outlier
@@ -595,7 +498,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     eog_chs = pick_types(raw.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(raw.info, meg=False, ecg=True, ref_meg=False)
     data = [orig_data[pick] for pick in picks]
-    c_names = ['ICA %03d' % x for x in range(len(orig_data))]
+    c_names = ['ICA %03d' % (x + 1) for x in range(len(orig_data))]
     for eog_idx in eog_chs:
         c_names.append(raw.ch_names[eog_idx])
         types.append('eog')
@@ -688,7 +591,8 @@ def _pick_bads(event, params):
 def _close_event(events, params):
     """Function for excluding the selected components on close."""
     info = params['info']
-    c_names = ['ICA %03d' % x for x in range(params['ica'].n_components_)]
+    c_names = ['ICA %03d' % (x + 1) for x
+               in range(params['ica'].n_components_)]
     exclude = [c_names.index(x) for x in info['bads'] if x.startswith('ICA')]
     params['ica'].exclude = exclude
 
@@ -699,7 +603,7 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     data = ica._transform_epochs(epochs, concatenate=True)
     eog_chs = pick_types(epochs.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(epochs.info, meg=False, ecg=True, ref_meg=False)
-    c_names = ['ICA %03d' % x for x in range(ica.n_components_)]
+    c_names = ['ICA %03d' % (x + 1) for x in range(ica.n_components_)]
     ch_types = np.repeat('misc', ica.n_components_)
     for eog_idx in eog_chs:
         c_names.append(epochs.ch_names[eog_idx])
@@ -784,6 +688,9 @@ def _label_clicked(pos, params):
     if line_idx >= len(params['picks']):
         return
     ic_idx = [params['picks'][line_idx]]
+    if params['types'][ic_idx[0]] != 'misc':
+        warn('Can only plot ICA components.')
+        return
     types = list()
     info = params['ica'].info
     if len(pick_types(info, meg=False, eeg=True, ref_meg=False)) > 0:
