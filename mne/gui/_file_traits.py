@@ -318,7 +318,14 @@ class InstSource(HasPrivateTraits):
     @cached_property
     def _get_inst(self):
         if self.file:
-            return read_info(self.file)
+            info = read_info(self.file)
+            if info['dig'] is None:
+                error(None, "The selected FIFF file does not contain "
+                      "digitizer information. Please select a different "
+                      "file.", "Error Reading FIFF File")
+                self.reset_traits(['file'])
+            else:
+                return info
 
     @cached_property
     def _get_inst_dir(self):
