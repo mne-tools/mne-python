@@ -20,7 +20,8 @@ from ..utils import logger
 try:
     from mayavi.core.ui.mayavi_scene import MayaviScene
     from mayavi.tools.mlab_scene_model import MlabSceneModel
-    from pyface.api import confirm, error, FileDialog, OK, YES, information
+    from pyface.api import (confirm, error, FileDialog, OK, YES, information,
+                            ProgressDialog)
     from traits.api import (HasTraits, HasPrivateTraits, cached_property,
                             Instance, Property, Bool, Button, Enum, File,
                             Float, Int, List, Str, Array, DelegatesTo)
@@ -263,7 +264,19 @@ class Kit2FiffModel(HasPrivateTraits):
     def _get_misc_data(self):
         if not self.raw:
             return
-        data, times = self.raw[self.misc_chs]
+        # progress dialog with indefinite progress bar
+        prog = ProgressDialog(title="Loading SQD data...",
+                              message="Loading stim channel data from SQD "
+                              "file ...")
+        prog.open()
+        prog.update(0)
+        try:
+            data, times = self.raw[self.misc_chs]
+        except Exception as err:
+            prog.close()
+            error(None, str(err), "Error Creating FsAverage")
+            raise
+        prog.close()
         return data
 
     @cached_property
