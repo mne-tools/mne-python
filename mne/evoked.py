@@ -56,12 +56,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Dataset ID number (int) or comment/name (str). Optional if there is
         only one data set in file.
     baseline : tuple or list of length 2, or None
+        This parameter has been deprecated and will be removed in 0.14
+        Use inst.apply_baseline(baseline) instead.
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used
         and if b is None then b is set to the end of the interval.
-        If baseline is equal ot (None, None) all the time
+        If baseline is equal to (None, None) all the time
         interval is used. If None, no correction is applied.
     proj : bool, optional
         Apply SSP projection vectors
@@ -113,7 +115,38 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # project and baseline correct
         if proj:
             self.apply_proj()
+        self.apply_baseline(baseline, self.verbose)
+
+    @verbose
+    def apply_baseline(self, baseline, verbose=None):
+        """Baseline correct evoked data
+
+        Parameters
+        ----------
+        baseline : tuple of length 2
+            The time interval to apply rescaling / baseline correction.
+            If None do not apply it. If baseline is (a, b)
+            the interval is between "a (s)" and "b (s)".
+            If a is None the beginning of the data is used
+            and if b is None then b is set to the end of the interval.
+            If baseline is equal to (None, None) all the time
+            interval is used. If None, no correction is applied.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        evoked : instance of Evoked
+            The baseline-corrected Evoked object.
+
+        Notes
+        -----
+        Baseline correction can be done multiple times.
+
+        .. versionadded:: 0.13.0
+        """
         self.data = rescale(self.data, self.times, baseline, copy=False)
+        return self
 
     def save(self, fname):
         """Save dataset to file.
