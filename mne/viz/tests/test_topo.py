@@ -77,7 +77,8 @@ def test_plot_topo():
     import matplotlib.pyplot as plt
     # Show topography
     evoked = _get_epochs().average()
-    plot_evoked_topo(evoked)  # should auto-find layout
+    # should auto-find layout
+    plot_evoked_topo([evoked, evoked], merge_grads=True)
     # Test jointplot
     evoked.plot_joint()
     evoked.plot_joint(title='test', ts_args=dict(spatial_colors=True),

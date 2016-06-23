@@ -38,6 +38,8 @@ BUG
 
     - Fixed a bug where some FIF files could not be read with :func:`mne.io.show_fiff` by `Christian Brodbeck`_ and `Eric Larson`_
 
+    - Fixed a bug where ``merge_grads=True`` causes :func:`mne.viz.plot_evoked_topo` to fail when plotting a list of evokeds by `Jaakko Leppakangas`_
+
 API
 ~~~
 

@@ -235,6 +235,8 @@ def _plot_topo_onpick(event, show_func):
 
 def _compute_scalings(bn, xlim, ylim):
     """Compute scale factors for a unified plot"""
+    if isinstance(ylim[0], (tuple, list, np.ndarray)):
+        ylim = (ylim[0][0], ylim[1][0])
     pos = bn.pos
     bn.x_s = pos[2] / (xlim[1] - xlim[0])
     bn.x_t = pos[0] - bn.x_s * xlim[0]
@@ -582,13 +584,13 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         else:
             ylim_ = zip(*[np.array(yl) for yl in ylim_])
     else:
-        raise ValueError('ylim must be None ore a dict')
+        raise ValueError('ylim must be None or a dict')
 
     data = [e.data for e in evoked]
-    show_func = partial(_plot_timeseries_unified, data=data,
-                        color=color, times=times, vline=vline, hline=hline)
-    click_func = partial(_plot_timeseries, data=data,
-                         color=color, times=times, vline=vline, hline=hline)
+    show_func = partial(_plot_timeseries_unified, data=data, color=color,
+                        times=times, vline=vline, hline=hline)
+    click_func = partial(_plot_timeseries, data=data, color=color, times=times,
+                         vline=vline, hline=hline)
 
     fig = _plot_topo(info=info, times=times, show_func=show_func,
                      click_func=click_func, layout=layout,
