@@ -417,8 +417,22 @@ def _filtfilt(x, iir_params, picks, n_jobs, copy):
     return x
 
 
-def _estimate_ringing_samples(system):
-    """Helper function for determining filter ringing (up to 100000 samples)"""
+def estimate_ringing_samples(system, max_try=100000):
+    """Estimate filter ringing
+
+    Parameters
+    ----------
+    system : tuple | ndarray
+        A tuple of (b, a) or ndarray of second-order sections coefficients.
+    max_try : int
+        Approximate maximum number of samples to try.
+        This will be changed to a multple of 1000.
+
+    Returns
+    -------
+    n : int
+        The approximate ringing.
+    """
     from scipy import signal
     if isinstance(system, tuple):  # TF
         kind = 'ba'
@@ -429,10 +443,10 @@ def _estimate_ringing_samples(system):
         sos = system
         zi = [[0.] * 2] * len(sos)
     n_per_chunk = 1000
-    n_chunks_max = 100
+    n_chunks_max = int(np.ceil(max_try / float(n_per_chunk)))
     x = np.zeros(n_per_chunk)
     x[0] = 1
-    last_good = 1000
+    last_good = n_per_chunk
     thresh_val = 0
     for ii in range(n_chunks_max):
         if kind == 'ba':
@@ -446,7 +460,7 @@ def _estimate_ringing_samples(system):
         if len(idx) > 0:
             last_good = idx[-1]
         else:  # this iteration had no sufficiently lange values
-            idx = (ii - 1) * 1000 + last_good
+            idx = (ii - 1) * n_per_chunk + last_good
             break
     else:
         warn('Could not properly estimate ringing for the filter')
@@ -617,7 +631,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
 
     # now deal with padding
     if 'padlen' not in iir_params:
-        padlen = _estimate_ringing_samples(system)
+        padlen = estimate_ringing_samples(system)
     else:
         padlen = iir_params['padlen']
 

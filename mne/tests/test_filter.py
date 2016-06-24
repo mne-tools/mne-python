@@ -9,7 +9,7 @@ from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
                         band_stop_filter, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
                         _overlap_add_filter, _smart_pad,
-                        _estimate_ringing_samples, filter_data)
+                        estimate_ringing_samples, filter_data)
 
 from mne.utils import (sum_squared, run_tests_if_main, slow_test,
                        catch_logging, requires_version)
@@ -27,12 +27,12 @@ def test_estimate_ringing():
                              (0.01, (300, 600)),  # 475
                              (0.001, (3000, 6000)),  # 4758
                              (0.0001, (30000, 60000))):  # 37993
-            n_ring = _estimate_ringing_samples(butter(3, thresh, output=kind))
+            n_ring = estimate_ringing_samples(butter(3, thresh, output=kind))
             assert_true(lims[0] <= n_ring <= lims[1],
                         msg='%s %s: %s <= %s <= %s'
                         % (kind, thresh, lims[0], n_ring, lims[1]))
     with warnings.catch_warnings(record=True) as w:
-        assert_equal(_estimate_ringing_samples(butter(4, 0.00001)), 100000)
+        assert_equal(estimate_ringing_samples(butter(4, 0.00001)), 100000)
     assert_true(any('properly estimate' in str(ww.message) for ww in w))
 
 
