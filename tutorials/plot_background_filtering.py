@@ -2,6 +2,7 @@
 r"""
 .. _tut_background_filtering:
 
+===================================
 Background information on filtering
 ===================================
 
@@ -14,7 +15,7 @@ in MNE-Python on actual data, see the :ref:`tut_artifacts_filter` tutorial.
 .. contents::
 
 Filtering basics
-----------------
+================
 Let's get some of the basic math down. In the frequency domain, digital
 filters have a transfer function that is given by:
 
@@ -76,7 +77,10 @@ In general, the sharper something is in frequency, the broader it is in time,
 and vice-versa. This is a fundamental time-frequency tradeoff, and it will
 show up below.
 
-Here we will focus first on FIR filters, which are the default filters used by
+FIR filters
+===========
+
+First we will focus first on FIR filters, which are the default filters used by
 MNE-Python.
 """
 
@@ -367,7 +371,7 @@ plt.show()
 
 ###############################################################################
 # Summary
-# -------
+# =======
 # When filtering, there are always tradeoffs that should be considered.
 # One important tradeoff is between time-domain characteristics (like ringing)
 # and frequency-domain attenuation characteristics (like effective transition
@@ -379,7 +383,7 @@ plt.show()
 
 ###############################################################################
 # References
-# ----------
+# ==========
 # .. [1] Parks TW, Burrus CS. Digital Filter Design.
 #    New York: Wiley-Interscience, 1987.
 #
