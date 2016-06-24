@@ -186,7 +186,7 @@ class ICA(ContainsMixin):
         The number of components used for PCA dimensionality reduction.
     verbose : bool, str, int, or None
         See above.
-    ``pca_components_` : ndarray
+    ``pca_components_`` : ndarray
         If fit, the PCA components
     ``pca_mean_`` : ndarray
         If fit, the mean vector used to center the data before doing the PCA.

@@ -61,7 +61,8 @@ def nottest(f):
 
 # This list must also be updated in doc/_templates/class.rst if it is
 # changed here!
-_doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__')
+_doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
+                        '__call__')
 
 ###############################################################################
 # RANDOM UTILITIES

@@ -26,6 +26,8 @@ sys.path.append(os.path.abspath(os.path.join(curdir, '..', 'mne')))
 sys.path.append(os.path.abspath(os.path.join(curdir, 'sphinxext')))
 
 import mne
+if not os.path.isdir('_images'):
+    os.mkdir('_images')
 
 # -- General configuration ------------------------------------------------
 
@@ -34,7 +36,9 @@ import mne
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-import numpy_ext.numpydoc
+from numpydoc import numpydoc, docscrape
+docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
+
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
@@ -46,7 +50,7 @@ extensions = [
     'sphinx_gallery.gen_gallery',
 ]
 
-extensions += ['numpy_ext.numpydoc'] 
+extensions += ['numpydoc'] 
 extensions += ['gen_commands']  # auto generate the doc for the python commands
 # extensions += ['flow_diagram]  # generate flow chart in cookbook
 
@@ -296,3 +300,5 @@ sphinx_gallery_conf = {
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
     'mod_example_dir': 'generated',
     }
+
+numpydoc_class_members_toctree = False

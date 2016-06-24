@@ -51,7 +51,7 @@ API
 
     - Now it is possible to plot only a subselection of channels in :func:`mne.viz.plot_raw` by using an array for order parameter by `Jaakko Leppakangas`_
 
-    - EOG channels can now be incuded when calling :funf:`mne.preprocessing.ICA.fit` and a proper error is raised when trying to include unsupported channels by `Alexander Rudiuk`_
+    - EOG channels can now be incuded when calling :func:`mne.preprocessing.ICA.fit` and a proper error is raised when trying to include unsupported channels by `Alexander Rudiuk`_
 
     - :func:`mne.concatenate_epochs` and :func:`mne.compute_covariance` now check to see if all :class:`Epochs` instances have the same MEG-to-Head transformation, and errors by default if they do not by `Eric Larson`_
 
@@ -1597,3 +1597,5 @@ of commits):
 .. _Jon Houck: http://www.unm.edu/~jhouck/
 
 .. _Pablo-Arias: https://github.com/Pablo-Arias
+
+.. _Alexander Rudiuk: https://github.com/ARudiuk
