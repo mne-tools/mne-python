@@ -343,17 +343,33 @@ def test_fit_sphere_to_headshape():
 def test_make_flash_bem():
     """Test computing bem from flash images."""
     import matplotlib.pyplot as plt
+    from shutil import copy
+    tmp = _TempDir()
+    bemdir = op.join(subjects_dir, 'sample', 'bem')
     flash_path = op.join(subjects_dir, 'sample', 'mri', 'flash')
-    # This function deletes some files at the end.
-    make_flash_bem('sample', overwrite=True, subjects_dir=subjects_dir,
-                   flash_path=flash_path)
+
+    for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
+        copy(op.join(bemdir, surf + '.surf'), tmp)
+        copy(op.join(bemdir, surf + '.tri'), tmp)
+    copy(op.join(bemdir, 'inner_skull_tmp.tri'), tmp)
+
+    # This function deletes the tri files at the end.
+    try:
+        make_flash_bem('sample', overwrite=True, subjects_dir=subjects_dir,
+                       flash_path=flash_path)
+        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
+            coords, faces = read_surface(op.join(bemdir, surf + '.surf'))
+            coords_c, faces_c = read_surface(op.join(tmp, surf + '.surf'))
+            assert_equal(0, faces.min())
+            assert_equal(coords.shape[0], faces.max() + 1)
+            assert_allclose(coords, coords_c)
+            assert_allclose(faces, faces_c)
+    finally:
+        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
+            copy(op.join(tmp, surf + '.tri'), bemdir)  # return deleted tri
+            copy(op.join(tmp, surf + '.surf'), bemdir)  # return moved surf
+        copy(op.join(tmp, 'inner_skull_tmp.tri'), bemdir)
     plt.close('all')
-    inner_skull = op.join(subjects_dir, 'sample', 'bem', 'inner_skull.surf')
-    outer_skull = op.join(subjects_dir, 'sample', 'bem', 'outer_skull.surf')
-    outer_skin = op.join(subjects_dir, 'sample', 'bem', 'outer_skin.surf')
-    for surf in (inner_skull, outer_skull, outer_skin):
-        coords, faces = read_surface(surf)
-        assert_equal(0, faces.min())
-        assert_equal(coords.shape[0], faces.max() + 1)
+
 
 run_tests_if_main()

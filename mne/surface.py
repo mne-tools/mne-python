@@ -1193,7 +1193,8 @@ def _load_ascii_surface(filepath, swap=False):
     Returns
     -------
     surf : tuple (nodes, tris)
-        The surface."""
+        The surface.
+    """
     with open(filepath, "r") as fid:
         lines = fid.readlines()
     n_nodes = int(lines[0])

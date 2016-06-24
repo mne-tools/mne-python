@@ -1786,6 +1786,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     surfs = ['inner_skull', 'outer_skull', 'outer_skin']
     for surf in surfs:
         shutil.move(op.join(bem_dir, surf + '.tri'), surf + '.tri')
+
         nodes, tris = _load_ascii_surface(surf + '.tri', swap=True)
         vol_info = _extract_volume_info(flash5_reg)
         if vol_info is None:
