@@ -584,7 +584,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         else:
             ylim_ = zip(*[np.array(yl) for yl in ylim_])
     else:
-        raise ValueError('ylim must be None or a dict')
+        raise TypeError('ylim must be None or a dict. Got %s.' % type(ylim))
 
     data = [e.data for e in evoked]
     show_func = partial(_plot_timeseries_unified, data=data, color=color,
