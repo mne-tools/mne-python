@@ -333,10 +333,12 @@ class Kit2FiffModel(HasPrivateTraits):
     def _get_stim_chs_comment(self):
         if self.raw is None:
             return ""
-        elif self.stim_chs_array is None:
+        elif not self.stim_chs_ok:
             return "Invalid!"
+        elif not self.stim_chs.strip():
+            return "Default:  The first 8 MISC channels"
         else:
-            return "Ok: %i channels" % len(self.stim_chs_array)
+            return "Ok:  %i channels" % len(self.stim_chs_array)
 
     @cached_property
     def _get_stim_chs_ok(self):
@@ -492,7 +494,8 @@ class Kit2FiffPanel(HasPrivateTraits):
                            tooltip=tooltips["stim_chs"],
                            editor=TextEditor(evaluate_name='stim_chs_ok',
                                              auto_set=True)),
-                      Item('stim_chs_comment', label='>', style='readonly'),
+                      Item('stim_chs_comment', label='Evaluation',
+                           style='readonly', show_label=False),
                       Item('stim_threshold', label='Threshold',
                            tooltip=tooltips['stim_threshold']),
                       HGroup(Item('test_stim', enabled_when='can_test_stim',
