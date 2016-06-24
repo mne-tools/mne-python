@@ -171,7 +171,7 @@ MNE-Python specific coding guidelines
 * Use underscores to separate words in non class names: n_samples rather than nsamples.
 * Use CamelCase for class names.
 * Use relative imports for references inside mne-python.
-* Use nested imports for ``matplotlib``, ``sklearn``, and ``pandas``.
+* Use nested imports (i.e., within a function or method instead of at the top of a file) for ``matplotlib``, ``sklearn``, and ``pandas``.
 * Use ``RdBu_r`` colormap for signed data and ``Reds`` for unsigned data in visualization functions and examples.
 * All visualization functions must accept a ``show`` parameter and return a ``fig`` handle.
 * Efforts to improve test timing without decreasing coverage is well appreciated. To see the top-30 tests in order of decreasing timing, run the following command:
