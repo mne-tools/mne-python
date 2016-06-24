@@ -408,7 +408,7 @@ sosfiltfilt = mne.fixes.get_sosfiltfilt()
 x_shallow = sosfiltfilt(sos, x)
 
 ###############################################################################
-# The folloff of this filter is not very steep.
+# The falloff of this filter is not very steep.
 #
 # .. warning:: For brevity, we do not show the phase of these filters here.
 #              In the FIR case, we can design linear-phase filters, and
