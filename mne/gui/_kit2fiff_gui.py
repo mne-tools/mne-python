@@ -438,6 +438,7 @@ class Kit2FiffPanel(HasPrivateTraits):
     misc_chs_desc = DelegatesTo('model')
     can_test_stim = DelegatesTo('model')
     test_stim = Button(label="Find Events")
+    plot_raw = Button(label="Plot Raw")
 
     # Source Files
     reset_dig = Button
@@ -494,8 +495,11 @@ class Kit2FiffPanel(HasPrivateTraits):
                       Item('stim_chs_comment', label='>', style='readonly'),
                       Item('stim_threshold', label='Threshold',
                            tooltip=tooltips['stim_threshold']),
-                      Item('test_stim', enabled_when='can_test_stim',
-                           show_label=False),
+                      HGroup(Item('test_stim', enabled_when='can_test_stim',
+                                  show_label=False),
+                             Item('plot_raw', enabled_when='can_test_stim',
+                                  show_label=False),
+                             show_labels=False),
                       label='Events', show_border=True),
                HGroup(Item('save_as', enabled_when='can_save'), spring,
                       'clear_all', show_labels=False),
@@ -559,6 +563,9 @@ class Kit2FiffPanel(HasPrivateTraits):
             return "Queue length: %i" % self.queue_len
         else:
             return ''
+
+    def _plot_raw_fired(self):
+        self.model.raw.plot()
 
     def _reset_dig_fired(self):
         self.reset_traits(['hsp_file', 'fid_file'])
