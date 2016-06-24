@@ -941,7 +941,7 @@ class CoregPanel(HasPrivateTraits):
                                   subject_from=subject_from,
                                   subject_to=subject_to)
             ui = mridlg.edit_traits(kind='modal')
-            if ui.result != True:  # noqa
+            if not ui.result:  # i.e., user pressed cancel
                 return
             subject_to = mridlg.subject_to
 
@@ -1072,7 +1072,10 @@ class NewMriDialog(HasPrivateTraits):
 
     @on_trait_change('subject_to_dir,overwrite')
     def update_dialog(self):
-        if not self.subject_to:
+        if not self.subject_from:
+            # weird trait state that occurs even when subject_from is set
+            return
+        elif not self.subject_to:
             self.feedback = "No subject specified..."
             self.can_save = False
             self.can_overwrite = False
