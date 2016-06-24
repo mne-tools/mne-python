@@ -544,11 +544,11 @@ class Kit2FiffPanel(HasPrivateTraits):
         # setup mayavi visualization
         m = self.model
         self.fid_obj = PointObject(scene=self.scene, color=(25, 225, 25),
-                                   point_scale=5e-3)
+                                   point_scale=5e-3, name='Fiducials')
         self.elp_obj = PointObject(scene=self.scene, color=(50, 50, 220),
-                                   point_scale=1e-2, opacity=.2)
+                                   point_scale=1e-2, opacity=.2, name='ELP')
         self.hsp_obj = PointObject(scene=self.scene, color=(200, 200, 200),
-                                   point_scale=2e-3)
+                                   point_scale=2e-3, name='HSP')
         if not _testing_mode():
             for name, obj in zip(['fid', 'elp', 'hsp'],
                                  [self.fid_obj, self.elp_obj, self.hsp_obj]):
