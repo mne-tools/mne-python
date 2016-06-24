@@ -25,7 +25,7 @@ from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, _BaseRaw
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..utils import verbose, logger, _clean_names, warn, _time_mask
-from ..fixes import _get_args, partial, in1d
+from ..fixes import _get_args, partial, in1d, _safe_svd
 from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
 
@@ -1562,8 +1562,7 @@ if 'check_finite' in _get_args(linalg.svd):
 def _orth_overwrite(A):
     """Helper to create a slightly more efficient 'orth'"""
     # adapted from scipy/linalg/decomp_svd.py
-    u, s = linalg.svd(A, overwrite_a=True, full_matrices=False,
-                      **check_disable)[:2]
+    u, s = _safe_svd(A, full_matrices=False, **check_disable)[:2]
     M, N = A.shape
     eps = np.finfo(float).eps
     tol = max(M, N) * np.amax(s) * eps
