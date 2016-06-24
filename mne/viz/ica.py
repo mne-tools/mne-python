@@ -123,9 +123,9 @@ def _create_properties_layout(figsize=None):
     return fig, ax
 
 
-def plot_properties(inst, ica, picks=None, axes=None, dB=True, cmap=None,
-                    plot_std=True, topomap_args=None, image_args=None,
-                    psd_args=None, figsize=None, show=True):
+def plot_ica_properties(inst, ica, picks=None, axes=None, dB=True,
+                        plot_std=True, topomap_args=None, image_args=None,
+                        psd_args=None, figsize=None, show=True):
     """Display component properties: topography, epochs image, ERP/ERF,
     power spectrum and epoch variance.
 
@@ -145,9 +145,6 @@ def plot_properties(inst, ica, picks=None, axes=None, dB=True, cmap=None,
         figure with relevant axes is created. Defaults to None.
     dB: bool
         Whether to plot spectrum in dB. Defaults to True.
-    cmap: matplotlib colormap | None
-        Colormap to use in both topoplot and epochs image. If None topoplot
-        and epochs image use their default "RdBu_r" colormap. Defaults to None.
     plot_std: bool | float
         Whether to plot standard deviation in ERP/ERF and spectrum plots.
         Defaults to True, which plots one standard deviation above/below.
@@ -211,9 +208,6 @@ def plot_properties(inst, ica, picks=None, axes=None, dB=True, cmap=None,
         if not isinstance(d, dict):
             raise ValueError('topomap_args, image_args and psd_args have to be'
                              ' dictionaries, got %s instead.' % type(d))
-    if cmap is not None:
-        topomap_args.update(cmap=cmap)
-        image_args.update(cmap=cmap)
     if dB is not None and isinstance(dB, bool) is False:
         raise ValueError('dB should be bool, got %s instead' %
                          type(dB))

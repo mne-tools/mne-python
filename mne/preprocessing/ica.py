@@ -35,7 +35,7 @@ from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
 from ..viz import (plot_ica_components, plot_ica_scores,
                    plot_ica_sources, plot_ica_overlay)
-from ..viz.ica import plot_properties
+from ..viz.ica import plot_ica_properties
 from ..viz.utils import (_prepare_trellis, tight_layout, plt_show,
                          _setup_vmin_vmax)
 from ..viz.topomap import (_prepare_topo_plot, _check_outlines,
@@ -1402,9 +1402,8 @@ class ICA(ContainsMixin):
                                    head_pos=head_pos)
 
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
-                        cmap=None, plot_std=True, topomap_args=None,
-                        image_args=None, psd_args=None, figsize=None,
-                        show=True):
+                        plot_std=True, topomap_args=None, image_args=None,
+                        psd_args=None, figsize=None, show=True):
         """Display component properties: topography, epochs image, ERP,
         power spectrum and epoch variance.
 
@@ -1422,10 +1421,6 @@ class ICA(ContainsMixin):
             figure with relevant axes is created. Defaults to None.
         dB: bool
             Whether to plot spectrum in dB. Defaults to True.
-        cmap: matplotlib colormap | None
-            Colormap to use in both topoplot and epochs image. If None topoplot
-            and epochs image use their default "RdBu_r" colormap.
-            Defaults to None.
         plot_std: bool | float
             Whether to plot standard deviation in ERP/ERF and spectrum plots.
             Defaults to True, which plots one standard deviation above/below.
@@ -1452,8 +1447,8 @@ class ICA(ContainsMixin):
         fig : list
             List of matplotlib figures.
         """
-        return plot_properties(inst, self, picks=picks, axes=axes,
-                               dB=dB, cmap=cmap, plot_std=plot_std,
+        return plot_ica_properties(inst, self, picks=picks, axes=axes,
+                               dB=dB, plot_std=plot_std,
                                topomap_args=topomap_args,
                                image_args=image_args, psd_args=psd_args,
                                figsize=figsize, show=show)

@@ -11,7 +11,7 @@ from numpy.testing import assert_raises, assert_equal
 from mne import io, read_events, Epochs, read_cov
 from mne import pick_types
 from mne.utils import run_tests_if_main, requires_sklearn
-from mne.viz.ica import _create_properties_layout, plot_properties
+from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 
@@ -99,8 +99,7 @@ def test_plot_ica_properties():
 
     topoargs = dict(topomap_args={'res': 10})
     ica.plot_properties(raw, picks=0, **topoargs)
-    ica.plot_properties(epochs, picks=1, dB=False, cmap='jet',
-                        plot_std=1.5, **topoargs)
+    ica.plot_properties(epochs, picks=1, dB=False, plot_std=1.5, **topoargs)
     ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
                         topomap_args={'res': 10, 'colorbar': True},
                         psd_args={'fmax': 65.}, plot_std=False,
@@ -111,7 +110,7 @@ def test_plot_ica_properties():
     assert_raises(ValueError, ica.plot_properties, epochs, plot_std=[])
     assert_raises(ValueError, ica.plot_properties, ica)
     assert_raises(ValueError, ica.plot_properties, [0.2])
-    assert_raises(ValueError, plot_properties, epochs, epochs)
+    assert_raises(ValueError, plot_ica_properties, epochs, epochs)
     assert_raises(ValueError, ica.plot_properties, epochs,
                   psd_args='not dict')
 
@@ -120,7 +119,7 @@ def test_plot_ica_properties():
     ica.plot_properties(epochs, picks=1, axes=ax)
     fig = ica.plot_properties(raw, picks=[0, 1], **topoargs)
     assert_equal(len(fig), 2)
-    assert_raises(ValueError, plot_properties, epochs, ica, picks=[0, 1],
+    assert_raises(ValueError, plot_ica_properties, epochs, ica, picks=[0, 1],
                   axes=ax)
     assert_raises(ValueError, ica.plot_properties, epochs, axes='not axes')
     plt.close('all')
