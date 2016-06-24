@@ -1707,15 +1707,16 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     from .viz.misc import plot_bem
     from .surface import write_surface, _load_ascii_surface
 
-    # Hack to enable testing with travis.
-    is_test = os.environ.get('FREESURFER_HOME', '').endswith(
-        'MNE-testing-data')
+    is_test = os.environ.get('MNE_TESTING', False)  # to enable travis testing
+
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
                                          requires_freesurfer=True,
                                          requires_mne=False)
 
     if flash_path is None:
         flash_path = op.join(mri_dir, 'flash', 'parameter_maps')
+    else:
+        flash_path = op.abspath(flash_path)
     curdir = os.getcwd()
     subjects_dir = env['SUBJECTS_DIR']
 

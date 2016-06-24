@@ -3,7 +3,9 @@
 # License: BSD 3 clause
 
 from copy import deepcopy
+from os import remove
 import os.path as op
+from shutil import copy
 import warnings
 
 import numpy as np
@@ -343,7 +345,6 @@ def test_fit_sphere_to_headshape():
 def test_make_flash_bem():
     """Test computing bem from flash images."""
     import matplotlib.pyplot as plt
-    from shutil import copy
     tmp = _TempDir()
     bemdir = op.join(subjects_dir, 'sample', 'bem')
     flash_path = op.join(subjects_dir, 'sample', 'mri', 'flash')
@@ -357,7 +358,7 @@ def test_make_flash_bem():
     try:
         make_flash_bem('sample', overwrite=True, subjects_dir=subjects_dir,
                        flash_path=flash_path)
-        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
+        for surf in ('inner_skull', 'outer_skull'):
             coords, faces = read_surface(op.join(bemdir, surf + '.surf'))
             coords_c, faces_c = read_surface(op.join(tmp, surf + '.surf'))
             assert_equal(0, faces.min())
@@ -366,6 +367,7 @@ def test_make_flash_bem():
             assert_allclose(faces, faces_c)
     finally:
         for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
+            remove(op.join(bemdir, surf + '.surf'))  # delete symlinks
             copy(op.join(tmp, surf + '.tri'), bemdir)  # return deleted tri
             copy(op.join(tmp, surf + '.surf'), bemdir)  # return moved surf
         copy(op.join(tmp, 'inner_skull_tmp.tri'), bemdir)
