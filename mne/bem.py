@@ -1238,7 +1238,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS)
     if tag is None:
-        tag = tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NORMALS)
+        tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NORMALS)
     if tag is None:
         res['nn'] = list()
     else:
