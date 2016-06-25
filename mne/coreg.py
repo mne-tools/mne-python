@@ -613,15 +613,18 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
     # surf/ files
     paths['surf'] = surf = []
     surf_fname = os.path.join(surf_dirname, '{name}')
-    surf_names = ('inflated', 'sphere', 'sphere.reg', 'white')
-    if os.getenv('_MNE_FEW_SURFACES', '') != 'true':  # for testing
-        surf_names = surf_names + (
-            'orig', 'orig_avg', 'inflated_avg', 'inflated_pre', 'pial',
-            'pial_avg', 'smoothwm', 'white_avg', 'sphere.reg.avg')
-    for name in surf_names:
+    surf_names = ('inflated', 'sphere', 'sphere.reg', 'white', 'orig',
+                  'orig_avg', 'inflated_avg', 'inflated_pre', 'pial',
+                  'pial_avg', 'smoothwm', 'white_avg', 'sphere.reg.avg')
+    if os.getenv('_MNE_FEW_SURFACES', '') == 'true':  # for testing
+        surf_names = surf_names[:4]
+    for surf_name in surf_names:
         for hemi in ('lh.', 'rh.'):
-            fname = pformat(surf_fname, name=hemi + name)
-            surf.append(fname)
+            name = hemi + surf_name
+            path = surf_fname.format(subjects_dir=subjects_dir,
+                                     subject=subject, name=name)
+            if os.path.exists(path):
+                surf.append(pformat(surf_fname, name=name))
 
     # BEM files
     paths['bem'] = bem = []
