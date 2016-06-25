@@ -23,7 +23,7 @@ Changelog
 
     - Add label center of mass function :func:`mne.Label.center_of_mass` by `Eric Larson`_
 
-    - Added :func:`mne.viz.ica.plot_properties` that allows ploting of independent component properties similar to ``pop_prop`` in EEGLAB. Also :class:`mne.preprocessing.ica.ICA` has ``plot_properties`` method now. Added by `Mikołaj Magnuski`_
+    - Added :func:`mne.viz.ica.plot_ica_properties` that allows ploting of independent component properties similar to ``pop_prop`` in EEGLAB. Also :class:`mne.preprocessing.ica.ICA` has :func:`mne.preprocessing.ica.ICA.plot_properties` method now. Added by `Mikołaj Magnuski`_
 
 BUG
 ~~~
