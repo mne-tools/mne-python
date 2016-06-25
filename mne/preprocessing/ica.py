@@ -1448,10 +1448,10 @@ class ICA(ContainsMixin):
             List of matplotlib figures.
         """
         return plot_ica_properties(inst, self, picks=picks, axes=axes,
-                               dB=dB, plot_std=plot_std,
-                               topomap_args=topomap_args,
-                               image_args=image_args, psd_args=psd_args,
-                               figsize=figsize, show=show)
+                                   dB=dB, plot_std=plot_std,
+                                   topomap_args=topomap_args,
+                                   image_args=image_args, psd_args=psd_args,
+                                   figsize=figsize, show=show)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, title=None, show=True, block=False):
