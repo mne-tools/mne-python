@@ -160,7 +160,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                  scalings, titles, axes, plot_type,
                  cmap=None, gfp=False, window_title=None,
                  spatial_colors=False, set_tight_layout=True,
-                 selectable=True, zorder='unordered'):
+                 selectable=True, zorder='unsorted'):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
@@ -425,7 +425,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
-                window_title=None, spatial_colors=False, zorder='unordered',
+                window_title=None, spatial_colors=False, zorder='unsorted',
                 selectable=True):
     """Plot evoked data using butteryfly plots
 
@@ -486,10 +486,10 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     zorder : str | callable
         Which channels to put in the front or back. Only matters if
         `spatial_colors` is used.
-        If str, must be `std` or `unordered` (defaults to `unordered`). If
+        If str, must be `std` or `unsorted` (defaults to `unsorted`). If
         `std`, data with the lowest standard deviation (weakest effects) will
         be put in front so that they are not obscured by those with stronger
-        effects. If `unordered`, channels are z-sorted as in the evoked
+        effects. If `unsorted`, channels are z-sorted as in the evoked
         instance.
         If callable, must take one argument: a numpy array of the same
         dimensionality as the evoked raw data; and return a list of
