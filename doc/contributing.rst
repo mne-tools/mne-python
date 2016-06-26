@@ -29,7 +29,7 @@ What you will need
    text editors and are available on all three major platforms. Both provide
    plugins that facilitate editing python code and help avoid bugs and style
    errors. See for example linterflake8_ for Atom_.
-   The Spyder_ IDE is espectially suitable for those migrating from Matlab.
+   The Spyder_ IDE is especially suitable for those migrating from Matlab.
    EPD_ and Anaconda_ both ship Spyder and all its dependencies.
    As always, Vim or Emacs will suffice as well.
 
