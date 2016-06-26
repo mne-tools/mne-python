@@ -91,9 +91,10 @@ def test_plot_evoked():
                     [line.get_xdata()[0], line.get_ydata()[0]], 'data')
         _fake_click(fig, ax,
                     [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
-        # plot with bad channels excluded & spatial_colors
+        # plot with bad channels excluded & spatial_colors & zorder
         evoked.plot(exclude='bads')
-        evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True)
+        evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True,
+                    zorder='std')
 
         # test selective updating of dict keys is working.
         evoked.plot(hline=[1], units=dict(mag='femto foo'))
