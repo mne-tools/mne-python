@@ -81,7 +81,11 @@ def test_plot_topo():
     plot_evoked_topo([evoked, evoked], merge_grads=True)
     # Test jointplot
     evoked.plot_joint()
-    evoked.plot_joint(title='test', ts_args=dict(spatial_colors=True),
+
+    def return_inds(d):  # to test function kwarg to zorder arg of evoked.plot
+        return list(range(d.shape[0]))
+    ts_args = dict(spatial_colors=True, zorder=return_inds)
+    evoked.plot_joint(title='test', ts_args=ts_args,
                       topomap_args=dict(colorbar=True, times=[0.]))
 
     warnings.simplefilter('always', UserWarning)
