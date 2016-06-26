@@ -160,7 +160,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                  scalings, titles, axes, plot_type,
                  cmap=None, gfp=False, window_title=None,
                  spatial_colors=False, set_tight_layout=True,
-                 selectable=True, zorder='unsorted'):
+                 selectable=True, z_order='unsorted'):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
@@ -314,18 +314,20 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
                     # find the channels with the least activity
                     # to map them in front of the more active ones
-                    if zorder == 'std':
-                        def zorder(D):
+                    if z_order == 'std':
+                        def zorder_(D):
                             return D.std(axis=1).argsort()
-                    elif zorder == 'unsorted':
-                        def zorder(D):
+                    elif z_order == 'unsorted':
+                        def zorder_(D):
                             return list(range(D.shape[0]))
-                    elif not callable(zorder):
-                        error = ('`zorder ` must be a function, "std" '
-                                 'or "unsorted".')
-                        raise TypeError(error)
+                    elif not callable(z_order):
+                        error = ('`z_order` must be a function, "std" '
+                                 'or "unsorted", not {}.')
+                        raise TypeError(error.format(type(z_order)))
+                    else:
+                        zorder_ = z_order
 
-                    z_ord = zorder(D)
+                    z_ord = zorder_(D)
 
                     # plot channels
                     for ch_idx, zorder in enumerate(z_ord):
@@ -425,7 +427,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
-                window_title=None, spatial_colors=False, zorder='unsorted',
+                window_title=None, spatial_colors=False, z_order='unsorted',
                 selectable=True):
     """Plot evoked data using butteryfly plots
 
@@ -483,7 +485,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         coordinates into color values. Spatially similar channels will have
         similar colors. Bad channels will be dotted. If False, the good
         channels are plotted black and bad channels red. Defaults to False.
-    zorder : str | callable
+    z_order : str | callable
         Which channels to put in the front or back. Only matters if
         `spatial_colors` is used.
         If str, must be `std` or `unsorted` (defaults to `unsorted`). If
@@ -512,7 +514,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly",
                         gfp=gfp, window_title=window_title,
-                        spatial_colors=spatial_colors, zorder=zorder,
+                        spatial_colors=spatial_colors, z_order=z_order,
                         selectable=selectable)
 
 
@@ -1113,7 +1115,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     ts_args_def = dict(picks=None, unit=True, ylim=None, xlim='tight',
                        proj=False, hline=None, units=None, scalings=None,
                        titles=None, gfp=False, window_title=None,
-                       spatial_colors=True, zorder='std')
+                       spatial_colors=True, z_order='std')
     for key in ts_args_def:
         if key not in ts_args:
             ts_args_pass[key] = ts_args_def[key]

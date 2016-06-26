@@ -234,7 +234,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
-             spatial_colors=False, selectable=True):
+             spatial_colors=False, z_order='unsorted', selectable=True):
         """Plot evoked data using butterfly plots
 
         Left click to a line shows the channel name. Selecting an area by
@@ -291,6 +291,17 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             coordinates into color values. Spatially similar channels will have
             similar colors. Bad channels will be dotted. If False, the good
             channels are plotted black and bad channels red. Defaults to False.
+        zorder : str | callable
+            Which channels to put in the front or back. Only matters if
+            `spatial_colors` is used.
+            If str, must be `std` or `unsorted` (defaults to `unsorted`). If
+            `std`, data with the lowest standard deviation (weakest effects)
+            will be put in front so that they are not obscured by those with
+            stronger effects. If `unsorted`, channels are z-sorted as in the
+            evoked instance.
+            If callable, must take one argument: a numpy array of the same
+            dimensionality as the evoked raw data; and return a list of
+            unique integers corresponding to the number of channels.
         selectable : bool
             Whether to use interactive features. If True (default), it is
             possible to paint an area to draw topomaps. When False, the
@@ -310,7 +321,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
             scalings=scalings, titles=titles, axes=axes, gfp=gfp,
             window_title=window_title, spatial_colors=spatial_colors,
-            selectable=selectable)
+            z_order=z_order, selectable=selectable)
 
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
                    clim=None, xlim='tight', proj=False, units=None,
