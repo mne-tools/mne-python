@@ -44,13 +44,13 @@ class CSP(TransformerMixin, EstimatorMixin):
 
     Attributes
     ----------
-    filters_ : ndarray, shape (n_channels, n_channels)
+    ``filters_`` : ndarray, shape (n_channels, n_channels)
         If fit, the CSP components used to decompose the data, else None.
-    patterns_ : ndarray, shape (n_channels, n_channels)
+    ``patterns_`` : ndarray, shape (n_channels, n_channels)
         If fit, the CSP patterns used to restore M/EEG signals, else None.
-    mean_ : ndarray, shape (n_channels,)
+    ``mean_`` : ndarray, shape (n_channels,)
         If fit, the mean squared power for each component.
-    std_ : ndarray, shape (n_channels,)
+    ``std_`` : ndarray, shape (n_channels,)
         If fit, the std squared power for each component.
 
     References

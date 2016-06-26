@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import os
 import glob
 from os import path as op
@@ -53,8 +55,9 @@ def generate_commands_rst(app):
     out_dir = op.abspath(op.join(op.dirname(__file__), '..', 'generated'))
     out_fname = op.join(out_dir, 'commands.rst')
 
-    command_path = op.join(os.path.dirname(__file__), '..', '..', 'mne', 'commands')
-    print(command_path)
+    command_path = op.join(os.path.dirname(__file__), '..', '..', 'mne',
+                           'commands')
+    print('Generating commands for: %s ... ' % command_path, end='')
     fnames = glob.glob(op.join(command_path, 'mne_*.py'))
 
     with open(out_fname, 'w') as f:
@@ -63,9 +66,9 @@ def generate_commands_rst(app):
             cmd_name = op.basename(fname)[:-3]
 
             output, _ = run_subprocess(['python', fname, '--help'])
-            f.write(command_rst % (cmd_name, cmd_name.replace('mne_', 'mne '), output))
-
-    print('Done')
+            f.write(command_rst % (cmd_name, cmd_name.replace('mne_', 'mne '),
+                                   output))
+    print('[Done]')
 
 
 # This is useful for testing/iterating to see what the result looks like

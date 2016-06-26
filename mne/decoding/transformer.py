@@ -33,9 +33,9 @@ class Scaler(TransformerMixin):
     ----------
     info : instance of Info
         The measurement info
-    ch_mean_ : dict
+    ``ch_mean_`` : dict
         The mean value for each channel type
-    std_ : dict
+    ``std_`` : dict
         The standard deviation for each channel type
      """
     def __init__(self, info, with_mean=True, with_std=True):
