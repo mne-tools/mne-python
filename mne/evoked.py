@@ -234,7 +234,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
-             spatial_colors=False, z_order='unsorted', selectable=True):
+             spatial_colors=False, zorder='unsorted', selectable=True):
         """Plot evoked data using butterfly plots
 
         Left click to a line shows the channel name. Selecting an area by
@@ -321,7 +321,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
             scalings=scalings, titles=titles, axes=axes, gfp=gfp,
             window_title=window_title, spatial_colors=spatial_colors,
-            z_order=z_order, selectable=selectable)
+            zorder=zorder, selectable=selectable)
 
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
                    clim=None, xlim='tight', proj=False, units=None,
