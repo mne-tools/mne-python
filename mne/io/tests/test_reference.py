@@ -192,7 +192,6 @@ def test_set_bipolar_reference():
     )
     a = raw.copy().pick_channels(['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004'])
     a = np.array([a._data[0, :] - a._data[1, :], a._data[2, :] - a._data[3, :]])
-    print a.shape
     b = reref.copy().pick_channels(['bipolar1', 'bipolar2'])._data
     assert_allclose(a, b)
 
