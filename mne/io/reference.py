@@ -370,12 +370,13 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Perform bipolar referencing
     for an, ca, name, info in zip(anode, cathode, ch_name, new_ch_info):
+        print ca, an
         _apply_reference(inst, [ca], [an])
         an_idx = inst.ch_names.index(an)
         inst.info['chs'][an_idx] = info
         inst.info['chs'][an_idx]['ch_name'] = name
         logger.info('Bipolar channel added as "%s".' % name)
-    inst.info._update_redundant()
+        inst.info._update_redundant()
 
     # Drop cathode channels
     inst.drop_channels(cathode)
