@@ -128,8 +128,8 @@ General code guidelines
   
 * Update relevant documentation. Update :doc:`whats_new.rst <whats_new>` for new features and :doc:`python_reference.rst <python_reference>` for new classes and standalone functions. :doc:`whats_new.rst <whats_new>` is organized in chronological order with the last feature at the end of the document.
 
-Checking and building documenation
-----------------------------------
+Checking and building documentation
+-----------------------------------
 
 All changes to the codebase must be properly documented.
 To ensure that documentation is rendered correctly, the best bet is to
@@ -154,8 +154,8 @@ Then to build the documentation locally, within the ``mne/doc`` directory do:
     $ make html-noplot
 
 This will build the docs without building all the examples, which can save
-some time.If you are working on examples or tutorials, you can build specific
-examples with e.g.:
+some time. If you are working on examples or tutorials, you can build
+specific examples with e.g.:
 
 .. code-block:: bash
 
