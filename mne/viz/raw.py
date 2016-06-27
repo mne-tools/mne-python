@@ -575,6 +575,12 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         # Convert PSDs to dB
         if dB:
             psds = 10 * np.log10(psds)
+            if np.any(np.isinf(psds)):
+                where = np.flatnonzero(np.isinf(psds.min(1)))
+                chs = [raw.ch_names[i] for i in picks[where]]
+                raise ValueError("Infinite value in PSD for channel(s) %s. "
+                                 "These channels might be dead." %
+                                 ', '.join(chs))
             unit = 'dB'
         else:
             unit = 'power'
