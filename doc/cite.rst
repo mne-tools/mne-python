@@ -3,7 +3,7 @@
 How to cite MNE
 ---------------
 
-If you use in your research the implementations provided by the MNE software you should cite:
+If you use the implementations provided by the MNE software in your research, you should cite:
 
     [1] A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, L. Parkkonen, M. Hämäläinen, `MNE software for processing MEG and EEG data <http://www.ncbi.nlm.nih.gov/pubmed/24161808>`_, NeuroImage, Volume 86, 1 February 2014, Pages 446-460, ISSN 1053-8119, `[DOI] <http://dx.doi.org/10.1016/j.neuroimage.2013.10.027>`__
 
