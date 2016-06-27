@@ -492,6 +492,9 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         If callable, must take one argument: a numpy array of the same
         dimensionality as the evoked raw data; and return a list of
         unique integers corresponding to the number of channels.
+
+        .. versionadded:: 0.13.0
+
     selectable : bool
         Whether to use interactive features. If True (default), it is possible
         to paint an area to draw topomaps. When False, the interactive features
