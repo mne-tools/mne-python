@@ -3,17 +3,37 @@ from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_equal, assert_true, assert_raises
 import warnings
-from scipy.signal import resample as sp_resample
+from scipy.signal import resample as sp_resample, butter
 
 from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
                         band_stop_filter, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
-                        _overlap_add_filter, _smart_pad)
+                        _overlap_add_filter, _smart_pad,
+                        estimate_ringing_samples, filter_data)
 
-from mne.utils import sum_squared, run_tests_if_main, slow_test, catch_logging
+from mne.utils import (sum_squared, run_tests_if_main, slow_test,
+                       catch_logging, requires_version)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 rng = np.random.RandomState(0)
+
+
+@requires_version('scipy', '0.16')
+def test_estimate_ringing():
+    """Test our ringing estimation function"""
+    # Actual values might differ based on system, so let's be approximate
+    for kind in ('ba', 'sos'):
+        for thresh, lims in ((0.1, (30, 60)),  # 47
+                             (0.01, (300, 600)),  # 475
+                             (0.001, (3000, 6000)),  # 4758
+                             (0.0001, (30000, 60000))):  # 37993
+            n_ring = estimate_ringing_samples(butter(3, thresh, output=kind))
+            assert_true(lims[0] <= n_ring <= lims[1],
+                        msg='%s %s: %s <= %s <= %s'
+                        % (kind, thresh, lims[0], n_ring, lims[1]))
+    with warnings.catch_warnings(record=True) as w:
+        assert_equal(estimate_ringing_samples(butter(4, 0.00001)), 100000)
+    assert_true(any('properly estimate' in str(ww.message) for ww in w))
 
 
 def test_1d_filter():
@@ -68,17 +88,35 @@ def test_1d_filter():
                             assert_allclose(x_expected, x_filtered)
 
 
+@requires_version('scipy', '0.16')
 def test_iir_stability():
-    """Test IIR filter stability check
-    """
+    """Test IIR filter stability check"""
     sig = np.empty(1000)
     sfreq = 1000
     # This will make an unstable filter, should throw RuntimeError
     assert_raises(RuntimeError, high_pass_filter, sig, sfreq, 0.6,
-                  method='iir', iir_params=dict(ftype='butter', order=8))
-    # can't pass iir_params if method='fir'
+                  method='iir', iir_params=dict(ftype='butter', order=8,
+                                                output='ba'))
+    # This one should work just fine
+    high_pass_filter(sig, sfreq, 0.6, method='iir',
+                     iir_params=dict(ftype='butter', order=8, output='sos'))
+    # bad system type
+    assert_raises(ValueError, high_pass_filter, sig, sfreq, 0.6, method='iir',
+                  iir_params=dict(ftype='butter', order=8, output='foo'))
+    # missing ftype
+    assert_raises(RuntimeError, high_pass_filter, sig, sfreq, 0.6,
+                  method='iir', iir_params=dict(order=8, output='sos'))
+    # bad ftype
+    assert_raises(RuntimeError, high_pass_filter, sig, sfreq, 0.6,
+                  method='iir',
+                  iir_params=dict(order=8, ftype='foo', output='sos'))
+    # missing gstop
+    assert_raises(RuntimeError, high_pass_filter, sig, sfreq, 0.6,
+                  method='iir', iir_params=dict(gpass=0.5, output='sos'))
+    # can't pass iir_params if method='fft'
     assert_raises(ValueError, high_pass_filter, sig, sfreq, 0.1,
-                  method='fir', iir_params=dict(ftype='butter', order=2))
+                  method='fft', iir_params=dict(ftype='butter', order=2,
+                                                output='sos'))
     # method must be string
     assert_raises(TypeError, high_pass_filter, sig, sfreq, 0.1,
                   method=1)
@@ -86,12 +124,26 @@ def test_iir_stability():
     assert_raises(ValueError, high_pass_filter, sig, sfreq, 0.1,
                   method='blah')
     # bad iir_params
+    assert_raises(TypeError, high_pass_filter, sig, sfreq, 0.1,
+                  method='iir', iir_params='blah')
     assert_raises(ValueError, high_pass_filter, sig, sfreq, 0.1,
-                  method='fir', iir_params='blah')
+                  method='fft', iir_params=dict())
 
     # should pass because dafault trans_bandwidth is not relevant
-    high_pass_filter(sig, 250, 0.5, method='iir',
-                     iir_params=dict(ftype='butter', order=6))
+    iir_params = dict(ftype='butter', order=2, output='sos')
+    x_sos = high_pass_filter(sig, 250, 0.5, method='iir',
+                             iir_params=iir_params)
+    iir_params_sos = construct_iir_filter(iir_params, f_pass=0.5, sfreq=250,
+                                          btype='highpass')
+    x_sos_2 = high_pass_filter(sig, 250, 0.5, method='iir',
+                               iir_params=iir_params_sos)
+    assert_allclose(x_sos[100:-100], x_sos_2[100:-100])
+    x_ba = high_pass_filter(sig, 250, 0.5, method='iir',
+                            iir_params=dict(ftype='butter', order=2,
+                                            output='ba'))
+    # Note that this will fail for higher orders (e.g., 6) showing the
+    # hopefully decreased numerical error of SOS
+    assert_allclose(x_sos[100:-100], x_ba[100:-100])
 
 
 def test_notch_filters():
@@ -178,6 +230,7 @@ def test_resample_stim_channel():
         assert_equal(new_data.shape[1], new_data_len)
 
 
+@requires_version('scipy', '0.16')
 @slow_test
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters plus resampling
@@ -261,15 +314,22 @@ def test_filters():
     assert_array_almost_equal(np.zeros_like(sig_gone), sig_gone, 2)
 
     # let's construct some filters
-    iir_params = dict(ftype='cheby1', gpass=1, gstop=20)
+    iir_params = dict(ftype='cheby1', gpass=1, gstop=20, output='ba')
     iir_params = construct_iir_filter(iir_params, 40, 80, 1000, 'low')
     # this should be a third order filter
-    assert_true(iir_params['a'].size - 1 == 3)
-    assert_true(iir_params['b'].size - 1 == 3)
-    iir_params = dict(ftype='butter', order=4)
+    assert_equal(iir_params['a'].size - 1, 3)
+    assert_equal(iir_params['b'].size - 1, 3)
+    iir_params = dict(ftype='butter', order=4, output='ba')
     iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low')
-    assert_true(iir_params['a'].size - 1 == 4)
-    assert_true(iir_params['b'].size - 1 == 4)
+    assert_equal(iir_params['a'].size - 1, 4)
+    assert_equal(iir_params['b'].size - 1, 4)
+    iir_params = dict(ftype='cheby1', gpass=1, gstop=20, output='sos')
+    iir_params = construct_iir_filter(iir_params, 40, 80, 1000, 'low')
+    # this should be a third order filter, which requires 2 SOS ((2, 6))
+    assert_equal(iir_params['sos'].shape, (2, 6))
+    iir_params = dict(ftype='butter', order=4, output='sos')
+    iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low')
+    assert_equal(iir_params['sos'].shape, (2, 6))
 
     # check that picks work for 3d array with one channel and picks=[0]
     a = rng.randn(5 * sfreq, 5 * sfreq)
@@ -298,6 +358,12 @@ def test_filters():
         x_filt = low_pass_filter(x, sfreq, lp, '1s')
     # the firwin2 function gets us this close
     assert_allclose(x, x_filt, rtol=1e-3, atol=1e-3)
+
+    # degenerate conditions
+    assert_raises(ValueError, filter_data, x, sfreq, 1, 10)  # not 2D
+    assert_raises(ValueError, filter_data, x[np.newaxis], -sfreq, 1, 10)
+    assert_raises(ValueError, filter_data, x[np.newaxis], sfreq, 1,
+                  sfreq * 0.75)
 
 
 def test_cuda():

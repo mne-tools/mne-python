@@ -893,6 +893,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         mne.io.Raw.notch_filter
         mne.io.Raw.resample
         mne.filter.filter_data
+
+        Notes
+        -----
+        For more information, see the tutorials :ref:`tut_background_filtering`
+        and :ref:`tut_artifacts_filter`.
         """
         _check_preload(self, 'raw.filter')
         data_picks = _pick_data_or_ica(self.info)
