@@ -15,15 +15,17 @@ import numpy as np
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
                     _layout_figure, _plot_raw_onscroll, _mouse_click,
                     _helper_raw_resize, _plot_raw_onkey, plt_show)
+from .topomap import (_prepare_topo_plot, plot_topomap, _hide_frame,
+                      _plot_ica_topomap)
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces
-from .epochs import _prepare_mne_browse_epochs
+from .epochs import _prepare_mne_browse_epochs, plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
-from .topomap import _prepare_topo_plot, plot_topomap, _hide_frame
 from ..utils import warn
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types
 from ..externals.six import string_types
+from ..time_frequency.psd import psd_multitaper
 
 
 def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
@@ -104,6 +106,251 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         raise ValueError('Data input must be of Raw or Epochs type')
 
     return fig
+
+
+def _create_properties_layout(figsize=None):
+    """creates main figure and axes layout used by plot_ica_properties"""
+    import matplotlib.pyplot as plt
+    if figsize is None:
+        figsize = [7., 6.]
+    fig = plt.figure(figsize=figsize, facecolor=[0.95] * 3)
+    ax = list()
+    ax.append(fig.add_axes([0.08, 0.5, 0.3, 0.45], label='topomap'))
+    ax.append(fig.add_axes([0.5, 0.6, 0.45, 0.35], label='image'))
+    ax.append(fig.add_axes([0.5, 0.5, 0.45, 0.1], label='erp'))
+    ax.append(fig.add_axes([0.08, 0.1, 0.32, 0.3], label='spectrum'))
+    ax.append(fig.add_axes([0.5, 0.1, 0.45, 0.25], label='variance'))
+    return fig, ax
+
+
+def plot_ica_properties(inst, ica, picks=None, axes=None, dB=True,
+                        plot_std=True, topomap_args=None, image_args=None,
+                        psd_args=None, figsize=None, show=True):
+    """Display component properties: topography, epochs image, ERP/ERF,
+    power spectrum and epoch variance.
+
+    Parameters
+    ----------
+    inst: instance of Epochs or Raw
+        The data to use in plotting properties.
+    ica : instance of mne.preprocessing.ICA
+        The ICA solution.
+    picks : int | array-like of int | None
+        The components to be displayed. If None, plot will show the first
+        five sources. If more than one components were chosen in the picks,
+        each one will be plotted in a separate figure. Defaults to None.
+    axes: list of matplotlib axes | None
+        List of five matplotlib axes to use in plotting: [topomap_axis,
+        image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
+        figure with relevant axes is created. Defaults to None.
+    dB: bool
+        Whether to plot spectrum in dB. Defaults to True.
+    plot_std: bool | float
+        Whether to plot standard deviation in ERP/ERF and spectrum plots.
+        Defaults to True, which plots one standard deviation above/below.
+        If set to float allows to control how many standard deviations are
+        plotted. For example 2.5 will plot 2.5 standard deviation above/below.
+    topomap_args : dict | None
+        Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
+        additional arguments. Defaults to None.
+    image_args : dict | None
+        Dictionary of arguments to ``plot_epochs_image``. If None, doesn't pass
+        any additional arguments. Defaults to None.
+    psd_args : dict | None
+        Dictionary of arguments to ``psd_multitaper``. If None, doesn't pass
+        any additional arguments. Defaults to None.
+    figsize : array-like of size (2,) | None
+        Allows to control size of the figure. If None, the figure size
+        defauls to [7., 6.].
+    show : bool
+        Show figure if True.
+
+    Returns
+    -------
+    fig : list
+        List of matplotlib figures.
+    """
+    from ..io.base import _BaseRaw
+    from ..epochs import _BaseEpochs
+    from ..preprocessing import ICA
+
+    if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
+        raise ValueError('inst should be an instance of Raw or Epochs,'
+                         ' got %s instead.' % type(inst))
+    if not isinstance(ica, ICA):
+        raise ValueError('ica has to be an instance of ICA, '
+                         'got %s instead' % type(ica))
+    if isinstance(plot_std, bool):
+        num_std = 1. if plot_std else 0.
+    elif isinstance(plot_std, (float, int)):
+        num_std = plot_std
+        plot_std = True
+    else:
+        raise ValueError('plot_std has to be a bool, int or float, '
+                         'got %s instead' % type(plot_std))
+
+    # if no picks given - plot the first 5 components
+    picks = list(range(min(5, ica.n_components_))) if picks is None else picks
+    picks = [picks] if isinstance(picks, int) else picks
+    if axes is None:
+        fig, axes = _create_properties_layout(figsize=figsize)
+    else:
+        if len(picks) > 1:
+            raise ValueError('Only a single pick can be drawn '
+                             'to a set of axes.')
+        from .utils import _validate_if_list_of_axes
+        _validate_if_list_of_axes(axes, obligatory_len=5)
+        fig = axes[0].get_figure()
+    psd_args = dict() if psd_args is None else psd_args
+    topomap_args = dict() if topomap_args is None else topomap_args
+    image_args = dict() if image_args is None else image_args
+    for d in (psd_args, topomap_args, image_args):
+        if not isinstance(d, dict):
+            raise ValueError('topomap_args, image_args and psd_args have to be'
+                             ' dictionaries, got %s instead.' % type(d))
+    if dB is not None and isinstance(dB, bool) is False:
+        raise ValueError('dB should be bool, got %s instead' %
+                         type(dB))
+
+    # calculations
+    # ------------
+    plot_line_at_zero = False
+    if isinstance(inst, _BaseRaw):
+        # break up continuous signal into segments
+        from ..epochs import _segment_raw
+        inst = _segment_raw(inst, segment_length=2., verbose=False,
+                            preload=True)
+    if inst.times[0] < 0. and inst.times[-1] > 0.:
+        plot_line_at_zero = True
+
+    epochs_src = ica.get_sources(inst)
+    ica_data = np.swapaxes(epochs_src.get_data()[:, picks, :], 0, 1)
+
+    # spectrum
+    Nyquist = inst.info['sfreq'] / 2.
+    if 'fmax' not in psd_args:
+        psd_args['fmax'] = min(inst.info['lowpass'] * 1.25, Nyquist)
+    plot_lowpass_edge = inst.info['lowpass'] < Nyquist and (
+        psd_args['fmax'] > inst.info['lowpass'])
+    psds, freqs = psd_multitaper(epochs_src, picks=picks, **psd_args)
+
+    def set_title_and_labels(ax, title, xlab, ylab):
+        if title:
+            ax.set_title(title)
+        if xlab:
+            ax.set_xlabel(xlab)
+        if ylab:
+            ax.set_ylabel(ylab)
+        ax.axis('auto')
+        ax.tick_params('both', labelsize=8)
+        ax.axis('tight')
+
+    all_fig = list()
+    # the rest is component-specific
+    for idx, pick in enumerate(picks):
+        if idx > 0:
+            fig, axes = _create_properties_layout(figsize=figsize)
+
+        # spectrum
+        this_psd = psds[:, idx, :]
+        if dB:
+            this_psd = 10 * np.log10(this_psd)
+        psds_mean = this_psd.mean(axis=0)
+        diffs = this_psd - psds_mean
+        # the distribution of power for each frequency bin is highly
+        # skewed so we calculate std for values below and above average
+        # separately - this is used for fill_between shade
+        spectrum_std = [
+            [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
+            [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
+        spectrum_std = np.array(spectrum_std) * num_std
+
+        # erp std
+        if plot_std:
+            erp = ica_data[idx].mean(axis=0)
+            diffs = ica_data[idx] - erp
+            erp_std = [
+                [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
+                [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
+            erp_std = np.array(erp_std) * num_std
+
+        # epoch variance
+        epoch_var = np.var(ica_data[idx], axis=1)
+
+        # plotting
+        # --------
+        # component topomap
+        _plot_ica_topomap(ica, pick, show=False, axes=axes[0], **topomap_args)
+
+        # image and erp
+        plot_epochs_image(epochs_src, picks=pick, axes=axes[1:3],
+                          colorbar=False, show=False, **image_args)
+
+        # spectrum
+        axes[3].plot(freqs, psds_mean, color='k')
+        if plot_std:
+            axes[3].fill_between(freqs, psds_mean - spectrum_std[0],
+                                 psds_mean + spectrum_std[1],
+                                 color='k', alpha=.15)
+        if plot_lowpass_edge:
+            axes[3].axvline(inst.info['lowpass'], lw=2, linestyle='--',
+                            color='k', alpha=0.15)
+
+        # epoch variance
+        axes[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
+                        facecolor=[0, 0, 0], lw=0)
+
+        # aesthetics
+        # ----------
+        axes[0].set_title('IC #{0:0>3}'.format(pick))
+
+        set_title_and_labels(axes[1], 'epochs image and ERP/ERF', [], 'Epochs')
+
+        # erp
+        set_title_and_labels(axes[2], [], 'time', 'AU')
+        # line color and std
+        axes[2].lines[0].set_color('k')
+        if plot_std:
+            erp_xdata = axes[2].lines[0].get_data()[0]
+            axes[2].fill_between(erp_xdata, erp - erp_std[0],
+                                 erp + erp_std[1], color='k', alpha=.15)
+            axes[2].autoscale(enable=True, axis='y')
+            axes[2].axis('auto')
+            axes[2].set_xlim(erp_xdata[[0, -1]])
+        # remove half of yticks if more than 5
+        yt = axes[2].get_yticks()
+        if len(yt) > 5:
+            yt = yt[::2]
+            axes[2].yaxis.set_ticks(yt)
+
+        if not plot_line_at_zero:
+            xlims = [1e3 * inst.times[0], 1e3 * inst.times[-1]]
+            for k, ax in enumerate(axes[1:3]):
+                ax.lines[k].remove()
+                ax.set_xlim(xlims)
+
+        # remove xticks - erp plot shows xticks for both image and erp plot
+        axes[1].xaxis.set_ticks([])
+        yt = axes[1].get_yticks()
+        axes[1].yaxis.set_ticks(yt[1:])
+        axes[1].set_ylim([-0.5, ica_data.shape[1] + 0.5])
+
+        # spectrum
+        ylabel = 'dB' if dB else 'power'
+        set_title_and_labels(axes[3], 'spectrum', 'frequency', ylabel)
+        axes[3].yaxis.labelpad = 0
+        axes[3].set_xlim(freqs[[0, -1]])
+        ylim = axes[3].get_ylim()
+        air = np.diff(ylim)[0] * 0.1
+        axes[3].set_ylim(ylim[0] - air, ylim[1] + air)
+
+        # epoch variance
+        set_title_and_labels(axes[4], 'epochs variance', 'epoch', 'AU')
+
+        all_fig.append(fig)
+
+    plt_show(show)
+    return all_fig
 
 
 def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):

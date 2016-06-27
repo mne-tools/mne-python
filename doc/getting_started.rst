@@ -24,7 +24,7 @@ visualization, and analysis.
           can read and convert CTF, BTI/4D, KIT and various EEG formats to
           FIF (see :ref:`IO functions <ch_convert>`).
 
-          If you have being using MNE-C, there is no need to convert your fif
+          If you have been using MNE-C, there is no need to convert your fif
           files to a new system or database -- MNE-Python works nicely with
           the historical fif files.
 

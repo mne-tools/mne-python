@@ -49,9 +49,14 @@ n_components = 25  # if float, select n_components by explained variance of PCA
 method = 'fastica'  # for comparison with EEGLAB try "extended-infomax" here
 decim = 3  # we need sufficient statistics, not all time points -> save time
 
+# we will also set state of the random number generator - ICA is a
+# non-deterministic algorithm, but we want to have the same decomposition
+# and the same order of components each time this tutorial is run
+random_state = 23
+
 ###############################################################################
 # Define the ICA object instance
-ica = ICA(n_components=n_components, method=method)
+ica = ICA(n_components=n_components, method=method, random_state=random_state)
 print(ica)
 
 ###############################################################################
@@ -65,6 +70,26 @@ print(ica)
 # Plot ICA components
 
 ica.plot_components()  # can you see some potential bad guys?
+
+
+###############################################################################
+# Component properties
+# --------------------
+#
+# Let's take a closer look at three potential candidates for artifact-related
+# components: IC 12, IC 15 and IC 21
+
+# first, component 12:
+ica.plot_properties(raw, picks=12, dB=True)
+
+###############################################################################
+# it looks like a blink component, but because the data were filtered
+# the spectrum plot is not very informative, let's change that:
+ica.plot_properties(raw, picks=12, dB=True, psd_args={'fmax': 35.})
+
+###############################################################################
+# now let's inspect properties of components 15 and 21 (cardiac activity):
+ica.plot_properties(raw, picks=[15, 21], psd_args={'fmax': 35.})
 
 
 ###############################################################################
@@ -88,8 +113,15 @@ ica.plot_scores(scores, exclude=eog_inds)  # look at r scores of components
 ica.plot_sources(eog_average, exclude=eog_inds)  # look at source time course
 
 ###############################################################################
-# That component is also showing a prototypical average vertical EOG time
-# course.
+# We can take a look at the properties of that component again, now using the
+# data epoched with respect to EOG events.
+# We will also use a little bit of smoothing along the trials axis in the
+# epochs image:
+ica.plot_properties(eog_epochs, picks=eog_inds, dB=True,
+                    psd_args={'fmax': 35.}, image_args={'sigma': 1.})
+
+###############################################################################
+# That component is showing a prototypical average vertical EOG time course.
 #
 # Pay attention to the labels, a customized read-out of the
 # :attr:`ica.labels_ <mne.preprocessing.ICA.labels_>`

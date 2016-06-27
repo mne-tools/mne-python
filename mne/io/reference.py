@@ -375,7 +375,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         inst.info['chs'][an_idx] = info
         inst.info['chs'][an_idx]['ch_name'] = name
         logger.info('Bipolar channel added as "%s".' % name)
-    inst.info._update_redundant()
+        inst.info._update_redundant()
 
     # Drop cathode channels
     inst.drop_channels(cathode)

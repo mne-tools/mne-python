@@ -765,6 +765,15 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
     new_events : array
         The new events.
     """
+    from .io.base import _BaseRaw
+    if not isinstance(raw, _BaseRaw):
+        raise ValueError('Input data must be an instance of Raw, got'
+                         ' %s instead.' % (type(raw)))
+    if not isinstance(id, int):
+        raise ValueError('id must be an integer')
+    if not isinstance(duration, (int, float)):
+        raise ValueError('duration must be an integer of a float, '
+                         'got %s instead.' % (type(duration)))
     start = raw.time_as_index(start)[0]
     if stop is not None:
         stop = raw.time_as_index(stop)[0]
@@ -775,8 +784,6 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
         stop = min([stop + raw.first_samp, raw.last_samp + 1])
     else:
         stop = min([stop, len(raw.times)])
-    if not isinstance(id, int):
-        raise ValueError('id must be an integer')
     # Make sure we don't go out the end of the file:
     stop -= int(np.ceil(raw.info['sfreq'] * duration))
     # This should be inclusive due to how we generally use start and stop...

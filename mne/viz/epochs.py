@@ -29,7 +29,7 @@ from ..defaults import _handle_default
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap='RdBu_r',
-                      fig=None, overlay_times=None):
+                      fig=None, axes=None, overlay_times=None):
     """Plot Event Related Potential / Fields image
 
     Parameters
@@ -71,6 +71,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Figure instance to draw the image to. Figure must contain two axes for
         drawing the single trials and evoked responses. If None a new figure is
         created. Defaults to None.
+    axes : list of matplotlib axes | None
+        List of axes instances to draw the image, erp and colorbar to.
+        Must be of length three if colorbar is True (with the last list element
+        being the colorbar axes) or two if colorbar is False. If both fig and
+        axes are passed an error is raised. Defaults to None.
     overlay_times : array-like, shape (n_epochs,) | None
         If not None the parameter is interpreted as time instants in seconds
         and is added to the image. It is typically useful to display reaction
@@ -95,8 +100,20 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         raise ValueError('Scalings and units must have the same keys.')
 
     picks = np.atleast_1d(picks)
-    if fig is not None and len(picks) > 1:
+    if (fig is not None or axes is not None) and len(picks) > 1:
         raise ValueError('Only single pick can be drawn to a figure.')
+    if axes is not None:
+        if fig is not None:
+            raise ValueError('Both figure and axes were passed, please'
+                             'decide between the two.')
+        from .utils import _validate_if_list_of_axes
+        oblig_len = 3 if colorbar else 2
+        _validate_if_list_of_axes(axes, obligatory_len=oblig_len)
+        ax1, ax2 = axes[:2]
+        # if axes were passed - we ignore fig param and get figure from axes
+        fig = ax1.get_figure()
+        if colorbar:
+            ax3 = axes[-1]
     evoked = epochs.average(picks)
     data = epochs.get_data()[:, picks, :]
     scale_vmin = True if vmin is None else False
@@ -154,7 +171,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma,
                                                   axis=0)
         plt.figure(this_fig.number)
-        ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
+        if axes is None:
+            ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
+            ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
+            if colorbar:
+                ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
         if scale_vmin:
             vmin *= scalings[ch_type]
         if scale_vmax:
@@ -167,9 +188,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         if this_overlay_times is not None:
             plt.plot(1e3 * this_overlay_times, 0.5 + np.arange(len(this_data)),
                      'k', linewidth=2)
-        ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
-        if colorbar:
-            ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
         ax1.set_title(epochs.ch_names[idx])
         ax1.set_ylabel('Epochs')
         ax1.axis('auto')
