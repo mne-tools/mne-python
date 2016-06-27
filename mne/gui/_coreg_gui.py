@@ -597,7 +597,7 @@ class CoregPanel(HasPrivateTraits):
     reset_params = Button(label='Reset')
     grow_hair = DelegatesTo('model')
     n_scale_params = DelegatesTo('model')
-    scale_step = Float(1.01)
+    scale_step = Float(0.01)
     scale_x = DelegatesTo('model')
     scale_x_dec = Button('-')
     scale_x_inc = Button('+')
@@ -987,11 +987,10 @@ class CoregPanel(HasPrivateTraits):
                 self.queue_len += 1
 
     def _scale_x_dec_fired(self):
-        step = 1. / self.scale_step
-        self.scale_x *= step
+        self.scale_x -= self.scale_step
 
     def _scale_x_inc_fired(self):
-        self.scale_x *= self.scale_step
+        self.scale_x += self.scale_step
 
     def _scale_x_changed(self, old, new):
         if self.n_scale_params == 1:
