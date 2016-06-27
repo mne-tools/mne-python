@@ -21,7 +21,7 @@ class DataDelayer(object):
         The sampling frequency of the series. Defaults to 1.
     """
     def __init__(self, delays=None, time_window=None, sfreq=1.):
-        # Check if we need to create delays ourselves
+        # Check if we need to creafte delays ourselves
         if time_window is not None:
             if sfreq is None:
                 raise ValueError('If time_window given, must give sfreq.')
@@ -96,7 +96,7 @@ class EventsBinarizer(object):
         """
         if event_ixs.ndim > 1:
             raise ValueError("events must be shape (n_trials, 3),"
-                             " found shape %s" % event_ixs.shape)
+                             " found shape %s" % str(event_ixs.shape))
         event_ids = np.ones_like(event_ixs) if event_ids is None else event_ids
         unique_event_types = np.unique(event_ids)
 
@@ -149,7 +149,7 @@ class DataSubsetter(object):
     ixs : array, shape (n_ixs,)
         The indices to select from the data."""
     def __init__(self, ixs):
-        self.ixs = ixs.astype(int)
+        self.ixs = np.asarray(ixs).astype(int)
 
     def fit(self, data, y=None):
         """Pull a subset of data points.

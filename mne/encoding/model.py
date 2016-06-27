@@ -1,13 +1,12 @@
 import numpy as np
-from sklearn.base import BaseEstimator
-from scipy import linalg
+from sklearn.linear_model import Ridge
+from sklearn.pipeline import Pipeline
 from .feature import EventsBinarizer, DataDelayer
 from ..io.pick import pick_types, pick_info
 from ..externals.six import string_types
 from ..utils import warn
 from ..evoked import EvokedArray
-from sklearn.base import is_regressor
-from sklearn.pipeline import Pipeline
+from copy import deepcopy
 
 
 class EventRelatedRegressor(object):
@@ -25,9 +24,12 @@ class EventRelatedRegressor(object):
     events : array, shape (n_events, 3)
         An MNE events array specifying event onset indices (first column),
         and event types (last column)
-    est : None | instance of sklearn estimator
+    est : None | instance of sklearn estimator | string
         A sklearn-style estimator. The input matrix will be a binary matrix
         of events, while the output will be the neural signal of each channel.
+        If a string, then an instance of a sklearn `Ridge` model will be
+        created with alpha == 0, and this parameter passed to the `solver`
+        parameter.
     event_id : dictionary
         A dictionary of (event_id: event_num) pairs
     tmin : float
@@ -44,6 +46,11 @@ class EventRelatedRegressor(object):
         A function that will be called with *both* X and y as inputs. This is
         ideal for situations where both X and y should be modified in the same
         function. It will be called after the two preprocessing pipelines.
+    coef_name : string
+        The name of the fitted coefficients in the final step of the
+        model's estimator attribute. For example, if the final step is
+        an instance of `Ridge`, then this should be `coef_`. It will be
+        used to retrieve the coefficients.
 
     References
     ----------
@@ -53,7 +60,7 @@ class EventRelatedRegressor(object):
     """
     def __init__(self, raw, events, est=None, event_id=None, tmin=-.1, tmax=.5,
                  preproc_x=None, preproc_y=None, preproc_func_xy=None,
-                 picks=None):
+                 picks=None, coef_name='coef_'):
         if events.shape[-1] != 3:
             raise ValueError('Events must be shape (n_events, 3)')
         if raw.preload is False:
@@ -66,6 +73,7 @@ class EventRelatedRegressor(object):
         if event_id is None:
             event_id = dict(('%s' % i, i)
                             for i in range(len(np.unique(events[:, 2]))))
+        events = events.copy()
         events[:, 0] = events[:, 0] - raw.first_samp
         msk_keep = np.array([ii in event_id.values() for ii in events[:, 2]])
         events = events[msk_keep]
@@ -79,7 +87,7 @@ class EventRelatedRegressor(object):
                                                  self.event_id)
         self.ev_names = binarizer.names_
 
-        # Prep output data
+        # Prepare output data
         self.raw = raw
         if picks is None:
             picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
@@ -90,7 +98,7 @@ class EventRelatedRegressor(object):
                               sfreq=self.raw.info['sfreq'])
         self.delayer = delayer
 
-        # Prep preprocessing chains
+        # Prepare preprocessing chains
         _check_preproc(preproc_x)
         _check_preproc(preproc_y)
         if preproc_x is not None:
@@ -101,7 +109,8 @@ class EventRelatedRegressor(object):
 
         # Create model and attributes
         self.enc = EncodingModel(est, preproc_x=preproc_x, preproc_y=preproc_y,
-                                 preproc_func_xy=preproc_func_xy)
+                                 preproc_func_xy=preproc_func_xy,
+                                 coef_name=coef_name)
         self.tmin = tmin
         self.tmax = tmax
 
@@ -112,29 +121,18 @@ class EventRelatedRegressor(object):
         self.enc.fit(self.ev_binary, Y.T)
         return self
 
-    def to_evoked(self, coef_name='coef_'):
+    def to_evoked(self):
         """Return model coefficients as Evoked objects.
-
-        Parameters
-        ----------
-        coef_name : string
-            The name of the fitted coefficients in the final step of the
-            model's estimator attribute. For example, if the final step is
-            an instance of `Ridge`, then this should be `coef_`. It will be
-            used to retrieve the coefficients.
 
         Returns
         -------
-        evokeds : dictionary of Evoked instances
-            A dictionary of (event_id: evoked) pairs. The evoked obects are
-            the rER[P/F] for each channel for that event.
+        evokeds : dictionary of `Evoked` instances
+            A dictionary of (event_id: `Evoked`) pairs. The `Evoked` objects
+            are the rER[P/F] for each channel for that event.
         """
-        if not hasattr(self.enc.est._final_estimator, coef_name):
-            raise ValueError('Estimator either is not fit or does not use'
-                             ' coefficient name: %s' % coef_name)
         # Unstack coefficients so they're shape (n_chans, n_feats, n_lags)
         n_delays = len(self.delayer.delays)
-        coefs = getattr(self.enc.est._final_estimator, coef_name)
+        coefs = self.enc.coef_
         coefs = np.stack([icoef.reshape([-1, n_delays]) for icoef in coefs])
         # Reverse last dimension so that it is in time, not lags
         coefs = coefs[..., ::-1]
@@ -154,7 +152,7 @@ class EventRelatedRegressor(object):
 
 class EncodingModel(object):
     def __init__(self, est=None, preproc_x=None, preproc_y=None,
-                 preproc_func_xy=None):
+                 preproc_func_xy=None, coef_name='coef_'):
         """Base structure for encoding models of neural signals.
 
         Fit an encoding model using arbitrary input transformations and a
@@ -162,10 +160,13 @@ class EncodingModel(object):
 
         Parameters
         ----------
-        est : instance of sklearn-style estimator
+        est : None | instance of sklearn-style estimator | string
             The estimator to use for fitting. This is any object that contains
             a `fit` and `predict` method, which takes inputs of the form
-            (X, y), and which creates a `.coef_` attribute upon fitting.
+            (X, y), and which creates a `.coef_` attribute upon fitting. If
+            None, will be an instance of `Ridge` with alpha == 0. If a string,
+            an instance of `Ridge` will be created with alpha == 0 and the
+            string passed to the `solver` parameter.
         preproc_x : instance of sklearn-style pipeline | None
             An object for preprocessing / transforming input data before the
             call to `est`. If None, no preprocessing will occur.
@@ -177,6 +178,10 @@ class EncodingModel(object):
             and y, but *before* the call to `fit` for the encoder. Should take
             two parameters: X and y, and return two parameters corresponding to
             X and y after the function has been applied.
+        coef_name = string | None
+            The name of the coefficients that will be set after the final
+            estimator is fit. For many sklearn linear models, this is `coef_`.
+            Will be used to pull the coefficients after teh model is fit.
 
         References
         ----------
@@ -191,6 +196,7 @@ class EncodingModel(object):
         self.preproc_y = _check_preproc(preproc_y)
         self.preproc_x = _check_preproc(preproc_x)
         self.preproc_func_xy = preproc_func_xy
+        self.coef_name = coef_name
 
     def fit(self, X, y=None):
         """Fit the model.
@@ -212,8 +218,10 @@ class EncodingModel(object):
         """
         if y is None:
             raise ValueError('Must supply an output variable `y`')
+        if y.ndim == 1:
+            y = y[:, np.newaxis]
         if X.shape[0] != y.shape[0]:
-            raise ValueError('X and y must have last dimension same length.')
+            raise ValueError('X and y must have first dimension same length.')
         n_times, n_chs = y.shape
 
         # Prepare the input feature matrix
@@ -247,16 +255,38 @@ class EncodingModel(object):
             X = preproc_x.fit_transform(X)
         return self.est.predict(X)
 
+    @property
+    def coef_(self):
+        """Return model coefficients.
+
+        Parameters
+        ----------
+        coef_name : string
+            The name of the fitted coefficients in the final step of the
+            model's estimator attribute. For example, if the final step is
+            an instance of `Ridge`, then this should be `coef_`. It will be
+            used to retrieve the coefficients.
+
+        Returns : array
+            An array of model coefficients (model must be fit)
+        """
+        if not hasattr(self.est._final_estimator, self.coef_name):
+            raise ValueError('Estimator either is not fit or does not use'
+                             ' coefficient name: %s' % self.coef_name)
+        coefs = getattr(self.est._final_estimator, self.coef_name)
+        return coefs
+
 
 def _check_estimator(est):
-    from sklearn.linear_model import Ridge
-    from sklearn.pipeline import Pipeline
+    from sklearn.base import is_regressor
     if est is None:
-        est = Ridge()
+        est = Ridge(alpha=0)
     elif isinstance(est, string_types):
-        if est not in estimator_dict.keys():
-            raise ValueError("No such solver: {0}".format(est))
-        est = estimator_dict[est]()
+        est_keys = estimator_dict.keys()
+        if est not in est_keys:
+            raise ValueError("No such solver: {0}\n"
+                             "Allowed solvers are: {1}".format(est, est_keys))
+        est = deepcopy(estimator_dict[est])
 
     if not is_regressor(est):
         warn("Custom estimators should have a `fit` and `predict` method,"
@@ -269,7 +299,6 @@ def _check_estimator(est):
 
 
 def _check_preproc(est):
-    from sklearn.pipeline import Pipeline
     if est is None:
         return est
     if not isinstance(est, Pipeline):
@@ -294,32 +323,7 @@ def pull_feature_names(est, name_attr='names_', base_names=None):
     return all_names
 
 
-# Custom string-supported estimators
-class CholeskySolver(BaseEstimator):
-    """Solves a linear system with Cholesky decomposition.
-
-    This will work with sparse inputs to save memory.
-    """
-    def __init__(self):
-        self._estimator_type = 'regressor'  # For sklearn compatibility
-
-    def fit(self, X, y=None):
-        """Fit the linear model.
-
-        Parameters
-        ----------
-        X : array, shape (n_samples, n_features)
-            The input array to fit.
-        y : array, shape (n_samples, n_outputs)
-            The output array to fit.
-        """
-        a = (X.T * X).toarray()  # dot product of sparse matrices
-
-        self.coef_ = linalg.solve(a, X.T * y, sym_pos=True,
-                                  overwrite_a=True, overwrite_b=True).T
-        return self
-
-    def predict(self, X):
-        return np.dot(self.coef_, X)
-
-estimator_dict = dict(cholesky=CholeskySolver)
+# Define string-based solvers
+_ridge_solvers = ['auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag']
+estimator_dict = dict((solv, Ridge(alpha=0, solver=solv, fit_intercept=False))
+                      for solv in _ridge_solvers)

@@ -41,8 +41,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats as stt
 from sklearn.linear_model import Ridge
-from mne.encoding import EncodingModel, _delay_timeseries
-from mne.encoding import DataSubsetter, EventsBinarizer, DataDelayer
+from mne.encoding.feature import _delay_timeseries
+from mne.encoding import (EncodingModel, DataSubsetter,
+                          EventsBinarizer, DataDelayer)
 from sklearn.pipeline import Pipeline
 
 print(__doc__)
@@ -60,22 +61,22 @@ np.random.seed(1337)
 
 # -- Creating stimuli --
 # Define our continuous signal
-sfreq = 1000.
-n_sec = 10.
+sfreq = 200.
+n_sec = 20.
 n_times = sfreq * n_sec
 freq = 3.
 amp = .5
-snr = 4
+snr = 8
 time = np.linspace(0, n_sec, n_times)
 info = mne.create_info(['ch'], sfreq, ch_types=['eeg'])
 
 # Define events
-n_events = 30
+n_events = 50
 events = np.random.randint(0, time.shape[0] - 1, n_events)
 events = np.vstack([events, np.zeros_like(events), np.ones_like(events)]).T
 
 # Define weights we'll use to modulate the signal
-delays_sig = np.arange(0, -.4, -.01)
+delays_sig = np.arange(0, -.4, -.005)
 weights = stt.norm.pdf(delays_sig, -.2, .05)
 
 # Now create our stimulus-modulated signal (autocorrelated noise)
@@ -116,7 +117,7 @@ tt = ixs[ix_split:]
 
 # -- Define preprocessing pipelines for X/y --
 # For creating time lags
-delays_model = np.arange(.2, -.4, -.01)
+delays_model = np.arange(.2, -.4, -.005)
 delayer = DataDelayer(delays=delays_model, sfreq=sig_cont.info['sfreq'])
 
 # To subset training data

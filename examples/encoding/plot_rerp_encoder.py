@@ -1,6 +1,6 @@
 """
 ========================================
-Regression on continuous data (rER[P/F])
+Regression on continuous event-related data (rER[P/F])
 ========================================
 
 This demonstrates how rER[P/F]s - regressing the continuous data - is a
