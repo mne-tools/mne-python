@@ -312,27 +312,23 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                             if i in idx:
                                 colors[idx.index(i)] = 'r'
 
-                    # find the channels with the least activity
-                    # to map them in front of the more active ones
                     if zorder == 'std':
-                        def zorder_(D):
-                            return D.std(axis=1).argsort()
+                        # find the channels with the least activity
+                        # to map them in front of the more active ones
+                        z_ord = D.std(axis=1).argsort()
                     elif zorder == 'unsorted':
-                        def zorder_(D):
-                            return list(range(D.shape[0]))
+                        z_ord = list(range(D.shape[0]))
                     elif not callable(zorder):
                         error = ('`zorder` must be a function, "std" '
-                                 'or "unsorted", not {}.')
+                                 'or "unsorted", not {0}.')
                         raise TypeError(error.format(type(zorder)))
                     else:
-                        zorder_ = zorder
-
-                    z_ord = zorder_(D)
+                        z_ord = zorder(D)
 
                     # plot channels
                     for ch_idx, z in enumerate(z_ord):
                         line_list.append(ax.plot(times, D[ch_idx], picker=3.,
-                                                 zorder=z,
+                                                 zorder=1 + z,
                                                  color=colors[ch_idx])[0])
 
                 if gfp:  # 'only' or boolean True

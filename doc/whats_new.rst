@@ -67,6 +67,8 @@ API
 
     - Constructing IIR filters in :func:`mne.filter.construct_iir_filter` defaults to ``output='ba'`` in 0.13 but this will be changed to ``output='sos'`` by `Eric Larson`_
 
+    - Add ``zorder`` parameter to :func:`mne.Evoked.plot` and derived functions to sort allow sorting channels by e.g. standard deviation, by `Jona Sassenhagen`_
+
 .. _changes_0_12:
 
 Version 0.12
