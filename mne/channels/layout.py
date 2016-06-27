@@ -446,7 +446,9 @@ def find_layout(info, ch_type=None, exclude='bads'):
     elif has_CTF_grad:
         layout_name = 'CTF-275'
     elif n_kit_grads <= 157:
-        layout_name = 'KIT-157'
+        # This applies to the KIT systems at NYU and UMD which have different
+        # layouts. The 'KIT-157' layout applies to the NYU system.
+        return None
     elif n_kit_grads > 157:
         layout_name = 'KIT-AD'
     else:
