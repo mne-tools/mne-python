@@ -258,11 +258,12 @@ def test_find_layout():
     lout = find_layout(Raw(fname_bti_raw).info)
     assert_true(lout.kind == 'magnesWH3600')
 
+    lout = find_layout(read_raw_kit(fname_kit_157).info)
+    assert_true(lout is None)
+
     lout = find_layout(Raw(fname_ctf_raw).info)
     assert_true(lout.kind == 'CTF-275')
 
-    lout = find_layout(read_raw_kit(fname_kit_157).info)
-    assert_true(lout.kind == 'KIT-157')
     # Test plotting
     lout.plot()
     plt.close('all')
