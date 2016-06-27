@@ -35,6 +35,7 @@ from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
 from ..viz import (plot_ica_components, plot_ica_scores,
                    plot_ica_sources, plot_ica_overlay)
+from ..viz.ica import plot_ica_properties
 from ..viz.utils import (_prepare_trellis, tight_layout, plt_show,
                          _setup_vmin_vmax)
 from ..viz.topomap import (_prepare_topo_plot, _check_outlines,
@@ -1399,6 +1400,58 @@ class ICA(ContainsMixin):
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp,
                                    head_pos=head_pos)
+
+    def plot_properties(self, inst, picks=None, axes=None, dB=True,
+                        plot_std=True, topomap_args=None, image_args=None,
+                        psd_args=None, figsize=None, show=True):
+        """Display component properties: topography, epochs image, ERP,
+        power spectrum and epoch variance.
+
+        Parameters
+        ----------
+        inst: instance of Epochs or Raw
+            The data to use in plotting properties.
+        picks : int | array-like of int | None
+            The components to be displayed. If None, plot will show the first
+            five sources. If more than one components were chosen in the picks,
+            each one will be plotted in a separate figure. Defaults to None.
+        axes: list of matplotlib axes | None
+            List of five matplotlib axes to use in plotting: [topo_axis,
+            image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
+            figure with relevant axes is created. Defaults to None.
+        dB: bool
+            Whether to plot spectrum in dB. Defaults to True.
+        plot_std: bool | float
+            Whether to plot standard deviation in ERP/ERF and spectrum plots.
+            Defaults to True, which plots one standard deviation above/below.
+            If set to float allows to control how many standard deviations are
+            plotted. For example 2.5 will plot 2.5 standard deviation
+            above/below.
+        topomap_args : dict | None
+            Dictionary of arguments to ``plot_topomap``. If None, doesn't pass
+            any additional arguments. Defaults to None.
+        image_args : dict | None
+            Dictionary of arguments to ``plot_epochs_image``. If None, doesn't
+            pass any additional arguments. Defaults to None.
+        psd_args : dict | None
+            Dictionary of arguments to ``psd_multitaper``. If None, doesn't
+            pass any additional arguments. Defaults to None.
+        figsize : array-like of size (2,) | None
+            Allows to control size of the figure. If None the figure size
+            defauls to [7., 6.].
+        show : bool
+            Show figure if True.
+
+        Returns
+        -------
+        fig : list
+            List of matplotlib figures.
+        """
+        return plot_ica_properties(inst, self, picks=picks, axes=axes,
+                                   dB=dB, plot_std=plot_std,
+                                   topomap_args=topomap_args,
+                                   image_args=image_args, psd_args=psd_args,
+                                   figsize=figsize, show=show)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, title=None, show=True, block=False):

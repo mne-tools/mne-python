@@ -37,7 +37,7 @@ from .baseline import rescale, _log_rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import resample, detrend, FilterMixin
-from .event import _read_events_fif
+from .event import _read_events_fif, make_fixed_length_events
 from .fixes import in1d, _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs)
@@ -3112,3 +3112,29 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     _remove_meg_projs(evoked)  # remove MEG projectors, they won't apply now
     logger.info('Created Evoked dataset from %s epochs' % (count,))
     return (evoked, mapping) if return_mapping else evoked
+
+
+@verbose
+def _segment_raw(raw, segment_length=1., verbose=None, **kwargs):
+    """Divide continuous raw data into equal-sized
+    consecutive epochs.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Raw data to divide into segments.
+    segment_length : float
+        Length of each segment in seconds. Defaults to 1.
+    verbose: bool
+        Whether to report what is being done by printing text.
+    **kwargs
+        Any additional keyword arguments are passed to ``Epochs`` constructor.
+
+    Returns
+    -------
+    epochs : instance of ``Epochs``
+        Segmented data.
+    """
+    events = make_fixed_length_events(raw, 1, duration=segment_length)
+    return Epochs(raw, events, event_id=[1], tmin=0., tmax=segment_length,
+                  verbose=verbose, baseline=None, **kwargs)

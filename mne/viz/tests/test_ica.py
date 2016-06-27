@@ -6,11 +6,12 @@
 import os.path as op
 import warnings
 
-from numpy.testing import assert_raises
+from numpy.testing import assert_raises, assert_equal
 
 from mne import io, read_events, Epochs, read_cov
 from mne import pick_types
 from mne.utils import run_tests_if_main, requires_sklearn
+from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 
@@ -68,6 +69,59 @@ def test_plot_ica_components():
     ica.info = None
     assert_raises(ValueError, ica.plot_components, 1)
     assert_raises(RuntimeError, ica.plot_components, 1, ch_type='mag')
+    plt.close('all')
+
+
+@requires_sklearn
+def test_plot_ica_properties():
+    """Test plotting of ICA properties
+    """
+    import matplotlib.pyplot as plt
+
+    raw = _get_raw(preload=True)
+    events = _get_events()
+    picks = _get_picks(raw)[:6]
+    pick_names = [raw.ch_names[k] for k in picks]
+    raw.pick_channels(pick_names)
+
+    with warnings.catch_warnings(record=True):  # bad proj
+        epochs = Epochs(raw, events[:10], event_id, tmin, tmax,
+                        baseline=(None, 0), preload=True)
+
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=2, n_pca_components=2)
+    with warnings.catch_warnings(record=True):  # bad proj
+        ica.fit(raw)
+
+    # test _create_properties_layout
+    fig, ax = _create_properties_layout()
+    assert_equal(len(ax), 5)
+
+    topoargs = dict(topomap_args={'res': 10})
+    ica.plot_properties(raw, picks=0, **topoargs)
+    ica.plot_properties(epochs, picks=1, dB=False, plot_std=1.5, **topoargs)
+    ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
+                        topomap_args={'res': 10, 'colorbar': True},
+                        psd_args={'fmax': 65.}, plot_std=False,
+                        figsize=[4.5, 4.5])
+    plt.close('all')
+
+    assert_raises(ValueError, ica.plot_properties, epochs, dB=list('abc'))
+    assert_raises(ValueError, ica.plot_properties, epochs, plot_std=[])
+    assert_raises(ValueError, ica.plot_properties, ica)
+    assert_raises(ValueError, ica.plot_properties, [0.2])
+    assert_raises(ValueError, plot_ica_properties, epochs, epochs)
+    assert_raises(ValueError, ica.plot_properties, epochs,
+                  psd_args='not dict')
+
+    fig, ax = plt.subplots(2, 3)
+    ax = ax.ravel()[:-1]
+    ica.plot_properties(epochs, picks=1, axes=ax)
+    fig = ica.plot_properties(raw, picks=[0, 1], **topoargs)
+    assert_equal(len(fig), 2)
+    assert_raises(ValueError, plot_ica_properties, epochs, ica, picks=[0, 1],
+                  axes=ax)
+    assert_raises(ValueError, ica.plot_properties, epochs, axes='not axes')
     plt.close('all')
 
 

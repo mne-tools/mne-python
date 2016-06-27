@@ -23,6 +23,8 @@ Changelog
 
     - Add label center of mass function :func:`mne.Label.center_of_mass` by `Eric Larson`_
 
+    - Added :func:`mne.viz.ica.plot_ica_properties` that allows ploting of independent component properties similar to ``pop_prop`` in EEGLAB. Also :class:`mne.preprocessing.ica.ICA` has :func:`mne.preprocessing.ica.ICA.plot_properties` method now. Added by `Mikołaj Magnuski`_
+
 BUG
 ~~~
 
@@ -58,6 +60,8 @@ API
     - EOG channels can now be incuded when calling :func:`mne.preprocessing.ICA.fit` and a proper error is raised when trying to include unsupported channels by `Alexander Rudiuk`_
 
     - :func:`mne.concatenate_epochs` and :func:`mne.compute_covariance` now check to see if all :class:`Epochs` instances have the same MEG-to-Head transformation, and errors by default if they do not by `Eric Larson`_
+
+    - Added option to pass a list of axes to :func:`mne.viz.epochs.plot_epochs_image` by `Mikołaj Magnuski`_
 
 .. _changes_0_12:
 
@@ -1603,3 +1607,5 @@ of commits):
 .. _Pablo-Arias: https://github.com/Pablo-Arias
 
 .. _Alexander Rudiuk: https://github.com/ARudiuk
+
+.. _Mikołaj Magnuski: https://github.com/mmagnuski
