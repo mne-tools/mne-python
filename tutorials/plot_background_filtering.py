@@ -451,7 +451,8 @@ plot_filter(sos, 'Chebychev-1 order=8, ripple=1 dB', freq, gain)
 
 ###############################################################################
 # And if we can live with even more ripple, we can get it slightly steeper,
-# but the impulse response begins to ring substantially longer:
+# but the impulse response begins to ring substantially longer (note the
+# different x-axis scale):
 
 sos = signal.iirfilter(8, f_p / nyq, btype='low', ftype='cheby1', output='sos',
                        rp=6)

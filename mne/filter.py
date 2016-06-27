@@ -537,6 +537,11 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         exist before) for 'sos' (or 'b', 'a'), and 'padlen' for
         IIR filtering.
 
+    See Also
+    --------
+    mne.filter.filter_data
+    mne.io.Raw.filter
+    
     Notes
     -----
     This function triages calls to :func:`scipy.signal.iirfilter` and
@@ -552,9 +557,9 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     filter 'N' and the type of filtering 'ftype' are specified. To get
     coefficients for a 4th-order Butterworth filter, this would be:
 
-    >>> iir_params = dict(order=4, ftype='butter', output='sos')  # doctest:+SKIP
-    >>> iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low', return_copy=False)  # doctest:+SKIP
-    >>> print((2 * len(iir_params['sos']), iir_params['padlen']))  # doctest:+SKIP
+    >>> iir_params = dict(order=4, ftype='butter', output='sos')
+    >>> iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low', return_copy=False)
+    >>> print((2 * len(iir_params['sos']), iir_params['padlen']))
     (4, 82)
 
     Filters can also be constructed using filter design methods. To get a
@@ -562,9 +567,9 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     pass and stop bands (assuming the desired stop band is at 45 Hz), this
     would be a filter with much longer ringing:
 
-    >>> iir_params = dict(ftype='cheby1', gpass=3, gstop=20, output='sos')  # doctest:+SKIP
-    >>> iir_params = construct_iir_filter(iir_params, 40, 50, 1000, 'low')  # doctest:+SKIP
-    >>> print((2 * len(iir_params['sos']), iir_params['padlen']))  # doctest:+SKIP
+    >>> iir_params = dict(ftype='cheby1', gpass=3, gstop=20, output='sos')
+    >>> iir_params = construct_iir_filter(iir_params, 40, 50, 1000, 'low')
+    >>> print((2 * len(iir_params['sos']), iir_params['padlen']))
     (6, 439)
 
     Padding and/or filter coefficients can also be manually specified. For
@@ -576,6 +581,8 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     >>> print((iir_params['b'], iir_params['a'], iir_params['padlen']))
     (array([ 1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.]), [1, 0], 0)
 
+    For more information, see the tutorials :ref:`tut_background_filtering`
+    and :ref:`tut_artifacts_filter`.
     """  # noqa
     from scipy.signal import iirfilter, iirdesign
     known_filters = ('bessel', 'butter', 'butterworth', 'cauer', 'cheby1',
@@ -732,6 +739,16 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='10s',
     -------
     data : ndarray, shape (n_channels, n_times)
         The filtered data.
+
+    See Also
+    --------
+    mne.filter.construct_iir_filter
+    mne.io.Raw.filter
+
+    Notes
+    -----
+    For more information, see the tutorials :ref:`tut_background_filtering`
+    and :ref:`tut_artifacts_filter`.
     """
     if not isinstance(data, np.ndarray) or data.ndim != 2:
         raise ValueError('data must be an array with two dimensions')
