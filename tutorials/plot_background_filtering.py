@@ -2,6 +2,7 @@
 r"""
 .. _tut_background_filtering:
 
+===================================
 Background information on filtering
 ===================================
 
@@ -13,8 +14,10 @@ in MNE-Python on actual data, see the :ref:`tut_artifacts_filter` tutorial.
 
 .. contents::
 
+.. _filtering-basics:
+
 Filtering basics
-----------------
+================
 Let's get some of the basic math down. In the frequency domain, digital
 filters have a transfer function that is given by:
 
@@ -76,7 +79,9 @@ In general, the sharper something is in frequency, the broader it is in time,
 and vice-versa. This is a fundamental time-frequency tradeoff, and it will
 show up below.
 
-Here we will focus first on FIR filters, which are the default filters used by
+===========
+
+First we will focus first on FIR filters, which are the default filters used by
 MNE-Python.
 """
 
@@ -166,13 +171,24 @@ h = np.sinc(2 * f_p * t) / (4 * np.pi)
 
 
 def plot_filter(h, title, freq, gain, show=True):
+    if h.ndim == 2:  # second-order sections
+        sos = h
+        n = mne.filter.estimate_ringing_samples(sos)
+        h = np.zeros(n)
+        h[0] = 1
+        h = signal.sosfilt(sos, h)
+        H = np.ones(512, np.complex128)
+        for section in sos:
+            f, this_H = signal.freqz(section[:3], section[3:])
+            H *= this_H
+    else:
+        f, H = signal.freqz(h)
     fig, axs = plt.subplots(2)
     t = np.arange(len(h)) / sfreq
     axs[0].plot(t, h, color=blue)
     axs[0].set(xlim=t[[0, -1]], xlabel='Time (sec)',
                ylabel='Amplitude h(n)', title=title)
     box_off(axs[0])
-    f, H = signal.freqz(h)
     f *= sfreq / (2 * np.pi)
     axs[1].semilogx(f, 10 * np.log10((H * H.conj()).real), color=blue,
                     linewidth=2, zorder=4)
@@ -366,8 +382,121 @@ mne.viz.tight_layout()
 plt.show()
 
 ###############################################################################
+# IIR filters
+# ===========
+# MNE-Python also offers IIR filtering functionality that is based on the
+# methods from :mod:`scipy.signal`. Specifically, we use the general-purpose
+# functions :func:`scipy.signal.iirfilter` and :func:`scipy.signal.iirdesign`,
+# which provide unified interfaces to IIR filter design.
+#
+# Designing IIR filters
+# ---------------------
+# Let's continue with our design of a 40 Hz low-pass filter, and look at
+# some trade-offs of different IIR filters.
+#
+# Often the default IIR filter is a `Butterworth filter`_, which is designed
+# to have a *maximally flat pass-band*. Let's look at a few orders of filter,
+# i.e., a few different number of coefficients used and therefore steepness
+# of the filter:
+
+sos = signal.iirfilter(2, f_p / nyq, btype='low', ftype='butter', output='sos')
+plot_filter(sos, 'Butterworth order=2', freq, gain)
+
+# Eventually this will just be from scipy signal.sosfiltfilt, but 0.18 is
+# not widely adopted yet (as of June 2016), so we use our wrapper...
+sosfiltfilt = mne.fixes.get_sosfiltfilt()
+x_shallow = sosfiltfilt(sos, x)
+
+###############################################################################
+# The falloff of this filter is not very steep.
+#
+# .. warning:: For brevity, we do not show the phase of these filters here.
+#              In the FIR case, we can design linear-phase filters, and
+#              compensate for the delay if necessary. This cannot be done
+#              with IIR filters, and as the filter order increases, the
+#              phase distortion near and in the transition band worsens.
+#              However, if acausal (forward-backward) filtering can be used,
+#              e.g. with :func:`scipy.signal.filtfilt`, these phase issues
+#              can be mitigated.
+#
+# .. note:: Here we have made use of second-order sections (SOS)
+#           by using :func:`scipy.signal.sosfilt` and, under the
+#           hood, :func:`scipy.signal.zpk2sos` when passing the
+#           ``output='sos'`` keyword argument to
+#           :func:`scipy.signal.iirfilter`. The filter definitions
+#           given in :ref:`filtering-basics` use the polynomial
+#           numerator/denominator (sometimes called "tf") form ``(b, a)``,
+#           which are theoretically equivalent to the SOS form used here.
+#           In practice, however, the SOS form can give much better results
+#           due to issues with numerical precision (see
+#           :func:`scipy.signal.sosfilt` for an example), so SOS should be
+#           used when possible to do IIR filtering.
+#
+# Let's increase the order, and note that now we have better attenuation,
+# with a longer impulse response:
+
+sos = signal.iirfilter(8, f_p / nyq, btype='low', ftype='butter', output='sos')
+plot_filter(sos, 'Butterworth order=8', freq, gain)
+x_steep = sosfiltfilt(sos, x)
+
+###############################################################################
+# There are other types of IIR filters that we can use. For a complete list,
+# check out the documentation for :func:`scipy.signal.iirdesign`. Let's
+# try a Chebychev (type I) filter, which trades off ripple in the pass-band
+# to get better attenuation in the stop-band:
+
+sos = signal.iirfilter(8, f_p / nyq, btype='low', ftype='cheby1', output='sos',
+                       rp=1)  # dB of acceptable pass-band ripple
+plot_filter(sos, 'Chebychev-1 order=8, ripple=1 dB', freq, gain)
+
+###############################################################################
+# And if we can live with even more ripple, we can get it slightly steeper,
+# but the impulse response begins to ring substantially longer (note the
+# different x-axis scale):
+
+sos = signal.iirfilter(8, f_p / nyq, btype='low', ftype='cheby1', output='sos',
+                       rp=6)
+plot_filter(sos, 'Chebychev-1 order=8, ripple=6 dB', freq, gain)
+
+###############################################################################
+# Applying IIR filters
+# --------------------
+# Now let's look at how our shallow and steep Butterworth IIR filters
+# perform on our morlet signal from before:
+
+axs = plt.subplots(2)[1]
+yticks = np.arange(4) / -30.
+yticklabels = ['Original', 'Noisy', 'Butterworth-2', 'Butterworth-8']
+plot_signal(x_orig, offset=yticks[0])
+plot_signal(x, offset=yticks[1])
+plot_signal(x_shallow, offset=yticks[2])
+plot_signal(x_steep, offset=yticks[3])
+axs[0].set(xlim=tlim, title='Lowpass=%d Hz' % f_p, xticks=tticks,
+           ylim=[-0.125, 0.025], yticks=yticks, yticklabels=yticklabels,)
+for text in axs[0].get_yticklabels():
+    text.set(rotation=45, size=8)
+axs[1].set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)',
+           ylabel='Magnitude (dB)')
+box_off(axs[0])
+box_off(axs[1])
+mne.viz.tight_layout()
+plt.show()
+
+###############################################################################
+# Filtering in MNE-Python
+# =======================
+# Most often, filtering in MNE-Python is done at the :class:`mne.io.Raw` level,
+# and thus :func:`mne.io.Raw.filter` is used. This function under the hood
+# (among other things) calls :func:`mne.filter.filter_data` to actually
+# filter the data.
+#
+# :func:`mne.filter.filter_data` by default applies a FIR filter designed using
+# :func:`scipy.signal.firwin2`. For more information on how to use the
+# MNE-Python filtering functions with real data, consult the preprocessing
+# tutorial on :ref:`tut_artifacts_filter`.
+#
 # Summary
-# -------
+# =======
 # When filtering, there are always tradeoffs that should be considered.
 # One important tradeoff is between time-domain characteristics (like ringing)
 # and frequency-domain attenuation characteristics (like effective transition
@@ -379,7 +508,7 @@ plt.show()
 
 ###############################################################################
 # References
-# ----------
+# ==========
 # .. [1] Parks TW, Burrus CS. Digital Filter Design.
 #    New York: Wiley-Interscience, 1987.
 #
@@ -394,3 +523,4 @@ plt.show()
 # .. _scipy firwin2: http://scipy.github.io/devdocs/generated/scipy.signal.firwin2.html  # noqa
 # .. _matlab fir2: http://www.mathworks.com/help/signal/ref/fir2.html
 # .. _matlab firls: http://www.mathworks.com/help/signal/ref/firls.html
+# .. _Butterworth filter: https://en.wikipedia.org/wiki/Butterworth_filter

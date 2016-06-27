@@ -461,6 +461,8 @@ EEG referencing:
 
    band_pass_filter
    construct_iir_filter
+   estimate_ringing_samples
+   filter_data
    high_pass_filter
    low_pass_filter
    notch_filter

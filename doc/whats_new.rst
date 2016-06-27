@@ -25,6 +25,8 @@ Changelog
 
     - Added :func:`mne.viz.ica.plot_ica_properties` that allows ploting of independent component properties similar to ``pop_prop`` in EEGLAB. Also :class:`mne.preprocessing.ica.ICA` has :func:`mne.preprocessing.ica.ICA.plot_properties` method now. Added by `Mikołaj Magnuski`_
 
+    - Add second-order sections (instead of ``(b, a)`` form) IIR filtering for reduced numerical error by `Eric Larson`_
+
 BUG
 ~~~
 
@@ -62,6 +64,8 @@ API
     - :func:`mne.concatenate_epochs` and :func:`mne.compute_covariance` now check to see if all :class:`Epochs` instances have the same MEG-to-Head transformation, and errors by default if they do not by `Eric Larson`_
 
     - Added option to pass a list of axes to :func:`mne.viz.epochs.plot_epochs_image` by `Mikołaj Magnuski`_
+
+    - Constructing IIR filters in :func:`mne.filter.construct_iir_filter` defaults to ``output='ba'`` in 0.13 but this will be changed to ``output='sos'`` by `Eric Larson`_
 
 .. _changes_0_12:
 
@@ -1605,7 +1609,3 @@ of commits):
 .. _Jon Houck: http://www.unm.edu/~jhouck/
 
 .. _Pablo-Arias: https://github.com/Pablo-Arias
-
-.. _Alexander Rudiuk: https://github.com/ARudiuk
-
-.. _Mikołaj Magnuski: https://github.com/mmagnuski

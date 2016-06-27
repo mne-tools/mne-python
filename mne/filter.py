@@ -8,7 +8,7 @@ from scipy.fftpack import fft, ifftshift, fftfreq
 from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
                    setup_cuda_fft_resample, fft_resample, _smart_pad)
 from .externals.six import string_types, integer_types
-from .fixes import get_firwin2, get_filtfilt
+from .fixes import get_firwin2, get_filtfilt, get_sosfiltfilt, partial
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from .utils import logger, verbose, sum_squared, check_version, warn
@@ -376,49 +376,100 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
     return x
 
 
-def _check_coefficients(b, a):
+def _check_coefficients(system):
     """Check for filter stability"""
-    from scipy.signal import tf2zpk
-    z, p, k = tf2zpk(b, a)
+    if isinstance(system, tuple):
+        from scipy.signal import tf2zpk
+        z, p, k = tf2zpk(*system)
+    else:  # sos
+        from scipy.signal import sos2zpk
+        z, p, k = sos2zpk(system)
     if np.any(np.abs(p) > 1.0):
         raise RuntimeError('Filter poles outside unit circle, filter will be '
                            'unstable. Consider using different filter '
                            'coefficients.')
 
 
-def _filtfilt(x, b, a, padlen, picks, n_jobs, copy):
+def _filtfilt(x, iir_params, picks, n_jobs, copy):
     """Helper to more easily call filtfilt"""
     # set up array for filtering, reshape to 2D, operate on last axis
-    filtfilt = get_filtfilt()
+    padlen = min(iir_params['padlen'], len(x))
     n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
-    _check_coefficients(b, a)
+    if 'sos' in iir_params:
+        sosfiltfilt = get_sosfiltfilt()
+        fun = partial(sosfiltfilt, sos=iir_params['sos'], padlen=padlen)
+        _check_coefficients(iir_params['sos'])
+    else:
+        filtfilt = get_filtfilt()
+        fun = partial(filtfilt, b=iir_params['b'], a=iir_params['a'],
+                      padlen=padlen)
+        _check_coefficients((iir_params['b'], iir_params['a']))
     if n_jobs == 1:
         for p in picks:
-            x[p] = filtfilt(b, a, x[p], padlen=padlen)
+            x[p] = fun(x=x[p])
     else:
-        parallel, p_fun, _ = parallel_func(filtfilt, n_jobs)
-        data_new = parallel(p_fun(b, a, x[p], padlen=padlen)
-                            for p in picks)
+        parallel, p_fun, _ = parallel_func(fun, n_jobs)
+        data_new = parallel(p_fun(x=x[p]) for p in picks)
         for pp, p in enumerate(picks):
             x[p] = data_new[pp]
     x.shape = orig_shape
     return x
 
 
-def _estimate_ringing_samples(b, a):
-    """Helper function for determining IIR padding"""
-    # XXX Need to extend this to more than 1000 samples for long IIR filters!
-    from scipy.signal import lfilter
-    x = np.zeros(1000)
+def estimate_ringing_samples(system, max_try=100000):
+    """Estimate filter ringing
+
+    Parameters
+    ----------
+    system : tuple | ndarray
+        A tuple of (b, a) or ndarray of second-order sections coefficients.
+    max_try : int
+        Approximate maximum number of samples to try.
+        This will be changed to a multple of 1000.
+
+    Returns
+    -------
+    n : int
+        The approximate ringing.
+    """
+    from scipy import signal
+    if isinstance(system, tuple):  # TF
+        kind = 'ba'
+        b, a = system
+        zi = [0.] * (len(a) - 1)
+    else:
+        kind = 'sos'
+        sos = system
+        zi = [[0.] * 2] * len(sos)
+    n_per_chunk = 1000
+    n_chunks_max = int(np.ceil(max_try / float(n_per_chunk)))
+    x = np.zeros(n_per_chunk)
     x[0] = 1
-    h = lfilter(b, a, x)
-    return np.where(np.abs(h) > 0.001 * np.max(np.abs(h)))[0][-1]
+    last_good = n_per_chunk
+    thresh_val = 0
+    for ii in range(n_chunks_max):
+        if kind == 'ba':
+            h, zi = signal.lfilter(b, a, x, zi=zi)
+        else:
+            h, zi = signal.sosfilt(sos, x, zi=zi)
+        x[0] = 0  # for subsequent iterations we want zero input
+        h = np.abs(h)
+        thresh_val = max(0.001 * np.max(h), thresh_val)
+        idx = np.where(np.abs(h) > thresh_val)[0]
+        if len(idx) > 0:
+            last_good = idx[-1]
+        else:  # this iteration had no sufficiently lange values
+            idx = (ii - 1) * n_per_chunk + last_good
+            break
+    else:
+        warn('Could not properly estimate ringing for the filter')
+        idx = n_per_chunk * n_chunks_max
+    return idx
 
 
-def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
-                         f_pass=None, f_stop=None, sfreq=None, btype=None,
-                         return_copy=True):
+def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
+                         btype=None, return_copy=True):
     """Use IIR parameters to get filtering coefficients
 
     This function works like a wrapper for iirdesign and iirfilter in
@@ -428,19 +479,39 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
     function) with the filter coefficients ('b' and 'a') and an estimate
     of the padding necessary ('padlen') so IIR filtering can be performed.
 
+    .. note:: As of 0.14, second-order sections will be used in filter
+              design by default (replacing ``output='ba'`` by
+              ``output='sos'``) to help ensure filter stability and
+              reduce numerical error. Second-order sections filtering
+              requires SciPy >= 16.0.
+
+
     Parameters
     ----------
     iir_params : dict
         Dictionary of parameters to use for IIR filtering.
-        If iir_params['b'] and iir_params['a'] exist, these will be used
-        as coefficients to perform IIR filtering. Otherwise, if
-        iir_params['order'] and iir_params['ftype'] exist, these will be
-        used with scipy.signal.iirfilter to make a filter. Otherwise, if
-        iir_params['gpass'] and iir_params['gstop'] exist, these will be
-        used with scipy.signal.iirdesign to design a filter.
-        iir_params['padlen'] defines the number of samples to pad (and
-        an estimate will be calculated if it is not given). See Notes for
-        more details.
+        
+            * If ``iir_params['sos']`` exists, it will be used as
+              second-order sections to perform IIR filtering.
+              
+              .. versionadded:: 0.13
+
+            * Otherwise, if ``iir_params['b']`` and ``iir_params['a']``
+              exist, these will be used as coefficients to perform IIR
+              filtering.
+            * Otherwise, if ``iir_params['order']`` and
+              ``iir_params['ftype']`` exist, these will be used with
+              `scipy.signal.iirfilter` to make a filter.
+            * Otherwise, if ``iir_params['gpass']`` and
+              ``iir_params['gstop']`` exist, these will be used with
+              `scipy.signal.iirdesign` to design a filter.
+            * ``iir_params['padlen']`` defines the number of samples to pad
+              (and an estimate will be calculated if it is not given).
+              See Notes for more details.
+            * ``iir_params['output']`` defines the system output kind when
+              designing filters, either "sos" or "ba". For 0.13 the
+              default is 'ba' but will change to 'sos' in 0.14.
+
     f_pass : float or list of float
         Frequency for the pass-band. Low-pass and high-pass filters should
         be a float, band-pass should be a 2-element list of float.
@@ -451,23 +522,31 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
         The sample rate.
     btype : str
         Type of filter. Should be 'lowpass', 'highpass', or 'bandpass'
-        (or analogous string representations known to scipy.signal).
+        (or analogous string representations known to
+        :func:`scipy.signal.iirfilter`).
     return_copy : bool
-        If False, the 'b', 'a', and 'padlen' entries in iir_params will be
-        set inplace (if they weren't already). Otherwise, a new iir_params
-        instance will be created and returned with these entries.
+        If False, the 'sos', 'b', 'a', and 'padlen' entries in
+        ``iir_params`` will be set inplace (if they weren't already).
+        Otherwise, a new ``iir_params`` instance will be created and
+        returned with these entries.
 
     Returns
     -------
     iir_params : dict
         Updated iir_params dict, with the entries (set only if they didn't
-        exist before) for 'b', 'a', and 'padlen' for IIR filtering.
+        exist before) for 'sos' (or 'b', 'a'), and 'padlen' for
+        IIR filtering.
 
+    See Also
+    --------
+    mne.filter.filter_data
+    mne.io.Raw.filter
+    
     Notes
     -----
-    This function triages calls to scipy.signal.iirfilter and iirdesign
-    based on the input arguments (see descriptions of these functions
-    and scipy's scipy.signal.filter_design documentation for details).
+    This function triages calls to :func:`scipy.signal.iirfilter` and
+    :func:`scipy.signal.iirdesign` based on the input arguments (see
+    linked functions for more details).
 
     Examples
     --------
@@ -478,20 +557,20 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
     filter 'N' and the type of filtering 'ftype' are specified. To get
     coefficients for a 4th-order Butterworth filter, this would be:
 
-    >>> iir_params = dict(order=4, ftype='butter')
+    >>> iir_params = dict(order=4, ftype='butter', output='sos')
     >>> iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low', return_copy=False)
-    >>> print((len(iir_params['b']), len(iir_params['a']), iir_params['padlen']))
-    (5, 5, 82)
+    >>> print((2 * len(iir_params['sos']), iir_params['padlen']))
+    (4, 82)
 
     Filters can also be constructed using filter design methods. To get a
     40 Hz Chebyshev type 1 lowpass with specific gain characteristics in the
     pass and stop bands (assuming the desired stop band is at 45 Hz), this
     would be a filter with much longer ringing:
 
-    >>> iir_params = dict(ftype='cheby1', gpass=3, gstop=20)
+    >>> iir_params = dict(ftype='cheby1', gpass=3, gstop=20, output='sos')
     >>> iir_params = construct_iir_filter(iir_params, 40, 50, 1000, 'low')
-    >>> print((len(iir_params['b']), len(iir_params['a']), iir_params['padlen']))
-    (6, 6, 439)
+    >>> print((2 * len(iir_params['sos']), iir_params['padlen']))
+    (6, 439)
 
     Padding and/or filter coefficients can also be manually specified. For
     a 10-sample moving window with no padding during filtering, for example,
@@ -502,17 +581,32 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
     >>> print((iir_params['b'], iir_params['a'], iir_params['padlen']))
     (array([ 1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.]), [1, 0], 0)
 
+    For more information, see the tutorials :ref:`tut_background_filtering`
+    and :ref:`tut_artifacts_filter`.
     """  # noqa
     from scipy.signal import iirfilter, iirdesign
     known_filters = ('bessel', 'butter', 'butterworth', 'cauer', 'cheby1',
                      'cheby2', 'chebyshev1', 'chebyshev2', 'chebyshevi',
                      'chebyshevii', 'ellip', 'elliptic')
-    a = None
-    b = None
+    if not isinstance(iir_params, dict):
+        raise TypeError('iir_params must be a dict, got %s' % type(iir_params))
+    system = None
     # if the filter has been designed, we're good to go
-    if 'a' in iir_params and 'b' in iir_params:
-        [b, a] = [iir_params['b'], iir_params['a']]
+    if 'sos' in iir_params:
+        system = iir_params['sos']
+        output = 'sos'
+    elif 'a' in iir_params and 'b' in iir_params:
+        system = (iir_params['b'], iir_params['a'])
+        output = 'ba'
     else:
+        output = iir_params.get('output', None)
+        if output is None:
+            warn('The default output type is "ba" in 0.13 but will change '
+                 'to "sos" in 0.14')
+            output = 'ba'
+        if not isinstance(output, string_types) or output not in ('ba', 'sos'):
+            raise ValueError('Output must be "ba" or "sos", got %s'
+                             % (output,))
         # ensure we have a valid ftype
         if 'ftype' not in iir_params:
             raise RuntimeError('ftype must be an entry in iir_params if ''b'' '
@@ -526,30 +620,36 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
         # use order-based design
         Wp = np.asanyarray(f_pass) / (float(sfreq) / 2)
         if 'order' in iir_params:
-            [b, a] = iirfilter(iir_params['order'], Wp, btype=btype,
-                               ftype=ftype)
+            system = iirfilter(iir_params['order'], Wp, btype=btype,
+                               ftype=ftype, output=output)
         else:
             # use gpass / gstop design
             Ws = np.asanyarray(f_stop) / (float(sfreq) / 2)
             if 'gpass' not in iir_params or 'gstop' not in iir_params:
                 raise ValueError('iir_params must have at least ''gstop'' and'
                                  ' ''gpass'' (or ''N'') entries')
-            [b, a] = iirdesign(Wp, Ws, iir_params['gpass'],
-                               iir_params['gstop'], ftype=ftype)
+            system = iirdesign(Wp, Ws, iir_params['gpass'],
+                               iir_params['gstop'], ftype=ftype, output=output)
 
-    if a is None or b is None:
+    if system is None:
         raise RuntimeError('coefficients could not be created from iir_params')
+    # do some sanity checks
+    _check_coefficients(system)
 
     # now deal with padding
     if 'padlen' not in iir_params:
-        padlen = _estimate_ringing_samples(b, a)
+        padlen = estimate_ringing_samples(system)
     else:
         padlen = iir_params['padlen']
 
     if return_copy:
         iir_params = deepcopy(iir_params)
 
-    iir_params.update(dict(b=b, a=a, padlen=padlen))
+    iir_params.update(dict(padlen=padlen))
+    if output == 'sos':
+        iir_params.update(sos=system)
+    else:
+        iir_params.update(b=system[0], a=system[1])
     return iir_params
 
 
@@ -564,8 +664,6 @@ def _check_method(method, iir_params, extra_types):
     if method == 'iir':
         if iir_params is None:
             iir_params = dict(order=4, ftype='butter')
-        if not isinstance(iir_params, dict):
-            raise ValueError('iir_params must be a dict')
     elif iir_params is not None:
         raise ValueError('iir_params must be None if method != "iir"')
     method = method.lower()
@@ -641,6 +739,16 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='10s',
     -------
     data : ndarray, shape (n_channels, n_times)
         The filtered data.
+
+    See Also
+    --------
+    mne.filter.construct_iir_filter
+    mne.io.Raw.filter
+
+    Notes
+    -----
+    For more information, see the tutorials :ref:`tut_background_filtering`
+    and :ref:`tut_artifacts_filter`.
     """
     if not isinstance(data, np.ndarray) or data.ndim != 2:
         raise ValueError('data must be an array with two dimensions')
@@ -795,9 +903,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
     else:
         iir_params = construct_iir_filter(iir_params, [Fp1, Fp2],
                                           [Fs1, Fs2], Fs, 'bandpass')
-        padlen = min(iir_params['padlen'], len(x))
-        xf = _filtfilt(x, iir_params['b'], iir_params['a'], padlen,
-                       picks, n_jobs, copy)
+        xf = _filtfilt(x, iir_params, picks, n_jobs, copy)
 
     return xf
 
@@ -911,9 +1017,7 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
         for fp_1, fp_2, fs_1, fs_2 in zip(Fp1, Fp2, Fs1, Fs2):
             iir_params_new = construct_iir_filter(iir_params, [fp_1, fp_2],
                                                   [fs_1, fs_2], Fs, 'bandstop')
-            padlen = min(iir_params_new['padlen'], len(x))
-            xf = _filtfilt(x, iir_params_new['b'], iir_params_new['a'], padlen,
-                           picks, n_jobs, copy)
+            xf = _filtfilt(x, iir_params_new, picks, n_jobs, copy)
 
     return xf
 
@@ -1002,9 +1106,7 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
         xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy)
     else:
         iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'low')
-        padlen = min(iir_params['padlen'], len(x))
-        xf = _filtfilt(x, iir_params['b'], iir_params['a'], padlen,
-                       picks, n_jobs, copy)
+        xf = _filtfilt(x, iir_params, picks, n_jobs, copy)
 
     return xf
 
@@ -1095,9 +1197,7 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
         xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy)
     else:
         iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'high')
-        padlen = min(iir_params['padlen'], len(x))
-        xf = _filtfilt(x, iir_params['b'], iir_params['a'], padlen,
-                       picks, n_jobs, copy)
+        xf = _filtfilt(x, iir_params, picks, n_jobs, copy)
 
     return xf
 
