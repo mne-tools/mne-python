@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import os
+import re
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -107,7 +108,13 @@ def test_coreg_model():
     assert_equal(sfrom, 'sample')
     assert_equal(sto, 'sample2')
     assert_equal(scale, model.scale)
-    assert_equal(set(bemsol), {'1280-bem', '1280-1280-1280-bem'})
+    # find BEM files
+    bems = set()
+    for fname in os.listdir(os.path.join(subjects_dir, 'sample', 'bem')):
+        m = re.match('sample-(.+-bem)\.fif', fname)
+        if m:
+            bems.add(m.group(1))
+    assert_equal(set(bemsol), bems)
     sdir, sfrom, sto, scale, bemsol = model.get_scaling_job('sample2', False)
     assert_equal(bemsol, [])
 
