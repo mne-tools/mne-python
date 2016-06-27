@@ -306,8 +306,7 @@ numpydoc_class_members_toctree = False
 def touch_example_backreferences(app, what, name, obj, options, lines):
     # generate empty examples files, so that we don't get
     # inclusion errors if there are no examples for a class / module
-    examples_path = os.path.join(app.srcdir, "modules", "generated",
-                                 "%s.examples" % name)
+    examples_path = os.path.join(app.srcdir, "generated", "%s.examples" % name)
     if not os.path.exists(examples_path):
         # touch file
         open(examples_path, 'w').close()
