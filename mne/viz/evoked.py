@@ -1033,9 +1033,9 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     ts_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot` to
         style the butterfly plot. `axes` and `show` are ignored.
-        If `spatial_colors` is not in this dict, `spatial_colors=True`
-        will be passed. Beyond that, if ``None``, no customizable arguments
-        will be passed. Defaults to ``None``.
+        If `spatial_colors` is not in this dict, `spatial_colors=True`,
+        and (if it is not in the dict) `zorder='std'` will be passed.
+        Defaults to ``None``.
     topomap_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
         to style the topomaps. `axes` and `show` are ignored. If `times`
