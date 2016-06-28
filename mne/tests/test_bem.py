@@ -353,13 +353,15 @@ def test_make_flash_bem():
         copy(op.join(bemdir, surf + '.surf'), tmp)
         copy(op.join(bemdir, surf + '.tri'), tmp)
     copy(op.join(bemdir, 'inner_skull_tmp.tri'), tmp)
+    copy(op.join(bemdir, 'outer_skin_from_testing.surf'), tmp)
 
     # This function deletes the tri files at the end.
     try:
         make_flash_bem('sample', overwrite=True, subjects_dir=subjects_dir,
                        flash_path=flash_path)
-        for surf in ('inner_skull', 'outer_skull'):
+        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
             coords, faces = read_surface(op.join(bemdir, surf + '.surf'))
+            surf = 'outer_skin_from_testing' if surf == 'outer_skin' else surf
             coords_c, faces_c = read_surface(op.join(tmp, surf + '.surf'))
             assert_equal(0, faces.min())
             assert_equal(coords.shape[0], faces.max() + 1)
@@ -371,6 +373,7 @@ def test_make_flash_bem():
             copy(op.join(tmp, surf + '.tri'), bemdir)  # return deleted tri
             copy(op.join(tmp, surf + '.surf'), bemdir)  # return moved surf
         copy(op.join(tmp, 'inner_skull_tmp.tri'), bemdir)
+        copy(op.join(tmp, 'outer_skin_from_testing.surf'), bemdir)
     plt.close('all')
 
 

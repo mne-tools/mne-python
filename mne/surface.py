@@ -1179,7 +1179,7 @@ def mesh_dist(tris, vert):
     return dist_matrix
 
 
-def _load_ascii_surface(filepath, swap=False):
+def read_tri(fname_in, swap=False):
     """Function for reading triangle definitions from an ascii file.
 
     Parameters
@@ -1192,10 +1192,13 @@ def _load_ascii_surface(filepath, swap=False):
 
     Returns
     -------
-    surf : tuple (nodes, tris)
-        The surface.
+    rr : array, shape=(n_vertices, 3)
+        Coordinate points.
+    tris : int array, shape=(n_faces, 3)
+        Triangulation (each line contains indexes for three points which
+        together form a face).
     """
-    with open(filepath, "r") as fid:
+    with open(fname_in, "r") as fid:
         lines = fid.readlines()
     n_nodes = int(lines[0])
     n_tris = int(lines[n_nodes + 1])
@@ -1206,17 +1209,17 @@ def _load_ascii_surface(filepath, swap=False):
         inds = range(1, 4)
     else:
         raise IOError('Unrecognized format of data.')
-    nodes = np.array([np.array([float(v) for v in l.split()])[inds]
-                      for l in lines[1:n_nodes + 1]])
+    rr = np.array([np.array([float(v) for v in l.split()])[inds]
+                   for l in lines[1:n_nodes + 1]])
     tris = np.array([np.array([int(v) for v in l.split()])[inds]
                      for l in lines[n_nodes + 2:n_nodes + 2 + n_tris]])
     if swap:
         tris[:, [2, 1]] = tris[:, [1, 2]]
     tris -= 1
     logger.info('Loaded surface from %s with %s nodes and %s triangles.' %
-                (filepath, n_nodes, n_tris))
+                (fname_in, n_nodes, n_tris))
     if n_items in [3, 4]:
         logger.info('Node normals were not included in the source file.')
     else:
         warn('Node normals were not read.')
-    return (nodes, tris)
+    return (rr, tris)

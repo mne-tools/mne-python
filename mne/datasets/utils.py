@@ -211,7 +211,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='1d5da3a809fded1ef5734444ab5bf857',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
         spm='f61041e3f3f2ba0def8a2ca71592cc41',
-        testing='24c7f0cd1ed94f359a3fa5478a4c42ce'
+        testing='566d9e97421972c874fe8a76a837c6ed'
     )
     folder_origs = dict(  # not listed means None
         misc='mne-misc-data-%s' % releases['misc'],

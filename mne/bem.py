@@ -1705,9 +1705,9 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     convert_flash_mris
     """
     from .viz.misc import plot_bem
-    from .surface import write_surface, _load_ascii_surface
+    from .surface import write_surface, read_tri
 
-    is_test = os.environ.get('MNE_TESTING', False)  # to enable travis testing
+    is_test = os.environ.get('MNE_SKIP_FLASH_CALL', False)  # to enable testing
 
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
                                          requires_freesurfer=True,
@@ -1788,7 +1788,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     for surf in surfs:
         shutil.move(op.join(bem_dir, surf + '.tri'), surf + '.tri')
 
-        nodes, tris = _load_ascii_surface(surf + '.tri', swap=True)
+        nodes, tris = read_tri(surf + '.tri', swap=True)
         vol_info = _extract_volume_info(flash5_reg)
         if vol_info is None:
             warn('nibabel is required to update the volume info. Volume info '

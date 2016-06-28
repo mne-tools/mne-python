@@ -137,7 +137,7 @@ def test_io_surface():
                                                 read_metadata=True)
         assert_array_equal(pts, c_pts)
         assert_array_equal(tri, c_tri)
-        _is_equal_dict([vol_info, c_vol_info])
+        assert_true(_is_equal_dict([vol_info, c_vol_info]))
 
 
 @testing.requires_testing_data
