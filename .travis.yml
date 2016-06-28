@@ -67,7 +67,8 @@ install:
         fi;
       fi;
     - if [ "${DEPS}" == "nodata" ]; then
-        pip install -q flake8 codespell;
+        conda install --yes $ENSURE_PACKAGES sphinx;
+        pip install flake8 codespell numpydoc;
       fi;
     - pip install -q codecov nose-timer
     - if [ "${PYTHON}" == "2.6" ]; then
