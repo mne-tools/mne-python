@@ -9,7 +9,7 @@ desired location(s) in a SourceEstimate and then corrupt the signal with
 point-spread by applying a forward and inverse solution.
 """
 
-import os.path as osp
+import os.path as op
 
 import numpy as np
 
@@ -38,16 +38,16 @@ dt = times[1] - times[0]
 
 # Paths to MEG data
 data_path = sample.data_path()
-subjects_dir = osp.join(data_path, 'subjects/')
-fname_fwd = osp.join(data_path, 'MEG', 'sample',
+subjects_dir = op.join(data_path, 'subjects/')
+fname_fwd = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis-meg-oct-6-fwd.fif')
-fname_inv = osp.join(data_path, 'MEG', 'sample',
+fname_inv = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
 
-fname_evoked = osp.join(data_path, 'MEG', 'sample',
+fname_evoked = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis-ave.fif')
 
-subject_dir = osp.join(data_path, 'subjects/')
+subject_dir = op.join(data_path, 'subjects/')
 
 ###############################################################################
 # Load and process MEG data
@@ -59,7 +59,7 @@ inv_op = read_inverse_operator(fname_inv)
 # evoked data by averaging the epochs.
 evoked_ff = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 
-raw = mne.io.RawFIF(osp.join(data_path, 'MEG', 'sample',
+raw = mne.io.RawFIF(op.join(data_path, 'MEG', 'sample',
                              'sample_audvis_raw.fif'))
 events = mne.find_events(raw)
 event_id = {'Auditory/Left': 1, 'Auditory/Right': 2}
@@ -110,7 +110,7 @@ for i, label in enumerate(labels):
 # Create SourceEstimate object with known signal at center vertices of two
 # labels.
 stc_gen = simulate_stc(fwd['src'], labels, signal, times[0],
-                       times[1] - times[0], value_fun=lambda x: x)
+                       dt, value_fun=lambda x: x)
 
 # Use forward solution to generate sensor space data
 evoked_gen = simulate_evoked(fwd, stc_gen, evoked.info, cov, noise_snr,
