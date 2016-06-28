@@ -5,8 +5,8 @@ Corrupt known signal with point spread
 ======================================
 
 The aim of this tutorial is to demonstrate how to put a known signal at a
-desired location(s) in a SourceEstimate and then corrupt the signal with
-point-spread by applying a forward and inverse solution.
+desired location(s) in a :class:`SourceEstimate` and then corrupt the signal
+with point-spread by applying a forward and inverse solution.
 """
 
 import os.path as op
@@ -70,7 +70,7 @@ evoked = epochs.average()
 
 labels = mne.read_labels_from_annot('sample', subjects_dir=subject_dir)
 label_names = [l.name for l in labels]
-nlabs = len(labels)
+n_labels = len(labels)
 
 ###############################################################################
 # Estimate noise covariance from baseline
@@ -81,7 +81,7 @@ cov = mne.compute_covariance(epochs, tmin=None, tmax=0.)
 
 # Generate a known signal to corrupt with point spread
 idx = label_names.index('inferiorparietal-lh')
-signal = np.zeros((nlabs, T))
+signal = np.zeros((n_labels, T))
 signal[idx, :] = 1e-7 * np.sin(5 * 2 * np.pi * times)
 idx = label_names.index('rostralmiddlefrontal-lh')
 signal[idx, :] = 1e-7 * np.sin(7 * 2 * np.pi * times)
@@ -115,28 +115,38 @@ stc_gen = simulate_stc(fwd['src'], labels, signal, times[0],
 # Use forward solution to generate sensor space data
 evoked_gen = simulate_evoked(fwd, stc_gen, evoked.info, cov, noise_snr,
                              tmin=0., tmax=1., random_state=seed)
-evoked_gen.info['bads'] = [b for b in inv_op['info']['bads']
-                           if b in evoked.info['ch_names']]
+#evoked_gen.info['bads'] = [b for b in inv_op['info']['bads']
+#                           if b in evoked.info['ch_names']]
 
 # Apply inverse to project sensor space signal back into source space
 stc_inv = apply_inverse(evoked_gen, inv_op, lambda2, method=method)
 
 ###############################################################################
 # Plot original signals
-brain_gen = stc_gen.copy().crop(0.05, None)
-brain_gen.plot(subjects_dir=subjects_dir, hemi='split', views=['lat', 'med'],
-               surface='inflated')
-brain_gen.scale_data_colormap(fmin=np.min(stc_gen.data),
-                              fmid=np.mean(stc_gen.data),
-                              fmax=np.max(stc_gen.data), transparent=False)
+lims=(np.min(stc_gen.data), np.mean(stc_gen.data), np.max(stc_gen.data))
+brain_gen = stc_gen.copy().crop(0.05, None).plot(subjects_dir=subjects_dir,
+                                                 hemi='split',
+                                                 views=['lat', 'med'],
+                                                 surface='inflated',
+                                                 clim=dict(kind='value',
+                                                           lims=lims),
+                                                 transparent=False)
+#brain_gen.scale_data_colormap(fmin=np.min(stc_gen.data),
+#                              fmid=np.mean(stc_gen.data),
+#                              fmax=np.max(stc_gen.data), transparent=False)
 
 # Plot point-spread corrupted signal
-brain_inv = stc_inv.copy().crop(0.05, None)
-brain_inv.plot(subjects_dir=subjects_dir, hemi='split', views=['lat', 'med'],
-               surface='inflated')
-brain_inv.scale_data_colormap(fmin=np.min(stc_inv.data),
-                              fmid=np.mean(stc_inv.data),
-                              fmax=np.max(stc_inv.data), transparent=False)
+lims=(np.min(stc_inv.data), np.mean(stc_inv.data), np.max(stc_inv.data))
+brain_inv = stc_inv.copy().crop(0.05, None).plot(subjects_dir=subjects_dir,
+                                                 hemi='split',
+                                                 views=['lat', 'med'],
+                                                 surface='inflated',
+                                                 clim=dict(kind='value',
+                                                           lims=lims),
+                                                 transparent=False)
+#brain_inv.scale_data_colormap(fmin=np.min(stc_inv.data),
+#                              fmid=np.mean(stc_inv.data),
+#                              fmax=np.max(stc_inv.data), transparent=False)
 
 ###############################################################################
 # Exercises
