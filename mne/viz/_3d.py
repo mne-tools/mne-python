@@ -602,7 +602,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           smoothing_steps=10, transparent=None, alpha=1.0,
                           time_viewer=False, config_opts=None,
                           subjects_dir=None, figure=None, views='lat',
-                          colorbar=True, clim='auto'):
+                          colorbar=True, clim='auto', cortex="classic",
+                          size=800, background="black", foreground="white"):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -642,8 +643,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     time_viewer : bool
         Display time viewer GUI.
     config_opts : dict
-        Keyword arguments for Brain initialization.
-        See pysurfer.viz.Brain.
+        Deprecated parameter.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
@@ -671,6 +671,18 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 will be mirrored directly across zero during colormap
                 construction to obtain negative control points.
 
+    cortex : str or tuple
+        specifies how binarized curvature values are rendered.
+        either the name of a preset PySurfer cortex colorscheme (one of
+        'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
+        name of mayavi colormap, or a tuple with values (colormap, min,
+        max, reverse) to fully specify the curvature colors.
+    size : float or pair of floats
+        the size of the window, in pixels. can be one number to specify
+        a square window, or the (width, height) of a rectangular window.
+    background, foreground : matplotlib colors
+        color of the background and foreground of the display window
+
 
     Returns
     -------
@@ -678,7 +690,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         A instance of surfer.viz.Brain from PySurfer.
     """
     from surfer import Brain, TimeViewer
-    config_opts = _handle_default('config_opts', config_opts)
 
     import mayavi
     from mayavi import mlab
@@ -733,13 +744,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         hemis = [hemi]
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
-    args = _get_args(Brain.__init__)
-    kwargs = dict(title=title, figure=figure, config_opts=config_opts,
-                  subjects_dir=subjects_dir)
-    if 'views' in args:
-        kwargs['views'] = views
     with warnings.catch_warnings(record=True):  # traits warnings
-        brain = Brain(subject, hemi, surface, **kwargs)
+        brain = Brain(subject, hemi, surface, True, title, cortex, size,
+                      background, foreground, figure, subjects_dir, views,
+                      config_opts=config_opts)
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         if hemi_idx == 0:

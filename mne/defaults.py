@@ -11,7 +11,6 @@ DEFAULTS = dict(
                emg='k', ref_meg='steelblue', misc='k', stim='k',
                resp='k', chpi='k', exci='k', ias='k', syst='k',
                seeg='k', dipole='k', gof='k', bio='k', ecog='k'),
-    config_opts=dict(),
     units=dict(eeg='uV', grad='fT/cm', mag='fT', eog='uV', misc='AU',
                seeg='uV', dipole='nAm', gof='GOF', emg='uV', ecg='uV',
                bio='uV', ecog='uV'),

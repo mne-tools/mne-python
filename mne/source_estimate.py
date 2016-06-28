@@ -1315,7 +1315,9 @@ class SourceEstimate(_BaseSourceEstimate):
              colormap='auto', time_label='time=%0.2f ms',
              smoothing_steps=10, transparent=None, alpha=1.0,
              time_viewer=False, config_opts=None, subjects_dir=None,
-             figure=None, views='lat', colorbar=True, clim='auto'):
+             figure=None, views='lat', colorbar=True, clim='auto',
+             cortex="classic", size=800, background="black",
+             foreground="white"):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1353,8 +1355,7 @@ class SourceEstimate(_BaseSourceEstimate):
         time_viewer : bool
             Display time viewer GUI.
         config_opts : dict
-            Keyword arguments for Brain initialization.
-            See pysurfer.viz.Brain.
+            Deprecated parameter.
         subjects_dir : str
             The path to the FreeSurfer subjects reconstructions.
             It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
@@ -1380,6 +1381,18 @@ class SourceEstimate(_BaseSourceEstimate):
                     will be mirrored directly across zero during colormap
                     construction to obtain negative control points.
 
+        cortex : str or tuple
+            specifies how binarized curvature values are rendered.
+            either the name of a preset PySurfer cortex colorscheme (one of
+            'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
+            name of mayavi colormap, or a tuple with values (colormap, min,
+            max, reverse) to fully specify the curvature colors.
+        size : float or pair of floats
+            the size of the window, in pixels. can be one number to specify
+            a square window, or the (width, height) of a rectangular window.
+        background, foreground : matplotlib colors
+            color of the background and foreground of the display window
+
 
         Returns
         -------
@@ -1395,7 +1408,9 @@ class SourceEstimate(_BaseSourceEstimate):
                                       config_opts=config_opts,
                                       subjects_dir=subjects_dir, figure=figure,
                                       views=views, colorbar=colorbar,
-                                      clim=clim)
+                                      clim=clim, cortex=cortex, size=size,
+                                      background=background,
+                                      foreground=foreground)
         return brain
 
     @verbose
@@ -1806,7 +1821,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                      colormap='auto', time_label='time=%02.f ms',
                      smoothing_steps=10,
                      transparent=None, alpha=1.0, time_viewer=False,
-                     config_opts={}, subjects_dir=None, figure=None,
+                     config_opts=None, subjects_dir=None, figure=None,
                      views='lat', colorbar=True, clim='auto'):
         """Plot surface source estimates with PySurfer
 
