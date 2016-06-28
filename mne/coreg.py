@@ -1082,12 +1082,12 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         ss['rr'] *= scale
 
         # distances and patch info
-        if nn_scale is None:
+        if nn_scale is None:  # i.e. uniform scaling
             if ss['dist'] is not None:
                 ss['dist'] *= scale
                 ss['nearest_dist'] *= scale
                 ss['dist_limit'] *= scale
-        else:
+        else:  # non-uniform scaling
             ss['nn'] *= nn_scale
             ss['nn'] /= np.sqrt(np.sum(ss['nn'] ** 2, 1))[:, np.newaxis]
             if ss['dist'] is not None:
