@@ -69,6 +69,8 @@ def test_io_set():
     for event in eeg.event:  # old version allows integer events
         event.type = 1
     assert_equal(_read_eeglab_events(eeg)[-1, -1], 1)
+    eeg.event = eeg.event[0]  # single event
+    assert_equal(_read_eeglab_events(eeg)[-1, -1], 1)
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
