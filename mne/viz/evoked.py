@@ -160,7 +160,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                  scalings, titles, axes, plot_type,
                  cmap=None, gfp=False, window_title=None,
                  spatial_colors=False, set_tight_layout=True,
-                 selectable=True):
+                 selectable=True, zorder='unsorted'):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
@@ -311,10 +311,26 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         for i in bad_ch_idx:
                             if i in idx:
                                 colors[idx.index(i)] = 'r'
-                    for ch_idx in range(len(D)):
+
+                    if zorder == 'std':
+                        # find the channels with the least activity
+                        # to map them in front of the more active ones
+                        z_ord = D.std(axis=1).argsort()
+                    elif zorder == 'unsorted':
+                        z_ord = list(range(D.shape[0]))
+                    elif not callable(zorder):
+                        error = ('`zorder` must be a function, "std" '
+                                 'or "unsorted", not {0}.')
+                        raise TypeError(error.format(type(zorder)))
+                    else:
+                        z_ord = zorder(D)
+
+                    # plot channels
+                    for ch_idx, z in enumerate(z_ord):
                         line_list.append(ax.plot(times, D[ch_idx], picker=3.,
-                                                 zorder=1,
+                                                 zorder=1 + z,
                                                  color=colors[ch_idx])[0])
+
                 if gfp:  # 'only' or boolean True
                     gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
                     this_gfp = np.sqrt((D * D).mean(axis=0))
@@ -407,7 +423,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
-                window_title=None, spatial_colors=False, selectable=True):
+                window_title=None, spatial_colors=False, zorder='unsorted',
+                selectable=True):
     """Plot evoked data using butteryfly plots
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -464,6 +481,20 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         coordinates into color values. Spatially similar channels will have
         similar colors. Bad channels will be dotted. If False, the good
         channels are plotted black and bad channels red. Defaults to False.
+    zorder : str | callable
+        Which channels to put in the front or back. Only matters if
+        `spatial_colors` is used.
+        If str, must be `std` or `unsorted` (defaults to `unsorted`). If
+        `std`, data with the lowest standard deviation (weakest effects) will
+        be put in front so that they are not obscured by those with stronger
+        effects. If `unsorted`, channels are z-sorted as in the evoked
+        instance.
+        If callable, must take one argument: a numpy array of the same
+        dimensionality as the evoked raw data; and return a list of
+        unique integers corresponding to the number of channels.
+
+        .. versionadded:: 0.13.0
+
     selectable : bool
         Whether to use interactive features. If True (default), it is possible
         to paint an area to draw topomaps. When False, the interactive features
@@ -482,7 +513,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly",
                         gfp=gfp, window_title=window_title,
-                        spatial_colors=spatial_colors, selectable=selectable)
+                        spatial_colors=spatial_colors, zorder=zorder,
+                        selectable=selectable)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
@@ -1001,9 +1033,9 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     ts_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot` to
         style the butterfly plot. `axes` and `show` are ignored.
-        If `spatial_colors` is not in this dict, `spatial_colors=True`
-        will be passed. Beyond that, if ``None``, no customizable arguments
-        will be passed. Defaults to ``None``.
+        If `spatial_colors` is not in this dict, `spatial_colors=True`,
+        and (if it is not in the dict) `zorder='std'` will be passed.
+        Defaults to ``None``.
     topomap_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
         to style the topomaps. `axes` and `show` are ignored. If `times`
@@ -1082,7 +1114,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     ts_args_def = dict(picks=None, unit=True, ylim=None, xlim='tight',
                        proj=False, hline=None, units=None, scalings=None,
                        titles=None, gfp=False, window_title=None,
-                       spatial_colors=True)
+                       spatial_colors=True, zorder='std')
     for key in ts_args_def:
         if key not in ts_args:
             ts_args_pass[key] = ts_args_def[key]
