@@ -704,23 +704,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         raise ValueError('hemi has to be either "lh", "rh", "split", '
                          'or "both"')
 
-    n_split = 2 if hemi == 'split' else 1
-    n_views = 1 if isinstance(views, string_types) else len(views)
-    if figure is not None:
-        # use figure with specified id or create new figure
-        if isinstance(figure, int):
-            figure = mlab.figure(figure, size=(600, 600))
-        # make sure it is of the correct type
-        if not isinstance(figure, list):
-            figure = [figure]
-        if not all(isinstance(f, mayavi.core.scene.Scene) for f in figure):
-            raise TypeError('figure must be a mayavi scene or list of scenes')
-        # make sure we have the right number of figures
-        n_fig = len(figure)
-        if not n_fig == n_split * n_views:
-            raise RuntimeError('`figure` must be a list with the same '
-                               'number of elements as PySurfer plots that '
-                               'will be created (%s)' % n_split * n_views)
+    # use figure with specified id
+    if isinstance(figure, int):
+        size_ = size if isinstance(size, (tuple, list)) else (size, size)
+        figure = mlab.figure(figure, size=size_)
 
     # convert control points to locations in colormap
     ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
