@@ -712,8 +712,9 @@ def requires_version(library, min_version):
                                  % (library, min_version))
 
 
-def requires_module(function, name, call):
+def requires_module(function, name, call=None):
     """Decorator to skip test if package is not available"""
+    call = ('import %s' % name) if call is None else call
     try:
         from nose.plugins.skip import SkipTest
     except ImportError:
@@ -796,10 +797,8 @@ requires_fs_or_nibabel = partial(requires_module, name='nibabel or Freesurfer',
 
 requires_tvtk = partial(requires_module, name='TVTK',
                         call='from tvtk.api import tvtk')
-requires_statsmodels = partial(requires_module, name='statsmodels',
-                               call='import statsmodels')
-requires_patsy = partial(requires_module, name='patsy',
-                         call='import patsy')
+requires_statsmodels = partial(requires_module, name='statsmodels')
+requires_patsy = partial(requires_module, name='patsy')
 requires_pysurfer = partial(requires_module, name='PySurfer',
                             call='from surfer import Brain')
 requires_PIL = partial(requires_module, name='PIL',
@@ -812,11 +811,10 @@ requires_ftp = partial(
     requires_module, name='ftp downloading capability',
     call='if int(os.environ.get("MNE_SKIP_FTP_TESTS", 0)):\n'
          '    raise ImportError')
-requires_nitime = partial(requires_module, name='nitime',
-                          call='import nitime')
-requires_traits = partial(requires_module, name='traits',
-                          call='import traits')
-requires_h5py = partial(requires_module, name='h5py', call='import h5py')
+requires_nitime = partial(requires_module, name='nitime')
+requires_traits = partial(requires_module, name='traits')
+requires_h5py = partial(requires_module, name='h5py')
+requires_numpydoc = partial(requires_module, name='numpydoc')
 
 
 def check_version(library, min_version):
