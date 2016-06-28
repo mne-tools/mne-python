@@ -38,8 +38,8 @@ except Exception:
         NoButtons = SceneEditor = trait_wraith
 
 
+from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import bem_fname, trans_fname
-from ..forward import prepare_bem_model
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
@@ -786,7 +786,8 @@ class CoregPanel(HasPrivateTraits):
                         bem_file = bem_fname.format(subjects_dir=subjects_dir,
                                                     subject=subject_to,
                                                     name=bem_name)
-                        prepare_bem_model(bem_file)
+                        bemsol = make_bem_solution(bem_file)
+                        write_bem_solution(bem_file[:-4] + '-sol.fif', bemsol)
                     except:
                         logger.error('Error computing %s solution:\n' %
                                      bem_name + traceback.format_exc())
