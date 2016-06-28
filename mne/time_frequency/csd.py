@@ -195,33 +195,8 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         epoch = epoch[picks_meeg][:, tslice]
 
         # Calculating Fourier transform using multitaper module
-        x_mt, _ = _mt_spectra(epoch, window_fun, sfreq, n_fft)
-
-        if mt_adaptive:
-            # Compute adaptive weights
-            _, weights = _psd_from_mt_adaptive(x_mt, eigvals, freq_mask,
-                                               return_weights=True)
-            # Tiling weights so that we can easily use _csd_from_mt()
-            weights = weights[:, np.newaxis, :, :]
-            weights = np.tile(weights, [1, x_mt.shape[0], 1, 1])
-        else:
-            # Do not use adaptive weights
-            if mode == 'multitaper':
-                weights = np.sqrt(eigvals)[np.newaxis, np.newaxis, :,
-                                           np.newaxis]
-            else:
-                # Hack so we can sum over axis=-2
-                weights = np.array([1.])[:, None, None, None]
-
-        x_mt = x_mt[:, :, freq_mask_mt]
-
-        # Calculating CSD
-        # Tiling x_mt so that we can easily use _csd_from_mt()
-        x_mt = x_mt[:, np.newaxis, :, :]
-        x_mt = np.tile(x_mt, [1, x_mt.shape[0], 1, 1])
-        y_mt = np.transpose(x_mt, axes=[1, 0, 2, 3])
-        weights_y = np.transpose(weights, axes=[1, 0, 2, 3])
-        csds_epoch = _csd_from_mt(x_mt, y_mt, weights, weights_y)
+        csds_epoch = _csd_array(epoch, sfreq, window_fun, eigvals, freq_mask,
+                                freq_mask_mt, n_fft, mode, mt_adaptive)
 
         # Scaling by number of samples and compensating for loss of power due
         # to windowing (see section 11.5.2 in Bendat & Piersol).
@@ -255,6 +230,7 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
                                              frequencies=frequencies[i],
                                              n_fft=n_fft))
         return csds
+
 
 @verbose
 def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
@@ -359,49 +335,23 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
     # Picking frequencies of interest
     freq_mask_mt = freq_mask[orig_frequencies >= 0]
 
-    # Compute CSD for each epoch
+    # Compute CSD for each trial
     for ti in xrange(n_trials):
         xi = X[ti]
 
-        # Calculating Fourier transform using multitaper module
-        x_mt, _ = _mt_spectra(xi, window_fun, sfreq, n_fft)
+        csds_trial = _csd_array(xi, sfreq, window_fun, eigvals, freq_mask,
+                                freq_mask_mt, n_fft, mode, mt_adaptive)
 
-        if mt_adaptive:
-            # Compute adaptive weights
-            _, weights = _psd_from_mt_adaptive(x_mt, eigvals, freq_mask,
-                                               return_weights=True)
-            # Tiling weights so that we can easily use _csd_from_mt()
-            weights = weights[:, np.newaxis, :, :]
-            weights = np.tile(weights, [1, x_mt.shape[0], 1, 1])
-        else:
-            # Do not use adaptive weights
-            if mode == 'multitaper':
-                weights = np.sqrt(eigvals)[np.newaxis, np.newaxis, :,
-                                           np.newaxis]
-            else:
-                # Hack so we can sum over axis=-2
-                weights = np.array([1.])[:, None, None, None]
-
-        x_mt = x_mt[:, :, freq_mask_mt]
-
-        # Calculating CSD
-        # Tiling x_mt so that we can easily use _csd_from_mt()
-        x_mt = x_mt[:, np.newaxis, :, :]
-        x_mt = np.tile(x_mt, [1, x_mt.shape[0], 1, 1])
-        y_mt = np.transpose(x_mt, axes=[1, 0, 2, 3])
-        weights_y = np.transpose(weights, axes=[1, 0, 2, 3])
-        csds_epoch = _csd_from_mt(x_mt, y_mt, weights, weights_y)
-
-        # Scaling by number of samples and compensating for loss of power due
+        # Scaling by number of trials and compensating for loss of power due
         # to windowing (see section 11.5.2 in Bendat & Piersol).
         if mode == 'fourier':
-            csds_epoch /= n_times
-            csds_epoch *= 8 / 3.
+            csds_trial /= n_times
+            csds_trial *= 8 / 3.
 
         # Scaling by sampling frequency for compatibility with Matlab
-        csds_epoch /= sfreq
+        csds_trial /= sfreq
 
-        csds_mean += csds_epoch
+        csds_mean += csds_trial
 
     csds_mean /= n_trials
 
@@ -414,3 +364,40 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
 
     return csds_mean, frequencies
 
+
+def _csd_array(x, sfreq, window_fun, eigvals, freq_mask, freq_mask_mt, n_fft,
+               mode, mt_adaptive):
+    """ Calculating Fourier transform using multitaper module.
+
+        The arguments correspond to the values in `compute_csd_epochs` and
+        `csd_array`.
+    """
+    x_mt, _ = _mt_spectra(x, window_fun, sfreq, n_fft)
+
+    if mt_adaptive:
+        # Compute adaptive weights
+        _, weights = _psd_from_mt_adaptive(x_mt, eigvals, freq_mask,
+                                           return_weights=True)
+        # Tiling weights so that we can easily use _csd_from_mt()
+        weights = weights[:, np.newaxis, :, :]
+        weights = np.tile(weights, [1, x_mt.shape[0], 1, 1])
+    else:
+        # Do not use adaptive weights
+        if mode == 'multitaper':
+            weights = np.sqrt(eigvals)[np.newaxis, np.newaxis, :,
+                                       np.newaxis]
+        else:
+            # Hack so we can sum over axis=-2
+            weights = np.array([1.])[:, None, None, None]
+
+    x_mt = x_mt[:, :, freq_mask_mt]
+
+    # Calculating CSD
+    # Tiling x_mt so that we can easily use _csd_from_mt()
+    x_mt = x_mt[:, np.newaxis, :, :]
+    x_mt = np.tile(x_mt, [1, x_mt.shape[0], 1, 1])
+    y_mt = np.transpose(x_mt, axes=[1, 0, 2, 3])
+    weights_y = np.transpose(weights, axes=[1, 0, 2, 3])
+    csds = _csd_from_mt(x_mt, y_mt, weights, weights_y)
+
+    return csds
