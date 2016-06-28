@@ -1,29 +1,17 @@
-# CI on Windows via appveyor
-# This file was based on Olivier Grisel's python-appveyor-demo
-
 environment:
-
+  global:
+      PYTHON: "C:\\conda"
+      MINICONDA_VERSION: "latest"
+      CONDA_DEPENDENCIES: "setuptools numpy scipy matplotlib scikit-learn nose mayavi pandas h5py PIL patsy pyside"
   matrix:
-    - PYTHON: "C:\\Python27-conda64"
-      PYTHON_VERSION: "2.7"
-      PYTHON_ARCH: "64"
+      - PYTHON_VERSION: "2.7"
+        PYTHON_ARCH: "64"
 
 install:
-  # Install miniconda Python
-  - "powershell ./make/install_python.ps1"
-
-  # Prepend newly installed Python to the PATH of this build (this cannot be
-  # done from inside the powershell script as it would require to restart
-  # the parent CMD process).
+  - "git clone git://github.com/astropy/ci-helpers.git"
+  - "powershell ci-helpers/appveyor/install-miniconda.ps1"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-
-  # Check that we have the expected version and architecture for Python
-  - "python --version"
-  - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
-
-  # Install the dependencies of the project (skip nibabel for speed)
-  - "conda create -n testenv --yes --quiet setuptools numpy scipy matplotlib scikit-learn nose mayavi pandas h5py PIL patsy pyside"
-  - "activate testenv"
+  - "activate test"
   - "pip install nose-timer nibabel nitime"
   - "python setup.py develop"
   - "SET MNE_SKIP_NETWORK_TESTS=1"
