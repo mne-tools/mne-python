@@ -530,7 +530,7 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
         latencies = [event.latency for event in eeg.event]
     else:
         # only one event - TypeError: 'mat_struct' object is not iterable
-        types = [eeg.event.type]
+        types = [str(eeg.event.type)]
         latencies = [eeg.event.latency]
     if "boundary" in types and "boundary" not in event_id:
         warn("The data contains 'boundary' events, indicating data "
