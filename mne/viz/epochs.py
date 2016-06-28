@@ -118,7 +118,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     data = epochs.get_data()[:, picks, :]
     scale_vmin = True if vmin is None else False
     scale_vmax = True if vmax is None else False
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     if overlay_times is not None and len(overlay_times) != len(data):
         raise ValueError('size of overlay_times parameter (%s) do not '
@@ -146,7 +145,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         if ch_type not in scalings:
             # We know it's not in either scalings or units since keys match
             raise KeyError('%s type not in scalings and units' % ch_type)
-        this_data *= scalings[ch_type]
 
         this_order = order
         if callable(order):
@@ -170,6 +168,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         if sigma > 0.:
             this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma,
                                                   axis=0)
+        vmin, vmax = _setup_vmin_vmax(this_data, vmin, vmax)
+        this_data *= scalings[ch_type]
+
         plt.figure(this_fig.number)
         if axes is None:
             ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
