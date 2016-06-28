@@ -177,14 +177,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             if colorbar:
                 ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
         if scale_vmin:
-            vmin *= scalings[ch_type]
+            this_vmin = vmin * scalings[ch_type]
         if scale_vmax:
-            vmax *= scalings[ch_type]
+            this_vmax = vmax * scalings[ch_type]
         im = ax1.imshow(this_data,
                         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
                                 0, len(data)],
                         aspect='auto', origin='lower', interpolation='nearest',
-                        vmin=vmin, vmax=vmax, cmap=cmap)
+                        vmin=this_vmin, vmax=this_vmax, cmap=cmap)
         if this_overlay_times is not None:
             plt.plot(1e3 * this_overlay_times, 0.5 + np.arange(len(this_data)),
                      'k', linewidth=2)
