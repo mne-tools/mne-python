@@ -40,12 +40,12 @@ dt = times[1] - times[0]
 data_path = sample.data_path()
 subjects_dir = op.join(data_path, 'subjects/')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis-meg-oct-6-fwd.fif')
+                    'sample_audvis-meg-oct-6-fwd.fif')
 fname_inv = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
+                    'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
 
 fname_evoked = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis-ave.fif')
+                       'sample_audvis-ave.fif')
 
 subject_dir = op.join(data_path, 'subjects/')
 
@@ -60,7 +60,7 @@ inv_op = read_inverse_operator(fname_inv)
 evoked_ff = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 
 raw = mne.io.RawFIF(op.join(data_path, 'MEG', 'sample',
-                             'sample_audvis_raw.fif'))
+                            'sample_audvis_raw.fif'))
 events = mne.find_events(raw)
 event_id = {'Auditory/Left': 1, 'Auditory/Right': 2}
 epochs = mne.Epochs(raw, events, event_id, tmin=evoked_ff.times[0],
