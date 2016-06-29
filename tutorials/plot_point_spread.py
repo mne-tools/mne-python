@@ -22,7 +22,7 @@ from mne.simulation import simulate_stc, simulate_evoked
 ###############################################################################
 # Parameters
 
-seed = 8675309
+seed = 42
 
 # regularization parameter for inverse method
 method = 'sLORETA'
@@ -31,7 +31,7 @@ lambda2 = 1.0 / snr ** 2
 
 # signal simulation parameters
 # do not add extra noise to our know signals
-noise_snr = np.inf
+evoked_snr = np.inf
 T = 100
 times = np.linspace(0, 1, T)
 dt = times[1] - times[0]
@@ -55,16 +55,12 @@ fwd = mne.read_forward_solution(fname_fwd, force_fixed=True,
                                 surf_ori=True)
 inv_op = read_inverse_operator(fname_inv)
 
-# We need the epochs data to compute the covariance, so we manually compute the
-# evoked data by averaging the epochs.
-evoked_ff = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
-
 raw = mne.io.RawFIF(op.join(data_path, 'MEG', 'sample',
                             'sample_audvis_raw.fif'))
 events = mne.find_events(raw)
 event_id = {'Auditory/Left': 1, 'Auditory/Right': 2}
-epochs = mne.Epochs(raw, events, event_id, tmin=evoked_ff.times[0],
-                    tmax=evoked_ff.times[-1], baseline=(None, 0),
+epochs = mne.Epochs(raw, events, event_id,
+                    baseline=(None, 0),
                     preload=True)
 evoked = epochs.average()
 
@@ -99,7 +95,7 @@ for i, label in enumerate(labels):
                                    subjects_dir=subject_dir,
                                    restrict_vertices=restrict_verts,
                                    surf='white')
-    # Get center of vertex index in Label's vertix list
+    # Get center of vertex index in Label's vertex list
     cent_idx = np.where(label.vertices == com)[0][0]
 
     # Mask out all vertices except the center.
@@ -109,44 +105,35 @@ for i, label in enumerate(labels):
 ###############################################################################
 # Create SourceEstimate object with known signal at center vertices of two
 # labels.
-stc_gen = simulate_stc(fwd['src'], labels, signal, times[0],
-                       dt, value_fun=lambda x: x)
+stc_gen = simulate_stc(fwd['src'], labels, signal, times[0], dt,
+                       value_fun=lambda x: x)
 
 # Use forward solution to generate sensor space data
-evoked_gen = simulate_evoked(fwd, stc_gen, evoked.info, cov, noise_snr,
+evoked_gen = simulate_evoked(fwd, stc_gen, evoked.info, cov, evoked_snr,
                              tmin=0., tmax=1., random_state=seed)
-#evoked_gen.info['bads'] = [b for b in inv_op['info']['bads']
-#                           if b in evoked.info['ch_names']]
 
 # Apply inverse to project sensor space signal back into source space
 stc_inv = apply_inverse(evoked_gen, inv_op, lambda2, method=method)
 
 ###############################################################################
 # Plot original signals
-lims=(np.min(stc_gen.data), np.mean(stc_gen.data), np.max(stc_gen.data))
+lims = (0., np.mean(stc_gen.data[stc_gen.data > 0]), np.max(stc_gen.data))
+tlabel = 'Initial point-sources'
 brain_gen = stc_gen.copy().crop(0.05, None).plot(subjects_dir=subjects_dir,
-                                                 hemi='split',
-                                                 views=['lat', 'med'],
+                                                 hemi='lh',
                                                  surface='inflated',
                                                  clim=dict(kind='value',
-                                                           lims=lims),
-                                                 transparent=False)
-#brain_gen.scale_data_colormap(fmin=np.min(stc_gen.data),
-#                              fmid=np.mean(stc_gen.data),
-#                              fmax=np.max(stc_gen.data), transparent=False)
+                                                           pos_lims=lims),
+                                                 time_label=tlabel,
+                                                 figure=1)
 
-# Plot point-spread corrupted signal
-lims=(np.min(stc_inv.data), np.mean(stc_inv.data), np.max(stc_inv.data))
+# Plot point-spread of corrupted signal
+tlabel = 'Corrupted with point-spread'
 brain_inv = stc_inv.copy().crop(0.05, None).plot(subjects_dir=subjects_dir,
-                                                 hemi='split',
-                                                 views=['lat', 'med'],
+                                                 hemi='lh',
                                                  surface='inflated',
-                                                 clim=dict(kind='value',
-                                                           lims=lims),
-                                                 transparent=False)
-#brain_inv.scale_data_colormap(fmin=np.min(stc_inv.data),
-#                              fmid=np.mean(stc_inv.data),
-#                              fmax=np.max(stc_inv.data), transparent=False)
+                                                 time_label=tlabel,
+                                                 figure=2)
 
 ###############################################################################
 # Exercises
