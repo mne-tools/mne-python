@@ -10,9 +10,11 @@ import inspect
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_equal, assert_raises, assert_true
+from scipy import linalg
 import scipy.io
 
 from mne import pick_types, Epochs, find_events, read_events
+from mne.transforms import apply_trans
 from mne.tests.common import assert_dig_allclose
 from mne.utils import run_tests_if_main
 from mne.io import Raw, read_raw_kit, read_epochs_kit
@@ -164,24 +166,23 @@ def test_ch_loc():
 def test_hsp_elp():
     """Test KIT usage of *.elp and *.hsp files against *.txt files
     """
-    raw = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp_txt_path)
-    raw_leg = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
+    raw_txt = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp_txt_path)
+    raw_elp = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
 
-    trans = raw.info['dev_head_t']['trans']
-    trans_leg = raw_leg.info['dev_head_t']['trans']
-    assert_array_almost_equal(trans, trans_leg, decimal=5)
+    # head points
+    pts_txt = np.array([d['r'] for d in raw_txt.info['dig']])
+    pts_elp = np.array([d['r'] for d in raw_elp.info['dig']])
+    assert_array_almost_equal(pts_elp, pts_txt, decimal=5)
 
-    raw_pts = np.array([point['r'] for point in raw.info['dig']])
-    raw_leg_pts = np.array([point['r'] for point in raw_leg.info['dig']])
+    # transforms
+    trans_txt = raw_txt.info['dev_head_t']['trans']
+    trans_elp = raw_elp.info['dev_head_t']['trans']
+    assert_array_almost_equal(trans_elp, trans_txt, decimal=5)
 
-    # test elp
-    err = 'There is a problem with elp points for txt and legacy.'
-    assert_array_almost_equal(raw_pts[:8], raw_leg_pts[:8], decimal=5,
-                              err_msg=err)
+    # head points in device space
+    pts_txt_in_dev = apply_trans(linalg.inv(trans_txt), pts_txt)
+    pts_elp_in_dev = apply_trans(linalg.inv(trans_elp), pts_elp)
+    assert_array_almost_equal(pts_elp_in_dev, pts_txt_in_dev, decimal=5)
 
-    # test hsp
-    err = 'There is a problem with hsp points for txt and legacy.'
-    assert_array_almost_equal(raw_pts[8:], raw_leg_pts[8:], decimal=5,
-                              err_msg=err)
 
 run_tests_if_main()
