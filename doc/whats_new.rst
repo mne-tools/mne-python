@@ -27,6 +27,8 @@ Changelog
 
     - Add second-order sections (instead of ``(b, a)`` form) IIR filtering for reduced numerical error by `Eric Larson`_
 
+    - Add interactive colormap option to image plotting functions by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
@@ -45,6 +47,8 @@ BUG
     - Fixed a bug where ``merge_grads=True`` causes :func:`mne.viz.plot_evoked_topo` to fail when plotting a list of evokeds by `Jaakko Leppakangas`_
 
     - Fixed a bug when setting multiple bipolar references with :func:`mne.io.set_bipolar_reference` by `Marijn van Vliet`_.
+
+    - Fix to image scaling in :func:`mne.viz.plot_epochs_image` when plotting more than one channel by `Jaakko Leppakangas`_
 
 API
 ~~~

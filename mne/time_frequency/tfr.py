@@ -20,6 +20,7 @@ from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import logger, verbose, _time_mask, warn, check_fname
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
+from ..channels.layout import _pair_grad_sensors
 from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
 from .multitaper import dpss_windows
@@ -672,8 +673,20 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         vmax : float | None
             The maxinum value an the color scale. If vmax is None, the data
             maximum value is used.
-        cmap : matplotlib colormap | str
-            The colormap to use. Defaults to 'RdBu_r'.
+        cmap : matplotlib colormap | 'interactive' | (colormap, bool)
+            The colormap to use. If tuple, the first value indicates the
+            colormap to use and the second value is a boolean defining
+            interactivity. In interactive mode the colors are adjustable by
+            clicking and dragging the colorbar with left and right mouse
+            button. Left mouse button moves the scale up and down and right
+            mouse button adjusts the range. Hitting space bar resets the range.
+            Up and down arrows can be used to change the colormap. If
+            'interactive', translates to ('RdBu_r', True). Defaults to
+            'RdBu_r'.
+
+            .. warning:: Interactive mode works smoothly only for a small
+                amount of images.
+
         dB : bool
             If True, 20*log10 is applied to the data to get dB.
         colorbar : bool
@@ -721,6 +734,10 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                 raise RuntimeError('There must be an axes for each picked '
                                    'channel.')
 
+        if cmap == 'interactive':
+            cmap = ('RdBu_r', True)
+        elif not isinstance(cmap, tuple):
+            cmap = (cmap, True)
         for idx in range(len(data)):
             if axes is None:
                 fig = plt.figure()
@@ -736,7 +753,9 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                         colorbar=colorbar, picker=False, cmap=cmap)
             if title:
                 fig.suptitle(title)
-            colorbar = False  # only one colorbar for multiple axes
+            # Only draw 1 cbar. For interactive mode we pass the ref to cbar.
+            colorbar = ax.CB if cmap[1] else False
+
         plt_show(show)
         return fig
 
@@ -766,13 +785,14 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         if 'mag' in self:
             types.append('mag')
         if 'grad' in self:
-            types.append('grad')
+            if len(_pair_grad_sensors(self.info, topomap_coords=False,
+                                      raise_error=False)) >= 2:
+                types.append('grad')
+            elif len(types) == 0:
+                return  # Don't draw a figure for nothing.
         fig = figure_nobar()
-        fig.suptitle('{:.2f} s - {:.2f} s, {:.2f} Hz - {:.2f} Hz'.format(tmin,
-                                                                         tmax,
-                                                                         fmin,
-                                                                         fmax),
-                     y=0.04)
+        fig.suptitle('{0:.2f} s - {1:.2f} s, {2:.2f} Hz - {3:.2f} Hz'.format(
+            tmin, tmax, fmin, fmax), y=0.04)
         for idx, ch_type in enumerate(types):
             ax = plt.subplot(1, len(types), idx + 1)
             plot_tfr_topomap(self, ch_type=ch_type, tmin=tmin, tmax=tmax,
@@ -872,8 +892,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         onselect_callback = partial(self._onselect, baseline=baseline,
                                     mode=mode, layout=layout)
 
-        click_fun = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap,
-                            onselect=onselect_callback)
+        click_fun = partial(_imshow_tfr, tfr=data, freq=freqs,
+                            cmap=(cmap, True), onselect=onselect_callback)
         imshow = partial(_imshow_tfr_unified, tfr=data, freq=freqs, cmap=cmap,
                          onselect=onselect_callback)
 
@@ -1007,10 +1027,16 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             The value specifying the upper bound of the color range. If None,
             the maximum value is used. If callable, the output equals
             vmax(data). Defaults to None.
-        cmap : matplotlib colormap | None
-            Colormap. If None and the plotted data is all positive, defaults to
-            'Reds'. If None and data contains also negative values, defaults to
-            'RdBu_r'. Defaults to None.
+        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+            Colormap to use. If tuple, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging
+            the colorbar with left and right mouse button. Left mouse button
+            moves the scale up and down and right mouse button adjusts the
+            range. Hitting space bar resets the range. Up and down arrows can
+            be used to change the colormap. If None (default), 'Reds' is used
+            for all positive data, otherwise defaults to 'RdBu_r'. If
+            'interactive', translates to (None, True).
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True, a circle
