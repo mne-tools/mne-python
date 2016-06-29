@@ -37,6 +37,7 @@ def _get_events():
     return read_events(event_name)
 
 
+@requires_version('matplotlib', '1.2')
 def test_plot_raw():
     """Test plotting of raw data."""
     import matplotlib.pyplot as plt
@@ -156,6 +157,7 @@ def test_plot_raw_psd():
     assert_raises(ValueError, raw.plot_psd)
 
 
+@requires_version('matplotlib', '1.2')
 def test_plot_sensors():
     """Test plotting of sensor array."""
     import matplotlib.pyplot as plt

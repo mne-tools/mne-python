@@ -17,6 +17,7 @@ import webbrowser
 import tempfile
 import numpy as np
 from copy import deepcopy
+from distutils.version import LooseVersion
 
 from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
@@ -1476,6 +1477,10 @@ class SelectFromCollection(object):
     """
 
     def __init__(self, ax, collection, ch_names, alpha_other=0.3):
+        import matplotlib as mpl
+        if LooseVersion(mpl.__version__) < LooseVersion('1.2.1'):
+            raise ImportError('Interactive selection not possible for mpl '
+                              'versions < 1.2.1. Upgrade matplotlib.')
         from matplotlib.widgets import LassoSelector
         self.canvas = ax.figure.canvas
         self.collection = collection

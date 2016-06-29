@@ -912,8 +912,8 @@ def _region_picked(event, params):
     types = list()
     for this_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog'):
         if this_type in params['types']:
-            types += np.where(np.array(params['types']) == this_type)[0]
-            #break
+            types = np.concatenate(
+                [types, np.where(np.array(params['types']) == this_type)[0]])
     labels = [l._text for l in params['fig_selection'].radio.labels]
     for idx, label in enumerate(labels):
         if types[ind] in params['selections'][label]:
