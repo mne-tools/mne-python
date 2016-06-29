@@ -34,7 +34,7 @@ from sklearn.preprocessing import MinMaxScaler
 from mne import io, pick_types, read_events, Epochs
 from mne.datasets import sample
 from mne.decoding import EpochsVectorizer
-from mne.decoding.xdawn import XdawnTransformer
+from mne.decoding import XdawnTransformer
 from mne.viz import tight_layout
 
 

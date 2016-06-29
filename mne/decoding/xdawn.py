@@ -65,16 +65,12 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
     2011 19th European (pp. 1382-1386). IEEE.
     """
 
-    def __init__(self, n_components=2, n_chan=None, signal_cov=None,
-                 reg=None):
+    def __init__(self, n_components=2, signal_cov=None, reg=None):
         """init xdawn."""
-        if n_chan is None:
-            raise ValueError("n_chan cannot be none. Please provide the "
-                             "number of channels")
-
         # correct_overlap is not yet supported
+        # This attribute is introduced to make it compatible with parent
+        # class
         self.correct_overlap = False
-        self.n_chan = n_chan
         super(XdawnTransformer, self).__init__(n_components, signal_cov, reg)
 
     def fit(self, X, y):
@@ -82,7 +78,7 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
 
         Parameters
         ----------
-        X : ndarray, shape(n_channels, n_times * n_freq)
+        X : ndarray, shape(n_channels, n_times, n_freq)
             Data of epochs.
         y : ndarray shape(n_samples,)
             Target values.
@@ -93,25 +89,24 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
             The XdawnTransformer instance.
         """
 
-        if X.ndim != 2 or not isinstance(X, np.ndarray):
-            raise ValueError("X should be 2 dimensional ndarray")
+        if X.ndim != 3 or not isinstance(X, np.ndarray):
+            raise ValueError("X should be 3 dimensional ndarray")
         if not isinstance(y, np.ndarray):
             raise ValueError("Labels must be numpy array")
 
+        self._n_chan = len(X[1])
         event_id = dict()
         for idx in y:
             event_id['cond' + str(idx)] = idx
 
-        epochs_data = X.reshape(X.shape[0], self.n_chan, X.shape[1] //
-                                self.n_chan)
         # Extract signal covariance
-        self._get_signal_cov(epochs_data)
+        self._get_signal_cov(X)
 
         # estimates evoked covariance
-        self._fit_xdawn(epochs_data, y, event_id)
+        self._fit_xdawn(X, y, event_id)
         self.event_id = event_id
-        self.epochs_data = epochs_data
-        self.exclude = list(range(self.n_components, self.n_chan))
+        self.epochs_data = X
+        self.exclude = list(range(self.n_components, self._n_chan))
         return self
 
     def transform(self, X):
@@ -119,39 +114,34 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
 
         Parameters
         ----------
-        X : ndarray, shape(n_channels, n_times * n_freq)
+        X : ndarray, shape(n_channels, n_times, n_freq)
             data of epochs.
 
         Returns
         -------
-        X : ndarray, shape (n_epochs, n_components * event_types * n_times)
+        X : ndarray, shape (n_epochs, n_components * event_types, n_times)
             Spatially filtered signals.
         """
-        if isinstance(X, np.ndarray):
-            epochs_data = X
-            epochs_data = X.reshape(X.shape[0], self.n_chan, X.shape[1] //
-                                    self.n_chan)
-
-        else:
+        if not isinstance(X, np.ndarray):
             raise ValueError('Data input must be of type numpy array')
 
         # create full matrix of spatial filter
-        result = self._transform_xdawn(epochs_data)
-        return result.reshape(-1, np.prod(result.shape[1:]))
+        result = self._transform_xdawn(X)
+        return result
 
     def fit_transform(self, X, y):
         """First fit the data, then transform
 
         Parameters
         ----------
-        X : ndarray, shape(n_channels, n_times * n_freq)
+        X : ndarray, shape(n_channels, n_times, n_freq)
             data of epochs.
         y : ndarray, shape(n_samples,)
             labels of data.
 
         Returns
         -------
-        X : ndarray, shape(n_epochs, n_components * event_types * n_times)
+        X : ndarray, shape(n_epochs, n_components * event_types, n_times)
             spatially filtered signals.
         """
         self.fit(X, y)
@@ -160,14 +150,14 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
     def inverse_transform(self, X):
         """Remove selected components from the signal.
 
-        Given the unmixing matrix, transform data,
-        zero out components, and inverse transform the data.
-        This procedure will reconstruct M/EEG signals from which
-        the dynamics described by the excluded components is subtracted.
+        Given the unmixing matrix, transform data, zero out components,
+        and inverse transform the data. This procedure will reconstruct
+        M/EEG signals from which the dynamics described by the excluded
+        components is subtracted.
 
         Parameters
         ----------
-        X : np.ndarray, shape(n_epochs, n_components * event_types * n_times)
+        X : np.ndarray, shape(n_epochs, n_components * event_types, n_times)
             The signal data to undergo inverse transform.
 
         Returns
@@ -181,15 +171,14 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
             raise ValueError("Given data should be numpy array, got "
                              "%s instead" % type(X))
 
-        data = np.hstack(X.reshape(X.shape[0], self.n_chan, X.shape[1] //
-                                   self.n_chan))
+        data = np.hstack(X)
         data_dict = dict()
         event_id = self.event_id
 
         for eid in event_id:
 
             data_r = self._pick_sources(data, None, None, eid)
-            data_r = np.array(np.split(data_r, self.n_chan, 1))
+            data_r = np.array(np.split(data_r, self._n_chan , 1))
             data_dict[eid] = data_r
 
         return data_dict

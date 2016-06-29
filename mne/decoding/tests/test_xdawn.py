@@ -35,47 +35,40 @@ def test_xdawntransformer_fit():
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=True, baseline=None, verbose=False)
-    e = EpochsVectorizer()
-    X = e.fit_transform(epochs)
+    X = epochs._data
     y = epochs.events[:, -1]
     print(y)
     # =========== Basic Fit test =================
     # test base xdawn
-    xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
-                          signal_cov=None, reg=None)
+    xd = XdawnTransformer( n_components=2, signal_cov=None, reg=None)
     xd.fit(X, y)
 
     # ========== with signal cov provided ====================
     # provide covariance object
     signal_cov = compute_raw_covariance(raw, picks=picks)
-    xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
-                          signal_cov=signal_cov, reg=None)
+    xd = XdawnTransformer(n_components=2, signal_cov=signal_cov, reg=None)
     xd.fit(X, y)
     # provide ndarray
     signal_cov = np.eye(len(picks))
-    xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
-                          signal_cov=signal_cov, reg=None)
+    xd = XdawnTransformer(n_components=2, signal_cov=signal_cov, reg=None)
     xd.fit(X, y)
     # provide ndarray of bad shape
     signal_cov = np.eye(len(picks) - 1)
-    xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
-                          signal_cov=signal_cov, reg=None)
+    xd = XdawnTransformer(n_components=2, signal_cov=signal_cov, reg=None)
     assert_raises(ValueError, xd.fit, X, y)
     # provide another type
     signal_cov = 42
-    xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
-                          signal_cov=signal_cov, reg=None)
+    xd = XdawnTransformer(n_components=2, signal_cov=signal_cov, reg=None)
     assert_raises(ValueError, xd.fit, X, y)
     # fit with y as None results in error
-    xd = XdawnTransformer(n_chan=epochs.info['nchan'], n_components=2,
-                          signal_cov=None, reg=None)
+    xd = XdawnTransformer(n_components=2, signal_cov=None, reg=None)
     assert_raises(ValueError, xd.fit, X, None)
 
     # compare xdawn and xdawntransforer
     xd = Xdawn()
     xd.fit(epochs)
 
-    xdt = XdawnTransformer(n_chan=epochs.info['nchan'])
+    xdt = XdawnTransformer()
     xdt.fit(X, y)
     assert_array_equal(xdt.filters_['cond2'], xd.filters_['cond2'])
 
@@ -87,12 +80,10 @@ def test_xdawn_transform_and_inverse_transform():
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=True, baseline=None, verbose=False)
-    e = EpochsVectorizer()
-    X = e.fit_transform(epochs)
+    X = epochs._data
     y = epochs.events[:, -1]
     # Fit Xdawn
-    xd = XdawnTransformer(n_chan=epochs.info['nchan'],
-                          n_components=2)
+    xd = XdawnTransformer(n_components=2)
     xd.fit(X, y)
 
     # transform
