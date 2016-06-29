@@ -1,4 +1,9 @@
 """A collection of classes for transforming, preprocessing, and fitting."""
+# Authors: Chris Holdgraf <choldgraf@gmail.com>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.de>
+#          Jean-Remi King <jeanremi.king@gmail.com>
+#
+# License: BSD (3-clause)
 import numpy as np
 from scipy import sparse
 from ..utils import warn, _reject_data_segments
@@ -144,12 +149,26 @@ class EventsBinarizer(object):
 class DataSubsetter(object):
     """Use for returning a subset of time.
 
+    Useful for doing cross-validation when using a pipeline that requires
+    dependencies between neighboring samples in order to extract features.
+
     Parameters
     ----------
     ixs : array, shape (n_ixs,)
         The indices to select from the data."""
-    def __init__(self, ixs):
-        self.ixs = np.asarray(ixs).astype(int)
+    def __init__(self, ixs=None, decimate=None):
+        if all(ii is not None for ii in [ixs, decimate]):
+            raise ValueError('Supply one of ixs or decimate, not both')
+        if ixs is not None:
+            self.ixs = np.asarray(ixs).astype(int)
+            self.decimate = None
+        elif decimate is not None:
+            if not isinstance(decimate, (int)):
+                raise ValueError('decimate must be an integer')
+            self.decimate = decimate
+            self.ixs = None
+        else:
+            raise ValueError('Must supply one of ixs or decimate')
 
     def fit(self, data, y=None):
         """Pull a subset of data points.
@@ -160,6 +179,9 @@ class DataSubsetter(object):
             The data to be subsetted. The data points specified by
             `self.ixs` will be taken from rows of this array.
         """
+        if self.decimate is not None:
+            ixs = np.arange(data.shape[0])
+            self.ixs = ixs[::self.decimate]
         if data.shape[0] < self.ixs.max():
             raise ValueError('ixs exceed data shape')
         self.data_ = np.asarray(data)
@@ -174,8 +196,8 @@ class DataSubsetter(object):
         """
         return self.data_[self.ixs, :]
 
-    def fit_transform(self, ixs, y=None):
-        self.fit(ixs)
+    def fit_transform(self, data, y=None):
+        self.fit(data)
         return self.transform()
 
 

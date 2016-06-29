@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Jean-Remi King <jeanremi.king@gmail.com>
+#          Chris Holdgraf <choldgraf@gmail.com>
 #
 # License: BSD (3-clause)
 import warnings
@@ -7,12 +8,10 @@ import os.path as op
 
 from nose.tools import assert_raises
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import (requires_sklearn, run_tests_if_main)
-from mne.encoding import (EncodingModel, DataDelayer, EventRelatedRegressor,
-                          EventsBinarizer, clean_inputs, DataSubsetter)
 
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -40,6 +39,7 @@ with warnings.catch_warnings(record=True):
 
 @requires_sklearn
 def test_rerp():
+    from mne.encoding import EventRelatedRegressor, clean_inputs
     rerp = EventRelatedRegressor(raw, events, est='cholesky',
                                  event_id=event_id, tmin=tmin, tmax=tmax,
                                  preproc_func_xy=clean_inputs, picks=picks)
@@ -65,6 +65,8 @@ def test_rerp():
 
 @requires_sklearn
 def test_custom():
+    from mne.encoding import DataDelayer
+    from mne.encoding.model import EncodingModel
     # Simple regression
     a = np.random.randn(10000)
     w = .2
@@ -89,10 +91,13 @@ def test_custom():
     assert_raises(ValueError, enc.fit, a_del[:-1], b_del)
     # Wrong est
     assert_raises(ValueError, EncodingModel, est='foo')
+    assert_raises(ValueError, EncodingModel, est=delayer)
 
 
 @requires_sklearn
 def test_feature():
+    from mne.encoding import (DataSubsetter, EventsBinarizer, DataDelayer,
+                              clean_inputs)
     sfreq = raw.info['sfreq']
     # Delayer must have sfreq if twin given
     assert_raises(ValueError, DataDelayer, time_window=[tmin, tmax],
@@ -104,6 +109,16 @@ def test_feature():
     # EventsBinarizer must have proper events shape
     binarizer = EventsBinarizer(raw.n_times)
     assert_raises(ValueError, binarizer.fit, events)
+    # Subsetter works for indexing
+    data = np.arange(100)[:, np.newaxis]
+    sub = DataSubsetter(np.arange(50))
+    data_subset = sub.fit_transform(data)
+    assert_array_equal(data_subset, data[:50])
+    # Subsetter works for decimation
+    sub = DataSubsetter(decimate=10)
+    data_subset = sub.fit_transform(data)
+    assert_array_equal(data_subset, data[::10])
+
     # Subsetter indices must not exceed length of data
     sub = DataSubsetter([1, 99999999])
     assert_raises(ValueError, sub.fit, raw._data.T)

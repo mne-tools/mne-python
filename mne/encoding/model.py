@@ -1,12 +1,15 @@
+"""Base and high-level classes for fitting encoding models."""
+# Authors: Chris Holdgraf <choldgraf@gmail.com>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.de>
+#          Jean-Remi King <jeanremi.king@gmail.com>
+#
+# License: BSD (3-clause)
+
 import numpy as np
-from sklearn.linear_model import Ridge
-from sklearn.pipeline import Pipeline
 from .feature import EventsBinarizer, DataDelayer
 from ..io.pick import pick_types, pick_info
 from ..externals.six import string_types
-from ..utils import warn
 from ..evoked import EvokedArray
-from copy import deepcopy
 
 
 class EventRelatedRegressor(object):
@@ -61,6 +64,7 @@ class EventRelatedRegressor(object):
     def __init__(self, raw, events, est=None, event_id=None, tmin=-.1, tmax=.5,
                  preproc_x=None, preproc_y=None, preproc_func_xy=None,
                  picks=None, coef_name='coef_'):
+        from sklearn.pipeline import Pipeline
         if events.shape[-1] != 3:
             raise ValueError('Events must be shape (n_events, 3)')
         if raw.preload is False:
@@ -99,8 +103,8 @@ class EventRelatedRegressor(object):
         self.delayer = delayer
 
         # Prepare preprocessing chains
-        _check_preproc(preproc_x)
-        _check_preproc(preproc_y)
+        preproc_x = _check_preproc(preproc_x)
+        preproc_y = _check_preproc(preproc_y)
         if preproc_x is not None:
             # Add the delays to the end of preproc_x
             preproc_x = Pipeline(preproc_x.steps + [('delayer', delayer)])
@@ -133,7 +137,7 @@ class EventRelatedRegressor(object):
         # Unstack coefficients so they're shape (n_chans, n_feats, n_lags)
         n_delays = len(self.delayer.delays)
         coefs = self.enc.coef_
-        coefs = np.stack([icoef.reshape([-1, n_delays]) for icoef in coefs])
+        coefs = np.array([icoef.reshape(-1, n_delays) for icoef in coefs])
         # Reverse last dimension so that it is in time, not lags
         coefs = coefs[..., ::-1]
 
@@ -151,47 +155,48 @@ class EventRelatedRegressor(object):
 
 
 class EncodingModel(object):
+    """Base structure for encoding models of neural signals.
+
+    Fit an encoding model using arbitrary input transformations and a
+    custom estimator.
+
+    Parameters
+    ----------
+    est : None | instance of sklearn-style estimator | string
+        The estimator to use for fitting. This is any object that contains
+        a `fit` and `predict` method, which takes inputs of the form
+        (X, y), and which creates a `.coef_` attribute upon fitting. If
+        None, will be an instance of `Ridge` with alpha == 0. If a string,
+        an instance of `Ridge` will be created with alpha == 0 and the
+        string passed to the `solver` parameter.
+    preproc_x : instance of sklearn-style pipeline | None
+        An object for preprocessing / transforming input data before the
+        call to `est`. If None, no preprocessing will occur.
+    preproc_y : instance of sklearn-style pipeline | None
+        An object for preprocessing / transforming the output data before
+        the call to `est`. If None, no preprocessing will occur.
+    preproc_func_xy : callable | None
+        A function to call after preprocessing pipelines have been run on X
+        and y, but *before* the call to `fit` for the encoder. Should take
+        two parameters: X and y, and return two parameters corresponding to
+        X and y after the function has been applied.
+    coef_name = string | None
+        The name of the coefficients that will be set after the final
+        estimator is fit. For many sklearn linear models, this is `coef_`.
+        Will be used to pull the coefficients after the model is fit.
+
+    References
+    ----------
+    .. [1] Theunissen, F. E. et al. Estimating spatio-temporal receptive
+           fields of auditory and visual neurons from their responses to
+           natural stimuli. Network 12, 289-316 (2001).
+    .. [2] Willmore, B. & Smyth, D. Methods for first-order kernel
+           estimation: simple-cell receptive fields from responses to
+           natural scenes. Network 14, 553-77 (2003).
+    """
+
     def __init__(self, est=None, preproc_x=None, preproc_y=None,
                  preproc_func_xy=None, coef_name='coef_'):
-        """Base structure for encoding models of neural signals.
-
-        Fit an encoding model using arbitrary input transformations and a
-        custom estimator.
-
-        Parameters
-        ----------
-        est : None | instance of sklearn-style estimator | string
-            The estimator to use for fitting. This is any object that contains
-            a `fit` and `predict` method, which takes inputs of the form
-            (X, y), and which creates a `.coef_` attribute upon fitting. If
-            None, will be an instance of `Ridge` with alpha == 0. If a string,
-            an instance of `Ridge` will be created with alpha == 0 and the
-            string passed to the `solver` parameter.
-        preproc_x : instance of sklearn-style pipeline | None
-            An object for preprocessing / transforming input data before the
-            call to `est`. If None, no preprocessing will occur.
-        preproc_y : instance of sklearn-style pipeline | None
-            An object for preprocessing / transforming the output data before
-            the call to `est`. If None, no preprocessing will occur.
-        preproc_func_xy : callable | None
-            A function to call after preprocessing pipelines have been run on X
-            and y, but *before* the call to `fit` for the encoder. Should take
-            two parameters: X and y, and return two parameters corresponding to
-            X and y after the function has been applied.
-        coef_name = string | None
-            The name of the coefficients that will be set after the final
-            estimator is fit. For many sklearn linear models, this is `coef_`.
-            Will be used to pull the coefficients after teh model is fit.
-
-        References
-        ----------
-        .. [1] Theunissen, F. E. et al. Estimating spatio-temporal receptive
-               fields of auditory and visual neurons from their responses to
-               natural stimuli. Network 12, 289-316 (2001).
-        .. [2] Willmore, B. & Smyth, D. Methods for first-order kernel
-               estimation: simple-cell receptive fields from responses to
-               natural scenes. Network 14, 553-77 (2003).
-        """
         self.est = _check_estimator(est)
         self.preproc_y = _check_preproc(preproc_y)
         self.preproc_x = _check_preproc(preproc_x)
@@ -249,6 +254,8 @@ class EncodingModel(object):
         ----------
         X : array, shape (n_samples, n_features)
             The input feature array.
+        preproc_x : instance of sklearn pipeline
+            A pipeline to be applied to X before predicting.
         """
         # Preprocess X with the pipeline
         if preproc_x is not None:
@@ -278,19 +285,25 @@ class EncodingModel(object):
 
 
 def _check_estimator(est):
-    from sklearn.base import is_regressor
+    """Ensure the estimator will work for regression data."""
+    from sklearn.linear_model import Ridge
+    from sklearn.pipeline import Pipeline
+
+    # Define string-based solvers
+    _ridge_solvers = ['auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag']
+
     if est is None:
         est = Ridge(alpha=0)
     elif isinstance(est, string_types):
-        est_keys = estimator_dict.keys()
-        if est not in est_keys:
-            raise ValueError("No such solver: {0}\n"
-                             "Allowed solvers are: {1}".format(est, est_keys))
-        est = deepcopy(estimator_dict[est])
+        if est not in _ridge_solvers:
+            raise ValueError("No such solver: {0}\nAllowed solvers are:"
+                             " {1}".format(est, _ridge_solvers))
+        est = Ridge(alpha=0, solver=est, fit_intercept=False)
 
-    if not is_regressor(est):
-        warn("Custom estimators should have a `fit` and `predict` method,"
-             " and should produce continuous output")
+    reqd_attributes = ['fit', 'predict']
+    for attr in reqd_attributes:
+        if not hasattr(est, attr):
+            raise ValueError('Estimator does not have a %s method' % attr)
 
     # Make sure we have a pipeline
     if not isinstance(est, Pipeline):
@@ -299,31 +312,12 @@ def _check_estimator(est):
 
 
 def _check_preproc(est):
+    """Ensure that the estimator is a Pipeline w/ transforms."""
+    from sklearn.pipeline import Pipeline
     if est is None:
-        return est
-    if not isinstance(est, Pipeline):
+        pass
+    elif not isinstance(est, Pipeline):
         raise ValueError('preproc must be a sklearn Pipeline or None')
-    if not hasattr(est, 'transform'):
+    elif not hasattr(est, 'transform'):
         raise ValueError('preproc must have a transform method')
     return est
-
-
-def pull_feature_names(est, name_attr='names_', base_names=None):
-    """Iterate through steps of a Pipeline and extract feature names.
-
-    Incomplete, but something like this could be used to keep
-    track of feature expansions that took place in a Pipeline (e.g., lags)
-    """
-    if not isinstance(est, Pipeline):
-        raise ValueError('est must be an instance of Pipeline')
-    all_names = []
-    for nm, step in est.steps:
-        if hasattr(step, name_attr):
-            all_names.append(getattr(step, name_attr))
-    return all_names
-
-
-# Define string-based solvers
-_ridge_solvers = ['auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag']
-estimator_dict = dict((solv, Ridge(alpha=0, solver=solv, fit_intercept=False))
-                      for solv in _ridge_solvers)

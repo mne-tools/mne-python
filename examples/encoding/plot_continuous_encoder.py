@@ -35,10 +35,11 @@ ixs_X = np.setdiff1d(range(len(raw.ch_names)), [ix_enc])
 X = raw._data[ixs_X]
 y = raw._data[ix_enc]
 
-f, axs = plt.subplots(2, 1, figsize=(10, 10))
+f, axs = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
 ix_plt = 200
 axs[0].plot(raw.times[:ix_plt], X[:, :ix_plt].T, color='k', alpha=.2)
 axs[0].set_title('Continuous Input Data')
+axs[0].set_xlim([0, raw.times[:ix_plt][-1]])
 axs[1].plot(raw.times[:ix_plt], y[:ix_plt], color='k')
 axs[1].set_title('Continuous Output Data')
 axs[1].set_xlabel('Time (s)')
@@ -49,44 +50,45 @@ alphas = np.logspace(1, 6, 10)
 ix_split = int(X.shape[-1] * .998)  # Using 99.8% of the data to train
 tr = np.arange(X.shape[-1])[:ix_split]
 tt = np.arange(X.shape[-1])[ix_split:]
-splitter = DataSubsetter(tr)
-preproc = Pipeline([('cv', splitter), ('scaler', StandardScaler())])
+splitter_tr = DataSubsetter(tr)
+splitter_tt = DataSubsetter(tt)
+preproc = Pipeline([('split', splitter_tr), ('scaler', StandardScaler())])
+# For predictions, make the splitter pull testing points.
+preproc_pred = deepcopy(preproc)
+preproc_pred.steps[0] = ('split', splitter_tt)
 
+# Fit / predict w/ the model
+mod = Ridge(alpha=0.)
+enc = EncodingModel(est=mod, preproc_x=preproc, preproc_y=preproc)
+enc.fit(X.T, y)
+y_pred = enc.predict(X.T, preproc_x=preproc_pred)
 
-# Iterate through regularization parameters, fit model, and plot coefficients
-f, axs = plt.subplots(1, 2, figsize=(15, 8))
+# Now plot results
 cmap = plt.cm.rainbow
-for ii, ialpha in enumerate(alphas):
-    mod = Ridge(alpha=ialpha)
-    enc = EncodingModel(est=mod, preproc_x=preproc, preproc_y=preproc)
-    enc.fit(X.T, y)
-    preproc_pred = deepcopy(preproc)
-    preproc_pred.steps[0] = ('cv', DataSubsetter(tt))
-    y_pred = enc.predict(X.T, preproc_x=preproc_pred)
+f, axs = plt.subplots(1, 2, figsize=(15, 8))
 
-    # Plot the first 40 coefficients (one coefficient per channel)
-    ax = axs[0]
-    coefs = enc.est._final_estimator.coef_[0, :50]
-    ax.plot(coefs, color=cmap(float(ii) / len(alphas)),
-            label=np.round(np.log10(ialpha), 2))
-    ax.set_xlabel('Channel index')
-    ax.set_ylabel('Channel weight')
+# Plot the first 40 coefficients (one coefficient per channel)
+ax = axs[0]
+coefs = enc.est._final_estimator.coef_[0]
+ax.plot(coefs)
+ax.set_xlabel('Channel index')
+ax.set_ylabel('Channel weight')
+ax.set_title('Encoding model coefficients')
+ax.set_xlim([0, coefs.shape[-1]])
 
-    # Now plot the predictions on the test set
-    time_test = np.arange(y_pred.shape[0]) / float(raw.info['sfreq'])
-    ax = axs[1]
-    ax.plot(time_test, y_pred, color=cmap(float(ii) / len(alphas)))
+
+# Now plot the predictions on the test set
+ax = axs[1]
+time_test = np.arange(y_pred.shape[0]) / float(raw.info['sfreq'])
+ax.plot(time_test, y_pred, color='r', alpha=.6)
 
 # Plot true output signal
-ln = axs[1].plot(time_test, scale(y[tt]), color='k', alpha=.6, lw=3,
-                 label='True Signal')
+ln = ax.plot(time_test, scale(y[tt]), color='k', alpha=.6, lw=3,
+             label='True Signal')
+ax.set_title('Predicted (colors) and actual (black) activity')
+ax.set_xlabel('Time (s)')
+ax.set_ylabel('Signal amplitude (z-scored)')
+ax.set_xlim([0, time_test[-1]])
 
-# Formatting
-axs[0].legend(title='Log Alpha', ncol=2)
-axs[0].set_title('Encoding model coefficients, many levels of regularization')
-
-axs[1].set_title('Predicted (colors) and actual (black) activity')
-axs[1].set_xlabel('Time (s)')
-axs[1].set_ylabel('Signal amplitude (z-scored)')
 plt.tight_layout()
 plt.show()
