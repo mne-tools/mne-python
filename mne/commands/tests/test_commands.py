@@ -212,7 +212,6 @@ def test_watershed_bem():
 
 
 @ultra_slow_test
-@requires_mne
 @requires_freesurfer
 @sample.requires_sample_data
 def test_flash_bem():
