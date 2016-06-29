@@ -1206,7 +1206,7 @@ known_config_types = (
     'MNE_SKIP_TESTING_DATASET_TESTS',
     'MNE_STIM_CHANNEL',
     'MNE_USE_CUDA',
-    'MNE_SKIP_FLASH_CALL',
+    'MNE_SKIP_FS_FLASH_CALL',
     'SUBJECTS_DIR',
 )
 

@@ -437,13 +437,14 @@ def read_surface(fname, read_metadata=False, verbose=None):
     rr : array, shape=(n_vertices, 3)
         Coordinate points.
     tris : int array, shape=(n_faces, 3)
-        Triangulation (each line contains indexes for three points which
+        Triangulation (each line contains indices for three points which
         together form a face).
     volume_info : dict-like
         If read_metadata is true, key-value pairs found in the geometry file.
     See Also
     --------
     write_surface
+    read_tri
     """
     try:
         import nibabel as nib
@@ -719,7 +720,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
     coords : array, shape=(n_vertices, 3)
         Coordinate points.
     faces : int array, shape=(n_faces, 3)
-        Triangulation (each line contains indexes for three points which
+        Triangulation (each line contains indices for three points which
         together form a face).
     create_stamp : str
         Comment that is written to the beginning of the file. Can not contain
@@ -742,6 +743,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
     See Also
     --------
     read_surface
+    read_tri
     """
     try:
         import nibabel as nib
@@ -1179,7 +1181,8 @@ def mesh_dist(tris, vert):
     return dist_matrix
 
 
-def read_tri(fname_in, swap=False):
+@verbose
+def read_tri(fname_in, swap=False, verbose=None):
     """Function for reading triangle definitions from an ascii file.
 
     Parameters
@@ -1189,14 +1192,25 @@ def read_tri(fname_in, swap=False):
     swap : bool
         Assume the ASCII file vertex ordering is clockwise instead of
         counterclockwise.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     rr : array, shape=(n_vertices, 3)
         Coordinate points.
     tris : int array, shape=(n_faces, 3)
-        Triangulation (each line contains indexes for three points which
+        Triangulation (each line contains indices for three points which
         together form a face).
+
+    Notes
+    -----
+    .. versionadded:: 0.13.0
+
+    See Also
+    --------
+    read_surface
+    write_surface
     """
     with open(fname_in, "r") as fid:
         lines = fid.readlines()

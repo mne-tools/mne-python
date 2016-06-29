@@ -166,6 +166,7 @@ Functions:
    read_source_spaces
    read_surface
    read_trans
+   read_tri
    save_stc_as_volume
    write_labels_to_annot
    write_bem_solution
