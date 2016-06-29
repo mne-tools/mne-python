@@ -448,7 +448,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
     elif n_kit_grads <= 157:
         # This applies to the KIT systems at NYU and UMD which have different
         # layouts. The 'KIT-157' layout applies to the NYU system.
-        return None
+        return _auto_layout(info)
     elif n_kit_grads > 157:
         layout_name = 'KIT-AD'
     else:
@@ -672,6 +672,13 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
     az, el, r = _cartesian_to_sphere(x, y, z)
     locs2d = np.c_[_polar_to_cartesian(az, np.pi / 2 - el)]
     return locs2d
+
+
+def _auto_layout(info):
+    picks = pick_types(info, ref_meg=False)
+    names = [info['ch_names'][i] for i in picks]
+    locs2d = _auto_topomap_coords(info, picks, ignore_overlap=True)
+    return generate_2d_layout(locs2d, ch_names=names)
 
 
 def _topo_to_sphere(pos, eegs):
