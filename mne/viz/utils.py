@@ -584,10 +584,11 @@ def _radio_clicked(label, params):
     params['fig_selection'].radio._active_idx = idx
     channels = params['selections'][label]
     ax_topo = params['fig_selection'].get_axes()[1]
-    for type in ('mag', 'grad', 'eeg', 'seeg'):
-        if type in params['types']:
-            types = np.where(np.array(params['types']) == type)[0]
-            break
+    types = np.array([], dtype=int)
+    for this_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog'):
+        if this_type in params['types']:
+            types = np.concatenate(
+                [types, np.where(np.array(params['types']) == this_type)[0]])
     colors = np.zeros((len(types), 4))  # alpha = 0 by default
     locs3d = np.array([ch['loc'][:3] for ch in params['info']['chs']])
     x, y, z = locs3d.T

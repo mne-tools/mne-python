@@ -28,7 +28,6 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _change_channel_group)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
-from ..channels.channels import _contains_ch_type
 
 
 def _plot_update_raw_proj(params, bools):
@@ -910,10 +909,11 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
 def _region_picked(event, params):
     """Callback for selecting a region by clicking the topomap."""
     ind = event.ind[0]
-    for type in ('mag', 'grad', 'eeg', 'seeg'):
-        if type in params['types']:
-            types = np.where(np.array(params['types']) == type)[0]
-            break
+    types = list()
+    for this_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog'):
+        if this_type in params['types']:
+            types += np.where(np.array(params['types']) == this_type)[0]
+            #break
     labels = [l._text for l in params['fig_selection'].radio.labels]
     for idx, label in enumerate(labels):
         if types[ind] in params['selections'][label]:
@@ -927,11 +927,10 @@ def _set_custom_selection(params):
     if len(chs) == 0:
         return
     labels = [l._text for l in params['fig_selection'].radio.labels]
-    custom_key = labels[-1]
     inds = np.in1d(params['raw'].ch_names, chs)
-    params['selections'][custom_key] = np.where(inds)[0]
+    params['selections']['Custom'] = np.where(inds)[0]
 
-    _set_radio_button(labels.index(custom_key), params=params)
+    _set_radio_button(labels.index('Custom'), params=params)
 
 
 def _setup_browser_selection(raw, kind):
@@ -975,16 +974,13 @@ def _setup_browser_selection(raw, kind):
     rax = plt.subplot2grid((6, 1), (2, 0), rowspan=4, colspan=1)
     topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
     if kind == 'lasso':
-        for this_type in ['mag', 'grad', 'eeg', 'seeg']:  # find ch type
-            if _contains_ch_type(raw.info, this_type):
-                break
-        keys = np.concatenate([keys, ['Custom %ss' % this_type]])
-        order.update({'Custom %ss' % this_type: list()})
+        keys = np.concatenate([keys, ['Custom']])
+        order.update({'Custom': list()})
         kind = 'position'
         proj = 'select'
     else:
         proj = 'topomap'
-    plot_sensors(raw.info, kind=proj, ch_type=None, axes=topo_ax,
+    plot_sensors(raw.info, kind=proj, ch_type='all', axes=topo_ax,
                  ch_groups=kind, title='', show=False)
     fig_selection.radio = RadioButtons(rax, [key for key in keys
                                              if key in order.keys()])
