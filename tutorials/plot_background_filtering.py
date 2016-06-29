@@ -462,7 +462,7 @@ plot_filter(sos, 'Chebychev-1 order=8, ripple=6 dB', freq, gain)
 # Applying IIR filters
 # --------------------
 # Now let's look at how our shallow and steep Butterworth IIR filters
-# perform on our morlet signal from before:
+# perform on our Morlet signal from before:
 
 axs = plt.subplots(2)[1]
 yticks = np.arange(4) / -30.
