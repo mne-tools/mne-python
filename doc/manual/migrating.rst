@@ -52,3 +52,4 @@ Pitfalls
   To do this, call the ``copy`` method of the object (.e.g, use  :func:`raw_filtered = raw.copy().filter(l_freq, h_freq) <mne.io.Raw.copy>`).
 * The concept of channel types is critical in MNE because it supports analysis of multimodal data (e.g., EEG, MEG, EOG, Stim channel)
   whereas most EEGLAB functions assume the same channel type (EEG).
+* Channel arithmetics as in :func:`(evoked1 - evoked2).plot() <mne.Evoked.__sub__>` weights by the number of trials (unlike e.g. `pop_compareerps`). If trial numbers differ between the involved objects, you may get unintended results; use :func:`mne.combine_evoked(evokeds, [1, -1]) <mne>` instead.
