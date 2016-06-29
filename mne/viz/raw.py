@@ -267,7 +267,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if isinstance(order, string_types):
         if order == 'original':
             inds = inds[reord]
-        elif order in ['selection', 'position']:
+        elif order in ['selection', 'position', 'lasso']:
             selections, fig_selection = _setup_browser_selection(raw, order)
         elif order != 'type':
             raise ValueError('Unknown order type %s' % order)
@@ -295,13 +295,18 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_times=n_times, event_times=event_times, inds=inds,
                   event_nums=event_nums, clipping=clipping, fig_proj=None)
 
-    if isinstance(order, string_types) and order in ['selection', 'position']:
+    if isinstance(order, string_types) and order in ['selection', 'position',
+                                                     'lasso']:
         params['fig_selection'] = fig_selection
         params['selections'] = selections
         params['radio_clicked'] = partial(_radio_clicked, params=params)
         fig_selection.radio.on_clicked(params['radio_clicked'])
-        pick_callback = partial(_region_picked, params=params)
-        fig_selection.canvas.mpl_connect('pick_event', pick_callback)
+        if order == 'lasso':
+            lasso_callback = partial(_set_custom_selection, params=params)
+            fig_selection.canvas.mpl_connect('lasso_event', lasso_callback)
+        else:
+            pick_callback = partial(_region_picked, params=params)
+            fig_selection.canvas.mpl_connect('pick_event', pick_callback)
     _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels)
 
@@ -379,7 +384,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if show_options is True:
         _toggle_options(None, params)
     # initialize the first selection set
-    if order in ['selection', 'position']:
+    if order in ['selection', 'position', 'lasso']:
         _radio_clicked(fig_selection.radio.labels[0]._text, params)
         callback_selection_key = partial(_selection_key_press, params=params)
         callback_selection_scroll = partial(_selection_scroll, params=params)
@@ -914,6 +919,17 @@ def _region_picked(event, params):
             return
 
 
+def _set_custom_selection(params):
+    """Callback for setting custom selection by lasso selector."""
+    chs = params['fig_selection'].lasso.selection
+    if len(chs) == 0:
+        return
+    inds = np.in1d(params['raw'].ch_names, chs)
+    params['selections']['Custom'] = np.where(inds)[0]
+    labels = [l._text for l in params['fig_selection'].radio.labels]
+    _set_radio_button(labels.index('Custom'), params=params)
+
+
 def _setup_browser_selection(raw, kind):
     """Helper for organizing browser selections."""
     import matplotlib.pyplot as plt
@@ -921,9 +937,12 @@ def _setup_browser_selection(raw, kind):
     from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                              _divide_to_regions)
     from ..utils import _get_stim_channel
-    if kind == 'position':
+    if kind in ('position', 'lasso'):
         order = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # no 'Vertex'
+        if kind == 'lasso':
+            keys.append('Custom')
+            order.update({'Custom': list()})
     elif 'selection':
         from ..io import RawFIF, RawArray
         if not isinstance(raw, (RawFIF, RawArray)):
@@ -954,7 +973,12 @@ def _setup_browser_selection(raw, kind):
     fig_selection.canvas.set_window_title('Selection')
     rax = plt.subplot2grid((6, 1), (2, 0), rowspan=4, colspan=1)
     topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
-    plot_sensors(raw.info, kind='topomap', ch_type=None, axes=topo_ax,
+    if kind == 'lasso':
+        kind = 'position'
+        proj = 'select'
+    else:
+        proj = 'topomap'
+    plot_sensors(raw.info, kind=proj, ch_type=None, axes=topo_ax,
                  ch_groups=kind, title='', show=False)
     fig_selection.radio = RadioButtons(rax, [key for key in keys
                                              if key in order.keys()])

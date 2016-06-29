@@ -606,7 +606,8 @@ def _radio_clicked(label, params):
     for line in params['lines'][n_channels:]:  # To remove lines from view.
         line.set_xdata([])
         line.set_ydata([])
-    _setup_browser_offsets(params, n_channels)
+    if n_channels > 0:  # Can be 0 with lasso selector.
+        _setup_browser_offsets(params, n_channels)
     params['plot_fun']()
 
 
@@ -1444,21 +1445,22 @@ class DraggableColorbar(object):
 
 
 class SelectFromCollection(object):
-    """Select indices from a matplotlib collection using `LassoSelector`.
+    """Select channels from a matplotlib collection using `LassoSelector`.
 
-    Selected indices are saved in the `ind` attribute. This tool highlights
-    selected points by fading them out (i.e., reducing their alpha values).
-    If your collection has alpha < 1, this tool will permanently alter them.
+    Selected channels are saved in the ``selection`` attribute. This tool
+    highlights selected points by fading them out (i.e., reducing their alpha
+    values).
 
-    Note that this tool selects collection objects based on their *origins*
-    (i.e., `offsets`).
+    Notes:
+    This tool selects collection objects based on their *origins*
+    (i.e., `offsets`). Emits 'lasso_event' when selection is ready.
 
     Parameters
     ----------
-    ax : :class:`~matplotlib.axes.Axes`
+    ax : Instance of Axes
         Axes to interact with.
 
-    collection : :class:`matplotlib.collections.Collection` subclass
+    collection : Instance of matplotlib collection
         Collection you want to select from.
 
     alpha_other : 0 <= float <= 1
@@ -1483,10 +1485,11 @@ class SelectFromCollection(object):
         elif len(self.fc) == 1:
             self.fc = np.tile(self.fc, self.Npts).reshape(self.Npts, -1)
 
-        self.lasso = LassoSelector(ax, onselect=self.onselect)
+        self.lasso = LassoSelector(ax, onselect=self.on_select)
         self.selection = list()
 
-    def onselect(self, verts):
+    def on_select(self, verts):
+        """Callback for selecting a subset from the collection."""
         from matplotlib.path import Path
         path = Path(verts)
         inds = np.nonzero([path.contains_point(xy) for xy in self.xys])[0]
@@ -1495,8 +1498,10 @@ class SelectFromCollection(object):
         self.fc[inds, -1] = 1
         self.collection.set_facecolors(self.fc)
         self.canvas.draw_idle()
+        self.canvas.callbacks.process('lasso_event')
 
     def disconnect(self):
+        """Method for disconnecting the lasso selector."""
         self.lasso.disconnect_events()
         self.fc[:, -1] = 1
         self.collection.set_facecolors(self.fc)
