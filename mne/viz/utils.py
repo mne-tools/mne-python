@@ -883,7 +883,7 @@ class ClickableImage(object):
 
     Parameters
     ----------
-    imdata: ndarray
+    imdata : ndarray
         The image that you wish to click on for 2-d points.
     **kwargs : dict
         Keyword arguments. Passed to ax.imshow.
@@ -915,7 +915,7 @@ class ClickableImage(object):
 
         Parameters
         ----------
-        event: matplotlib event object
+        event : matplotlib event object
             The matplotlib object that we use to get x/y position.
         """
         mouseevent = event.mouseevent
@@ -985,20 +985,20 @@ def add_background_image(fig, im, set_ratios=None):
 
     Parameters
     ----------
-    fig: plt.figure
+    fig : plt.figure
         The figure you wish to add a bg image to.
-    im: ndarray
+    im : ndarray
         A numpy array that works with a call to
         plt.imshow(im). This will be plotted
         as the background of the figure.
-    set_ratios: None | str
+    set_ratios : None | str
         Set the aspect ratio of any axes in fig
         to the value in set_ratios. Defaults to None,
         which does nothing to axes.
 
     Returns
     -------
-    ax_im: instance of the create matplotlib axis object
+    ax_im : instance of the created matplotlib axis object
         corresponding to the image you added.
 
     Notes
@@ -1010,7 +1010,7 @@ def add_background_image(fig, im, set_ratios=None):
         for ax in fig.axes:
             ax.set_aspect(set_ratios)
 
-    ax_im = fig.add_axes([0, 0, 1, 1])
+    ax_im = fig.add_axes([0, 0, 1, 1], label='background')
     ax_im.imshow(im, aspect='auto')
     ax_im.set_zorder(-1)
     return ax_im
