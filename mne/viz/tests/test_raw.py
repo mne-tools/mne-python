@@ -151,6 +151,9 @@ def test_plot_raw_psd():
     # topo psd
     raw.plot_psd_topo()
     plt.close('all')
+    # with a flat channel
+    raw[5, :] = 0
+    assert_raises(ValueError, raw.plot_psd)
 
 
 def test_plot_sensors():
