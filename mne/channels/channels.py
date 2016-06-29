@@ -373,9 +373,10 @@ class SetChannelsMixin(object):
             'select'. If 'select', a set of channels can be selected
             interactively by using lasso selector. The selected channels are
             returned along with the figure instance. Defaults to 'topomap'.
-        ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | 'ecog' | None
-            The channel type to plot. If None, then channels are chosen in the
-            order given above.
+        ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | 'ecog' | 'all' | None
+            The channel type to plot. If ``'all'``, all the available mag,
+            grad, eeg, seeg and ecog channels are plotted. If None (default),
+            then channels are chosen in the order given above.
         title : str | None
             Title for the figure. If None (default), equals to
             ``'Sensor positions (%s)' % ch_type``.

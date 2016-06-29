@@ -1086,9 +1086,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         'select', a set of channels can be selected interactively by using
         lasso selector. The selected channels are returned along with the
         figure instance. Defaults to 'topomap'.
-    ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
-        The channel type to plot. If None, then channels are chosen in the
-        order given above.
+    ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | 'ecog' | 'all' | None
+        The channel type to plot. If ``'all'``, all the available mag,
+        grad, eeg, seeg and ecog channels are plotted. If None (default),
+        then channels are chosen in the order given above.
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%s)' % ch_type``.
@@ -1138,16 +1139,21 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info not %s' % type(info))
     ch_indices = channel_indices_by_type(info)
-    allowed_types = ['mag', 'grad', 'eeg', 'seeg']
+    allowed_types = ['mag', 'grad', 'eeg', 'seeg', 'ecog']
     if ch_type is None:
         for this_type in allowed_types:
             if _contains_ch_type(info, this_type):
                 ch_type = this_type
                 break
+        picks = ch_indices[ch_type]
+    elif ch_type == 'all':
+        picks = list()
+        for this_type in allowed_types:
+            picks += ch_indices[this_type]
     elif ch_type not in allowed_types:
         raise ValueError("ch_type must be one of %s not %s!" % (allowed_types,
                                                                 ch_type))
-    picks = ch_indices[ch_type]
+
     if len(picks) == 0:
         raise ValueError('Could not find any channels of type %s.' % ch_type)
 
@@ -1485,7 +1491,8 @@ class SelectFromCollection(object):
         elif len(self.fc) == 1:
             self.fc = np.tile(self.fc, self.Npts).reshape(self.Npts, -1)
 
-        self.lasso = LassoSelector(ax, onselect=self.on_select)
+        self.lasso = LassoSelector(ax, onselect=self.on_select,
+                                   lineprops={'color': 'red'})
         self.selection = list()
 
     def on_select(self, verts):

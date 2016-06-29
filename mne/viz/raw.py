@@ -28,6 +28,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _change_channel_group)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
+from ..channels.channels import _contains_ch_type
 
 
 def _plot_update_raw_proj(params, bools):
@@ -132,13 +133,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     remove_dc : bool
         If True remove DC component when plotting data.
-    order : 'type' | 'original' | 'selection' | 'position' | array of int
-        Order in which to plot data. 'type' groups by channel type,
-        'original' plots in the order of ch_names, 'selection' uses
-        Elekta's channel groupings (only works for Neuromag data) and
-        'positions' groups the channels by the positions of the sensors.
-        If array, the order is determined by the indices in the array.
-        Defaults to 'type'.
+    order : str | array of int
+        Order in which to plot data. 'type' groups by channel type, 'original'
+        plots in the order of ch_names, 'selection' uses Elekta's channel
+        groupings (only works for Neuromag data), 'position' groups the
+        channels by the positions of the sensors and 'lasso' uses the same
+        groups as 'position', but also allows lasso selection of custom
+        channels in the selection topomap. If array, only the channels in the
+        array are plotted in the given order. Defaults to 'type'.
     show_options : bool
         If True, a dialog for options related to projection is shown.
     title : str | None
@@ -924,10 +926,12 @@ def _set_custom_selection(params):
     chs = params['fig_selection'].lasso.selection
     if len(chs) == 0:
         return
-    inds = np.in1d(params['raw'].ch_names, chs)
-    params['selections']['Custom'] = np.where(inds)[0]
     labels = [l._text for l in params['fig_selection'].radio.labels]
-    _set_radio_button(labels.index('Custom'), params=params)
+    custom_key = labels[-1]
+    inds = np.in1d(params['raw'].ch_names, chs)
+    params['selections'][custom_key] = np.where(inds)[0]
+
+    _set_radio_button(labels.index(custom_key), params=params)
 
 
 def _setup_browser_selection(raw, kind):
@@ -940,9 +944,6 @@ def _setup_browser_selection(raw, kind):
     if kind in ('position', 'lasso'):
         order = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # no 'Vertex'
-        if kind == 'lasso':
-            keys.append('Custom')
-            order.update({'Custom': list()})
     elif 'selection':
         from ..io import RawFIF, RawArray
         if not isinstance(raw, (RawFIF, RawArray)):
@@ -974,6 +975,11 @@ def _setup_browser_selection(raw, kind):
     rax = plt.subplot2grid((6, 1), (2, 0), rowspan=4, colspan=1)
     topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
     if kind == 'lasso':
+        for this_type in ['mag', 'grad', 'eeg', 'seeg']:  # find ch type
+            if _contains_ch_type(raw.info, this_type):
+                break
+        keys = np.concatenate([keys, ['Custom %ss' % this_type]])
+        order.update({'Custom %ss' % this_type: list()})
         kind = 'position'
         proj = 'select'
     else:
