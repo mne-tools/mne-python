@@ -134,6 +134,7 @@ For further reading:
     auto_tutorials/plot_mne_dspm_source_localization.rst
     auto_tutorials/plot_dipole_fit.rst
     auto_tutorials/plot_brainstorm_auditory.rst
+    auto_tutorials/plot_point_spread.rst
 
 .. container:: span box
 
