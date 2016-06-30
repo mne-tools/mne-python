@@ -73,8 +73,7 @@ def _compare_bem_solutions(sol_a, sol_b):
 
 @testing.requires_testing_data
 def test_io_bem():
-    """Test reading and writing of bem surfaces and solutions
-    """
+    """Test reading and writing of bem surfaces and solutions"""
     tempdir = _TempDir()
     temp_bem = op.join(tempdir, 'temp-bem.fif')
     assert_raises(ValueError, read_bem_surfaces, fname_raw)
