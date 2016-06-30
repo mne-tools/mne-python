@@ -40,7 +40,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    calibration=None, cross_talk=None, st_duration=None,
                    st_correlation=0.98, coord_frame='head', destination=None,
                    regularize='in', ignore_ref=False, bad_condition='error',
-                   head_pos=None, st_fixed=True, st_only=False, verbose=None):
+                   head_pos=None, st_fixed=True, st_only=False, mag_scale=100.,
+                   verbose=None):
     """Apply Maxwell filter to data using multipole moments
 
     .. warning:: Automatic bad channel detection is not currently implemented.
@@ -135,6 +136,13 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         :func:`mne.epochs.average_movements`.
 
         .. versionadded:: 0.12
+
+    mag_scale : float
+        The magenetometer scale-factor used to bring the magnetometers
+        to approximately the same order of magnitude as the gradiometers
+        (default 100.).
+
+        .. versionadded:: 0.13
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
@@ -232,6 +240,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
     # triage inputs ASAP to avoid late-thrown errors
+    mag_scale = float(mag_scale)
     if not isinstance(raw, _BaseRaw):
         raise TypeError('raw must be Raw, not %s' % type(raw))
     _check_usable(raw)
@@ -282,7 +291,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     _remove_meg_projs(raw_sss)  # remove MEG projectors, they won't apply now
     info = raw_sss.info
     meg_picks, mag_picks, grad_picks, good_picks, coil_scale, mag_or_fine = \
-        _get_mf_picks(info, int_order, ext_order, ignore_ref, mag_scale=100.)
+        _get_mf_picks(info, int_order, ext_order, ignore_ref,
+                      mag_scale=mag_scale)
 
     #
     # Fine calibration processing (load fine cal and overwrite sensor geometry)
@@ -391,7 +401,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         cal=calibration, regularize=regularize,
         exp=exp, ignore_ref=ignore_ref, coil_scale=coil_scale,
         grad_picks=grad_picks, mag_picks=mag_picks, good_picks=good_picks,
-        mag_or_fine=mag_or_fine, bad_condition=bad_condition)
+        mag_or_fine=mag_or_fine, bad_condition=bad_condition,
+        mag_scale=mag_scale)
     S_decomp, pS_decomp, reg_moments, n_use_in = _get_this_decomp_trans(
         info['dev_head_t'], t=0.)
     reg_moments_0 = reg_moments.copy()
@@ -713,13 +724,14 @@ def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
 
 def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
                 coil_scale, grad_picks, mag_picks, good_picks, mag_or_fine,
-                bad_condition, t):
+                bad_condition, t, mag_scale):
     """Helper to get a decomposition matrix and pseudoinverse matrices"""
     #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
     S_decomp = _get_s_decomp(exp, all_coils, trans, coil_scale, cal,
-                             ignore_ref, grad_picks, mag_picks, good_picks)
+                             ignore_ref, grad_picks, mag_picks, good_picks,
+                             mag_scale)
 
     #
     # Regularization
@@ -744,12 +756,12 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
 
 
 def _get_s_decomp(exp, all_coils, trans, coil_scale, cal, ignore_ref,
-                  grad_picks, mag_picks, good_picks):
+                  grad_picks, mag_picks, good_picks, mag_scale):
     """Helper to get S_decomp"""
     S_decomp = _trans_sss_basis(exp, all_coils, trans, coil_scale)
     if cal is not None:
         # Compute point-like mags to incorporate gradiometer imbalance
-        grad_cals = _sss_basis_point(exp, trans, cal, ignore_ref)
+        grad_cals = _sss_basis_point(exp, trans, cal, ignore_ref, mag_scale)
         # Add point like magnetometer data to bases.
         S_decomp[grad_picks, :] += grad_cals
         # Scale magnetometers by calibration coefficient
@@ -822,7 +834,7 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False,
     assert len(mag_picks) + len(grad_picks) == len(meg_info['ch_names'])
     # Magnetometers are scaled by 100 to improve numerical stability
     coil_scale = np.ones((len(meg_picks), 1))
-    coil_scale[mag_picks] = 100.
+    coil_scale[mag_picks] = mag_scale
     # Determine which are magnetometers for external basis purposes
     mag_or_fine = np.zeros(len(meg_picks), bool)
     mag_or_fine[mag_picks] = True
@@ -998,7 +1010,7 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
     S_in = S_tot[:, :n_in]
     S_out = S_tot[:, n_in:]
     coil_scale = np.ones((len(coils), 1))
-    coil_scale[_get_mag_mask(coils)] = 100.
+    coil_scale[_get_mag_mask(coils)] = mag_scale
 
     # Compute internal/external basis vectors (exclude degree 0; L/RHS Eq. 5)
     for degree in range(1, max(int_order, ext_order) + 1):
