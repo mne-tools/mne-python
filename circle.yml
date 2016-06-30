@@ -7,10 +7,17 @@ machine:
 
 dependencies:
   cache_directories:
-    - "/home/ubuntu/miniconda"
-    - "/home/ubuntu/.mne"
-    - "/home/ubuntu/mne_data"
-    - "/home/ubuntu/mne-tools.github.io"
+    - "~/miniconda"
+    - "~/.mne"
+    - "~/mne_data/MNE-sample-data"
+    - "~/mne_data/MNE-testing-data"
+    - "~/mne_data/MNE-misc-data"
+    - "~/mne_data/MNE-spm-face"
+    - "~/mne_data/MNE-somato-data"
+    - "~/mne_data/MNE-brainstorm-data"
+    - "~/mne_data/MEGSIM"
+    - "~/mne_data/MNE-eegbci-data"
+    - "~/mne-tools.github.io"
   # Various dependencies
   pre:
     # Get a running Python
@@ -84,6 +91,7 @@ deployment:
       - cd ../mne-tools.github.io && git checkout master && git pull origin master
       - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
+  stable:
     branch: maint/0.12
     commands:
       - git config --global user.email "circle@mne.com"
