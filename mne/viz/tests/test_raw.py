@@ -5,7 +5,7 @@
 import os.path as op
 import warnings
 
-from numpy.testing import assert_raises
+from numpy.testing import assert_raises, assert_equal
 
 from mne import io, read_events, pick_types, Annotations
 from mne.utils import requires_version, run_tests_if_main
@@ -112,6 +112,17 @@ def test_plot_raw():
                 fig.canvas.key_press_event('up')
                 fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
                 fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
+            elif order == 'lasso':
+                sel_fig = plt.figure(1)
+                topo_ax = sel_fig.axes[1]
+                _fake_click(sel_fig, topo_ax, [-0.5, 0.], xform='data')
+                _fake_click(sel_fig, topo_ax, [0.5, 0.], xform='data',
+                            kind='motion')
+                _fake_click(sel_fig, topo_ax, [0.5, 0.5], xform='data',
+                            kind='motion')
+                _fake_click(sel_fig, topo_ax, [-0.5, 0.5], xform='data',
+                            kind='release')
+
             plt.close('all')
 
 
@@ -173,6 +184,13 @@ def test_plot_sensors():
     assert_raises(TypeError, plot_sensors, raw)  # needs to be info
     plt.close('all')
     fig, sels = raw.plot_sensors('select')
-    _fake_click(fig, ax, (0.1, 0.1), xform='ax', button=1)
+    ax = fig.axes[0]
+    _fake_click(fig, ax, (-0.5, 0.5), xform='data')
+    plt.draw()
+    _fake_click(fig, ax, (0., 0.5), xform='data', kind='motion')
+    _fake_click(fig, ax, (0., 0.), xform='data', kind='motion')
+    _fake_click(fig, ax, (-0.5, 0.), xform='data', kind='release')
+    assert_equal(len(fig.lasso.selection), 1)
+    plt.close('all')
 
 run_tests_if_main()
