@@ -12,6 +12,7 @@ from __future__ import print_function
 # License: Simplified BSD
 
 import base64
+from distutils.version import LooseVersion
 from itertools import cycle
 import os.path as op
 import warnings
@@ -689,8 +690,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     brain : Brain
         A instance of surfer.viz.Brain from PySurfer.
     """
+    import surfer
+    if LooseVersion(surfer.__version__) < LooseVersion('0.6'):
+        raise ImportError("This function requires PySurfer 0.6 (you are "
+                          "running version %s). You can update PySurfer "
+                          "using:\n\n    $ pip install -U pysurfer" %
+                          surfer.__version__)
     from surfer import Brain, TimeViewer
-
     import mayavi
     from mayavi import mlab
 
