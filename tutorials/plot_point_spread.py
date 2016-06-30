@@ -24,13 +24,13 @@ from mne.simulation import simulate_stc, simulate_evoked
 
 seed = 42
 
-# regularization parameter for inverse method
+# parameters for inverse method
 method = 'sLORETA'
 snr = 3.
 lambda2 = 1.0 / snr ** 2
 
 # signal simulation parameters
-# do not add extra noise to our know signals
+# do not add extra noise to the known signals
 evoked_snr = np.inf
 T = 100
 times = np.linspace(0, 1, T)
@@ -146,7 +146,7 @@ brain_gen = stc_gen.copy().crop(0.05, None).plot(subjects_dir=subjects_dir,
 # Simulate sensor-space signals
 # -----------------------------
 #
-# Use the foward solution and add Gaussian noise to simulate sensor-space
+# Use the forward solution and add Gaussian noise to simulate sensor-space
 # (evoked) data from the known source-space signals. The amount of noise is
 # controlled by `evoked_snr` (higher values imply less noise).
 #
