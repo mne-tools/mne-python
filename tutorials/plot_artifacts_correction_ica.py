@@ -77,19 +77,19 @@ ica.plot_components()  # can you see some potential bad guys?
 # --------------------
 #
 # Let's take a closer look at three potential candidates for artifact-related
-# components: IC 12, IC 15 and IC 21
+# components: IC 16, IC 18 and IC 21
 
-# first, component 12:
-ica.plot_properties(raw, picks=12, dB=True)
+# first, component 21:
+ica.plot_properties(raw, picks=21, dB=True)
 
 ###############################################################################
 # it looks like a blink component, but because the data were filtered
 # the spectrum plot is not very informative, let's change that:
-ica.plot_properties(raw, picks=12, dB=True, psd_args={'fmax': 35.})
+ica.plot_properties(raw, picks=21, dB=True, psd_args={'fmax': 35.})
 
 ###############################################################################
-# now let's inspect properties of components 15 and 21 (cardiac activity):
-ica.plot_properties(raw, picks=[15, 21], psd_args={'fmax': 35.})
+# now let's inspect properties of components 16 and 18 (cardiac activity):
+ica.plot_properties(raw, picks=[16, 18], psd_args={'fmax': 35.})
 
 
 ###############################################################################
