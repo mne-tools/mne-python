@@ -123,14 +123,21 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             ax3 = axes[-1]
     evoked = epochs.average(picks)
     data = epochs.get_data()[:, picks, :]
+    n_epochs = len(data)
+    data = np.swapaxes(data, 0, 1)
+    if sigma > 0.:
+        for k in range(len(picks)):
+            data[k, :] = ndimage.gaussian_filter1d(
+                data[k, :], sigma=sigma, axis=0)
+
     scale_vmin = True if vmin is None else False
     scale_vmax = True if vmax is None else False
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
-    if overlay_times is not None and len(overlay_times) != len(data):
+    if overlay_times is not None and len(overlay_times) != n_epochs:
         raise ValueError('size of overlay_times parameter (%s) do not '
                          'match the number of epochs (%s).'
-                         % (len(overlay_times), len(data)))
+                         % (len(overlay_times), n_epochs))
 
     if overlay_times is not None:
         overlay_times = np.array(overlay_times)
@@ -142,7 +149,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                  % (epochs.tmin, epochs.tmax))
 
     figs = list()
-    for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
+    for i, (this_data, idx) in enumerate(zip(data, picks)):
         if fig is None:
             this_fig = plt.figure()
         else:
@@ -174,9 +181,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             if this_overlay_times is not None:
                 this_overlay_times = this_overlay_times[this_order]
 
-        if sigma > 0.:
-            this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma,
-                                                  axis=0)
         plt.figure(this_fig.number)
         if axes is None:
             ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
@@ -193,7 +197,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             cmap = (cmap, True)
         im = ax1.imshow(this_data,
                         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
-                                0, len(data)],
+                                0, n_epochs],
                         aspect='auto', origin='lower', interpolation='nearest',
                         vmin=this_vmin, vmax=this_vmax, cmap=cmap[0])
         if this_overlay_times is not None:
