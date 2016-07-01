@@ -54,7 +54,7 @@ dependencies:
     - cd /home/ubuntu/mne-python && python setup.py develop;
     - python -c "import mne; print(mne.get_config('MNE_DATA'))"
     - git branch -a
-    - PATTERN="";
+    - PATTERN=""; NEED_SAMPLE=0;
       if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
         echo html_dev > build.txt;
       elif [ "$CIRCLE_BRANCH" == "maint/0.12" ]; then
@@ -65,9 +65,11 @@ dependencies:
         for FNAME in $FNAMES; do
           if [[ `expr match $FNAME "\(tutorials\|examples\)/.*plot_.*\.py"` ]] ; then
             PATTERN=`basename $FNAME`"\\|"$PATTERN;
+            NEED_SAMPLE=$(($NEED_SAMPLE + $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l)));
           fi;
         done;
         echo PATTERN="$PATTERN";
+        echo NEED_SAMPLE="$NEED_SAMPLE";
         if [[ $PATTERN ]]; then
           PATTERN="\(${PATTERN::-2}\)";
           echo html_dev-pattern > build.txt;
@@ -77,10 +79,12 @@ dependencies:
       fi;
       echo "$PATTERN" > pattern.txt;
     - echo BUILD="$(cat build.txt)"
-    - if [[ $(cat build.txt) != "html_dev-noplot" ]]; then
-        mkdir -p ~/mne_data;
-        ls -al ~/mne_data;
+    - mkdir -p ~/mne_data;
+    - ls -al ~/mne_data;
+    - if [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
         python -c "import mne; mne.datasets._download_all_example_data()";
+      elif [ $NEED_SAMPLE -gt 0 ]; then
+        python -c "import mne; print(mne.datasets.sample.data_path())";
       fi;
     - python -c "import mne; mne.sys_info()";
     - >
