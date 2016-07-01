@@ -69,8 +69,14 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     evoked = apply_forward(fwd, stc, info)
     if snr < np.inf:
         noise = simulate_noise_evoked(evoked, cov, iir_filter, random_state)
-        evoked_noise = add_noise_evoked(evoked, noise, snr,
-                                        tmin=tmin, tmax=tmax)
+        if evoked.data.shape != noise.data.shape:
+            raise ValueError('Evoked and noise data shapes are different. Got '
+                             '%s and %s. Perhaps covariance has a different '
+                             'set of channels?' % (evoked.data.shape,
+                                                   noise.data.shape))
+
+        evoked_noise = add_noise_evoked(evoked, noise, snr, tmin=tmin,
+                                        tmax=tmax)
     else:
         evoked_noise = evoked
     return evoked_noise
