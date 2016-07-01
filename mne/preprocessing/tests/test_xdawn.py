@@ -98,7 +98,7 @@ def test_xdawn_apply_transform():
     # apply on raw
     xd.apply(raw)
     # apply on epochs
-    xd.apply(epochs)
+    denoise = xd.apply(epochs)
     # apply on evoked
     xd.apply(epochs.average())
     # apply on other thing should raise an error
@@ -110,6 +110,13 @@ def test_xdawn_apply_transform():
     xd.transform(epochs._data)
     # transform on someting else
     assert_raises(ValueError, xd.transform, 42)
+
+    # check numerical results with shuffled epochs
+    idx = np.arange(len(epochs))
+    np.random.shuffle(idx)
+    xd.fit(epochs[idx])
+    denoise_shfl = xd.apply(epochs)
+    assert_array_equal(denoise['cond2']._data, denoise_shfl['cond2']._data)
 
 
 @requires_sklearn
