@@ -27,8 +27,6 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
     ----------
     n_components : int (default 2)
         The number of components to decompose M/EEG signals.
-    n_chan : int
-         Integer indicating the number of channels.
     signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels)
         (default None). The signal covariance used for whitening of the data.
         if None, the covariance is estimated from the epochs signal.

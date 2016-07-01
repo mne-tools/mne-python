@@ -131,28 +131,32 @@ def test_epochs_vectorizer():
     with warnings.catch_warnings(record=True):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True)
-    epochs_vectorizer = EpochsVectorizer(epochs.info)
     epochs_data = epochs.get_data()
-    X = epochs_vectorizer.fit_transform(epochs)
+    vector = EpochsVectorizer(epochs.info)
     y = epochs.events[:, -1]
+    X = vector.fit_transform(epochs_data, y)
 
     # Check data dimensions
     assert_true(X.shape[0] == epochs_data.shape[0])
     assert_true(X.shape[1] == epochs_data.shape[1] * epochs_data.shape[2])
 
-    assert_array_equal(epochs_vectorizer.fit(epochs).transform(epochs), X)
+    assert_array_equal(vector.fit(epochs_data, y).transform(epochs_data), X)
 
     # Check if data is preserved
     n_times = epochs_data.shape[2]
     assert_array_equal(epochs_data[0, 0, 0:n_times], X[0, 0:n_times])
 
     # Check inverse transform
-    epochs_i = epochs_vectorizer.inverse_transform(X)
-    assert_array_equal(epochs_i, epochs._data)
+    Xi = vector.inverse_transform(X, y)
+    assert_true(Xi.shape[0] == epochs_data.shape[0])
+    assert_true(Xi.shape[1] == epochs_data.shape[1])
+    assert_array_equal(epochs_data[0, 0, 0:n_times], Xi[0, 0, 0:n_times])
+
+    # check if inverse transform works with different number of epochs
+    Xi = vector.inverse_transform(epochs_data[0], y)
+    assert_true(Xi.shape[1] == epochs_data.shape[1])
+    assert_true(Xi.shape[2] == epochs_data.shape[2])
 
     # Test init exception
-    assert_raises(ValueError, epochs_vectorizer.fit, 24, y)
-    assert_raises(ValueError, epochs_vectorizer.transform, 0.1, y)
-
-    # Test when y is None if X is ndarray
-    epochs_vectorizer.fit(epochs_data)
+    assert_raises(ValueError, vector.fit, epochs, y)
+    assert_raises(ValueError, vector.transform, epochs, y)
