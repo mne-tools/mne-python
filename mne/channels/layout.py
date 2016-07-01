@@ -445,12 +445,10 @@ def find_layout(info, ch_type=None, exclude='bads'):
         layout_name = 'magnesWH3600'
     elif has_CTF_grad:
         layout_name = 'CTF-275'
-    elif n_kit_grads <= 157:
-        # This applies to the KIT systems at NYU and UMD which have different
-        # layouts. The 'KIT-157' layout applies to the NYU system.
-        return _auto_layout(info)
-    elif n_kit_grads > 157:
-        layout_name = 'KIT-AD'
+    elif n_kit_grads > 0:
+        layout_name = _find_kit_system(info, n_kit_grads)
+        if layout_name == 'KIT-UMD':
+            return _auto_layout(info)
     else:
         return None
 
@@ -461,6 +459,42 @@ def find_layout(info, ch_type=None, exclude='bads'):
         layout.names = _clean_names(layout.names, before_dash=True)
 
     return layout
+
+
+def _find_kit_system(info, n_grads):
+    """Determine the KIT layout
+
+    Parameters
+    ----------
+    info : Info
+        Info object.
+    n_grads : int
+        Number of KIT-gradiometers in the info.
+
+    Returns
+    -------
+    kit_layout : str
+        One of 'KIT-AD', 'KIT-157' or 'KIT-UMD'.
+    """
+    if n_grads > 157:
+        return 'KIT-AD'
+
+    # channels which are on the left hemisphere for NY and right for UMD
+    test_chs = ('MEG  13', 'MEG  14', 'MEG  15', 'MEG  16', 'MEG  25',
+                'MEG  26', 'MEG  27', 'MEG  28', 'MEG  29', 'MEG  30',
+                'MEG  31', 'MEG  32', 'MEG  57', 'MEG  60', 'MEG  61',
+                'MEG  62', 'MEG  63', 'MEG  64', 'MEG  73', 'MEG  90',
+                'MEG  93', 'MEG  95', 'MEG  96', 'MEG 105', 'MEG 112',
+                'MEG 120', 'MEG 121', 'MEG 122', 'MEG 123', 'MEG 124',
+                'MEG 125', 'MEG 126', 'MEG 142', 'MEG 144', 'MEG 153',
+                'MEG 154', 'MEG 155', 'MEG 156')
+    x = [ch['loc'][0] < 0 for ch in info['chs'] if ch['ch_name'] in test_chs]
+    if np.all(x):
+        return 'KIT-157'  # KIT-NY
+    elif np.all(np.invert(x)):
+        return 'KIT-UMD'
+    else:
+        raise RuntimeError("KIT system could not be determined for data")
 
 
 def _box_size(points, width=None, height=None, padding=0.0):

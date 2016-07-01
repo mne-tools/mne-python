@@ -254,15 +254,20 @@ def test_find_layout():
     assert_true(lout.kind == 'EEG')
     # no common layout, 'meg' option not supported
 
+    lout = find_layout(Raw(fname_ctf_raw).info)
+    assert_true(lout.kind == 'CTF-275')
+
     fname_bti_raw = op.join(bti_dir, 'exported4D_linux_raw.fif')
     lout = find_layout(Raw(fname_bti_raw).info)
     assert_true(lout.kind == 'magnesWH3600')
 
-    lout = find_layout(read_raw_kit(fname_kit_157).info)
-    assert_true(lout is None)
+    raw_kit = read_raw_kit(fname_kit_157)
+    lout = find_layout(raw_kit.info)
+    assert_true(lout.kind == 'KIT-157')
 
-    lout = find_layout(Raw(fname_ctf_raw).info)
-    assert_true(lout.kind == 'CTF-275')
+    raw_kit.info['bads'] = ['MEG  13', 'MEG  14', 'MEG  15', 'MEG  16']
+    lout = find_layout(raw_kit.info)
+    assert_true(lout.kind == 'KIT-157')
 
     # Test plotting
     lout.plot()
