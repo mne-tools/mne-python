@@ -243,7 +243,8 @@ class Xdawn(TransformerMixin, ContainsMixin):
         """
 
         # Ensure epochs order
-        epochs = epochs[np.argsort(epochs.events[:, 0])]
+        if np.any(np.diff(epochs.events[:, 0].astype(int)) < 0):
+            epochs = epochs[np.argsort(epochs.events[:, 0])]
 
         if self.correct_overlap == 'auto':
             self.correct_overlap = _check_overlapp(epochs)
