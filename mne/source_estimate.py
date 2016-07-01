@@ -1361,9 +1361,11 @@ class SourceEstimate(_BaseSourceEstimate):
         subjects_dir : str
             The path to the FreeSurfer subjects reconstructions.
             It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
-        figure : instance of mayavi.core.scene.Scene | None
-            If None, the last figure will be cleaned and a new figure will
-            be created.
+        figure : instance of mayavi.core.scene.Scene | list | int | None
+            If None, a new figure will be created. If multiple views or a
+            split view is requested, this must be a list of the appropriate
+            length. If int is provided it will be used to identify the Mayavi
+            figure by it's id or create a new figure with the given id.
         views : str | list
             View to use. See surfer.Brain().
         colorbar : bool

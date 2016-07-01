@@ -700,7 +700,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     """
     import surfer
     from surfer import Brain, TimeViewer
-    from mayavi import mlab
+    import mayavi
 
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
@@ -730,10 +730,16 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         raise ValueError('hemi has to be either "lh", "rh", "split", '
                          'or "both"')
 
-    # use figure with specified id
-    if isinstance(figure, int):
-        size_ = size if isinstance(size, (tuple, list)) else (size, size)
-        figure = mlab.figure(figure, size=size_)
+    # check `figure` parameter
+    if figure is not None:
+        if isinstance(figure, int):
+            # use figure with specified id
+            size_ = size if isinstance(size, (tuple, list)) else (size, size)
+            figure = [mayavi.mlab.figure(figure, size=size_)]
+        elif not isinstance(figure, (list, tuple)):
+            figure = [figure]
+        if not all(isinstance(f, mayavi.core.scene.Scene) for f in figure):
+            raise TypeError('figure must be a mayavi scene or list of scenes')
 
     # convert control points to locations in colormap
     ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
