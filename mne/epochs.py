@@ -328,7 +328,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         .. versionadded:: 0.10.0
         """
         if self.preload:
-            return
+            return self
         self._data = self._get_data()
         self.preload = True
         self._decim_slice = slice(None, None, None)
