@@ -5,7 +5,6 @@ from numpy.testing import assert_array_equal
 from mne import (io, Epochs, read_events, pick_types,
                  compute_raw_covariance)
 from mne.utils import requires_sklearn, run_tests_if_main
-from mne.decoding.transformer import EpochsVectorizer
 from mne.decoding import XdawnTransformer
 from mne.preprocessing import Xdawn
 
@@ -40,7 +39,7 @@ def test_xdawntransformer_fit():
     print(y)
     # =========== Basic Fit test =================
     # test base xdawn
-    xd = XdawnTransformer( n_components=2, signal_cov=None, reg=None)
+    xd = XdawnTransformer(n_components=2, signal_cov=None, reg=None)
     xd.fit(X, y)
 
     # ========== with signal cov provided ====================

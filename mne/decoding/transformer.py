@@ -149,8 +149,7 @@ class Scaler(TransformerMixin):
 
 
 class EpochsVectorizer(TransformerMixin):
-    """EpochsVectorizer transforms epochs to a two dimensional data array to
-       comply with scikit-learn pipeline.
+    """EpochsVectorizer transforms epoch data to fit into a scikit-learn pipeline.
 
     Parameters
     ----------
@@ -159,120 +158,92 @@ class EpochsVectorizer(TransformerMixin):
 
     Attributes
     ----------
-    n_channels_ : int
+    n_channels : int
         The number of channels.
+    n_times : int
+        The number of time points.
 
     """
     def __init__(self, info=None):
         self.info = info
+        self.n_channels = None
+        self.n_times = None
 
-    def fit(self, X, y=None):
-        """Fit has no function here. Present only for compatibility with
-        scikit-learn.
+    def fit(self, epochs_data, y):
+        """For each epoch, concatenate data from different channels into a single
+        feature vector.
 
         Parameters
         ----------
-        X : instance of Epochs | array, shape (n_epochs, n_chans, n_times)
-            The instance of Epochs from which data matrix will be taken or
-            the data matrix of epochs.
-        y : None | array, shape (n_epochs,)
-            The label of each epoch. If None, labels from events are used.
-            y cannot be none if data matrix is passed.
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
+            The data to concatenate channels.
+        y : array, shape (n_epochs,)
+            The label for each epoch.
 
         Returns
         -------
         self : instance of EpochsVectorizer
             returns the modified instance
         """
-        if not (isinstance(X, _BaseEpochs) or
-                isinstance(X, np.ndarray)):
-            raise ValueError("epochs should be an Epochs or np.ndarray got %s"
-                             " instead" % type(X))
-        if isinstance(X, np.ndarray) and X.ndim != 3:
-            raise ValueError("The data matrix should be 3 dimensional")
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
+
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, epochs_data, y=None):
         """For each epoch, concatenate data from different channels into a single
         feature vector.
 
         Parameters
         ----------
-        X : Instance of Epochs | array, shape (n_epochs, n_chans, n_times)
-            The instance of Epochs from which data matrix will be taken or
-            the data matrix of epochs.
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
+            The data.
         y : None | array, shape (n_epochs,)
-            The label of each epoch. If None, labels from events are used.
-            y cannot be none if data matrix is passed.
+            The label for each epoch.
+            If None not used. Defaults to None.
 
         Returns
         -------
         X : array, shape (n_epochs, n_channels * n_times)
-            The data concatenated over channels.
+            The data concatenated over channels
         """
-        if not (isinstance(X, _BaseEpochs) or
-                isinstance(X, np.ndarray)):
-            raise ValueError("epochs should be an Epochs or np.ndarray got %s"
-                             " instead" % type(X))
-        if isinstance(X, np.ndarray):
-            raise ValueError("data matrix should be 3 dimensional")
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
 
-        if isinstance(X, _BaseEpochs):
-            n_epochs, n_channels, n_times = X._data.shape
-            X = X._data.reshape(n_epochs, n_channels * n_times)
-        else:
-            n_epochs, n_channels, n_times = X.shape
-            X = X.reshape(n_epochs, n_channels * n_times)
-        # save attribute for inverse_transform
-        self.n_channels_ = n_channels
+        epochs_data = np.atleast_3d(epochs_data)
+
+        n_epochs, n_channels, n_times = epochs_data.shape
+        X = epochs_data.reshape(n_epochs, n_channels * n_times)
+        # save attributes for inverse_transform
+        self.n_epochs = n_epochs
+        self.n_channels = n_channels
+        self.n_times = n_times
 
         return X
 
-    def fit_transform(self, X, y=None):
-        """Directly transform the data into 2D vector, without having to call
-        fit. As fit here has no role, fit_transform is same as transform.
+    def inverse_transform(self, X, y=None):
+        """For each epoch, reshape a feature vector into the original data shape
 
         Parameters
         ----------
-        X : Instance of Epochs | array, shape (n_epochs, n_chans, n_times)
-            The instance of Epochs from which data matrix will be taken or
-            the data matrix of epochs.
+        X : array, shape (n_epochs, n_channels * n_times)
+            The feature vector concatenated over channels
         y : None | array, shape (n_epochs,)
-            The label of each epoch. If None, labels from events are used.
-            y cannot be none if data matrix is passed.
+            The label for each epoch.
+            If None not used. Defaults to None.
 
         Returns
         -------
-        X : array, shape (n_epochs, n_channels * n_times)
-            The data concatenated over channels.
-        """
-        return self.transform(X, y)
-
-    def inverse_transform(self, X):
-        """Return the original instance of epochs
-
-        Parameters
-        ----------
-        X : array, shape (n_epochs, n_channels * n_times)
-            The feature vector concatenated over channels.
-
-        Returns
-        -------
-        X_orig : array of shape (n_trials, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
             The original data
         """
         if not isinstance(X, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(X))
 
-        if X.ndim != 2:
-            raise ValueError("X dimension should be 2")
-
-        X_orig = X.reshape(X.shape[0], self.n_channels_, X.shape[1] /
-                           self.n_channels_)
-
-        return X_orig
-
+        return X.reshape(-1, self.n_channels, self.n_times)
 
 class PSDEstimator(TransformerMixin):
     """Compute power spectrum density (PSD) using a multi-taper method
