@@ -599,12 +599,13 @@ def _limits_to_control_points(clim, stc_data, colormap):
 
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
-                          colormap='auto', time_label='time=%0.2f ms',
+                          colormap='auto', time_label='auto',
                           smoothing_steps=10, transparent=None, alpha=1.0,
                           time_viewer=False, config_opts=None,
                           subjects_dir=None, figure=None, views='lat',
                           colorbar=True, clim='auto', cortex="classic",
-                          size=800, background="black", foreground="white"):
+                          size=800, background="black", foreground="white",
+                          time_unit=None):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -632,8 +633,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         be (n x 3) or (n x 4) array for with RGB or RGBA values between
         0 and 255. If 'auto', either 'hot' or 'mne' will be chosen
         based on whether 'lims' or 'pos_lims' are specified in `clim`.
-    time_label : str
-        How to print info about the time instant visualized.
+    time_label : str | callable | None
+        Format of the time label (a format string, a function that maps
+        floating point time values to strings, or None for no label). The
+        default is ``time=%0.2f ms``.
     smoothing_steps : int
         The amount of smoothing
     transparent : bool | None
@@ -683,6 +686,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         a square window, or the (width, height) of a rectangular window.
     background, foreground : matplotlib colors
         color of the background and foreground of the display window
+    time_unit : 's' | 'ms'
+        Whether time is represented in seconds (expected by PySurfer) or
+        milliseconds. The current default is 'ms', but will change to 's'
+        in MNE 0.14. To avoid a deprecation warning specify ``time_unit``
+        explicitly.
 
 
     Returns
@@ -691,17 +699,29 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         A instance of surfer.viz.Brain from PySurfer.
     """
     import surfer
+    from surfer import Brain, TimeViewer
+    from mayavi import mlab
+
+    # import here to avoid circular import problem
+    from ..source_estimate import SourceEstimate
+
     if LooseVersion(surfer.__version__) < LooseVersion('0.6'):
         raise ImportError("This function requires PySurfer 0.6 (you are "
                           "running version %s). You can update PySurfer "
                           "using:\n\n    $ pip install -U pysurfer" %
                           surfer.__version__)
-    from surfer import Brain, TimeViewer
-    import mayavi
-    from mayavi import mlab
 
-    # import here to avoid circular import problem
-    from ..source_estimate import SourceEstimate
+    if time_unit is None:
+        warn("The time_unit parameter default will change from 'ms' to 's' "
+             "in MNE 0.14. To avoid this warnign specify the parameter "
+             "explicitly.", DeprecationWarning)
+        time_unit = 'ms'
+
+    if time_label == 'auto':
+        if time_unit == 'ms':
+            time_label = 'time=%0.2f ms'
+        else:
+            def time_label(t): return 'time=%0.2f ms' % (t * 1e3)
 
     if not isinstance(stc, SourceEstimate):
         raise ValueError('stc has to be a surface source estimate')
@@ -741,6 +761,15 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         brain = Brain(subject, hemi, surface, True, title, cortex, size,
                       background, foreground, figure, subjects_dir, views,
                       config_opts=config_opts)
+
+    if time_unit == 's':
+        times = stc.times
+    elif time_unit == 'ms':
+        times = 1e3 * stc.times
+    else:
+        raise ValueError("time_unit needs to be 's' or 'ms', got %s" %
+                         repr(time_unit))
+
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         if hemi_idx == 0:
@@ -748,10 +777,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         else:
             data = stc.data[len(stc.vertices[0]):]
         vertices = stc.vertices[hemi_idx]
-        time = 1e3 * stc.times
         with warnings.catch_warnings(record=True):  # traits warnings
             brain.add_data(data, colormap=colormap, vertices=vertices,
-                           smoothing_steps=smoothing_steps, time=time,
+                           smoothing_steps=smoothing_steps, time=times,
                            time_label=time_label, alpha=alpha, hemi=hemi,
                            colorbar=colorbar)
 
