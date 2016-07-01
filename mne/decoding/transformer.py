@@ -14,7 +14,6 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
 from ..time_frequency.psd import _psd_multitaper
 from ..externals import six
 from ..utils import _check_type_picks
-from ..epochs import _BaseEpochs
 
 
 class Scaler(TransformerMixin):
@@ -244,6 +243,7 @@ class EpochsVectorizer(TransformerMixin):
                              % type(X))
 
         return X.reshape(-1, self.n_channels, self.n_times)
+
 
 class PSDEstimator(TransformerMixin):
     """Compute power spectrum density (PSD) using a multi-taper method
