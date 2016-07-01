@@ -1394,8 +1394,10 @@ class SourceEstimate(_BaseSourceEstimate):
         size : float or pair of floats
             The size of the window, in pixels. can be one number to specify
             a square window, or the (width, height) of a rectangular window.
-        background, foreground : matplotlib colors
-            Color of the background and foreground of the display window.
+        background : matplotlib color
+            Color of the background of the display window.
+        foreground : matplotlib color
+            Color of the foreground of the display window.
         time_unit : 's' | 'ms'
             Whether time is represented in seconds (expected by PySurfer) or
             milliseconds. The current default is 'ms', but will change to 's'
