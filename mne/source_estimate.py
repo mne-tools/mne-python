@@ -1392,10 +1392,10 @@ class SourceEstimate(_BaseSourceEstimate):
             name of mayavi colormap, or a tuple with values (colormap, min,
             max, reverse) to fully specify the curvature colors.
         size : float or pair of floats
-            the size of the window, in pixels. can be one number to specify
+            The size of the window, in pixels. can be one number to specify
             a square window, or the (width, height) of a rectangular window.
         background, foreground : matplotlib colors
-            color of the background and foreground of the display window
+            Color of the background and foreground of the display window.
         time_unit : 's' | 'ms'
             Whether time is represented in seconds (expected by PySurfer) or
             milliseconds. The current default is 'ms', but will change to 's'

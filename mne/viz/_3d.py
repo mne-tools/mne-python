@@ -30,8 +30,6 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
 from ..utils import get_subjects_dir, logger, _check_subject, verbose, warn
-from ..fixes import _get_args
-from ..defaults import _handle_default
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS, plt_show
 from ..externals.six import BytesIO
 
@@ -682,10 +680,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         name of mayavi colormap, or a tuple with values (colormap, min,
         max, reverse) to fully specify the curvature colors.
     size : float or pair of floats
-        the size of the window, in pixels. can be one number to specify
+        The size of the window, in pixels. can be one number to specify
         a square window, or the (width, height) of a rectangular window.
     background, foreground : matplotlib colors
-        color of the background and foreground of the display window
+        Color of the background and foreground of the display window.
     time_unit : 's' | 'ms'
         Whether time is represented in seconds (expected by PySurfer) or
         milliseconds. The current default is 'ms', but will change to 's'
@@ -721,7 +719,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         if time_unit == 'ms':
             time_label = 'time=%0.2f ms'
         else:
-            def time_label(t): return 'time=%0.2f ms' % (t * 1e3)
+            def time_label(t):
+                return 'time=%0.2f ms' % (t * 1e3)
 
     if not isinstance(stc, SourceEstimate):
         raise ValueError('stc has to be a surface source estimate')
