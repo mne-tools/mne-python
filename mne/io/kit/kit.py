@@ -659,7 +659,7 @@ def get_kit_info(rawfile):
         info = _empty_info(float(sqd['sfreq']))
         info.update(meas_date=int(time.time()), lowpass=sqd['lowpass'],
                     highpass=sqd['highpass'], filename=rawfile,
-                    buffer_size_sec=1.)
+                    buffer_size_sec=1., kit_system_id=sysid)
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')

@@ -17,12 +17,14 @@ from mne.tests.common import assert_dig_allclose
 from mne.utils import run_tests_if_main
 from mne.io import Raw, read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
+from mne.io.kit.constants import KIT_CONSTANTS, KIT_MD, KIT_NY
 from mne.io.tests.test_raw import _test_raw_reader
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
 data_dir = op.join(parent_dir, 'data')
 sqd_path = op.join(data_dir, 'test.sqd')
+sqd_umd_path = op.join(data_dir, 'test_umd-raw.sqd')
 epochs_path = op.join(data_dir, 'test-epoch.raw')
 events_path = op.join(data_dir, 'test-eve.txt')
 mrk_path = op.join(data_dir, 'test_mrk.sqd')
@@ -50,6 +52,8 @@ def test_data():
                               hsp=hsp_path, stim=list(range(167, 159, -1)),
                               slope='+', stimthresh=1)
     assert_true('RawKIT' in repr(raw_py))
+    assert_true(raw_mrk.info['kit_system_id'] == 34)
+    assert_true(KIT_CONSTANTS[raw_mrk.info['kit_system_id']] is KIT_NY)
 
     # Test stim channel
     raw_stim = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
@@ -81,8 +85,16 @@ def test_data():
     data_py, _ = raw_py[py_picks]
     assert_array_almost_equal(data_py, data_bin)
 
+    # KIT-UMD data
+    _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path)
+    raw = read_raw_kit(sqd_umd_path)
+    assert_true(raw.info['kit_system_id'] == 53)
+    assert_true(KIT_CONSTANTS[raw.info['kit_system_id']] is KIT_MD)
+
 
 def test_epochs():
+    """Test reading epoched SQD file
+    """
     raw = read_raw_kit(sqd_path, stim=None)
     events = read_events(events_path)
     raw_epochs = Epochs(raw, events, None, tmin=0, tmax=.099, baseline=None)
@@ -93,6 +105,8 @@ def test_epochs():
 
 
 def test_raw_events():
+    """Test creating stim channel from raw SQD file
+    """
     def evts(a, b, c, d, e, f=None):
         out = [[269, a, b], [281, b, c], [1552, c, d], [1564, d, e]]
         if f is not None:

@@ -606,6 +606,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     line_freq = None
     custom_ref_applied = False
     xplotter_layout = None
+    kit_system_id = None
     for k in range(meas_info['nent']):
         kind = meas_info['directory'][k].kind
         pos = meas_info['directory'][k].pos
@@ -661,6 +662,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         elif kind == FIFF.FIFF_XPLOTTER_LAYOUT:
             tag = read_tag(fid, pos)
             xplotter_layout = str(tag.data)
+        elif kind == FIFF.FIFF_MNE_KIT_SYSTEM_ID:
+            tag = read_tag(fid, pos)
+            kit_system_id = int(tag.data)
 
     # Check that we have everything we need
     if nchan is None:
@@ -941,6 +945,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['acq_stim'] = acq_stim
     info['custom_ref_applied'] = custom_ref_applied
     info['xplotter_layout'] = xplotter_layout
+    info['kit_system_id'] = kit_system_id
     info._check_consistency()
     return info, meas
 
@@ -1155,6 +1160,10 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     #   CTF compensation info
     write_ctf_comp(fid, info['comps'])
 
+    #   KIT system ID
+    if info.get('kit_system_id') is not None:
+        write_int(fid, FIFF.FIFF_MNE_KIT_SYSTEM_ID, info['kit_system_id'])
+
     end_block(fid, FIFF.FIFFB_MEAS_INFO)
 
     #   Processing history
@@ -1342,6 +1351,17 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
             msg = ("Measurement infos provide mutually inconsistent %s" %
                    trans_name)
             raise ValueError(msg)
+
+    # KIT system-IDs
+    kit_sys_ids = [i['kit_system_id'] for i in infos if i['kit_system_id']]
+    if len(kit_sys_ids) == 0:
+        info['kit_system_id'] = None
+    elif len(set(kit_sys_ids)) == 1:
+        info['kit_system_id'] = kit_sys_ids[0]
+    else:
+        raise ValueError("Trying to merge channels from different KIT systems")
+
+    # other fields
     other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
                     'comps', 'custom_ref_applied', 'description', 'dig',
                     'experimenter', 'file_id', 'filename', 'highpass',
@@ -1349,9 +1369,9 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
                     'line_freq', 'lowpass', 'meas_date', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq',
                     'subject_info', 'sfreq', 'xplotter_layout']
-
     for k in other_fields:
         info[k] = _merge_dict_values(infos, k)
+
     info._check_consistency()
     return info
 
@@ -1451,9 +1471,9 @@ RAW_INFO_FIELDS = (
     'comps', 'ctf_head_t', 'custom_ref_applied', 'description', 'dev_ctf_t',
     'dev_head_t', 'dig', 'experimenter', 'events',
     'file_id', 'filename', 'highpass', 'hpi_meas', 'hpi_results',
-    'hpi_subsystem', 'line_freq', 'lowpass', 'meas_date', 'meas_id', 'nchan',
-    'proj_id', 'proj_name', 'projs', 'sfreq', 'subject_info',
-    'xplotter_layout',
+    'hpi_subsystem', 'kit_system_id', 'line_freq', 'lowpass', 'meas_date',
+    'meas_id', 'nchan', 'proj_id', 'proj_name', 'projs', 'sfreq',
+    'subject_info', 'xplotter_layout',
 )
 
 
@@ -1463,8 +1483,8 @@ def _empty_info(sfreq):
     _none_keys = (
         'acq_pars', 'acq_stim', 'buffer_size_sec', 'ctf_head_t', 'description',
         'dev_ctf_t', 'dig', 'experimenter',
-        'file_id', 'filename', 'highpass', 'hpi_subsystem', 'line_freq',
-        'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
+        'file_id', 'filename', 'highpass', 'hpi_subsystem', 'kit_system_id',
+        'line_freq', 'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
         'subject_info', 'xplotter_layout',
     )
     _list_keys = ('bads', 'chs', 'comps', 'events', 'hpi_meas', 'hpi_results',
