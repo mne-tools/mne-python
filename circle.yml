@@ -78,12 +78,13 @@ dependencies:
         fi;
       fi;
       echo "$PATTERN" > pattern.txt;
+      echo "$NEED_SAMPLE" > need_sample.txt
     - echo BUILD="$(cat build.txt)"
     - mkdir -p ~/mne_data;
     - ls -al ~/mne_data;
     - if [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
         python -c "import mne; mne.datasets._download_all_example_data()";
-      elif [ $NEED_SAMPLE -gt 0 ]; then
+      elif [[ $(cat need_sample.txt) -gt 0 ]]; then
         python -c "import mne; print(mne.datasets.sample.data_path())";
       fi;
     - python -c "import mne; mne.sys_info()";
@@ -95,7 +96,7 @@ dependencies:
 
 test:
   override:
-    - if [[ $(cat build.txt) == "html_dev-noplot" ]]; then cd doc && make html_dev-noplot; else make test-doc; cd doc && PATTERN=$(cat ../pattern.txt) make $(cat ../build.txt); fi:
+    - if [[ $(cat build.txt) == "html_dev-noplot" ]]; then cd doc && make html_dev-noplot; elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then cd doc && PATTERN=$(cat ../pattern.txt) make html_dev-pattern; else make test-doc; cd doc; make $(cat ../build.txt); fi:
           timeout: 1500
 
 general:
