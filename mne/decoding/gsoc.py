@@ -119,7 +119,7 @@ class UnsupervisedSpatialFilter(_EpochsTransformerMixin):
         self.n_chan = n_chan
         self._check_init()
         self.estimator = estimator
-        for attr in ['fit', 'transform', 'fit_transform']:
+        for attr in ('fit', 'transform', 'fit_transform'):
             if not hasattr(estimator, attr):
                 raise ValueError('estimator must be a sklearn transformer')
 
@@ -142,7 +142,7 @@ class UnsupervisedSpatialFilter(_EpochsTransformerMixin):
         X = self._reshape(X)
         n_epoch, n_chan, n_time = X.shape
         # trial as time samples
-        X = np.transpose(X, [1, 0, 2]).reshape([n_chan, n_epoch * n_time]).T
+        X = np.transpose(X, (1, 0, 2)).reshape((n_chan, n_epoch * n_time)).T
         self.estimator.fit(X)
         return self
 
@@ -170,8 +170,9 @@ class UnsupervisedSpatialFilter(_EpochsTransformerMixin):
 
         Parameters
         ----------
-        X : numpy array of dimensions [2,3,4]
-            The data to be reshaped.
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
+            The data to be filtered.
 
         Returns
         -------

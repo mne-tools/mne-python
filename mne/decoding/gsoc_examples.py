@@ -45,25 +45,6 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False,
 # Example of a PCA spatial filter
 spatial_filter = UnsupervisedSpatialFilter(PCA(10))
 X = spatial_filter.fit_transform(epochs)
-print(X.shape)  # X has components and not channels
-
-# pipeline for XdawnTransformer
-X, y = EpochsVectorizer().fit_transform(epochs)
-cv = StratifiedKFold(y=y, n_folds=10, shuffle=True, random_state=42)
-clf = make_pipeline(XdawnTransformer(n_chan=epochs.info['nchan'],
-                                     n_components=1),
-                    Vectorizer(), LogisticRegression())
-
-preds = np.empty(len(y))
-for train, test in cv:
-    clf.fit(X[train], y[train])
-    preds[test] = clf.predict(X[test])
-
-# pipeline for UnsupervisedTransformer
-clf = make_pipeline(UnsupervisedSpatialFilter(PCA(5), 
-                                              n_chan=epochs.info['nchan']),
-                    Vectorizer(), LogisticRegression())
-preds = np.empty(len(y))
-for train, test in cv:
-    clf.fit(X[train], y[train])
-    preds[test] = clf.predict(X[test])
+evoked = epochs.average()
+evoked.data = X
+evoked.plot_topomap()

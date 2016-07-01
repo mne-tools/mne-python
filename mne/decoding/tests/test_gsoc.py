@@ -1,6 +1,7 @@
 import numpy as np
 import os.path as op
-from numpy.testing import assert_array_equal, assert_equal
+from numpy.testing import (assert_array_equal, assert_equal,
+                          assert_array_almost_equal)
 from nose.tools import assert_raises
 from mne import (io, Epochs, read_events, pick_types,
                 compute_raw_covariance)
@@ -28,7 +29,7 @@ def _get_data():
     return raw, events, picks
 
 
-def test_EpochsTransformerMixin():
+def test_epochs_transformer_mixin():
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True,
                     baseline=None, verbose=False)
@@ -46,7 +47,7 @@ def test_EpochsTransformerMixin():
 
 
 @requires_sklearn
-def test_UnsupervisedSpatialFilter():
+def test_unsupervised_spatial_filter():
     from sklearn.decomposition import PCA
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -62,7 +63,8 @@ def test_UnsupervisedSpatialFilter():
     assert_equal(usf.transform(X).ndim, 3)
 
     # test fit_trasnform
-    assert_array_equal(usf.transform(X), usf1.fit_transform(X))
+    print(usf.transform(X), usf1.fit_transform(X))
+    assert_array_almost_equal(usf.transform(X), usf1.fit_transform(X))
 
     # assert shape
     assert_equal(usf.transform(X).shape[1], 5)
