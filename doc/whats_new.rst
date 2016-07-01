@@ -50,6 +50,8 @@ BUG
 
     - Fix to image scaling in :func:`mne.viz.plot_epochs_image` when plotting more than one channel by `Jaakko Leppakangas`_
 
+    - Fix :class:`mne.preprocessing.Xdawn` to fit shuffled epochs, , by `Jean-Remi King`_
+
 API
 ~~~
 
