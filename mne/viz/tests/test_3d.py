@@ -69,7 +69,7 @@ def test_plot_sparse_source_estimates():
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     colormap = 'mne_analyze'
     plot_source_estimates(stc, 'sample', colormap=colormap,
-                          background= (1, 1, 0),
+                          background=(1, 1, 0),
                           subjects_dir=subjects_dir, colorbar=True,
                           clim='auto')
     assert_raises(TypeError, plot_source_estimates, stc, 'sample',
