@@ -417,6 +417,7 @@ def read_surface(fname, read_metadata=False, verbose=None):
     read_metadata : bool
         Read metadata as key-value pairs.
         Valid keys:
+
             * 'head' : array of int
             * 'valid' : str
             * 'filename' : str
@@ -441,6 +442,7 @@ def read_surface(fname, read_metadata=False, verbose=None):
         together form a face).
     volume_info : dict-like
         If read_metadata is true, key-value pairs found in the geometry file.
+
     See Also
     --------
     write_surface
@@ -728,6 +730,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
     volume_info : dict-like or None
         Key-value pairs to encode at the end of the file.
         Valid keys:
+
             * 'head' : array of int
             * 'valid' : str
             * 'filename' : str

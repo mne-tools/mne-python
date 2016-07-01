@@ -100,7 +100,7 @@ raw.plot()
 raw.plot_psd()
 
 ###############################################################################
-# Plotting channel wise power spectra is just as easy. The layout is inferred
+# Plotting channel-wise power spectra is just as easy. The layout is inferred
 # from the data by default when plotting topo plots. This works for most data,
 # but it is also possible to define the layouts by hand. Here we select a
 # layout with only magnetometer channels and plot it. Then we plot the channel

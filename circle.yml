@@ -50,11 +50,43 @@ dependencies:
     - pip install sphinx_bootstrap_theme PySurfer nilearn neo numpydoc;
 
   override:
+    # Figure out if we should run a full, pattern, or noplot version
     - cd /home/ubuntu/mne-python && python setup.py develop;
-    - if [ "$CIRCLE_BRANCH" == "master" ] || [ "$CIRCLE_BRANCH" == "maint/0.12" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
-        mkdir -p ~/mne_data;
+    - python -c "import mne; print(mne.get_config('MNE_DATA'))"
+    - git branch -a
+    - PATTERN=""; NEED_SAMPLE=0;
+      if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
+        echo html_dev > build.txt;
+      elif [ "$CIRCLE_BRANCH" == "maint/0.12" ]; then
+        echo html_stable > build.txt;
+      else
+        FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH origin/master));
+        echo FNAMES="$FNAMES";
+        for FNAME in $FNAMES; do
+          if [[ `expr match $FNAME "\(tutorials\|examples\)/.*plot_.*\.py"` ]] ; then
+            PATTERN=`basename $FNAME`"\\|"$PATTERN;
+            NEED_SAMPLE=$(($NEED_SAMPLE + $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l)));
+          fi;
+        done;
+        echo PATTERN="$PATTERN";
+        echo NEED_SAMPLE="$NEED_SAMPLE";
+        if [[ $PATTERN ]]; then
+          PATTERN="\(${PATTERN::-2}\)";
+          echo html_dev-pattern > build.txt;
+        else
+          echo html_dev-noplot > build.txt;
+        fi;
+      fi;
+      echo "$PATTERN" > pattern.txt;
+      echo "$NEED_SAMPLE" > need_sample.txt
+    - echo BUILD="$(cat build.txt)"
+    - mkdir -p ~/mne_data;
+    - ls -al ~/mne_data;
+    - if [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
         python -c "import mne; mne.datasets._download_all_example_data()";
-      fi
+      elif [[ $(cat need_sample.txt) -gt 0 ]]; then
+        python -c "import mne; print(mne.datasets.sample.data_path())";
+      fi;
     - python -c "import mne; mne.sys_info()";
     - >
       if [ ! -d "/home/ubuntu/mne-tools.github.io" ]; then
@@ -64,14 +96,7 @@ dependencies:
 
 test:
   override:
-    - if [ "$CIRCLE_BRANCH" == "master" ] || [ "$CIRCLE_BRANCH" == "maint/0.12" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
-        make test-doc;
-      else
-        cd doc && make html_dev-noplot;
-      fi
-    - if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then cd doc && make html_dev; fi:
-          timeout: 1500
-    - if [ "$CIRCLE_BRANCH" == "maint/0.12" ]; then cd doc && make html_stable; fi:
+    - if [[ $(cat build.txt) == "html_dev-noplot" ]]; then cd doc && make html_dev-noplot; elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then cd doc && PATTERN=$(cat ../pattern.txt) make html_dev-pattern; else make test-doc; cd doc; make $(cat ../build.txt); fi:
           timeout: 1500
 
 general:
