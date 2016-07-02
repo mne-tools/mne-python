@@ -54,6 +54,7 @@ def test_searchlight():
     pipe.predict(X)
 
 
+@requires_sklearn
 def test_generalizationlight():
     X, y = make_data()
     n_epochs, _, n_time = X.shape
