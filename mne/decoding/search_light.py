@@ -187,14 +187,8 @@ def _sl_transform(estimators, X, method):
     n_sample, n_chan, n_iter = X.shape
     y_pred = np.array((n_sample, n_iter))
     for ii, est in enumerate(estimators):
-        if method == 'predict':
-            _y_pred = est.predict(X[:, :, ii])
-        elif method == 'predict_proba':
-            _y_pred = est.predict_proba(X[:, :, ii])
-        elif method == 'decision_function':
-            _y_pred = est.decision_function(X[:, :, ii])
-        elif method == 'transform':
-            _y_pred = est.transform(X[:, :, ii])
+        transform = getattr(est, method)
+        _y_pred = transform(X[:, :, ii])
         # init predictions
         if ii == 0:
             y_pred = _sl_init_pred(_y_pred, X)
@@ -314,14 +308,8 @@ def _gl_transform(estimators, X, method):
         # stack generalized data for faster prediction
         X_stack = np.transpose(X, [1, 0, 2])
         X_stack = np.reshape(X_stack, [n_chan, n_sample * n_iter]).T
-        if method == 'predict':
-            _y_pred = est.predict(X_stack)
-        elif method == 'transform':
-            _y_pred = est.transform(X_stack)
-        elif method == 'decision_function':
-            _y_pred = est.decision_function(X_stack)
-        elif method == 'predict_proba':
-            _y_pred = est.predict_proba(X_stack)
+        transform = getattr(est, method)
+        _y_pred = transform(X_stack)
         # unstack generalizations
         if _y_pred.ndim == 2:
             _y_pred = np.reshape(_y_pred, [n_sample, n_iter])
