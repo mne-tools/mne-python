@@ -2090,7 +2090,7 @@ class Epochs(_BaseEpochs):
         # proj is on when applied in Raw
         proj = proj or raw.proj
 
-        if events is None
+        if events is None:
             if isinstance(info['events'], np.ndarray):
                 events = info['events']
             else:
