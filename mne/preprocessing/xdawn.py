@@ -156,9 +156,6 @@ class _Xdawn(object):
         self.n_components = n_components
         self.signal_cov = signal_cov
         self.reg = reg
-        self.filters_ = dict()
-        self.patterns_ = dict()
-        self.evokeds_cov_ = dict()
 
     def _get_signal_cov(self, epochs_data):
         if self.signal_cov is None:
@@ -187,6 +184,10 @@ class _Xdawn(object):
 
     def _fit_xdawn(self, epochs_data, y, event_id, events=None, tmin=None,
                    tmax=None, info=None, baseline=None):
+        self.filters_ = dict()
+        self.patterns_ = dict()
+        self.evokeds_cov_ = dict()
+
         if self.correct_overlap:
             if baseline is not None:
                 raise ValueError('Baseline correction must be None if overlap '
@@ -231,8 +232,7 @@ class _Xdawn(object):
 
         # Apply spatial filters
         X = np.dot(full_filters.T, epochs_data)
-        X = X.transpose((1, 0, 2))
-        return X
+        return X.transpose((1, 0, 2))
 
     def _pick_sources(self, data, include, exclude, eid):
         """Aux method."""
@@ -297,7 +297,7 @@ class Xdawn(_Xdawn, ContainsMixin):
     ``patterns_`` : dict of ndarray
         If fit, the Xdawn patterns used to restore M/EEG signals for each event
         type, else empty.
-    ``evokeds_`` : dict of evoked instance
+    ``evokeds_`` : dict of ndarray
         If fit, the evoked response for each event type.
 
     Notes
@@ -391,12 +391,6 @@ class Xdawn(_Xdawn, ContainsMixin):
                              'type or numpy array')
 
         return self._transform_xdawn(epochs_data)
-
-    @property
-    def get_evoked(self, cond):
-        """EvokedArray of specified condition."""
-        return EvokedArray(self.evoked_[cond], info=self._info,
-                           tmin=self._tmin)
 
     def apply(self, inst, event_id=None, include=None, exclude=None):
         """Remove selected components from the signal.

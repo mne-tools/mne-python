@@ -1,6 +1,7 @@
-import numpy as np
 import os.path as op
-from nose.tools import (assert_raises)
+import numpy as np
+from numpy.testing import assert_array_equal
+from nose.tools import assert_raises
 from numpy.testing import assert_array_equal
 from mne import (io, Epochs, read_events, pick_types,
                  compute_raw_covariance)
@@ -36,31 +37,30 @@ def test_xdawntransformer_fit():
                     preload=True, baseline=None, verbose=False)
     X = epochs._data
     y = epochs.events[:, -1]
-    print(y)
     # =========== Basic Fit test =================
     # test base xdawn
-    xd = XdawnTransformer(n_components=2, signal_cov=None, reg=None)
+    xd = XdawnTransformer()
     xd.fit(X, y)
 
     # ========== with signal cov provided ====================
     # provide covariance object
     signal_cov = compute_raw_covariance(raw, picks=picks)
-    xd = XdawnTransformer(n_components=2, signal_cov=signal_cov, reg=None)
+    xd = XdawnTransformer(signal_cov=signal_cov)
     xd.fit(X, y)
     # provide ndarray
     signal_cov = np.eye(len(picks))
-    xd = XdawnTransformer(n_components=2, signal_cov=signal_cov, reg=None)
+    xd = XdawnTransformer(signal_cov=signal_cov)
     xd.fit(X, y)
     # provide ndarray of bad shape
     signal_cov = np.eye(len(picks) - 1)
-    xd = XdawnTransformer(n_components=2, signal_cov=signal_cov, reg=None)
+    xd = XdawnTransformer(signal_cov=signal_cov)
     assert_raises(ValueError, xd.fit, X, y)
     # provide another type
     signal_cov = 42
-    xd = XdawnTransformer(n_components=2, signal_cov=signal_cov, reg=None)
+    xd = XdawnTransformer(signal_cov=signal_cov)
     assert_raises(ValueError, xd.fit, X, y)
     # fit with y as None results in error
-    xd = XdawnTransformer(n_components=2, signal_cov=None, reg=None)
+    xd = XdawnTransformer()
     assert_raises(ValueError, xd.fit, X, None)
 
     # compare xdawn and xdawntransforer
@@ -82,7 +82,7 @@ def test_xdawn_transform_and_inverse_transform():
     X = epochs._data
     y = epochs.events[:, -1]
     # Fit Xdawn
-    xd = XdawnTransformer(n_components=2)
+    xd = XdawnTransformer()
     xd.fit(X, y)
 
     # transform
