@@ -23,7 +23,7 @@ import mne
 from mne.datasets import sample
 
 from mne.preprocessing import ICA
-from mne.preprocessing import create_eog_epochs
+from mne.preprocessing import create_eog_epochs, create_ecg_epochs
 
 # getting some data ready
 data_path = sample.data_path()
@@ -76,20 +76,19 @@ ica.plot_components()  # can you see some potential bad guys?
 # Component properties
 # --------------------
 #
-# Let's take a closer look at three potential candidates for artifact-related
-# components: IC 12, IC 15 and IC 21
+# Let's take a closer at properties of first three independent components
 
-# first, component 12:
-ica.plot_properties(raw, picks=12, dB=True)
-
-###############################################################################
-# it looks like a blink component, but because the data were filtered
-# the spectrum plot is not very informative, let's change that:
-ica.plot_properties(raw, picks=12, dB=True, psd_args={'fmax': 35.})
+# first, component 0:
+ica.plot_properties(raw, picks=0)
 
 ###############################################################################
-# now let's inspect properties of components 15 and 21 (cardiac activity):
-ica.plot_properties(raw, picks=[15, 21], psd_args={'fmax': 35.})
+# we can see that the data were filtered so the spectrum plot is not
+# very informative, let's change that:
+ica.plot_properties(raw, picks=0, psd_args={'fmax': 35.})
+
+###############################################################################
+# we can also take a look at multiple different components at once:
+ica.plot_properties(raw, picks=[1, 2], psd_args={'fmax': 35.})
 
 
 ###############################################################################
@@ -113,12 +112,12 @@ ica.plot_scores(scores, exclude=eog_inds)  # look at r scores of components
 ica.plot_sources(eog_average, exclude=eog_inds)  # look at source time course
 
 ###############################################################################
-# We can take a look at the properties of that component again, now using the
+# We can take a look at the properties of that component, now using the
 # data epoched with respect to EOG events.
 # We will also use a little bit of smoothing along the trials axis in the
 # epochs image:
-ica.plot_properties(eog_epochs, picks=eog_inds, dB=True,
-                    psd_args={'fmax': 35.}, image_args={'sigma': 1.})
+ica.plot_properties(eog_epochs, picks=eog_inds, psd_args={'fmax': 35.},
+                    image_args={'sigma': 1.})
 
 ###############################################################################
 # That component is showing a prototypical average vertical EOG time course.
@@ -152,7 +151,12 @@ ica.exclude.extend(eog_inds)
 
 ###############################################################################
 # Exercise: find and remove ECG artifacts using ICA!
-#
+ecg_epochs = create_ecg_epochs(raw, tmin=-.5, tmax=.5)
+ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
+ica.plot_properties(ecg_epochs, picks=ecg_inds, psd_args={'fmax': 35.})
+
+
+###############################################################################
 # What if we don't have an EOG channel?
 # -------------------------------------
 #
