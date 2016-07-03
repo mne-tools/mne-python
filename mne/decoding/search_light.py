@@ -5,7 +5,7 @@
 import numpy as np
 
 from .mixin import TransformerMixin
-from .base import BaseEstimator  # XXX why are these copied in weird places. We should just have an externals.sklearn, not manually copy/pasted objects  # noqa
+from .base import BaseEstimator  # XXX why are these sklearn object copied in weird places. We should just have an externals.sklearn? # noqa
 from ..parallel import parallel_func
 
 
@@ -68,6 +68,7 @@ class SearchLight(BaseEstimator, TransformerMixin):
         """
         self._check_Xy(X, y)
         self.estimators_ = list()
+        # For fitting, the parallelization is across estimators.
         parallel, p_func, n_jobs = parallel_func(_sl_fit, self.n_jobs)
         estimators = parallel(
             p_func(self.base_estimator, split, y)
@@ -78,6 +79,8 @@ class SearchLight(BaseEstimator, TransformerMixin):
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation"""
         self._check_Xy(X)
+        # For predictions/transforms the parallelization is across the data and
+        # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(_sl_transform, self.n_jobs)
         X_splits = np.array_split(X, n_jobs, axis=-1)
         est_splits = np.array_split(self.estimators_, n_jobs)

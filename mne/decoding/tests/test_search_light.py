@@ -46,7 +46,8 @@ def test_searchlight():
 
     # pipeline
 
-    class _LogRegTransformer(LogisticRegression):  # XXX needs transformer in pipeline  # noqa
+    class _LogRegTransformer(LogisticRegression):
+        # XXX needs transformer in pipeline to get first proba only
         def transform(self, X):
             return super(_LogRegTransformer, self).predict_proba(X)[..., 1]
 
