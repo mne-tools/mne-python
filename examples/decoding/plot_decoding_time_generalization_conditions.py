@@ -25,10 +25,11 @@ can predict accurately over time and on a second set of conditions.
 # License: BSD (3-clause)
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.decoding import GeneralizationAcrossTime
+from mne.decoding import GeneralizationLight
 
 print(__doc__)
 
@@ -59,7 +60,7 @@ epochs = mne.Epochs(raw, events, event_id, -0.050, 0.400, proj=True,
 triggers = epochs.events[:, 2]
 viz_vs_auditory = np.in1d(triggers, (1, 2)).astype(int)
 
-gat = GeneralizationAcrossTime(predict_mode='mean-prediction', n_jobs=1)
+gat = GeneralizationLight(n_jobs=1)
 
 # For our left events, which ones are visual?
 viz_vs_auditory_l = (triggers[np.in1d(triggers, (1, 3))] == 3).astype(int)
@@ -67,11 +68,10 @@ viz_vs_auditory_l = (triggers[np.in1d(triggers, (1, 3))] == 3).astype(int)
 # in the same line. This results in an array of zeros and ones:
 print("The unique classes' labels are: %s" % np.unique(viz_vs_auditory_l))
 
-gat.fit(epochs[('AudL', 'VisL')], y=viz_vs_auditory_l)
+gat.fit(epochs[('AudL', 'VisL')].get_data(), y=viz_vs_auditory_l)
 
 # For our right events, which ones are visual?
 viz_vs_auditory_r = (triggers[np.in1d(triggers, (2, 4))] == 4).astype(int)
 
-gat.score(epochs[('AudR', 'VisR')], y=viz_vs_auditory_r)
-gat.plot(
-    title="Generalization Across Time (visual vs auditory): left to right")
+score = gat.score(epochs[('AudR', 'VisR')].get_data, y=viz_vs_auditory_r)
+plt.matshow(score, origin='lower', cmap='RdBu_r', vmin=0., vmax=1.)

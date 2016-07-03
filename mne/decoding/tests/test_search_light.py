@@ -34,15 +34,21 @@ def test_searchlight():
     assert_raises(ValueError, sl.fit, X[:, :, 0], y)
 
     # transforms
+    assert_raises(ValueError, sl.predict, X[:, :, :2])
     y_pred = sl.predict(X)
     assert_array_equal(y_pred.shape, [n_epochs, n_time])
     y_proba = sl.predict_proba(X)
     assert_array_equal(y_proba.shape, [n_epochs, n_time, 2])
 
+    # score
+    score = sl.score(X, y)
+    assert_array_equal(score.shape, [n_time])
+
     # n_jobs
     sl = SearchLight(n_jobs=2)
     sl.fit(X, y)
     sl.predict(X)
+    sl.score(X, y)
 
     # pipeline
 
@@ -72,6 +78,10 @@ def test_generalizationlight():
     # transform to different datasize
     y_pred = gl.predict(X[:, :, :2])
     assert_array_equal(y_pred.shape, [n_epochs, n_time, 2])
+
+    # score
+    score = gl.score(X[:, :, :3], y)
+    assert_array_equal(score.shape, [n_time, 3])
 
     # n_jobs
     gl = GeneralizationLight(n_jobs=2)
