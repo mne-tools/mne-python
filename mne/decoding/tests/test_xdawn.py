@@ -2,7 +2,6 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_array_equal
 from nose.tools import assert_raises
-from numpy.testing import assert_array_equal
 from mne import (io, Epochs, read_events, pick_types,
                  compute_raw_covariance)
 from mne.utils import requires_sklearn, run_tests_if_main
@@ -91,7 +90,7 @@ def test_xdawn_transform_and_inverse_transform():
     assert_raises(ValueError, xd.transform, 42)
 
     # inverse transform testing
-    xd.inverse_transform(X)
+    assert(xd.inverse_transform(X).ndim, 3)
 
     # should raise an error if not np.ndarray
     assert_raises(ValueError, xd.inverse_transform, 42)

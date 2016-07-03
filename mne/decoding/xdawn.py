@@ -157,7 +157,7 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
 
         Returns
         -------
-        out : np.ndarray, shape(n_channels, n_times, n_freqs)
+        X : np.ndarray, shape(n_epochs, n_channels, n_times)
             Array for each event type in event_id concatenated sequentially.
         """
 

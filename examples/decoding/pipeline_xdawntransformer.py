@@ -27,10 +27,10 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
                 add_eeg_ref=False, verbose=False)
 
 X = epochs._data
-y = epochs.events[:, -1]
+y = epochs.events[:, 2]
 
-clf = make_pipeline(XdawnTransformer(n_components=3,
-                    n_chan=epochs.info['nchan']),
-                    Vectorizer()
+clf = make_pipeline(XdawnTransformer(n_components=3),
+                    Vectorizer(),
                     LogisticRegression(penalty='l1'))
-print(cross_val_score(clf, X, y, cv=5))
+score = cross_val_score(clf, X, y, cv=5)
+print(score)
