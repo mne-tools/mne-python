@@ -248,7 +248,7 @@ class _Xdawn(object):
             mask[np.unique(include)] = False
             sources[mask] = 0.
             logger.info('Zeroing out %i Xdawn components' % mask.sum())
-        elif exclude not in (None, []):
+        elif exclude is not None:
             exclude_ = np.unique(exclude)
             sources[exclude_] = 0.
             logger.info('Zeroing out %i Xdawn components' % len(exclude_))
@@ -364,9 +364,9 @@ class Xdawn(_Xdawn, ContainsMixin):
         self._fit_xdawn(epochs_data, events[:, -1], event_id, events,
                         epochs.tmin, epochs.tmax, epochs.info['sfreq'],
                         epochs.baseline)
-        # store some values
+
         self.ch_names = epochs.ch_names
-        self.exclude = list(range(self.n_components, len(self.ch_names)))
+        self.exclude = np.arange(self.n_components, len(self.ch_names))
         self.event_id = event_id
         self._tmin = epochs.tmin
         self._get_evokeds(epochs.info, tmin=epochs.tmin)
