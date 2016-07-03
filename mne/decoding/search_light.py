@@ -10,9 +10,9 @@ from ..parallel import parallel_func
 
 
 class SearchLight(BaseEstimator, TransformerMixin):
-    """Search Light
-    Fit, predict and score a series of models to each subset of the
-    dataset along the third dimension.
+    """Search Light.
+    Fit, predict and score a series of models to each subset of the dataset
+    along the third dimension.
 
     Parameters
     ----------
@@ -166,6 +166,10 @@ class SearchLight(BaseEstimator, TransformerMixin):
         -------
         y_pred : array, shape (n_samples, n_iterations, n_classes * (n_classes-1) / 2)  # noqa
             Predicted distances for each estimator/iteration.
+
+        Notes
+        -----
+        This requires base_estimator to have a `decision_function` method.
         """
         if not hasattr(self.base_estimator, 'decision_function'):
             ValueError('self.base_estimator does not have `decision_function` '
@@ -173,6 +177,7 @@ class SearchLight(BaseEstimator, TransformerMixin):
         return self._transform(X, 'decision_function')
 
     def _check_Xy(self, X, y=None):
+        """Aux. function to check input data."""
         if y is not None:
             if len(X) != len(y) or len(y) < 1:
                 raise ValueError('X and y must have the same length.')
@@ -206,7 +211,7 @@ def _sl_transform(estimators, X, method):
 
 
 def _sl_init_pred(y_pred, X):
-    """Aux. function to initialize search lights predictions"""
+    """Aux. function to SearchLight to initialize y_pred"""
     n_sample, n_chan, n_iter = X.shape
     if y_pred.ndim > 1:
         # for estimator that generate multidimensional y_pred,
@@ -282,12 +287,49 @@ class GeneralizationLight(SearchLight):
         return self._transform(X, 'predict')
 
     def predict_proba(self, X):
+        """Estimate probabilistic estimates of the dataset with a series of
+        independent estimators.
+
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_features, n_estimators)
+            The training input samples. For each iteration, a clone estimator
+            is fitted independently.
+
+        Returns
+        -------
+        y_pred : array, shape (n_samples, n_estimators, n_tested_dimensions, n_classes)  # noqa
+            Predicted values for each estimator.
+
+        Notes
+        -----
+        This requires base_estimator to have a `predict_proba` method.
+        """
+
         if not hasattr(self.base_estimator, 'predict_proba'):
             ValueError('self.base_estimator does not have `predict_proba` '
                        'method.')
         return self._transform(X, 'predict_proba')
 
     def decision_function(self, X):
+        """Distances of the samples X to the separating hyperplanes.
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_features, n_estimators)
+            The training input samples. For each iteration, a clone estimator
+            is fitted independently.
+
+        Returns
+        -------
+        y_pred : array, shape (n_samples, n_estimators, n_tested_dimensions, n_classes)  # noqa
+            Predicted values for each estimator.
+
+        Notes
+        -----
+        This requires base_estimator to have a `decision_function` method.
+        """
         if not hasattr(self.base_estimator, 'decision_function'):
             ValueError('self.base_estimator does not have `decision_function` '
                        'method.')
@@ -334,6 +376,7 @@ def _gl_transform(estimators, X, method):
 
 
 def _gl_init_pred(y_pred, X, n_train):
+    """Aux. function to GeneralizationLight to initialize y_pred"""
     n_sample, n_chan, n_iter = X.shape
     if y_pred.ndim == 3:
         y_pred = np.zeros((n_sample, n_train, n_iter, y_pred.shape[-1]))
