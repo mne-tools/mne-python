@@ -68,6 +68,10 @@ def test_generalizationlight():
     y_pred = gl.predict(X)
     assert_array_equal(y_pred.shape, [n_epochs, n_time, n_time])
 
+    # transform to different datasize
+    y_pred = gl.predict(X[:, :, :2])
+    assert_array_equal(y_pred.shape, [n_epochs, n_time, 2])
+
     # n_jobs
     gl = GeneralizationLight(n_jobs=2)
     gl.fit(X, y)
