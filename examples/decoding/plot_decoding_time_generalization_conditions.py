@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.decoding.search_light import GeneralizationLight, SearchLight
+from mne.decoding.search_light import GeneralizationLight
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
@@ -42,34 +42,28 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 events_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-picks = mne.pick_types(raw.info, meg=True, exclude='bads')  # Pick MEG channels
-# Band pass filter signals
-raw.filter(1, 30, method='fir', filter_length='auto',
-           l_trans_bandwidth='auto', h_trans_bandwidth='auto', phase='zero')
+picks = mne.pick_types(raw.info, meg='mag')  # Pick magnetometers only
 events = mne.read_events(events_fname)
 event_id = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
 decim = 2  # decimate to make the example faster to run
 epochs = mne.Epochs(raw, events, event_id, -0.050, 0.400, proj=True,
                     picks=picks, baseline=None, preload=True,
-                    reject=dict(mag=5e-12), decim=decim, verbose=False)
+                    decim=decim, verbose=False)
 
 # We will train the classifier on all left visual vs auditory trials
 # and test on all right visual vs auditory trials.
 
 # In this case, because the test data is independent from the train data,
-# we test the classifier of each fold and average the respective predictions.
+# we do not need a cross validation.
 
 # Define events of interest
 triggers = epochs.events[:, 2]
-viz_vs_auditory = np.in1d(triggers, (1, 2)).astype(int)
 
 gat = GeneralizationLight(
     make_pipeline(StandardScaler(), LogisticRegression()),
     n_jobs=1)
 
 # For our left events, which ones are visual?
-# To make scikit-learn happy, we converted the bool array to integers
-# in the same line. This results in an array of zeros and ones:
 X = epochs[('AudL', 'VisL')].get_data()
 y = triggers[np.in1d(triggers, (1, 3))] == 3
 gat.fit(X, y)
@@ -81,8 +75,9 @@ score = gat.score(X, y)
 
 # Plot
 extent = epochs.times[[0, -1, 0, -1]]
-plt.matshow(score, origin='lower', cmap='RdBu_r', vmin=0., vmax=1.,
-            extent=extent)
+im = plt.matshow(score, origin='lower', cmap='RdBu_r', vmin=0., vmax=1.,
+                 extent=extent)
 plt.axvline(0, color='k')
 plt.axhline(0, color='k')
+plt.colorbar(im)
 plt.show()
