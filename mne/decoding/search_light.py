@@ -66,18 +66,20 @@ class SearchLight(BaseEstimator, TransformerMixin):
         self : object
             Return self.
         """
+        self._check_Xy(X, y)
         self.estimators_ = list()
         parallel, p_func, n_jobs = parallel_func(_sl_fit, self.n_jobs)
         estimators = parallel(
             p_func(self.base_estimator, split, y)
-            for split in np.array_split(X, n_jobs, axis=2))
+            for split in np.array_split(X, n_jobs, axis=-1))
         self.estimators_ = np.concatenate(estimators, 0)
         return self
 
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation"""
+        self._check_Xy(X)
         parallel, p_func, n_jobs = parallel_func(_sl_transform, self.n_jobs)
-        X_splits = np.array_split(X, n_jobs, axis=2)
+        X_splits = np.array_split(X, n_jobs, axis=-1)
         est_splits = np.array_split(self.estimators_, n_jobs)
         y_pred = parallel(p_func(est, x, method)
                           for (est, x) in zip(est_splits, X_splits))
@@ -96,7 +98,7 @@ class SearchLight(BaseEstimator, TransformerMixin):
         X : array, shape (n_samples, n_features, n_estimators)
             The input samples. For each iteration, the corresponding estimator
             makes a transformation of the data:
-            e.g. [estimators[ii].transform(X[:, :, ii])
+            e.g. [estimators[ii].transform(X[..., ii])
                   for ii in range(n_estimators)]
 
         Returns
@@ -116,7 +118,7 @@ class SearchLight(BaseEstimator, TransformerMixin):
         X : array, shape (n_samples, n_features, n_estimators)
             The input samples. For each iteration, the corresponding estimator
             makes the sample predictions:
-            e.g. [estimators[ii].predict(X[:, :, ii])
+            e.g. [estimators[ii].predict(X[..., ii])
                   for ii in range(n_estimators)]
 
         Returns
@@ -136,7 +138,7 @@ class SearchLight(BaseEstimator, TransformerMixin):
         X : array, shape (n_samples, n_features, n_estimators)
             The input samples. For each iteration, the corresponding estimator
             makes the sample probabilistic predictions:
-            e.g. [estimators[ii].predict_proba(X[:, :, ii])
+            e.g. [estimators[ii].predict_proba(X[..., ii])
                   for ii in range(n_estimators)]
 
         Returns
@@ -157,7 +159,7 @@ class SearchLight(BaseEstimator, TransformerMixin):
         X : array, shape (n_samples, n_features, n_estimators)
             The input samples. For each iteration, the corresponding estimator
             makes the sample probabilistic predictions:
-            e.g. [estimators[ii].decision_function(X[:, :, ii])
+            e.g. [estimators[ii].decision_function(X[..., ii])
                   for ii in range(n_estimators)]
 
         Returns
@@ -170,14 +172,21 @@ class SearchLight(BaseEstimator, TransformerMixin):
                        'method.')
         return self._transform(X, 'decision_function')
 
+    def _check_Xy(self, X, y=None):
+        if y is not None:
+            if len(X) != len(y) or len(y) < 1:
+                raise ValueError('X and y must have the same length.')
+        if X.ndim != 3:
+            raise ValueError('X must have at least 3 dimensions.')
+
 
 def _sl_fit(estimator, X, y):
     """Aux. function to fit search lights in parallel"""
     from sklearn.base import clone
     estimators_ = list()
-    for ii in range(X.shape[2]):
+    for ii in range(X.shape[-1]):
         est = clone(estimator)
-        est.fit(X[:, :, ii], y)
+        est.fit(X[..., ii], y)
         estimators_.append(est)
     return estimators_
 
@@ -188,7 +197,7 @@ def _sl_transform(estimators, X, method):
     y_pred = np.array((n_sample, n_iter))
     for ii, est in enumerate(estimators):
         transform = getattr(est, method)
-        _y_pred = transform(X[:, :, ii])
+        _y_pred = transform(X[..., ii])
         # init predictions
         if ii == 0:
             y_pred = _sl_init_pred(_y_pred, X)
@@ -228,6 +237,7 @@ class GeneralizationLight(SearchLight):
 
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation"""
+        self._check_Xy(X)
         parallel, p_func, n_jobs = parallel_func(_gl_transform, self.n_jobs)
         y_pred = parallel(
             p_func(self.estimators_, x_split, method)

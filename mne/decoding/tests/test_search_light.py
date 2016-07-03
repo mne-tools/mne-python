@@ -4,7 +4,7 @@
 
 
 import numpy as np
-from nose.tools import assert_true
+from nose.tools import assert_raises
 from numpy.testing import assert_array_equal
 from mne.utils import requires_sklearn
 from ..search_light import SearchLight, GeneralizationLight
@@ -30,6 +30,8 @@ def test_searchlight():
     # fit
     sl = SearchLight()
     sl.fit(X, y)
+    assert_raises(ValueError, sl.fit, X[1:], y)
+    assert_raises(ValueError, sl.fit, X[:, :, 0], y)
 
     # transforms
     y_pred = sl.predict(X)
