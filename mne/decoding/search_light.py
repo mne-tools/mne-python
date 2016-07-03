@@ -477,11 +477,15 @@ def _gl_score(estimators, X, y):
     """Aux. function to score GeneralizationLight in parallel"""
     # FIXME: The parallization is a bit high, it might be memory consuming.
     n_sample, n_chan, n_iter = X.shape
+    n_est = len(estimators)
     for ii, est in enumerate(estimators):
         for jj in range(X.shape[-1]):
             _score = est.score(X[..., jj], y)
             # init predictions
             if (ii == 0) & (jj == 0):
-                score = np.zeros(np.r_[len(estimators), n_iter, _score.shape])
-        score[ii, jj, ...] = _score
+                if np.ndim(_score):
+                    score = np.zeros(np.r_[n_est, n_iter, _score.shape])
+                else:
+                    score = np.zeros([n_est, n_iter])
+            score[ii, jj, ...] = _score
     return score

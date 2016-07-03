@@ -29,7 +29,10 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.decoding import GeneralizationLight
+from mne.decoding.search_light import GeneralizationLight, SearchLight
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
 
 print(__doc__)
 
@@ -60,18 +63,26 @@ epochs = mne.Epochs(raw, events, event_id, -0.050, 0.400, proj=True,
 triggers = epochs.events[:, 2]
 viz_vs_auditory = np.in1d(triggers, (1, 2)).astype(int)
 
-gat = GeneralizationLight(n_jobs=1)
+gat = GeneralizationLight(
+    make_pipeline(StandardScaler(), LogisticRegression()),
+    n_jobs=1)
 
 # For our left events, which ones are visual?
-viz_vs_auditory_l = (triggers[np.in1d(triggers, (1, 3))] == 3).astype(int)
 # To make scikit-learn happy, we converted the bool array to integers
 # in the same line. This results in an array of zeros and ones:
-print("The unique classes' labels are: %s" % np.unique(viz_vs_auditory_l))
-
-gat.fit(epochs[('AudL', 'VisL')].get_data(), y=viz_vs_auditory_l)
+X = epochs[('AudL', 'VisL')].get_data()
+y = triggers[np.in1d(triggers, (1, 3))] == 3
+gat.fit(X, y)
 
 # For our right events, which ones are visual?
-viz_vs_auditory_r = (triggers[np.in1d(triggers, (2, 4))] == 4).astype(int)
+X = epochs[('AudR', 'VisR')].get_data()
+y = triggers[np.in1d(triggers, (2, 4))] == 4
+score = gat.score(X, y)
 
-score = gat.score(epochs[('AudR', 'VisR')].get_data, y=viz_vs_auditory_r)
-plt.matshow(score, origin='lower', cmap='RdBu_r', vmin=0., vmax=1.)
+# Plot
+extent = epochs.times[[0, -1, 0, -1]]
+plt.matshow(score, origin='lower', cmap='RdBu_r', vmin=0., vmax=1.,
+            extent=extent)
+plt.axvline(0, color='k')
+plt.axhline(0, color='k')
+plt.show()
