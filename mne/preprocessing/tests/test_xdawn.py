@@ -52,7 +52,7 @@ def test_xdawn_fit():
     assert_equal(xd.correct_overlap, False)
     # no overlapp correction should give averaged evoked
     evoked = epochs['cond2'].average()
-    assert_array_equal(evoked.data, xd.evokeds_['cond2'])
+    assert_array_equal(evoked.data, xd.evokeds_['cond2'].data)
 
     # ========== with signal cov provided ====================
     # provide covariance object

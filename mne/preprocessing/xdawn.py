@@ -107,7 +107,7 @@ def _construct_signal_from_epochs(events, sfreq, tmin, tmax, epochs_data):
     return data
 
 
-def least_square_evoked(epochs_data, events, event_id, tmin, tmax, info,
+def least_square_evoked(epochs_data, events, event_id, tmin, tmax, sfreq,
                         return_toeplitz=False):
     """Least square estimation of evoked response from a Epochs instance.
 
@@ -128,19 +128,15 @@ def least_square_evoked(epochs_data, events, event_id, tmin, tmax, info,
     """
 
     events = events.copy()
-    events[:, 0] -= events[0, 0] + int(tmin * info['sfreq'])
-    data = _construct_signal_from_epochs(events, info['sfreq'], tmin, tmax,
+    events[:, 0] -= events[0, 0] + int(tmin * sfreq)
+    data = _construct_signal_from_epochs(events, sfreq, tmin, tmax,
                                          epochs_data)
     evoked_data, toeplitz = _least_square_evoked(data, events, event_id,
                                                  tmin=tmin, tmax=tmax,
-                                                 sfreq=info['sfreq'])
+                                                 sfreq=sfreq)
     evokeds = dict()
-    info = cp.deepcopy(info)
     for name, data in evoked_data.items():
-        n_events = len(events[events[:, 2] == event_id[name]])
-        evoked = EvokedArray(data, info, tmin=tmin,
-                             comment=name, nave=n_events)
-        evokeds[name] = evoked.data
+        evokeds[name] = data
 
     if return_toeplitz:
         return evokeds, toeplitz
@@ -183,7 +179,7 @@ class _Xdawn(object):
         return epochs_data_dict
 
     def _fit_xdawn(self, epochs_data, y, event_id, events=None, tmin=None,
-                   tmax=None, info=None, baseline=None):
+                   tmax=None, sfreq=None, baseline=None):
         self.filters_ = dict()
         self.patterns_ = dict()
         self.evokeds_cov_ = dict()
@@ -194,7 +190,7 @@ class _Xdawn(object):
                                  'correction activated')
             evokeds, toeplitz = least_square_evoked(epochs_data, events,
                                                     event_id, tmin, tmax,
-                                                    info,
+                                                    sfreq,
                                                     return_toeplitz=True)
         else:
             epochs_data_dict = self._epochs_data_dict(epochs_data, y,
@@ -204,7 +200,7 @@ class _Xdawn(object):
             for eid in event_id:
                 evokeds[eid] = np.mean(epochs_data_dict[eid], axis=0)
                 toeplitz[eid] = 1.0
-        self.evokeds_ = evokeds
+        self._evokeds = evokeds
 
         for eid in event_id:
             data = np.dot(evokeds[eid], toeplitz[eid])
@@ -240,7 +236,7 @@ class _Xdawn(object):
         if exclude is None:
             exclude = self.exclude
         else:
-            exclude = list(set(list(self.exclude) + list(exclude)))
+            exclude = np.unique(np.r_[self.exclude, exclude])
 
         logger.info('Transforming to Xdawn space')
 
@@ -297,7 +293,7 @@ class Xdawn(_Xdawn, ContainsMixin):
     ``patterns_`` : dict of ndarray
         If fit, the Xdawn patterns used to restore M/EEG signals for each event
         type, else empty.
-    ``evokeds_`` : dict of ndarray
+    ``evokeds_`` : dict of evoked instances
         If fit, the evoked response for each event type.
 
     Notes
@@ -338,6 +334,13 @@ class Xdawn(_Xdawn, ContainsMixin):
         event_id = epochs.event_id
         return events, epochs_data, event_id
 
+    def _get_evokeds(self, info, tmin):
+        """Evoked dict"""
+        self.evokeds_ = dict()
+        for eid in self.event_id:
+            self.evokeds_[eid] = EvokedArray(self._evokeds[eid], info=info,
+                                             tmin=tmin)
+
     def fit(self, epochs, y=None):
         """Fit Xdawn from epochs.
 
@@ -359,14 +362,14 @@ class Xdawn(_Xdawn, ContainsMixin):
         events, epochs_data, event_id = self._preproc_epochs(epochs)
         self._get_signal_cov(epochs_data)
         self._fit_xdawn(epochs_data, events[:, -1], event_id, events,
-                        epochs.tmin, epochs.tmax, epochs.info,
+                        epochs.tmin, epochs.tmax, epochs.info['sfreq'],
                         epochs.baseline)
         # store some values
         self.ch_names = epochs.ch_names
         self.exclude = list(range(self.n_components, len(self.ch_names)))
         self.event_id = event_id
-        self._info = epochs.info
         self._tmin = epochs.tmin
+        self._get_evokeds(epochs.info, tmin=epochs.tmin)
         return self
 
     def transform(self, epochs):
