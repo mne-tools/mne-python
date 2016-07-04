@@ -543,4 +543,17 @@ def test_add_channels():
     assert_raises(AssertionError, evoked_meg.add_channels, evoked_badsf)
 
 
+def test_evoked_baseline():
+    """Test evoked baseline"""
+    evoked = read_evokeds(fname, condition=0, baseline=None)
+
+    # Here we create a data_set with constant data.
+    evoked = EvokedArray(np.ones_like(evoked.data), evoked.info, evoked.times[0])
+
+    # Mean baseline correction is applied, since the data is equal to its mean
+    # the resulting data should be a matrix of zeroes.
+    evoked.apply_baseline((None, None))
+
+    assert_allclose(evoked.data, np.zeros_like(evoked.data))
+
 run_tests_if_main()
