@@ -986,7 +986,7 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
 
 
 def scale_mri(subject_from, subject_to, scale, overwrite=False,
-              subjects_dir=None, skip_fiducials=False):
+              subjects_dir=None, skip_fiducials=False, labels=True):
     """Create a scaled copy of an MRI subject.
 
     Parameters
@@ -1004,6 +1004,8 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     skip_fiducials : bool
         Do not scale the MRI fiducials. If False (default), an IOError will be
         raised if no fiducials file can be found.
+    labels : bool
+        Also scale all labels (default True).
 
     See Also
     --------
@@ -1068,8 +1070,10 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
                            subjects_dir)
 
     # labels [in m]
-    scale_labels(subject_to, subject_from=subject_from, scale=scale,
-                 subjects_dir=subjects_dir)
+    os.mkdir(os.path.join(subjects_dir, subject_to, 'label'))
+    if labels:
+        scale_labels(subject_to, subject_from=subject_from, scale=scale,
+                     subjects_dir=subjects_dir)
 
 
 def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
