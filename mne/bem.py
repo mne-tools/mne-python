@@ -318,9 +318,7 @@ def make_bem_solution(surfs, verbose=None):
         logger.info('Homogeneous model surface loaded.')
     else:
         raise RuntimeError('Only 1- or 3-layer BEM computations supported')
-    if bem['surfs'][0]['np'] > 10000:
-        warn('The bem surface has %s data points. 5120 should be enough.'
-             % bem['surfs'][0]['np'])
+    _check_bem_size(bem)
     _fwd_bem_linear_collocation_solution(bem)
     logger.info('BEM geometry computations complete.')
     return bem
@@ -1476,9 +1474,7 @@ def write_bem_solution(fname, bem):
     --------
     read_bem_solution
     """
-    if bem['surfs'][0]['np'] > 10000:
-        warn('The bem surface has %s data points. 5120 should be enough.'
-             % bem['surfs'][0]['np'])
+    _check_bem_size(bem)
     with start_file(fname) as fid:
         start_block(fid, FIFF.FIFFB_BEM)
         # Coordinate frame (mainly for backward compatibility)
@@ -1846,6 +1842,16 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
     # Go back to initial directory
     os.chdir(curdir)
+
+
+def _check_bem_size(bem):
+    """Helper for checking bem sizes."""
+    if bem['surfs'][0]['np'] > 10000:
+        msg = ('The bem surface has %s data points. 5120 should be enough.'
+               % bem['surfs'][0]['np'])
+        if len(bem['surfs']) == 3:
+            msg += ' Dense 3-layer bems may not save properly.'
+        warn(msg)
 
 
 def _symlink(src, dest):
