@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 from .externals.six.moves import configparser
+from .externals.six import string_types
 import fnmatch
 from glob import glob, iglob
 import os
@@ -18,14 +19,16 @@ from functools import reduce
 import numpy as np
 from numpy import dot
 
-from .io import read_fiducials, write_fiducials
+from .io import read_fiducials, write_fiducials, read_info
+from .io.constants import FIFF
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
                            write_source_spaces)
 from .surface import read_surface, write_surface
 from .bem import read_bem_surfaces, write_bem_surfaces
-from .transforms import rotation, rotation3d, scaling, translation
+from .transforms import rotation, rotation3d, scaling, translation, Transform
 from .utils import get_config, get_subjects_dir, logger, pformat
+from .viz._3d import _fiducial_coords
 from .externals.six.moves import zip
 
 
@@ -67,6 +70,38 @@ def _find_head_bem(subject, subjects_dir, high_res=False):
         path = fname.format(subjects_dir=subjects_dir, subject=subject)
         if os.path.exists(path):
             return path
+
+
+def coregister_fiducials(info, fiducials, tol=0.01):
+    """Create a head-MRI transform by aligning 3 fiducial points
+
+    Parameters
+    ----------
+    info : Info
+        Measurement info object with fiducials in head coordinate space.
+    fiducials : str | list of dict
+        Fiducials in MRI coordinate space (either path to a ``*-fiducials.fif``
+        file or list of fiducials as returned by :func:`read_fiducials`.
+
+    Returns
+    -------
+    trans : Transform
+        The device-MRI transform.
+    """
+    if isinstance(info, string_types):
+        info = read_info(info)
+    if isinstance(fiducials, string_types):
+        fiducials, coord_frame_to = read_fiducials(fiducials)
+    else:
+        coord_frame_to = FIFF.FIFFV_COORD_MRI
+    coords_from, frames_from = _fiducial_coords(info['dig'])
+    if len(set(frames_from)) > 1:
+        raise ValueError("info contains fiducials from different coordinate "
+                         "frames")
+    coord_frame_from = frames_from[0]
+    coords_to = _fiducial_coords(fiducials, coord_frame_to)
+    trans = fit_matched_points(coords_from, coords_to, tol=tol)
+    return Transform(coord_frame_from, coord_frame_to, trans)
 
 
 def create_default_subject(mne_root=None, fs_home=None, update=False,
