@@ -65,6 +65,7 @@ def test_simulate_evoked():
     stc_bad = stc.copy()
     mv = np.max(fwd['src'][0]['vertno'][fwd['src'][0]['inuse']])
     stc_bad.vertices[0][0] = mv + 1
+
     assert_raises(RuntimeError, simulate_evoked, fwd, stc_bad,
                   evoked_template.info, cov, snr, tmin=0.0, tmax=0.2)
     evoked_1 = simulate_evoked(fwd, stc, evoked_template.info, cov, np.inf,
@@ -82,9 +83,13 @@ def test_simulate_evoked():
                                    iir_filter=None)
     noise = evoked_noise.data - evoked_clean.data
 
-    empirical_snr = 10 * np.log10(np.mean((evoked_clean.data**2).ravel()) /
-                                  np.mean((noise**2).ravel()))
+    empirical_snr = 10 * np.log10(np.mean((evoked_clean.data ** 2).ravel()) /
+                                  np.mean((noise ** 2).ravel()))
 
     assert_almost_equal(snr, empirical_snr, decimal=5)
+
+    cov['names'] = cov.ch_names[:-2]  # Error channels are different.
+    assert_raises(ValueError, simulate_evoked, fwd, stc, evoked_template.info,
+                  cov, snr=3., tmin=None, tmax=None, iir_filter=None)
 
 run_tests_if_main()

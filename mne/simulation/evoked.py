@@ -69,8 +69,8 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     evoked = apply_forward(fwd, stc, info)
     if snr < np.inf:
         noise = simulate_noise_evoked(evoked, cov, iir_filter, random_state)
-        evoked_noise = add_noise_evoked(evoked, noise, snr,
-                                        tmin=tmin, tmax=tmax)
+        evoked_noise = add_noise_evoked(evoked, noise, snr, tmin=tmin,
+                                        tmax=tmax)
     else:
         evoked_noise = evoked
     return evoked_noise
@@ -111,6 +111,12 @@ def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
     """Helper to create spatially colored and temporally IIR-filtered noise"""
     from scipy.signal import lfilter
     noise_cov = pick_channels_cov(cov, include=info['ch_names'], exclude=[])
+    if set(info['ch_names']) != set(noise_cov.ch_names):
+        raise ValueError('Evoked and covariance channel names are not '
+                         'identical. Cannot generate the noise matrix. '
+                         'Channels missing in covariance %s.' %
+                         np.setdiff1d(info['ch_names'], noise_cov.ch_names))
+
     rng = check_random_state(random_state)
     c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
     mu_channels = np.zeros(len(c))
