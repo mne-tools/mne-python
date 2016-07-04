@@ -96,7 +96,7 @@ def test_plot_raw():
         fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
         plt.close('all')
         for order in ['position', 'selection', 'lasso',
-                      range(len(raw.ch_names))[::-1], [1, 2, 4, 6]]:
+                      range(len(raw.ch_names))[::-4], [1, 2, 4, 6]]:
             fig = raw.plot(order=order)
             x = fig.get_axes()[0].lines[1].get_xdata()[10]
             y = fig.get_axes()[0].lines[1].get_ydata()[10]

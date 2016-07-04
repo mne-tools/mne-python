@@ -1445,8 +1445,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             'position' groups the channels by the positions of the sensors and
             'lasso' uses the same groups as 'position', but also allows lasso
             selection of custom channels in the selection topomap. If array
-             only the channels in the array are plotted in the given order.
-             Defaults to 'type'.
+            only the channels in the array are plotted in the given order.
+            Defaults to 'type'.
         show_options : bool
             If True, a dialog for options related to projection is shown.
         title : str | None

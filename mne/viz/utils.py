@@ -1088,10 +1088,11 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         'select', a set of channels can be selected interactively by using
         lasso selector. The selected channels are returned along with the
         figure instance. Defaults to 'topomap'.
-    ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | 'ecog' | 'all' | None
-        The channel type to plot. If ``'all'``, all the available mag,
-        grad, eeg, seeg and ecog channels are plotted. If None (default),
-        then channels are chosen in the order given above.
+    ch_type : None | str
+        The channel type to plot. Available options 'mag', 'grad', 'eeg',
+        'seeg', 'ecog', 'all'. If ``'all'``, all the available mag, grad, eeg,
+        seeg and ecog channels are plotted. If None (default), then channels
+        are chosen in the order given above.
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%s)' % ch_type``.
@@ -1479,8 +1480,9 @@ class SelectFromCollection(object):
     def __init__(self, ax, collection, ch_names, alpha_other=0.3):
         import matplotlib as mpl
         if LooseVersion(mpl.__version__) < LooseVersion('1.2.1'):
-            raise ImportError('Interactive selection not possible for mpl '
-                              'versions < 1.2.1. Upgrade matplotlib.')
+            raise ImportError('Interactive selection not possible for '
+                              'matplotlib versions < 1.2.1. Upgrade '
+                              'matplotlib.')
         from matplotlib.widgets import LassoSelector
         self.canvas = ax.figure.canvas
         self.collection = collection
