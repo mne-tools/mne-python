@@ -558,6 +558,7 @@ def get_kit_info(rawfile):
                                       "contact the MNE-Python developers."
                                       % (sysname, sysid))
         KIT_SYS = KIT_CONSTANTS[sysid]
+        logger.info("KIT-System ID %i: %s" % (sysid, sysname))
         if sysid in SYSNAMES:
             if sysname != SYSNAMES[sysid]:
                 warn("KIT file %s has system-name %r, expected %r"

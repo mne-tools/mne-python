@@ -15,7 +15,7 @@ import matplotlib
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_equal, assert_true, assert_raises
 from mne.channels import (make_eeg_layout, make_grid_layout, read_layout,
                           find_layout)
 from mne.channels.layout import (_box_size, _auto_topomap_coords,

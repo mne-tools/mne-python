@@ -9,7 +9,7 @@ import os.path as op
 import inspect
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_raises, assert_true
+from nose.tools import assert_equal, assert_raises, assert_true
 import scipy.io
 
 from mne import pick_types, Epochs, find_events, read_events
@@ -17,7 +17,7 @@ from mne.tests.common import assert_dig_allclose
 from mne.utils import run_tests_if_main
 from mne.io import Raw, read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
-from mne.io.kit.constants import KIT_CONSTANTS, KIT_MD, KIT_NY
+from mne.io.kit.constants import KIT, KIT_CONSTANTS, KIT_NY, KIT_UMD_2014
 from mne.io.tests.test_raw import _test_raw_reader
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -52,7 +52,7 @@ def test_data():
                               hsp=hsp_path, stim=list(range(167, 159, -1)),
                               slope='+', stimthresh=1)
     assert_true('RawKIT' in repr(raw_py))
-    assert_true(raw_mrk.info['kit_system_id'] == 34)
+    assert_equal(raw_mrk.info['kit_system_id'], KIT.SYSTEM_NYU_2010)
     assert_true(KIT_CONSTANTS[raw_mrk.info['kit_system_id']] is KIT_NY)
 
     # Test stim channel
@@ -88,8 +88,8 @@ def test_data():
     # KIT-UMD data
     _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path)
     raw = read_raw_kit(sqd_umd_path)
-    assert_true(raw.info['kit_system_id'] == 53)
-    assert_true(KIT_CONSTANTS[raw.info['kit_system_id']] is KIT_MD)
+    assert_equal(raw.info['kit_system_id'], KIT.SYSTEM_UMD_2014_12)
+    assert_true(KIT_CONSTANTS[raw.info['kit_system_id']] is KIT_UMD_2014)
 
 
 def test_epochs():
