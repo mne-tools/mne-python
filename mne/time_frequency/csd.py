@@ -244,7 +244,7 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
 
     Parameters
     ----------
-    X : numpy.ndarray
+    X : numpy.ndarray or list of numpy.ndarray
         The time series data.
     mode : str
         Spectrum estimation mode can be either: 'multitaper' or 'fourier'.
@@ -286,7 +286,24 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
     if fmax < fmin:
         raise ValueError('fmax must be larger than fmin')
 
-    n_trials, n_series, n_times = X.shape
+    if isinstance(X, np.ndarray):
+        if X.ndim == 3:
+            n_trials, n_series, n_times = X.shape
+        elif X.ndim == 2:
+            n_trials = 1
+            n_series, n_times = X.shape
+        else:
+            err_str = "X must be either n_trials x n_seris x n_times "
+            err_str += "or n_series x n_times ndarray"
+            raise ValueError(err_str)
+    elif isinstance(X, list):
+        if any([not isinstance(x, np.ndarray) for x in X]):
+            raise ValueError("All arrays in X must be ndarrays")
+        shapes = set(x.shape for x in X)
+        if len(shapes) != 1:
+            raise ValueError("All arrays in X must be the same shape")
+        n_trials = len(X)
+        n_series, n_times = X[0].shape
     n_fft = n_times if n_fft is None else n_fft
 
     # Preparing frequencies of interest
@@ -301,7 +318,7 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
                          'the frequency window or the time window')
 
     # Preparing for computing CSD
-    #logger.info('Computing cross-spectral density from ndarray...')
+    logger.info('Computing cross-spectral density from ndarray...')
     if mode == 'multitaper':
         # Compute standardized half-bandwidth
         if mt_bandwidth is not None:

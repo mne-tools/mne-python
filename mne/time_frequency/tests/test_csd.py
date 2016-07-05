@@ -162,30 +162,90 @@ def test_compute_epochs_csd_on_artificial_data():
                 assert_true(abs(signal_power_per_sample -
                                 mt_power_per_sample) < delta)
 
+
+def _stack(arrays, axis=0):
+    """ Local implementation of `numpy.stack` because some tests run with
+        versions of numpy before 1.10. Once `numpy` 1.9 is no longer supported
+        in mne-python we can just use `np.stack`.
+    """
+
+    import np.core.numerics as _nx
+    from _nx import asanyarray
+    # This code is copied from the numpy source code for now.
+    arrays = [asanyarray(arr) for arr in arrays]
+    if not arrays:
+        raise ValueError('need at least one array to stack')
+
+    shapes = set(arr.shape for arr in arrays)
+    if len(shapes) != 1:
+        raise ValueError('all input arrays must have the same shape')
+
+    result_ndim = arrays[0].ndim + 1
+    if not -result_ndim <= axis < result_ndim:
+        msg = 'axis {0} out of bounds [-{1}, {1})'.format(axis, result_ndim)
+    raise IndexError(msg)
+    if axis < 0:
+        axis += result_ndim
+
+    sl = (slice(None),) * axis + (_nx.newaxis,)
+    expanded_arrays = [arr[sl] for arr in arrays]
+    return _nx.concatenate(expanded_arrays, axis=axis)
+
+
 def test_compute_csd():
     """Test computing cross-spectral density from ndarray
     """
-    
-    epochs, epochs_sin = _get_data()
-    # Check that wrong parameters are recognized
-    assert_raises(ValueError, compute_epochs_csd, epochs, mode='notamode')
-    assert_raises(ValueError, compute_epochs_csd, epochs, fmin=20, fmax=10)
-    assert_raises(ValueError, compute_epochs_csd, epochs, fmin=20, fmax=20.1)
 
-    tmin=0.04
-    tmax=0.15
+    epochs, epochs_sin = _get_data()
+
+    tmin = 0.04
+    tmax = 0.15
     tstart = np.where(epochs.times >= tmin)[0][0]
     tend = np.where(epochs.times <= tmax)[0][-1] + 1
     tslice = slice(tstart, tend, None)
     picks_meeg = mne.pick_types(epochs[0].info, meg=True, eeg=True, eog=False,
-                            ref_meg=False, exclude='bads')
-    X = np.stack([e[picks_meeg][:, tslice] for e in epochs], axis=0)
+                                ref_meg=False, exclude='bads')
+
+    epochs_data = [e[picks_meeg][:, tslice] for e in epochs]
+    np_maj, np_min = np.__version__.split('.')[:2]
+    if np_maj > 1 or (np_maj == 1 and np_min >= 1.0):
+        X = np.stack(epochs_data, axis=0)
+        X_list = epochs_data
+    else:
+        # If `np.stack` doesn't exist then just test with a list of arrays
+        X = epochs_data
 
     sfreq = epochs.info['sfreq']
+
+    # Check data types and sizes are checked
+    diff_types = [np.random.randn(3, 5), "error"]
+    err_data = [np.random.randn(3, 5), np.random.randn(2, 4)]
+    assert_raises(ValueError, csd_array, err_data, sfreq)
+    assert_raises(ValueError, csd_array, diff_types, sfreq)
+    assert_raises(ValueError, csd_array, np.random.randn(3), sfreq)
+
+    # Check that wrong parameters are recognized
+    assert_raises(ValueError, csd_array, X, sfreq, mode='notamode')
+    assert_raises(ValueError, csd_array, X, sfreq, fmin=20, fmax=10)
+    assert_raises(ValueError, csd_array, X, sfreq, fmin=20, fmax=20.1)
+
     data_csd_mt, freqs_mt = csd_array(X, sfreq, mode='multitaper',
                                       fmin=8, fmax=12)
     data_csd_fourier, freqs_fft = csd_array(X, sfreq, mode='fourier',
-                                            fmin=8, fmax=12) 
+                                            fmin=8, fmax=12)
+
+    # Test as list too
+    data_csd_mt_list, freqs_mt_list = csd_array(X_list, sfreq,
+                                                mode='multitaper',
+                                                fmin=8, fmax=12)
+    data_csd_fourier_list, freqs_fft_list = csd_array(X_list, sfreq,
+                                                      mode='fourier',
+                                                      fmin=8, fmax=12)
+
+    assert_array_equal(data_csd_mt, data_csd_mt_list)
+    assert_array_equal(data_csd_fourier, data_csd_fourier_list)
+    assert_array_equal(freqs_mt, freqs_mt_list)
+    assert_array_equal(freqs_fft, freqs_fft_list)
 
     # Check shape of the CSD matrix
     n_chan = len(epochs.ch_names)
@@ -233,6 +293,7 @@ def test_compute_csd():
     assert_array_equal(freqs_fsum, freqs)
     assert_array_equal(csd_fsum, csd_sum)
 
+
 def test_csd_on_artificial_data():
     """Test computing CSD on artificial data
     """
@@ -244,8 +305,10 @@ def test_csd_on_artificial_data():
     signal_power_per_sample = signal_power / len(epochs_sin.times)
 
     # Computing signal power in the frequency domain
-    data_csd_mt, freqs_mt = csd_array(epochs_sin._data, sfreq, mode='multitaper')
-    data_csd_fourier, freqs_fft = csd_array(epochs_sin._data, sfreq, mode='fourier')
+    data_csd_mt, freqs_mt = csd_array(epochs_sin._data, sfreq,
+                                      mode='multitaper')
+    data_csd_fourier, freqs_fft = csd_array(epochs_sin._data, sfreq,
+                                            mode='fourier')
 
     fourier_power = np.abs(data_csd_fourier[0, 0]) * sfreq
     mt_power = np.abs(data_csd_mt[0, 0]) * sfreq
@@ -289,4 +352,3 @@ def test_csd_on_artificial_data():
                     delta = 0.004
                 assert_true(abs(signal_power_per_sample -
                                 mt_power_per_sample) < delta)
-
