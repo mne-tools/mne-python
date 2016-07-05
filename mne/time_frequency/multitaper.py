@@ -494,7 +494,7 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, compute_epochs_csd
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, csd_epochs
 
     Notes
     -----

@@ -818,7 +818,7 @@ Functions that operate on mne-python objects:
    :toctree: generated/
    :template: function.rst
 
-   compute_epochs_csd
+   csd_epochs
    psd_welch
    psd_multitaper
    fit_iir_model_raw
@@ -834,6 +834,7 @@ Functions that operate on ``np.ndarray`` objects:
    :toctree: generated/
    :template: function.rst
 
+   csd_array
    cwt_morlet
    dpss_windows
    morlet

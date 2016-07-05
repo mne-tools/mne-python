@@ -12,6 +12,8 @@ from ..utils import logger, verbose, warn
 from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _csd_from_mt, _psd_from_mt_adaptive)
 
+from ..utils import deprecated
+
 
 class CrossSpectralDensity(object):
     """Cross-spectral density
@@ -48,11 +50,23 @@ class CrossSpectralDensity(object):
         return '<CrossSpectralDensity  |  %s>' % s
 
 
+@deprecated()
 @verbose
 def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
                        fsum=True, tmin=None, tmax=None, n_fft=None,
                        mt_bandwidth=None, mt_adaptive=False, mt_low_bias=True,
                        projs=None, verbose=None):
+    return csd_epochs(epochs, mode=mode, fmin=fmin, fmax=fmax,
+                       fsum=fsum, tmin=tmin, tmax=tmax, n_fft=n_fft,
+                       mt_bandwidth=mt_bandwidth, mt_adaptive=mt_adaptive,
+                       mt_low_bias=mt_low_bias, projs=projs, verbose=verbose)
+
+
+@verbose
+def csd_epochs(epochs, mode='multitaper', fmin=0, fmax=np.inf,
+               fsum=True, tmin=None, tmax=None, n_fft=None,
+               mt_bandwidth=None, mt_adaptive=False, mt_low_bias=True,
+               projs=None, verbose=None):
     """Estimate cross-spectral density from epochs
 
     Note: Baseline correction should be used when creating the Epochs.

@@ -14,7 +14,7 @@ from ..utils import logger, verbose, warn
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc
-from ..time_frequency import CrossSpectralDensity, compute_epochs_csd
+from ..time_frequency import CrossSpectralDensity, csd_epochs
 from ._lcmv import _prepare_beamformer_input, _setup_picks
 from ..externals import six
 
@@ -564,13 +564,13 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                 win_tmax = win_tmax + 1e-10
 
                 # Calculating data CSD in current time window
-                data_csd = compute_epochs_csd(epochs, mode=mode,
-                                              fmin=freq_bin[0],
-                                              fmax=freq_bin[1], fsum=True,
-                                              tmin=win_tmin, tmax=win_tmax,
-                                              n_fft=n_fft,
-                                              mt_bandwidth=mt_bandwidth,
-                                              mt_low_bias=mt_low_bias)
+                data_csd = csd_epochs(epochs, mode=mode,
+                                      fmin=freq_bin[0],
+                                      fmax=freq_bin[1], fsum=True,
+                                      tmin=win_tmin, tmax=win_tmax,
+                                      n_fft=n_fft,
+                                      mt_bandwidth=mt_bandwidth,
+                                      mt_low_bias=mt_low_bias)
 
                 # Scale data CSD to allow data and noise CSDs to have different
                 # length

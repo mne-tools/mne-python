@@ -8,7 +8,7 @@ import mne
 
 from mne.io import Raw
 from mne.utils import sum_squared
-from mne.time_frequency import compute_epochs_csd, csd_array, tfr_morlet
+from mne.time_frequency import csd_epochs, csd_array, tfr_morlet
 
 warnings.simplefilter('always')
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -43,21 +43,21 @@ def _get_data():
     return epochs, epochs_sin
 
 
-def test_compute_epochs_csd():
+def test_csd_epochs():
     """Test computing cross-spectral density from epochs
     """
     epochs, epochs_sin = _get_data()
     # Check that wrong parameters are recognized
-    assert_raises(ValueError, compute_epochs_csd, epochs, mode='notamode')
-    assert_raises(ValueError, compute_epochs_csd, epochs, fmin=20, fmax=10)
-    assert_raises(ValueError, compute_epochs_csd, epochs, fmin=20, fmax=20.1)
-    assert_raises(ValueError, compute_epochs_csd, epochs, tmin=0.15, tmax=0.1)
-    assert_raises(ValueError, compute_epochs_csd, epochs, tmin=0, tmax=10)
-    assert_raises(ValueError, compute_epochs_csd, epochs, tmin=10, tmax=11)
+    assert_raises(ValueError, csd_epochs, epochs, mode='notamode')
+    assert_raises(ValueError, csd_epochs, epochs, fmin=20, fmax=10)
+    assert_raises(ValueError, csd_epochs, epochs, fmin=20, fmax=20.1)
+    assert_raises(ValueError, csd_epochs, epochs, tmin=0.15, tmax=0.1)
+    assert_raises(ValueError, csd_epochs, epochs, tmin=0, tmax=10)
+    assert_raises(ValueError, csd_epochs, epochs, tmin=10, tmax=11)
 
-    data_csd_mt = compute_epochs_csd(epochs, mode='multitaper', fmin=8,
+    data_csd_mt = csd_epochs(epochs, mode='multitaper', fmin=8,
                                      fmax=12, tmin=0.04, tmax=0.15)
-    data_csd_fourier = compute_epochs_csd(epochs, mode='fourier', fmin=8,
+    data_csd_fourier = csd_epochs(epochs, mode='fourier', fmin=8,
                                           fmax=12, tmin=0.04, tmax=0.15)
 
     # Check shape of the CSD matrix
@@ -94,9 +94,9 @@ def test_compute_epochs_csd():
 
     # Check a list of CSD matrices is returned for multiple frequencies within
     # a given range when fsum=False
-    csd_fsum = compute_epochs_csd(epochs, mode='fourier', fmin=8, fmax=20,
+    csd_fsum = csd_epochs(epochs, mode='fourier', fmin=8, fmax=20,
                                   fsum=True)
-    csds = compute_epochs_csd(epochs, mode='fourier', fmin=8, fmax=20,
+    csds = csd_epochs(epochs, mode='fourier', fmin=8, fmax=20,
                               fsum=False)
     freqs = [csd.frequencies[0] for csd in csds]
 
@@ -110,7 +110,7 @@ def test_compute_epochs_csd():
     assert_array_equal(csd_fsum.data, csd_sum)
 
 
-def test_compute_epochs_csd_on_artificial_data():
+def test_csd_epochs_on_artificial_data():
     """Test computing CSD on artificial data
     """
     epochs, epochs_sin = _get_data()
@@ -121,8 +121,8 @@ def test_compute_epochs_csd_on_artificial_data():
     signal_power_per_sample = signal_power / len(epochs_sin.times)
 
     # Computing signal power in the frequency domain
-    data_csd_fourier = compute_epochs_csd(epochs_sin, mode='fourier')
-    data_csd_mt = compute_epochs_csd(epochs_sin, mode='multitaper')
+    data_csd_fourier = csd_epochs(epochs_sin, mode='fourier')
+    data_csd_mt = csd_epochs(epochs_sin, mode='multitaper')
     fourier_power = np.abs(data_csd_fourier.data[0, 0]) * sfreq
     mt_power = np.abs(data_csd_mt.data[0, 0]) * sfreq
     assert_true(abs(fourier_power - signal_power) <= 0.5)
@@ -135,7 +135,7 @@ def test_compute_epochs_csd_on_artificial_data():
             n_samples = sum(t_mask)
             n_fft = n_samples + add_n_fft
 
-            data_csd_fourier = compute_epochs_csd(epochs_sin, mode='fourier',
+            data_csd_fourier = csd_epochs(epochs_sin, mode='fourier',
                                                   tmin=None, tmax=tmax, fmin=0,
                                                   fmax=np.inf, n_fft=n_fft)
             fourier_power_per_sample = np.abs(data_csd_fourier.data[0, 0]) *\
@@ -146,7 +146,7 @@ def test_compute_epochs_csd_on_artificial_data():
         for n_tapers in [1, 2, 3, 5]:
             for add_n_fft in [30, 0, 30]:
                 mt_bandwidth = sfreq / float(n_samples) * (n_tapers + 1)
-                data_csd_mt = compute_epochs_csd(epochs_sin, mode='multitaper',
+                data_csd_mt = csd_epochs(epochs_sin, mode='multitaper',
                                                  tmin=None, tmax=tmax, fmin=0,
                                                  fmax=np.inf,
                                                  mt_bandwidth=mt_bandwidth,
