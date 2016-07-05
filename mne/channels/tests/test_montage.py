@@ -41,7 +41,7 @@ def test_montage():
     # no pep8
     input_str = ["""FidNz 0.00000 10.56381 -2.05108
     FidT9 -7.82694 0.45386 -3.76056
-    FidT10_very_very_long_name 7.82694 0.45386 -3.76056""",
+    very_very_very_long_name 7.82694 0.45386 -3.76056""",
     """// MatLab   Sphere coordinates [degrees]         Cartesian coordinates
     // Label       Theta       Phi    Radius         X         Y         Z       off sphere surface
       E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011
@@ -63,7 +63,7 @@ def test_montage():
     """Site  Theta  Phi
     Fp1  -92    -72
     Fp2   92     72
-    F3_very_very_long_name   -60    -51
+    very_very_very_long_name   -60    -51
     """,
     """346
      EEG	      F3	 -62.027	 -50.053	      85
@@ -73,7 +73,7 @@ def test_montage():
     """
     eeg Fp1 -95.0 -31.0 -3.0
     eeg AF7 -81 -59 -3
-    eeg_very_very_long_name AF3 -87 -41 28
+    eeg AF3 -87 -41 28
     """]
     kinds = ['test.sfp', 'test.csd', 'test.elc', 'test.txt', 'test.elp',
              'test.hpts']
@@ -82,6 +82,8 @@ def test_montage():
         with open(fname, 'w') as fid:
             fid.write(text)
         montage = read_montage(fname)
+        if ".sfp" in kind or ".txt" in kind:
+            assert_true('very_very_very_long_name' in montage.ch_names)
         assert_equal(len(montage.ch_names), 3)
         assert_equal(len(montage.ch_names), len(montage.pos))
         assert_equal(montage.pos.shape, (3, 3))
