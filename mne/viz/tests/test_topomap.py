@@ -305,13 +305,13 @@ def test_plot_tfr_topomap():
     # test plot_psds_topomap
     info = raw.info.copy()
     chan_inds = channel_indices_by_type(info)
-    info = pick_info(info, chan_inds['grad'][:5])
+    info = pick_info(info, chan_inds['grad'][:4])
 
-    fig, axes = plt.subplots(nrows=2)
-    freqs = np.arange(0., 13.)
-    bands = [(4, 8, 'Theta'), (8, 12, 'Alpha')]
+    fig, axes = plt.subplots()
+    freqs = np.arange(3., 9.5)
+    bands = [(4, 8, 'Theta')]
     psd = np.random.rand(len(info['ch_names']), freqs.shape[0])
-    plot_psds_topomap(psd, freqs, info, bands=bands, axes=axes)
+    plot_psds_topomap(psd, freqs, info, bands=bands, axes=[axes])
 
 
 run_tests_if_main()
