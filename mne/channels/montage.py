@@ -187,10 +187,17 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
     if ext == '.sfp':
         # EGI geodesic
-        dtype = np.dtype('S4, f8, f8, f8')
-        data = np.loadtxt(fname, dtype=dtype)
-        pos = np.c_[data['f1'], data['f2'], data['f3']]
-        ch_names_ = data['f0'].astype(np.str)
+        with open(fname, 'r') as f:
+            lines = f.read().replace('\t', ' ').split("\n")
+
+        ch_names_, pos = [], []
+        for line in lines:
+            line = line.lstrip().rstrip().split()
+            if len(line) > 0:  # skip empty lines
+                name, x, y, z = line
+                ch_names_.append(name)
+                pos.append([np.float(cord) for cord in (x, y, z)])
+        pos = np.asarray(pos)
     elif ext == '.elc':
         # 10-5 system
         ch_names_ = []
