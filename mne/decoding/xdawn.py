@@ -167,9 +167,8 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
 
         data = np.hstack(X)
         result = []
-        event_id = self.event_id
 
-        for eid in event_id:
+        for eid in self.event_id:
 
             data_r = self._pick_sources(data, None, None, eid)
             data_r = np.array(np.split(data_r, self._n_chan, 1))
