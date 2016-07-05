@@ -210,57 +210,57 @@ def test_find_layout():
     sample_info5 = pick_info(sample_info, eegs)
 
     lout = find_layout(sample_info, ch_type=None)
-    assert_true(lout.kind == 'Vectorview-all')
+    assert_equal(lout.kind, 'Vectorview-all')
     assert_true(all(' ' in k for k in lout.names))
 
     lout = find_layout(sample_info2, ch_type='meg')
-    assert_true(lout.kind == 'Vectorview-all')
+    assert_equal(lout.kind, 'Vectorview-all')
 
     # test new vector-view
     lout = find_layout(sample_info4, ch_type=None)
-    assert_true(lout.kind == 'Vectorview-all')
+    assert_equal(lout.kind, 'Vectorview-all')
     assert_true(all(' ' not in k for k in lout.names))
 
     lout = find_layout(sample_info, ch_type='grad')
-    assert_true(lout.kind == 'Vectorview-grad')
+    assert_equal(lout.kind, 'Vectorview-grad')
     lout = find_layout(sample_info2)
-    assert_true(lout.kind == 'Vectorview-grad')
+    assert_equal(lout.kind, 'Vectorview-grad')
     lout = find_layout(sample_info2, ch_type='grad')
-    assert_true(lout.kind == 'Vectorview-grad')
+    assert_equal(lout.kind, 'Vectorview-grad')
     lout = find_layout(sample_info2, ch_type='meg')
-    assert_true(lout.kind == 'Vectorview-all')
+    assert_equal(lout.kind, 'Vectorview-all')
 
     lout = find_layout(sample_info, ch_type='mag')
-    assert_true(lout.kind == 'Vectorview-mag')
+    assert_equal(lout.kind, 'Vectorview-mag')
     lout = find_layout(sample_info3)
-    assert_true(lout.kind == 'Vectorview-mag')
+    assert_equal(lout.kind, 'Vectorview-mag')
     lout = find_layout(sample_info3, ch_type='mag')
-    assert_true(lout.kind == 'Vectorview-mag')
+    assert_equal(lout.kind, 'Vectorview-mag')
     lout = find_layout(sample_info3, ch_type='meg')
-    assert_true(lout.kind == 'Vectorview-all')
+    assert_equal(lout.kind, 'Vectorview-all')
 
     lout = find_layout(sample_info, ch_type='eeg')
-    assert_true(lout.kind == 'EEG')
+    assert_equal(lout.kind, 'EEG')
     lout = find_layout(sample_info5)
-    assert_true(lout.kind == 'EEG')
+    assert_equal(lout.kind, 'EEG')
     lout = find_layout(sample_info5, ch_type='eeg')
-    assert_true(lout.kind == 'EEG')
+    assert_equal(lout.kind, 'EEG')
     # no common layout, 'meg' option not supported
 
     lout = find_layout(Raw(fname_ctf_raw).info)
-    assert_true(lout.kind == 'CTF-275')
+    assert_equal(lout.kind, 'CTF-275')
 
     fname_bti_raw = op.join(bti_dir, 'exported4D_linux_raw.fif')
     lout = find_layout(Raw(fname_bti_raw).info)
-    assert_true(lout.kind == 'magnesWH3600')
+    assert_equal(lout.kind, 'magnesWH3600')
 
     raw_kit = read_raw_kit(fname_kit_157)
     lout = find_layout(raw_kit.info)
-    assert_true(lout.kind == 'KIT-157')
+    assert_equal(lout.kind, 'KIT-157')
 
     raw_kit.info['bads'] = ['MEG  13', 'MEG  14', 'MEG  15', 'MEG  16']
     lout = find_layout(raw_kit.info)
-    assert_true(lout.kind == 'KIT-157')
+    assert_equal(lout.kind, 'KIT-157')
 
     raw_umd = read_raw_kit(fname_kit_umd)
     lout = find_layout(raw_umd.info)
