@@ -255,3 +255,162 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
                                              frequencies=frequencies[i],
                                              n_fft=n_fft))
         return csds
+
+@verbose
+def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
+              fsum=True, n_fft=None, mt_bandwidth=None,
+              mt_adaptive=False, mt_low_bias=True, verbose=None):
+    """Estimate cross-spectral density from n_trials x n_series x n_times
+       ndarray.
+
+    Note: Results are scaled by sampling frequency for compatibility with
+          Matlab.
+
+    Parameters
+    ----------
+    X : numpy.ndarray
+        The time series data.
+    mode : str
+        Spectrum estimation mode can be either: 'multitaper' or 'fourier'.
+    sfreq : float
+        Sampling frequency of observations.
+    fmin : float
+        Minimum frequency of interest.
+    fmax : float | np.inf
+        Maximum frequency of interest.
+    fsum : bool
+        Sum CSD values for the frequencies of interest. Summing is performed
+        instead of averaging so that accumulated power is comparable to power
+        in the time domain. If True, a single CSD matrix will be returned. If
+        False, the output will be a numpy.ndarray of CSD matrices.
+    n_fft : int | None
+        Length of the FFT. If None the exact number of samples between tmin and
+        tmax will be used.
+    mt_bandwidth : float | None
+        The bandwidth of the multitaper windowing function in Hz.
+        Only used in 'multitaper' mode.
+    mt_adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD.
+        Only used in 'multitaper' mode.
+    mt_low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth. Only used in 'multitaper' mode.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    csd : numpy.ndarray
+        The computed cross spectral-density (either summed or not).
+    freqs : numpy.ndarray
+        Frequencies the cross spectral-density is evaluated at.
+    """
+
+    # Check correctness of input data and parameters
+    if fmax < fmin:
+        raise ValueError('fmax must be larger than fmin')
+
+    n_trials, n_series, n_times = X.shape
+    n_fft = n_times if n_fft is None else n_fft
+
+    # Preparing frequencies of interest
+    orig_frequencies = fftfreq(n_fft, 1. / sfreq)
+    freq_mask = (orig_frequencies > fmin) & (orig_frequencies < fmax)
+    frequencies = orig_frequencies[freq_mask]
+    n_freqs = len(frequencies)
+
+    if n_freqs == 0:
+        raise ValueError('No discrete fourier transform results within '
+                         'the given frequency window. Please widen either '
+                         'the frequency window or the time window')
+
+    # Preparing for computing CSD
+    #logger.info('Computing cross-spectral density from ndarray...')
+    if mode == 'multitaper':
+        # Compute standardized half-bandwidth
+        if mt_bandwidth is not None:
+            half_nbw = float(mt_bandwidth) * n_times / (2 * sfreq)
+        else:
+            half_nbw = 2
+
+        # Compute DPSS windows
+        n_tapers_max = int(2 * half_nbw)
+        window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
+                                           low_bias=mt_low_bias)
+        n_tapers = len(eigvals)
+        logger.info('    using multitaper spectrum estimation with %d DPSS '
+                    'windows' % n_tapers)
+
+        if mt_adaptive and len(eigvals) < 3:
+            warn('Not adaptively combining the spectral estimators due to a '
+                 'low number of tapers.')
+            mt_adaptive = False
+    elif mode == 'fourier':
+        logger.info('    using FFT with a Hanning window to estimate spectra')
+        window_fun = np.hanning(n_times)
+        mt_adaptive = False
+        eigvals = 1.
+        n_tapers = None
+    else:
+        raise ValueError('Mode has an invalid value.')
+
+    csds_mean = np.zeros((n_series, n_series, n_freqs), dtype=complex)
+
+    # Picking frequencies of interest
+    freq_mask_mt = freq_mask[orig_frequencies >= 0]
+
+    # Compute CSD for each epoch
+    for ti in xrange(n_trials):
+        xi = X[ti]
+
+        # Calculating Fourier transform using multitaper module
+        x_mt, _ = _mt_spectra(xi, window_fun, sfreq, n_fft)
+
+        if mt_adaptive:
+            # Compute adaptive weights
+            _, weights = _psd_from_mt_adaptive(x_mt, eigvals, freq_mask,
+                                               return_weights=True)
+            # Tiling weights so that we can easily use _csd_from_mt()
+            weights = weights[:, np.newaxis, :, :]
+            weights = np.tile(weights, [1, x_mt.shape[0], 1, 1])
+        else:
+            # Do not use adaptive weights
+            if mode == 'multitaper':
+                weights = np.sqrt(eigvals)[np.newaxis, np.newaxis, :,
+                                           np.newaxis]
+            else:
+                # Hack so we can sum over axis=-2
+                weights = np.array([1.])[:, None, None, None]
+
+        x_mt = x_mt[:, :, freq_mask_mt]
+
+        # Calculating CSD
+        # Tiling x_mt so that we can easily use _csd_from_mt()
+        x_mt = x_mt[:, np.newaxis, :, :]
+        x_mt = np.tile(x_mt, [1, x_mt.shape[0], 1, 1])
+        y_mt = np.transpose(x_mt, axes=[1, 0, 2, 3])
+        weights_y = np.transpose(weights, axes=[1, 0, 2, 3])
+        csds_epoch = _csd_from_mt(x_mt, y_mt, weights, weights_y)
+
+        # Scaling by number of samples and compensating for loss of power due
+        # to windowing (see section 11.5.2 in Bendat & Piersol).
+        if mode == 'fourier':
+            csds_epoch /= n_times
+            csds_epoch *= 8 / 3.
+
+        # Scaling by sampling frequency for compatibility with Matlab
+        csds_epoch /= sfreq
+
+        csds_mean += csds_epoch
+
+    csds_mean /= n_trials
+
+    logger.info('[done]')
+
+    # Summing over frequencies of interest or returning a list of separate CSD
+    # matrices for each frequency
+    if fsum is True:
+        csds_mean = np.sum(csds_mean, 2)
+
+    return csds_mean, frequencies
+

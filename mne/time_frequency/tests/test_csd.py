@@ -8,7 +8,7 @@ import mne
 
 from mne.io import Raw
 from mne.utils import sum_squared
-from mne.time_frequency import compute_epochs_csd, tfr_morlet
+from mne.time_frequency import compute_epochs_csd, csd_array, tfr_morlet
 
 warnings.simplefilter('always')
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -161,3 +161,132 @@ def test_compute_epochs_csd_on_artificial_data():
                     delta = 0.004
                 assert_true(abs(signal_power_per_sample -
                                 mt_power_per_sample) < delta)
+
+def test_compute_csd():
+    """Test computing cross-spectral density from ndarray
+    """
+    
+    epochs, epochs_sin = _get_data()
+    # Check that wrong parameters are recognized
+    assert_raises(ValueError, compute_epochs_csd, epochs, mode='notamode')
+    assert_raises(ValueError, compute_epochs_csd, epochs, fmin=20, fmax=10)
+    assert_raises(ValueError, compute_epochs_csd, epochs, fmin=20, fmax=20.1)
+
+    tmin=0.04
+    tmax=0.15
+    tstart = np.where(epochs.times >= tmin)[0][0]
+    tend = np.where(epochs.times <= tmax)[0][-1] + 1
+    tslice = slice(tstart, tend, None)
+    picks_meeg = mne.pick_types(epochs[0].info, meg=True, eeg=True, eog=False,
+                            ref_meg=False, exclude='bads')
+    X = np.stack([e[picks_meeg][:, tslice] for e in epochs], axis=0)
+
+    sfreq = epochs.info['sfreq']
+    data_csd_mt, freqs_mt = csd_array(X, sfreq, mode='multitaper',
+                                      fmin=8, fmax=12)
+    data_csd_fourier, freqs_fft = csd_array(X, sfreq, mode='fourier',
+                                            fmin=8, fmax=12) 
+
+    # Check shape of the CSD matrix
+    n_chan = len(epochs.ch_names)
+    assert_equal(data_csd_mt.shape, (n_chan, n_chan))
+    assert_equal(data_csd_fourier.shape, (n_chan, n_chan))
+
+    # Check if the CSD matrix is hermitian
+    assert_array_equal(np.tril(data_csd_mt).T.conj(),
+                       np.triu(data_csd_mt))
+    assert_array_equal(np.tril(data_csd_fourier).T.conj(),
+                       np.triu(data_csd_fourier))
+
+    # Computing induced power for comparison
+    epochs.crop(tmin=0.04, tmax=0.15)
+    tfr = tfr_morlet(epochs, freqs=[10], n_cycles=0.6, return_itc=False)
+    power = np.mean(tfr.data, 2)
+
+    # Maximum PSD should occur for specific channel
+    max_ch_power = power.argmax()
+    max_ch_mt = data_csd_mt.diagonal().argmax()
+    max_ch_fourier = data_csd_fourier.diagonal().argmax()
+    assert_equal(max_ch_mt, max_ch_power)
+    assert_equal(max_ch_fourier, max_ch_power)
+
+    # Maximum CSD should occur for specific channel
+    ch_csd_mt = [np.abs(data_csd_mt[max_ch_power][i])
+                 if i != max_ch_power else 0 for i in range(n_chan)]
+    max_ch_csd_mt = np.argmax(ch_csd_mt)
+    ch_csd_fourier = [np.abs(data_csd_fourier[max_ch_power][i])
+                      if i != max_ch_power else 0 for i in range(n_chan)]
+    max_ch_csd_fourier = np.argmax(ch_csd_fourier)
+    assert_equal(max_ch_csd_mt, max_ch_csd_fourier)
+
+    # Check a list of CSD matrices is returned for multiple frequencies within
+    # a given range when fsum=False
+    csd_fsum, freqs_fsum = csd_array(X, sfreq, mode='fourier', fmin=8,
+                                     fmax=20, fsum=True)
+    csds, freqs = csd_array(X, sfreq, mode='fourier', fmin=8, fmax=20,
+                            fsum=False)
+
+    csd_sum = np.sum(csds, axis=2)
+
+    assert(csds.shape[2] == 2)
+    assert(len(freqs) == 2)
+    assert_array_equal(freqs_fsum, freqs)
+    assert_array_equal(csd_fsum, csd_sum)
+
+def test_csd_on_artificial_data():
+    """Test computing CSD on artificial data
+    """
+    epochs, epochs_sin = _get_data()
+    sfreq = epochs_sin.info['sfreq']
+
+    # Computing signal power in the time domain
+    signal_power = sum_squared(epochs_sin._data)
+    signal_power_per_sample = signal_power / len(epochs_sin.times)
+
+    # Computing signal power in the frequency domain
+    data_csd_mt, freqs_mt = csd_array(epochs_sin._data, sfreq, mode='multitaper')
+    data_csd_fourier, freqs_fft = csd_array(epochs_sin._data, sfreq, mode='fourier')
+
+    fourier_power = np.abs(data_csd_fourier[0, 0]) * sfreq
+    mt_power = np.abs(data_csd_mt[0, 0]) * sfreq
+    assert_true(abs(fourier_power - signal_power) <= 0.5)
+    assert_true(abs(mt_power - signal_power) <= 1)
+
+    # Power per sample should not depend on time window length
+    for tmax in [0.2, 0.4, 0.6, 0.8]:
+        tend = np.where(epochs_sin.times <= tmax)[0][-1] + 1
+        tslice = slice(None, tend, None)
+
+        for add_n_fft in [30, 0, 30]:
+            t_mask = (epochs_sin.times >= 0) & (epochs_sin.times <= tmax)
+            n_samples = sum(t_mask)
+            n_fft = n_samples + add_n_fft
+
+            data_csd_fourier, _ = csd_array(epochs_sin._data[:, :, tslice],
+                                            sfreq, mode='fourier',
+                                            fmin=0, fmax=np.inf, n_fft=n_fft)
+
+            fourier_power_per_sample = np.abs(data_csd_fourier[0, 0]) *\
+                sfreq / n_fft
+            assert_true(abs(signal_power_per_sample -
+                            fourier_power_per_sample) < 0.003)
+        # Power per sample should not depend on number of tapers
+        for n_tapers in [1, 2, 3, 5]:
+            for add_n_fft in [30, 0, 30]:
+                mt_bandwidth = sfreq / float(n_samples) * (n_tapers + 1)
+                data_csd_mt, _ = csd_array(epochs_sin._data[:, :, tslice],
+                                           sfreq, mode='multitaper',
+                                           fmin=0, fmax=np.inf,
+                                           mt_bandwidth=mt_bandwidth,
+                                           n_fft=n_fft)
+                mt_power_per_sample = np.abs(data_csd_mt[0, 0]) *\
+                    sfreq / n_fft
+                # The estimate of power gets worse for small time windows when
+                # more tapers are used
+                if n_tapers == 5 and tmax == 0.2:
+                    delta = 0.05
+                else:
+                    delta = 0.004
+                assert_true(abs(signal_power_per_sample -
+                                mt_power_per_sample) < delta)
+
