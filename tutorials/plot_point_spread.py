@@ -121,7 +121,7 @@ for i, label in enumerate(labels):
 ###############################################################################
 # Create source-space data with known signals
 # -------------------------------------------
-# 
+#
 # Put known signals onto surface vertices using the array of signals and
 # the label masks (stored in labels[i].values).
 stc_gen = simulate_stc(fwd['src'], labels, signal, times[0], dt,
