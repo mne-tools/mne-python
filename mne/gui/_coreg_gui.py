@@ -1108,7 +1108,7 @@ class NewMriDialog(HasPrivateTraits):
             self.can_overwrite = False
 
 
-def _make_view(tabbed=False, split=False, scene_width=-1):
+def _make_view(tabbed=False, split=False, scene_width=500):
     """Create a view for the CoregFrame
 
     Parameters
@@ -1132,7 +1132,7 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
 
     scene = VGroup(Item('scene', show_label=False,
                         editor=SceneEditor(scene_class=MayaviScene),
-                        dock='vertical', width=500),
+                        dock='vertical', width=scene_width),
                    view_options)
 
     data_panel = VGroup(VGroup(Item('subject_panel', style='custom'),
