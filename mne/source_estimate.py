@@ -1312,10 +1312,12 @@ class SourceEstimate(_BaseSourceEstimate):
         return vertex, hemi, t
 
     def plot(self, subject=None, surface='inflated', hemi='lh',
-             colormap='auto', time_label='time=%0.2f ms',
+             colormap='auto', time_label='auto',
              smoothing_steps=10, transparent=None, alpha=1.0,
              time_viewer=False, config_opts=None, subjects_dir=None,
-             figure=None, views='lat', colorbar=True, clim='auto'):
+             figure=None, views='lat', colorbar=True, clim='auto',
+             cortex="classic", size=800, background="black",
+             foreground="white", time_unit=None):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1341,8 +1343,10 @@ class SourceEstimate(_BaseSourceEstimate):
             be (n x 3) or (n x 4) array for with RGB or RGBA values between
             0 and 255. If 'auto', either 'hot' or 'mne' will be chosen
             based on whether 'lims' or 'pos_lims' are specified in `clim`.
-        time_label : str
-            How to print info about the time instant visualized.
+        time_label : str | callable | None
+            Format of the time label (a format string, a function that maps
+            floating point time values to strings, or None for no label). The
+            default is ``time=%0.2f ms``.
         smoothing_steps : int
             The amount of smoothing.
         transparent : bool | None
@@ -1353,14 +1357,15 @@ class SourceEstimate(_BaseSourceEstimate):
         time_viewer : bool
             Display time viewer GUI.
         config_opts : dict
-            Keyword arguments for Brain initialization.
-            See pysurfer.viz.Brain.
+            Deprecated parameter.
         subjects_dir : str
             The path to the FreeSurfer subjects reconstructions.
             It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
-        figure : instance of mayavi.core.scene.Scene | None
-            If None, the last figure will be cleaned and a new figure will
-            be created.
+        figure : instance of mayavi.core.scene.Scene | list | int | None
+            If None, a new figure will be created. If multiple views or a
+            split view is requested, this must be a list of the appropriate
+            length. If int is provided it will be used to identify the Mayavi
+            figure by it's id or create a new figure with the given id.
         views : str | list
             View to use. See surfer.Brain().
         colorbar : bool
@@ -1380,6 +1385,25 @@ class SourceEstimate(_BaseSourceEstimate):
                     will be mirrored directly across zero during colormap
                     construction to obtain negative control points.
 
+        cortex : str or tuple
+            specifies how binarized curvature values are rendered.
+            either the name of a preset PySurfer cortex colorscheme (one of
+            'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
+            name of mayavi colormap, or a tuple with values (colormap, min,
+            max, reverse) to fully specify the curvature colors.
+        size : float or pair of floats
+            The size of the window, in pixels. can be one number to specify
+            a square window, or the (width, height) of a rectangular window.
+        background : matplotlib color
+            Color of the background of the display window.
+        foreground : matplotlib color
+            Color of the foreground of the display window.
+        time_unit : 's' | 'ms'
+            Whether time is represented in seconds (expected by PySurfer) or
+            milliseconds. The current default is 'ms', but will change to 's'
+            in MNE 0.14. To avoid a deprecation warning specify ``time_unit``
+            explicitly.
+
 
         Returns
         -------
@@ -1395,7 +1419,10 @@ class SourceEstimate(_BaseSourceEstimate):
                                       config_opts=config_opts,
                                       subjects_dir=subjects_dir, figure=figure,
                                       views=views, colorbar=colorbar,
-                                      clim=clim)
+                                      clim=clim, cortex=cortex, size=size,
+                                      background=background,
+                                      foreground=foreground,
+                                      time_unit=time_unit)
         return brain
 
     @verbose
@@ -1806,7 +1833,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                      colormap='auto', time_label='time=%02.f ms',
                      smoothing_steps=10,
                      transparent=None, alpha=1.0, time_viewer=False,
-                     config_opts={}, subjects_dir=None, figure=None,
+                     config_opts=None, subjects_dir=None, figure=None,
                      views='lat', colorbar=True, clim='auto'):
         """Plot surface source estimates with PySurfer
 

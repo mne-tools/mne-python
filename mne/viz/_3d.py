@@ -12,6 +12,7 @@ from __future__ import print_function
 # License: Simplified BSD
 
 import base64
+from distutils.version import LooseVersion
 from itertools import cycle
 import os.path as op
 import warnings
@@ -29,8 +30,6 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
 from ..utils import get_subjects_dir, logger, _check_subject, verbose, warn
-from ..fixes import _get_args
-from ..defaults import _handle_default
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS, plt_show
 from ..externals.six import BytesIO
 
@@ -598,11 +597,13 @@ def _limits_to_control_points(clim, stc_data, colormap):
 
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
-                          colormap='auto', time_label='time=%0.2f ms',
+                          colormap='auto', time_label='auto',
                           smoothing_steps=10, transparent=None, alpha=1.0,
                           time_viewer=False, config_opts=None,
                           subjects_dir=None, figure=None, views='lat',
-                          colorbar=True, clim='auto'):
+                          colorbar=True, clim='auto', cortex="classic",
+                          size=800, background="black", foreground="white",
+                          time_unit=None):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -630,8 +631,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         be (n x 3) or (n x 4) array for with RGB or RGBA values between
         0 and 255. If 'auto', either 'hot' or 'mne' will be chosen
         based on whether 'lims' or 'pos_lims' are specified in `clim`.
-    time_label : str
-        How to print info about the time instant visualized.
+    time_label : str | callable | None
+        Format of the time label (a format string, a function that maps
+        floating point time values to strings, or None for no label). The
+        default is ``time=%0.2f ms``.
     smoothing_steps : int
         The amount of smoothing
     transparent : bool | None
@@ -642,8 +645,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     time_viewer : bool
         Display time viewer GUI.
     config_opts : dict
-        Keyword arguments for Brain initialization.
-        See pysurfer.viz.Brain.
+        Deprecated parameter.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
@@ -671,20 +673,59 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 will be mirrored directly across zero during colormap
                 construction to obtain negative control points.
 
+    cortex : str or tuple
+        specifies how binarized curvature values are rendered.
+        either the name of a preset PySurfer cortex colorscheme (one of
+        'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
+        name of mayavi colormap, or a tuple with values (colormap, min,
+        max, reverse) to fully specify the curvature colors.
+    size : float or pair of floats
+        The size of the window, in pixels. can be one number to specify
+        a square window, or the (width, height) of a rectangular window.
+    background : matplotlib color
+        Color of the background of the display window.
+    foreground : matplotlib color
+        Color of the foreground of the display window.
+    time_unit : 's' | 'ms'
+        Whether time is represented in seconds (expected by PySurfer) or
+        milliseconds. The current default is 'ms', but will change to 's'
+        in MNE 0.14. To avoid a deprecation warning specify ``time_unit``
+        explicitly.
+
 
     Returns
     -------
     brain : Brain
         A instance of surfer.viz.Brain from PySurfer.
     """
+    import surfer
     from surfer import Brain, TimeViewer
-    config_opts = _handle_default('config_opts', config_opts)
-
     import mayavi
-    from mayavi import mlab
 
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
+
+    if LooseVersion(surfer.__version__) < LooseVersion('0.6'):
+        raise ImportError("This function requires PySurfer 0.6 (you are "
+                          "running version %s). You can update PySurfer "
+                          "using:\n\n    $ pip install -U pysurfer" %
+                          surfer.__version__)
+
+    if time_unit is None:
+        warn("The time_unit parameter default will change from 'ms' to 's' "
+             "in MNE 0.14. To avoid this warning specify the parameter "
+             "explicitly.", DeprecationWarning)
+        time_unit = 'ms'
+    elif time_unit not in ('s', 'ms'):
+        raise ValueError("time_unit needs to be 's' or 'ms', got %s" %
+                         repr(time_unit))
+
+    if time_label == 'auto':
+        if time_unit == 'ms':
+            time_label = 'time=%0.2f ms'
+        else:
+            def time_label(t):
+                return 'time=%0.2f ms' % (t * 1e3)
 
     if not isinstance(stc, SourceEstimate):
         raise ValueError('stc has to be a surface source estimate')
@@ -693,23 +734,16 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         raise ValueError('hemi has to be either "lh", "rh", "split", '
                          'or "both"')
 
-    n_split = 2 if hemi == 'split' else 1
-    n_views = 1 if isinstance(views, string_types) else len(views)
+    # check `figure` parameter (This will be performed by PySurfer > 0.6)
     if figure is not None:
-        # use figure with specified id or create new figure
         if isinstance(figure, int):
-            figure = mlab.figure(figure, size=(600, 600))
-        # make sure it is of the correct type
-        if not isinstance(figure, list):
+            # use figure with specified id
+            size_ = size if isinstance(size, (tuple, list)) else (size, size)
+            figure = [mayavi.mlab.figure(figure, size=size_)]
+        elif not isinstance(figure, (list, tuple)):
             figure = [figure]
         if not all(isinstance(f, mayavi.core.scene.Scene) for f in figure):
             raise TypeError('figure must be a mayavi scene or list of scenes')
-        # make sure we have the right number of figures
-        n_fig = len(figure)
-        if not n_fig == n_split * n_views:
-            raise RuntimeError('`figure` must be a list with the same '
-                               'number of elements as PySurfer plots that '
-                               'will be created (%s)' % n_split * n_views)
 
     # convert control points to locations in colormap
     ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
@@ -733,13 +767,18 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         hemis = [hemi]
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
-    args = _get_args(Brain.__init__)
-    kwargs = dict(title=title, figure=figure, config_opts=config_opts,
-                  subjects_dir=subjects_dir)
-    if 'views' in args:
-        kwargs['views'] = views
     with warnings.catch_warnings(record=True):  # traits warnings
-        brain = Brain(subject, hemi, surface, **kwargs)
+        brain = Brain(subject, hemi, surface, True, title, cortex, size,
+                      background, foreground, figure, subjects_dir, views,
+                      config_opts=config_opts)
+
+    if time_unit == 's':
+        times = stc.times
+    elif time_unit == 'ms':
+        times = 1e3 * stc.times
+    else:
+        raise RuntimeError("time_unit=%s" % repr(time_unit))
+
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         if hemi_idx == 0:
@@ -747,10 +786,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         else:
             data = stc.data[len(stc.vertices[0]):]
         vertices = stc.vertices[hemi_idx]
-        time = 1e3 * stc.times
         with warnings.catch_warnings(record=True):  # traits warnings
             brain.add_data(data, colormap=colormap, vertices=vertices,
-                           smoothing_steps=smoothing_steps, time=time,
+                           smoothing_steps=smoothing_steps, time=times,
                            time_label=time_label, alpha=alpha, hemi=hemi,
                            colorbar=colorbar)
 

@@ -69,11 +69,12 @@ def test_plot_sparse_source_estimates():
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     colormap = 'mne_analyze'
     plot_source_estimates(stc, 'sample', colormap=colormap,
-                          config_opts={'background': (1, 1, 0)},
+                          background=(1, 1, 0),
                           subjects_dir=subjects_dir, colorbar=True,
                           clim='auto')
     assert_raises(TypeError, plot_source_estimates, stc, 'sample',
-                  figure='foo', hemi='both', clim='auto')
+                  figure='foo', hemi='both', clim='auto',
+                  subjects_dir=subjects_dir)
 
     # now do sparse version
     vertices = sample_src[0]['vertno']
@@ -164,7 +165,7 @@ def test_limits_to_control_points():
     stc.plot(colormap='hot', clim='auto', subjects_dir=subjects_dir)
     stc.plot(colormap='mne', clim='auto', subjects_dir=subjects_dir)
     figs = [mlab.figure(), mlab.figure()]
-    assert_raises(RuntimeError, stc.plot, clim='auto', figure=figs,
+    assert_raises(ValueError, stc.plot, clim='auto', figure=figs,
                   subjects_dir=subjects_dir)
 
     # Test both types of incorrect limits key (lims/pos_lims)
@@ -201,13 +202,13 @@ def test_limits_to_control_points():
         warnings.simplefilter('always')
         # thresholded maps
         stc._data.fill(1.)
-        plot_source_estimates(stc, subjects_dir=subjects_dir)
+        plot_source_estimates(stc, subjects_dir=subjects_dir, time_unit='s')
         assert_equal(len(w), 0)
         stc._data[0].fill(0.)
-        plot_source_estimates(stc, subjects_dir=subjects_dir)
+        plot_source_estimates(stc, subjects_dir=subjects_dir, time_unit='s')
         assert_equal(len(w), 0)
         stc._data.fill(0.)
-        plot_source_estimates(stc, subjects_dir=subjects_dir)
+        plot_source_estimates(stc, subjects_dir=subjects_dir, time_unit='s')
         assert_equal(len(w), 1)
     mlab.close()
 
