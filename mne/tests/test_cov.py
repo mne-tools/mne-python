@@ -23,7 +23,7 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_channels, pick_types, pick_info,
                  make_ad_hoc_cov)
-from mne.io import read_raw_fif, RawArray
+from mne.io import read_raw_fif, RawArray, read_info
 from mne.tests.common import assert_naming, assert_snr
 from mne.utils import (_TempDir, slow_test, requires_sklearn_0_15,
                        run_tests_if_main)
@@ -71,6 +71,19 @@ def test_cov_mismatch():
     epochs.info['dev_head_t'] = None
     epochs_2.info['dev_head_t'] = None
     compute_covariance([epochs, epochs_2])
+
+
+def test_cov_order():
+    """Test covariance ordering"""
+    info = read_info(raw_fname)
+    # add MEG channel with low enough index number to affect EEG if
+    # order is incorrect
+    info['bads'] += ['MEG 0113']
+    ch_names = [info['ch_names'][pick]
+                for pick in pick_types(info, meg=False, eeg=True)]
+    cov = read_cov(cov_fname)
+    with warnings.catch_warnings(record=True):  # no avg ref present
+        prepare_noise_cov(cov, info, ch_names, verbose='error')
 
 
 def test_ad_hoc_cov():

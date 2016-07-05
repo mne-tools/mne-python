@@ -1240,7 +1240,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
 
     Parameters
     ----------
-    noise_cov : Covariance
+    noise_cov : instance of Covariance
         The noise covariance to process.
     info : dict
         The measurement info (used to get channel types and bad channels).
@@ -1253,18 +1253,25 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         to specify the rank for each modality.
     scalings : dict | None
         Data will be rescaled before rank estimation to improve accuracy.
-        If dict, it will override the following dict (default if None):
+        If dict, it will override the following dict (default if None)::
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    cov : instance of Covariance
+        A copy of the covariance with the good channels subselected
+        and parameters updated.
     """
-    C_ch_idx = [noise_cov.ch_names.index(c) for c in ch_names]
-    if noise_cov['diag'] is False:
-        C = noise_cov.data[np.ix_(C_ch_idx, C_ch_idx)]
+    noise_cov_idx = [noise_cov.ch_names.index(c) for c in ch_names]
+    n_chan = len(ch_names)
+    if not noise_cov['diag']:
+        C = noise_cov.data[np.ix_(noise_cov_idx, noise_cov_idx)]
     else:
-        C = np.diag(noise_cov.data[C_ch_idx])
+        C = np.diag(noise_cov.data[noise_cov_idx])
 
     scalings = _handle_default('scalings_cov_rank', scalings)
 
@@ -1275,17 +1282,33 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
                     % ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
-    pick_meg = pick_types(info, meg=True, eeg=False, ref_meg=False,
-                          exclude='bads')
-    pick_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                          exclude='bads')
-    meg_names = [info['chs'][k]['ch_name'] for k in pick_meg]
-    C_meg_idx = [k for k in range(len(C)) if ch_names[k] in meg_names]
-    eeg_names = [info['chs'][k]['ch_name'] for k in pick_eeg]
-    C_eeg_idx = [k for k in range(len(C)) if ch_names[k] in eeg_names]
-
-    has_meg = len(C_meg_idx) > 0
-    has_eeg = len(C_eeg_idx) > 0
+    info_pick_meg = pick_types(info, meg=True, eeg=False, ref_meg=False,
+                               exclude='bads')
+    info_pick_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                               exclude='bads')
+    info_meg_names = [info['chs'][k]['ch_name'] for k in info_pick_meg]
+    out_meg_idx = [k for k in range(len(C)) if ch_names[k] in info_meg_names]
+    info_eeg_names = [info['chs'][k]['ch_name'] for k in info_pick_eeg]
+    out_eeg_idx = [k for k in range(len(C)) if ch_names[k] in info_eeg_names]
+    # re-index based on ch_names order
+    del info_pick_meg, info_pick_eeg
+    meg_names = [ch_names[k] for k in out_meg_idx]
+    eeg_names = [ch_names[k] for k in out_eeg_idx]
+    if len(meg_names) > 0:
+        info_pick_meg = pick_channels(info['ch_names'], meg_names)
+    else:
+        info_pick_meg = []
+    if len(eeg_names) > 0:
+        info_pick_eeg = pick_channels(info['ch_names'], eeg_names)
+    else:
+        info_pick_eeg = []
+    assert len(info_pick_meg) == len(meg_names) == len(out_meg_idx)
+    assert len(info_pick_eeg) == len(eeg_names) == len(out_eeg_idx)
+    assert(len(out_meg_idx) + len(out_eeg_idx) == n_chan)
+    eigvec = np.zeros((n_chan, n_chan))
+    eig = np.zeros(n_chan)
+    has_meg = len(out_meg_idx) > 0
+    has_eeg = len(out_eeg_idx) > 0
 
     # Get the specified noise covariance rank
     if rank is not None:
@@ -1299,45 +1322,26 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         rank_meg, rank_eeg = None, None
 
     if has_meg:
-        C_meg = C[np.ix_(C_meg_idx, C_meg_idx)]
-        this_info = pick_info(info, pick_meg)
+        C_meg = C[np.ix_(out_meg_idx, out_meg_idx)]
+        this_info = pick_info(info, info_pick_meg)
         if rank_meg is None:
-            if len(C_meg_idx) < len(pick_meg):
-                this_info = pick_info(info, C_meg_idx)
             rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings)
-        C_meg_eig, C_meg_eigvec = _get_ch_whitener(C_meg, False, 'MEG',
-                                                   rank_meg)
+        eig[out_meg_idx], eigvec[np.ix_(out_meg_idx, out_meg_idx)] = \
+            _get_ch_whitener(C_meg, False, 'MEG', rank_meg)
     if has_eeg:
-        C_eeg = C[np.ix_(C_eeg_idx, C_eeg_idx)]
-        this_info = pick_info(info, pick_eeg)
+        C_eeg = C[np.ix_(out_eeg_idx, out_eeg_idx)]
+        this_info = pick_info(info, info_pick_eeg)
         if rank_eeg is None:
-            if len(C_meg_idx) < len(pick_meg):
-                this_info = pick_info(info, C_eeg_idx)
             rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings)
-        C_eeg_eig, C_eeg_eigvec = _get_ch_whitener(C_eeg, False, 'EEG',
-                                                   rank_eeg)
+        eig[out_eeg_idx], eigvec[np.ix_(out_eeg_idx, out_eeg_idx)], = \
+            _get_ch_whitener(C_eeg, False, 'EEG', rank_eeg)
     if _needs_eeg_average_ref_proj(info):
         warn('No average EEG reference present in info["projs"], covariance '
              'may be adversely affected. Consider recomputing covariance using'
              ' a raw file with an average eeg reference projector added.')
-
-    n_chan = len(ch_names)
-    eigvec = np.zeros((n_chan, n_chan), dtype=np.float)
-    eig = np.zeros(n_chan, dtype=np.float)
-
-    if has_meg:
-        eigvec[np.ix_(C_meg_idx, C_meg_idx)] = C_meg_eigvec
-        eig[C_meg_idx] = C_meg_eig
-    if has_eeg:
-        eigvec[np.ix_(C_eeg_idx, C_eeg_idx)] = C_eeg_eigvec
-        eig[C_eeg_idx] = C_eeg_eig
-
-    assert(len(C_meg_idx) + len(C_eeg_idx) == n_chan)
-
     noise_cov = cp.deepcopy(noise_cov)
     noise_cov.update(data=C, eig=eig, eigvec=eigvec, dim=len(ch_names),
                      diag=False, names=ch_names)
-
     return noise_cov
 
 

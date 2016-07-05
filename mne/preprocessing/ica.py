@@ -1458,6 +1458,10 @@ class ICA(ContainsMixin):
         -------
         fig : list
             List of matplotlib figures.
+
+        Notes
+        -----
+        .. versionadded:: 0.13
         """
         return plot_ica_properties(inst, self, picks=picks, axes=axes,
                                    dB=dB, plot_std=plot_std,

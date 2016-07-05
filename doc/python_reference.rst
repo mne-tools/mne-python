@@ -328,6 +328,7 @@ Functions:
    plot_evoked_white
    plot_ica_sources
    plot_ica_components
+   plot_ica_properties
    plot_ica_scores
    plot_ica_overlay
    plot_epochs_image

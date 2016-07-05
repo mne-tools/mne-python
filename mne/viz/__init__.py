@@ -18,7 +18,7 @@ from .circle import plot_connectivity_circle, circular_layout
 from .epochs import (plot_drop_log, plot_epochs, plot_epochs_psd,
                      plot_epochs_image)
 from .raw import plot_raw, plot_raw_psd, plot_raw_psd_topo
-from .ica import plot_ica_scores, plot_ica_sources, plot_ica_overlay
-from .ica import _plot_sources_raw, _plot_sources_epochs
+from .ica import (plot_ica_scores, plot_ica_sources, plot_ica_overlay,
+                  _plot_sources_raw, _plot_sources_epochs, plot_ica_properties)
 from .montage import plot_montage
 from .decoding import plot_gat_matrix, plot_gat_times
