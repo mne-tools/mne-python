@@ -713,9 +713,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     if time_unit is None:
         warn("The time_unit parameter default will change from 'ms' to 's' "
-             "in MNE 0.14. To avoid this warnign specify the parameter "
+             "in MNE 0.14. To avoid this warning specify the parameter "
              "explicitly.", DeprecationWarning)
         time_unit = 'ms'
+    elif time_unit not in ('s', 'ms'):
+        raise ValueError("time_unit needs to be 's' or 'ms', got %s" %
+                         repr(time_unit))
 
     if time_label == 'auto':
         if time_unit == 'ms':
@@ -731,7 +734,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         raise ValueError('hemi has to be either "lh", "rh", "split", '
                          'or "both"')
 
-    # check `figure` parameter
+    # check `figure` parameter (This will be performed by PySurfer > 0.6)
     if figure is not None:
         if isinstance(figure, int):
             # use figure with specified id
@@ -774,8 +777,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     elif time_unit == 'ms':
         times = 1e3 * stc.times
     else:
-        raise ValueError("time_unit needs to be 's' or 'ms', got %s" %
-                         repr(time_unit))
+        raise RuntimeError("time_unit=%s" % repr(time_unit))
 
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
