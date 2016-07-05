@@ -30,7 +30,6 @@ X = epochs._data
 y = epochs.events[:, 2]
 
 clf = make_pipeline(XdawnTransformer(n_components=3),
-                    Vectorizer(),
                     LogisticRegression(penalty='l1'))
 score = cross_val_score(clf, X, y, cv=5)
 print(score)
