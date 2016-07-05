@@ -42,13 +42,16 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         and if ``bmax is None`` then ``bmax`` is set to the end of the
         interval. If baseline is ``(None, None)`` the entire time
         interval is used. If baseline is None, no correction is applied.
-    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent' | 'zlogratio'
+    mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio' # noqa
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
         deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline)).
-        logratio is the same an mean but in log-scale, zlogratio is the
-        same as zscore but data is rendered in log-scale first.
+        power = [power - mean(power_baseline)] / std(power_baseline)), mean
+        simply subtracts the mean power, percent is the same as applying ratio
+        then mean, logratio is the same as mean but then rendered in log-scale,
+        zlogratio is the same as zscore but data is rendered in log-scale
+        first.
+        If None no baseline correction is applied.
     copy : bool
         Whether to return a new instance or modify in place.
     verbose : bool, str, int, or None
