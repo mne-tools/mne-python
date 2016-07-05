@@ -305,7 +305,7 @@ def test_plot_tfr_topomap():
     # test plot_psds_topomap
     info = raw.info.copy()
     chan_inds = channel_indices_by_type(info)
-    info = pick_info(info, chan_inds['grad'])
+    info = pick_info(info, chan_inds['grad'][:5])
 
     fig, axes = plt.subplots(nrows=2)
     freqs = np.arange(0., 13.)
