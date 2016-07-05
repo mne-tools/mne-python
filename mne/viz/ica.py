@@ -169,6 +169,10 @@ def plot_ica_properties(inst, ica, picks=None, axes=None, dB=True,
     -------
     fig : list
         List of matplotlib figures.
+
+    Notes
+    -----
+    .. versionadded:: 0.13
     """
     from ..io.base import _BaseRaw
     from ..epochs import _BaseEpochs
