@@ -191,12 +191,14 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
             lines = f.read().replace('\t', ' ').split("\n")
 
         ch_names_, pos = [], []
-        for line in lines:
+        for ii, line in enumerate(lines):
             line = line.strip().split()
             if len(line) > 0:  # skip empty lines
-                name, x, y, z = line
+                if len(line) != 4:  # name, x, y, z
+                    raise ValueError("Malformed .sfp file in line " + str(ii))
+                name, *coords = line
                 ch_names_.append(name)
-                pos.append([np.float(cord) for cord in (x, y, z)])
+                pos.append([np.float(cord) for cord in coords])
         pos = np.asarray(pos)
     elif ext == '.elc':
         # 10-5 system
