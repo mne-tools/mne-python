@@ -28,7 +28,7 @@ except Exception:
         NoButtons = trait_wraith
 
 from ..coreg import (fid_fname, head_bem_fname, _find_fiducials_files,
-                     high_res_head_fname)
+                     high_res_head_fnames)
 from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
@@ -168,9 +168,11 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
             return
 
         # look for high-res head
-        path = high_res_head_fname.format(subjects_dir=subjects_dir,
-                                          subject=subject)
-        if not os.path.exists(path):
+        for fname in high_res_head_fnames:
+            path = fname.format(subjects_dir=subjects_dir, subject=subject)
+            if os.path.exists(path):
+                break
+        else:
             # use standard bem head
             path = head_bem_fname.format(subjects_dir=subjects_dir,
                                          subject=subject)

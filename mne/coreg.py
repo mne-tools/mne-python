@@ -39,7 +39,9 @@ head_bem_fname = pformat(bem_fname, name='head')
 fid_fname = pformat(bem_fname, name='fiducials')
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
-high_res_head_fname = os.path.join(subject_dirname, 'surf', 'lh.seghead')
+high_res_head_fnames = (os.path.join(bem_dirname, '{subject}-head-dense.fif'),
+                        os.path.join(surf_dirname, 'lh.seghead'),
+                        os.path.join(surf_dirname, 'lh.smseghead'))
 
 
 def _make_writable(fname):
