@@ -58,9 +58,9 @@ forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 # The time-frequency window was chosen on the basis of spectrograms from
 # example time_frequency/plot_time_frequency.py
 data_csd = csd_epochs(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
-                              fmin=6, fmax=10)
+                      fmin=6, fmax=10)
 noise_csd = csd_epochs(epochs, mode='multitaper', tmin=-0.11, tmax=0.0,
-                               fmin=6, fmax=10)
+                       fmin=6, fmax=10)
 
 evoked = epochs.average()
 

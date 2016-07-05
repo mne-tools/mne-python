@@ -54,9 +54,9 @@ forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 # As fsum is False csd_epochs returns a list of CrossSpectralDensity
 # instances than can then be passed to dics_source_power
 data_csds = csd_epochs(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
-                               fmin=15, fmax=30, fsum=False)
+                       fmin=15, fmax=30, fsum=False)
 noise_csds = csd_epochs(epochs, mode='multitaper', tmin=-0.11,
-                                tmax=-0.001, fmin=15, fmax=30, fsum=False)
+                        tmax=-0.001, fmin=15, fmax=30, fsum=False)
 
 # Compute DICS spatial filter and estimate source power
 stc = dics_source_power(epochs.info, forward, noise_csds, data_csds)

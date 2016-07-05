@@ -55,10 +55,10 @@ def test_csd_epochs():
     assert_raises(ValueError, csd_epochs, epochs, tmin=0, tmax=10)
     assert_raises(ValueError, csd_epochs, epochs, tmin=10, tmax=11)
 
-    data_csd_mt = csd_epochs(epochs, mode='multitaper', fmin=8,
-                                     fmax=12, tmin=0.04, tmax=0.15)
-    data_csd_fourier = csd_epochs(epochs, mode='fourier', fmin=8,
-                                          fmax=12, tmin=0.04, tmax=0.15)
+    data_csd_mt = csd_epochs(epochs, mode='multitaper', fmin=8, fmax=12,
+                             tmin=0.04, tmax=0.15)
+    data_csd_fourier = csd_epochs(epochs, mode='fourier', fmin=8, fmax=12,
+                                  tmin=0.04, tmax=0.15)
 
     # Check shape of the CSD matrix
     n_chan = len(data_csd_mt.ch_names)
@@ -94,10 +94,8 @@ def test_csd_epochs():
 
     # Check a list of CSD matrices is returned for multiple frequencies within
     # a given range when fsum=False
-    csd_fsum = csd_epochs(epochs, mode='fourier', fmin=8, fmax=20,
-                                  fsum=True)
-    csds = csd_epochs(epochs, mode='fourier', fmin=8, fmax=20,
-                              fsum=False)
+    csd_fsum = csd_epochs(epochs, mode='fourier', fmin=8, fmax=20, fsum=True)
+    csds = csd_epochs(epochs, mode='fourier', fmin=8, fmax=20, fsum=False)
     freqs = [csd.frequencies[0] for csd in csds]
 
     csd_sum = np.zeros_like(csd_fsum.data)
@@ -136,8 +134,8 @@ def test_csd_epochs_on_artificial_data():
             n_fft = n_samples + add_n_fft
 
             data_csd_fourier = csd_epochs(epochs_sin, mode='fourier',
-                                                  tmin=None, tmax=tmax, fmin=0,
-                                                  fmax=np.inf, n_fft=n_fft)
+                                          tmin=None, tmax=tmax, fmin=0,
+                                          fmax=np.inf, n_fft=n_fft)
             fourier_power_per_sample = np.abs(data_csd_fourier.data[0, 0]) *\
                 sfreq / data_csd_fourier.n_fft
             assert_true(abs(signal_power_per_sample -
@@ -147,10 +145,10 @@ def test_csd_epochs_on_artificial_data():
             for add_n_fft in [30, 0, 30]:
                 mt_bandwidth = sfreq / float(n_samples) * (n_tapers + 1)
                 data_csd_mt = csd_epochs(epochs_sin, mode='multitaper',
-                                                 tmin=None, tmax=tmax, fmin=0,
-                                                 fmax=np.inf,
-                                                 mt_bandwidth=mt_bandwidth,
-                                                 n_fft=n_fft)
+                                         tmin=None, tmax=tmax, fmin=0,
+                                         fmax=np.inf,
+                                         mt_bandwidth=mt_bandwidth,
+                                         n_fft=n_fft)
                 mt_power_per_sample = np.abs(data_csd_mt.data[0, 0]) *\
                     sfreq / data_csd_mt.n_fft
                 # The estimate of power gets worse for small time windows when
@@ -161,35 +159,6 @@ def test_csd_epochs_on_artificial_data():
                     delta = 0.004
                 assert_true(abs(signal_power_per_sample -
                                 mt_power_per_sample) < delta)
-
-
-def _stack(arrays, axis=0):
-    """ Local implementation of `numpy.stack` because some tests run with
-        versions of numpy before 1.10. Once `numpy` 1.9 is no longer supported
-        in mne-python we can just use `np.stack`.
-    """
-
-    import np.core.numerics as _nx
-    from _nx import asanyarray
-    # This code is copied from the numpy source code for now.
-    arrays = [asanyarray(arr) for arr in arrays]
-    if not arrays:
-        raise ValueError('need at least one array to stack')
-
-    shapes = set(arr.shape for arr in arrays)
-    if len(shapes) != 1:
-        raise ValueError('all input arrays must have the same shape')
-
-    result_ndim = arrays[0].ndim + 1
-    if not -result_ndim <= axis < result_ndim:
-        msg = 'axis {0} out of bounds [-{1}, {1})'.format(axis, result_ndim)
-    raise IndexError(msg)
-    if axis < 0:
-        axis += result_ndim
-
-    sl = (slice(None),) * axis + (_nx.newaxis,)
-    expanded_arrays = [arr[sl] for arr in arrays]
-    return _nx.concatenate(expanded_arrays, axis=axis)
 
 
 def test_compute_csd():
@@ -207,13 +176,11 @@ def test_compute_csd():
                                 ref_meg=False, exclude='bads')
 
     epochs_data = [e[picks_meeg][:, tslice] for e in epochs]
-    np_maj, np_min = np.__version__.split('.')[:2]
-    if np_maj > 1 or (np_maj == 1 and np_min >= 1.0):
-        X = np.stack(epochs_data, axis=0)
-        X_list = epochs_data
-    else:
-        # If `np.stack` doesn't exist then just test with a list of arrays
-        X = epochs_data
+    n_trials = len(epochs)
+    n_series = len(picks_meeg)
+    X = np.concatenate(epochs_data, axis=0)
+    X = np.reshape(X, (n_trials, n_series, -1))
+    X_list = epochs_data
 
     sfreq = epochs.info['sfreq']
 
