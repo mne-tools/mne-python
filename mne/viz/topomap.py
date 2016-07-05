@@ -23,7 +23,8 @@ from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
 from ..utils import _clean_names, _time_mask, verbose, logger, warn
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
-                    plt_show, _process_times, DraggableColorbar)
+                    plt_show, _process_times, DraggableColorbar,
+                    _validate_if_list_of_axes)
 from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
@@ -1600,7 +1601,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
 def plot_psds_topomap(
         psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
         cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
-        show=True):
+        axes=None, show=True):
     """Plot spatial maps of PSDs
 
     Parameters
@@ -1659,6 +1660,9 @@ def plot_psds_topomap(
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
+    axes : list of axes | None
+        List of axes to plot consecutive topographies to. If None the axes
+        will be created automatically. Defaults to None.
     show : bool
         Show figure if True.
 
@@ -1682,9 +1686,13 @@ def plot_psds_topomap(
         assert np.allclose(psds.sum(axis=-1), 1.)
 
     n_axes = len(bands)
-    fig, axes = plt.subplots(1, n_axes, figsize=(2 * n_axes, 1.5))
-    if n_axes == 1:
-        axes = [axes]
+    if axes is not None:
+        _validate_if_list_of_axes(axes, n_axes)
+        fig = axes[0].figure
+    else:
+        fig, axes = plt.subplots(1, n_axes, figsize=(2 * n_axes, 1.5))
+        if n_axes == 1:
+            axes = [axes]
 
     for ax, (fmin, fmax, title) in zip(axes, bands):
         freq_mask = (fmin < freqs) & (freqs < fmax)
