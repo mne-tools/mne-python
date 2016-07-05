@@ -1291,8 +1291,9 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         condition = [condition]
         return_list = False
 
-    out = [Evoked(fname, c, kind=kind, proj=proj, verbose=verbose)
-            .apply_baseline(baseline) for c in condition]
+    out = [Evoked(fname, c, kind=kind, proj=proj,
+                  verbose=verbose).apply_baseline(baseline)
+           for c in condition]
 
     return out if return_list else out[0]
 
