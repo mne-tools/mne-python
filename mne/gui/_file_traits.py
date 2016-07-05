@@ -27,7 +27,7 @@ except Exception:
 
 from ..io.constants import FIFF
 from ..io import read_info, read_fiducials
-from ..surface import read_bem_surfaces
+from ..surface import read_bem_surfaces, read_surface
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config
@@ -185,27 +185,27 @@ def _mne_root_problem(mne_root):
                     "installation, consider reinstalling." % mne_root)
 
 
-class BemSource(HasTraits):
-    """Expose points and tris of a given BEM file
+class SurfaceSource(HasTraits):
+    """Expose points and tris of a file storing a surface
 
     Parameters
     ----------
     file : File
-        Path to the BEM file (*.fif).
+        Path to a *-bem.fif file or a surface containing a Freesurfer surface.
 
     Attributes
     ----------
     pts : Array, shape = (n_pts, 3)
-        BEM file points.
-    tri : Array, shape = (n_tri, 3)
-        BEM file triangles.
+        Point coordinates.
+    tris : Array, shape = (n_tri, 3)
+        Triangles.
 
     Notes
     -----
     tri is always updated after pts, so in case downstream objects depend on
-    both, they should sync to a change in tri.
+    both, they should sync to a change in tris.
     """
-    file = File(exists=True, filter=['*.fif'])
+    file = File(exists=True, filter=['*.fif', '*.*'])
     points = Array(shape=(None, 3), value=np.empty((0, 3)))
     norms = Array
     tris = Array(shape=(None, 3), value=np.empty((0, 3)))
@@ -213,10 +213,24 @@ class BemSource(HasTraits):
     @on_trait_change('file')
     def read_file(self):
         if os.path.exists(self.file):
-            bem = read_bem_surfaces(self.file)[0]
-            self.points = bem['rr']
-            self.norms = bem['nn']
-            self.tris = bem['tris']
+            if self.file.endswith('.fif'):
+                bem = read_bem_surfaces(self.file)[0]
+                self.points = bem['rr']
+                self.norms = bem['nn']
+                self.tris = bem['tris']
+            else:
+                try:
+                    points, tris = read_surface(self.file)
+                    points /= 1e3
+                    self.points = points
+                    self.norms = []
+                    self.tris = tris
+                except Exception:
+                    error(message="Error loading surface from %s (see "
+                                  "Terminal for details).",
+                          title="Error Loading Surface")
+                    self.reset_traits(['file'])
+                    raise
         else:
             self.points = np.empty((0, 3))
             self.norms = np.empty((0, 3))

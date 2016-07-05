@@ -27,11 +27,12 @@ except Exception:
         Property = View = Item = HGroup = VGroup = SceneEditor = \
         NoButtons = trait_wraith
 
-from ..coreg import fid_fname, head_bem_fname, _find_fiducials_files
+from ..coreg import (fid_fname, head_bem_fname, _find_fiducials_files,
+                     high_res_head_fname)
 from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
-from ._file_traits import (BemSource, fid_wildcard, FiducialsSource,
+from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel)
 from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
                       headview_borders)
@@ -54,7 +55,7 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         Right peri-auricular point coordinates.
     """
     subject_source = Instance(MRISubjectSource, ())
-    bem = Instance(BemSource, ())
+    bem = Instance(SurfaceSource, ())
     fid = Instance(FiducialsSource, ())
 
     fid_file = DelegatesTo('fid', 'file')
@@ -166,9 +167,13 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         if not subjects_dir or not subject:
             return
 
-        # update bem head
-        path = head_bem_fname.format(subjects_dir=subjects_dir,
-                                     subject=subject)
+        # look for high-res head
+        path = high_res_head_fname.format(subjects_dir=subjects_dir,
+                                          subject=subject)
+        if not os.path.exists(path):
+            # use standard bem head
+            path = head_bem_fname.format(subjects_dir=subjects_dir,
+                                         subject=subject)
         self.bem.file = path
 
         # find fiducials file
