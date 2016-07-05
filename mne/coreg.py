@@ -25,7 +25,8 @@ from .source_space import (add_source_space_distances, read_source_spaces,
 from .surface import read_surface, write_surface
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import rotation, rotation3d, scaling, translation
-from .utils import get_config, get_subjects_dir, logger, pformat
+from .utils import (get_config, get_subjects_dir, logger, pformat,
+                    run_subprocess)
 from .externals.six.moves import zip
 
 
@@ -169,6 +170,38 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
     for name in mne_files:
         if not os.path.exists(dest_fname % name):
             shutil.copy(mne_fname % name, dest_bem)
+
+
+def create_high_res_head(subject, subjects_dir, fs_home):
+    """Wrapper for FreeSurfer $ mkheadsurf
+
+    Parameters
+    ----------
+    subject : str
+        Subject.
+    subjects_dir : str
+        Subjects directory.
+    fs_home : str
+        Path to the FreeSurfer installation.
+    """
+    if not os.path.exists(fs_home):
+        raise ValueError("Invalid fs_home parameter: %s does not exist" %
+                         fs_home)
+
+    env = os.environ.copy()
+    env['SUBJECTS_DIR'] = subjects_dir
+    env['SUBJECT'] = subject
+    env['FREESURFER_HOME'] = fs_home
+    env['PATH'] = os.path.join(fs_home, 'bin') + ':' + env['PATH']
+
+    subj_path = os.path.join(subjects_dir, subject)
+    if os.path.exists(os.path.join(subj_path, 'mri', 'T1.mgz')):
+        mri = 'T1.mgz'
+    else:
+        mri = 'T1'
+    run_subprocess('source $FREESURFER_HOME/FreeSurferEnv.sh; ' +
+                   'mkheadsurf -subjid ' + subject + ' -srcvol ' + mri,
+                   env=env, shell=True)
 
 
 def _decimate_points(pts, res=10):

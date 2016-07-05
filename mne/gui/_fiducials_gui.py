@@ -12,7 +12,7 @@ try:
     from mayavi.core.ui.mayavi_scene import MayaviScene
     from mayavi.tools.mlab_scene_model import MlabSceneModel
     import numpy as np
-    from pyface.api import confirm, FileDialog, OK, YES
+    from pyface.api import confirm, error, FileDialog, OK, YES, ProgressDialog
     from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                             cached_property, DelegatesTo, Event, Instance,
                             Property, Array, Bool, Button, Enum)
@@ -28,12 +28,12 @@ except Exception:
         NoButtons = trait_wraith
 
 from ..coreg import (fid_fname, head_bem_fname, _find_fiducials_files,
-                     high_res_head_fnames)
+                     high_res_head_fnames, create_high_res_head)
 from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
 from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
-                           MRISubjectSource, SubjectSelectorPanel)
+                           MRISubjectSource, SubjectSelectorPanel, get_fs_home)
 from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
                       headview_borders)
 
@@ -175,9 +175,23 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
                 if os.path.exists(path):
                     break
             else:
-                # use standard bem head
-                path = head_bem_fname.format(subjects_dir=subjects_dir,
-                                             subject=subject)
+                prog = ProgressDialog(title="High-Resolution Head",
+                                      message="Creating high-resolution head "
+                                      "for %s..." % subject)
+                prog.open()
+                prog.update(0)
+
+                try:
+                    path = self.make_high_res_head()
+                except Exception as err:
+                    error(None, title="Error Creating High-Resolution Head",
+                          message="Error creating high resolution head for "
+                          "%s: %s (see Terminal for details)" %
+                          (subject, str(err)))
+                    self.use_high_res_head = False
+                    raise
+                finally:
+                    prog.close()
         else:
             path = head_bem_fname.format(subjects_dir=subjects_dir,
                                          subject=subject)
@@ -195,6 +209,22 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 
         # does not seem to happen by itself ... so hard code it:
         self.reset_fiducials()
+
+    def make_high_res_head(self):
+        fs_home = get_fs_home()
+        if fs_home is None:
+            raise RuntimeError("FreeSurfer is needed for creating high "
+                               "resolution head shape. Please install "
+                               "FreeSurfer and try again.")
+
+        create_high_res_head(self.subject, self.subjects_dir, fs_home)
+        for fname in high_res_head_fnames[1:]:
+            path = fname.format(subject=self.subject,
+                                subjects_dir=self.subjects_dir)
+            if os.path.exists(path):
+                return path
+        else:
+            raise RuntimeError("High resolution head failed to generate")
 
 
 class FiducialsPanel(HasPrivateTraits):
