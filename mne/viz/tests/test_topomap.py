@@ -16,7 +16,7 @@ from nose.tools import assert_true, assert_equal
 
 from mne import io, read_evokeds, read_proj
 from mne.io.constants import FIFF
-from mne.io.pick import pick_info, pick_types, channel_indices_by_type
+from mne.io.pick import pick_info, channel_indices_by_type
 from mne.channels import read_layout, make_eeg_layout
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
