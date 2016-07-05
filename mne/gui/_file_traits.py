@@ -433,6 +433,7 @@ class MRISubjectSource(HasPrivateTraits):
     subjects_dir = Directory(exists=True)
     subjects = Property(List(Str), depends_on=['subjects_dir', 'refresh'])
     subject = Enum(values='subjects')
+    use_high_res_head = Bool(True)
 
     # info
     can_create_fsaverage = Property(Bool, depends_on=['subjects_dir',
@@ -509,6 +510,7 @@ class SubjectSelectorPanel(HasPrivateTraits):
     subjects_dir = DelegatesTo('model')
     subject = DelegatesTo('model')
     subjects = DelegatesTo('model')
+    use_high_res_head = DelegatesTo('model')
 
     create_fsaverage = Button("Copy FsAverage to Subjects Folder",
                               desc="Copy the files for the fsaverage subject "
@@ -516,6 +518,7 @@ class SubjectSelectorPanel(HasPrivateTraits):
 
     view = View(VGroup(Item('subjects_dir', label='subjects_dir'),
                        'subject',
+                       Item('use_high_res_head', label='High Res.'),
                        Item('create_fsaverage', show_label=False,
                             enabled_when='can_create_fsaverage')))
 

@@ -64,6 +64,7 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     subjects_dir = DelegatesTo('subject_source')
     subject = DelegatesTo('subject_source')
     subject_has_bem = DelegatesTo('subject_source')
+    use_high_res_head = DelegatesTo('subject_source')
     points = DelegatesTo('bem')
     norms = DelegatesTo('bem')
     tris = DelegatesTo('bem')
@@ -160,20 +161,24 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 
     # if subject changed because of a change of subjects_dir this was not
     # triggered
-    @on_trait_change('subjects_dir,subject')
+    @on_trait_change('subjects_dir,subject,use_high_res_head')
     def _subject_changed(self):
         subject = self.subject
         subjects_dir = self.subjects_dir
         if not subjects_dir or not subject:
             return
 
-        # look for high-res head
-        for fname in high_res_head_fnames:
-            path = fname.format(subjects_dir=subjects_dir, subject=subject)
-            if os.path.exists(path):
-                break
+        if self.use_high_res_head:
+            # look for high-res head
+            for fname in high_res_head_fnames:
+                path = fname.format(subjects_dir=subjects_dir, subject=subject)
+                if os.path.exists(path):
+                    break
+            else:
+                # use standard bem head
+                path = head_bem_fname.format(subjects_dir=subjects_dir,
+                                             subject=subject)
         else:
-            # use standard bem head
             path = head_bem_fname.format(subjects_dir=subjects_dir,
                                          subject=subject)
         self.bem.file = path
