@@ -474,7 +474,15 @@ def _find_kit_layout(info, n_grads):
     kit_layout : str
         One of 'KIT-AD', 'KIT-157' or 'KIT-UMD'.
     """
-    if n_grads > 157:
+    if info['kit_system_id'] is not None:
+        # avoid circular import
+        from ..io.kit.constants import KIT_LAYOUT
+
+        if info['kit_system_id'] in KIT_LAYOUT:
+            return KIT_LAYOUT[info['kit_system_id']]
+        else:
+            raise ValueError("Unknown KIT system: %i" % info['kit_system_id'])
+    elif n_grads > 157:
         return 'KIT-AD'
 
     # channels which are on the left hemisphere for NY and right for UMD

@@ -128,6 +128,16 @@ KIT_CONSTANTS = {KIT.SYSTEM_NYU_2008: KIT_NY,
                  KIT.SYSTEM_UMD_2014_07: KIT_UMD_2014,
                  KIT.SYSTEM_UMD_2014_12: KIT_UMD_2014}
 
+KIT_LAYOUT = {KIT.SYSTEM_NYU_2008: 'KIT-157',
+              KIT.SYSTEM_NYU_2009: 'KIT-157',
+              KIT.SYSTEM_NYU_2010: 'KIT-157',
+              KIT.SYSTEM_NYUAD_2011: 'KIT-AD',
+              KIT.SYSTEM_NYUAD_2012: 'KIT-AD',
+              KIT.SYSTEM_NYUAD_2014: 'KIT-AD',
+              KIT.SYSTEM_UMD_20XX: 'KIT-UMD',
+              KIT.SYSTEM_UMD_2014_07: 'KIT-UMD',
+              KIT.SYSTEM_UMD_2014_12: 'KIT-UMD'}
+
 SYSNAMES = {KIT.SYSTEM_NYU_2009: 'NYU 160ch System since Jan24 2009',
             KIT.SYSTEM_NYU_2010: 'NYU 160ch System since Jan24 2009',
             KIT.SYSTEM_NYUAD_2012: "New York University Abu Dhabi",

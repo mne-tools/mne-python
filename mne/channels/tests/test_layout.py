@@ -30,20 +30,13 @@ matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')
 
-fif_fname = op.join(op.dirname(__file__), '..', '..', 'io',
-                    'tests', 'data', 'test_raw.fif')
-
-lout_path = op.join(op.dirname(__file__), '..', '..', 'io',
-                    'tests', 'data')
-
-bti_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'bti',
-                  'tests', 'data')
-
-fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                        'data', 'test_ctf_comp_raw.fif')
-
-fname_kit_157 = op.join(op.dirname(__file__), '..', '..', 'io', 'kit',
-                        'tests', 'data', 'test.sqd')
+io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
+fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
+lout_path = op.join(io_dir, 'tests', 'data')
+bti_dir = op.join(io_dir, 'bti', 'tests', 'data')
+fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
+fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
+fname_kit_umd = op.join(io_dir, 'kit', 'tests', 'data', 'test_umd-raw.sqd')
 
 
 def _get_test_info():
@@ -268,6 +261,10 @@ def test_find_layout():
     raw_kit.info['bads'] = ['MEG  13', 'MEG  14', 'MEG  15', 'MEG  16']
     lout = find_layout(raw_kit.info)
     assert_true(lout.kind == 'KIT-157')
+
+    raw_umd = read_raw_kit(fname_kit_umd)
+    lout = find_layout(raw_umd.info)
+    assert_equal(lout.kind, 'KIT-UMD')
 
     # Test plotting
     lout.plot()
