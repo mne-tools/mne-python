@@ -42,7 +42,7 @@ bti_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'bti',
 fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                         'data', 'test_ctf_comp_raw.fif')
 
-fname_kit_157 = op.join(op.dirname(__file__), '..', '..',  'io', 'kit',
+fname_kit_157 = op.join(op.dirname(__file__), '..', '..', 'io', 'kit',
                         'tests', 'data', 'test.sqd')
 
 
@@ -254,15 +254,21 @@ def test_find_layout():
     assert_true(lout.kind == 'EEG')
     # no common layout, 'meg' option not supported
 
+    lout = find_layout(Raw(fname_ctf_raw).info)
+    assert_true(lout.kind == 'CTF-275')
+
     fname_bti_raw = op.join(bti_dir, 'exported4D_linux_raw.fif')
     lout = find_layout(Raw(fname_bti_raw).info)
     assert_true(lout.kind == 'magnesWH3600')
 
-    lout = find_layout(Raw(fname_ctf_raw).info)
-    assert_true(lout.kind == 'CTF-275')
-
-    lout = find_layout(read_raw_kit(fname_kit_157).info)
+    raw_kit = read_raw_kit(fname_kit_157)
+    lout = find_layout(raw_kit.info)
     assert_true(lout.kind == 'KIT-157')
+
+    raw_kit.info['bads'] = ['MEG  13', 'MEG  14', 'MEG  15', 'MEG  16']
+    lout = find_layout(raw_kit.info)
+    assert_true(lout.kind == 'KIT-157')
+
     # Test plotting
     lout.plot()
     plt.close('all')
