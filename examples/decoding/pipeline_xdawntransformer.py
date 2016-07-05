@@ -1,3 +1,15 @@
+"""
+====================================================================
+Minimal example for using scikit-learn pipeline
+====================================================================
+
+This example creates a scikit-learn pipeline with mne transformers.
+
+"""
+# Authors: Asish Panda <asishrocks95@gmail.com>
+#
+# License: BSD (3-clause)
+
 from sklearn.cross_validation import cross_val_score
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
