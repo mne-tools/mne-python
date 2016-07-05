@@ -264,7 +264,7 @@ def test_find_layout():
 
     raw_umd = read_raw_kit(fname_kit_umd)
     lout = find_layout(raw_umd.info)
-    assert_equal(lout.kind, 'KIT-UMD')
+    assert_equal(lout.kind, 'KIT-UMD-3')
 
     # Test plotting
     lout.plot()

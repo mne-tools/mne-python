@@ -114,7 +114,7 @@ KIT.SYSTEM_NYU_2010 = 34  # NYU-NY, January 22, 2010 -
 KIT.SYSTEM_NYUAD_2011 = 440  # NYU-AD initial launch May 20, 2011 -
 KIT.SYSTEM_NYUAD_2012 = 441  # NYU-AD more channels July 11, 2012 -
 KIT.SYSTEM_NYUAD_2014 = 442  # NYU-AD move to NYUAD campus Nov 20, 2014 -
-KIT.SYSTEM_UMD_20XX = 51  # UMD ? -  FIXME
+KIT.SYSTEM_UMD_2004 = 51  # UMD Marie Mount Hall, October 1, 2004 -
 KIT.SYSTEM_UMD_2014_07 = 52  # UMD update to 16 bit ADC, July 4, 2014 -
 KIT.SYSTEM_UMD_2014_12 = 53  # UMD December 4, 2014 -
 
@@ -124,7 +124,7 @@ KIT_CONSTANTS = {KIT.SYSTEM_NYU_2008: KIT_NY,
                  KIT.SYSTEM_NYUAD_2011: KIT_AD,
                  KIT.SYSTEM_NYUAD_2012: KIT_AD,
                  KIT.SYSTEM_NYUAD_2014: KIT_AD,
-                 KIT.SYSTEM_UMD_20XX: KIT_UMD,
+                 KIT.SYSTEM_UMD_2004: KIT_UMD,
                  KIT.SYSTEM_UMD_2014_07: KIT_UMD_2014,
                  KIT.SYSTEM_UMD_2014_12: KIT_UMD_2014}
 
@@ -134,12 +134,15 @@ KIT_LAYOUT = {KIT.SYSTEM_NYU_2008: 'KIT-157',
               KIT.SYSTEM_NYUAD_2011: 'KIT-AD',
               KIT.SYSTEM_NYUAD_2012: 'KIT-AD',
               KIT.SYSTEM_NYUAD_2014: 'KIT-AD',
-              KIT.SYSTEM_UMD_20XX: 'KIT-UMD',
-              KIT.SYSTEM_UMD_2014_07: 'KIT-UMD',
-              KIT.SYSTEM_UMD_2014_12: 'KIT-UMD'}
+              KIT.SYSTEM_UMD_2004: None,
+              KIT.SYSTEM_UMD_2014_07: None,
+              KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3'}
 
+# Names stored along with ID in SQD files
 SYSNAMES = {KIT.SYSTEM_NYU_2009: 'NYU 160ch System since Jan24 2009',
             KIT.SYSTEM_NYU_2010: 'NYU 160ch System since Jan24 2009',
             KIT.SYSTEM_NYUAD_2012: "New York University Abu Dhabi",
             KIT.SYSTEM_NYUAD_2014: "New York University Abu Dhabi",
+            KIT.SYSTEM_UMD_2004: "University of Maryland",
+            KIT.SYSTEM_UMD_2014_07: "University of Maryland",
             KIT.SYSTEM_UMD_2014_12: "University of Maryland"}

@@ -479,9 +479,12 @@ def _find_kit_layout(info, n_grads):
         from ..io.kit.constants import KIT_LAYOUT
 
         if info['kit_system_id'] in KIT_LAYOUT:
-            return KIT_LAYOUT[info['kit_system_id']]
-        else:
-            raise ValueError("Unknown KIT system: %i" % info['kit_system_id'])
+            kit_layout = KIT_LAYOUT[info['kit_system_id']]
+            if kit_layout is not None:
+                return kit_layout
+        raise NotImplementedError("The layout for the KIT system with ID %i "
+                                  "is missing. Please contact the developers "
+                                  "about adding it." % info['kit_system_id'])
     elif n_grads > 157:
         return 'KIT-AD'
 
@@ -498,7 +501,10 @@ def _find_kit_layout(info, n_grads):
     if np.all(x):
         return 'KIT-157'  # KIT-NY
     elif np.all(np.invert(x)):
-        return 'KIT-UMD'
+        raise NotImplementedError("Guessing sensor layout for legacy UMD "
+                                  "files is not implemented. Please convert "
+                                  "your files using MNE-Python 0.13 or "
+                                  "higher.")
     else:
         raise RuntimeError("KIT system could not be determined for data")
 
