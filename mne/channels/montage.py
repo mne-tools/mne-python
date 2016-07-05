@@ -192,7 +192,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
         ch_names_, pos = [], []
         for line in lines:
-            line = line.lstrip().rstrip().split()
+            line = line.strip().split()
             if len(line) > 0:  # skip empty lines
                 name, x, y, z = line
                 ch_names_.append(name)
