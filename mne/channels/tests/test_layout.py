@@ -42,7 +42,7 @@ bti_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'bti',
 fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                         'data', 'test_ctf_comp_raw.fif')
 
-fname_kit_157 = op.join(op.dirname(__file__), '..', '..',  'io', 'kit',
+fname_kit_157 = op.join(op.dirname(__file__), '..', '..', 'io', 'kit',
                         'tests', 'data', 'test.sqd')
 
 
