@@ -88,8 +88,6 @@ class StimServer(object):
 
     Parameters
     ----------
-    ip : str
-        IP address of the host where StimServer is running.
     port : int
         The port to which the stimulation server must bind to.
     n_clients : int
@@ -100,10 +98,10 @@ class StimServer(object):
     StimClient
     """
 
-    def __init__(self, ip='localhost', port=4218, n_clients=1):
+    def __init__(self, port=4218, n_clients=1):
 
         # Start a threaded TCP server, binding to localhost on specified port
-        self._data = _ThreadedTCPServer((ip, port),
+        self._data = _ThreadedTCPServer(('', port),
                                         _TriggerHandler, self)
         self.n_clients = n_clients
 
@@ -246,8 +244,6 @@ class StimClient(object):
 
     @verbose
     def __init__(self, host, port=4218, timeout=5.0, verbose=None):
-        self._host = host
-        self._port = port
 
         try:
             logger.info("Setting up client socket")

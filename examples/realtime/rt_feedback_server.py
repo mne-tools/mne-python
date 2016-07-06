@@ -55,7 +55,7 @@ raw = mne.io.read_raw_fif(raw_fname, preload=True)
 # Instantiating stimulation server
 
 # The with statement is necessary to ensure a clean exit
-with StimServer('localhost', port=4218) as stim_server:
+with StimServer(port=4218) as stim_server:
 
     # The channels to be used while decoding
     picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,

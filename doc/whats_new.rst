@@ -216,6 +216,8 @@ BUG
 
     - Fix bug in :func:`mne.io.Raw.save` where, in rare cases, automatically split files could end up writing an extra empty file that wouldn't be read properly by `Eric Larson`_
 
+    - Fix :class:`mne.realtime.StimServer` by removing superfluous argument ``ip`` used while initializing the object by `Mainak Jas`_.
+
 API
 ~~~
 
