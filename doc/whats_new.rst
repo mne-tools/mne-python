@@ -83,7 +83,7 @@ API
 
     - Adds :func:`mne.Evoked.apply_baseline` to be consistent with :func:`mne.Epochs.apply_baseline`, by `Felix Raimundo`_
 
-    - Deprecated the `baseline` parameter in :func:`mne.Evoked.__init__`, by `Felix Raimundo`_
+    - Deprecated the `baseline` parameter in :class:`mne.Evoked`, by `Felix Raimundo`_
 
 .. _changes_0_12:
 
