@@ -15,7 +15,7 @@ try:
                             on_trait_change, Array, Bool, Button, DelegatesTo,
                             Directory, Enum, Event, File, Instance, Int, List,
                             Property, Str)
-    from traitsui.api import View, Item, VGroup
+    from traitsui.api import View, Item, VGroup, HGroup, Spring
     from pyface.api import (DirectoryDialog, OK, ProgressDialog, error,
                             information)
 except Exception:
@@ -29,7 +29,8 @@ from ..io.constants import FIFF
 from ..io import read_info, read_fiducials
 from ..surface import read_bem_surfaces, read_surface
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
-                     create_default_subject)
+                     create_default_subject, _find_high_res_head,
+                     create_high_res_head)
 from ..utils import get_config, set_config
 
 
@@ -512,15 +513,46 @@ class SubjectSelectorPanel(HasPrivateTraits):
     subjects = DelegatesTo('model')
     use_high_res_head = DelegatesTo('model')
 
+    make_high_res_heads = Button("Precompute All Subjects")
     create_fsaverage = Button("Copy FsAverage to Subjects Folder",
                               desc="Copy the files for the fsaverage subject "
                               "to the subjects directory.")
 
     view = View(VGroup(Item('subjects_dir', label='subjects_dir'),
                        'subject',
-                       Item('use_high_res_head', label='High Res.'),
+                       HGroup(Item('use_high_res_head',
+                                   label='Show High Resolution Head'),
+                              Item('make_high_res_heads', show_label=False,
+                                   enabled_when='subjects_dir',
+                                   tooltip="Compute high resolution heads for "
+                                           "all subjects. This requires "
+                                           "FreeSurfer and can take a "
+                                           "while."),),
                        Item('create_fsaverage', show_label=False,
                             enabled_when='can_create_fsaverage')))
+
+    def _make_high_res_heads_fired(self):
+        subjects = [subject for subject in self.subjects if not
+                    _find_high_res_head(subject, self.subjects_dir)]
+        if not subjects:
+            information(None, "All subjects already have a high resolution "
+                        "head", "Nothing To Do")
+            return
+        fs_home = get_fs_home()
+        prog = ProgressDialog(title="High Res Heads", min=0, max=len(subjects),
+                              message="Creating high res heads for %i "
+                              "subjects..." % len(subjects))
+        prog.open()
+        for i, subject in enumerate(subjects):
+            try:
+                create_high_res_head(subject, self.subjects_dir, fs_home)
+            except Exception as err:
+                prog.close()
+                error(None, "Error creating high resolution head for %s: %s "
+                      "(see Terminal for details)." % (subject, err),
+                      "Error Creating High Resolution Head")
+                raise
+            prog.update(i + 1)
 
     def _create_fsaverage_fired(self):
         # progress dialog with indefinite progress bar
