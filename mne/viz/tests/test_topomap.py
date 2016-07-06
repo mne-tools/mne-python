@@ -16,13 +16,15 @@ from nose.tools import assert_true, assert_equal
 
 from mne import io, read_evokeds, read_proj
 from mne.io.constants import FIFF
+from mne.io.pick import pick_info, channel_indices_by_type
 from mne.channels import read_layout, make_eeg_layout
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import slow_test, run_tests_if_main
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
-from mne.viz.topomap import (_check_outlines, _onselect, plot_topomap)
+from mne.viz.topomap import (_check_outlines, _onselect, plot_topomap,
+                             plot_psds_topomap)
 from mne.viz.utils import _find_peaks, _fake_click
 
 
@@ -299,6 +301,17 @@ def test_plot_tfr_topomap():
     erelease.xdata = erelease.ydata = 0.9
     tfr._onselect(eclick, erelease, None, 'mean', None)
     plt.close('all')
+
+    # test plot_psds_topomap
+    info = raw.info.copy()
+    chan_inds = channel_indices_by_type(info)
+    info = pick_info(info, chan_inds['grad'][:4])
+
+    fig, axes = plt.subplots()
+    freqs = np.arange(3., 9.5)
+    bands = [(4, 8, 'Theta')]
+    psd = np.random.rand(len(info['ch_names']), freqs.shape[0])
+    plot_psds_topomap(psd, freqs, info, bands=bands, axes=[axes])
 
 
 run_tests_if_main()
