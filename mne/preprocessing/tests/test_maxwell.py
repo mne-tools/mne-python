@@ -207,6 +207,9 @@ def test_other_systems():
         assert_raises(RuntimeError, maxwell_filter, raw_kit)
     raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04), ignore_ref=True)
     _assert_n_free(raw_sss, 65, 65)
+    raw_sss_auto = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
+                                  ignore_ref=True, mag_scale='auto')
+    assert_allclose(raw_sss._data, raw_sss_auto._data)
     # XXX this KIT origin fit is terrible! Eventually we should get a
     # corrected HSP file with proper coverage
     with warnings.catch_warnings(record=True):
@@ -246,8 +249,13 @@ def test_other_systems():
     bti_hs = op.join(bti_dir, 'test_hs_linux')
     with warnings.catch_warnings(record=True):  # weght table
         raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
+    picks = pick_types(raw_bti.info, meg='mag', exclude=())
+    power = np.sqrt(np.sum(raw_bti[picks][0] ** 2))
     raw_sss = maxwell_filter(raw_bti)
     _assert_n_free(raw_sss, 70)
+    _assert_shielding(raw_sss, power, 0.5)
+    raw_sss_auto = maxwell_filter(raw_bti, mag_scale='auto', verbose=True)
+    _assert_shielding(raw_sss_auto, power, 0.7)
 
     # CTF
     raw_ctf = Raw(fname_ctf_raw, compensation=2)
@@ -258,6 +266,9 @@ def test_other_systems():
     _assert_n_free(raw_sss, 68)
     raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04), ignore_ref=True)
     _assert_n_free(raw_sss, 70)
+    raw_sss_auto = maxwell_filter(raw_ctf, origin=(0., 0., 0.04),
+                                  ignore_ref=True, mag_scale='auto')
+    assert_allclose(raw_sss._data, raw_sss_auto._data)
 
 
 def test_spherical_harmonics():
@@ -420,6 +431,7 @@ def test_basic():
     assert_raises(ValueError, maxwell_filter, raw, coord_frame='foo')
     assert_raises(ValueError, maxwell_filter, raw, origin='foo')
     assert_raises(ValueError, maxwell_filter, raw, origin=[0] * 4)
+    assert_raises(ValueError, maxwell_filter, raw, mag_scale='foo')
 
 
 @testing.requires_testing_data
@@ -757,11 +769,28 @@ def test_shielding_factor():
     picks = pick_types(raw_erm.info, meg='mag')
     erm_power = raw_erm[picks][0]
     erm_power = np.sqrt(np.sum(erm_power * erm_power))
+    erm_power_grad = raw_erm[pick_types(raw_erm.info, meg='grad')][0]
+    erm_power_grad = np.sqrt(np.sum(erm_power * erm_power))
 
     # Vanilla SSS (second value would be for meg=True instead of meg='mag')
     _assert_shielding(Raw(sss_erm_std_fname), erm_power, 10)  # 1.5)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None)
     _assert_shielding(raw_sss, erm_power, 12)  # 1.5)
+    _assert_shielding(raw_sss, erm_power_grad, 0.45, 'grad')  # 1.5)
+
+    # Using different mag_scale values
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                             mag_scale='auto')
+    _assert_shielding(raw_sss, erm_power, 12)
+    _assert_shielding(raw_sss, erm_power_grad, 0.48, 'grad')
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                             mag_scale=1.)  # not a good choice
+    _assert_shielding(raw_sss, erm_power, 7.3)
+    _assert_shielding(raw_sss, erm_power_grad, 0.2, 'grad')
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
+                             mag_scale=1000., bad_condition='ignore')
+    _assert_shielding(raw_sss, erm_power, 4.0)
+    _assert_shielding(raw_sss, erm_power_grad, 0.1, 'grad')
 
     # Fine cal
     _assert_shielding(Raw(sss_erm_fine_cal_fname), erm_power, 12)  # 2.0)
@@ -822,6 +851,13 @@ def test_shielding_factor():
                              cross_talk=ctc_fname, st_duration=1.,
                              coord_frame='meg', regularize='in')
     _assert_shielding(raw_sss, erm_power, 58)  # 7.0)
+    _assert_shielding(raw_sss, erm_power_grad, 1.6, 'grad')
+    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
+                             cross_talk=ctc_fname, st_duration=1.,
+                             coord_frame='meg', regularize='in',
+                             mag_scale='auto')
+    _assert_shielding(raw_sss, erm_power, 51)
+    _assert_shielding(raw_sss, erm_power_grad, 1.5, 'grad')
     raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname_3d,
                              cross_talk=ctc_fname, st_duration=1.,
                              coord_frame='meg', regularize='in')

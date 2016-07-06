@@ -17,7 +17,7 @@ from ..bem import _check_origin
 from ..chpi import quat_to_rot, rot_to_quat
 from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
                           _find_vector_rotation)
-from ..forward import _concatenate_coils, _prep_meg_channels
+from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
 from ..io.constants import FIFF
 from ..io.proc_history import _read_ctc
@@ -137,10 +137,12 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
         .. versionadded:: 0.12
 
-    mag_scale : float
+    mag_scale : float | str
         The magenetometer scale-factor used to bring the magnetometers
         to approximately the same order of magnitude as the gradiometers
-        (default 100.).
+        (default 100.), as they have different units (T vs T/m).
+        Can be ``'auto'`` to use the reciprocal of the gradiometer
+        baseline (e.g., 0.0168 m yields 59.5 for VectorView).
 
         .. versionadded:: 0.13
 
@@ -240,7 +242,6 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
     # triage inputs ASAP to avoid late-thrown errors
-    mag_scale = float(mag_scale)
     if not isinstance(raw, _BaseRaw):
         raise TypeError('raw must be Raw, not %s' % type(raw))
     _check_usable(raw)
@@ -290,9 +291,12 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     del raw
     _remove_meg_projs(raw_sss)  # remove MEG projectors, they won't apply now
     info = raw_sss.info
-    meg_picks, mag_picks, grad_picks, good_picks, coil_scale, mag_or_fine = \
-        _get_mf_picks(info, int_order, ext_order, ignore_ref,
-                      mag_scale=mag_scale)
+    meg_picks, mag_picks, grad_picks, good_picks, mag_or_fine = \
+        _get_mf_picks(info, int_order, ext_order, ignore_ref)
+
+    # Magnetometers are scaled to improve numerical stability
+    coil_scale, mag_scale = _get_coil_scale(
+        meg_picks, mag_picks, grad_picks, mag_scale, info)
 
     #
     # Fine calibration processing (load fine cal and overwrite sensor geometry)
@@ -512,6 +516,36 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                      st_only)
     logger.info('[done]')
     return raw_sss
+
+
+def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
+    """Helper to get the magnetometer scale factor"""
+    if isinstance(mag_scale, string_types):
+        if mag_scale != 'auto':
+            raise ValueError('mag_scale must be a float or "auto", got "%s"'
+                             % mag_scale)
+        if len(mag_picks) in (0, len(meg_picks)):
+            mag_scale = 100.  # only one coil type, doesn't matter
+            logger.info('    Setting mag_scale=%0.2f because only one '
+                        'coil type is present' % mag_scale)
+        else:
+            # Find our gradiometer baseline
+            coils = _create_meg_coils(pick_info(info, meg_picks)['chs'],
+                                      'accurate')
+            grad_base = set(coils[pick]['base'] for pick in grad_picks)
+            if len(grad_base) != 1 or list(grad_base)[0] <= 0:
+                raise RuntimeError('Could not automatically determine '
+                                   'mag_scale, could not find one '
+                                   'proper baseline value from: %s'
+                                   % list(grad_base))
+            grad_base = list(grad_base)[0]
+            mag_scale = 1. / grad_base
+            logger.info('    Setting mag_scale=%0.2f based on gradiometer '
+                        'baseline %0.2f mm' % (mag_scale, 1000 * grad_base))
+    mag_scale = float(mag_scale)
+    coil_scale = np.ones((len(meg_picks), 1))
+    coil_scale[mag_picks] = mag_scale
+    return coil_scale, mag_scale
 
 
 def _remove_meg_projs(inst):
@@ -803,8 +837,7 @@ def _regularize(regularize, exp, S_decomp, mag_or_fine, t, verbose=None):
     return S_decomp, pS_decomp, sing, reg_moments, n_use_in
 
 
-def _get_mf_picks(info, int_order, ext_order, ignore_ref=False,
-                  mag_scale=100.):
+def _get_mf_picks(info, int_order, ext_order, ignore_ref=False):
     """Helper to pick types for Maxwell filtering"""
     # Check for T1/T2 mag types
     mag_inds_T1T2 = _get_T1T2_mag_inds(info)
@@ -832,9 +865,6 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False,
     ref_meg = False if ignore_ref else 'grad'
     grad_picks = pick_types(meg_info, meg='grad', ref_meg=ref_meg, exclude=[])
     assert len(mag_picks) + len(grad_picks) == len(meg_info['ch_names'])
-    # Magnetometers are scaled by 100 to improve numerical stability
-    coil_scale = np.ones((len(meg_picks), 1))
-    coil_scale[mag_picks] = mag_scale
     # Determine which are magnetometers for external basis purposes
     mag_or_fine = np.zeros(len(meg_picks), bool)
     mag_or_fine[mag_picks] = True
@@ -849,8 +879,7 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False,
     if n_kit > 0:
         msg += ' (of which %s are actually KIT gradiometers)' % n_kit
     logger.info(msg)
-    return (meg_picks, mag_picks, grad_picks, good_picks, coil_scale,
-            mag_or_fine)
+    return meg_picks, mag_picks, grad_picks, good_picks, mag_or_fine
 
 
 def _check_regularize(regularize):
