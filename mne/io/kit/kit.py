@@ -558,6 +558,7 @@ def get_kit_info(rawfile):
                                       "contact the MNE-Python developers."
                                       % (sysname, sysid))
         KIT_SYS = KIT_CONSTANTS[sysid]
+        logger.info("KIT-System ID %i: %s" % (sysid, sysname))
         if sysid in SYSNAMES:
             if sysname != SYSNAMES[sysid]:
                 warn("KIT file %s has system-name %r, expected %r"
@@ -659,7 +660,7 @@ def get_kit_info(rawfile):
         info = _empty_info(float(sqd['sfreq']))
         info.update(meas_date=int(time.time()), lowpass=sqd['lowpass'],
                     highpass=sqd['highpass'], filename=rawfile,
-                    buffer_size_sec=1.)
+                    buffer_size_sec=1., kit_system_id=sysid)
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')

@@ -536,6 +536,10 @@ FIFF.FIFF_MNE_ICA_MATRIX            = 3607     # ICA unmixing matrix
 FIFF.FIFF_MNE_ICA_BADS              = 3608     # ICA bad sources
 FIFF.FIFF_MNE_ICA_MISC_PARAMS       = 3609     # ICA misc params
 #
+# Miscellaneous
+#
+FIFF.FIFF_MNE_KIT_SYSTEM_ID         = 3612     # Unique ID assigned to KIT systems
+#
 # Maxfilter tags
 #
 FIFF.FIFF_SSS_FRAME                 = 263

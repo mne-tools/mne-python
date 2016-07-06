@@ -75,6 +75,8 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     assert_true(not math.isnan(raw.info['highpass']))
     assert_true(not math.isnan(raw.info['lowpass']))
 
+    assert_equal(raw3.info['kit_system_id'], raw.info['kit_system_id'])
+
     # Make sure concatenation works
     first_samp = raw.first_samp
     last_samp = raw.last_samp

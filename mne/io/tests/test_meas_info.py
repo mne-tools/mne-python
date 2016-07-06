@@ -279,6 +279,13 @@ def test_merge_info():
     # Check that you must supply Info
     assert_raises(ValueError, _force_update_info, info_a,
                   dict([('sfreq', 1000.)]))
+    # KIT System-ID
+    info_a['kit_system_id'] = 50
+    assert_equal(_merge_info((info_a, info_b))['kit_system_id'], 50)
+    info_b['kit_system_id'] = 50
+    assert_equal(_merge_info((info_a, info_b))['kit_system_id'], 50)
+    info_b['kit_system_id'] = 60
+    assert_raises(ValueError, _merge_info, (info_a, info_b))
 
 
 def test_check_consistency():
