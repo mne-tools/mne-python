@@ -464,6 +464,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
                     preload=False, proj=False)
+    if method is None:
+        method = 'empirical'
     if isinstance(method, string_types) and method == 'empirical':
         # potentially *much* more memory efficient to do it the iterative way
         picks = picks[pick_mask]
@@ -653,7 +655,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     accepted_methods = ('auto', 'empirical', 'diagonal_fixed', 'ledoit_wolf',
                         'shrunk', 'pca', 'factor_analysis',)
     msg = ('Invalid method ({method}). Accepted values (individually or '
-           'in a list) are "%s"' % '" or "'.join(accepted_methods + ('None',)))
+           'in a list) are "%s" or None.' % '" or "'.join(accepted_methods))
 
     # scale to natural unit for best stability with MEG/EEG
     if isinstance(scalings, dict):
@@ -747,7 +749,9 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
     info = epochs[0].info  # we will overwrite 'epochs'
 
-    if method == 'auto':
+    if method is None:
+        method = ['empirical']
+    elif method == 'auto':
         method = ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
     if not isinstance(method, (list, tuple)):

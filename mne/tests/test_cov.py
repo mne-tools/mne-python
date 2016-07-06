@@ -70,7 +70,7 @@ def test_cov_mismatch():
     # This should work
     epochs.info['dev_head_t'] = None
     epochs_2.info['dev_head_t'] = None
-    compute_covariance([epochs, epochs_2])
+    compute_covariance([epochs, epochs_2], method=None)
 
 
 def test_cov_order():
@@ -147,7 +147,7 @@ def test_cov_estimation_on_raw():
     # The pure-string uses the more efficient numpy-based method, the
     # the list gets triaged to compute_covariance (should be equivalent
     # but use more memory)
-    for method in ('empirical', ['empirical']):
+    for method in (None, ['empirical']):  # None is cast to 'empirical'
         cov = compute_raw_covariance(raw, tstep=None, method=method)
         assert_equal(cov.ch_names, cov_mne.ch_names)
         assert_equal(cov.nfree, cov_mne.nfree)
