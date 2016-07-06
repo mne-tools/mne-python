@@ -70,6 +70,7 @@ with FieldTripClient(host='localhost', port=1972,
     for ii, ev in enumerate(rt_epochs.iter_evoked()):
         print("Just got epoch %d" % (ii + 1))
 
+        ev.pick_types(meg=True, eog=False)
         if ii == 0:
             evoked = ev
         else:
