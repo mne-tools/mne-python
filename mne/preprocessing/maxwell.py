@@ -141,8 +141,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         The magenetometer scale-factor used to bring the magnetometers
         to approximately the same order of magnitude as the gradiometers
         (default 100.), as they have different units (T vs T/m).
-        Can be ``'auto'`` to use the reciprocal of the gradiometer
-        baseline (e.g., 0.0168 m yields 59.5 for VectorView).
+        Can be ``'auto'`` to use the reciprocal of the physical distance
+        between the gradiometer pickup loops (e.g., 0.0168 m yields
+        59.5 for VectorView).
 
         .. versionadded:: 0.13
 
@@ -529,19 +530,20 @@ def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
             logger.info('    Setting mag_scale=%0.2f because only one '
                         'coil type is present' % mag_scale)
         else:
-            # Find our gradiometer baseline
+            # Find our physical distance between gradiometer pickup loops
+            # ("base line")
             coils = _create_meg_coils(pick_info(info, meg_picks)['chs'],
                                       'accurate')
             grad_base = set(coils[pick]['base'] for pick in grad_picks)
             if len(grad_base) != 1 or list(grad_base)[0] <= 0:
                 raise RuntimeError('Could not automatically determine '
                                    'mag_scale, could not find one '
-                                   'proper baseline value from: %s'
+                                   'proper gradiometer distance from: %s'
                                    % list(grad_base))
             grad_base = list(grad_base)[0]
             mag_scale = 1. / grad_base
             logger.info('    Setting mag_scale=%0.2f based on gradiometer '
-                        'baseline %0.2f mm' % (mag_scale, 1000 * grad_base))
+                        'distance %0.2f mm' % (mag_scale, 1000 * grad_base))
     mag_scale = float(mag_scale)
     coil_scale = np.ones((len(meg_picks), 1))
     coil_scale[mag_picks] = mag_scale

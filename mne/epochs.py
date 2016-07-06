@@ -2983,8 +2983,9 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         The magenetometer scale-factor used to bring the magnetometers
         to approximately the same order of magnitude as the gradiometers
         (default 100.), as they have different units (T vs T/m).
-        Can be ``'auto'`` to use the reciprocal of the gradiometer
-        baseline (e.g., 0.0168 m yields 59.5 for VectorView).
+        Can be ``'auto'`` to use the reciprocal of the physical distance
+        between the gradiometer pickup loops (e.g., 0.0168 m yields
+        59.5 for VectorView).
 
         .. versionadded:: 0.13
 
