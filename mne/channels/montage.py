@@ -196,8 +196,8 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
             if len(line) > 0:  # skip empty lines
                 if len(line) != 4:  # name, x, y, z
                     raise ValueError("Malformed .sfp file in line " + str(ii))
-                name, x, y, z = line
-                ch_names_.append(name)
+                this_name, x, y, z = line
+                ch_names_.append(this_name)
                 pos.append([float(cord) for cord in (x, y, z)])
         pos = np.asarray(pos)
     elif ext == '.elc':
