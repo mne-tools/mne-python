@@ -15,14 +15,14 @@ try:
                             on_trait_change, Array, Bool, Button, DelegatesTo,
                             Directory, Enum, Event, File, Instance, Int, List,
                             Property, Str)
-    from traitsui.api import View, Item, VGroup, HGroup, Spring
+    from traitsui.api import View, Item, VGroup, HGroup
     from pyface.api import (DirectoryDialog, OK, ProgressDialog, error,
                             information)
 except Exception:
     from ..utils import trait_wraith
     HasTraits = HasPrivateTraits = object
     cached_property = on_trait_change = Any = Array = Bool = Button = \
-        DelegatesTo = Directory = Enum = Event = File = Instance = \
+        DelegatesTo = Directory = Enum = Event = File = Instance = HGroup = \
         Int = List = Property = Str = View = Item = VGroup = trait_wraith
 
 from ..io.constants import FIFF

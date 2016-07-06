@@ -25,7 +25,7 @@ except Exception:
     cached_property = on_trait_change = MayaviScene = MlabSceneModel = \
         Array = Bool = Button = DelegatesTo = Enum = Event = Instance = \
         Property = View = Item = HGroup = VGroup = SceneEditor = \
-        NoButtons = trait_wraith
+        NoButtons = error = ProgressDialog = trait_wraith
 
 from ..coreg import (fid_fname, head_bem_fname, _find_fiducials_files,
                      _find_high_res_head, create_high_res_head)
