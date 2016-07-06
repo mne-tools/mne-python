@@ -53,6 +53,7 @@ fname_evoked = op.join(data_path, 'MEG', 'sample',
 
 fwd = mne.read_forward_solution(fname_fwd, force_fixed=True,
                                 surf_ori=True)
+fwd['info']['bads'] = []
 inv_op = read_inverse_operator(fname_inv)
 
 raw = mne.io.RawFIF(op.join(data_path, 'MEG', 'sample',
@@ -60,6 +61,7 @@ raw = mne.io.RawFIF(op.join(data_path, 'MEG', 'sample',
 events = mne.find_events(raw)
 event_id = {'Auditory/Left': 1, 'Auditory/Right': 2}
 epochs = mne.Epochs(raw, events, event_id, baseline=(None, 0), preload=True)
+epochs.info['bads'] = []
 evoked = epochs.average()
 
 labels = mne.read_labels_from_annot('sample', subjects_dir=subjects_dir)
