@@ -28,7 +28,7 @@ except Exception:
         NoButtons = trait_wraith
 
 from ..coreg import (fid_fname, head_bem_fname, _find_fiducials_files,
-                     high_res_head_fnames, create_high_res_head)
+                     _find_high_res_head, create_high_res_head)
 from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
@@ -170,11 +170,9 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 
         if self.use_high_res_head:
             # look for high-res head
-            for fname in high_res_head_fnames:
-                path = fname.format(subjects_dir=subjects_dir, subject=subject)
-                if os.path.exists(path):
-                    break
-            else:
+            path = _find_high_res_head(subjects_dir=subjects_dir,
+                                       subject=subject)
+            if path is None:
                 prog = ProgressDialog(title="High-Resolution Head",
                                       message="Creating high-resolution head "
                                       "for %s..." % subject)
@@ -218,11 +216,9 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
                                "FreeSurfer and try again.")
 
         create_high_res_head(self.subject, self.subjects_dir, fs_home)
-        for fname in high_res_head_fnames[1:]:
-            path = fname.format(subject=self.subject,
-                                subjects_dir=self.subjects_dir)
-            if os.path.exists(path):
-                return path
+        path = _find_high_res_head(self.subject, self.subjects_dir)
+        if path:
+            return path
         else:
             raise RuntimeError("High resolution head failed to generate")
 
