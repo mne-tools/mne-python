@@ -79,6 +79,12 @@ API
 
     - Add ``zorder`` parameter to :func:`mne.Evoked.plot` and derived functions to sort allow sorting channels by e.g. standard deviation, by `Jona Sassenhagen`_
 
+    - The ``baseline`` parameter of :func:`mne.Epochs.apply_baseline` is set by default (None, 0), by `Felix Raimundo`_
+
+    - Adds :func:`mne.Evoked.apply_baseline` to be consistent with :func:`mne.Epochs.apply_baseline`, by `Felix Raimundo`_
+
+    - Deprecated the `baseline` parameter in :func:`mne.Evoked.__init__`, by `Felix Raimundo`_
+
 .. _changes_0_12:
 
 Version 0.12
@@ -1625,3 +1631,5 @@ of commits):
 .. _Alexander Rudiuk: https://github.com/ARudiuk
 
 .. _Mikołaj Magnuski: https://github.com/mmagnuski
+
+.. _Felix Raimundo: https://github.com/gamazeps

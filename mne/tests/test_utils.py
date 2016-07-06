@@ -255,13 +255,6 @@ def test_logging():
         old_lines = clean_lines(old_log_file.readlines())
     with open(fname_log_2, 'r') as old_log_file_2:
         old_lines_2 = clean_lines(old_log_file_2.readlines())
-    # we changed our logging a little bit
-    old_lines = [o.replace('No baseline correction applied...',
-                           'No baseline correction applied')
-                 for o in old_lines]
-    old_lines_2 = [o.replace('No baseline correction applied...',
-                             'No baseline correction applied')
-                   for o in old_lines_2]
 
     if op.isfile(test_name):
         os.remove(test_name)
@@ -303,8 +296,7 @@ def test_logging():
     evoked = read_evokeds(fname_evoked, condition=1)
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())
-    with open(fname_log, 'r') as old_log_file:
-        assert_equal(new_lines, old_lines)
+    assert_equal(new_lines, old_lines)
     # check to make sure appending works (and as default, raises a warning)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
