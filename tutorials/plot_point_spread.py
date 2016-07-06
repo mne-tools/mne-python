@@ -38,7 +38,7 @@ dt = times[1] - times[0]
 
 # Paths to MEG data
 data_path = sample.data_path()
-subjects_dir = op.join(data_path, 'subjects/')
+subjects_dir = op.join(data_path, 'subjects')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-oct-6-fwd.fif')
 fname_inv = op.join(data_path, 'MEG', 'sample',
@@ -46,8 +46,6 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
 
 fname_evoked = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis-ave.fif')
-
-subject_dir = op.join(data_path, 'subjects/')
 
 ###############################################################################
 # Load the MEG data
@@ -61,12 +59,10 @@ raw = mne.io.RawFIF(op.join(data_path, 'MEG', 'sample',
                             'sample_audvis_raw.fif'))
 events = mne.find_events(raw)
 event_id = {'Auditory/Left': 1, 'Auditory/Right': 2}
-epochs = mne.Epochs(raw, events, event_id,
-                    baseline=(None, 0),
-                    preload=True)
+epochs = mne.Epochs(raw, events, event_id, baseline=(None, 0), preload=True)
 evoked = epochs.average()
 
-labels = mne.read_labels_from_annot('sample', subjects_dir=subject_dir)
+labels = mne.read_labels_from_annot('sample', subjects_dir=subjects_dir)
 label_names = [l.name for l in labels]
 n_labels = len(labels)
 
@@ -106,7 +102,7 @@ for i, label in enumerate(labels):
     surf_vertices = fwd['src'][hemi_to_ind[label.hemi]]['vertno']
     restrict_verts = np.intersect1d(surf_vertices, label.vertices)
     com = labels[i].center_of_mass(subject='sample',
-                                   subjects_dir=subject_dir,
+                                   subjects_dir=subjects_dir,
                                    restrict_vertices=restrict_verts,
                                    surf='white')
 
