@@ -728,8 +728,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
              "explicitly.", DeprecationWarning)
         time_unit = 'ms'
     elif time_unit not in ('s', 'ms'):
-        raise ValueError("time_unit needs to be 's' or 'ms', got %s" %
-                         repr(time_unit))
+        raise ValueError("time_unit needs to be 's' or 'ms', got %r" %
+                         (time_unit,))
 
     if time_label == 'auto':
         if time_unit == 'ms':
@@ -785,10 +785,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     if time_unit == 's':
         times = stc.times
-    elif time_unit == 'ms':
+    else:  # time_unit == 'ms'
         times = 1e3 * stc.times
-    else:
-        raise RuntimeError("time_unit=%s" % repr(time_unit))
 
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1

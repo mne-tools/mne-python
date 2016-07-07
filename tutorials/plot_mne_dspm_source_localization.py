@@ -105,27 +105,28 @@ plt.show()
 # Here we use peak getter to move visualization to the time point of the peak
 # and draw a marker at the maximum peak vertex.
 
-vertno_max, time_idx = stc.get_peak(hemi='rh', time_as_index=True)
+vertno_max, time_max = stc.get_peak(hemi='rh')
 
 subjects_dir = data_path + '/subjects'
-brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir)
-
-brain.set_data_time_index(time_idx)
+brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
+                 clim=dict(kind='value', lims=[8, 12, 15]),
+                 initial_time=time_max, time_unit='s')
 brain.add_foci(vertno_max, coords_as_verts=True, hemi='rh', color='blue',
                scale_factor=0.6)
-brain.scale_data_colormap(fmin=8, fmid=12, fmax=15, transparent=True)
 brain.show_view('lateral')
 
 ###############################################################################
 # Morph data to average brain
 # ---------------------------
 
-stc_fsaverage = stc.morph(subject_to='fsaverage', subjects_dir=subjects_dir)
-
+fs_vertices = [np.arange(10242)] * 2
+morph_mat = mne.compute_morph_matrix('sample', 'fsaverage', stc.vertices,
+                                     fs_vertices, smooth=None)
+stc_fsaverage = stc.morph_precomputed('fsaverage', fs_vertices, morph_mat)
 brain_fsaverage = stc_fsaverage.plot(surface='inflated', hemi='rh',
-                                     subjects_dir=subjects_dir)
-brain_fsaverage.set_data_time_index(time_idx)
-brain_fsaverage.scale_data_colormap(fmin=8, fmid=12, fmax=15, transparent=True)
+                                     subjects_dir=subjects_dir,
+                                     clim=dict(kind='value', lims=[8, 12, 15]),
+                                     initial_time=time_max, time_unit='s')
 brain_fsaverage.show_view('lateral')
 
 ###############################################################################

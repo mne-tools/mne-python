@@ -16,6 +16,7 @@ permutation test across space and time.
 # License: BSD (3-clause)
 
 import os.path as op
+
 import numpy as np
 from scipy import stats as stats
 
@@ -103,8 +104,6 @@ stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
 subjects_dir = op.join(data_path, 'subjects')
 # blue blobs are for condition A != condition B
 brain = stc_all_cluster_vis.plot('fsaverage', hemi='both', colormap='mne',
-                                 subjects_dir=subjects_dir,
+                                 views='lateral', subjects_dir=subjects_dir,
                                  time_label='Duration significant (ms)')
-brain.set_data_time_index(0)
-brain.show_view('lateral')
 brain.save_image('clusters.png')
