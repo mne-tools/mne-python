@@ -239,10 +239,8 @@ subjects_dir = op.join(data_path, 'subjects')
 # stimulus modality and stimulus location
 
 brain = stc_all_cluster_vis.plot(subjects_dir=subjects_dir, colormap='mne',
+                                 views='lateral',
                                  time_label='Duration significant (ms)')
-
-brain.set_data_time_index(0)
-brain.show_view('lateral')
 brain.save_image('cluster-lh.png')
 brain.show_view('medial')
 

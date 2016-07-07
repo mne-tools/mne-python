@@ -54,7 +54,7 @@ dependencies:
     - cd /home/ubuntu/mne-python && python setup.py develop;
     - python -c "import mne; print(mne.get_config('MNE_DATA'))"
     - git branch -a
-    - PATTERN=""; NEED_SAMPLE=0;
+    - PATTERN="";
       if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
         echo html_dev > build.txt;
       elif [ "$CIRCLE_BRANCH" == "maint/0.12" ]; then
@@ -64,8 +64,17 @@ dependencies:
         echo FNAMES="$FNAMES";
         for FNAME in $FNAMES; do
           if [[ `expr match $FNAME "\(tutorials\|examples\)/.*plot_.*\.py"` ]] ; then
+            echo "Checking example $FNAME ...";
             PATTERN=`basename $FNAME`"\\|"$PATTERN;
-            NEED_SAMPLE=$(($NEED_SAMPLE + $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l)));
+            if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.sample.data_path())";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_auditory.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path())" --accept-brainstorm-license;
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_raw.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path())" --accept-brainstorm-license;
+            fi;
           fi;
         done;
         echo PATTERN="$PATTERN";
@@ -78,14 +87,11 @@ dependencies:
         fi;
       fi;
       echo "$PATTERN" > pattern.txt;
-      echo "$NEED_SAMPLE" > need_sample.txt
     - echo BUILD="$(cat build.txt)"
     - mkdir -p ~/mne_data;
     - ls -al ~/mne_data;
     - if [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
         python -c "import mne; mne.datasets._download_all_example_data()";
-      elif [[ $(cat need_sample.txt) -gt 0 ]]; then
-        python -c "import mne; print(mne.datasets.sample.data_path())";
       fi;
     - python -c "import mne; mne.sys_info()";
     - >

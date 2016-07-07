@@ -5,18 +5,18 @@ Brainstorm auditory tutorial dataset
 ====================================
 
 Here we compute the evoked from raw for the auditory Brainstorm
-tutorial dataset. For comparison, see [1]_ and
-http://neuroimage.usc.edu/brainstorm/Tutorials/Auditory
+tutorial dataset. For comparison, see [1]_ and:
+
+    http://neuroimage.usc.edu/brainstorm/Tutorials/Auditory
 
 Experiment:
-    - One subject 2 acquisition runs 6 minutes each.
+    - One subject, 2 acquisition runs 6 minutes each.
     - Each run contains 200 regular beeps and 40 easy deviant beeps.
     - Random ISI: between 0.7s and 1.7s seconds, uniformly distributed.
     - Button pressed when detecting a deviant with the right index finger.
 
-The specifications of this dataset were discussed initially on the FieldTrip
-bug tracker:
-http://bugzilla.fcdonders.nl/show_bug.cgi?id=2300
+The specifications of this dataset were discussed initially on the
+`FieldTrip bug tracker <http://bugzilla.fcdonders.nl/show_bug.cgi?id=2300>`_.
 
 References
 ----------
@@ -312,7 +312,7 @@ trans = mne.read_trans(trans_fname)
 # forward solution from scratch. The head surfaces for constructing a BEM
 # solution are read from a file. Since the data only contains MEG channels, we
 # only need the inner skull surface for making the forward solution. For more
-# information: :ref:`CHDBBCEJ`, :class:`mne.setup_source_space`,
+# information: :ref:`CHDBBCEJ`, :func:`mne.setup_source_space`,
 # :ref:`create_bem_model`, :func:`mne.bem.make_watershed_bem`.
 if use_precomputed:
     fwd_fname = op.join(data_path, 'MEG', 'bst_auditory',
@@ -339,21 +339,21 @@ del fwd
 # Standard condition.
 stc_standard = mne.minimum_norm.apply_inverse(evoked_std, inv, lambda2, 'dSPM')
 brain = stc_standard.plot(subjects_dir=subjects_dir, subject=subject,
-                          surface='inflated', time_viewer=False, hemi='lh')
-brain.set_data_time_index(120)
-del stc_standard, evoked_std, brain
+                          surface='inflated', time_viewer=False, hemi='lh',
+                          initial_time=0.1, time_unit='s')
+del stc_standard, brain
 
 ###############################################################################
 # Deviant condition.
 stc_deviant = mne.minimum_norm.apply_inverse(evoked_dev, inv, lambda2, 'dSPM')
 brain = stc_deviant.plot(subjects_dir=subjects_dir, subject=subject,
-                         surface='inflated', time_viewer=False, hemi='lh')
-brain.set_data_time_index(120)
-del stc_deviant, evoked_dev, brain
+                         surface='inflated', time_viewer=False, hemi='lh',
+                         initial_time=0.1, time_unit='s')
+del stc_deviant, brain
 
 ###############################################################################
 # Difference.
 stc_difference = apply_inverse(evoked_difference, inv, lambda2, 'dSPM')
 brain = stc_difference.plot(subjects_dir=subjects_dir, subject=subject,
-                            surface='inflated', time_viewer=False, hemi='lh')
-brain.set_data_time_index(150)
+                            surface='inflated', time_viewer=False, hemi='lh',
+                            initial_time=0.15, time_unit='s')

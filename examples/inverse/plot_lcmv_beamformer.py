@@ -87,6 +87,6 @@ plt.legend()
 plt.show()
 
 # Plot last stc in the brain in 3D with PySurfer if available
-brain = stc.plot(hemi='lh', subjects_dir=subjects_dir)
-brain.set_data_time_index(180)
+brain = stc.plot(hemi='lh', subjects_dir=subjects_dir,
+                 initial_time=0.1, time_unit='s')
 brain.show_view('lateral')

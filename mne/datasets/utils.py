@@ -358,6 +358,7 @@ def _download_all_example_data(verbose=True):
     """Helper to download all datasets used in examples and tutorials"""
     # This function is designed primarily to be used by CircleCI. It has
     # verbose=True by default so we get nice status messages
+    # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
                    eegbci)
     sample.data_path()
@@ -371,16 +372,12 @@ def _download_all_example_data(verbose=True):
         brainstorm.bst_auditory.data_path()
     finally:
         sys.argv.pop(-1)
-    sys.argv += ['--update-dataset-path']
-    try:
-        megsim.load_data(condition='visual', data_format='single-trial',
-                         data_type='simulation')
-        megsim.load_data(condition='visual', data_format='raw',
-                         data_type='experimental')
-        megsim.load_data(condition='visual', data_format='evoked',
-                         data_type='simulation')
-    finally:
-        sys.argv.pop(-1)
+    megsim.load_data(condition='visual', data_format='single-trial',
+                     data_type='simulation', update_path=True)
+    megsim.load_data(condition='visual', data_format='raw',
+                     data_type='experimental', update_path=True)
+    megsim.load_data(condition='visual', data_format='evoked',
+                     data_type='simulation', update_path=True)
     url_root = 'http://www.physionet.org/physiobank/database/eegmmidb/'
     eegbci.data_path(url_root + 'S001/S001R06.edf', update_path=True)
     eegbci.data_path(url_root + 'S001/S001R10.edf', update_path=True)

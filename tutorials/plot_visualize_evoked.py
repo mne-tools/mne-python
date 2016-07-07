@@ -21,9 +21,9 @@ evoked = mne.read_evokeds(fname, baseline=(None, 0), proj=True)
 print(evoked)
 
 ###############################################################################
-# Notice that ``evoked`` is a list of evoked instances. You can read only one
-# of the categories by passing the argument ``condition`` to
-# :func:`mne.read_evokeds`. To make things more simple for this tutorial, we
+# Notice that ``evoked`` is a list of :class:`evoked <mne.Evoked>` instances.
+# You can read only one of the categories by passing the argument ``condition``
+# to :func:`mne.read_evokeds`. To make things more simple for this tutorial, we
 # read each instance to a variable.
 evoked_l_aud = evoked[0]
 evoked_r_aud = evoked[1]

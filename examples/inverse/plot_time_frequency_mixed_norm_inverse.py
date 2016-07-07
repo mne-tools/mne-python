@@ -112,9 +112,8 @@ plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
 
 time_label = 'TF-MxNE time=%0.2f ms'
 clim = dict(kind='value', lims=[10e-9, 15e-9, 20e-9])
-brain = stc.plot('sample', 'inflated', 'rh', clim=clim, time_label=time_label,
-                 smoothing_steps=5, subjects_dir=subjects_dir)
-brain.show_view('medial')
-brain.set_data_time_index(120)
+brain = stc.plot('sample', 'inflated', 'rh', views='medial',
+                 clim=clim, time_label=time_label, smoothing_steps=5,
+                 subjects_dir=subjects_dir, initial_time=150, time_unit='ms')
 brain.add_label("V1", color="yellow", scalar_thresh=.5, borders=True)
 brain.add_label("V2", color="red", scalar_thresh=.5, borders=True)
