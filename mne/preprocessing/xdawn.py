@@ -356,6 +356,9 @@ class Xdawn(_Xdawn, ContainsMixin):
         self : Xdawn instance
             The Xdawn instance.
         """
+        if np.any(np.diff(epochs.events[:, 0].astype(int)) < 0):
+            epochs = epochs[np.argsort(epochs.events[:, 0])]
+
         if self.correct_overlap == 'auto':
             self.correct_overlap = _check_overlapp(epochs)
 
@@ -393,7 +396,7 @@ class Xdawn(_Xdawn, ContainsMixin):
             raise ValueError('Data input must be of Epoch '
                              'type or numpy array')
 
-        return self._transform_xdawn(epochs_data)
+        return self._transform_xdawn(data)
 
     def apply(self, inst, event_id=None, include=None, exclude=None):
         """Remove selected components from the signal.
