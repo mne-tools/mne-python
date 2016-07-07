@@ -85,6 +85,8 @@ API
 
     - Deprecated the `baseline` parameter in :class:`mne.Evoked`, by `Felix Raimundo`_
 
+    - The API of :meth:`mne.SourceEstimate.plot` and :func:`mne.viz.plot_source_estimates` has been updated to reflect current PySurfer 0.6 API. The ``config_opts`` parameter is now deprecated and will be removed in mne 0.14, and the default representation for time will change from ``ms`` to ``s`` in mne 0.14. By `Christian Brodbeck`_
+
 .. _changes_0_12:
 
 Version 0.12

@@ -1317,7 +1317,7 @@ class SourceEstimate(_BaseSourceEstimate):
              time_viewer=False, config_opts=None, subjects_dir=None,
              figure=None, views='lat', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
-             foreground="white", time_unit=None):
+             foreground="white", initial_time=None, time_unit=None):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1398,6 +1398,9 @@ class SourceEstimate(_BaseSourceEstimate):
             Color of the background of the display window.
         foreground : matplotlib color
             Color of the foreground of the display window.
+        initial_time : float | None
+            The time to display on the plot initially. ``None`` to display the
+            first time sample (default).
         time_unit : 's' | 'ms'
             Whether time is represented in seconds (expected by PySurfer) or
             milliseconds. The current default is 'ms', but will change to 's'
@@ -1422,6 +1425,7 @@ class SourceEstimate(_BaseSourceEstimate):
                                       clim=clim, cortex=cortex, size=size,
                                       background=background,
                                       foreground=foreground,
+                                      initial_time=initial_time,
                                       time_unit=time_unit)
         return brain
 

@@ -603,7 +603,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           subjects_dir=None, figure=None, views='lat',
                           colorbar=True, clim='auto', cortex="classic",
                           size=800, background="black", foreground="white",
-                          time_unit=None):
+                          initial_time=None, time_unit=None):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -686,6 +686,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Color of the background of the display window.
     foreground : matplotlib color
         Color of the foreground of the display window.
+    initial_time : float | None
+        The time to display on the plot initially. ``None`` to display the
+        first time sample (default).
     time_unit : 's' | 'ms'
         Whether time is represented in seconds (expected by PySurfer) or
         milliseconds. The current default is 'ms', but will change to 's'
@@ -705,11 +708,19 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
 
-    if LooseVersion(surfer.__version__) < LooseVersion('0.6'):
+    surfer_version = LooseVersion(surfer.__version__)
+    v06 = LooseVersion('0.6')
+    if surfer_version < v06:
         raise ImportError("This function requires PySurfer 0.6 (you are "
                           "running version %s). You can update PySurfer "
                           "using:\n\n    $ pip install -U pysurfer" %
                           surfer.__version__)
+
+    if initial_time is not None and surfer_version > v06:
+        kwargs = {'initial_time': initial_time}
+        initial_time = None  # don't set it twice
+    else:
+        kwargs = {}
 
     if time_unit is None:
         warn("The time_unit parameter default will change from 'ms' to 's' "
@@ -790,12 +801,14 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             brain.add_data(data, colormap=colormap, vertices=vertices,
                            smoothing_steps=smoothing_steps, time=times,
                            time_label=time_label, alpha=alpha, hemi=hemi,
-                           colorbar=colorbar)
+                           colorbar=colorbar, **kwargs)
 
         # scale colormap and set time (index) to display
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], transparent=transparent)
 
+    if initial_time is not None:
+        brain.set_time(initial_time)
     if time_viewer:
         TimeViewer(brain)
     return brain
