@@ -1398,9 +1398,9 @@ class SourceEstimate(_BaseSourceEstimate):
             Color of the background of the display window.
         foreground : matplotlib color
             Color of the foreground of the display window.
-        initial_time : float
-            The time to display on the plot initially (the default is the
-            first time sample; requires at least PySurfer 0.7).
+        initial_time : float | None
+            The time to display on the plot initially. ``None`` to display the
+            first time sample (default).
         time_unit : 's' | 'ms'
             Whether time is represented in seconds (expected by PySurfer) or
             milliseconds. The current default is 'ms', but will change to 's'

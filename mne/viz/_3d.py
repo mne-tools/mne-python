@@ -686,9 +686,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Color of the background of the display window.
     foreground : matplotlib color
         Color of the foreground of the display window.
-    initial_time : float
-        The time to display on the plot initially (the default is the
-        first time sample; requires at least PySurfer 0.7).
+    initial_time : float | None
+        The time to display on the plot initially. ``None`` to display the
+        first time sample (default).
     time_unit : 's' | 'ms'
         Whether time is represented in seconds (expected by PySurfer) or
         milliseconds. The current default is 'ms', but will change to 's'
@@ -715,13 +715,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           "running version %s). You can update PySurfer "
                           "using:\n\n    $ pip install -U pysurfer" %
                           surfer.__version__)
-    elif initial_time is not None:
-        if surfer_version <= v06:
-            raise ImportError("The initial_time parameter requires at least "
-                              "PySurfer 0.7 (you are running version %s). "
-                              "You can update PySurfer using:\n\n    $ pip "
-                              "install -U pysurfer" % surfer.__version__)
+
+    if initial_time is not None and surfer_version > v06:
         kwargs = {'initial_time': initial_time}
+        initial_time = None  # don't set it twice
     else:
         kwargs = {}
 
@@ -810,6 +807,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], transparent=transparent)
 
+    if initial_time is not None:
+        brain.set_time(initial_time)
     if time_viewer:
         TimeViewer(brain)
     return brain
