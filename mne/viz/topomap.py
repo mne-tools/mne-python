@@ -1478,7 +1478,8 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                             normalization='length', ch_type=None, layout=None,
                             cmap='RdBu_r', agg_fun=None, dB=False, n_jobs=1,
                             normalize=False, cbar_fmt='%0.3f',
-                            outlines='head', show=True, verbose=None):
+                            outlines='head', axes=None, show=True,
+                            verbose=None):
     """Plot the topomap of the power spectral density across epochs
 
     Parameters
@@ -1565,6 +1566,9 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
+    axes : list of axes | None
+        List of axes to plot consecutive topographies to. If None the axes
+        will be created automatically. Defaults to None.
     show : bool
         Show figure if True.
     verbose : bool, str, int, or None
@@ -1595,7 +1599,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     return plot_psds_topomap(
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
         vmax=vmax, bands=bands, cmap=cmap, dB=dB, normalize=normalize,
-        cbar_fmt=cbar_fmt, outlines=outlines, show=show)
+        cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show)
 
 
 def plot_psds_topomap(
