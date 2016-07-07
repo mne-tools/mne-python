@@ -82,7 +82,7 @@ cov = mne.compute_covariance(epochs, tmin=None, tmax=0.)
 signal = np.zeros((n_labels, T))
 idx = label_names.index('inferiorparietal-lh')
 signal[idx, :] = 1e-7 * np.sin(5 * 2 * np.pi * times)
-idx = label_names.index('rostralmiddlefrontal-lh')
+idx = label_names.index('rostralmiddlefrontal-rh')
 signal[idx, :] = 1e-7 * np.sin(7 * 2 * np.pi * times)
 
 ###############################################################################
@@ -131,14 +131,10 @@ stc_gen = simulate_stc(fwd['src'], labels, signal, times[0], dt,
 #
 # Note that the original signals are highly concentrated (point) sources.
 #
-lims = (0., np.mean(stc_gen.data[stc_gen.data > 0]), np.max(stc_gen.data))
-brain_gen = stc_gen.copy().crop(0.05, None).plot(subjects_dir=subjects_dir,
-                                                 hemi='split',
-                                                 views=['lat', 'med'],
-                                                 surface='inflated',
-                                                 clim=dict(kind='value',
-                                                           pos_lims=lims))
-
+kwargs = dict(subjects_dir=subjects_dir, hemi='split', views=['lat', 'med'],
+              smoothing_steps=4, time_unit='s')
+clim = dict(kind='value', pos_lims=[1e-9, 1e-8, 1e-7])
+brain_gen = stc_gen.copy().crop(0.05, None).plot(clim=clim, **kwargs)
 
 ###############################################################################
 # Simulate sensor-space signals
@@ -164,10 +160,7 @@ stc_inv = apply_inverse(evoked_gen, inv_op, lambda2, method=method)
 # This spread is due to the minimum norm solution so that the signal leaks to
 # nearby vertices with similar orientations so that signal ends up crossing the
 # sulci and gyri.
-brain_inv = stc_inv.copy().crop(0.05, None).plot(subjects_dir=subjects_dir,
-                                                 hemi='split',
-                                                 views=['lat', 'med'],
-                                                 surface='inflated')
+brain_inv = stc_inv.copy().crop(0.05, None).plot(**kwargs)
 
 ###############################################################################
 # Exercises
