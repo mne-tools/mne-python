@@ -1083,11 +1083,12 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     info : Instance of Info
         Info structure containing the channel locations.
     kind : str
-        Whether to plot the sensors as 3d, topomap or as an interactive sensor
-        selection dialog. Available options 'topomap', '3d', 'select'. If
-        'select', a set of channels can be selected interactively by using
-        lasso selector. The selected channels are returned along with the
-        figure instance. Defaults to 'topomap'.
+        Whether to plot the sensors as 3d, topomap or as an interactive
+        sensor selection dialog. Available options 'topomap', '3d', 'select'.
+        If 'select', a set of channels can be selected interactively by using
+        lasso selector or clicking while holding control key. The selected
+        channels are returned along with the figure instance. Defaults to
+        'topomap'.
     ch_type : None | str
         The channel type to plot. Available options 'mag', 'grad', 'eeg',
         'seeg', 'ecog', 'all'. If ``'all'``, all the available mag, grad, eeg,
@@ -1120,7 +1121,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     fig : instance of matplotlib figure
         Figure containing the sensor topography.
     selection : list
-        A list of selected channels if ``kind=='select'``.
+        A list of selected channels. Only returned if ``kind=='select'``.
 
     See Also
     --------
@@ -1153,7 +1154,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         picks = list()
         for this_type in allowed_types:
             picks += ch_indices[this_type]
-    elif ch_type not in allowed_types:
+    elif ch_type in allowed_types:
+        picks = ch_indices[ch_type]
+    else:
         raise ValueError("ch_type must be one of %s not %s!" % (allowed_types,
                                                                 ch_type))
 
@@ -1213,8 +1216,14 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
 def _onpick_sensor(event, fig, ax, pos, ch_names):
     """Callback for picked channel in plot_sensors."""
+    if event.mouseevent.key == 'control' and fig.lasso is not None:
+        for ind in event.ind:
+            fig.lasso.select_one(ind)
+
+        return
     ind = event.ind[0]  # Just take the first sensor.
     ch_name = ch_names[ind]
+
     this_pos = pos[ind]
 
     # XXX: Bug in matplotlib won't allow setting the position of existing
@@ -1498,6 +1507,7 @@ class SelectFromCollection(object):
             raise ValueError('Collection must have a facecolor')
         elif len(self.fc) == 1:
             self.fc = np.tile(self.fc, self.Npts).reshape(self.Npts, -1)
+        self.fc[:, -1] = self.alpha_other  # deselect in the beginning
 
         self.lasso = LassoSelector(ax, onselect=self.on_select,
                                    lineprops={'color': 'red'})
@@ -1506,6 +1516,8 @@ class SelectFromCollection(object):
     def on_select(self, verts):
         """Callback for selecting a subset from the collection."""
         from matplotlib.path import Path
+        if len(verts) <= 3:  # Seems to be a good way to exlude clicks.
+            return
         path = Path(verts)
         inds = np.nonzero([path.contains_point(xy) for xy in self.xys])[0]
         self.selection = self.ch_names[inds]
@@ -1514,6 +1526,20 @@ class SelectFromCollection(object):
         self.collection.set_facecolors(self.fc)
         self.canvas.draw_idle()
         self.canvas.callbacks.process('lasso_event')
+
+    def select_one(self, ind):
+        """Helper for selecting/deselecting one sensor."""
+        ch_name = self.ch_names[ind]
+        if ch_name in self.selection:
+            sel_ind = np.where(self.selection == ch_name)[0][0]
+            self.selection = np.delete(self.selection, sel_ind)
+            this_alpha = self.alpha_other
+        else:
+            self.selection = np.append(self.selection, ch_name)
+            this_alpha = 1
+        self.fc[ind, -1] = this_alpha
+        self.collection.set_facecolors(self.fc)
+        self.canvas.draw_idle()
 
     def disconnect(self):
         """Method for disconnecting the lasso selector."""

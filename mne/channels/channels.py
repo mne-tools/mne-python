@@ -371,8 +371,9 @@ class SetChannelsMixin(object):
             Whether to plot the sensors as 3d, topomap or as an interactive
             sensor selection dialog. Available options 'topomap', '3d',
             'select'. If 'select', a set of channels can be selected
-            interactively by using lasso selector. The selected channels are
-            returned along with the figure instance. Defaults to 'topomap'.
+            interactively by using lasso selector or clicking while holding
+            control key. The selected channels are returned along with the
+            figure instance. Defaults to 'topomap'.
         ch_type : None | str
             The channel type to plot. Available options 'mag', 'grad', 'eeg',
             'seeg', 'ecog', 'all'. If ``'all'``, all the available mag, grad,
@@ -405,7 +406,7 @@ class SetChannelsMixin(object):
         fig : instance of matplotlib figure
             Figure containing the sensor topography.
         selection : list
-            A list of selected channels if ``kind=='select'``.
+            A list of selected channels. Only returned if ``kind=='select'``.
 
         See Also
         --------
