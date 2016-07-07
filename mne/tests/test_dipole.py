@@ -242,7 +242,8 @@ def test_min_distance_fit_dipole():
 
     min_dist = 5.  # distance in mm
 
-    dip, residual = fit_dipole(evoked, cov, fname_bem, fname_trans,
+    bem = read_bem_solution(fname_bem)
+    dip, residual = fit_dipole(evoked, cov, bem, fname_trans,
                                min_dist=min_dist)
 
     dist = _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir)

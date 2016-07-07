@@ -673,7 +673,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
     B2 = np.dot(B, B)
     if B2 == 0:
         warn('Zero field found for time %s' % t)
-        return np.zeros(3), 0, np.zeros(3), 0
+        return np.zeros(3), 0, np.zeros(3), 0, B
 
     idx = np.argmin([_fit_eval(guess_rrs[[fi], :], B, B2, fwd_svd)
                      for fi, fwd_svd in enumerate(guess_data['fwd_svd'])])
@@ -743,8 +743,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         The dataset to fit.
     cov : str | instance of Covariance
         The noise covariance.
-    bem : str | dict
-        The BEM filename (str) or a loaded sphere model (dict).
+    bem : str | instance of ConductorModel
+        The BEM filename (str) or conductor model.
     trans : str | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
@@ -820,13 +820,16 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     # Figure out our inputs
     neeg = len(pick_types(info, meg=False, eeg=True, exclude=[]))
     if isinstance(bem, string_types):
-        logger.info('BEM               : %s' % bem)
+        bem_extra = bem
+    else:
+        bem_extra = repr(bem)
+        logger.info('BEM               : %s' % bem_extra)
     if trans is not None:
         logger.info('MRI transform     : %s' % trans)
         mri_head_t, trans = _get_trans(trans)
     else:
         mri_head_t = Transform('head', 'mri', np.eye(4))
-    bem = _setup_bem(bem, bem, neeg, mri_head_t, verbose=False)
+    bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=False)
     if not bem['is_sphere']:
         if trans is None:
             raise ValueError('mri must not be None if BEM is provided')
