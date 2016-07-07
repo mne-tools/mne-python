@@ -171,9 +171,8 @@ def csd_epochs(epochs, mode='multitaper', fmin=0, fmax=np.inf,
 
     # Preparing for computing CSD
     logger.info('Computing cross-spectral density from epochs...')
-    pars = _compute_csd_params(n_times, sfreq, mode, mt_bandwidth, mt_low_bias,
-                               mt_adaptive)
-    window_fun, eigvals, n_tapers, mt_adaptive = pars
+    window_fun, eigvals, n_tapers, mt_adaptive = _compute_csd_params(
+        n_times, sfreq, mode, mt_bandwidth, mt_low_bias, mt_adaptive)
 
     csds_mean = np.zeros((len(ch_names), len(ch_names), n_freqs),
                          dtype=complex)
@@ -228,16 +227,18 @@ def csd_epochs(epochs, mode='multitaper', fmin=0, fmax=np.inf,
 def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
               fsum=True, n_fft=None, mt_bandwidth=None,
               mt_adaptive=False, mt_low_bias=True, verbose=None):
-    """Estimate cross-spectral density from n_trials x n_series x n_times
-       ndarray.
+    """Estimate cross-spectral density from an array.
 
     .. note:: Results are scaled by sampling frequency for compatibility with
               Matlab.
 
     Parameters
     ----------
-    X : array-like, shape (n_trials, n_series, n_times)
-        The time series data.
+    X : array-like, shape (n_replicates, n_series, n_times)
+        The time series data consisting of n_replicated separate observations
+        of signals with n_series components and of length n_times. For example,
+        n_replicates could be the number of epochs, and n_series the number of
+        vertices in a source-space.
     sfreq : float
         Sampling frequency of observations.
     mode : str
@@ -250,7 +251,7 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
         Sum CSD values for the frequencies of interest. Summing is performed
         instead of averaging so that accumulated power is comparable to power
         in the time domain. If True, a single CSD matrix will be returned. If
-        False, the output will be a numpy.ndarray of CSD matrices.
+        False, the output will be an array of CSD matrices.
     n_fft : int | None
         Length of the FFT. If None the exact number of samples between tmin and
         tmax will be used.
@@ -268,10 +269,10 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
 
     Returns
     -------
-    csd : numpy.ndarray, shape (n_freqs, n_series, n_series) if fsum is True,
+    csd : array, shape (n_freqs, n_series, n_series) if fsum is True,
           otherwise (n_series, n_series).
         The computed cross spectral-density (either summed or not).
-    freqs : numpy.ndarray
+    freqs : array
         Frequencies the cross spectral-density is evaluated at.
     """
 
@@ -281,8 +282,8 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
 
     X = np.asarray(X, dtype=float)
     if X.ndim != 3:
-        raise ValueError("X must be n_trials x n_series x n_times.")
-    n_trials, n_series, n_times = X.shape
+        raise ValueError("X must be n_replicates x n_series x n_times.")
+    n_replicates, n_series, n_times = X.shape
 
     # Preparing frequencies of interest
     n_fft = n_times if n_fft is None else n_fft
@@ -297,10 +298,9 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
                          'the frequency window or the time window')
 
     # Preparing for computing CSD
-    logger.info('Computing cross-spectral density from ndarray...')
-    pars = _compute_csd_params(n_times, sfreq, mode, mt_bandwidth, mt_low_bias,
-                               mt_adaptive)
-    window_fun, eigvals, n_tapers, mt_adaptive = pars
+    logger.info('Computing cross-spectral density from array...')
+    window_fun, eigvals, n_tapers, mt_adaptive = _compute_csd_params(
+        n_times, sfreq, mode, mt_bandwidth, mt_low_bias, mt_adaptive)
 
     csds_mean = np.zeros((n_series, n_series, n_freqs), dtype=complex)
 
@@ -308,8 +308,7 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
     freq_mask_mt = freq_mask[orig_frequencies >= 0]
 
     # Compute CSD for each trial
-    for ti in range(n_trials):
-        xi = X[ti]
+    for xi in X:
 
         csds_trial = _csd_array(xi, sfreq, window_fun, eigvals, freq_mask,
                                 freq_mask_mt, n_fft, mode, mt_adaptive)
@@ -325,7 +324,7 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
 
         csds_mean += csds_trial
 
-    csds_mean /= n_trials
+    csds_mean /= n_replicates
 
     logger.info('[done]')
 
@@ -339,13 +338,48 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
 
 def _compute_csd_params(n_times, sfreq, mode, mt_bandwidth, mt_low_bias,
                         mt_adaptive):
+    """ Auxliary function to compute windowing and multitaper parameters.
+
+    Parameters
+    ----------
+    n_times : int
+        Number of time points.
+    s_freq : int
+        Sampling frequency of signal.
+    mode : str
+        Spectrum estimation mode can be either: 'multitaper' or 'fourier'.
+    mt_bandwidth : float | None
+        The bandwidth of the multitaper windowing function in Hz.
+        Only used in 'multitaper' mode.
+    mt_low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth. Only used in 'multitaper' mode.
+    mt_adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD.
+        Only used in 'multitaper' mode.
+
+    Returns
+    -------
+    window_fun : array
+        Window function(s) of length n_times. When 'multitaper' mode is used
+        will correspond to first output of `dpss_windows` and when 'fourier'
+        mode is used will be a Hanning window of length `n_times`.
+    eigvals : array | float
+        Eigenvalues associated with wondow functions. Only needed when mode is
+        'multitaper'. When the mode 'fourier' is used this is set to 1.
+    n_tapers : int | None
+        Number of tapers to use. Only used when mode is 'multitaper'.
+    ret_mt_adaptive : bool
+        Updated value of `mt_adaptive` argument as certain parameter values
+        will not allow adaptive spectral estimators.
+    """
     ret_mt_adaptive = mt_adaptive
     if mode == 'multitaper':
         # Compute standardized half-bandwidth
         if mt_bandwidth is not None:
-            half_nbw = float(mt_bandwidth) * n_times / (2 * sfreq)
+            half_nbw = float(mt_bandwidth) * n_times / (2. * sfreq)
         else:
-            half_nbw = 2
+            half_nbw = 2.
 
         # Compute DPSS windows
         n_tapers_max = int(2 * half_nbw)
@@ -390,11 +424,10 @@ def _csd_array(x, sfreq, window_fun, eigvals, freq_mask, freq_mask_mt, n_fft,
     else:
         # Do not use adaptive weights
         if mode == 'multitaper':
-            weights = np.sqrt(eigvals)[np.newaxis, np.newaxis, :,
-                                       np.newaxis]
+            weights = np.sqrt(eigvals)[np.newaxis, np.newaxis, :, np.newaxis]
         else:
             # Hack so we can sum over axis=-2
-            weights = np.array([1.])[:, None, None, None]
+            weights = np.array([1.])[:, np.newaxis, np.newaxis, np.newaxis]
 
     x_mt = x_mt[:, :, freq_mask_mt]
 
