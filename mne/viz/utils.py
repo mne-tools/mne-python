@@ -775,6 +775,8 @@ def _find_channel_idx(ch_name, params):
     offset = 0
     labels = [l._text for l in params['fig_selection'].radio.labels]
     for label in labels:
+        if label == 'Custom':
+            continue  # Custom selection not included as it shifts the indices.
         selection = params['selections'][label]
         hits = np.where(np.array(params['raw'].ch_names)[selection] == ch_name)
         for idx in hits[0]:
@@ -1546,6 +1548,7 @@ class SelectFromCollection(object):
         self.fc[ind, -1] = this_alpha
         self.collection.set_facecolors(self.fc)
         self.canvas.draw_idle()
+        self.canvas.callbacks.process('lasso_event')
 
     def disconnect(self):
         """Method for disconnecting the lasso selector."""
