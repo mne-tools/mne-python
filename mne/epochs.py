@@ -897,7 +897,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                          normalization='length', ch_type=None,
                          layout=None, cmap='RdBu_r', agg_fun=None, dB=True,
                          n_jobs=1, normalize=False, cbar_fmt='%0.3f',
-                         outlines='head', show=True, verbose=None):
+                         outlines='head', axes=None, show=True, verbose=None):
         """Plot the topomap of the power spectral density across epochs
 
         Parameters
@@ -979,6 +979,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             for advanced masking options, either directly or as a function that
             returns patches (required for multi-axis plots). If None, nothing
             will be drawn. Defaults to 'head'.
+        axes : list of axes | None
+            List of axes to plot consecutive topographies to. If None the axes
+            will be created automatically. Defaults to None.
         show : bool
             Show figure if True.
         verbose : bool, str, int, or None
@@ -995,7 +998,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             low_bias=low_bias, normalization=normalization,
             ch_type=ch_type, layout=layout, cmap=cmap,
             agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
-            cbar_fmt=cbar_fmt, outlines=outlines, show=show, verbose=None)
+            cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show,
+            verbose=None)
 
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
                         colorbar=True, order=None, cmap='RdBu_r',
