@@ -818,7 +818,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     del min_dist
 
     # Figure out our inputs
-    neeg = len(pick_types(info, meg=False, eeg=True, exclude=[]))
+    neeg = len(pick_types(info, meg=False, eeg=True, ref_meg=False,
+                          exclude=[]))
     if isinstance(bem, string_types):
         bem_extra = bem
     else:
@@ -935,7 +936,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
 
     # Whitener for the data
     logger.info('Decomposing the sensor noise covariance matrix...')
-    picks = pick_types(info, meg=True, eeg=True)
+    picks = pick_types(info, meg=True, eeg=True, ref_meg=False)
 
     # In case we want to more closely match MNE-C for debugging:
     # from .io.pick import pick_info
@@ -1035,3 +1036,61 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     residual = out[4]
     logger.info('%d time points fitted' % len(dipoles.times))
     return dipoles, residual
+
+
+def get_phantom_dipoles(kind='elekta'):
+    """Get standard phantom dipole locations and orientations
+
+    Parameters
+    ----------
+    kind : str
+        Get the information for the given system.
+
+            ``vectorview`` (default)
+              The Neuromag VectorView phantom.
+
+            ``122``
+              The Neuromag-122 phantom. This has the same dipoles
+              as the VectorView phantom, but in a different order.
+
+    Returns
+    -------
+    pos : ndarray, shape (n_dipoles, 3)
+        The dipole positions.
+    ori : ndarray, shape (n_dipoles, 3)
+        The dipole orientations.
+    """
+    _valid_types = ('122', 'vectorview')
+    if not isinstance(kind, string_types) or kind not in _valid_types:
+        raise ValueError('kind must be one of %s, got %s'
+                         % (_valid_types, kind,))
+    if kind in ('122', 'vectorview'):
+        a = np.array([59.7, 48.6, 35.8, 24.8, 37.2, 27.5, 15.8, 7.9])
+        b = np.array([46.1, 41.9, 38.3, 31.5, 13.9, 16.2, 20, 19.3])
+        x = np.concatenate((a, [0] * 8, -b, [0] * 8))
+        y = np.concatenate(([0] * 8, -a, [0] * 8, b))
+        c = [22.9, 23.5, 25.5, 23.1, 52, 46.4, 41, 33]
+        d = [44.4, 34, 21.6, 12.7, 62.4, 51.5, 39.1, 27.9]
+        z = np.concatenate((c, c, d, d))
+        pos = np.vstack((x, y, z)).T / 1000.
+        if kind == 122:
+            reorder = (list(range(8, 16)) + list(range(0, 8)) +
+                       list(range(24, 32) + list(range(16, 24))))
+            pos = pos[reorder]
+        # Locs are always in XZ or YZ, and so are the oris. The oris are
+        # also in the same plane and tangential, so it's easy to determine
+        # the orientation.
+        ori = list()
+        for this_pos in pos:
+            this_ori = np.zeros(3)
+            idx = np.where(this_pos == 0)[0]
+            # assert len(idx) == 1
+            idx = np.setdiff1d(np.arange(3), idx[0])
+            this_ori[idx] = (this_pos[idx][::-1] /
+                             np.linalg.norm(this_pos[idx])) * [1, -1]
+            # np.testing.assert_allclose(np.dot(this_ori, this_pos) /
+            #                            np.linalg.norm(this_pos), 0,
+            #                            atol=1e-15)
+            ori.append(this_ori)
+        ori = np.array(ori)
+    return pos, ori

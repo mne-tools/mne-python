@@ -75,6 +75,12 @@ dependencies:
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_raw.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path())" --accept-brainstorm-license;
             fi;
+            if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_ctf.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_ctf.data_path())" --accept-brainstorm-license;
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_elekta.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path())" --accept-brainstorm-license;
+            fi;
           fi;
         done;
         echo PATTERN="$PATTERN";

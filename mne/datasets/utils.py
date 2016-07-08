@@ -69,10 +69,11 @@ tutorial, e.g. for research purposes, is prohibited without written consent
 from the MEG Lab.
 
 If you reference this dataset in your publications, please:
-1) aknowledge its authors: Elizabeth Bock, Esther Florin, Francois Tadel and
-Sylvain Baillet
-2) cite Brainstorm as indicated on the website:
-http://neuroimage.usc.edu/brainstorm
+
+    1) acknowledge its authors: Elizabeth Bock, Esther Florin, Francois Tadel
+       and Sylvain Baillet, and
+    2) cite Brainstorm as indicated on the website:
+       http://neuroimage.usc.edu/brainstorm
 
 For questions, please contact Francois Tadel (francois.tadel@mcgill.ca).
 """
@@ -370,6 +371,8 @@ def _download_all_example_data(verbose=True):
     try:
         brainstorm.bst_raw.data_path()
         brainstorm.bst_auditory.data_path()
+        brainstorm.bst_phantom_elekta.data_path()
+        brainstorm.bst_phantom_ctf.data_path()
     finally:
         sys.argv.pop(-1)
     megsim.load_data(condition='visual', data_format='single-trial',

@@ -733,7 +733,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
                     # Compute solution for EEG sensor
                     solution = _bem_specify_els(bem, coils, mults)
             else:
-                solution = bem
+                solution = csolution = bem
                 if coil_type == 'eeg':
                     logger.info('Using the equivalent source approach in the '
                                 'homogeneous sphere for EEG')

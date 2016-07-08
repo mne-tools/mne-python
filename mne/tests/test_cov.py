@@ -313,7 +313,7 @@ def test_regularize_cov():
     assert_true(np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08)
 
 
-def test_evoked_whiten():
+def test_whiten_evoked():
     """Test whitening of evoked data"""
     evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
                           proj=True)
@@ -332,6 +332,10 @@ def test_evoked_whiten():
     mean_baseline = np.mean(np.abs(whiten_baseline_data), axis=1)
     assert_true(np.all(mean_baseline < 1.))
     assert_true(np.all(mean_baseline > 0.2))
+
+    # degenerate
+    cov_bad = pick_channels_cov(cov, include=evoked.ch_names[:10])
+    assert_raises(RuntimeError, whiten_evoked, evoked, cov_bad, picks)
 
 
 @slow_test

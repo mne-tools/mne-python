@@ -24,7 +24,7 @@ if len(bad) > 0:
     out.append('Found un-nested scipy submodules: %s' % list(bad))
 
 # check sklearn and others
-_sklearn = _pandas = _nose = False
+_sklearn = _pandas = _nose = _mayavi = False
 for x in sys.modules.keys():
     if x.startswith('sklearn') and not _sklearn:
         out.append('Found un-nested sklearn import')
@@ -35,6 +35,9 @@ for x in sys.modules.keys():
     if x.startswith('nose') and not _nose:
         out.append('Found un-nested nose import')
         _nose = True
+    if x.startswith('mayavi') and not _mayavi:
+        out.append('Found un-nested mayavi import')
+        _mayavi = True
 if len(out) > 0:
     print('\\n' + '\\n'.join(out), end='')
     exit(1)

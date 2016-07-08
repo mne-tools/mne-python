@@ -1653,13 +1653,17 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
     """Get whitening matrix for a set of data."""
     ch_names = [info['ch_names'][k] for k in picks]
     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
-    info = pick_info(info, picks)
+    if len(noise_cov['data']) != len(ch_names):
+        missing = list(set(ch_names) - set(noise_cov['names']))
+        raise RuntimeError('Not all channels present in noise covariance:\n%s'
+                           % missing)
     if diag:
         noise_cov = cp.deepcopy(noise_cov)
         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
 
     scalings = _handle_default('scalings_cov_rank', scalings)
-    W = compute_whitener(noise_cov, info, rank=rank, scalings=scalings)[0]
+    W = compute_whitener(noise_cov, info, picks=picks, rank=rank,
+                         scalings=scalings)[0]
     return W
 
 
