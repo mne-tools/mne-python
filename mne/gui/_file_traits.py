@@ -521,3 +521,12 @@ class SubjectSelectorPanel(HasPrivateTraits):
             raise
         finally:
             prog.close()
+
+    def _subjects_dir_changed(self, old, new):
+        if new and self.subjects == ['']:
+            information(None, "The directory selected as subjects-directory "
+                        "(%s) does not contain any valid MRI subjects. MRI "
+                        "subjects need to contain head surface models which "
+                        "can be created by running:\n\n    $ mne "
+                        "make_scalp_surfaces" % self.subjects_dir,
+                        "No Subjects Found")
