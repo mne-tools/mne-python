@@ -2931,7 +2931,7 @@ def concatenate_epochs(epochs_list):
 def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
                       origin='auto', weight_all=True, int_order=8, ext_order=3,
                       destination=None, ignore_ref=False, return_mapping=False,
-                      verbose=None):
+                      mag_scale=100., verbose=None):
     """Average data using Maxwell filtering, transforming using head positions
 
     Parameters
@@ -2983,6 +2983,16 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         with reference channels is not currently supported.
     return_mapping : bool
         If True, return the mapping matrix.
+    mag_scale : float | str
+        The magenetometer scale-factor used to bring the magnetometers
+        to approximately the same order of magnitude as the gradiometers
+        (default 100.), as they have different units (T vs T/m).
+        Can be ``'auto'`` to use the reciprocal of the physical distance
+        between the gradiometer pickup loops (e.g., 0.0168 m yields
+        59.5 for VectorView).
+
+        .. versionadded:: 0.13
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -3023,7 +3033,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
                                         _check_usable, _col_norm_pinv,
                                         _get_n_moments, _get_mf_picks,
                                         _prep_mf_coils, _check_destination,
-                                        _remove_meg_projs)
+                                        _remove_meg_projs, _get_coil_scale)
     if head_pos is None:
         raise TypeError('head_pos must be provided and cannot be None')
     from .chpi import head_pos_to_trans_rot_t
@@ -3044,8 +3054,10 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
                 % (len(epochs.events)))
     if not np.array_equal(epochs.events[:, 0], np.unique(epochs.events[:, 0])):
         raise RuntimeError('Epochs must have monotonically increasing events')
-    meg_picks, _, _, good_picks, coil_scale, _ = \
+    meg_picks, mag_picks, grad_picks, good_picks, _ = \
         _get_mf_picks(epochs.info, int_order, ext_order, ignore_ref)
+    coil_scale, mag_scale = _get_coil_scale(
+        meg_picks, mag_picks, grad_picks, mag_scale, epochs.info)
     n_channels, n_times = len(epochs.ch_names), len(epochs.times)
     other_picks = np.setdiff1d(np.arange(n_channels), meg_picks)
     data = np.zeros((n_channels, n_times))

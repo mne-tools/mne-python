@@ -308,6 +308,7 @@ def _safe_svd(A, **kwargs):
     try:
         return linalg.svd(A, **kwargs)
     except np.linalg.LinAlgError as exp:
+        from .utils import warn
         if 'lapack_driver' in _get_args(linalg.svd):
             warn('SVD error (%s), attempting to use GESVD instead of GESDD'
                  % (exp,))
