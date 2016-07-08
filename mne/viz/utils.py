@@ -1516,12 +1516,12 @@ class SelectFromCollection(object):
     def on_select(self, verts):
         """Callback for selecting a subset from the collection."""
         from matplotlib.path import Path
-        if len(verts) <= 3:  # Seems to be a good way to exclude clicks.
+        if len(verts) <= 3:  # Seems to be a good way to exclude single clicks.
             return
 
         path = Path(verts)
         inds = np.nonzero([path.contains_point(xy) for xy in self.xys])[0]
-        if self.lasso._prev_event.key == 'control':
+        if self.lasso.eventrelease.key == 'control':  # Appending selection.
             sels = [np.where(self.ch_names == c)[0][0] for c in self.selection]
             inters = set(inds) - set(sels)
             inds = list(inters.union(set(sels) - set(inds)))
