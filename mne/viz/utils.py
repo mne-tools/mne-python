@@ -1523,7 +1523,7 @@ class SelectFromCollection(object):
 
         path = Path(verts)
         inds = np.nonzero([path.contains_point(xy) for xy in self.xys])[0]
-        if self.lasso.eventrelease.key == 'control':  # Appending selection.
+        if self.canvas._key == 'control':  # Appending selection.
             sels = [np.where(self.ch_names == c)[0][0] for c in self.selection]
             inters = set(inds) - set(sels)
             inds = list(inters.union(set(sels) - set(inds)))
