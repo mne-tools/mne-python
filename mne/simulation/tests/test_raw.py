@@ -10,10 +10,12 @@ from copy import deepcopy
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne import (read_source_spaces, pick_types, read_trans, read_cov,
-                 make_sphere_model, create_info, setup_volume_source_space)
+                 make_sphere_model, create_info, setup_volume_source_space,
+                 find_events, Epochs, fit_dipole, transform_surface_to,
+                 make_ad_hoc_cov, SourceEstimate, setup_source_space)
 from mne.chpi import (_calculate_chpi_positions, read_head_pos,
                       _get_hpi_info, head_pos_to_trans_rot_t)
 from mne.tests.test_chpi import _compare_positions
@@ -33,7 +35,8 @@ cov_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-cov.fif')
 trans_fname = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
-bem_path = op.join(data_path, 'subjects', 'sample', 'bem')
+subjects_dir = op.join(data_path, 'subjects')
+bem_path = op.join(subjects_dir, 'sample', 'bem')
 src_fname = op.join(bem_path, 'sample-oct-2-src.fif')
 bem_fname = op.join(bem_path, 'sample-320-320-320-bem-sol.fif')
 
@@ -60,6 +63,7 @@ def _get_data():
     other_picks = pick_types(raw.info, meg=False, stim=True, eog=True)
     picks = np.sort(np.concatenate((data_picks[::16], other_picks)))
     raw = raw.pick_channels([raw.ch_names[p] for p in picks])
+    raw.info.normalize_proj()
     ecg = RawArray(np.zeros((1, len(raw.times))),
                    create_info(['ECG 063'], raw.info['sfreq'], 'ecg'))
     for key in ('dev_head_t', 'buffer_size_sec', 'highpass', 'lowpass',
@@ -192,12 +196,14 @@ def test_simulate_raw_sphere():
 @testing.requires_testing_data
 def test_simulate_raw_bem():
     """Test simulation of raw data with BEM"""
-    seed = 42
     raw, src, stc, trans, sphere = _get_data()
-    raw_sim_sph = simulate_raw(raw, stc, trans, src, sphere, cov=None,
-                               ecg=True, blink=True, random_state=seed)
+    src = setup_source_space('sample', None, 'oct1', subjects_dir=subjects_dir)
+    # use different / more complete STC here
+    vertices = [s['vertno'] for s in src]
+    stc = SourceEstimate(np.eye(sum(len(v) for v in vertices)), vertices,
+                         0, 1. / raw.info['sfreq'])
+    raw_sim_sph = simulate_raw(raw, stc, trans, src, sphere, cov=None)
     raw_sim_bem = simulate_raw(raw, stc, trans, src, bem_fname, cov=None,
-                               ecg=True, blink=True, random_state=seed,
                                n_jobs=2)
     # some components (especially radial) might not match that well,
     # so just make sure that most components have high correlation
@@ -206,7 +212,24 @@ def test_simulate_raw_bem():
     n_ch = len(picks)
     corr = np.corrcoef(raw_sim_sph[picks][0], raw_sim_bem[picks][0])
     assert_array_equal(corr.shape, (2 * n_ch, 2 * n_ch))
-    assert_true(np.median(np.diag(corr[:n_ch, -n_ch:])) > 0.9)
+    assert_true(np.median(np.diag(corr[:n_ch, -n_ch:])) > 0.65)
+    # do some round-trip localization
+    for s in src:
+        transform_surface_to(s, 'head', trans)
+    locs = np.concatenate([s['rr'][s['vertno']] for s in src])
+    tmax = (len(locs) - 1) / raw.info['sfreq']
+    cov = make_ad_hoc_cov(raw.info)
+    # The tolerance for the BEM is surprisingly high (28) but I get the same
+    # result when using MNE-C and Xfit, even when using a proper 5120 BEM :(
+    for use_raw, bem, tol in ((raw_sim_sph, sphere, 1),
+                              (raw_sim_bem, bem_fname, 28)):
+        events = find_events(use_raw, 'STI 014')
+        assert_equal(len(locs), 12)  # oct1 count
+        evoked = Epochs(use_raw, events, 1, 0, tmax, baseline=None).average()
+        assert_equal(len(evoked.times), len(locs))
+        fits = fit_dipole(evoked, cov, bem, trans, min_dist=1.)[0].pos
+        diffs = np.sqrt(np.sum((locs - fits) ** 2, axis=-1)) * 1000
+        assert_true(np.median(diffs) < tol)
 
 
 @slow_test
