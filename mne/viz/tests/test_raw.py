@@ -189,7 +189,11 @@ def test_plot_sensors():
     plt.draw()
     _fake_click(fig, ax, (0., 0.5), xform='data', kind='motion')
     _fake_click(fig, ax, (0., 0.), xform='data', kind='motion')
+    fig.canvas.key_press_event('control')
     _fake_click(fig, ax, (-0.5, 0.), xform='data', kind='release')
+    _fake_click(fig, ax, (-0.09, -0.43), xform='data')  # single selection
+    assert_equal(len(fig.lasso.selection), 2)
+    _fake_click(fig, ax, (-0.09, -0.43), xform='data')  # deselect
     assert_equal(len(fig.lasso.selection), 1)
     plt.close('all')
 
