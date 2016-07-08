@@ -33,15 +33,45 @@ from ..filter import (filter_data, notch_filter, resample,
                       _resample_stim_channels)
 from ..fixes import in1d
 from ..parallel import parallel_func
-from ..utils import (_check_fname, _check_pandas_installed,
+from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, _check_copy_dep,
                      check_fname, _get_stim_channel, object_hash,
-                     logger, verbose, _time_mask, warn)
+                     logger, verbose, _time_mask, warn, object_size)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
 from ..annotations import _combine_annotations, _onset_to_seconds
+
+
+class SizeMixin(object):
+    """Class to estimate MNE object sizes"""
+    @property
+    def _size(self):
+        """Estimate of the object size"""
+        try:
+            size = object_size(self.info)
+        except Exception:
+            warn('Could not get size for self.info')
+            return -1
+        if hasattr(self, 'data'):
+            size += object_size(self.data)
+        elif hasattr(self, '_data'):
+            size += object_size(self._data)
+        return size
+
+    def __hash__(self):
+        from ..evoked import Evoked
+        from ..epochs import _BaseEpochs
+        if isinstance(self, Evoked):
+            return object_hash(dict(info=self.info, data=self.data))
+        elif isinstance(self, (_BaseEpochs, _BaseRaw)):
+            if not self.preload:
+                raise RuntimeError('Cannot hash %s unless data are loaded'
+                                   % self.__class__.__name__)
+            return object_hash(dict(info=self.info, data=self._data))
+        else:
+            raise RuntimeError('Hashing unknown object type: %s' % type(self))
 
 
 class ToDataFrameMixin(object):
@@ -244,7 +274,7 @@ def _check_fun(fun, d, *args, **kwargs):
 
 class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                SetChannelsMixin, InterpolationMixin, ToDataFrameMixin,
-               TimeMixin):
+               TimeMixin, SizeMixin):
     """Base class for Raw data
 
     Subclasses must provide the following methods:
@@ -555,11 +585,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self.close()
         except:
             return exception_type, exception_val, trace
-
-    def __hash__(self):
-        if not self.preload:
-            raise RuntimeError('Cannot hash raw unless preloaded')
-        return object_hash(dict(info=self.info, data=self._data))
 
     def _parse_get_set_params(self, item):
         # make sure item is a tuple
@@ -1839,8 +1864,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def __repr__(self):
         name = self._filenames[0]
         name = 'None' if name is None else op.basename(name)
-        s = ('%s, n_channels x n_times : %s x %s (%0.1f sec)'
-             % (name, len(self.ch_names), self.n_times, self.times[-1]))
+        s = ('%s, n_channels x n_times : %s x %s (%0.1f sec, ~%s)'
+             % (name, len(self.ch_names), self.n_times, self.times[-1],
+                sizeof_fmt(self._size)))
         return "<%s  |  %s>" % (self.__class__.__name__, s)
 
     def add_events(self, events, stim_channel=None):

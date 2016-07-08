@@ -30,7 +30,7 @@ from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
                       _pick_aux_channels, _DATA_CH_TYPES_SPLIT)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
-from .io.base import _BaseRaw, ToDataFrameMixin, TimeMixin
+from .io.base import _BaseRaw, ToDataFrameMixin, TimeMixin, SizeMixin
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale
@@ -42,8 +42,8 @@ from .fixes import in1d, _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
-                    _time_mask, check_random_state, object_hash, warn,
-                    _check_copy_dep)
+                    _time_mask, check_random_state, warn, _check_copy_dep,
+                    sizeof_fmt)
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
 
@@ -141,7 +141,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
 
 class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                   SetChannelsMixin, InterpolationMixin, FilterMixin,
-                  ToDataFrameMixin, TimeMixin):
+                  ToDataFrameMixin, TimeMixin, SizeMixin):
     """Abstract base class for Epochs-type classes
 
     This class provides basic functionality and should never be instantiated
@@ -650,11 +650,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def __next__(self, *args, **kwargs):
         """Wrapper for Py3k"""
         return self.next(*args, **kwargs)
-
-    def __hash__(self):
-        if not self.preload:
-            raise RuntimeError('Cannot hash epochs unless preloaded')
-        return object_hash(dict(info=self.info, data=self._data))
 
     def average(self, picks=None):
         """Compute average of epochs
@@ -1524,6 +1519,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         s += ', tmin : %s (s)' % self.tmin
         s += ', tmax : %s (s)' % self.tmax
         s += ', baseline : %s' % str(self.baseline)
+        s += ' (~%s)' % (sizeof_fmt(self._size),)
         if len(self.event_id) > 1:
             counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
                       for k, v in sorted(self.event_id.items())]

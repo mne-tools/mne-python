@@ -22,7 +22,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
                        create_slices, _time_mask, random_permutation,
                        _get_call_line, compute_corr, sys_info, verbose,
-                       check_fname, requires_ftp, get_config_path)
+                       check_fname, requires_ftp, get_config_path,
+                       object_size)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -68,6 +69,23 @@ def test_get_call_line():
 
     my_line = bar()  # testing more
     assert_equal(my_line, 'my_line = bar()  # testing more')
+
+
+def test_object_size():
+    """Test object size estimation"""
+    assert_true(object_size(np.ones(10, np.float32)) <
+                object_size(np.ones(10, np.float64)))
+    for lower, upper, obj in ((0, 50, ''),
+                              (0, 30, 1),
+                              (0, 30, 1.),
+                              (0, 60, 'foo'),
+                              (0, 150, np.ones(0)),
+                              (150, 500, np.ones(20)),
+                              (100, 400, dict()),
+                              (400, 1000, dict(a=np.ones(50)))):
+        size = object_size(obj)
+        assert_true(lower < size < upper,
+                    msg='%s < %s < %s' % (lower, size, upper))
 
 
 def test_misc():

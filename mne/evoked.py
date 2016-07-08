@@ -15,8 +15,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
-from .utils import (check_fname, logger, verbose, object_hash, _time_mask,
-                    warn)
+from .utils import check_fname, logger, verbose, _time_mask, warn, sizeof_fmt
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import (_plot_evoked_white, plot_evoked_joint,
@@ -34,7 +33,7 @@ from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id)
-from .io.base import ToDataFrameMixin, TimeMixin
+from .io.base import ToDataFrameMixin, TimeMixin, SizeMixin
 
 _aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                 'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
@@ -44,7 +43,7 @@ _aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
 
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              SetChannelsMixin, InterpolationMixin, FilterMixin,
-             ToDataFrameMixin, TimeMixin):
+             ToDataFrameMixin, TimeMixin, SizeMixin):
     """Evoked data
 
     Parameters
@@ -169,6 +168,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         s += ", time : [%f, %f]" % (self.times[0], self.times[-1])
         s += ", n_epochs : %d" % self.nave
         s += ", n_channels x n_times : %s x %s" % self.data.shape
+        s += " (~%s)" % (sizeof_fmt(self._size),)
         return "<Evoked  |  %s>" % s
 
     @property
@@ -922,9 +922,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         else:
             out.comment = self.comment + " - " + this_evoked.comment
         return out
-
-    def __hash__(self):
-        return object_hash(dict(info=self.info, data=self.data))
 
     def get_peak(self, ch_type=None, tmin=None, tmax=None, mode='abs',
                  time_as_index=False):
