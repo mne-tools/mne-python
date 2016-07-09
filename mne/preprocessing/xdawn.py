@@ -153,7 +153,7 @@ class _Xdawn(object):
         self.signal_cov = signal_cov
         self.reg = reg
 
-    def _get_signal_cov(self, epochs_data):
+    def _set_signal_cov(self, epochs_data):
         if self.signal_cov is None:
             sig_data = np.hstack(epochs_data)
             self.signal_cov_ = _regularized_covariance(sig_data, self.reg)
@@ -170,7 +170,7 @@ class _Xdawn(object):
         # TODO: Implement pythonic way of writing this.
         epochs_data_dict = dict()
         for eid in event_id:
-            index = []
+            index = list()
             for idx in range(len(y)):
                 if y[idx] == event_id[eid]:
                     index.append(idx)
@@ -363,7 +363,7 @@ class Xdawn(_Xdawn, ContainsMixin):
             self.correct_overlap = _check_overlapp(epochs)
 
         events, epochs_data, event_id = self._preproc_epochs(epochs)
-        self._get_signal_cov(epochs_data)
+        self._set_signal_cov(epochs_data)
         self._fit_xdawn(epochs_data, events[:, -1], event_id, events,
                         epochs.tmin, epochs.tmax, epochs.info['sfreq'],
                         epochs.baseline)

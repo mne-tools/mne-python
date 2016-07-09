@@ -97,7 +97,7 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
             event_id['cond' + str(idx)] = idx
 
         # Extract signal covariance
-        self._get_signal_cov(X)
+        self._set_signal_cov(X)
 
         # estimates evoked covariance
         self._fit_xdawn(X, y, event_id)
