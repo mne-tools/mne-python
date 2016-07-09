@@ -321,7 +321,7 @@ class GeneralizationLight(SearchLight):
         method = 'transform'
         if not hasattr(self.base_estimator, 'transform'):
             method = 'predict'
-        self._transform(X, method)
+        return self._transform(X, method)
 
     def predict(self, X):
         """Predict each data slice with all possible estimators.
