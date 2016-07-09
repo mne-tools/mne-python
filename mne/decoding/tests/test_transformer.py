@@ -8,11 +8,11 @@ import os.path as op
 import numpy as np
 
 from nose.tools import assert_true, assert_raises
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_equal
 
 from mne import io, read_events, Epochs, pick_types
 from mne.decoding import Scaler, FilterEstimator
-from mne.decoding import PSDEstimator, EpochsVectorizer
+from mne.decoding import PSDEstimator, EpochsVectorizer, Vectorizer
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -160,3 +160,18 @@ def test_epochs_vectorizer():
     # Test init exception
     assert_raises(ValueError, vector.fit, epochs, y)
     assert_raises(ValueError, vector.transform, epochs, y)
+
+
+def test_vectorizer():
+    """Test Vectorizer."""
+
+    raw = io.read_raw_fif(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')
+    picks = picks[1:13:3]
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+    epochs_data = epochs.get_data()
+    vector_data = Vectorizer().fit_transform(epochs._data)
+    assert_equal(vector_data.ndim, 2)

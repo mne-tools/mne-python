@@ -245,6 +245,75 @@ class EpochsVectorizer(TransformerMixin):
         return X.reshape(-1, self.n_channels, self.n_times)
 
 
+class Vectorizer(TransformerMixin):
+    """Class to chain MNE transformer output to scikit-learn estimators.
+
+    MNE transformer have three, four dimensional output. This class converts
+    them into two dimension so as to comply with scikit-learn API.
+
+    Example
+    -------
+    clf = make_pipeline(SpatialFilter(), XdawnTransforme(), Vectorizer(),
+                        LogisticRegression())
+    cross_val_score(clf)
+    """
+
+    def fit(self, X, y=None):
+        """Does nothing. Added for scikit-learn compatibility.
+
+        Parameters
+        ----------
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times) or
+                              (n_epochs, n_chans * n_times * n_freqs)
+            The data to be transformed
+        y : None
+            Used for scikit-learn compatibility.
+
+        Returns
+        -------
+        self : Instance of Vectorizer
+            Return the modified instance.
+        """
+        return self
+
+    def transform(self, X):
+        """Convert matrix data into two dimensions.
+
+        Parameters
+        ----------
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
+                              (n_epochs, n_chans * n_times * n_freqs)
+            The data to be transformed.
+
+        Returns
+        -------
+        X : numpy ndarray of shape(n_trials, n_chan * n_times * n_freqs)
+            The transformed data.
+        """
+        return X.reshape(len(X), -1)
+
+    def fit_transform(self, X, y=None):
+        """Fit the data, then transform in one step.
+
+        Parameters
+        ----------
+        X : numpy array, shape(n_epochs, n_chans, n_times) or
+                              (n_epochs, n_chans * n_times)
+                              (n_epochs, n_chans * n_times * n_freqs)
+            The data to be transformed.
+        y : None
+            Used for scikit-learn compatibility.
+
+        Returns
+        -------
+        X : numpy ndarray of shape(n_trials, n_chan * n_times * n_freqs)
+            The transformed data.
+        """
+        return self.fit(X).transform(X)
+
+
 class PSDEstimator(TransformerMixin):
     """Compute power spectrum density (PSD) using a multi-taper method
 
