@@ -172,6 +172,5 @@ def test_vectorizer():
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
-    epochs_data = epochs.get_data()
     vector_data = Vectorizer().fit_transform(epochs._data)
     assert_equal(vector_data.ndim, 2)
