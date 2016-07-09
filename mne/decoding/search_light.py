@@ -285,7 +285,7 @@ class GeneralizationLight(SearchLight):
 
     Parameters
     ----------
-    estimator : object | None (default=None)
+    base_estimator : object | None (default=None)
         The base estimator to iteratively fit on a subset of the dataset. If
         None, then the estimator is a Logistic Regression.
     n_jobs : int, optional (default=1)
