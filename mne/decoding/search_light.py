@@ -5,7 +5,7 @@
 import numpy as np
 
 from .mixin import TransformerMixin
-from .base import BaseEstimator  # XXX why are these sklearn object copied in weird places. We should just have an externals.sklearn? # noqa
+from .base import BaseEstimator  # XXX reorganize sklearn objects.
 from ..parallel import parallel_func
 
 
@@ -429,7 +429,7 @@ class GeneralizationLight(SearchLight):
 
 
 def _gl_transform(estimators, X, method):
-    """Transform the dataset by applying each estimator to all data slice of
+    """Transform the dataset by applying each estimator to all slices of
     the data.
 
     Parameters
