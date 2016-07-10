@@ -1519,7 +1519,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         s += ', tmin : %s (s)' % self.tmin
         s += ', tmax : %s (s)' % self.tmax
         s += ', baseline : %s' % str(self.baseline)
-        s += ' (~%s)' % (sizeof_fmt(self._size),)
+        s += ', ~%s' % (sizeof_fmt(self._size),)
+        s += ', data%s loaded' % ('' if self.preload else ' not')
         if len(self.event_id) > 1:
             counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
                       for k, v in sorted(self.event_id.items())]

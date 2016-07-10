@@ -75,7 +75,7 @@ def test_object_size():
     """Test object size estimation"""
     assert_true(object_size(np.ones(10, np.float32)) <
                 object_size(np.ones(10, np.float64)))
-    for lower, upper, obj in ((0, 50, ''),
+    for lower, upper, obj in ((0, 60, ''),
                               (0, 30, 1),
                               (0, 30, 1.),
                               (0, 60, 'foo'),
@@ -85,7 +85,7 @@ def test_object_size():
                               (400, 1000, dict(a=np.ones(50)))):
         size = object_size(obj)
         assert_true(lower < size < upper,
-                    msg='%s < %s < %s' % (lower, size, upper))
+                    msg='%s < %s < %s:\n%s' % (lower, size, upper, obj))
 
 
 def test_misc():

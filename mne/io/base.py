@@ -1864,9 +1864,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def __repr__(self):
         name = self._filenames[0]
         name = 'None' if name is None else op.basename(name)
-        s = ('%s, n_channels x n_times : %s x %s (%0.1f sec, ~%s)'
+        size_str = sizeof_fmt(self._size)
+        size_str += ', data%s loaded' % ('' if self.preload else ' not')
+        s = ('%s, n_channels x n_times : %s x %s (%0.1f sec), ~%s'
              % (name, len(self.ch_names), self.n_times, self.times[-1],
-                sizeof_fmt(self._size)))
+                size_str))
         return "<%s  |  %s>" % (self.__class__.__name__, s)
 
     def add_events(self, events, stim_channel=None):

@@ -31,6 +31,8 @@ Changelog
 
     - Add support for the University of Maryland KIT system by `Christian Brodbeck`_
 
+    - Add approximation of size of :class:`Raw`, :class:`Epochs`, and :class:`Evoked` in :func:`repr` by `Eric Larson`_
+
 BUG
 ~~~
 
