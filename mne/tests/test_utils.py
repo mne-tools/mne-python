@@ -80,6 +80,7 @@ def test_object_size():
                               (0, 30, 1.),
                               (0, 60, 'foo'),
                               (0, 150, np.ones(0)),
+                              (0, 150, np.int32(1)),
                               (150, 500, np.ones(20)),
                               (100, 400, dict()),
                               (400, 1000, dict(a=np.ones(50)))):

@@ -163,12 +163,16 @@ def object_size(x):
     size : int
         The estimated size in bytes of the object.
     """
+    # Note: this will not process object arrays properly (since those only)
+    # hold references
     if isinstance(x, (bytes, string_types, int, float, type(None))):
         size = sys.getsizeof(x)
     elif isinstance(x, np.ndarray):
         # On newer versions of NumPy, just doing sys.getsizeof(x) works,
         # but on older ones you always get something small :(
         size = sys.getsizeof(np.array([])) + x.nbytes
+    elif isinstance(x, np.generic):
+        size = x.nbytes
     elif isinstance(x, dict):
         size = sys.getsizeof(x)
         for key, value in x.items():
