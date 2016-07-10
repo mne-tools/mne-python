@@ -1088,6 +1088,8 @@ def get_phantom_dipoles(kind='elekta'):
             idx = np.setdiff1d(np.arange(3), idx[0])
             this_ori[idx] = (this_pos[idx][::-1] /
                              np.linalg.norm(this_pos[idx])) * [1, -1]
+            # Now we have this quality, which we could uncomment to
+            # double-check:
             # np.testing.assert_allclose(np.dot(this_ori, this_pos) /
             #                            np.linalg.norm(this_pos), 0,
             #                            atol=1e-15)
