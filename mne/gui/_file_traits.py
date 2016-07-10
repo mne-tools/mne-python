@@ -30,7 +30,7 @@ from ..io import read_info, read_fiducials
 from ..surface import read_bem_surfaces, read_surface
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject, _find_high_res_head,
-                     create_high_res_head)
+                     create_high_res_head, _is_scaled_mri_subject)
 from ..utils import get_config, set_config
 
 
@@ -532,8 +532,9 @@ class SubjectSelectorPanel(HasPrivateTraits):
                             enabled_when='can_create_fsaverage')))
 
     def _make_high_res_heads_fired(self):
-        subjects = [subject for subject in self.subjects if not
-                    _find_high_res_head(subject, self.subjects_dir)]
+        subjects = [subject for subject in self.subjects if
+                    not _is_scaled_mri_subject(subject, self.subjects_dir) and
+                    not _find_high_res_head(subject, self.subjects_dir)]
         if not subjects:
             information(None, "All subjects already have a high resolution "
                         "head", "Nothing To Do")
