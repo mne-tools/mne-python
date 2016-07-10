@@ -251,7 +251,7 @@ class Vectorizer(TransformerMixin):
     MNE transformer have three, four dimensional output. This class converts
     them into two dimension so as to comply with scikit-learn API.
 
-    Example
+    Examples
     -------
     clf = make_pipeline(SpatialFilter(), XdawnTransforme(), Vectorizer(),
                         LogisticRegression())

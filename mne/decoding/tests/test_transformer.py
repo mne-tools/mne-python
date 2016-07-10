@@ -164,13 +164,6 @@ def test_epochs_vectorizer():
 
 def test_vectorizer():
     """Test Vectorizer."""
-
-    raw = io.read_raw_fif(raw_fname, preload=False)
-    events = read_events(event_name)
-    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
-    picks = picks[1:13:3]
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
-    vector_data = Vectorizer().fit_transform(epochs._data)
+    data = np.random.rand(150, 18, 6)
+    vector_data = Vectorizer().fit_transform(data)
     assert_equal(vector_data.ndim, 2)
