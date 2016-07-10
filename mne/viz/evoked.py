@@ -1200,3 +1200,309 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # show and return it
     plt_show(show)
     return fig
+
+
+def _ci(arr, ci, t=True):
+    """Calculate the `ci`% parametric confidence interval for `arr`"""
+    from scipy import stats
+    mean, sigma = arr.mean(0), stats.sem(arr, 0)
+    if t:
+        return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])
+    else:
+        return stats.norm.interval(ci, loc=mean, scale=sigma)
+
+
+def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
+                         colors=None, linestyles=['-'], styles=None,
+                         vlines=[0], ci=0.95, truncate_yaxis=True, ymin=None,
+                         ymax=None, invert_y=False, ax=None, show=True):
+    """ Plot, for multiple conditions, individual evoked time courses of one or
+    the mean of multiple sensors
+
+    This function is useful for comparing ER[P/F]s at a specific location. It
+    plots grand averages or, if supplied with a list/dict of lists of evoked
+    instances, grand averages plus confidence intervals.
+
+    Parameters
+    ----------
+    evokeds : instance of mne.Evoked | list | dict
+        If a single evoked instance, it is plotted as a time series.
+        If a dict, the contents are plotted as single time series each and the
+        keys are used as condition labels.
+        If a [dict/list] of lists, the unweighted mean is plotted as a time
+        series and the parametric confidence interval is plotted as a shaded
+        area. All instances must have the same shape - channel numbers, time
+        points etc.
+    picks : int | list of int | str | list of str | None
+        The indices (int) or names (str) of the sensors to plot. Must all
+        have the same channel type.
+        If None, the global field power is plotted instead.
+    conditions : list of str | None
+        If evokeds is a single instance or a list (but not a dictionary),
+        this can be used for legend labels.
+    colors : list | dict | None
+        If a list, will be sequentially used for line colors.
+        If a dict, can map evoked keys or HED-like tags to conditions. For
+        example, if `evokeds` is a dict with the keys "Aud/L", "Aud/R",
+        "Vis/L", "Vis/R", `colors` can be dict(Aud='r', Vis='b') to map both
+        Aud/L and Aud/R to the color red.
+        If None, a sequence of desaturated colors is used.
+    linestyles : list | dict
+        If a list, will be sequentially used for evoked plot linestyles.
+        If a dict, can map the `evoked` keys or HED-like tags to conditions.
+        For example, if evokeds is a dict with the keys "Aud/L", "Aud/R",
+        "Vis/L", "Vis/R", `linestyles` can be dict(L='--', R='-') to map both
+        Aud/L and Vis/L to dashed lines.
+    styles : dict | None
+        If a dict, keys must map to evoked keys or conditions, and values must
+        be a dict of legal inputs to `matplotlib.pyplot.plot`. These
+        parameters will be passed to the line plot call of the corresponding
+        condition, overriding defaults.
+    vlines : list
+        A list of integers corresponding to the positions, in milliseconds,
+        at which to plot dashed vertical lines.
+    ci : float | None
+        If not None and `evokeds` is a [list/dict] of lists, a confidence
+        interval is drawn around the individual time series. This value
+        determines the CI width. E.g., if this value is .95 (the default),
+        the 95% parametric confidence interval is drawn.
+        If None, no shaded error band is plotted.
+    truncate_yaxis : bool
+        If True, the left y axis is truncated to reduce visual clutter.
+    invert_y : bool
+        Should negative values be plotted up (as is sometimes done for ERPs
+        out of tradition)? Defaults to False.
+    ax : None | `matplotlib.pyplot.axes` instance
+        What axes to plot to. If None, a new axes is created.
+    ymin, ymax : float | None
+        If not `None`, can be used to manually scale the y axis.
+    show : bool
+        Show the figure?
+
+    Returns
+    -------
+    fig : Figure
+        The figure on which the plot is drawn.
+    """
+    from scipy import stats
+    from ..evoked import Evoked
+    import matplotlib.pyplot as plt
+
+    # set up labels and instances
+    if isinstance(evokeds, Evoked):
+        evokeds = dict(Condition=evokeds)
+
+    if isinstance(evokeds, dict):
+        conditions = sorted(list(evokeds.keys()))
+    else:
+        evokeds = dict((str(ii + 1), evoked)
+                       for ii, evoked in enumerate(evokeds))
+        conditions = sorted(list(evokeds.keys()))
+
+    if conditions is None:
+        conditions = sorted([str(ii) for ii in evokeds])
+    if isinstance(conditions, str):
+        conditions = [conditions]
+
+    # get and set a few limits and variables (times, channels, units)
+    example = (evokeds[conditions[0]]
+               if isinstance(evokeds[conditions[0]], Evoked)
+               else evokeds[conditions[0]][0])
+    times = example.times
+    tmin, tmax = times[0], times[-1]
+
+    # deal with picks: infer indices and names
+    if picks is None:
+        if ymin is None:
+            ymin = 0
+        ch_type = channel_type(example.info, 0)
+        ch_names = ['GFP']
+    else:
+        if isinstance(picks, int):
+            ch_names = [example.ch_names[picks]]
+            picks = [picks]
+        elif isinstance(picks, str):
+            ch_names = [picks]
+            picks = [example.ch_names.index(picks)]
+        elif isinstance(picks[0], int):
+            ch_names = [example.ch_names[pick] for pick in picks]
+        elif isinstance(picks[0], str):
+            ch_names = picks[:]
+            picks = [example.ch_names.index(pick) for pick in picks]
+        else:
+            raise ValueError("`picks` must be int, a list of int, "
+                             "str, a list of str, or None, not "
+                             + str(type(picks)))
+        ch_type = channel_type(example.info, picks[0])
+    scaling = _handle_default("scalings")[ch_type]
+
+    # deal with dict/list of lists, and calculate the SEM
+    if not isinstance(evokeds[conditions[0]], Evoked):
+        if not isinstance(evokeds[conditions[0]][0], Evoked):
+            raise ValueError("evokeds must be an `mne.Evoked` "
+                             "or of a collection of `mne.Evoked`s")
+        if ci and picks is not None:
+            # calculate the CI
+            ci_width = stats.norm.ppf(1 - ((1 - ci) / 2))
+            sem_array = {}
+            for condition in conditions:
+                data = np.asarray([evoked_.data[picks, :].mean(0)
+                                for evoked_ in evokeds[condition]])
+                sem_array[condition] = _ci(data, ci)
+
+        # get the grand mean
+        evokeds = dict((condition, mne.combine_evoked(evokeds[condition],
+                                                      weights='equal'))
+                   for condition in conditions)
+        if picks is None:
+            warn("CI not drawn if plotting STD.")
+    else:
+        ci = False
+
+    # let's plot!
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+
+    # style the individual condition time series
+    if not isinstance(colors, dict):
+        colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
+                   '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
+        colors = dict((condition, color)
+            for condition, color in zip(conditions, colors_))
+    else:
+        style_error = "Condition {} could not be mapped to a color."
+        for condition in conditions:
+            if condition not in colors:
+                if "/" not in condition:
+                    raise ValueError(style_error.format(condition))
+                for color in colors:
+                    if color in condition.split("/"):
+                        colors[condition] = colors[color]
+                        break
+
+    if not isinstance(linestyles, dict):
+        linestyles = dict((condition, linestyle)
+            for condition, linestyle in
+            zip(conditions, ['-'] * len(conditions)))
+    else:
+        style_error = "Condition {} could not be mapped to a linestyle."
+        for condition in conditions:
+            if condition not in linestyles:
+                if "/" not in condition:
+                    raise ValueError(style_error.format(condition))
+                for linestyle in linestyles:
+                    if linestyle in condition.split("/"):
+                        linestyles[condition] = linestyles[linestyle]
+                        break
+
+    if styles is None:
+        styles = dict()
+    for condition, color, linestyle in zip(conditions, colors, linestyles):
+        styles[condition] = styles.get(condition, dict())
+        styles[condition]['c'] = styles[condition].get('c', colors[condition])
+        styles[condition]['linestyle'] = styles[condition].get(
+            'linestyle', linestyles[condition])
+
+    # the actual plot
+    any_negative, any_positive = False, False
+    for condition in conditions:
+        if picks is not None:
+            d = ((evokeds[condition].data[picks, :]).T * scaling).mean(-1)
+        else:
+            d = ((evokeds[condition].data).T * scaling).std(-1)
+        if ci and picks is not None:
+            sem_ = sem_array[condition]
+            ax.fill_between(times, sem_[0].flatten() * scaling,
+                            sem_[1].flatten() * scaling,
+                           color=styles[condition]['c'], alpha=.333)
+
+        ax.plot(times, d, zorder=1000, label=condition, **styles[condition])
+        if any(d > 0):
+            any_positive = True
+        if any(d < 0):
+            any_negative = True
+
+    # truncate the y axis ... yes, it's that complicated
+    orig_ymin, orig_ymax = ax.get_ylim()[0], ax.get_ylim()[-1]
+    if not any_positive:
+        orig_ymax = 0
+    if not any_negative:
+        orig_ymin = 0
+
+    ax.set_ylim(orig_ymin if ymin is None else ymin,
+                orig_ymax if ymax is None else ymax)
+
+    fraction = 2 if ax.get_ylim()[0] >= 0 else 3
+
+    if truncate_yaxis:
+        abs_lims = (orig_ymax if orig_ymax > np.abs(orig_ymin)
+                    else np.abs(orig_ymin))
+        ymin_, ymax_ = (-(abs_lims // fraction), abs_lims // fraction)
+        # custom ymin/ymax must overwrite everything
+        if ymin is not None and ymin > ymin_:
+            ymin_ = ymin
+        if ymax is not None and ymax < ymax_:
+            ymax_ = ymax
+        ax.set_yticks((ymin_ if any_negative else 0,
+                       ymax_ if any_positive else 0))
+        ymin_bound, ymax_bound = (-(abs_lims // fraction),
+                                  abs_lims // fraction)
+        y_range = -np.subtract(*ax.get_ylim())
+        if ymin is not None and ymin > ymin_bound:
+            ymin_bound = ymin
+        if ymax is not None and ymax < ymax_bound:
+            ymax_bound = ymax
+        ax.spines['left'].set_bounds(ymin_bound, ymax_bound)
+    else:
+        y_range = -np.subtract(*ax.get_ylim())
+        ymax_bound = ax.get_ylim()[-1]
+
+    # style the spines/axes
+    ax.set_title(" + ".join(ch_names))
+    ax.title.set_position([0.1, 0.85])
+    ax.spines["top"].set_position('zero')
+    ax.spines["top"].set_smart_bounds(True)
+
+    ax.tick_params(direction='out')
+    ax.tick_params(right="off")
+
+    current_ymin = ax.get_ylim()[0]
+
+    # plot v lines
+    if invert_y is True and current_ymin < 0:
+        upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]
+    else:
+        upper_v, lower_v = ax.get_ylim()[0], ymax_bound
+    for x in vlines:
+        ax.vlines(x, upper_v, lower_v,
+                  linestyles='--', colors='k', linewidth=1.)
+
+    # set x label
+    ax.set_xlabel('time (s)')
+    ax.xaxis.get_label().set_verticalalignment('center')
+
+    # set y label and ylabel position
+    ax.set_ylabel(_handle_default("units")[ch_type])
+    ylabel_height = (-(current_ymin / y_range)
+                     if 0 > current_ymin  # ... if we have negative values
+                     else (ax.get_yticks()[-1] / 2 / y_range))
+    ax.yaxis.set_label_coords(-0.05, 1 - ylabel_height
+                              if invert_y else ylabel_height)
+    x_extrema = [t for t in ax.get_xticks() if tmax >= t >= tmin]
+    ax.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    ax.spines["left"].set_zorder(2000)
+
+    # finishing touches
+    if invert_y:
+        ax.invert_yaxis()
+    ax.patch.set_alpha(0)
+    ax.spines['right'].set_color('none')
+    ax.set_xlim(tmin, tmax)
+
+    if len(conditions) > 1:
+        plt.legend(loc='best', ncol=1 + (len(conditions) // 5),
+                   frameon=True, fontsize=10)
+
+    fig = plt.gcf()
+    fig.set_size_inches(8, 6)
+    return fig
