@@ -587,13 +587,16 @@ def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
     return paths
 
 
-def _find_mri_paths(subject='fsaverage', subjects_dir=None):
+def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     """Find all files of an mri relevant for source transformation
 
     Parameters
     ----------
     subject : str
         Name of the mri subject.
+    skip_fiducials : bool
+        Do not scale the MRI fiducials file. If False, an IOError
+        will be raised if the fiducials file does not exists.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
@@ -641,7 +644,10 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
         bem.append(name)
 
     # fiducials
-    paths['fid'] = [fid_fname]
+    if skip_fiducials:
+        paths['fid'] = []
+    else:
+        paths['fid'] = [fid_fname]
 
     # duplicate curvature files
     paths['duplicate'] = dup = []
@@ -941,7 +947,7 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
 
 
 def scale_mri(subject_from, subject_to, scale, overwrite=False,
-              subjects_dir=None):
+              subjects_dir=None, skip_fiducials=False):
     """Create a scaled copy of an MRI subject
 
     Parameters
@@ -956,6 +962,9 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         If an MRI already exists for subject_to, overwrite it.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
+    skip_fiducials : bool
+        Do not scale the MRI fiducials file. If False (default), an IOError
+        will be raised if the fiducials file does not exists.
 
     See Also
     --------
@@ -963,7 +972,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     scale_source_space : add a source space to a scaled MRI
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    paths = _find_mri_paths(subject_from, subjects_dir=subjects_dir)
+    paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)
     scale = np.asarray(scale)
 
     # make sure we have an empty target directory
@@ -976,6 +985,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
             raise IOError("Subject directory for %s already exists: %r"
                           % (subject_to, dest))
 
+    # create empty directory structure
     for dirname in paths['dirs']:
         dir_ = dirname.format(subject=subject_to, subjects_dir=subjects_dir)
         os.makedirs(dir_)

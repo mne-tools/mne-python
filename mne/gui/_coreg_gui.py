@@ -18,8 +18,8 @@ from scipy.spatial.distance import cdist
 try:
     from mayavi.core.ui.mayavi_scene import MayaviScene
     from mayavi.tools.mlab_scene_model import MlabSceneModel
-    from pyface.api import (error, confirm, warning, OK, YES, information,
-                            FileDialog, GUI)
+    from pyface.api import (error, confirm, warning, OK, YES, NO, CANCEL,
+                            information, FileDialog, GUI)
     from traits.api import (Bool, Button, cached_property, DelegatesTo,
                             Directory, Enum, Float, HasTraits,
                             HasPrivateTraits, Instance, Int, on_trait_change,
@@ -39,7 +39,7 @@ except Exception:
 
 
 from ..bem import make_bem_solution, write_bem_solution
-from ..coreg import bem_fname, trans_fname
+from ..coreg import bem_fname, trans_fname, fid_fname
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
@@ -477,7 +477,7 @@ class CoregModel(HasPrivateTraits):
 
         self.rot_x, self.rot_y, self.rot_z = est[:3]
 
-    def get_scaling_job(self, subject_to, do_bem_sol):
+    def get_scaling_job(self, subject_to, skip_fiducials, do_bem_sol):
         "Find all arguments needed for the scaling worker"
         subjects_dir = self.mri.subjects_dir
         subject_from = self.mri.subject
@@ -491,7 +491,10 @@ class CoregModel(HasPrivateTraits):
                 if m:
                     bem_names.append(m.group(1))
 
-        return subjects_dir, subject_from, subject_to, self.scale, bem_names
+        return (subjects_dir, subject_from, subject_to, self.scale,
+                skip_fiducials, bem_names)
+
+
 
     def load_trans(self, fname):
         """Load the head-mri transform from a fif file
@@ -760,15 +763,15 @@ class CoregPanel(HasPrivateTraits):
         # Setup scaling worker
         def worker():
             while True:
-                subjects_dir, subject_from, subject_to, scale, bem_names = \
-                    self.queue.get()
+                (subjects_dir, subject_from, subject_to, scale, skip_fiducials,
+                 bem_names) = self.queue.get()
                 self.queue_len -= 1
 
                 # Scale MRI files
                 self.queue_current = 'Scaling %s...' % subject_to
                 try:
                     scale_mri(subject_from, subject_to, scale, True,
-                              subjects_dir)
+                              subjects_dir, skip_fiducials)
                 except:
                     logger.error('Error scaling %s:\n' % subject_to +
                                  traceback.format_exc())
@@ -923,22 +926,41 @@ class CoregPanel(HasPrivateTraits):
         self.model.load_trans(trans_file)
 
     def _save_fired(self):
-        if self.n_scale_params:
-            subjects_dir = self.model.mri.subjects_dir
-            subject_from = self.model.mri.subject
-            subject_to = self.model.raw_subject or self.model.mri.subject
-        else:
-            subject_to = self.model.mri.subject
+        subject_from = self.model.mri.subject
 
-        # ask for target subject
+        # check that fiducials are saved
+        skip_fiducials = False
+        if self.n_scale_params and not os.path.exists(
+                self.model.mri.default_fid_fname):
+            msg = ("The fiducials for {src} have not been saved. If they are "
+                   "not saved, they will not be available in the scaled MRI. "
+                   "Should the fiducials for {src} be saved now? Select Yes "
+                   "to save the fiducials at {src}/bem/{src}-fiducials.fif. "
+                   "Select No to proceed scaling the MRI without fiducials.".
+                   format(src=subject_from))
+            title = "Save Fiducials for %s?" % subject_from
+            rc = confirm(None, msg, title, cancel=True, default=CANCEL)
+            if rc == CANCEL:
+                return
+            elif rc == YES:
+                self.model.mri.save()
+            elif rc == NO:
+                skip_fiducials = True
+            else:
+                raise RuntimeError("rc=%s" % repr(rc))
+
+        # find target subject
         if self.n_scale_params:
-            mridlg = NewMriDialog(subjects_dir=subjects_dir,
+            subject_to = self.model.raw_subject or subject_from
+            mridlg = NewMriDialog(subjects_dir=self.model.mri.subjects_dir,
                                   subject_from=subject_from,
                                   subject_to=subject_to)
             ui = mridlg.edit_traits(kind='modal')
             if not ui.result:  # i.e., user pressed cancel
                 return
             subject_to = mridlg.subject_to
+        else:
+            subject_to = subject_from
 
         # find trans file destination
         raw_dir = os.path.dirname(self.model.hsp.file)
@@ -968,7 +990,8 @@ class CoregPanel(HasPrivateTraits):
         # save the scaled MRI
         if self.n_scale_params:
             do_bem_sol = self.can_prepare_bem_model and self.prepare_bem_model
-            job = self.model.get_scaling_job(subject_to, do_bem_sol)
+            job = self.model.get_scaling_job(subject_to, skip_fiducials,
+                                             do_bem_sol)
             self.queue.put(job)
             self.queue_len += 1
 

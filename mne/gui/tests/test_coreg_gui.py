@@ -103,11 +103,13 @@ def test_coreg_model():
     assert_true(isinstance(model.points_eval_str, string_types))
 
     # scaling job
-    sdir, sfrom, sto, scale, bemsol = model.get_scaling_job('sample2', True)
+    sdir, sfrom, sto, scale, skip_fiducials, bemsol = \
+        model.get_scaling_job('sample2', False, True)
     assert_equal(sdir, subjects_dir)
     assert_equal(sfrom, 'sample')
     assert_equal(sto, 'sample2')
     assert_equal(scale, model.scale)
+    assert_equal(skip_fiducials, False)
     # find BEM files
     bems = set()
     for fname in os.listdir(os.path.join(subjects_dir, 'sample', 'bem')):
@@ -115,8 +117,10 @@ def test_coreg_model():
         if m:
             bems.add(m.group(1))
     assert_equal(set(bemsol), bems)
-    sdir, sfrom, sto, scale, bemsol = model.get_scaling_job('sample2', False)
+    sdir, sfrom, sto, scale, skip_fiducials, bemsol = \
+        model.get_scaling_job('sample2', True, False)
     assert_equal(bemsol, [])
+    assert_true(skip_fiducials)
 
     model.load_trans(fname_trans)
 
