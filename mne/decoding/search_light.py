@@ -413,9 +413,7 @@ class GeneralizationLight(SearchLight):
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(_gl_score, self.n_jobs)
         X_splits = np.array_split(X, n_jobs, axis=-1)
-        est_splits = np.array_split(self.estimators_, n_jobs)
-        score = parallel(p_func(est, x, y)
-                         for (est, x) in zip(est_splits, X_splits))
+        score = parallel(p_func(self.estimators_, x, y) for x in X_splits)
 
         if n_jobs > 1:
             score = np.concatenate(score, axis=1)
@@ -448,7 +446,7 @@ def _gl_transform(estimators, X, method):
         _y_pred = transform(X_stack)
         # unstack generalizations
         if _y_pred.ndim == 2:
-            _y_pred = np.reshape(_y_pred, [n_sample, n_iter])
+            _y_pred = np.reshape(_y_pred, [n_sample, n_iter, _y_pred.shape[1]])
         else:
             shape = np.r_[n_sample, n_iter, _y_pred.shape[1:]].astype(int)
             _y_pred = np.reshape(_y_pred, shape)

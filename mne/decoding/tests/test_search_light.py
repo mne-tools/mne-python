@@ -75,6 +75,8 @@ def test_generalizationlight():
     # transforms
     y_pred = gl.predict(X)
     assert_array_equal(y_pred.shape, [n_epochs, n_time, n_time])
+    y_proba = gl.predict_proba(X)
+    assert_array_equal(y_proba.shape, [n_epochs, n_time, n_time, 2])
 
     # transform to different datasize
     y_pred = gl.predict(X[:, :, :2])
