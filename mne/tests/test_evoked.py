@@ -416,10 +416,8 @@ def test_evoked_arithmetic():
     old_comment1 = ev1.comment
     old_comment2 = ev2.comment
     ev1.comment = None
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
-        ev = ev1 - ev2
-        assert_equal(ev.comment, 'unknown')
+    ev = combine_evoked([ev1, ev2], weights=[1, -1])
+    assert_true(ev.comment is None)
     ev1.comment = old_comment1
     ev2.comment = old_comment2
 

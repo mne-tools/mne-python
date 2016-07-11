@@ -278,7 +278,7 @@ evoked2 = mne.read_evokeds(
 ##############################################################################
 # Compute a contrast:
 
-contrast = evoked1 - evoked2
+contrast = mne.combine_evoked([evoked1, evoked2], weights=[1, -1])
 print(contrast)
 
 ##############################################################################

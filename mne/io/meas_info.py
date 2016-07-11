@@ -1238,7 +1238,8 @@ def _is_equal_dict(dicts):
                 is_equal.append((k0 == k) and _is_equal_dict(v))
         else:
             is_equal.append(all(np.all(k == k0) and
-                            np.all(v == v0) for k, v in d))
+                            (np.array_equal(v, v0) if isinstance(v, np.ndarray)
+                             else np.all(v == v0)) for k, v in d))
     return all(is_equal)
 
 
