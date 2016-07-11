@@ -254,7 +254,7 @@ def _sl_init_pred(y_pred, X):
     if y_pred.ndim > 1:
         # for estimator that generate multidimensional y_pred,
         # e.g. clf.predict_proba()
-        y_pred = np.zeros(np.r_[n_sample, n_iter, y_pred.shape[1:]])
+        y_pred = np.zeros(np.r_[n_sample, n_iter, y_pred.shape[1:]], int)
     else:
         # for estimator that generate unidimensional y_pred,
         # e.g. clf.predict()
@@ -269,7 +269,7 @@ def _sl_score(estimators, X, y):
         _score = est.score(X[..., ii], y)
         # init predictions
         if ii == 0:
-            score = np.zeros(np.r_[n_iter, _score.shape])
+            score = np.zeros(np.r_[n_iter, _score.shape], int)
         score[ii, ...] = _score
     return score
 
@@ -450,7 +450,7 @@ def _gl_transform(estimators, X, method):
         if _y_pred.ndim == 2:
             _y_pred = np.reshape(_y_pred, [n_sample, n_iter])
         else:
-            shape = np.r_[n_sample, n_iter, _y_pred.shape[1:]]
+            shape = np.r_[n_sample, n_iter, _y_pred.shape[1:]].astype(int)
             _y_pred = np.reshape(_y_pred, shape)
         # init
         if ii == 0:
@@ -480,7 +480,7 @@ def _gl_score(estimators, X, y):
             # init predictions
             if (ii == 0) & (jj == 0):
                 if np.ndim(_score):
-                    score = np.zeros(np.r_[n_est, n_iter, _score.shape])
+                    score = np.zeros(np.r_[n_est, n_iter, _score.shape], int)
                 else:
                     score = np.zeros([n_est, n_iter])
             score[ii, jj, ...] = _score
