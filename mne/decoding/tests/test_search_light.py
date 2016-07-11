@@ -5,7 +5,7 @@
 
 import numpy as np
 from numpy.testing import assert_array_equal
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_true
 from ...utils import requires_sklearn
 from ..search_light import SearchLight, GeneralizationLight
 
@@ -36,8 +36,10 @@ def test_searchlight():
     # transforms
     assert_raises(ValueError, sl.predict, X[:, :, :2])
     y_pred = sl.predict(X)
+    assert_true(y_pred.dtype == int)
     assert_array_equal(y_pred.shape, [n_epochs, n_time])
     y_proba = sl.predict_proba(X)
+    assert_true(y_proba.dtype == float)
     assert_array_equal(y_proba.shape, [n_epochs, n_time, 2])
 
     # score
@@ -75,7 +77,9 @@ def test_generalizationlight():
     # transforms
     y_pred = gl.predict(X)
     assert_array_equal(y_pred.shape, [n_epochs, n_time, n_time])
+    assert_true(y_pred.dtype == int)
     y_proba = gl.predict_proba(X)
+    assert_true(y_proba.dtype == float)
     assert_array_equal(y_proba.shape, [n_epochs, n_time, n_time, 2])
 
     # transform to different datasize

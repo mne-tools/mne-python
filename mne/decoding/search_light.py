@@ -245,11 +245,12 @@ def _sl_init_pred(y_pred, X):
     if y_pred.ndim > 1:
         # for estimator that generate multidimensional y_pred,
         # e.g. clf.predict_proba()
-        y_pred = np.zeros(np.r_[n_sample, n_iter, y_pred.shape[1:]], int)
+        y_pred = np.zeros(np.r_[n_sample, n_iter, y_pred.shape[1:]],
+                          y_pred.dtype)
     else:
         # for estimator that generate unidimensional y_pred,
         # e.g. clf.predict()
-        y_pred = np.zeros((n_sample, n_iter))
+        y_pred = np.zeros((n_sample, n_iter), y_pred.dtype)
     return y_pred
 
 
@@ -454,9 +455,10 @@ def _gl_init_pred(y_pred, X, n_train):
     """Aux. function to GeneralizationLight to initialize y_pred"""
     n_sample, n_chan, n_iter = X.shape
     if y_pred.ndim == 3:
-        y_pred = np.zeros((n_sample, n_train, n_iter, y_pred.shape[-1]))
+        y_pred = np.zeros((n_sample, n_train, n_iter, y_pred.shape[-1]),
+                          y_pred.dtype)
     else:
-        y_pred = np.zeros((n_sample, n_train, n_iter))
+        y_pred = np.zeros((n_sample, n_train, n_iter), y_pred.dtype)
     return y_pred
 
 
