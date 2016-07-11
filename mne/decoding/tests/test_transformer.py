@@ -165,5 +165,8 @@ def test_epochs_vectorizer():
 def test_vectorizer():
     """Test Vectorizer."""
     data = np.random.rand(150, 18, 6)
-    vector_data = Vectorizer().fit_transform(data)
-    assert_equal(vector_data.ndim, 2)
+    vect = Vectorizer()
+    result = vect.fit_transform(data)
+    assert_equal(result.ndim, 2)
+    # check inverse_trasnform
+    assert_equal(vect.inverse_transform(result).ndim, 3)

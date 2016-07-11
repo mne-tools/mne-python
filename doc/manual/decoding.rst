@@ -27,6 +27,10 @@ Scikit-learn API enforces the requirement that data arrays must be 2D. A common 
 
 To recover the original 3D data, an ``inverse_transform`` can be used. The ``epochs_vectorizer`` is particularly useful when constructing a pipeline object (used mainly for parameter search and cross validation). The ``epochs_vectorizer`` is the first estimator in the pipeline enabling estimators downstream to be more advanced estimators implemented in Scikit-learn. 
 
+Vectorizer
+^^^^^^^^^^
+Scikit-learn API provides functionality to chain transformers and estimators by using :class:`sklearn.Pipeline`. We can apply MNE transformers in scikit-learn pipeline to chain them. Further it becomes useful for cross validation and grid search for parameters. Vectorizer is typically the last step(before the estimator in the pipeline) to convert higher dimensional data into two dimensional, compatible with the estimator.
+
 PSDEstimator
 ^^^^^^^^^^^^
 This estimator computes the power spectral density (PSD) using the multitaper method. It takes a 3D array as input, it into 2D and computes the PSD.

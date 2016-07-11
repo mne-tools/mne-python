@@ -265,7 +265,7 @@ class Vectorizer(TransformerMixin):
         ----------
         X : numpy array, shape(n_epochs, n_chans, n_times) or
                               (n_epochs, n_chans * n_times) or
-                              (n_epochs, n_chans * n_times * n_freqs)
+                              (n_epochs, n_chans, n_times, n_freqs)
             The data to be transformed
         y : None
             Used for scikit-learn compatibility.
@@ -275,6 +275,7 @@ class Vectorizer(TransformerMixin):
         self : Instance of Vectorizer
             Return the modified instance.
         """
+        self.shape = X.shape
         return self
 
     def transform(self, X):
@@ -284,7 +285,7 @@ class Vectorizer(TransformerMixin):
         ----------
         X : numpy array, shape(n_epochs, n_chans, n_times) or
                               (n_epochs, n_chans * n_times)
-                              (n_epochs, n_chans * n_times * n_freqs)
+                              (n_epochs, n_chans, n_times, n_freqs)
             The data to be transformed.
 
         Returns
@@ -301,7 +302,7 @@ class Vectorizer(TransformerMixin):
         ----------
         X : numpy array, shape(n_epochs, n_chans, n_times) or
                               (n_epochs, n_chans * n_times)
-                              (n_epochs, n_chans * n_times * n_freqs)
+                              (n_epochs, n_chans, n_times, n_freqs)
             The data to be transformed.
         y : None
             Used for scikit-learn compatibility.
@@ -312,6 +313,22 @@ class Vectorizer(TransformerMixin):
             The transformed data.
         """
         return self.fit(X).transform(X)
+
+    def inverse_transform(self, X):
+        """Transform 2D data back to shape used in fit.
+
+        Parameters
+        ----------
+        X : numpy array, shape(n_epochs, n_chans * n_freqs) or
+                              (n_epochs, n_chans * n_times * n_freqs)
+
+        Returns
+        -------
+        X : numpy array, shape(n_epochs, n_chans, n_freqs)
+                              (n_epochs, n_chans * n_times) or
+                              (n_epochs, n_chans, n_times, n_freqs)
+        """
+        return X.reshape(self.shape)
 
 
 class PSDEstimator(TransformerMixin):
