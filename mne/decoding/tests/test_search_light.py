@@ -89,3 +89,5 @@ def test_generalizationlight():
     gl.fit(X, y)
     y_pred = gl.predict(X)
     assert_array_equal(y_pred.shape, [n_epochs, n_time, n_time])
+    score = gl.score(X, y)
+    assert_array_equal(score.shape, [n_time, n_time])
