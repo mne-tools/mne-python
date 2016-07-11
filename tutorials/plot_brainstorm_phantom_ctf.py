@@ -80,6 +80,10 @@ raw_erm = read_raw_ctf(erm_path)
 cov = mne.compute_raw_covariance(raw_erm)
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None)
 dip = fit_dipole(evoked, cov, sphere)[0]
+
+###############################################################################
+# Compare the actual position with the estimated one.
+
 expected_pos = np.array([18., 0., 49.])
 diff = np.sqrt(np.sum((dip.pos[0] * 1000 - expected_pos) ** 2))
 print('Actual pos:     %s mm' % np.array_str(expected_pos, precision=1))

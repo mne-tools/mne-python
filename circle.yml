@@ -33,15 +33,17 @@ dependencies:
         chmod +x ~/miniconda.sh;
         ~/miniconda.sh -b -p /home/ubuntu/miniconda;
         conda update --yes --quiet conda;
-        conda create -n circleenv --yes pip python=2.7 pip numpy scipy scikit-learn mayavi matplotlib sphinx pillow six IPython pandas;
+        conda create -n circleenv --yes pip python=2.7 pip;
         sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
       else
         echo "Conda already set up.";
       fi
-    # If we get "raise EOFError from Sphinx again, we can follow
+    # Te get around "raise EOFError" from Sphinx, we can follow
     # https://github.com/sphinx-doc/sphinx/issues/2670 and do:
-    # - conda remove -n circleenv --yes sphinx;
-    # - conda install -n circleenv --yes numpy scipy scikit-learn mayavi matplotlib sphinx pillow six IPython pandas;
+    - if conda list -n circleenv sphinx; then
+        conda remove -n circleenv --yes sphinx;
+      fi;
+    - conda install -n circleenv --yes numpy scipy scikit-learn mayavi matplotlib sphinx pillow six IPython pandas;
     - ls -al /home/ubuntu/miniconda;
     - ls -al /home/ubuntu/miniconda/bin;
     - echo $PATH;
