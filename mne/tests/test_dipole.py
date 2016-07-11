@@ -12,14 +12,15 @@ from mne import (read_dipole, read_forward_solution,
                  SourceEstimate, write_evokeds, fit_dipole,
                  transform_surface_to, make_sphere_model, pick_types,
                  pick_info, EvokedArray, read_source_spaces, make_ad_hoc_cov,
-                 make_forward_solution, Dipole, DipoleFixed)
+                 make_forward_solution, Dipole, DipoleFixed, Epochs,
+                 make_fixed_length_events)
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
                        run_subprocess)
 from mne.proj import make_eeg_average_ref_proj
 
-from mne.io import Raw
+from mne.io import read_raw_fif, read_raw_ctf
 
 from mne.surface import _compute_nearest
 from mne.bem import _bem_find_surface, read_bem_solution
@@ -40,6 +41,7 @@ fname_trans = op.join(data_path, 'MEG', 'sample',
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 fname_xfit_dip = op.join(data_path, 'dip', 'fixed_auto.fif')
+fname_ctf = op.join(data_path, 'CTF', 'testdata_ctf_short.ds')
 subjects_dir = op.join(data_path, 'subjects')
 
 
@@ -71,6 +73,21 @@ def test_io_dipoles():
     dipole.save(out_fname)
     dipole_new = read_dipole(out_fname)
     _compare_dipoles(dipole, dipole_new)
+
+
+@testing.requires_testing_data
+def test_dipole_fitting_ctf():
+    """Test dipole fitting with CTF data"""
+    raw_ctf = read_raw_ctf(fname_ctf)
+    events = make_fixed_length_events(raw_ctf, 1)
+    evoked = Epochs(raw_ctf, events, 1, 0, 0, baseline=None).average()
+    cov = make_ad_hoc_cov(evoked.info)
+    sphere = make_sphere_model((0., 0., 0.))
+    # XXX Eventually we should do some better checks about accuracy, but
+    # for now our CTF phantom fitting tutorials will have to do
+    # (otherwise we need to add that to the testing dataset, which is
+    # a bit too big)
+    fit_dipole(evoked, cov, sphere)
 
 
 @slow_test
@@ -222,7 +239,7 @@ def test_len_index_dipoles():
 def test_min_distance_fit_dipole():
     """Test dipole min_dist to inner_skull"""
     subject = 'sample'
-    raw = Raw(fname_raw, preload=True)
+    raw = read_raw_fif(fname_raw, preload=True)
 
     # select eeg data
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')

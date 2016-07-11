@@ -748,6 +748,18 @@ Functions:
 
    fit_dipole
 
+:py:mod:`mne.dipole`:
+
+.. currentmodule:: mne.dipole
+
+Functions:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   get_phantom_dipoles
+
 
 Source Space Data
 =================
