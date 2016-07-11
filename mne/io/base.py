@@ -1442,11 +1442,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Order in which to plot data. 'type' groups by channel type,
             'original' plots in the order of ch_names, 'selection' uses
             Elekta's channel groupings (only works for Neuromag data),
-            'position' groups the channels by the positions of the sensors and
-            'lasso' uses the same groups as 'position', but also allows lasso
-            selection of custom channels in the selection topomap. If array
-            only the channels in the array are plotted in the given order.
-            Defaults to 'type'.
+            'position' groups the channels by the positions of the sensors.
+            'selection' and 'position' modes allow custom selections by using
+            lasso selector on the topomap. Pressing ``ctrl`` key while
+            selecting allows appending to the current selection. If array, only
+            the channels in the array are plotted in the given order. Defaults
+            to 'type'.
         show_options : bool
             If True, a dialog for options related to projection is shown.
         title : str | None

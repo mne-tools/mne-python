@@ -136,10 +136,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Order in which to plot data. 'type' groups by channel type, 'original'
         plots in the order of ch_names, 'selection' uses Elekta's channel
         groupings (only works for Neuromag data), 'position' groups the
-        channels by the positions of the sensors and 'lasso' uses the same
-        groups as 'position', but also allows lasso selection of custom
-        channels in the selection topomap. If array, only the channels in the
-        array are plotted in the given order. Defaults to 'type'.
+        channels by the positions of the sensors. 'selection' and 'position'
+        modes allow custom selections by using lasso selector on the topomap.
+        Pressing ``ctrl`` key while selecting allows appending to the current
+        selection. If array, only the channels in the array are plotted in the
+        given order. Defaults to 'type'.
     show_options : bool
         If True, a dialog for options related to projection is shown.
     title : str | None
@@ -268,7 +269,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if isinstance(order, string_types):
         if order == 'original':
             inds = inds[reord]
-        elif order in ['selection', 'position', 'lasso']:
+        elif order in ['selection', 'position']:
             selections, fig_selection = _setup_browser_selection(raw, order)
         elif order != 'type':
             raise ValueError('Unknown order type %s' % order)
@@ -296,17 +297,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_times=n_times, event_times=event_times, inds=inds,
                   event_nums=event_nums, clipping=clipping, fig_proj=None)
 
-    if order in ['selection', 'position', 'lasso']:
+    if order in ['selection', 'position']:
         params['fig_selection'] = fig_selection
         params['selections'] = selections
         params['radio_clicked'] = partial(_radio_clicked, params=params)
         fig_selection.radio.on_clicked(params['radio_clicked'])
-        if order == 'lasso':
-            lasso_callback = partial(_set_custom_selection, params=params)
-            fig_selection.canvas.mpl_connect('lasso_event', lasso_callback)
-        else:
-            pick_callback = partial(_region_picked, params=params)
-            fig_selection.canvas.mpl_connect('pick_event', pick_callback)
+        lasso_callback = partial(_set_custom_selection, params=params)
+        fig_selection.canvas.mpl_connect('lasso_event', lasso_callback)
+
     _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels)
 
@@ -384,7 +382,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if show_options is True:
         _toggle_options(None, params)
     # initialize the first selection set
-    if order in ['selection', 'position', 'lasso']:
+    if order in ['selection', 'position']:
         _radio_clicked(fig_selection.radio.labels[0]._text, params)
         callback_selection_key = partial(_selection_key_press, params=params)
         callback_selection_scroll = partial(_selection_scroll, params=params)
@@ -905,21 +903,6 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     return fig
 
 
-def _region_picked(event, params):
-    """Callback for selecting a region by clicking the topomap."""
-    ind = event.ind[0]
-    types = list()
-    for this_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog'):
-        if this_type in params['types']:
-            types = np.concatenate(
-                [types, np.where(np.array(params['types']) == this_type)[0]])
-    labels = [l._text for l in params['fig_selection'].radio.labels]
-    for idx, label in enumerate(labels):
-        if types[ind] in params['selections'][label]:
-            _set_radio_button(idx, params)
-            return
-
-
 def _set_custom_selection(params):
     """Callback for setting custom selection by lasso selector."""
     chs = params['fig_selection'].lasso.selection
@@ -939,7 +922,7 @@ def _setup_browser_selection(raw, kind):
     from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                              _divide_to_regions)
     from ..utils import _get_stim_channel
-    if kind in ('position', 'lasso'):
+    if kind in ('position'):
         order = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # no 'Vertex'
     elif 'selection':
@@ -972,14 +955,10 @@ def _setup_browser_selection(raw, kind):
     fig_selection.canvas.set_window_title('Selection')
     rax = plt.subplot2grid((6, 1), (2, 0), rowspan=4, colspan=1)
     topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
-    if kind == 'lasso':
-        keys = np.concatenate([keys, ['Custom']])
-        order.update({'Custom': list()})
-        kind = 'position'
-        proj = 'select'
-    else:
-        proj = 'topomap'
-    plot_sensors(raw.info, kind=proj, ch_type='all', axes=topo_ax,
+    keys = np.concatenate([keys, ['Custom']])
+    order.update({'Custom': list()})  # custom selection with lasso
+
+    plot_sensors(raw.info, kind='select', ch_type='all', axes=topo_ax,
                  ch_groups=kind, title='', show=False)
     fig_selection.radio = RadioButtons(rax, [key for key in keys
                                              if key in order.keys()])

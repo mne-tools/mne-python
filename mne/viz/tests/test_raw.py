@@ -95,15 +95,15 @@ def test_plot_raw():
         raw.annotations = annot
         fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
         plt.close('all')
-        for order in ['position', 'selection', 'lasso',
-                      range(len(raw.ch_names))[::-4], [1, 2, 4, 6]]:
+        for order in ['position', 'selection', range(len(raw.ch_names))[::-4],
+                      [1, 2, 4, 6]]:
             fig = raw.plot(order=order)
             x = fig.get_axes()[0].lines[1].get_xdata()[10]
             y = fig.get_axes()[0].lines[1].get_ydata()[10]
             _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
             fig.canvas.key_press_event('down')  # change selection
             _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
-            if order == 'position':  # test clicking topo to change selection
+            if order in ('position', 'selection'):
                 sel_fig = plt.figure(1)
                 topo_ax = sel_fig.axes[1]
                 _fake_click(sel_fig, topo_ax, [-0.425, 0.20223853],
@@ -112,9 +112,6 @@ def test_plot_raw():
                 fig.canvas.key_press_event('up')
                 fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
                 fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
-            elif order == 'lasso':
-                sel_fig = plt.figure(1)
-                topo_ax = sel_fig.axes[1]
                 _fake_click(sel_fig, topo_ax, [-0.5, 0.], xform='data')
                 _fake_click(sel_fig, topo_ax, [0.5, 0.], xform='data',
                             kind='motion')
