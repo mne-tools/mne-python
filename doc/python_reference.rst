@@ -4,10 +4,12 @@
 Python API Reference
 ====================
 
-This is the classes and functions reference of mne-python. Functions are
+This is the classes and functions reference of MNE-Python. Functions are
 grouped thematically by analysis stage. Functions and classes that are not
 below a module heading are found in the :py:mod:`mne` namespace.
 
+MNE-Python also provides multiple command-line scripts that can be called
+directly from a terminal, see :ref:`python_commands`.
 
 .. contents::
    :local:
