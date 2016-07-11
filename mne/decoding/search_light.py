@@ -409,14 +409,16 @@ class GeneralizationLight(SearchLight):
         This requires base_estimator to have a `decision_function` method.
         """
         self._check_Xy(X)
-        # FIXME The parallelization is currrently very high and creates memory
-        # overload. We should first predict in parallel, and then score.
+        # For predictions/transforms the parallelization is across the data and
+        # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(_gl_score, self.n_jobs)
+        X_splits = np.array_split(X, n_jobs, axis=-1)
         est_splits = np.array_split(self.estimators_, n_jobs)
-        score = parallel(p_func(est, X, y) for est in est_splits)
+        score = parallel(p_func(est, x, y)
+                         for (est, x) in zip(est_splits, X_splits))
 
         if n_jobs > 1:
-            score = np.concatenate(score, axis=0)
+            score = np.concatenate(score, axis=1)
         else:
             score = score[0]
         return score
