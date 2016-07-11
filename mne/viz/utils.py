@@ -1512,7 +1512,7 @@ class SelectFromCollection(object):
         self.fc[:, -1] = self.alpha_other  # deselect in the beginning
 
         self.lasso = LassoSelector(ax, onselect=self.on_select,
-                                   lineprops={'color': 'red'})
+                                   lineprops={'color': 'red', 'linewidth': .5})
         self.selection = list()
 
     def on_select(self, verts):
