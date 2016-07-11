@@ -39,7 +39,7 @@ except Exception:
 
 
 from ..bem import make_bem_solution, write_bem_solution
-from ..coreg import bem_fname, trans_fname, fid_fname
+from ..coreg import bem_fname, trans_fname
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
@@ -493,8 +493,6 @@ class CoregModel(HasPrivateTraits):
 
         return (subjects_dir, subject_from, subject_to, self.scale,
                 skip_fiducials, bem_names)
-
-
 
     def load_trans(self, fname):
         """Load the head-mri transform from a fif file

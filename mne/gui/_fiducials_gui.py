@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-from glob import glob
 import os
 from ..externals.six.moves import map
 

@@ -186,13 +186,15 @@ def test_coreg_model_with_fsaverage():
     assert_true(avg_point_distance_1param < avg_point_distance)
 
     # scaling job
-    sdir, sfrom, sto, scale, bemsol = model.get_scaling_job('scaled', True)
+    sdir, sfrom, sto, scale, skip_fiducials, bemsol = \
+        model.get_scaling_job('scaled', False, True)
     assert_equal(sdir, tempdir)
     assert_equal(sfrom, 'fsaverage')
     assert_equal(sto, 'scaled')
     assert_equal(scale, model.scale)
     assert_equal(set(bemsol), set(('inner_skull-bem',)))
-    sdir, sfrom, sto, scale, bemsol = model.get_scaling_job('scaled', False)
+    sdir, sfrom, sto, scale, skip_fiducials, bemsol = \
+        model.get_scaling_job('scaled', False, False)
     assert_equal(bemsol, [])
 
     # scale with 3 parameters
