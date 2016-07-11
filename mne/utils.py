@@ -148,6 +148,43 @@ def object_hash(x, h=None):
     return int(h.hexdigest(), 16)
 
 
+def object_size(x):
+    """Estimate the size of a reasonable python object
+
+    Parameters
+    ----------
+    x : object
+        Object to approximate the size of.
+        Can be anything comprised of nested versions of:
+        {dict, list, tuple, ndarray, str, bytes, float, int, None}.
+
+    Returns
+    -------
+    size : int
+        The estimated size in bytes of the object.
+    """
+    # Note: this will not process object arrays properly (since those only)
+    # hold references
+    if isinstance(x, (bytes, string_types, int, float, type(None))):
+        size = sys.getsizeof(x)
+    elif isinstance(x, np.ndarray):
+        # On newer versions of NumPy, just doing sys.getsizeof(x) works,
+        # but on older ones you always get something small :(
+        size = sys.getsizeof(np.array([])) + x.nbytes
+    elif isinstance(x, np.generic):
+        size = x.nbytes
+    elif isinstance(x, dict):
+        size = sys.getsizeof(x)
+        for key, value in x.items():
+            size += object_size(key)
+            size += object_size(value)
+    elif isinstance(x, (list, tuple)):
+        size = sys.getsizeof(x) + sum(object_size(xx) for xx in x)
+    else:
+        raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
+    return size
+
+
 def object_diff(a, b, pre=''):
     """Compute all differences between two python variables
 

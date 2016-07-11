@@ -90,7 +90,10 @@ def test_hash_raw():
     raw = read_raw_fif(fif_fname)
     assert_raises(RuntimeError, raw.__hash__)
     raw = Raw(fif_fname).crop(0, 0.5, copy=False)
+    raw_size = raw._size
     raw.load_data()
+    raw_load_size = raw._size
+    assert_true(raw_size < raw_load_size)
     raw_2 = Raw(fif_fname).crop(0, 0.5, copy=False)
     raw_2.load_data()
     assert_equal(hash(raw), hash(raw_2))
