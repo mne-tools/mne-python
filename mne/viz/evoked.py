@@ -26,7 +26,8 @@ from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation)
 from ..channels import find_layout
-from ..channels.layout import _pair_grad_sensors
+from ..channels.layout import (_pair_grad_sensors, generate_2d_layout,
+                               _auto_topomap_coords)
 
 
 def _butterfly_onpick(event, params):
@@ -300,22 +301,28 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         else:
                             layout = find_layout(info, None, exclude=[])
                         # drop channels that are not in the data
-
                         used_nm = np.array(_clean_names(info['ch_names']))[idx]
                         names = np.asarray([name for name in used_nm
                                             if name in layout.names])
                         name_idx = [layout.names.index(name) for name in names]
                         if len(name_idx) < len(chs):
                             warn('Could not find layout for all the channels. '
-                                 'Legend for spatial colors not drawn.')
-                        else:
-                            # find indices for bads
-                            bads = [np.where(names == bad)[0][0] for bad in
-                                    info['bads'] if bad in names]
-                            pos, outlines = _check_outlines(layout.pos[:, :2],
-                                                            'skirt', None)
-                            pos = pos[name_idx]
-                            _plot_legend(pos, colors, ax, bads, outlines)
+                                 'Generating custom layout from channel '
+                                 'positions.')
+                            xy = _auto_topomap_coords(info, idx, True)
+                            layout = generate_2d_layout(
+                                xy[idx], ch_names=list(used_nm), name='custom')
+                            names = used_nm
+                            name_idx = [layout.names.index(name) for name in
+                                        names]
+
+                        # find indices for bads
+                        bads = [np.where(names == bad)[0][0] for bad in
+                                info['bads'] if bad in names]
+                        pos, outlines = _check_outlines(layout.pos[:, :2],
+                                                        'skirt', None)
+                        pos = pos[name_idx]
+                        _plot_legend(pos, colors, ax, bads, outlines)
                     else:
                         colors = ['k'] * len(idx)
                         for i in bad_ch_idx:
