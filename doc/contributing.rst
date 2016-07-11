@@ -46,6 +46,9 @@ What you will need
    system. If you are on Windows, you can install these applications inside a
    Unix virtual machine.
 
+#. Documentation building packages ``numpydoc``, ``sphinx_bootstrap_theme`` and
+   ``sphinx_gallery``.
+
 General code guidelines
 -----------------------
 
