@@ -19,7 +19,8 @@ import matplotlib
 
 from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
-                 write_evokeds, create_info, make_fixed_length_events)
+                 write_evokeds, create_info, make_fixed_length_events,
+                 combine_evoked)
 from mne.baseline import rescale
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
@@ -833,11 +834,11 @@ def test_evoked_arithmetic():
     epochs = Epochs(raw, events[:8], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     evoked = epochs.average()
-    evoked_sum = evoked1 + evoked2
+    evoked_sum = combine_evoked([evoked1, evoked2])
     assert_array_equal(evoked.data, evoked_sum.data)
     assert_array_equal(evoked.times, evoked_sum.times)
-    assert_true(evoked_sum.nave == (evoked1.nave + evoked2.nave))
-    evoked_diff = evoked1 - evoked1
+    assert_equal(evoked_sum.nave, evoked1.nave + evoked2.nave)
+    evoked_diff = combine_evoked([evoked1, evoked1], weights=[1, -1])
     assert_array_equal(np.zeros_like(evoked.data), evoked_diff.data)
 
 

@@ -408,13 +408,9 @@ def test_evoked_arithmetic():
     # combine_evoked([ev1, ev2]) should be the same as ev1 + ev2:
     # data should be added according to their `nave` weights
     # nave = ev1.nave + ev2.nave
-    ev = ev1 + ev2
+    ev = combine_evoked([ev1, ev2])
     assert_equal(ev.nave, ev1.nave + ev2.nave)
     assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
-    ev = ev1 - ev2
-    assert_equal(ev.nave, ev1.nave + ev2.nave)
-    assert_equal(ev.comment, ev1.comment + ' - ' + ev2.comment)
-    assert_allclose(ev.data, np.ones_like(ev1.data))
 
     # default comment behavior if evoked.comment is None
     old_comment1 = ev1.comment

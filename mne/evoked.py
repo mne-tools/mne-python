@@ -15,8 +15,8 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
-from .utils import check_fname, logger, verbose, _time_mask, warn, sizeof_fmt
-from .utils import SizeMixin
+from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
+                    deprecated, SizeMixin)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import (_plot_evoked_white, plot_evoked_joint,
@@ -890,6 +890,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         evoked = deepcopy(self)
         return evoked
 
+    @deprecated('ev1 + ev2 weighted summation has been deprecated and will be '
+                'removed in 0.14, use combine_evoked([ev1, ev2],'
+                'weight="nave") instead')
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs
 
@@ -904,6 +907,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         out.comment = self.comment + " + " + evoked.comment
         return out
 
+    @deprecated('ev1 - ev2 weighted subtraction has been deprecated and will '
+                'be removed in 0.14, use combine_evoked instead')
     def __sub__(self, evoked):
         """Subtract evoked taking into account number of epochs
 
@@ -1186,7 +1191,7 @@ def grand_average(all_evoked, interpolate_bads=True):
 
 
 def combine_evoked(all_evoked, weights='nave'):
-    """Merge evoked data by weighted addition
+    """Merge evoked data by weighted addition or subtraction
 
     Data should have the same channels and the same time instants.
     Subtraction can be performed by passing negative weights (e.g., [1, -1]).
