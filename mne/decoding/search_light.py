@@ -17,17 +17,14 @@ class SearchLight(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    base_estimator : object | None (default=None)
-        The base estimator to iteratively fit on a subset of the dataset. If
-        None, then the estimator is a Logistic Regression.
+    base_estimator : object
+        The base estimator to iteratively fit on a subset of the dataset.
     n_jobs : int, optional (default=1)
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
     """
-    def __init__(self, base_estimator=None, n_jobs=1):
-        from sklearn.linear_model import LogisticRegression
-        self.base_estimator = (LogisticRegression() if base_estimator is None
-                               else base_estimator)
+    def __init__(self, base_estimator, n_jobs=1):
+        self.base_estimator = base_estimator
         self.n_jobs = n_jobs
         if not isinstance(self.n_jobs, int):
             raise ValueError('n_jobs must be int, got %s' % n_jobs)
@@ -285,9 +282,8 @@ class GeneralizationLight(SearchLight):
 
     Parameters
     ----------
-    base_estimator : object | None (default=None)
-        The base estimator to iteratively fit on a subset of the dataset. If
-        None, then the estimator is a Logistic Regression.
+    base_estimator : object
+        The base estimator to iteratively fit on a subset of the dataset.
     n_jobs : int, optional (default=1)
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.

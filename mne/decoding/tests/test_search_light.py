@@ -28,7 +28,7 @@ def test_searchlight():
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # fit
-    sl = SearchLight()
+    sl = SearchLight(LogisticRegression())
     sl.fit(X, y)
     assert_raises(ValueError, sl.fit, X[1:], y)
     assert_raises(ValueError, sl.fit, X[:, :, 0], y)
@@ -45,7 +45,7 @@ def test_searchlight():
     assert_array_equal(score.shape, [n_time])
 
     # n_jobs
-    sl = SearchLight(n_jobs=2)
+    sl = SearchLight(LogisticRegression(), n_jobs=2)
     sl.fit(X, y)
     sl.predict(X)
     sl.score(X, y)
@@ -65,10 +65,11 @@ def test_searchlight():
 
 @requires_sklearn
 def test_generalizationlight():
+    from sklearn.linear_model import LogisticRegression
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # fit
-    gl = GeneralizationLight()
+    gl = GeneralizationLight(LogisticRegression())
     gl.fit(X, y)
 
     # transforms
@@ -84,7 +85,7 @@ def test_generalizationlight():
     assert_array_equal(score.shape, [n_time, 3])
 
     # n_jobs
-    gl = GeneralizationLight(n_jobs=2)
+    gl = GeneralizationLight(LogisticRegression(), n_jobs=2)
     gl.fit(X, y)
     y_pred = gl.predict(X)
     assert_array_equal(y_pred.shape, [n_epochs, n_time, n_time])

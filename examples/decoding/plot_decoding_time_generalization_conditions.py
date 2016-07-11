@@ -59,25 +59,34 @@ epochs = mne.Epochs(raw, events, event_id, -0.050, 0.400, proj=True,
 # Define events of interest
 triggers = epochs.events[:, 2]
 
+
+# Each estimator fitted at each time point is an independent Scikit-Learn
+# pipeline with a ``fit``, and a ``score`` method.
 gat = GeneralizationLight(
     make_pipeline(StandardScaler(), LogisticRegression()),
     n_jobs=1)
 
-# For our left events, which ones are visual?
+# Fit: for our left events, which ones are visual?
 X = epochs[('AudL', 'VisL')].get_data()
 y = triggers[np.in1d(triggers, (1, 3))] == 3
 gat.fit(X, y)
 
-# For our right events, which ones are visual?
+# Generalize: for our right events, which ones are visual?
 X = epochs[('AudR', 'VisR')].get_data()
 y = triggers[np.in1d(triggers, (2, 4))] == 4
 score = gat.score(X, y)
 
-# Plot
+# Plot temporal generalization accuracies.
 extent = epochs.times[[0, -1, 0, -1]]
-im = plt.matshow(score, origin='lower', cmap='RdBu_r', vmin=0., vmax=1.,
-                 extent=extent)
-plt.axvline(0, color='k')
-plt.axhline(0, color='k')
+fig, ax = plt.subplots(1)
+im = ax.matshow(score, origin='lower', cmap='RdBu_r', vmin=0., vmax=1.,
+                extent=extent)
+ticks = np.arange(0., .401, .100)
+ax.set_xticks(ticks)
+ax.set_xticklabels(ticks)
+ax.set_yticks(ticks)
+ax.set_yticklabels(ticks)
+ax.axvline(0, color='k')
+ax.axhline(0, color='k')
 plt.colorbar(im)
 plt.show()
