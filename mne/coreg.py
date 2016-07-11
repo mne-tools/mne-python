@@ -647,7 +647,14 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     if skip_fiducials:
         paths['fid'] = []
     else:
-        paths['fid'] = [fid_fname]
+        paths['fid'] = _find_fiducials_files(subject, subjects_dir)
+        # check that we found at least one
+        if len(paths['fid']) == 0:
+            raise IOError("No fiducials file found for %s. The fiducials "
+                          "file should be named "
+                          "{subject}/bem/{subject}-fiducials.fif. In "
+                          "order to scale an MRI without fiducials set "
+                          "skip_fiducials=True." % subject)
 
     # duplicate curvature files
     paths['duplicate'] = dup = []
@@ -657,7 +664,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
         dup.append(fname)
 
     # check presence of required files
-    for ftype in ['surf', 'fid', 'duplicate']:
+    for ftype in ['surf', 'duplicate']:
         for fname in paths[ftype]:
             path = fname.format(subjects_dir=subjects_dir, subject=subject)
             path = os.path.realpath(path)
@@ -676,6 +683,24 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
         src.append(path)
 
     return paths
+
+
+def _find_fiducials_files(subject, subjects_dir):
+    fid = []
+    # standard fiducials
+    if os.path.exists(fid_fname.format(subjects_dir=subjects_dir,
+                                       subject=subject)):
+        fid.append(fid_fname)
+    # fiducials with subject name
+    pattern = pformat(fid_fname_general, subjects_dir=subjects_dir,
+                      subject=subject, head='*')
+    regex = pformat(fid_fname_general, subjects_dir=subjects_dir,
+                    subject=subject, head='(.+)')
+    for path in iglob(pattern):
+        match = re.match(regex, path)
+        head = match.group(1).replace(subject, '{subject}')
+        fid.append(pformat(fid_fname_general, head=head))
+    return fid
 
 
 def _is_mri_subject(subject, subjects_dir=None):

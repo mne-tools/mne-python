@@ -43,7 +43,7 @@ from ..coreg import bem_fname, trans_fname, fid_fname
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
-                     _point_cloud_error)
+                     _find_fiducials_files, _point_cloud_error)
 from ..utils import get_subjects_dir, logger
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import (set_mne_root, trans_wildcard, InstSource,
@@ -926,16 +926,17 @@ class CoregPanel(HasPrivateTraits):
         self.model.load_trans(trans_file)
 
     def _save_fired(self):
+        subjects_dir = self.model.mri.subjects_dir
         subject_from = self.model.mri.subject
 
         # check that fiducials are saved
         skip_fiducials = False
-        if self.n_scale_params and not os.path.exists(
-                self.model.mri.default_fid_fname):
-            msg = ("The fiducials for {src} have not been saved. If they are "
-                   "not saved, they will not be available in the scaled MRI. "
-                   "Should the fiducials for {src} be saved now? Select Yes "
-                   "to save the fiducials at {src}/bem/{src}-fiducials.fif. "
+        if self.n_scale_params and not _find_fiducials_files(subject_from,
+                                                             subjects_dir):
+            msg = ("No fiducials have been saved for {src}. If fiducials "
+                   "are not saved, they will not be available in the scaled "
+                   "MRI. Should they be saved now? Select Yes to save the "
+                   "fiducials at {src}/bem/{src}-fiducials.fif. "
                    "Select No to proceed scaling the MRI without fiducials.".
                    format(src=subject_from))
             title = "Save Fiducials for %s?" % subject_from
@@ -943,7 +944,7 @@ class CoregPanel(HasPrivateTraits):
             if rc == CANCEL:
                 return
             elif rc == YES:
-                self.model.mri.save()
+                self.model.mri.save(self.model.mri.default_fid_fname)
             elif rc == NO:
                 skip_fiducials = True
             else:
@@ -952,7 +953,7 @@ class CoregPanel(HasPrivateTraits):
         # find target subject
         if self.n_scale_params:
             subject_to = self.model.raw_subject or subject_from
-            mridlg = NewMriDialog(subjects_dir=self.model.mri.subjects_dir,
+            mridlg = NewMriDialog(subjects_dir=subjects_dir,
                                   subject_from=subject_from,
                                   subject_to=subject_to)
             ui = mridlg.edit_traits(kind='modal')
