@@ -107,8 +107,8 @@ def _construct_signal_from_epochs(events, sfreq, tmin, tmax, epochs_data):
     return data
 
 
-def least_square_evoked(epochs_data, events, event_id, tmin, tmax, sfreq,
-                        return_toeplitz=False):
+def _least_square_evoked_epochs(epochs_data, events, event_id, tmin,
+                                tmax, sfreq, return_toeplitz=False):
     """Least square estimation of evoked response from a Epochs instance.
 
     Parameters
@@ -188,10 +188,11 @@ class _Xdawn(object):
             if baseline is not None:
                 raise ValueError('Baseline correction must be None if overlap '
                                  'correction activated')
-            evokeds, toeplitz = least_square_evoked(epochs_data, events,
-                                                    event_id, tmin, tmax,
-                                                    sfreq,
-                                                    return_toeplitz=True)
+            evokeds, toeplitz = _least_square_evoked_epochs(epochs_data,
+                                                            events, event_id,
+                                                            tmin, tmax, sfreq,
+                                                            return_toeplitz=
+                                                            True)
         else:
             epochs_data_dict = self._epochs_data_dict(epochs_data, y,
                                                       event_id)

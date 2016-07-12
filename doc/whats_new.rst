@@ -23,11 +23,13 @@ Changelog
 
     - Add label center of mass function :func:`mne.Label.center_of_mass` by `Eric Larson`_
 
-    - Added :func:`mne.viz.ica.plot_ica_properties` that allows ploting of independent component properties similar to ``pop_prop`` in EEGLAB. Also :class:`mne.preprocessing.ica.ICA` has :func:`mne.preprocessing.ica.ICA.plot_properties` method now. Added by `Mikołaj Magnuski`_
+    - Added :func:`mne.viz.plot_ica_properties` that allows ploting of independent component properties similar to ``pop_prop`` in EEGLAB. Also :class:`mne.preprocessing.ICA` has :func:`mne.preprocessing.ICA.plot_properties` method now. Added by `Mikołaj Magnuski`_
 
     - Add second-order sections (instead of ``(b, a)`` form) IIR filtering for reduced numerical error by `Eric Larson`_
 
     - Add interactive colormap option to image plotting functions by `Jaakko Leppakangas`_
+
+    - Add support for the University of Maryland KIT system by `Christian Brodbeck`_
 
 BUG
 ~~~
@@ -48,7 +50,11 @@ BUG
 
     - Fixed a bug when setting multiple bipolar references with :func:`mne.io.set_bipolar_reference` by `Marijn van Vliet`_.
 
-    - Fix to image scaling in :func:`mne.viz.plot_epochs_image` when plotting more than one channel by `Jaakko Leppakangas`_
+    - Fixed image scaling in :func:`mne.viz.plot_epochs_image` when plotting more than one channel by `Jaakko Leppakangas`_
+
+    - Fixed :class:`mne.preprocessing.Xdawn` to fit shuffled epochs by `Jean-Remi King`_
+
+    - Fixed a bug with channel order determination that could lead to an ``AssertionError`` when using :class:`mne.Covariance` matrices by `Eric Larson`_
 
 API
 ~~~
@@ -81,7 +87,7 @@ API
 
     - The API of :meth:`mne.SourceEstimate.plot` and :func:`mne.viz.plot_source_estimates` has been updated to reflect current PySurfer 0.6 API. The ``config_opts`` parameter is now deprecated and will be removed in mne 0.14, and the default representation for time will change from ``ms`` to ``s`` in mne 0.14. By `Christian Brodbeck`_
 
-   - Added :class:`mne.decoding.XdawnTransformer` implementing xdawn filtering algorithm working with numpy arrays of epochs data and compatible with scikit-learn pipeline. Does not support overlap case. By `Asish Panda`_
+    - Added :class:`mne.decoding.XdawnTransformer` implementing xdawn filtering algorithm working with numpy arrays of epochs data and compatible with scikit-learn pipeline. Does not support overlap case. By `Asish Panda`_
 
 .. _changes_0_12:
 
@@ -1627,3 +1633,9 @@ of commits):
 .. _Jon Houck: http://www.unm.edu/~jhouck/
 
 .. _Pablo-Arias: https://github.com/Pablo-Arias
+
+.. _Alexander Rudiuk: https://github.com/ARudiuk
+
+.. _Mikołaj Magnuski: https://github.com/mmagnuski
+
+.. _Felix Raimundo: https://github.com/gamazeps
