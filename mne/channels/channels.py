@@ -361,7 +361,8 @@ class SetChannelsMixin(object):
         _set_montage(self.info, montage)
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
-                     show_names=False, ch_groups=None, axes=None, show=True):
+                     show_names=False, ch_groups=None, axes=None, block=False,
+                     show=True):
         """
         Plot sensors positions.
 
@@ -398,6 +399,12 @@ class SetChannelsMixin(object):
 
             .. versionadded:: 0.13.0
 
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Defaults to False.
+
+            .. versionadded:: 0.13.0
+
         show : bool
             Show figure if True. Defaults to True.
 
@@ -424,7 +431,7 @@ class SetChannelsMixin(object):
         from ..viz.utils import plot_sensors
         return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
                             show_names=show_names, ch_groups=ch_groups,
-                            axes=axes, show=show)
+                            axes=axes, block=block, show=show)
 
     def anonymize(self):
         """Anonymize measurement information in place by removing

@@ -159,7 +159,7 @@ def _divide_to_regions(info, add_stim=True):
     l_mean = np.mean(x[lt])
     r_mean = np.mean(x[rt])
     for outlier in outliers:
-        if l_mean - x[outlier] < r_mean - x[outlier]:
+        if abs(l_mean - x[outlier]) < abs(r_mean - x[outlier]):
             lt.append(outlier)
         else:
             rt.append(outlier)

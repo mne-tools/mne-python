@@ -1077,7 +1077,8 @@ def _process_times(inst, times, n_peaks=None, few=False):
 
 
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
-                 show_names=False, ch_groups=None, axes=None, show=True):
+                 show_names=False, ch_groups=None, axes=None, block=False,
+                 show=True):
     """Plot sensors positions.
 
     Parameters
@@ -1112,6 +1113,12 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     axes : instance of Axes | instance of Axes3D | None
         Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
         of Axes3D. If None (default), a new axes will be created.
+
+        .. versionadded:: 0.13.0
+
+    block : bool
+        Whether to halt program execution until the figure is closed. Defaults
+        to False.
 
         .. versionadded:: 0.13.0
 
@@ -1210,19 +1217,21 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, colors, bads, ch_names, title, show_names, axes,
-                        show, kind == 'select')
+                        show, kind == 'select', block=block)
     if kind == 'select':
         return fig, fig.lasso.selection
     return fig
 
 
-def _onpick_sensor(event, fig, ax, pos, ch_names):
+def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
     """Callback for picked channel in plot_sensors."""
     if event.mouseevent.key == 'control' and fig.lasso is not None:
         for ind in event.ind:
             fig.lasso.select_one(ind)
 
         return
+    if show_names:
+        return  # channel names already visible
     ind = event.ind[0]  # Just take the first sensor.
     ch_name = ch_names[ind]
 
@@ -1243,7 +1252,7 @@ def _close_event(event, fig):
 
 
 def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
-                  select):
+                  select, block):
     """Helper function for plotting sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -1281,6 +1290,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
         if select:
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
 
+    connect_picker = True
     if show_names:
         for idx in range(len(pos)):
             this_pos = pos[idx]
@@ -1288,15 +1298,16 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
                 ax.text(this_pos[0], this_pos[1], this_pos[2], ch_names[idx])
             else:
                 ax.text(this_pos[0], this_pos[1], ch_names[idx])
-    else:
+        connect_picker = select
+    if connect_picker:
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
-                         ch_names=ch_names)
+                         ch_names=ch_names, show_names=show_names)
         fig.canvas.mpl_connect('pick_event', picker)
 
     fig.suptitle(title)
     closed = partial(_close_event, fig=fig)
     fig.canvas.mpl_connect('close_event', closed)
-    plt_show(show, block=select)
+    plt_show(show, block=block)
     return fig
 
 
@@ -1528,7 +1539,9 @@ class SelectFromCollection(object):
             inters = set(inds) - set(sels)
             inds = list(inters.union(set(sels) - set(inds)))
 
-        self.selection = self.ch_names[inds]
+        while len(self.selection) > 0:
+            self.selection.pop(0)
+        self.selection.extend(self.ch_names[inds])
         self.fc[:, -1] = self.alpha_other
         self.fc[inds, -1] = 1
         self.collection.set_facecolors(self.fc)
@@ -1539,11 +1552,11 @@ class SelectFromCollection(object):
         """Helper for selecting/deselecting one sensor."""
         ch_name = self.ch_names[ind]
         if ch_name in self.selection:
-            sel_ind = np.where(self.selection == ch_name)[0][0]
-            self.selection = np.delete(self.selection, sel_ind)
+            sel_ind = self.selection.index(ch_name)
+            self.selection.pop(sel_ind)
             this_alpha = self.alpha_other
         else:
-            self.selection = np.append(self.selection, ch_name)
+            self.selection.append(ch_name)
             this_alpha = 1
         self.fc[ind, -1] = this_alpha
         self.collection.set_facecolors(self.fc)
