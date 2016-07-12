@@ -931,10 +931,11 @@ class CoregPanel(HasPrivateTraits):
         skip_fiducials = False
         if self.n_scale_params and not _find_fiducials_files(subject_from,
                                                              subjects_dir):
-            msg = ("No fiducials have been saved for {src}. If fiducials "
+            msg = ("No fiducials file has been found for {src}. If fiducials "
                    "are not saved, they will not be available in the scaled "
-                   "MRI. Should they be saved now? Select Yes to save the "
-                   "fiducials at {src}/bem/{src}-fiducials.fif. "
+                   "MRI. Should the current fiducials be saved now? "
+                   "Select Yes to save the fiducials at "
+                   "{src}/bem/{src}-fiducials.fif. "
                    "Select No to proceed scaling the MRI without fiducials.".
                    format(src=subject_from))
             title = "Save Fiducials for %s?" % subject_from
