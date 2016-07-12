@@ -487,9 +487,9 @@ class CoregModel(HasPrivateTraits):
                                        subject=subject_from, name='(.+-bem)')
             bem_dir, pattern = os.path.split(pattern)
             for filename in os.listdir(bem_dir):
-                m = re.match(pattern, filename)
-                if m:
-                    bem_names.append(m.group(1))
+                match = re.match(pattern, filename)
+                if match:
+                    bem_names.append(match.group(1))
 
         return (subjects_dir, subject_from, subject_to, self.scale,
                 skip_fiducials, bem_names)

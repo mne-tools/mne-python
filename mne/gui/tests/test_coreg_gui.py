@@ -121,9 +121,9 @@ def test_coreg_model():
     # find BEM files
     bems = set()
     for fname in os.listdir(os.path.join(subjects_dir, 'sample', 'bem')):
-        m = re.match('sample-(.+-bem)\.fif', fname)
-        if m:
-            bems.add(m.group(1))
+        match = re.match('sample-(.+-bem)\.fif', fname)
+        if match:
+            bems.add(match.group(1))
     assert_equal(set(bemsol), bems)
     sdir, sfrom, sto, scale, skip_fiducials, bemsol = \
         model.get_scaling_job('sample2', True, False)
@@ -223,17 +223,17 @@ def test_coreg_gui():
     """Test Coregistration GUI"""
     from mne.gui._coreg_gui import CoregFrame
 
-    c = CoregFrame()
-    c.edit_traits()
+    frame = CoregFrame()
+    frame.edit_traits()
 
-    c.model.mri.subjects_dir = subjects_dir
-    c.model.mri.subject = 'sample'
+    frame.model.mri.subjects_dir = subjects_dir
+    frame.model.mri.subject = 'sample'
 
-    assert_false(c.model.mri.fid_ok)
-    c.model.mri.lpa = [[-0.06, 0, 0]]
-    c.model.mri.nasion = [[0, 0.05, 0]]
-    c.model.mri.rpa = [[0.08, 0, 0]]
-    assert_true(c.model.mri.fid_ok)
+    assert_false(frame.model.mri.fid_ok)
+    frame.model.mri.lpa = [[-0.06, 0, 0]]
+    frame.model.mri.nasion = [[0, 0.05, 0]]
+    frame.model.mri.rpa = [[0.08, 0, 0]]
+    assert_true(frame.model.mri.fid_ok)
 
 
 run_tests_if_main()

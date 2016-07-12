@@ -595,8 +595,8 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     subject : str
         Name of the mri subject.
     skip_fiducials : bool
-        Do not scale the MRI fiducials file. If False, an IOError
-        will be raised if the fiducials file does not exists.
+        Do not scale the MRI fiducials. If False, an IOError will be raised
+        if no fiducials file can be found.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
@@ -988,8 +988,8 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     skip_fiducials : bool
-        Do not scale the MRI fiducials file. If False (default), an IOError
-        will be raised if the fiducials file does not exists.
+        Do not scale the MRI fiducials. If False (default), an IOError will be
+        raised if no fiducials file can be found.
 
     See Also
     --------
