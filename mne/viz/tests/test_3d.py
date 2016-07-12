@@ -123,9 +123,8 @@ def test_plot_trans():
         ref_meg = False if system == 'KIT' else True
         plot_trans(info, trans_fname, subject='sample', meg_sensors=True,
                    subjects_dir=subjects_dir, ref_meg=ref_meg)
-    # KIT ref sensor coil def not defined
-    assert_raises(RuntimeError, plot_trans, infos['KIT'], None,
-                  meg_sensors=True, ref_meg=True)
+    # KIT ref sensor coil def is defined
+    plot_trans(infos['KIT'], None, meg_sensors=True, ref_meg=True)
     info = infos['Neuromag']
     assert_raises(ValueError, plot_trans, info, trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
