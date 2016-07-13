@@ -8,11 +8,11 @@ Use without arguments to invoke GUI:  $ mne kt2fiff
 
 """
 
-import os
 import sys
 
 import mne
 from mne.io import read_raw_kit
+from mne.utils import ETSContext
 
 
 def run():
@@ -44,8 +44,8 @@ def run():
 
     input_fname = options.input_fname
     if input_fname is None:
-        os.environ['ETS_TOOLKIT'] = 'qt4'
-        mne.gui.kit2fiff()
+        with ETSContext():
+            mne.gui.kit2fiff()
         sys.exit(0)
 
     hsp_fname = options.hsp_fname

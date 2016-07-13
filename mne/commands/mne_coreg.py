@@ -7,10 +7,10 @@ example usage:  $ mne coreg
 
 """
 
-import os
 import sys
 
 import mne
+from mne.utils import ETSContext
 
 
 def run():
@@ -31,10 +31,10 @@ def run():
 
     options, args = parser.parse_args()
 
-    os.environ['ETS_TOOLKIT'] = 'qt4'
-    mne.gui.coregistration(options.tabbed, inst=options.inst,
-                           subject=options.subject,
-                           subjects_dir=options.subjects_dir)
+    with ETSContext():
+        mne.gui.coregistration(options.tabbed, inst=options.inst,
+                               subject=options.subject,
+                               subjects_dir=options.subjects_dir)
     if is_main:
         sys.exit(0)
 
