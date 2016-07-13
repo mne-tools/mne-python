@@ -22,8 +22,7 @@ def _get_data():
                           preload=True)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=False, eeg=True, stim=False,
-                       ecg=False, eog=False,
-                       exclude='bads')[::8]
+                       ecg=False, eog=False, exclude='bads')[::8]
     return raw, events, picks
 
 
@@ -62,7 +61,7 @@ def test_xdawntransformer_fit():
     xd = XdawnTransformer()
     assert_raises(ValueError, xd.fit, X, None)
 
-    # compare xdawn and xdawntransforer
+    # compare xdawn and XdawnTransformer
     xd = Xdawn()
     xd.fit(epochs)
 

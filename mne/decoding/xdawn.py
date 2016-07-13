@@ -12,7 +12,6 @@ from . import TransformerMixin
 
 
 class XdawnTransformer(TransformerMixin, _Xdawn):
-
     """Implementation of the Xdawn Algorithm.
 
     Xdawn is a spatial filtering method designed to improve the signal
@@ -28,10 +27,10 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
     ----------
     n_components : int (default 2)
         The number of components to decompose M/EEG signals.
-    signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels)
-        (default None). The signal covariance used for whitening of the data.
+    signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels) |
+        None (default). The signal covariance used for whitening of the data.
         if None, the covariance is estimated from the epochs signal.
-    reg : float | str | None (default None)
+    reg : float | str | None (default)
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
         if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
@@ -43,7 +42,6 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
         The Xdawn components used to decompose the data for each event type.
     patterns_ : dict of ndarray
         The Xdawn patterns used to restore M/EEG signals for each event type.
-
 
     See Also
     --------
@@ -64,7 +62,7 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
 
     def __init__(self, n_components=2, signal_cov=None, reg=None):
         """init xdawn."""
-        # XXX correct_overlap is not yet supported
+        # correct_overlap is not yet supported
         # This attribute is introduced to make it compatible with parent
         # class
         self.correct_overlap = False
@@ -75,9 +73,9 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
 
         Parameters
         ----------
-        X : ndarray, shape(n_channels, n_times, n_freqs)
+        X : ndarray, shape (n_channels, n_times, n_freqs)
             Data of epochs.
-        y : ndarray shape(n_samples,)
+        y : ndarray shape (n_samples,)
             Target values.
 
         Returns
@@ -106,11 +104,11 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
         return self
 
     def transform(self, X):
-        """Apply Xdawn dimemsionality reduction.
+        """Apply Xdawn dimensionality reduction.
 
         Parameters
         ----------
-        X : ndarray, shape(n_channels, n_times, n_freqs)
+        X : ndarray, shape (n_channels, n_times, n_freqs)
             data of epochs.
 
         Returns
@@ -129,14 +127,14 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
 
         Parameters
         ----------
-        X : ndarray, shape(n_channels, n_times, n_freqs)
+        X : ndarray, shape (n_channels, n_times, n_freqs)
             data of epochs.
-        y : ndarray, shape(n_samples,)
+        y : ndarray, shape (n_samples,)
             labels of data.
 
         Returns
         -------
-        X : ndarray, shape(n_epochs, n_components * event_types, n_times)
+        X : ndarray, shape (n_epochs, n_components * event_types, n_times)
             spatially filtered signals.
         """
         self.fit(X, y)
@@ -152,12 +150,12 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
 
         Parameters
         ----------
-        X : np.ndarray, shape(n_epochs, n_components * event_types, n_times)
+        X : np.ndarray, shape (n_epochs, n_components * event_types, n_times)
             The signal data to undergo inverse transform.
 
         Returns
         -------
-        X : np.ndarray, shape(n_epochs, n_channels, n_times)
+        X : np.ndarray, shape (n_epochs, n_channels, n_times)
             Array for each event type in event_id concatenated sequentially.
         """
 
@@ -166,10 +164,8 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
                              "%s instead" % type(X))
 
         data = np.hstack(X)
-        result = []
-
+        result = list()
         for eid in self.event_id:
-
             data_r = self._pick_sources(data, None, None, eid)
             data_r = np.array(np.split(data_r, self._n_chan, 1))
             result.append(data_r)
