@@ -172,7 +172,7 @@ def test_plot_sensors():
     raw = _get_raw()
     fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
-    raw.plot_sensors('topomap')
+    raw.plot_sensors('topomap', ch_type='mag')
     ax = plt.subplot(111)
     raw.plot_sensors(ch_groups='position', axes=ax)
     raw.plot_sensors(ch_groups='selection')
@@ -180,7 +180,7 @@ def test_plot_sensors():
     assert_raises(ValueError, raw.plot_sensors, ch_groups='asd')
     assert_raises(TypeError, plot_sensors, raw)  # needs to be info
     plt.close('all')
-    fig, sels = raw.plot_sensors('select')
+    fig, sels = raw.plot_sensors('select', show_names=True)
     ax = fig.axes[0]
     _fake_click(fig, ax, (-0.5, 0.5), xform='data')
     plt.draw()
