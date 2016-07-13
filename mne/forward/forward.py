@@ -41,7 +41,7 @@ from ..source_estimate import VolSourceEstimate
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
-                     run_subprocess, check_fname, logger, verbose)
+                     run_subprocess, check_fname, logger, verbose, deprecated)
 from ..label import Label
 
 
@@ -97,6 +97,8 @@ class Forward(dict):
         return entr
 
 
+@deprecated("it will be removed in mne 0.14; use mne.make_bem_solution() "
+            "instead.")
 def prepare_bem_model(bem, sol_fname=None, method='linear'):
     """Wrapper for the mne_prepare_bem_model command line utility
 
