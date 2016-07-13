@@ -182,6 +182,7 @@ def test_plot_sensors():
     plt.close('all')
     fig, sels = raw.plot_sensors('select', show_names=True)
     ax = fig.axes[0]
+    _fake_click(fig, ax, (-0.09, -0.43), xform='data')
     _fake_click(fig, ax, (-0.5, 0.5), xform='data')
     plt.draw()
     _fake_click(fig, ax, (0., 0.5), xform='data', kind='motion')
