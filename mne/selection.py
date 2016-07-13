@@ -151,12 +151,18 @@ def _divide_to_regions(info, add_stim=True):
     zs = np.abs(zscore(x[rt]))
     outliers = np.array(rt)[np.where(zs > 2.)[0]]
     rt = list(np.setdiff1d(rt, outliers))
-    lt.extend(outliers)
 
     zs = np.abs(zscore(x[lt]))
-    outliers = np.array(lt)[np.where(zs > 2.)[0]]
+    outliers = np.append(outliers, (np.array(lt)[np.where(zs > 2.)[0]]))
     lt = list(np.setdiff1d(lt, outliers))
-    rt.extend(outliers)
+
+    l_mean = np.mean(x[lt])
+    r_mean = np.mean(x[rt])
+    for outlier in outliers:
+        if abs(l_mean - x[outlier]) < abs(r_mean - x[outlier]):
+            lt.append(outlier)
+        else:
+            rt.append(outlier)
 
     if add_stim:
         stim_ch = _get_stim_channel(None, info, raise_error=False)

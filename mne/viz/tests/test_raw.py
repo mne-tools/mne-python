@@ -5,7 +5,7 @@
 import os.path as op
 import warnings
 
-from numpy.testing import assert_raises
+from numpy.testing import assert_raises, assert_equal
 
 from mne import io, read_events, pick_types, Annotations
 from mne.utils import requires_version, run_tests_if_main
@@ -37,6 +37,7 @@ def _get_events():
     return read_events(event_name)
 
 
+@requires_version('matplotlib', '1.2')
 def test_plot_raw():
     """Test plotting of raw data."""
     import matplotlib.pyplot as plt
@@ -94,7 +95,7 @@ def test_plot_raw():
         raw.annotations = annot
         fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
         plt.close('all')
-        for order in ['position', 'selection', range(len(raw.ch_names))[::-1],
+        for order in ['position', 'selection', range(len(raw.ch_names))[::-4],
                       [1, 2, 4, 6]]:
             fig = raw.plot(order=order)
             x = fig.get_axes()[0].lines[1].get_xdata()[10]
@@ -102,7 +103,7 @@ def test_plot_raw():
             _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
             fig.canvas.key_press_event('down')  # change selection
             _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
-            if order == 'position':  # test clicking topo to change selection
+            if order in ('position', 'selection'):
                 sel_fig = plt.figure(1)
                 topo_ax = sel_fig.axes[1]
                 _fake_click(sel_fig, topo_ax, [-0.425, 0.20223853],
@@ -111,6 +112,14 @@ def test_plot_raw():
                 fig.canvas.key_press_event('up')
                 fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
                 fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
+                _fake_click(sel_fig, topo_ax, [-0.5, 0.], xform='data')
+                _fake_click(sel_fig, topo_ax, [0.5, 0.], xform='data',
+                            kind='motion')
+                _fake_click(sel_fig, topo_ax, [0.5, 0.5], xform='data',
+                            kind='motion')
+                _fake_click(sel_fig, topo_ax, [-0.5, 0.5], xform='data',
+                            kind='release')
+
             plt.close('all')
 
 
@@ -156,19 +165,43 @@ def test_plot_raw_psd():
     assert_raises(ValueError, raw.plot_psd)
 
 
+@requires_version('matplotlib', '1.2')
 def test_plot_sensors():
     """Test plotting of sensor array."""
     import matplotlib.pyplot as plt
     raw = _get_raw()
     fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
-    raw.plot_sensors('topomap')
+    raw.plot_sensors('topomap', ch_type='mag')
     ax = plt.subplot(111)
     raw.plot_sensors(ch_groups='position', axes=ax)
     raw.plot_sensors(ch_groups='selection')
     raw.plot_sensors(ch_groups=[[0, 1, 2], [3, 4]])
     assert_raises(ValueError, raw.plot_sensors, ch_groups='asd')
     assert_raises(TypeError, plot_sensors, raw)  # needs to be info
+    assert_raises(ValueError, plot_sensors, raw.info, kind='sasaasd')
+    plt.close('all')
+    fig, sels = raw.plot_sensors('select', show_names=True)
+    ax = fig.axes[0]
+
+    # Click with no sensors
+    _fake_click(fig, ax, (0., 0.), xform='data')
+    _fake_click(fig, ax, (0, 0.), xform='data', kind='release')
+    assert_equal(len(fig.lasso.selection), 0)
+
+    # Lasso with 1 sensor
+    _fake_click(fig, ax, (-0.5, 0.5), xform='data')
+    plt.draw()
+    _fake_click(fig, ax, (0., 0.5), xform='data', kind='motion')
+    _fake_click(fig, ax, (0., 0.), xform='data', kind='motion')
+    fig.canvas.key_press_event('control')
+    _fake_click(fig, ax, (-0.5, 0.), xform='data', kind='release')
+    assert_equal(len(fig.lasso.selection), 1)
+
+    _fake_click(fig, ax, (-0.09, -0.43), xform='data')  # single selection
+    assert_equal(len(fig.lasso.selection), 2)
+    _fake_click(fig, ax, (-0.09, -0.43), xform='data')  # deselect
+    assert_equal(len(fig.lasso.selection), 1)
     plt.close('all')
 
 run_tests_if_main()

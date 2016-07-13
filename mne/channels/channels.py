@@ -361,18 +361,25 @@ class SetChannelsMixin(object):
         _set_montage(self.info, montage)
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
-                     show_names=False, ch_groups=None, axes=None, show=True):
+                     show_names=False, ch_groups=None, axes=None, block=False,
+                     show=True):
         """
         Plot sensors positions.
 
         Parameters
         ----------
         kind : str
-            Whether to plot the sensors as 3d or as topomap. Available options
-            'topomap', '3d'. Defaults to 'topomap'.
-        ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | 'ecog' | None
-            The channel type to plot. If None, then channels are chosen in the
-            order given above.
+            Whether to plot the sensors as 3d, topomap or as an interactive
+            sensor selection dialog. Available options 'topomap', '3d',
+            'select'. If 'select', a set of channels can be selected
+            interactively by using lasso selector or clicking while holding
+            control key. The selected channels are returned along with the
+            figure instance. Defaults to 'topomap'.
+        ch_type : None | str
+            The channel type to plot. Available options 'mag', 'grad', 'eeg',
+            'seeg', 'ecog', 'all'. If ``'all'``, all the available mag, grad,
+            eeg, seeg and ecog channels are plotted. If None (default), then
+            channels are chosen in the order given above.
         title : str | None
             Title for the figure. If None (default), equals to
             ``'Sensor positions (%s)' % ch_type``.
@@ -392,6 +399,12 @@ class SetChannelsMixin(object):
 
             .. versionadded:: 0.13.0
 
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Defaults to False.
+
+            .. versionadded:: 0.13.0
+
         show : bool
             Show figure if True. Defaults to True.
 
@@ -399,6 +412,8 @@ class SetChannelsMixin(object):
         -------
         fig : instance of matplotlib figure
             Figure containing the sensor topography.
+        selection : list
+            A list of selected channels. Only returned if ``kind=='select'``.
 
         See Also
         --------
@@ -416,7 +431,7 @@ class SetChannelsMixin(object):
         from ..viz.utils import plot_sensors
         return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
                             show_names=show_names, ch_groups=ch_groups,
-                            axes=axes, show=show)
+                            axes=axes, block=block, show=show)
 
     def anonymize(self):
         """Anonymize measurement information in place by removing

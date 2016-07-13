@@ -35,6 +35,8 @@ Changelog
 
     - Add approximation of size of :class:`io.Raw`, :class:`Epochs`, and :class:`Evoked` in :func:`repr` by `Eric Larson`_
 
+    - Add possibility to select a subset of sensors by lasso selector to :func:`mne.viz.plot_sensors` and :func:`mne.viz.plot_raw` when using order='selection' or order='position' by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
