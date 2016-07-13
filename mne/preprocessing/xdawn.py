@@ -189,7 +189,7 @@ class _Xdawn(object):
                 raise ValueError('Baseline correction must be None if overlap '
                                  'correction activated')
             evokeds, toeplitz = _least_square_evoked_epochs(
-                                  epochs_data,  events, event_id, tmin, tmax,
+                                  epochs_data, events, event_id, tmin, tmax,
                                   sfreq, return_toeplitz=True)
         else:
             epochs_data_dict = self._epochs_data_dict(epochs_data, y,
