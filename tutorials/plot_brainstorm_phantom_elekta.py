@@ -38,7 +38,7 @@ print(__doc__)
 data_path = bst_phantom_elekta.data_path()
 
 raw_fname = op.join(data_path, 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif')
-raw = read_raw_fif(raw_fname, preload=True)
+raw = read_raw_fif(raw_fname)
 
 ###############################################################################
 # Data channel array consisted of 204 MEG planor gradiometers,
@@ -51,39 +51,41 @@ raw.info['bads'] = ['MEG2421']
 
 ###############################################################################
 # The data have strong line frequency (60 Hz and harmonics) and cHPI coil
-# noise (five peaks around 300 Hz):
+# noise (five peaks around 300 Hz). Here we plot only out to 60 seconds
+# to save memory:
 
-raw.plot_psd()
-
-###############################################################################
-# We know our phantom produces sinusoidal bursts below 25 Hz, so let's filter.
-
-raw.filter(None, 40., h_trans_bandwidth=10., filter_length='1s')
-raw.plot_psd()
+raw.plot_psd(tmax=60.)
 
 ###############################################################################
-# The data are still a bit noisy, so let's use Maxwell filtering to clean it.
+# Let's use Maxwell filtering to clean the data a bit.
 # Ideally we would have the fine calibration and cross-talk information
 # for the site of interest, but we don't, so we just do:
 
 raw.fix_mag_coil_types()
 raw = mne.preprocessing.maxwell_filter(raw, origin=(0., 0., 0.))
+
+###############################################################################
+# We know our phantom produces sinusoidal bursts below 25 Hz, so let's filter.
+
+raw.filter(None, 40., h_trans_bandwidth=10., filter_length='1s')
 raw.plot(events=events)
 
 ###############################################################################
 # Now we epoch our data, average it, and look at the first dipole response.
-# The first peak appears around 3 ms.
+# The first peak appears around 3 ms. Because we low-passed at 40 Hz,
+# we can also decimate our data to save memory.
 
-tmin, tmax = -0.2, 0.2
+tmin, tmax = -0.1, 0.1
 event_id = list(range(1, 33))
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=(None, -0.01))
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=(None, -0.01),
+                    decim=5)
 epochs['1'].average().plot()
 
 ###############################################################################
 # Let's do some dipole fits. The phantom is properly modeled by a single-shell
 # sphere with origin (0., 0., 0.). We compute covariance, then do the fits.
 
-t_peak = 0.061  # 3 MS at largest peak
+t_peak = 60e-3  # ~60 MS at largest peak
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None)
 cov = mne.compute_covariance(epochs, tmax=0)
 data = []
