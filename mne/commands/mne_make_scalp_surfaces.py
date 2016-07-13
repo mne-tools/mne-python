@@ -17,7 +17,7 @@ import copy
 import os.path as op
 import sys
 import mne
-from mne.utils import run_subprocess, _TempDir, verbose, logger
+from mne.utils import run_subprocess, _TempDir, verbose, logger, ETSContext
 
 
 def _check_file(fname, overwrite):
@@ -121,9 +121,10 @@ def _run(subjects_dir, subject, force, overwrite, verbose=None):
     for ii, (n_tri, level) in enumerate(zip(tris, levels), 3):
         logger.info('%i. Creating %s tessellation...' % (ii, level))
         logger.info('%i.1 Decimating the dense tessellation...' % ii)
-        points, tris = mne.decimate_surface(points=my_surf['rr'],
-                                            triangles=my_surf['tris'],
-                                            n_triangles=n_tri)
+        with ETSContext():
+            points, tris = mne.decimate_surface(points=my_surf['rr'],
+                                                triangles=my_surf['tris'],
+                                                n_triangles=n_tri)
         other_fname = dense_fname.replace('dense', level)
         logger.info('%i.2 Creating %s' % (ii, other_fname))
         _check_file(other_fname, overwrite)
