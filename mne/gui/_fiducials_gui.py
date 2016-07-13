@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-from glob import glob
 import os
 from ..externals.six.moves import map
 
@@ -28,7 +27,7 @@ except Exception:
         Property = View = Item = HGroup = VGroup = SceneEditor = \
         NoButtons = trait_wraith
 
-from ..coreg import fid_fname, fid_fname_general, head_bem_fname
+from ..coreg import fid_fname, head_bem_fname, _find_fiducials_files
 from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
@@ -173,21 +172,14 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         self.bem.file = path
 
         # find fiducials file
-        path = fid_fname.format(subjects_dir=subjects_dir, subject=subject)
-        if os.path.exists(path):
-            self.fid_file = path
-            self.lock_fiducials = True
+        fid_files = _find_fiducials_files(subject, subjects_dir)
+        if len(fid_files) == 0:
+            self.fid.reset_traits(['file'])
+            self.lock_fiducials = False
         else:
-            path = fid_fname_general.format(subjects_dir=subjects_dir,
-                                            subject=subject, head='*')
-            fnames = glob(path)
-            if fnames:
-                path = fnames[0]
-                self.fid.file = path
-                self.lock_fiducials = True
-            else:
-                self.fid.reset_traits(['file'])
-                self.lock_fiducials = False
+            self.fid_file = fid_files[0].format(subjects_dir=subjects_dir,
+                                                subject=subject)
+            self.lock_fiducials = True
 
         # does not seem to happen by itself ... so hard code it:
         self.reset_fiducials()

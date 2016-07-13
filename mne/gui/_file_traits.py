@@ -250,17 +250,24 @@ class FiducialsSource(HasTraits):
         if not os.path.exists(self.file):
             return None
 
-        points = np.zeros((3, 3))
-        fids, _ = read_fiducials(self.file)
-        for fid in fids:
-            ident = fid['ident']
-            if ident == FIFF.FIFFV_POINT_LPA:
-                points[0] = fid['r']
-            elif ident == FIFF.FIFFV_POINT_NASION:
-                points[1] = fid['r']
-            elif ident == FIFF.FIFFV_POINT_RPA:
-                points[2] = fid['r']
-        return points
+        try:
+            points = np.zeros((3, 3))
+            fids, _ = read_fiducials(self.file)
+            for fid in fids:
+                ident = fid['ident']
+                if ident == FIFF.FIFFV_POINT_LPA:
+                    points[0] = fid['r']
+                elif ident == FIFF.FIFFV_POINT_NASION:
+                    points[1] = fid['r']
+                elif ident == FIFF.FIFFV_POINT_RPA:
+                    points[2] = fid['r']
+            return points
+        except Exception as err:
+            error(None, "Error reading fiducials from %s: %s (See terminal "
+                  "for more information)" % (self.fname, str(err)),
+                  "Error Reading Fiducials")
+            self.reset_traits(['file'])
+            raise
 
 
 class InstSource(HasPrivateTraits):
@@ -318,7 +325,14 @@ class InstSource(HasPrivateTraits):
     @cached_property
     def _get_inst(self):
         if self.file:
-            return read_info(self.file)
+            info = read_info(self.file)
+            if info['dig'] is None:
+                error(None, "The selected FIFF file does not contain "
+                      "digitizer information. Please select a different "
+                      "file.", "Error Reading FIFF File")
+                self.reset_traits(['file'])
+            else:
+                return info
 
     @cached_property
     def _get_inst_dir(self):
@@ -507,3 +521,12 @@ class SubjectSelectorPanel(HasPrivateTraits):
             raise
         finally:
             prog.close()
+
+    def _subjects_dir_changed(self, old, new):
+        if new and self.subjects == ['']:
+            information(None, "The directory selected as subjects-directory "
+                        "(%s) does not contain any valid MRI subjects. MRI "
+                        "subjects need to contain head surface models which "
+                        "can be created by running:\n\n    $ mne "
+                        "make_scalp_surfaces" % self.subjects_dir,
+                        "No Subjects Found")
