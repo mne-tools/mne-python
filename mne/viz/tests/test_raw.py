@@ -179,16 +179,25 @@ def test_plot_sensors():
     raw.plot_sensors(ch_groups=[[0, 1, 2], [3, 4]])
     assert_raises(ValueError, raw.plot_sensors, ch_groups='asd')
     assert_raises(TypeError, plot_sensors, raw)  # needs to be info
+    assert_raises(ValueError, plot_sensors, raw.info, kind='sasaasd')
     plt.close('all')
     fig, sels = raw.plot_sensors('select', show_names=True)
     ax = fig.axes[0]
-    _fake_click(fig, ax, (-0.09, -0.43), xform='data')
+
+    # Click with no sensors
+    _fake_click(fig, ax, (0., 0.), xform='data')
+    _fake_click(fig, ax, (0, 0.), xform='data', kind='release')
+    assert_equal(len(fig.lasso.selection), 0)
+
+    # Lasso with 1 sensor
     _fake_click(fig, ax, (-0.5, 0.5), xform='data')
     plt.draw()
     _fake_click(fig, ax, (0., 0.5), xform='data', kind='motion')
     _fake_click(fig, ax, (0., 0.), xform='data', kind='motion')
     fig.canvas.key_press_event('control')
     _fake_click(fig, ax, (-0.5, 0.), xform='data', kind='release')
+    assert_equal(len(fig.lasso.selection), 1)
+
     _fake_click(fig, ax, (-0.09, -0.43), xform='data')  # single selection
     assert_equal(len(fig.lasso.selection), 2)
     _fake_click(fig, ax, (-0.09, -0.43), xform='data')  # deselect
