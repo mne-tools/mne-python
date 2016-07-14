@@ -25,12 +25,13 @@ class XdawnTransformer(TransformerMixin, _Xdawn):
 
     Parameters
     ----------
-    n_components : int (default 2)
+    n_components : int
         The number of components to decompose M/EEG signals.
     signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels) |
-        None (default). The signal covariance used for whitening of the data.
+        default None.
+        The signal covariance used for whitening of the data.
         if None, the covariance is estimated from the epochs signal.
-    reg : float | str | None (default)
+    reg : float | str | default None
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
         if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')

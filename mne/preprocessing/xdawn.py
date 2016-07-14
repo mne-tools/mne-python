@@ -189,8 +189,8 @@ class _Xdawn(object):
                 raise ValueError('Baseline correction must be None if overlap '
                                  'correction activated')
             evokeds, toeplitz = _least_square_evoked_epochs(
-                                  epochs_data, events, event_id, tmin, tmax,
-                                  sfreq, return_toeplitz=True)
+                   epochs_data, events, event_id, tmin,
+                   tmax, sfreq, return_toeplitz=True)
         else:
             epochs_data_dict = self._epochs_data_dict(epochs_data, y,
                                                       event_id)
@@ -269,16 +269,17 @@ class Xdawn(_Xdawn, ContainsMixin):
 
     Parameters
     ----------
-    n_components : int (default 2)
+    n_components : int
         The number of components to decompose M/EEG signals.
-    signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels)
-        (default None). The signal covariance used for whitening of the data.
+    signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels) |
+        default None.
+        The signal covariance used for whitening of the data.
         if None, the covariance is estimated from the epochs signal.
-    correct_overlap : 'auto' or bool (default 'auto')
+    correct_overlap : 'auto' or bool, default 'auto'
         Apply correction for overlaped ERP for the estimation of evokeds
         responses. if 'auto', the overlapp correction is chosen in function
         of the events in epochs.events.
-    reg : float | str | None (default None)
+    reg : float | str | default None
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
         if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
