@@ -18,7 +18,7 @@ from scipy.spatial.distance import cdist
 try:
     from mayavi.core.ui.mayavi_scene import MayaviScene
     from mayavi.tools.mlab_scene_model import MlabSceneModel
-    from pyface.api import (error, confirm, warning, OK, YES, NO, CANCEL,
+    from pyface.api import (error, confirm, OK, YES, NO, CANCEL,
                             information, FileDialog, GUI)
     from traits.api import (Bool, Button, cached_property, DelegatesTo,
                             Directory, Enum, Float, HasTraits,
@@ -46,8 +46,7 @@ from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _find_fiducials_files, _point_cloud_error)
 from ..utils import get_subjects_dir, logger
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
-from ._file_traits import (set_mne_root, trans_wildcard, InstSource,
-                           SubjectSelectorPanel)
+from ._file_traits import trans_wildcard, InstSource, SubjectSelectorPanel
 from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
                       _testing_mode)
 
@@ -876,18 +875,6 @@ class CoregPanel(HasPrivateTraits):
         GUI.set_busy()
         self.model.fit_scale_hsp_points()
         GUI.set_busy(False)
-
-    def _n_scale_params_changed(self, new):
-        if not new:
-            return
-
-        # Make sure that MNE_ROOT environment variable is set
-        if not set_mne_root(True):
-            err = ("MNE_ROOT environment variable could not be set. "
-                   "You will be able to scale MRIs, but the "
-                   "mne_prepare_bem_model tool will fail. Please install "
-                   "MNE.")
-            warning(None, err, "MNE_ROOT Not Set")
 
     def _reset_params_fired(self):
         self.model.reset()
