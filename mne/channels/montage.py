@@ -556,9 +556,9 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                 from ..io.kit import read_mrk
                 hpi = read_mrk(hpi)
             else:
-                raise TypeError('HPI file with extension *%s is not '
-                                'supported. Only *.txt, *.sqd and *.mrk are '
-                                'supported.' % ext)
+                raise ValueError('HPI file with extension *%s is not '
+                                 'supported. Only *.txt, *.sqd and *.mrk are '
+                                 'supported.' % ext)
 
         # ELP
         if isinstance(elp, string_types):
