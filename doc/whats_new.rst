@@ -15,6 +15,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+    - Adds new function :func:`mne.time_frequency.csd_array` to compute the cross-spectral density of multivariate signals stored in an array, by `Nick Foti`_
+
     - Add order params 'selection' and 'position' for :func:`mne.viz.plot_raw` to allow plotting of specific brain regions by `Jaakko Leppakangas`_
 
     - Added the ability to decimate :class:`mne.Evoked` objects with :func:`mne.Evoked.decimate` by `Eric Larson`_
@@ -66,6 +68,8 @@ BUG
 
 API
 ~~~
+
+    - Adds :func:`mne.time_frequency.csd_epochs` to replace :func:`mne.time_frequency.csd_compute_epochs` for naming consistency. :func:`mne.time_frequency.csd_compute_epochs` is now deprecated and will be removed in mne 0.14, by `Nick Foti`_
 
     - Deprecated support for passing a lits of filenames to :class:`mne.io.Raw` constructor, use :func:`mne.io.read_raw_fif` and :func:`mne.concatenate_raws` instead by `Eric Larson`_
 
@@ -1647,3 +1651,5 @@ of commits):
 .. _Mikołaj Magnuski: https://github.com/mmagnuski
 
 .. _Felix Raimundo: https://github.com/gamazeps
+
+.. _Nick Foti: http://nfoti.github.io
