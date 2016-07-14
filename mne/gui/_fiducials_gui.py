@@ -33,7 +33,7 @@ from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
 from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
-                           MRISubjectSource, SubjectSelectorPanel, get_fs_home)
+                           MRISubjectSource, SubjectSelectorPanel)
 from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
                       headview_borders)
 
