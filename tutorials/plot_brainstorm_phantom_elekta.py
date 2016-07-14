@@ -78,7 +78,7 @@ raw.plot(events=events)
 tmin, tmax = -0.1, 0.1
 event_id = list(range(1, 33))
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=(None, -0.01),
-                    decim=5)
+                    decim=5, preload=True)
 epochs['1'].average().plot()
 
 ###############################################################################
@@ -93,6 +93,7 @@ for ii in range(1, 33):
     evoked = epochs[str(ii)].average().crop(t_peak, t_peak)
     data.append(evoked.data[:, 0])
 evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.)
+del epochs, raw
 dip = fit_dipole(evoked, cov, sphere, n_jobs=2)[0]
 
 ###############################################################################
