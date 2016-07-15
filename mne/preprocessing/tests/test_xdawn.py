@@ -1,11 +1,12 @@
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
+#          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
 import numpy as np
 import os.path as op
 from nose.tools import (assert_equal, assert_raises)
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne import (io, Epochs, read_events, pick_types,
                  compute_raw_covariance)
 from mne.utils import requires_sklearn, run_tests_if_main
@@ -77,6 +78,7 @@ def test_xdawn_fit():
     assert_raises(ValueError, xd.fit, epochs)
     # fit with baseline correction and ovverlapp correction should throw an
     # error
+    # XXX This is a buggy test, the epochs here don't overlap
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=True, baseline=(None, 0), verbose=False)
 
@@ -88,7 +90,8 @@ def test_xdawn_apply_transform():
     """Test Xdawn apply and transform."""
     # get data
     raw, events, picks = _get_data()
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+    raw.pick_types(eeg=True, meg=False)  # XXX FIXME previous code was buggy
+    epochs = Epochs(raw, events, event_id, tmin, tmax,
                     preload=True, baseline=None, verbose=False)
     n_components = 2
     # Fit Xdawn
@@ -112,11 +115,13 @@ def test_xdawn_apply_transform():
     assert_raises(ValueError, xd.transform, 42)
 
     # check numerical results with shuffled epochs
+    np.random.seed(0)  # random makes unstable linalg
     idx = np.arange(len(epochs))
     np.random.shuffle(idx)
     xd.fit(epochs[idx])
     denoise_shfl = xd.apply(epochs)
-    assert_array_equal(denoise['cond2']._data, denoise_shfl['cond2']._data)
+    assert_array_almost_equal(denoise['cond2']._data,
+                              denoise_shfl['cond2']._data)
 
 
 @requires_sklearn
