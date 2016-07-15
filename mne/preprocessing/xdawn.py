@@ -5,15 +5,22 @@
 # License: BSD (3-clause)
 
 import numpy as np
+import copy as cp
 from scipy import linalg
+from .ica import _get_fast_dot
+from .. import EvokedArray, Evoked
 from ..cov import Covariance, _regularized_covariance
 from ..decoding import TransformerMixin, BaseEstimator
+from ..epochs import _BaseEpochs, EpochsArray
+from ..io import _BaseRaw
+from ..io.pick import _pick_data_channels
+from ..utils import logger
 
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
     """Reconstruct pseudo continuous signal from epochs."""
     n_epochs, n_channels, n_times = epochs.shape
-    tmax = tmin + (n_times) / float(sfreq)
+    tmax = tmin + n_times / float(sfreq)
     start = (np.min(events[:, 0]) + int(tmin * sfreq))
     stop = (np.max(events[:, 0]) + int(tmax * sfreq) + 1)
 
@@ -30,12 +37,12 @@ def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
     return raw
 
 
-def _least_square_evoked(epochs, events, tmin, tmax, sfreq):
-    """Least square estimation of evoked response from epochs.
+def _least_square_evoked(epochs_data, events, tmin, sfreq):
+    """Least square estimation of evoked response from epochs data.
 
     Parameters
     ----------
-    epochs : array, shape (n_channels, n_times)
+    epochs_data : array, shape (n_channels, n_times)
         The epochs data to estimate evoked.
     events : array, shape (n_events, 3)
         The events typically returned by the read_events function.
@@ -43,86 +50,143 @@ def _least_square_evoked(epochs, events, tmin, tmax, sfreq):
         by event_id, they will be ignored.
     tmin : float
         Start time before event.
-    tmax : float
-        End time after event.
     sfreq : float
         Sampling frequency.
 
     Returns
     -------
-    evokeds_data : dict of array
-        A dict of evoked data for each event type in event_id.
-    toeplitz : dict of array
-        A dict of toeplitz matrix for each event type in event_id.
+    evokeds_data : array, shape (n_class * n_components, n_channels)
+        An concatenated array of evoked data for each event type.
+    toeplitz : array, shape (n_class * n_components, n_channels)
+        An concatenated array of toeplitz matrix for each event type.
     """
 
-    n_epochs, n_channels, n_times = epochs.shape
+    n_epochs, n_channels, n_times = epochs_data.shape
+    tmax = tmin + n_times / float(sfreq)
 
     # Deal with shuffled epochs
     events = events.copy()
     events[:, 0] -= events[0, 0] + int(tmin * sfreq)
 
     # Contruct raw signal
-    raw = _construct_signal_from_epochs(epochs, events, sfreq, tmin, tmax)
+    raw = _construct_signal_from_epochs(epochs_data, events, sfreq, tmin)
 
     # Compute average evoked
     n_min, n_max = int(tmin * sfreq), int(tmax * sfreq)
     window = n_max - n_min
     n_samples = raw.shape[1]
-    toeplitz_mat = np.zeros((len(window), n_times))
-    full_toep = list()
+    toeplitz = list()
     classes = np.unique(events[:, 2])
     for ii, this_class in enumerate(classes):
         # select events by type
-        sel = events[:, 2] == ii
+        sel = events[:, 2] == this_class
 
         # build toeplitz matrix
         trig = np.zeros((n_samples, 1))
         ix_trig = (events[sel, 0]) + n_min
         trig[ix_trig] = 1
-        toep_mat = linalg.toeplitz(trig[0:window], trig)
-        toeplitz_mat[ii] = toep_mat
-        full_toep.append(toep_mat)
+        toeplitz.append(linalg.toeplitz(trig[0:window], trig))
 
     # Concatenate toeplitz
-    full_toep = np.concatenate(full_toep)
+    toeplitz = np.array(toeplitz)
+    full_toep = np.concatenate(toeplitz)
 
     # least square estimation
     predictor = np.dot(linalg.pinv(np.dot(full_toep, full_toep.T)), full_toep)
-    all_evokeds = np.dot(predictor, raw.T)
-    all_evokeds = np.vsplit(all_evokeds, len(classes)).transpose(0, 2, 1)
+    evokeds_data = np.dot(predictor, raw.T)
+    evokeds_data = np.transpose(np.vsplit(evokeds_data, len(classes)),
+                                (0, 2, 1))
 
-    return all_evokeds, toeplitz_mat
+    return evokeds_data, toeplitz
 
 
-def _fit_xdawn(epochs, y, n_components, signal_cov, reg,
-               tmin=0, sfreq=1., events=None):
-    n_epochs, n_channels, n_times = epochs.shape
+def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
+               events=None, tmin=0., sfreq=1.):
+    """Fit filters and coefs using Xdawn Algorithm.
+
+    Xdawn is a spatial filtering method designed to improve the signal
+    to signal + noise ratio (SSNR) of the event related responses. Xdawn was
+    originaly designed for P300 evoked potential by enhancing the target
+    response with respect to the non-target response. This implementation is a
+    generalization to any type of event related response.
+
+    Parameters
+    ----------
+    epochs_data : array, shape (n_epochs, n_channels, n_times)
+        The epochs data.
+    y : array, shape (n_epochs)
+        The epochs class.
+    n_components : int (default 2)
+        The number of components to decompose the signals signals.
+    reg : float | str | None (default None)
+        If not None, allow regularization for covariance estimation
+        if float, shrinkage covariance is used (0 <= shrinkage <= 1).
+        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
+        or Oracle Approximating Shrinkage ('oas').
+    signal_cov : None | Covariance | array, shape (n_channels, n_channels)
+        The signal covariance used for whitening of the data.
+        if None, the covariance is estimated from the epochs signal.
+    events : array, shape (n_epochs, 3)
+        The epochs events, used to correct for epochs overlap.
+    tmin : float
+        Epochs starting time. Only used if events is passed to correct for
+        epochs overlap.
+    sfreq : float
+        Sampling frequency.  Only used if events is passed to correct for
+        epochs overlap.
+
+
+    Attributes
+    ----------
+    filters_ : array, shape (n_channels, n_channels)
+        The Xdawn components used to decompose the data for each event type.
+    patterns_ : array, shape (n_channels, n_channels)
+        The Xdawn patterns used to restore the signals for each event type.
+
+    References
+    ----------
+    [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
+    algorithm to enhance evoked potentials: application to brain-computer
+    interface. Biomedical Engineering, IEEE Transactions on, 56(8), 2035-2043.
+    [2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J. (2011,
+    August). Theoretical analysis of xDAWN algorithm: application to an
+    efficient sensor selection in a P300 BCI. In Signal Processing Conference,
+    2011 19th European (pp. 1382-1386). IEEE.
+
+
+    See Also
+    --------
+    CSP
+    XDawn
+    """
+    n_epochs, n_channels, n_times = epochs_data.shape
 
     classes = np.unique(y)
 
     # Retrieve or compute whitening covariance
     if signal_cov is None:
-        signal_cov = _regularized_covariance(np.hstack(epochs), reg)
+        signal_cov = _regularized_covariance(np.hstack(epochs_data), reg)
     elif isinstance(signal_cov, Covariance):
         signal_cov = signal_cov.data
     if not isinstance(signal_cov, np.ndarray) or (
-            not np.array_equal(signal_cov.shape, np.tile(epochs.shape[1], 2))):
+            not np.array_equal(signal_cov.shape,
+                               np.tile(epochs_data.shape[1], 2))):
         raise ValueError('signal_cov must be None, a covariance instance '
                          'or a array of shape (n_chans, n_chans)')
 
     # Get prototype events
     if events is not None:
-        evokeds, toeplitz = _least_square_evoked(epochs, events, tmin, sfreq)
+        evokeds, toeplitzs = _least_square_evoked(
+            epochs_data, events, tmin, sfreq)
     else:
         evokeds, toeplitzs = list(), list()
         for c in classes:
             # Prototyped responce for each class
-            evokeds.append(np.mean(epochs[y == c, :, :], axis=0))
+            evokeds.append(np.mean(epochs_data[y == c, :, :], axis=0))
             toeplitzs.append(1.)
 
-    filters = []
-    patterns = []
+    filters = list()
+    patterns = list()
     for evo, toeplitz in zip(evokeds, toeplitzs):
         # Covariance matrix of the prototyper response & signal
         evo = np.dot(evo, toeplitz)
@@ -143,19 +207,21 @@ def _fit_xdawn(epochs, y, n_components, signal_cov, reg,
 
 
 class XdawnTransformer(BaseEstimator, TransformerMixin):
-
-    """Implementation of the Xdawn Algorithm.
+    """Implementation of the Xdawn Algorithm compatible with scikit-learn.
 
     Xdawn is a spatial filtering method designed to improve the signal
-    to signal + noise ratio (SSNR) of the ERP responses. Xdawn was originaly
-    designed for P300 evoked potential by enhancing the target response with
-    respect to the non-target response. This implementation is a generalization
-    to any type of ERP.
+    to signal + noise ratio (SSNR) of the event related responses. Xdawn was
+    originaly designed for P300 evoked potential by enhancing the target
+    response with respect to the non-target response. This implementation is a
+    generalization to any type of event related response.
+
+    .. note:: XdawnTransformer does not correct for epochs overlap. To correct
+              overlaps see ``Xdawn``.
 
     Parameters
     ----------
     n_components : int (default 2)
-        The number of components to decompose M/EEG signals.
+        The number of components to decompose the signals.
     reg : float | str | None (default None)
         If not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
@@ -167,10 +233,12 @@ class XdawnTransformer(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
+    classes_ : array, shape (n_classes)
+        The event indices of the classes.
     filters_ : array, shape (n_channels, n_channels)
         The Xdawn components used to decompose the data for each event type.
     patterns_ : array, shape (n_channels, n_channels)
-        The Xdawn patterns used to restore M/EEG signals for each event type.
+        The Xdawn patterns used to restore the signals for each event type.
 
     References
     ----------
@@ -182,94 +250,180 @@ class XdawnTransformer(BaseEstimator, TransformerMixin):
     efficient sensor selection in a P300 BCI. In Signal Processing Conference,
     2011 19th European (pp. 1382-1386). IEEE.
 
-
     See Also
     --------
-    CSP
+    Xdawn
+    CSD
     """
 
-    def __init__(self, n_components=2, signal_cov=None, reg=None,
-                 tmin=0, sfreq=1.):
+    def __init__(self, n_components=2, signal_cov=None, reg=None):
         """Init."""
         self.n_components = n_components
         self.signal_cov = signal_cov
         self.reg = reg
-        self.tmin = tmin
-        self.sfreq = sfreq
 
-    def fit(self, X, y, events=None):
-        """Train xdawn spatial filters.
+    def fit(self, X, y=None):
+        """Fit Xdawn spatial filters.
 
         Parameters
         ----------
-        X : array, shape (n_trials, n_channels, n_samples)
-            array of trials.
-        y : array shape (n_trials, 1)
-            labels corresponding to each trial.
+        X : array, shape (n_epochs, n_channels, n_samples)
+            The target data.
+        y : array, shape (n_epochs,) | None
+            The target labels. If None, Xdawn fit on the average evoked.
 
         Returns
         -------
         self : Xdawn instance
             The Xdawn instance.
         """
+        X, y = self._check_Xy(X, y)
+
+        # Main function
+        self.classes_ = np.unique(y)
         self.filters_, self.patterns_, _ = _fit_xdawn(
-            X, y,  n_components=self.n_components, signal_cov=self.signal_cov,
-            reg=self.reg, tmin=self.tmin, sfreq=self.sfreq, events=events)
+            X, y, n_components=self.n_components, reg=self.reg,
+            signal_cov=self.signal_cov)
         return self
 
     def transform(self, X):
-        """Apply spatial filters.
+        """Transform data with spatial filters.
 
         Parameters
         ----------
-        X : array, shape (n_trials, n_channels, n_samples)
-            array of trials.
+        X : array, shape (n_epochs, n_channels, n_samples)
+            The target data.
 
         Returns
         -------
-        Xf : array, shape (n_trials, n_components * n_classes, n_samples)
-            array of spatialy filtered trials.
+        X : array, shape (n_epochs, n_components * n_classes, n_samples)
+            The transformed data.
         """
+        X, _ = self._check_Xy(X)
+
+        # Check size
+        if self.filters_.shape[1] != X.shape[1]:
+            raise ValueError('X must have %i channels, got %i instead.' % (
+                self.filters_.shape[1], X.shape[1]))
+
+        # Transform
         X = np.dot(self.filters_, X)
         X = X.transpose((1, 0, 2))
         return X
 
+    def inverse_transform(self, X):
+        """Remove selected components from the signal.
 
-# to be deprecated
-import copy as cp
-from ..epochs import _BaseEpochs, EpochsArray
-from ..io import _BaseRaw
-from ..io.pick import _pick_data_channels
-from .. import EvokedArray, Evoked
-from ..utils import logger, deprecated
-from .ica import _get_fast_dot
+        Given the unmixing matrix, transform data, zero out components,
+        and inverse transform the data. This procedure will reconstruct
+        the signals from which the dynamics described by the excluded
+        components is subtracted.
+
+        Parameters
+        ----------
+        X : np.ndarray, shape (n_epochs, n_components * n_classes, n_times)
+            The transformed data.
+
+        Returns
+        -------
+        X : np.ndarray, shape (n_epochs, n_channels * n_classes, n_times)
+            The inverse transform data.
+        """
+        # Check size
+        X, _ = self._check_Xy(X)
+        n_components, n_channels = self.patterns_.shape
+        n_epochs, n_comp, n_times = X.shape
+        if n_comp != (self.n_components * len(self.classes_)):
+            raise ValueError('X must have %i components, got %i instead' % (
+                self.n_components * len(self.classes_), n_comp))
+
+        # Transform
+        fast_dot = _get_fast_dot()
+        return fast_dot(self.patterns_.T, X).transpose(1, 0, 2)
+
+    def _check_Xy(self, X, y=None):
+        """Check X and y types and dimensions."""
+        # Check data
+        if not isinstance(X, np.ndarray) or X.ndim != 3:
+            raise ValueError('X must be an array of shape (n_epochs, '
+                             'n_channels, n_samples).')
+        if y is None:
+            y = np.ones(len(X))
+        y = np.asarray(y)
+        if len(X) != len(y):
+            raise ValueError('X and y must have the same length')
+        return X, y
 
 
-@deprecated("Xdawn will be removed in mne 0.14; use XdawnTransformer instead.")
 class Xdawn(XdawnTransformer):
+    """Implementation of the Xdawn Algorithm.
+
+    Xdawn is a spatial filtering method designed to improve the signal
+    to signal + noise ratio (SSNR) of the ERP responses. Xdawn was originally
+    designed for P300 evoked potential by enhancing the target response with
+    respect to the non-target response. This implementation is a generalization
+    to any type of ERP.
+
+    Parameters
+    ----------
+    n_components : int (default 2)
+        The number of components to decompose the signals.
+    signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels)
+        (default None). The signal covariance used for whitening of the data.
+        if None, the covariance is estimated from the epochs signal.
+    correct_overlap : 'auto' or bool (default 'auto')
+        Apply correction for overlaped ERP for the estimation of evokeds
+        responses. if 'auto', the overlapp correction is chosen in function
+        of the events in epochs.events.
+    reg : float | str | None (default None)
+        if not None, allow regularization for covariance estimation
+        if float, shrinkage covariance is used (0 <= shrinkage <= 1).
+        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
+        or Oracle Approximating Shrinkage ('oas').
+
+    Attributes
+    ----------
+    ``filters_`` : dict of ndarray
+        If fit, the Xdawn components used to decompose the data for each event
+        type, else empty.
+    ``patterns_`` : dict of ndarray
+        If fit, the Xdawn patterns used to restore the signals for each event
+        type, else empty.
+    ``evokeds_`` : dict of evoked instance
+        If fit, the evoked response for each event type.
+    ``event_id_`` : dict of event id
+        The event id.
+    ``correct_overlap_``: bool
+        Whether overlap correction was applied.
+
+    Notes
+    -----
+    .. versionadded:: 0.10
+
+    See Also
+    --------
+    CSP
+    XdawnTransformer
+
+    References
+    ----------
+    [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
+    algorithm to enhance evoked potentials: application to brain-computer
+    interface. Biomedical Engineering, IEEE Transactions on, 56(8), 2035-2043.
+
+    [2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J. (2011,
+    August). Theoretical analysis of xDAWN algorithm: application to an
+    efficient sensor selection in a P300 BCI. In Signal Processing Conference,
+    2011 19th European (pp. 1382-1386). IEEE.
+    """
     def __init__(self, n_components=2, signal_cov=None, correct_overlap='auto',
                  reg=None):
-
+        """Init."""
+        super(Xdawn, self).__init__(n_components=n_components,
+                                    signal_cov=signal_cov, reg=reg)
         if correct_overlap not in ['auto', True, False]:
             raise ValueError('correct_overlap must be a bool or "auto"')
         self.correct_overlap = correct_overlap
-        super(Xdawn, self).__init__(n_components, signal_cov, reg)
-
-    def _get_data(self, inst, picks=None):
-        if isinstance(inst, np.ndarray):
-            X = inst
-            picks = range(inst.shape[1]) if picks is None else picks
-        else:
-            picks = _pick_data_channels(inst.info) if picks is None else picks
-            if hasattr(inst, 'get_data'):
-                X = inst.get_data()
-            elif hasattr(inst, '_data'):
-                X = inst._data
-            elif hasattr(inst, 'data'):
-                X = inst.data
-            else:
-                raise ValueError('inst must be array, Epochs, Raw, or Evoked')
-        return X[:, picks], picks
 
     def fit(self, epochs, y=None):
         """Fit Xdawn from epochs.
@@ -277,49 +431,55 @@ class Xdawn(XdawnTransformer):
         Parameters
         ----------
         epochs : Epochs object
-            An instance of Epoch on which Xdawn filters will be trained.
+            An instance of Epoch on which Xdawn filters will be fitted.
         y : ndarray | None (default None)
-            Not used, here for compatibility with decoding API.
+            If None, used epochs.events[:, 2].
 
         Returns
         -------
         self : Xdawn instance
             The Xdawn instance.
         """
-        # Check whether epochs overlap in time
-        correct_overlap = False
-        if self.correct_overlap == 'auto':
+        # Check data
+        if not isinstance(epochs, _BaseEpochs):
+            raise ValueError('epochs must be an Epochs object.')
+        X = epochs.get_data()
+        X = X[:, _pick_data_channels(epochs.info), :]
+        y = epochs.events[:, 2] if y is None else y
+
+        # Check that no baseline was applied with correct overlap
+        correct_overlap = self.correct_overlap
+        if correct_overlap == 'auto':
+            # Events are overlapped if the minimal inter-stimulus
+            # interval is smaller than the time window.
             isi = np.diff(epochs.events[:, 0])
-            window = int((epochs.tmax - epochs.tmin) * epochs.info['sfreq'])
-            # Events are overlapped if the minimal inter-stimulus interval is
-            #  smaller than the time window.
+            window = int((epochs.tmax - epochs.tmin) *
+                         epochs.info['sfreq'])
             correct_overlap = isi.min() < window
 
-        # XXX FIXME shouldn't test on self.correct_overlap but direclty co
-        if (epochs.baseline is not None) and self.correct_overlap:
-            raise ValueError('Baseline correction must be None if overlap '
-                             'correction activated')
+        if epochs.baseline and correct_overlap is True:
+            raise ValueError('Cannot apply correct_overlap if epochs'
+                             ' were baselined.')
 
-        X, self._picks = self._get_data(epochs)
-        y = epochs.events[:, 2]
-
-        events, tmin, sfreq = None, None, None
-        if correct_overlap:
+        events, tmin, sfreq = None, 0., 1.
+        if correct_overlap is True:
             events = epochs.events
             tmin = epochs.tmin
             sfreq = epochs.info['sfreq']
 
-        # XXX In this old version of Xdawn we keep all components
-        n_components = len(self._picks)
-        filters, patterns, evokeds = _fit_xdawn(
-            X, y,  n_components=n_components, signal_cov=self.signal_cov,
-            reg=self.reg, tmin=tmin, sfreq=sfreq, events=events)
+        # Note: In this original version of Xdawn we compute and keep all
+        # components. The selection comes at transform().
+        n_components = X.shape[1]
 
+        # Main fitting function
+        filters, patterns, evokeds = _fit_xdawn(
+            X, y,  n_components=n_components, reg=self.reg,
+            signal_cov=self.signal_cov, events=events, tmin=tmin, sfreq=sfreq)
+
+        # Re-order filters and patterns according to event_id
         filters = filters.reshape(-1, n_components, filters.shape[-1])
         patterns = patterns.reshape(-1, n_components, patterns.shape[-1])
         self.filters_, self.patterns_, self.evokeds_ = dict(), dict(), dict()
-
-        # sort event_id to be in order
         idx = np.argsort([value for _, value in epochs.event_id.iteritems()])
         for eid, this_filter, this_pattern, this_evo in zip(
                 epochs.event_id, filters[idx], patterns[idx], evokeds[idx]):
@@ -330,13 +490,8 @@ class Xdawn(XdawnTransformer):
                                  comment=eid, nave=n_events)
             self.evokeds_[eid] = evoked
 
-        # Store some values
-        self.ch_names = epochs.ch_names
-        self.exclude = list(range(self.n_components, len(self.ch_names)))
-        self.event_id = epochs.event_id
-
-        # update overlap XXX FIXME params shouldn't be changed!
-        self.correct_overlap = correct_overlap
+        self.event_id_ = epochs.event_id
+        self.correct_overlap_ = correct_overlap
         return self
 
     def transform(self, epochs):
@@ -349,12 +504,18 @@ class Xdawn(XdawnTransformer):
 
         Returns
         -------
-        X : ndarray, shape (n_epochs, n_components * event_types, n_times)
+        X : ndarray, shape (n_epochs, n_components * n_event_types, n_times)
             Spatially filtered signals.
         """
-        X, self._picks = self._get_data(epochs, self._picks)
+        if isinstance(epochs, _BaseEpochs):
+            X = epochs.get_data()
+        elif isinstance(epochs, np.ndarray):
+            X = epochs
+        else:
+            raise ValueError('Data input must be of Epoch type or numpy array')
+
         filters = [filt[:self.n_components]
-                   for _, filt in self.filters_.iteritems()]
+                   for filt in self.filters_.itervalues()]
         filters = np.concatenate(filters, axis=0)
         X = np.dot(filters, X)
         return X.transpose((1, 0, 2))
@@ -364,7 +525,7 @@ class Xdawn(XdawnTransformer):
 
         Given the unmixing matrix, transform data,
         zero out components, and inverse transform the data.
-        This procedure will reconstruct M/EEG signals from which
+        This procedure will reconstruct the signals from which
         the dynamics described by the excluded components is subtracted.
 
         Parameters
@@ -390,46 +551,55 @@ class Xdawn(XdawnTransformer):
             event type in event_id.
         """
         if event_id is None:
-            event_id = self.event_id
+            event_id = self.event_id_
+
+        if not isinstance(inst, (_BaseRaw, _BaseEpochs, Evoked)):
+            raise ValueError('Data input must be Raw, Epochs or Evoked type')
+        picks = _pick_data_channels(inst.info)
+
+        # Define the components to keep
+        default_exclude = list(range(self.n_components, len(inst.ch_names)))
+        if exclude is None:
+            exclude = default_exclude
+        else:
+            exclude = list(set(list(default_exclude) + list(exclude)))
 
         if isinstance(inst, _BaseRaw):
             out = self._apply_raw(raw=inst, include=include, exclude=exclude,
-                                  event_id=event_id)
+                                  event_id=event_id, picks=picks)
         elif isinstance(inst, _BaseEpochs):
-            out = self._apply_epochs(epochs=inst, include=include,
+            out = self._apply_epochs(epochs=inst, include=include, picks=picks,
                                      exclude=exclude, event_id=event_id)
         elif isinstance(inst, Evoked):
-            out = self._apply_evoked(evoked=inst, include=include,
+            out = self._apply_evoked(evoked=inst, include=include, picks=picks,
                                      exclude=exclude, event_id=event_id)
-        else:
-            raise ValueError('Data input must be Raw, Epochs or Evoked type')
         return out
 
-    def _apply_raw(self, raw, include, exclude, event_id):
+    def _apply_raw(self, raw, include, exclude, event_id, picks):
         """Aux method."""
         if not raw.preload:
             raise ValueError('Raw data must be preloaded to apply Xdawn')
 
         raws = dict()
         for eid in event_id:
-            data = raw[self._picks, :][0]
+            data = raw[picks, :][0]
 
             data = self._pick_sources(data, include, exclude, eid)
 
             raw_r = raw.copy()
 
-            raw_r[self._picks, :] = data
+            raw_r[picks, :] = data
             raws[eid] = raw_r
         return raws
 
-    def _apply_epochs(self, epochs, include, exclude, event_id):
+    def _apply_epochs(self, epochs, include, exclude, event_id, picks):
         """Aux method."""
         if not epochs.preload:
             raise ValueError('Epochs must be preloaded to apply Xdawn')
 
         # special case where epochs come picked but fit was 'unpicked'.
         epochs_dict = dict()
-        data = np.hstack(epochs.get_data()[:, self._picks])
+        data = np.hstack(epochs.get_data()[:, picks])
 
         for eid in event_id:
 
@@ -444,9 +614,9 @@ class Xdawn(XdawnTransformer):
 
         return epochs_dict
 
-    def _apply_evoked(self, evoked, include, exclude, event_id):
+    def _apply_evoked(self, evoked, include, exclude, event_id, picks):
         """Aux method."""
-        data = evoked.data[self._picks]
+        data = evoked.data[picks]
         evokeds = dict()
 
         for eid in event_id:
@@ -455,29 +625,25 @@ class Xdawn(XdawnTransformer):
             evokeds[eid] = evoked.copy()
 
             # restore evoked
-            evokeds[eid].data[self._picks] = data_r
+            evokeds[eid].data[picks] = data_r
 
         return evokeds
 
     def _pick_sources(self, data, include, exclude, eid):
         """Aux method."""
         fast_dot = _get_fast_dot()
-        if exclude is None:
-            exclude = self.exclude
-        else:
-            exclude = list(set(list(self.exclude) + list(exclude)))
 
         logger.info('Transforming to Xdawn space')
 
         # Apply unmixing
         sources = fast_dot(self.filters_[eid].T, data)
 
-        if include not in (None, []):
+        if include not in (None, list()):
             mask = np.ones(len(sources), dtype=np.bool)
             mask[np.unique(include)] = False
             sources[mask] = 0.
             logger.info('Zeroing out %i Xdawn components' % mask.sum())
-        elif exclude not in (None, []):
+        elif exclude not in (None, list()):
             exclude_ = np.unique(exclude)
             sources[exclude_] = 0.
             logger.info('Zeroing out %i Xdawn components' % len(exclude_))
@@ -485,3 +651,6 @@ class Xdawn(XdawnTransformer):
         data = fast_dot(self.patterns_[eid], sources)
 
         return data
+
+    def inverse_transform(self, X):
+        return self.apply(X)

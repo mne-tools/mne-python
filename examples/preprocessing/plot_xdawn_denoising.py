@@ -32,9 +32,9 @@ efficient sensor selection in a P300 BCI. In Signal Processing Conference,
 
 
 from mne import (io, compute_raw_covariance, read_events, pick_types,
-                 Epochs)
+                 Epochs, EpochsArray)
 from mne.datasets import sample
-from mne.preprocessing import Xdawn
+from mne.preprocessing import XdawnTransformer
 from mne.viz import plot_epochs_image
 
 print(__doc__)
@@ -68,13 +68,16 @@ plot_epochs_image(epochs['vis_r'], picks=[230], vmin=-500, vmax=500)
 signal_cov = compute_raw_covariance(raw, picks=picks)
 
 # Xdawn instance
-xd = Xdawn(n_components=2, signal_cov=signal_cov)
+xd = XdawnTransformer(n_components=2, signal_cov=signal_cov)
 
-# Fit xdawn
+# Fit xdawn and pass events to correct for overlapping epochs
 xd.fit(epochs)
 
-# Denoise epochs
-epochs_denoised = xd.apply(epochs)
+# Denoise epochs. Note that it outputs a numpy array
+X_transform = xd.transform(epochs)
+X_denoised = xd.inverse_transform(X_transform)
 
-# Plot image epoch after xdawn
+# Plot denoised epochs
+epochs_denoised = EpochsArray(X_denoised, epochs.info, epochs.events,
+                              event_id=event_id, tmin=epochs.tmin)
 plot_epochs_image(epochs_denoised['vis_r'], picks=[230], vmin=-500, vmax=500)
