@@ -29,8 +29,6 @@ from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
 from ..channels import find_layout
 from ..channels.layout import (_pair_grad_sensors, generate_2d_layout,
                                _auto_topomap_coords)
-from ..evoked import combine_evoked
-
 
 def _butterfly_onpick(event, params):
     """Helper to add a channel name on click"""
@@ -1339,6 +1337,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
 
     # deal with dict/list of lists, and calculate the SEM
     if not isinstance(evokeds[conditions[0]], Evoked):
+        from ..evoked import combine_evoked
         if not isinstance(evokeds[conditions[0]][0], Evoked):
             raise ValueError("evokeds must be an `mne.Evoked` "
                              "or of a collection of `mne.Evoked`s")
