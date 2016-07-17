@@ -29,6 +29,7 @@ from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
 from ..channels import find_layout
 from ..channels.layout import (_pair_grad_sensors, generate_2d_layout,
                                _auto_topomap_coords)
+from ..evoked import combine_evoked
 
 
 def _butterfly_onpick(event, params):
@@ -1331,8 +1332,8 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
             picks = [example.ch_names.index(pick) for pick in picks]
         else:
             raise ValueError("`picks` must be int, a list of int, "
-                             "str, a list of str, or None, not "
-                             + str(type(picks)))
+                             "str, a list of str, or None, not " +
+                             str(type(picks)))
         ch_type = channel_type(example.info, picks[0])
     scaling = _handle_default("scalings")[ch_type]
 
@@ -1343,17 +1344,16 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                              "or of a collection of `mne.Evoked`s")
         if ci and picks is not None:
             # calculate the CI
-            ci_width = stats.norm.ppf(1 - ((1 - ci) / 2))
             sem_array = {}
             for condition in conditions:
                 data = np.asarray([evoked_.data[picks, :].mean(0)
-                                for evoked_ in evokeds[condition]])
+                                   for evoked_ in evokeds[condition]])
                 sem_array[condition] = _ci(data, ci)
 
         # get the grand mean
-        evokeds = dict((condition, mne.combine_evoked(evokeds[condition],
-                                                      weights='equal'))
-                   for condition in conditions)
+        evokeds = dict((condition, combine_evoked(evokeds[condition],
+                                                  weights='equal'))
+                       for condition in conditions)
         if picks is None:
             warn("CI not drawn if plotting STD.")
     else:
@@ -1367,8 +1367,8 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
     if not isinstance(colors, dict):
         colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
                    '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
-        colors = dict((condition, color)
-            for condition, color in zip(conditions, colors_))
+        colors = dict((condition, color) for condition, color
+                      in zip(conditions, colors_))
     else:
         style_error = "Condition {} could not be mapped to a color."
         for condition in conditions:
@@ -1381,9 +1381,8 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                         break
 
     if not isinstance(linestyles, dict):
-        linestyles = dict((condition, linestyle)
-            for condition, linestyle in
-            zip(conditions, ['-'] * len(conditions)))
+        linestyles = dict((condition, linestyle) for condition, linestyle in
+                          zip(conditions, ['-'] * len(conditions)))
     else:
         style_error = "Condition {} could not be mapped to a linestyle."
         for condition in conditions:
@@ -1414,9 +1413,9 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
             sem_ = sem_array[condition]
             ax.fill_between(times, sem_[0].flatten() * scaling,
                             sem_[1].flatten() * scaling,
-                           color=styles[condition]['c'], alpha=.333)
+                            color=styles[condition]['c'], alpha=.333)
 
-        ax.plot(times, d, zorder=1000, label=condition, **styles[condition])
+        ax.plot(times, d, zorder=10, label=condition, **styles[condition])
         if any(d > 0):
             any_positive = True
         if any(d < 0):
@@ -1458,7 +1457,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         ymax_bound = ax.get_ylim()[-1]
 
     # style the spines/axes
-    ax.set_title(" + ".join(ch_names))
+    ax.set_title(", ".join(ch_names))
     ax.title.set_position([0.1, 0.85])
     ax.spines["top"].set_position('zero')
     ax.spines["top"].set_smart_bounds(True)
@@ -1478,11 +1477,11 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                   linestyles='--', colors='k', linewidth=1.)
 
     # set x label
-    ax.set_xlabel('time (s)')
+    ax.set_xlabel('Time (s)')
     ax.xaxis.get_label().set_verticalalignment('center')
 
     # set y label and ylabel position
-    ax.set_ylabel(_handle_default("units")[ch_type])
+    ax.set_ylabel(_handle_default("units")[ch_type], rotate=0)
     ylabel_height = (-(current_ymin / y_range)
                      if 0 > current_ymin  # ... if we have negative values
                      else (ax.get_yticks()[-1] / 2 / y_range))
@@ -1490,7 +1489,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                               if invert_y else ylabel_height)
     x_extrema = [t for t in ax.get_xticks() if tmax >= t >= tmin]
     ax.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
-    ax.spines["left"].set_zorder(2000)
+    ax.spines["left"].set_zorder(20)
 
     # finishing touches
     if invert_y:
