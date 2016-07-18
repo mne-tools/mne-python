@@ -624,3 +624,78 @@ class FilterEstimator(TransformerMixin):
                                      picks=self.picks, n_jobs=self.n_jobs,
                                      copy=False, verbose=False)
         return epochs_data
+
+class UnsupervisedSpatialFilter(TransformerMixin):
+    """Fit and transform with an unsupervised spatial filtering across time
+    and samples.
+
+    Parameters
+    ----------
+    estimator : scikit-learn estimator
+        Estimator using some decomposition algorithm.
+        The number of channels.
+    """
+    def __init__(self, estimator):
+        self.estimator = estimator
+        for attr in ('fit', 'transform', 'fit_transform'):
+            if not hasattr(estimator, attr):
+                raise ValueError('estimator must be a sklearn transformer')
+
+    def fit(self, X, y=None):
+        """Make the data compatibile with scikit-learn estimator.
+
+        Parameters
+        ----------
+        X : numpy array, shape(n_epochs, n_chans, n_times)
+            The data to be filtered.
+        y : None
+            Used for scikit-learn compatibility.
+
+        Returns
+        -------
+        self : Instance of UnsupervisedSpatialFilter
+            Return the modified instance.
+        """
+        n_epoch, n_chan, n_time = X.shape
+        # trial as time samples
+        X = np.transpose(X, (1, 0, 2)).reshape((n_chan, n_epoch * n_time)).T
+        self.estimator.fit(X)
+        return self
+
+    def fit_transform(self, X, y=None):
+        """Transform the data to its filtered components after fitting
+
+        Parameters
+        ----------
+        X : numpy array, shape(n_epochs, n_chans, n_times)
+            The data to be filtered.
+        y : None
+            Used for scikit-learn compatibility.
+
+        Returns
+        -------
+        X : numpy ndarray of shape(n_trials, n_chans, n_times)
+            The transformed data.
+        """
+        self.fit(X)
+        return self.transform(X)
+
+    def transform(self, X):
+        """Transform the data to its spatial filters.
+
+        Parameters
+        ----------
+        X : numpy array, shape(n_epochs, n_chans, n_times)
+            The data to be filtered.
+
+        Returns
+        -------
+        X : numpy ndarray of shape(n_trials, n_chans, n_times)
+            The transformed data.
+        """
+        n_epoch, n_chan, n_time = X.shape
+        # trial as time samples
+        X = np.transpose(X, [1, 0, 2]).reshape([n_chan, n_epoch * n_time]).T
+        X = self.estimator.transform(X)
+        X = np.reshape(X.T, [-1, n_epoch, n_time]).transpose([1, 0, 2])
+        return X
