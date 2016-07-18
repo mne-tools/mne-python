@@ -560,9 +560,9 @@ def test_combine_source_spaces():
 
     # unrecognized file type
     bad_image_fname = op.join(tempdir, 'temp-image.png')
-    with warnings.catch_warnings(record=True):  # vertices outside vol space
-        assert_raises(ValueError, src.export_volume, bad_image_fname,
-                      verbose='error')
+    # vertices outside vol space warning
+    assert_raises(ValueError, src.export_volume, bad_image_fname,
+                  verbose='error')
 
     # mixed coordinate frames
     disc3 = disc.copy()

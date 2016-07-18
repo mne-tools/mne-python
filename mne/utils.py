@@ -343,7 +343,8 @@ def warn(message, category=RuntimeWarning):
             break
         last_fname = op.basename(fname)
     del stack
-    warnings.warn(message, category, stacklevel=stacklevel)
+    if logger.level <= logging.WARN:
+        warnings.warn(message, category, stacklevel=stacklevel)
     logger.warning(message)
 
 
