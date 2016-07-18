@@ -62,6 +62,8 @@ def run():
     parser.add_option("--clipping", dest="clipping",
                       help="Enable trace clipping mode, either 'clip' or "
                       "'transparent'", default=None)
+    parser.add_option("--filterchpi", dest="filterchpi",
+                      help="Enable filtering cHPI signals.", default=None)
 
     options, args = parser.parse_args()
 
@@ -79,6 +81,7 @@ def run():
     lowpass = options.lowpass
     filtorder = options.filtorder
     clipping = options.clipping
+    filterchpi = options.filterchpi
 
     if raw_in is None:
         parser.print_help()
@@ -93,6 +96,13 @@ def run():
         events = mne.read_events(eve_in)
     else:
         events = None
+
+    if filterchpi:
+        if not preload:
+            raise RuntimeError(
+                'Raw data must be preloaded for chpi, use --preload')
+        raw = mne.chpi.filter_chpi(raw)
+
     highpass = None if highpass < 0 or filtorder <= 0 else highpass
     lowpass = None if lowpass < 0 or filtorder <= 0 else lowpass
     filtorder = 4 if filtorder <= 0 else filtorder
