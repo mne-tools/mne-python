@@ -352,15 +352,20 @@ def test_config():
     assert_true(len(set_config(None, None)) > 10)  # tuple of valid keys
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        set_config(key, None, home_dir=tempdir)
+        set_config(key, None, home_dir=tempdir, set_env=False)
     assert_true(len(w) == 1)
     assert_true(get_config(key, home_dir=tempdir) is None)
     assert_raises(KeyError, get_config, key, raise_error=True)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        set_config(key, value, home_dir=tempdir)
+        assert_true(key not in os.environ)
+        set_config(key, value, home_dir=tempdir, set_env=True)
+        assert_true(key in os.environ)
         assert_true(get_config(key, home_dir=tempdir) == value)
-        set_config(key, None, home_dir=tempdir)
+        set_config(key, None, home_dir=tempdir, set_env=True)
+        assert_true(key not in os.environ)
+        set_config(key, None, home_dir=tempdir, set_env=True)
+        assert_true(key not in os.environ)
     if old_val is not None:
         os.environ[key] = old_val
     # Check if get_config with no input returns all config

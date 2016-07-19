@@ -92,7 +92,7 @@ def _get_root_home(cfg, name, check_fun):
             root = dlg.path
             problem = check_fun(root)
             if problem is None:
-                set_config(cfg, root)
+                set_config(cfg, root, set_env=False)
         else:
             return None
     return root

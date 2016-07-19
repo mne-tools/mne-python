@@ -142,7 +142,7 @@ def _do_path_update(path, update_path, key, name):
             update_path = False
 
     if update_path is True:
-        set_config(key, path)
+        set_config(key, path, set_env=False)
     return path
 
 

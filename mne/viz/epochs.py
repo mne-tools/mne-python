@@ -1393,7 +1393,7 @@ def _close_event(event, params):
 def _resize_event(event, params):
     """Function to handle resize event"""
     size = ','.join([str(s) for s in params['fig'].get_size_inches()])
-    set_config('MNE_BROWSE_RAW_SIZE', size)
+    set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
     _layout_figure(params)
 
 
