@@ -169,7 +169,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_multitaper
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_multitaper,
+    csd_epochs
 
     Notes
     -----
@@ -248,7 +249,7 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_welch
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_welch, csd_epochs
 
     Notes
     -----

@@ -17,7 +17,7 @@ in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 
 import mne
 from mne.datasets import sample
-from mne.time_frequency import compute_epochs_csd
+from mne.time_frequency import csd_epochs
 from mne.beamformer import dics_source_power
 
 print(__doc__)
@@ -51,12 +51,12 @@ forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 # Computing the data and noise cross-spectral density matrices
 # The time-frequency window was chosen on the basis of spectrograms from
 # example time_frequency/plot_time_frequency.py
-# As fsum is False compute_epochs_csd returns a list of CrossSpectralDensity
+# As fsum is False csd_epochs returns a list of CrossSpectralDensity
 # instances than can then be passed to dics_source_power
-data_csds = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
-                               fmin=15, fmax=30, fsum=False)
-noise_csds = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.11,
-                                tmax=-0.001, fmin=15, fmax=30, fsum=False)
+data_csds = csd_epochs(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
+                       fmin=15, fmax=30, fsum=False)
+noise_csds = csd_epochs(epochs, mode='multitaper', tmin=-0.11,
+                        tmax=-0.001, fmin=15, fmax=30, fsum=False)
 
 # Compute DICS spatial filter and estimate source power
 stc = dics_source_power(epochs.info, forward, noise_csds, data_csds)
