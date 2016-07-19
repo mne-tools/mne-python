@@ -25,6 +25,7 @@ from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar, plt_show
+from ..viz.misc import plot_tfr_gfp
 from ..externals.h5io import write_hdf5, read_hdf5
 from ..externals.six import string_types
 
@@ -985,8 +986,54 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-        self.data = rescale(self.data, self.times, baseline, mode,
-                            copy=False)
+        self.data = rescale(self.data, self.times, baseline, mode, copy=False)
+        return self
+
+    def plot_gfp(self, baseline=None, mode='mean', colors='auto',
+                 summarize=False, title=None, show=True):
+        """ Show time and frequency resolved global field power
+
+        Parameters
+        ----------
+        tfr : instance of AverageTFR
+            The MNE time frequency object.
+        baseline : None (default) or tuple of length 2
+            The time interval to apply baseline correction.
+            If None do not apply it. If baseline is (a, b)
+            the interval is between "a (s)" and "b (s)".
+            If a is None the beginning of the data is used
+            and if b is None then b is set to the end of the interval.
+            If baseline is equal ot (None, None) all the time
+            interval is used.
+        mode : None | 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+            Do baseline correction with ratio (power is divided by mean
+            power during baseline) or zscore (power is divided by standard
+            deviation of power during baseline after subtracting the mean,
+            power = [power - mean(power_baseline)] / std(power_baseline)).
+            If None no baseline correction is applied.
+        colors : 'auto' | list like
+            The colors used to distinguish different frequency. If 'auto', a
+            sensitive default is guessed. If list-like, elements should be
+            anything that can be passed to `color` in plt.plot()
+        title : str | None
+            String for title. Defaults to None (blank/no title).
+        summarize : bool | list of 2-tuples of int
+            If False, all frequencies will be shown. If True, conventional
+            definitions of frequency bands will be used. If list of tuples,
+            tuples should be such that the first element is the low and the
+            second the high frequency. Defaults to False.
+        show : bool
+            Show the figure or leave it. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            The figure.
+        """
+        return plot_tfr_gfp(tfr=self, baseline=baseline, mode=mode,
+                            colors=colors, summarize=summarize, title=title,
+                            show=show)
+
 
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type=None, baseline=None, mode='mean',
