@@ -285,7 +285,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
 
     Parameters
     ----------
-    fwd : dict
+    fwd : Forward
         The forward operator.
     projs : list
         List of projection vectors.

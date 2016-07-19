@@ -41,7 +41,7 @@ from .event import (read_events, write_events, find_events, merge_events,
                     pick_events, make_fixed_length_events, concatenate_events,
                     find_stim_steps)
 from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
-                      average_forward_solutions,
+                      average_forward_solutions, Forward,
                       write_forward_solution, make_forward_solution,
                       convert_forward_solution, make_field_map,
                       make_forward_dipole)
