@@ -369,12 +369,14 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         raise IOError('Subject bem directory "%s" does not exist' % bem_path)
 
     surfaces = {}
-    for surf_name in ['*inner_skull', '*outer_skull', '*outer_skin']:
+    for surf_name, color in (('*inner_skull', '#FF0000'),
+                             ('*outer_skull', '#FFFF00'),
+                             ('*outer_skin', '#FFAA80')):
         surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
         if len(surf_fname) > 0:
             surf_fname = surf_fname[0]
             logger.info("Using surface: %s" % surf_fname)
-            surfaces[surf_fname] = 'yellow'
+            surfaces[surf_fname] = color
 
     if brain_surfaces is not None:
         if isinstance(brain_surfaces, string_types):
@@ -384,7 +386,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
                 surf_fname = op.join(subjects_dir, subject, 'surf',
                                      hemi + '.' + surf_name)
                 if op.exists(surf_fname):
-                    surfaces[surf_fname] = 'red'
+                    surfaces[surf_fname] = '#00DD00'
                 else:
                     raise IOError("Surface %s does not exist." % surf_fname)
 
