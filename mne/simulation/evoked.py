@@ -27,7 +27,7 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
 
     Parameters
     ----------
-    fwd : dict
+    fwd : Forward
         a forward solution.
     stc : SourceEstimate object
         The source time courses.
