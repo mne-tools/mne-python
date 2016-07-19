@@ -123,7 +123,8 @@ def test_make_scalp_surfaces():
     surf_path_new = op.join(tempdir, 'sample', 'surf')
     os.mkdir(op.join(tempdir, 'sample'))
     os.mkdir(surf_path_new)
-    os.mkdir(op.join(tempdir, 'sample', 'bem'))
+    subj_dir = op.join(tempdir, 'sample', 'bem')
+    os.mkdir(subj_dir)
     shutil.copy(op.join(surf_path, 'lh.seghead'), surf_path_new)
 
     orig_fs = os.getenv('FREESURFER_HOME', None)
@@ -140,6 +141,8 @@ def test_make_scalp_surfaces():
             assert_raises(RuntimeError, mne_make_scalp_surfaces.run)
             os.environ['MNE_ROOT'] = orig_mne
             mne_make_scalp_surfaces.run()
+            assert_true(op.isfile(op.join(subj_dir, 'sample-head-dense.fif')))
+            assert_true(op.isfile(op.join(subj_dir, 'sample-head-medium.fif')))
             assert_raises(IOError, mne_make_scalp_surfaces.run)  # no overwrite
     finally:
         if orig_fs is not None:

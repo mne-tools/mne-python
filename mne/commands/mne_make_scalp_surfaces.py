@@ -44,7 +44,9 @@ def run():
                       help='Print the debug messages.')
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
                       help="Subjects directory", default=subjects_dir)
-
+    parser.add_option("-n", "--no-decimate", dest="no_decimate",
+                      help="Disable medium and sparse decimations "
+                      "(dense only)", action='store_true')
     options, args = parser.parse_args()
 
     subject = vars(options).get('subject', os.getenv('SUBJECT'))
@@ -52,12 +54,13 @@ def run():
     if subject is None or subjects_dir is None:
         parser.print_help()
         sys.exit(1)
+    print(options.no_decimate)
     _run(subjects_dir, subject, options.force, options.overwrite,
-         options.verbose)
+         options.no_decimate, options.verbose)
 
 
 @verbose
-def _run(subjects_dir, subject, force, overwrite, verbose=None):
+def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
     this_env = copy.copy(os.environ)
     this_env['SUBJECTS_DIR'] = subjects_dir
     this_env['SUBJECT'] = subject
@@ -115,7 +118,7 @@ def _run(subjects_dir, subject, force, overwrite, verbose=None):
                     '--fif', dense_fname], env=this_env)
     levels = 'medium', 'sparse'
     my_surf = mne.read_bem_surfaces(dense_fname)[0]
-    tris = [30000, 2500]
+    tris = [] if no_decimate else [30000, 2500]
     if os.getenv('_MNE_TESTING_SCALP', 'false') == 'true':
         tris = [len(my_surf['tris'])]  # don't actually decimate
     for ii, (n_tri, level) in enumerate(zip(tris, levels), 3):
