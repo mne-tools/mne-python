@@ -6,10 +6,10 @@
 # License: BSD (3-clause)
 import numpy as np
 from scipy import sparse
-from ..utils import warn, _reject_data_segments
+from ..utils import warn
 
 
-class DataDelayer(object):
+class FeatureDelayer(object):
     """Transformer for creating delayed versions of an input stimulus.
 
     Parameters
@@ -83,7 +83,8 @@ class EventsBinarizer(object):
         self.feature_type = 'event_id'
         self.sparse = sparse
 
-    def fit(self, event_ixs, event_ids=None, event_dict=None):
+    def fit(self, event_ixs, event_ids=None, event_dict=None, covariates=None,
+            covariate_names=None):
         """Binarize the events.
 
         Parameters
@@ -98,13 +99,21 @@ class EventsBinarizer(object):
         event_dict : dict
             A dictionary of (event_id: event_id_name) pairs. Defines a string
             name for each event type.
+        covariates : array, shape (n_events, n_covariates) | None
+            Optional covariates (e.g., continuous values) for each event.
+        covariate_names : array, shape (n_covariates,) | None
+            Optional covariate names.
         """
         if event_ixs.ndim > 1:
             raise ValueError("events must be shape (n_trials, 3),"
                              " found shape %s" % str(event_ixs.shape))
         event_ids = np.ones_like(event_ixs) if event_ids is None else event_ids
         unique_event_types = np.unique(event_ids)
+        covs, cov_names = _check_covariates(event_ixs, covariates,
+                                            covariate_names)
+        n_covs = covs.shape[-1]
 
+        # Create names for event types
         if event_dict is None:
             event_dict = dict(('event_%s' % ii, ii)
                               for ii in unique_event_types)
@@ -114,7 +123,8 @@ class EventsBinarizer(object):
         event_ixs = (event_ixs * self.sfreq).astype(int)
 
         # Iterate through event types and create columns of event onsets.
-        events_continuous = np.zeros([self.n_times, len(unique_event_types)])
+        events_continuous = np.zeros([self.n_times,
+                                      len(unique_event_types) + n_covs])
         event_names = []
         for ii, ev_type in enumerate(unique_event_types):
             msk_events = event_ids == ev_type
@@ -123,6 +133,10 @@ class EventsBinarizer(object):
 
             # Handle event names
             event_names.append(ev_dict_rev[ev_type])
+        if n_covs > 0:
+            for iev, icov in zip(event_ixs, covs):
+                events_continuous[iev, -n_covs:] = icov
+            event_names = event_names + cov_names
         if self.sparse is True:
             events_continuous = sparse.csr_matrix(events_continuous)
 
@@ -144,137 +158,6 @@ class EventsBinarizer(object):
     def fit_transform(self, event_ixs, event_ids=None, event_dict=None):
         self.fit(event_ixs, event_ids=event_ids, event_dict=event_dict)
         return self.transform()
-
-
-class DataSubsetter(object):
-    """Use for returning a subset of time.
-
-    Useful for doing cross-validation when using a pipeline that requires
-    dependencies between neighboring samples in order to extract features.
-
-    Parameters
-    ----------
-    ixs : array, shape (n_ixs,)
-        The indices to select from the data."""
-    def __init__(self, ixs=None, decimate=None):
-        if all(ii is not None for ii in [ixs, decimate]):
-            raise ValueError('Supply one of ixs or decimate, not both')
-        if ixs is not None:
-            self.ixs = np.asarray(ixs).astype(int)
-            self.decimate = None
-        elif decimate is not None:
-            if not isinstance(decimate, (int)):
-                raise ValueError('decimate must be an integer')
-            self.decimate = decimate
-            self.ixs = None
-        else:
-            raise ValueError('Must supply one of ixs or decimate')
-
-    def fit(self, data, y=None):
-        """Pull a subset of data points.
-
-        Parameters
-        ----------
-        data : array, shape (n_samples, n_features)
-            The data to be subsetted. The data points specified by
-            `self.ixs` will be taken from rows of this array.
-        """
-        if self.decimate is not None:
-            ixs = np.arange(data.shape[0])
-            self.ixs = ixs[::self.decimate]
-        if data.shape[0] < self.ixs.max():
-            raise ValueError('ixs exceed data shape')
-        self.data_ = np.asarray(data)
-
-    def transform(self, X=None, y=None):
-        """Return a subset of data points.
-
-        Returns
-        -------
-        data : array, shape (n_features, n_ixs)
-            A subset of rows from the input array.
-        """
-        return self.data_[self.ixs, :]
-
-    def fit_transform(self, data, y=None):
-        self.fit(data)
-        return self.transform()
-
-
-def clean_inputs(X, y, reject=None, flat=None, info=None, decim=None,
-                 tstep=None, nonzero=True):
-    """Keep data points based on peak to peak amplitude / nonzero values.
-
-    Parameters
-    ----------
-    X : array, shape (n_times, n_features)
-        The input array (usually stimuli or continuous events)
-    y : array, shape (n_times, n_channels)
-        The neural data. Will be used for detecting noisy datapoints
-    reject : None | dict
-        For cleaning raw data before the regression is performed: set up
-        rejection parameters based on peak-to-peak amplitude in continuously
-        selected subepochs. If None, no rejection is done.
-        If dict, keys are types ('grad' | 'mag' | 'eeg' | 'eog' | 'ecg')
-        and values are the maximal peak-to-peak values to select rejected
-        epochs, e.g.::
-
-            reject = dict(grad=4000e-12, # T / m (gradiometers)
-                          mag=4e-11, # T (magnetometers)
-                          eeg=40e-5, # V (EEG channels)
-                          eog=250e-5 # V (EOG channels))
-
-    flat : None | dict
-        or cleaning raw data before the regression is performed: set up
-        rejection parameters based on flatness of the signal. If None, no
-        rejection is done. If a dict, keys are ('grad' | 'mag' |
-        'eeg' | 'eog' | 'ecg') and values are minimal peak-to-peak values to
-        select rejected epochs.
-    info : None | instance of MNE Info object
-        The Info object corresponding to the neural data `y`.
-    decim : int
-        Decimate by choosing only a subsample of data points. Highly
-        recommended for data recorded at high sampling frequencies, as
-        otherwise huge intermediate matrices have to be created and inverted.
-    tstep : float
-        Length of windows for peak-to-peak detection for raw data cleaning.
-    nonzero : bool
-        Whether to reject timepoints with nonzero values in all input features.
-        Defaults to True.
-
-    Returns
-    -------
-    X_cleaned : array, shape (n_clean_times, n_features)
-        The input X array w/ non-active and noisy rows removed.
-    y_cleaned : array, shape (n_clean_times, n_channels)
-        The input y array w/ non-active and noisy rows removed.
-    """
-
-    # find only those positions where at least one predictor isn't 0
-    if X.shape[0] != y.shape[0]:
-        raise ValueError('X and y have different numbers of timepoints')
-    if isinstance(X, sparse.spmatrix):
-        nonzero_rows = np.unique(X.nonzero()[0])
-        is_sparse = True
-    else:
-        nonzero_rows = np.unique(np.where((X != 0).any(1))[0])
-        is_sparse = False
-    keep_rows = nonzero_rows if nonzero is True else np.arange(X.shape[0])
-
-    # reject positions based on extreme steps in the data
-    if reject is not None:
-        _, inds_bad = _reject_data_segments(y.T, reject, flat, decim=None,
-                                            info=info, tstep=tstep)
-        # Expand to include all bad indices, and remove from rows to keep
-        inds_bad = np.hstack(range(t0, t1) for t0, t1 in inds_bad)
-        keep_rows = np.setdiff1d(keep_rows, inds_bad)
-
-    if is_sparse is True:
-        X = X.tocsr()[keep_rows]
-    else:
-        X = X[keep_rows]
-
-    return X, y[keep_rows]
 
 
 def _delay_timeseries(ts, delays, sfreq=1.):
@@ -339,3 +222,28 @@ def _delay_timeseries(ts, delays, sfreq=1.):
     if is_sparse is True:
         delayed = sp_type(delayed)
     return delayed, delayed_names
+
+
+def _check_covariates(events, covariates, covariate_names):
+    """Make sure covariates are same length as events, return empty list if None.
+    """
+    if covariates is None:
+        # Just return an empty array
+        covariates = np.array([[]])
+        covariate_names = np.array([])
+    else:
+        # Check that shape and length is correct
+        covariates = np.asarray(covariates)
+        if covariates.ndim > 2:
+            raise ValueError('Covariates must be 1 or 2D')
+        elif covariates.ndim == 1:
+            covariates = covariates[:, np.newaxis]
+        if covariates.shape[0] != events.shape[0]:
+            raise ValueError('Covariates must have same 1st dim as events')
+
+        if covariate_names is None:
+            covariate_names = ['cov_%s' % ii
+                               for ii in range(covariates.shape[1])]
+        if len(covariate_names) != covariates.shape[1]:
+            raise ValueError('n_covariate_names / n_covariates mismatch.')
+    return covariates, covariate_names

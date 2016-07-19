@@ -6,7 +6,7 @@
 import warnings
 import os.path as op
 
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
@@ -64,40 +64,11 @@ def test_rerp():
 
 
 @requires_sklearn
-def test_custom():
-    from mne.encoding import DataDelayer
-    from mne.encoding.model import EncodingModel
-    # Simple regression
-    a = np.random.randn(10000)
-    w = .2
-    b = a * w
-    enc = EncodingModel()
-    enc.fit(a[:, np.newaxis], b)
-    assert_array_almost_equal(enc.est._final_estimator.coef_, w)
-
-    # Now w/ delays
-    sfreq = 100
-    w = [.2, .7, -.4]
-    delayer = DataDelayer(delays=[-.1, 0, .1], sfreq=sfreq)
-    a_del = delayer.fit_transform(a[:, np.newaxis])
-    b_del = np.dot(a_del, w)
-
-    enc.fit(a_del, b_del)
-    assert_array_almost_equal(enc.est._final_estimator.coef_[0], w)
-
-    # Y must be given
-    assert_raises(ValueError, enc.fit, a_del, None)
-    # X/y must have same first dim
-    assert_raises(ValueError, enc.fit, a_del[:-1], b_del)
-    # Wrong est
-    assert_raises(ValueError, EncodingModel, est='foo')
-    assert_raises(ValueError, EncodingModel, est=delayer)
-
-
-@requires_sklearn
 def test_feature():
-    from mne.encoding import (DataSubsetter, EventsBinarizer, DataDelayer,
-                              clean_inputs)
+    from mne.encoding import (DataIndexer, DataMasker, EventsBinarizer,
+                              DataDelayer, clean_inputs)
+    from sklearn.linear_model import Ridge
+
     sfreq = raw.info['sfreq']
     # Delayer must have sfreq if twin given
     assert_raises(ValueError, DataDelayer, time_window=[tmin, tmax],
@@ -111,19 +82,44 @@ def test_feature():
     assert_raises(ValueError, binarizer.fit, events)
     # Subsetter works for indexing
     data = np.arange(100)[:, np.newaxis]
-    sub = DataSubsetter(np.arange(50))
+    sub = DataIndexer(np.arange(50))
     data_subset = sub.fit_transform(data)
     assert_array_equal(data_subset, data[:50])
     # Subsetter works for decimation
-    sub = DataSubsetter(decimate=10)
+    sub = DataIndexer(decimate=10)
     data_subset = sub.fit_transform(data)
     assert_array_equal(data_subset, data[::10])
 
     # Subsetter indices must not exceed length of data
-    sub = DataSubsetter([1, 99999999])
+    sub = DataIndexer([1, 99999999])
     assert_raises(ValueError, sub.fit, raw._data.T)
     # Cleaning inputs must have same n times
     assert_raises(ValueError, clean_inputs, raw._data.T, raw._data[0, :-1].T)
+
+    # Create data
+    X = np.tile(np.arange(100), [10, 1]).T.astype(float)
+    y = np.arange(100)
+    mod = DataMasker(Ridge())
+
+    # This should remove no datapoints
+    mod.fit(X, y)
+    assert_true(mod.mask.sum() == X.shape[0])
+
+    # Test that it removes nans
+    X[:20, :] = np.nan
+    mod.fit(X, y)
+    assert_true(mod.mask.sum() == X.shape[0] - 20)
+    # Make sure the right indices were removed
+    assert_true((np.isnan(X[~mod.mask]).all().all()))
+    # Make sure nans won't work with ints
+    assert_raises(ValueError, mod.fit, X.astype(int), y)
+
+    # Ensure that other numbers work
+    X = np.tile(np.arange(100), [10, 1]).T.astype(float)
+    y = np.arange(100)
+    mod = DataMasker(Ridge(), mask_val=10)
+    mod.fit(X, y)
+    assert_true(np.where(~mod.mask)[0][0] == mod.mask_val)
 
 
 run_tests_if_main()

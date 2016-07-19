@@ -5,7 +5,19 @@ Regression on continuous data
 
 This demonstrates how encoding models can be fit with multiple continuous
 inputs. In this case, a encoding model is fit for one electrode, using the
-values of all other electrodes as inputs.
+values of all other electrodes as inputs. These inputs could also be stimulus
+features, such as spectral features of sound.
+
+Estimation of receptive fields and modeling with continuous inputs
+is described in:
+
+    Theunissen, F. E. et al. Estimating spatio-temporal receptive
+    fields of auditory and visual neurons from their responses to
+    natural stimuli. Network 12, 289-316 (2001).
+
+    Willmore, B. & Smyth, D. Methods for first-order kernel
+    estimation: simple-cell receptive fields from responses to
+    natural scenes. Network 14, 553-77 (2003).
 """
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #
@@ -16,12 +28,10 @@ import matplotlib.pyplot as plt
 import mne
 import numpy as np
 from mne.datasets import sample
-from mne.encoding.model import EncodingModel
-from mne.encoding import DataSubsetter
+from mne.encoding import SampleMasker
+from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler, scale
-from sklearn.pipeline import Pipeline
-from copy import deepcopy
 
 # Load and preprocess data
 data_path = sample.data_path()
@@ -46,22 +56,18 @@ axs[1].set_xlabel('Time (s)')
 axs[1].set_ylabel('Amplitude (mV)')
 
 # Define model preprocessing and parameters
-alphas = np.logspace(1, 6, 10)
 ix_split = int(X.shape[-1] * .998)  # Using 99.8% of the data to train
 tr = np.arange(X.shape[-1])[:ix_split]
 tt = np.arange(X.shape[-1])[ix_split:]
-splitter_tr = DataSubsetter(tr)
-splitter_tt = DataSubsetter(tt)
-preproc = Pipeline([('split', splitter_tr), ('scaler', StandardScaler())])
-# For predictions, make the splitter pull testing points.
-preproc_pred = deepcopy(preproc)
-preproc_pred.steps[0] = ('split', splitter_tt)
+splitter_tr = SampleMasker(ixs=tr)
+splitter_tt = SampleMasker(ixs=tt)
+
+pipe_est = make_pipeline(StandardScaler(), Ridge(alpha=0.))
+pipe_full = SampleMasker(pipe_est, ixs=splitter_tr)
 
 # Fit / predict w/ the model
-mod = Ridge(alpha=0.)
-enc = EncodingModel(est=mod, preproc_x=preproc, preproc_y=preproc)
-enc.fit(X.T, y)
-y_pred = enc.predict(X.T, preproc_x=preproc_pred)
+pipe_full.fit(X.T, y)
+y_pred = pipe_full.predict(X.T)
 
 # Now plot results
 cmap = plt.cm.rainbow
@@ -69,7 +75,7 @@ f, axs = plt.subplots(1, 2, figsize=(15, 8))
 
 # Plot the first 40 coefficients (one coefficient per channel)
 ax = axs[0]
-coefs = enc.est._final_estimator.coef_[0]
+coefs = pipe_full._final_estimator.coef_[0]
 ax.plot(coefs)
 ax.set_xlabel('Channel index')
 ax.set_ylabel('Channel weight')

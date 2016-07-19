@@ -11,7 +11,7 @@ regression is virtually identical to traditional averaging.
 If overlap exists and/or predictors are continuous, traditional averaging
 is inapplicable, but regression can still estimate effects.
 
-rERPs are described in:
+rER[P/F]s are described in:
 
     Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP
     waveforms: II. Non-linear effects, overlap correction, and practical
@@ -27,7 +27,6 @@ import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
 from mne.encoding.model import EventRelatedRegressor
-from mne.encoding.feature import clean_inputs
 
 # Load and preprocess data
 data_path = sample.data_path()
@@ -47,8 +46,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, reject=None,
 
 # rERF
 rerp = EventRelatedRegressor(raw, events, est='cholesky', event_id=event_id,
-                             tmin=tmin, tmax=tmax,
-                             preproc_func_xy=clean_inputs)
+                             tmin=tmin, tmax=tmax, remove_outliers=True)
 rerp.fit()
 
 # The EventRelatedRegressor object can returns a dict of evokeds
