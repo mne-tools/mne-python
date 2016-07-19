@@ -32,6 +32,7 @@ Classes
    Epochs
    Evoked
    SourceSpaces
+   Forward
    SourceEstimate
    VolSourceEstimate
    MixedSourceEstimate
