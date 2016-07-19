@@ -82,8 +82,8 @@ def test_cov_order():
     ch_names = [info['ch_names'][pick]
                 for pick in pick_types(info, meg=False, eeg=True)]
     cov = read_cov(cov_fname)
-    with warnings.catch_warnings(record=True):  # no avg ref present
-        prepare_noise_cov(cov, info, ch_names, verbose='error')
+    # no avg ref present warning
+    prepare_noise_cov(cov, info, ch_names, verbose='error')
 
 
 def test_ad_hoc_cov():

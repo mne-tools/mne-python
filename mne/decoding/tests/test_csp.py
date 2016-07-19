@@ -63,13 +63,14 @@ def test_csp():
     epochs.pick_types(meg='mag')
 
     # test plot patterns
+    cmap = ('RdBu', True)
     components = np.arange(n_components)
     csp.plot_patterns(epochs.info, components=components, res=12,
-                      show=False)
+                      show=False, cmap=cmap)
 
     # test plot filters
     csp.plot_filters(epochs.info, components=components, res=12,
-                     show=False)
+                     show=False, cmap=cmap)
 
     # test covariance estimation methods (results should be roughly equal)
     csp_epochs = CSP(cov_est="epoch")
