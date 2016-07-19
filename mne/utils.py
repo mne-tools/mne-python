@@ -337,7 +337,9 @@ def warn(message, category=RuntimeWarning):
             last_fname = fname
             continue
         # treat tests as scripts
-        if not fname.startswith(root_dir) or \
+        # and don't capture unittest/case.py (assert_raises)
+        if not (fname.startswith(root_dir) or
+                ('unittest' in fname and 'case' in fname)) or \
                 op.basename(op.dirname(fname)) == 'tests':
             stacklevel = fi + 1
             break
