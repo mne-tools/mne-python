@@ -5,7 +5,7 @@
 import os.path as op
 from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_equal
 
 from mne import Epochs, read_evokeds, pick_types
 from mne.io.compensator import make_compensator, get_current_comp
@@ -17,21 +17,22 @@ ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 
 
 def test_compensation():
-    """Test compensation
-    """
+    """Test compensation"""
     tempdir = _TempDir()
     raw = Raw(ctf_comp_fname, compensation=None)
+    assert_equal(get_current_comp(raw.info), 3)
     comp1 = make_compensator(raw.info, 3, 1, exclude_comp_chs=False)
     assert_true(comp1.shape == (340, 340))
     comp2 = make_compensator(raw.info, 3, 1, exclude_comp_chs=True)
     assert_true(comp2.shape == (311, 340))
 
     # make sure that changing the comp doesn't modify the original data
-    raw2 = Raw(ctf_comp_fname, compensation=2)
-    assert_true(get_current_comp(raw2.info) == 2)
+    raw2 = Raw(ctf_comp_fname).apply_gradient_compensation(2)
+    assert_equal(get_current_comp(raw2.info), 2)
     fname = op.join(tempdir, 'ctf-raw.fif')
     raw2.save(fname)
-    raw2 = Raw(fname, compensation=None)
+    raw2 = Raw(fname)
+    assert_equal(get_current_comp(raw2.info), 3)
     data, _ = raw[:, :]
     data2, _ = raw2[:, :]
     assert_allclose(data, data2, rtol=1e-9, atol=1e-20)
@@ -41,12 +42,13 @@ def test_compensation():
 
 @requires_mne
 def test_compensation_mne():
-    """Test comensation by comparing with MNE
-    """
+    """Test comensation by comparing with MNE"""
     tempdir = _TempDir()
 
     def make_evoked(fname, comp):
-        raw = Raw(fname, compensation=comp)
+        raw = Raw(fname)
+        if comp is not None:
+            raw.apply_gradient_compensation(comp)
         picks = pick_types(raw.info, meg=True, ref_meg=True)
         events = np.array([[0, 0, 1]], dtype=np.int)
         evoked = Epochs(raw, events, 1, 0, 20e-3, picks=picks).average()
@@ -70,3 +72,7 @@ def test_compensation_mne():
         picks_c = pick_types(evoked_c.info, meg=True, ref_meg=True)
         assert_allclose(evoked_py.data[picks_py], evoked_c.data[picks_c],
                         rtol=1e-3, atol=1e-17)
+        chs_py = [evoked_py.info['chs'][ii] for ii in picks_py]
+        chs_c = [evoked_c.info['chs'][ii] for ii in picks_c]
+        for ch_py, ch_c in zip(chs_py, chs_c):
+            assert_equal(ch_py['coil_type'], ch_c['coil_type'])

@@ -66,6 +66,8 @@ BUG
 
     - Fixed a bug with channel order determination that could lead to an ``AssertionError`` when using :class:`mne.Covariance` matrices by `Eric Larson`_
 
+    - Fixed the check for CTF gradient compensation in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
+
 API
 ~~~
 
@@ -104,6 +106,8 @@ API
     - The default dataset location has been changed from ``examples/`` in the MNE-Python root directory to ``~/mne_data`` in the user's home directory, by `Eric Larson`_
 
     - A new option ``set_env`` has been added to :func:`mne.set_config` that defaults to ``False`` in 0.13 but will change to ``True`` in 0.14, by `Eric Larson`_
+
+    - The ``compensation`` parameter in :func:`mne.io.read_raw_fif` has been deprecated in favor of the method :meth:`mne.io.Raw.apply_gradient_compensation` by `Eric Larson`_
 
 .. _changes_0_12:
 

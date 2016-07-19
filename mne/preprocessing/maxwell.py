@@ -20,6 +20,7 @@ from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
 from ..io.constants import FIFF
+from ..io.compensator import get_current_comp
 from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, _BaseRaw
@@ -873,7 +874,7 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False):
     # KIT gradiometers are marked as having units T, not T/M (argh)
     # We need a separate variable for this because KIT grads should be
     # treated mostly like magnetometers (e.g., scaled by 100) for reg
-    mag_or_fine[np.array([ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD
+    mag_or_fine[np.array([ch['coil_type'] & 0xFFFF == FIFF.FIFFV_COIL_KIT_GRAD
                           for ch in meg_info['chs']], bool)] = False
     msg = ('    Processing %s gradiometers and %s magnetometers'
            % (len(grad_picks), len(mag_picks)))
@@ -895,14 +896,11 @@ def _check_usable(inst):
     """Helper to ensure our data are clean"""
     if inst.proj:
         raise RuntimeError('Projectors cannot be applied to data.')
-    if hasattr(inst, 'comp'):
-        if inst.comp is not None:
+    current_comp = get_current_comp(inst.info)
+    if current_comp != 0:
             raise RuntimeError('Maxwell filter cannot be done on compensated '
-                               'channels.')
-    else:
-        if len(inst.info['comps']) > 0:  # more conservative check
-            raise RuntimeError('Maxwell filter cannot be done on data that '
-                               'might have been compensated.')
+                               'channels, but data have been compensated with '
+                               'grade %s.' % current_comp)
 
 
 def _col_norm_pinv(x):

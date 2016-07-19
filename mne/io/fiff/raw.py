@@ -18,7 +18,6 @@ from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
 from ..tag import read_tag, read_tag_info
 from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
-from ..compensator import get_current_comp, set_current_comp, make_compensator
 from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
 from ..utils import _mult_cal_one
 
@@ -56,9 +55,8 @@ class Raw(_BaseRaw):
         applied automatically later on (e.g. when computing inverse
         solutions).
     compensation : None | int
-        If None the compensation in the data is not modified.
-        If set to n, e.g. 3, apply gradient compensation of grade n as
-        for CTF systems.
+        Deprecated. Use :meth:`mne.io.Raw.apply_gradient_compensation`
+        instead.
     add_eeg_ref : bool
         If True, add average EEG reference projector (if it's not already
         present).
@@ -104,8 +102,7 @@ class Raw(_BaseRaw):
         for ii, fname in enumerate(fnames):
             do_check_fname = fname not in split_fnames
             raw, next_fname = self._read_raw_file(fname, allow_maxshield,
-                                                  preload, compensation,
-                                                  do_check_fname)
+                                                  preload, do_check_fname)
             raws.append(raw)
             if next_fname is not None:
                 if not op.exists(next_fname):
@@ -130,7 +127,6 @@ class Raw(_BaseRaw):
             copy.deepcopy(raws[0].info), False,
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._raw_extras for r in raws],
-            copy.deepcopy(raws[0].comp), raws[0]._orig_comp_grade,
             raws[0].orig_format, None, verbose=verbose)
 
         # combine information from each raw file to construct self
@@ -151,6 +147,12 @@ class Raw(_BaseRaw):
                                                         last_samps,
                                                         first_samps,
                                                         r.info['sfreq'])
+        if compensation is not None:
+            warn('The "compensation" argument has been deprecated '
+                 'in favor of the "raw.apply_gradient_compensation" '
+                 'method and will be removed in 0.14',
+                 DeprecationWarning)
+            self.apply_gradient_compensation(compensation)
         if preload:
             self._preload_data(preload)
         else:
@@ -161,7 +163,7 @@ class Raw(_BaseRaw):
             self.apply_proj()
 
     @verbose
-    def _read_raw_file(self, fname, allow_maxshield, preload, compensation,
+    def _read_raw_file(self, fname, allow_maxshield, preload,
                        do_check_fname=True, verbose=None):
         """Read in header information from a raw file"""
         logger.info('Opening raw data file %s...' % fname)
@@ -336,22 +338,6 @@ class Raw(_BaseRaw):
 
         raw._cals = cals
         raw._raw_extras = raw_extras
-        raw.comp = None
-        raw._orig_comp_grade = None
-
-        #   Set up the CTF compensator
-        current_comp = get_current_comp(info)
-        if current_comp is not None:
-            logger.info('Current compensation grade : %d' % current_comp)
-
-        if compensation is not None:
-            raw.comp = make_compensator(info, current_comp, compensation)
-            if raw.comp is not None:
-                logger.info('Appropriate compensator added to change to '
-                            'grade %d.' % (compensation))
-                raw._orig_comp_grade = current_comp
-                set_current_comp(info, compensation)
-
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     raw.first_samp, raw.last_samp,
                     float(raw.first_samp) / info['sfreq'],
@@ -514,9 +500,8 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
         applied automatically later on (e.g. when computing inverse
         solutions).
     compensation : None | int
-        If None the compensation in the data is not modified.
-        If set to n, e.g. 3, apply gradient compensation of grade n as
-        for CTF systems.
+        Deprecated. Use :meth:`mne.io.Raw.apply_gradient_compensation`
+        instead.
     add_eeg_ref : bool
         If True, add average EEG reference projector (if it's not already
         present).

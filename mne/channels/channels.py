@@ -26,6 +26,7 @@ def _get_meg_system(info):
     system = '306m'
     for ch in info['chs']:
         if ch['kind'] == FIFF.FIFFV_MEG_CH:
+            # Only take first 16 bits, as higher bits store CTF grad comp order
             coil_type = ch['coil_type'] & 0xFFFF
             if coil_type == FIFF.FIFFV_COIL_NM_122:
                 system = '122m'

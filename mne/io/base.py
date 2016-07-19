@@ -23,7 +23,7 @@ from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin)
 from ..channels.montage import read_montage, _set_montage, Montage
-from .compensator import set_current_comp
+from .compensator import get_current_comp, set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
@@ -290,8 +290,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def __init__(self, info, preload=False,
                  first_samps=(0,), last_samps=None,
                  filenames=(None,), raw_extras=(None,),
-                 comp=None, orig_comp_grade=None, orig_format='double',
-                 dtype=np.float64, verbose=None):
+                 orig_format='double', dtype=np.float64, verbose=None):
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -328,8 +327,13 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.verbose = verbose
         self._cals = cals
         self._raw_extras = list(raw_extras)
-        self.comp = comp
-        self._orig_comp_grade = orig_comp_grade
+        # deal with compensation (only relevant for CTF data, either CTF
+        # reader or MNE-C converted CTF->FIF files)
+        comp_grade = get_current_comp(info)
+        if comp_grade is not None:
+            logger.info('Current compensation grade : %d' % comp_grade)
+        self.comp = None
+        self._orig_comp_grade = comp_grade
         self._filenames = list(filenames)
         self.orig_format = orig_format
         self._projectors = list()
@@ -340,6 +344,28 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._update_times()
         if load_from_disk:
             self._preload_data(preload)
+
+    def apply_gradient_compensation(self, grade):
+        """Apply CTF gradient compensation
+
+        Parameters
+        ----------
+        grade : int
+            CTF gradient compensation level.
+
+        Returns
+        -------
+        raw : instance of Raw
+            The modified Raw instance. Works in-place.
+        """
+        current_comp = get_current_comp(self.info)
+        self.comp = make_compensator(self.info, current_comp, grade)
+        if self.comp is not None:
+            logger.info('Appropriate compensator added to change to '
+                        'grade %d.' % (grade,))
+            self._orig_comp_grade = current_comp
+            set_current_comp(self.info, grade)
+        return self
 
     @property
     def _dtype(self):
