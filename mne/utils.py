@@ -1134,6 +1134,8 @@ def _get_extra_data_path(home_dir=None):
     """Get path to extra data (config, tables, etc.)"""
     global _temp_home_dir
     if home_dir is None:
+        home_dir = os.environ.get('_MNE_FAKE_HOME_DIR')
+    if home_dir is None:
         # this has been checked on OSX64, Linux64, and Win32
         if 'nt' == os.name.lower():
             home_dir = os.getenv('APPDATA')

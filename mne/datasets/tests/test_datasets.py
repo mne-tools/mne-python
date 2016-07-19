@@ -1,3 +1,4 @@
+import os
 from os import path as op
 from nose.tools import assert_true, assert_equal
 
@@ -19,6 +20,15 @@ def test_datasets():
         assert_true(isinstance(dataset.get_version(), string_types))
     else:
         assert_true(dataset.get_version() is None)
+    tempdir = _TempDir()
+    # don't let it read from the config file to get the directory,
+    # force it to look for the default
+    os.environ['_MNE_FAKE_HOME_DIR'] = tempdir
+    try:
+        assert_equal(datasets.utils._get_path(None, 'foo', 'bar'),
+                     op.join(tempdir, 'mne_data'))
+    finally:
+        del os.environ['_MNE_FAKE_HOME_DIR']
 
 
 @requires_good_network

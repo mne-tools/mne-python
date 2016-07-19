@@ -2,7 +2,6 @@ machine:
   environment:
     # We need to set this variable to let Anaconda take precedence
     PATH: "/home/ubuntu/miniconda/envs/circleenv/bin:/home/ubuntu/miniconda/bin:$PATH"
-    MNE_DATA: "/home/ubuntu/mne_data"
     DISPLAY: ":99.0"
 
 dependencies:
@@ -58,7 +57,6 @@ dependencies:
   override:
     # Figure out if we should run a full, pattern, or noplot version
     - cd /home/ubuntu/mne-python && python setup.py develop;
-    - python -c "import mne; print(mne.get_config('MNE_DATA'))"
     - git branch -a
     - PATTERN="";
       if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then

@@ -101,6 +101,8 @@ API
 
     - Added :class:`mne.decoding.XdawnTransformer` implementing xdawn filtering algorithm working with numpy arrays of epochs data and compatible with scikit-learn pipeline. Does not support overlap case. By `Asish Panda`_
 
+    - The default dataset location has been changed from ``examples/`` in the MNE-Python root directory to ``~/mne_data`` in the user's home directory, by `Eric Larson`_
+
 .. _changes_0_12:
 
 Version 0.12
