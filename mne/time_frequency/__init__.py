@@ -1,7 +1,8 @@
 """Time frequency analysis tools
 """
 
-from .tfr import (single_trial_power, morlet, tfr_morlet, cwt_morlet,
+from .tfr import (single_trial_power, single_trial_complex,
+                  morlet, tfr_morlet, cwt_morlet,
                   AverageTFR, tfr_multitaper, read_tfrs, write_tfrs)
 from .psd import psd_welch, psd_multitaper
 from .csd import (CrossSpectralDensity, compute_epochs_csd, csd_epochs,
