@@ -247,8 +247,8 @@ def _plot_mri_contours(mri_fname, surfaces, orientation='coronal',
     mri_fname : str
         The name of the file containing anatomical data.
     surfaces : dict
-        The filenames for the BEM surfaces in the format
-        ['inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf'].
+        A {filename: color} dictionary for the BEM surfaces to plot. Colors
+        should be matplotlib-compatible.
     orientation : str
         'coronal' or 'axial' or 'sagittal'
     slices : list of int
@@ -347,6 +347,10 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         'coronal' or 'axial' or 'sagittal'.
     slices : list of int
         Slice indices.
+    brain_surfaces : None | str | list of str
+        One or more brain surface to plot (optional). Entries should correspond
+        to files in the subject's ``surf`` directory, e.g., ``"white"`` will
+        plot ``<subject>/surf/lh.white`` and ``<subject>/surf/rh.white``.
     show : bool
         Show figure if True.
 
