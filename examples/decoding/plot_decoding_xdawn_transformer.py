@@ -40,9 +40,10 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
                 add_eeg_ref=False, verbose=False)
 
 X = epochs.get_data()
-y = label_binarize(epochs.events[:, 2], classes=[1, 3])
+y = label_binarize(epochs.events[:, 2], classes=[1, 3]).ravel()
 
 clf = make_pipeline(XdawnTransformer(n_components=3),
+                    Vectorizer(),
                     LogisticRegression())
 score = cross_val_score(clf, X, y, cv=5)
 print(score)
