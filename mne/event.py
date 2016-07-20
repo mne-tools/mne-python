@@ -187,7 +187,7 @@ def _read_events_fif(fid, tree):
     event_list = event_list.reshape(len(event_list) // 3, 3)
     return event_list, mappings
 
-def read_events(filename, include=None, exclude=None, mask=0,
+def read_events(filename, include=None, exclude=None, mask=None,
                 mask_type=None):
     """Reads events from fif or text file
 
@@ -209,7 +209,7 @@ def read_events(filename, include=None, exclude=None, mask=0,
         the exclude parameter is ignored.
     mask : int | None
         The value of the digital mask to apply to the stim channel values.
-        The default value is 0. ``None`` skips masking.
+        The default value is None. ``None`` skips masking.
     mask_type: 'and' | 'not_and'
         The type of operation between the mask and the trigger.
         Choose 'and' for MNE-C masking behavior.
@@ -494,7 +494,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 @verbose
 def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
-                shortest_event=2, mask=0, uint_cast=False,
+                shortest_event=2, mask=None, uint_cast=False,
                 mask_type=None, verbose=None):
     """Find events from raw file
 
@@ -526,7 +526,7 @@ def find_events(raw, stim_channel=None, output='onset',
         duration is less than this an exception will be raised.
     mask : int
         The value of the digital mask to apply to the stim channel values.
-        The default value is 0.
+        The default value is None. ``None`` skips masking.
     uint_cast : bool
         If True (default False), do a cast to ``uint16`` on the channel
         data. This can be used to fix a bug with STI101 and STI014 in
@@ -669,12 +669,12 @@ def _mask_trigs(events, mask, mask_type):
         if mask_type is None:
             warn("The default setting will change from 'not_and' "
                  "to 'and' in v0.14.", DeprecationWarning)
-        if mask_type in ('not_and', None):
+        if mask_type == 'not_and':
             mask = np.bitwise_not(mask)
         elif mask_type != 'and':
             raise ValueError("'mask_type' should be either 'and' or 'not_and',"
                              " instead of '%s'" % mask_type)
-    events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
+        events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
     events = events[events[:, 1] != events[:, 2]]
 
     return events
