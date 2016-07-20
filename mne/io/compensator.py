@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import linalg
 
 from .constants import FIFF
 
@@ -96,16 +97,21 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
     #   s_to   = (I - C2)*(I + C1)*s_from = (I + C1 - C2 - C2*C1)*s_from
     if from_ != 0:
         C1 = _make_compensator(info, from_)
+        comp_from_0 = linalg.inv(np.eye(info['nchan']) - C1)
     if to != 0:
         C2 = _make_compensator(info, to)
+        comp_0_to = np.eye(info['nchan']) - C2
     if from_ != 0:
         if to != 0:
-            comp = np.eye(info['nchan']) + C1 - C2 - np.dot(C2, C1)
+            # This is mathematically equivalent, but has higher numerical
+            # error than using the inverse to always go to zero and back
+            # comp = np.eye(info['nchan']) + C1 - C2 - np.dot(C2, C1)
+            comp = np.dot(comp_0_to, comp_from_0)
         else:
-            comp = np.eye(info['nchan']) + C1
+            comp = comp_from_0
     else:
-        # to != 0 guaranteed here
-        comp = np.eye(info['nchan']) - C2
+        # from == 0, to != 0 guaranteed here
+        comp = comp_0_to
 
     if exclude_comp_chs:
         pick = [k for k, c in enumerate(info['chs'])

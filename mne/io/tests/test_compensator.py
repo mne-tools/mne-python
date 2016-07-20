@@ -34,8 +34,10 @@ def test_compensation():
                 continue
             comp1 = make_compensator(raw.info, from_, to)
             comp2 = make_compensator(raw.info, to, from_)
-            assert_allclose(np.dot(comp1, comp2), desired, atol=1e-6)
-            assert_allclose(np.dot(comp2, comp1), desired, atol=1e-6)
+            # To get 1e-12 here (instead of 1e-6) we must use the linalg.inv
+            # method mentioned in compensator.py
+            assert_allclose(np.dot(comp1, comp2), desired, atol=1e-12)
+            assert_allclose(np.dot(comp2, comp1), desired, atol=1e-12)
 
     # make sure that changing the comp doesn't modify the original data
     raw2 = Raw(ctf_comp_fname).apply_gradient_compensation(2)

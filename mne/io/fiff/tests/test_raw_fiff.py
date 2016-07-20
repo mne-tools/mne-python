@@ -1227,13 +1227,18 @@ def test_compensation_raw():
     assert_true(np.mean(np.abs(data_1 - data_3)) > 1e-12)
     assert_raises(ValueError, Raw, ctf_comp_fname, compensation=33,
                   verbose='error')
+    raw_bad = raw_0.copy()
+    raw_bad.add_proj(compute_proj_raw(raw_0, duration=0.5, verbose='error'))
+    raw_bad.apply_proj()
+    assert_raises(RuntimeError, raw_bad.apply_gradient_compensation, 1)
     # with preload
+    tols = dict(rtol=1e-12, atol=1e-25)
     raw_1_new = raw_3.copy().load_data().apply_gradient_compensation(1)
     assert_equal(raw_1_new.compensation_grade, 1)
     data_1_new, times_new = raw_1_new[:, :]
     assert_array_equal(times, times_new)
     assert_true(np.mean(np.abs(data_1_new - data_3)) > 1e-12)
-    assert_allclose(data_1, data_1_new)
+    assert_allclose(data_1, data_1_new, **tols)
     # deprecated way
     for preload in (True, False):
         raw_1_new = Raw(ctf_comp_fname, compensation=1, verbose='error',
@@ -1242,14 +1247,14 @@ def test_compensation_raw():
         data_1_new, times_new = raw_1_new[:, :]
         assert_array_equal(times, times_new)
         assert_true(np.mean(np.abs(data_1_new - data_3)) > 1e-12)
-        assert_allclose(data_1, data_1_new)
+        assert_allclose(data_1, data_1_new, **tols)
     # change back
     raw_3_new = raw_1.copy().apply_gradient_compensation(3)
     data_3_new, times_new = raw_3_new[:, :]
-    assert_allclose(data_3, data_3_new, rtol=1e-6, atol=1e-16)
+    assert_allclose(data_3, data_3_new, **tols)
     raw_3_new = raw_1.copy().load_data().apply_gradient_compensation(3)
     data_3_new, times_new = raw_3_new[:, :]
-    assert_allclose(data_3, data_3_new, rtol=1e-6, atol=1e-16)
+    assert_allclose(data_3, data_3_new, **tols)
 
     for load in (False, True):
         for raw in (raw_0, raw_1):
@@ -1261,7 +1266,7 @@ def test_compensation_raw():
             data_3_new, times_new = raw_3_new[:, :]
             assert_array_equal(times, times_new)
             assert_true(np.mean(np.abs(data_3_new - data_1)) > 1e-12)
-            assert_allclose(data_3, data_3_new, rtol=1e-12, atol=1e-16)
+            assert_allclose(data_3, data_3_new, **tols)
 
     # Try IO with compensation
     temp_file = op.join(tempdir, 'raw.fif')
@@ -1271,30 +1276,32 @@ def test_compensation_raw():
         assert_equal(raw_read.compensation_grade, 3)
         data_read, times_new = raw_read[:, :]
         assert_array_equal(times, times_new)
-        assert_allclose(data_3, data_read, rtol=1e-12, atol=1e-22)
+        assert_allclose(data_3, data_read, **tols)
         raw_read.apply_gradient_compensation(1)
         data_read, times_new = raw_read[:, :]
         assert_array_equal(times, times_new)
-        assert_allclose(data_1, data_read, rtol=1e-12, atol=1e-22)
+        assert_allclose(data_1, data_read, **tols)
 
     # Now save the file that has modified compensation
     # and make sure the compensation is the same as it was,
     # but that we can undo it
 
-    # These channels have norm 1e-11/1e-12, so atol=1e-16 isn't awesome,
+    # These channels have norm 1e-11/1e-12, so atol=1e-18 isn't awesome,
     # but it's due to the single precision of the info['comps'] leading
-    # to inexact inversions (e.g., 1->3->1 will degrade like this)
+    # to inexact inversions with saving/loading (casting back to single)
+    # in between (e.g., 1->3->1 will degrade like this)
+    looser_tols = dict(rtol=1e-6, atol=1e-18)
     raw_1.save(temp_file, overwrite=True)
     for preload in (True, False):
         raw_read = read_raw_fif(temp_file, preload=preload, verbose=True)
         assert_equal(raw_read.compensation_grade, 1)
         data_read, times_new = raw_read[:, :]
         assert_array_equal(times, times_new)
-        assert_allclose(data_1, data_read, rtol=1e-6, atol=1e-18)
+        assert_allclose(data_1, data_read, **looser_tols)
         raw_read.apply_gradient_compensation(3, verbose=True)
         data_read, times_new = raw_read[:, :]
         assert_array_equal(times, times_new)
-        assert_allclose(data_3, data_read, rtol=1e-6, atol=1e-16)
+        assert_allclose(data_3, data_read, **looser_tols)
 
 
 @requires_mne

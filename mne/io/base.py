@@ -351,9 +351,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         .. warning:: The compensation matrices are stored with single
                      precision, so repeatedly switching between different
                      of compensation (e.g., 0->1->3->2) can increase
-                     numerical noise. It is thus best to only use a single
-                     gradient compensation level in final analyses,
-                     and if possible.
+                     numerical noise, especially if data are saved to
+                     disk in between changing grades. It is thus best to
+                     only use a single gradient compensation level in
+                     final analyses.
 
         Parameters
         ----------
@@ -370,6 +371,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         grade = int(grade)
         current_comp = self.compensation_grade
         if current_comp != grade:
+            if self.proj:
+                raise RuntimeError('Cannot change compensation on data where '
+                                   'projectors have been applied')
             # Figure out what operator to use (varies depending on preload)
             from_comp = current_comp if self.preload else self._read_comp_grade
             comp = make_compensator(self.info, from_comp, grade)
@@ -379,8 +383,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # We might need to apply it to our data now
             if self.preload:
                 logger.info('Applying compensator to loaded data')
-                # XXX do we need to make sure this is done before any
-                # projectors are applied (i.e., raise error here sometimes)?
                 lims = np.concatenate([np.arange(0, len(self.times), 10000),
                                        [len(self.times)]])
                 for start, stop in zip(lims[:-1], lims[1:]):
