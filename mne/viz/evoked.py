@@ -1481,7 +1481,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
     ax.xaxis.get_label().set_verticalalignment('center')
 
     # set y label and ylabel position
-    ax.set_ylabel(_handle_default("units")[ch_type], rotate=0)
+    ax.set_ylabel(_handle_default("units")[ch_type], rotation=0)
     ylabel_height = (-(current_ymin / y_range)
                      if 0 > current_ymin  # ... if we have negative values
                      else (ax.get_yticks()[-1] / 2 / y_range))
