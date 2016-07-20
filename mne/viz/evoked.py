@@ -16,7 +16,8 @@ from functools import partial
 import numpy as np
 
 from ..io.pick import (channel_type, pick_types, _picks_by_type,
-                       _pick_data_channels, _DATA_CH_TYPES_SPLIT)
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT
+)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
@@ -29,6 +30,7 @@ from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
 from ..channels import find_layout
 from ..channels.layout import (_pair_grad_sensors, generate_2d_layout,
                                _auto_topomap_coords)
+
 
 def _butterfly_onpick(event, params):
     """Helper to add a channel name on click"""
