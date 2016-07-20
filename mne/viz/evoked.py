@@ -16,7 +16,7 @@ from functools import partial
 import numpy as np
 
 from ..io.pick import (channel_type, pick_types, _picks_by_type,
-                       _pick_data_channels)
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
@@ -1335,7 +1335,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         ch_type = channel_type(example.info, picks[0])
     scaling = _handle_default("scalings")[ch_type]
 
-    # deal with dict/list of lists, and calculate the SEM
+    # deal with dict/list of lists, and calculate the CI
     if not isinstance(evokeds[conditions[0]], Evoked):
         from ..evoked import combine_evoked
         if not isinstance(evokeds[conditions[0]][0], Evoked):
@@ -1503,4 +1503,6 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
 
     fig = plt.gcf()
     fig.set_size_inches(8, 6)
+
+    plt_show(show)
     return fig
