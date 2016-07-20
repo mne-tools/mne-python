@@ -17,7 +17,7 @@ from numpy.testing import assert_raises
 from mne import io, read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
 from mne.utils import slow_test, run_tests_if_main
-from mne.viz.evoked import _butterfly_onselect, plot_compare_evoked
+from mne.viz.evoked import _butterfly_onselect, plot_compare_evokeds
 from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
@@ -129,19 +129,19 @@ def test_plot_evoked():
         evoked.plot_white(cov)
         evoked.plot_white([cov, cov])
 
-        # plot_compare_evoked single plot
-        plot_compare_evoked(evoked)
+        # plot_compare_evokeds single plot
+        plot_compare_evokeds(evoked)
 
         # test condition contrast, CI, color assignment
         colors = dict(red='r', blue='b')
-        contrast_1, contrast_2 = evoked.copy(), evoked.copy()
+        red, blue = evoked.copy(), evoked.copy()
         red.data *= 1.1
         blue.data *= 0.9
         contrast = dict()
         dict["red/stim"] = list(evoked.copy(), red)
         dict["blue/stim"] = list(evoked.copy(), blue)
-        plot_compare_evoked(contrast, colors=colors,
-                            picks=evoked.ch_names[0])
+        plot_compare_evokeds(contrast, colors=colors,
+                             picks=evoked.ch_names[0])
 
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()
