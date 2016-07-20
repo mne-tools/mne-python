@@ -69,8 +69,8 @@ raw.plot()
 # Maxwell filtering:
 
 raw.apply_gradient_compensation(0)  # must un-do software compensation first
-raw = mne.preprocessing.maxwell_filter(
-    raw, origin=(0., 0., 0.), st_duration=10.)
+mf_kwargs = dict(origin=(0., 0., 0.), st_duration=10.)
+raw = mne.preprocessing.maxwell_filter(raw, **mf_kwargs)
 raw.plot()
 
 ###############################################################################
@@ -86,13 +86,17 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=tmin, tmax=tmax,
 evoked = epochs.average()
 evoked.plot()
 evoked.crop(0., 0.)
+del raw, epochs
 
 ###############################################################################
 # To do a dipole fit, let's use the covariance provided by the empty room
 # recording.
 
-raw_erm = read_raw_ctf(erm_path)
+raw_erm = read_raw_ctf(erm_path).apply_gradient_compensation(0)
+raw_erm = mne.preprocessing.maxwell_filter(raw_erm, coord_frame='meg',
+                                           **mf_kwargs)
 cov = mne.compute_raw_covariance(raw_erm)
+del raw_erm
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None)
 dip = fit_dipole(evoked, cov, sphere)[0]
 
