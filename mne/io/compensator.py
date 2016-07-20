@@ -29,11 +29,11 @@ def set_current_comp(info, comp):
             chan['coil_type'] = int(rem + (comp << 16))
 
 
-def _make_compensator(info, kind):
+def _make_compensator(info, grade):
     """Auxiliary function for make_compensator
     """
     for k in range(len(info['comps'])):
-        if info['comps'][k]['kind'] == kind:
+        if info['comps'][k]['kind'] == grade:
             this_data = info['comps'][k]['data']
 
             #   Create the preselector
@@ -61,8 +61,8 @@ def _make_compensator(info, kind):
             this_comp = np.dot(postsel, np.dot(this_data['data'], presel))
             return this_comp
 
-    raise ValueError('Desired compensation matrix (kind = %d) not'
-                     ' found' % kind)
+    raise ValueError('Desired compensation matrix (grade = %d) not'
+                     ' found' % grade)
 
 
 def make_compensator(info, from_, to, exclude_comp_chs=False):
@@ -91,20 +91,21 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
     if from_ == to:
         return None
 
-    if from_ == 0:
-        C1 = np.zeros((info['nchan'], info['nchan']))
-    else:
-        C1 = _make_compensator(info, from_)
-
-    if to == 0:
-        C2 = np.zeros((info['nchan'], info['nchan']))
-    else:
-        C2 = _make_compensator(info, to)
-
     #   s_orig = s_from + C1*s_from = (I + C1)*s_from
     #   s_to   = s_orig - C2*s_orig = (I - C2)*s_orig
     #   s_to   = (I - C2)*(I + C1)*s_from = (I + C1 - C2 - C2*C1)*s_from
-    comp = np.eye(info['nchan']) + C1 - C2 - np.dot(C2, C1)
+    if from_ != 0:
+        C1 = _make_compensator(info, from_)
+    if to != 0:
+        C2 = _make_compensator(info, to)
+    if from_ != 0:
+        if to != 0:
+            comp = np.eye(info['nchan']) + C1 - C2 - np.dot(C2, C1)
+        else:
+            comp = np.eye(info['nchan']) + C1
+    else:
+        # to != 0 guaranteed here
+        comp = np.eye(info['nchan']) - C2
 
     if exclude_comp_chs:
         pick = [k for k, c in enumerate(info['chs'])

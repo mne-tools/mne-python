@@ -19,7 +19,6 @@ from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.io import (Raw, proc_history, read_info, read_raw_bti, read_raw_kit,
                     _BaseRaw)
-from mne.io.compensator import get_current_comp
 from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
@@ -260,7 +259,7 @@ def test_other_systems():
 
     # CTF
     raw_ctf = Raw(fname_ctf_raw)
-    assert_equal(get_current_comp(raw_ctf.info), 3)
+    assert_equal(raw_ctf.compensation_grade, 3)
     assert_raises(RuntimeError, maxwell_filter, raw_ctf)  # compensated
     raw_ctf.apply_gradient_compensation(0)
     assert_raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape

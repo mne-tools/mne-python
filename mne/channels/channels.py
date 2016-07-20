@@ -15,6 +15,7 @@ from scipy import sparse
 from ..externals.six import string_types
 
 from ..utils import verbose, logger, warn
+from ..io.compensator import get_current_comp
 from ..io.meas_info import anonymize_info
 from ..io.pick import (channel_type, pick_info, pick_types,
                        _check_excludes_includes, _PICK_TYPES_KEYS)
@@ -174,6 +175,12 @@ class ContainsMixin(object):
         else:
             has_ch_type = _contains_ch_type(self.info, ch_type)
         return has_ch_type
+
+    @property
+    def compensation_grade(self):
+        """The current gradient compensation grade"""
+        return get_current_comp(self.info)
+
 
 # XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py
 _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,

@@ -13,7 +13,6 @@ import os
 import os.path as op
 
 import numpy as np
-from scipy import linalg
 
 from .constants import FIFF
 from .pick import pick_types, channel_type, pick_channels, pick_info
@@ -23,7 +22,7 @@ from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin)
 from ..channels.montage import read_montage, _set_montage, Montage
-from .compensator import get_current_comp, set_current_comp, make_compensator
+from .compensator import set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
@@ -329,11 +328,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._raw_extras = list(raw_extras)
         # deal with compensation (only relevant for CTF data, either CTF
         # reader or MNE-C converted CTF->FIF files)
-        comp_grade = get_current_comp(info)
-        if comp_grade is not None:
-            logger.info('Current compensation grade : %d' % comp_grade)
-        self.comp = None
-        self._orig_comp_grade = comp_grade
+        self._read_comp_grade = self.compensation_grade  # read property
+        if self._read_comp_grade is not None:
+            logger.info('Current compensation grade : %d'
+                        % self._read_comp_grade)
+        self._comp = None
         self._filenames = list(filenames)
         self.orig_format = orig_format
         self._projectors = list()
@@ -345,26 +344,50 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if load_from_disk:
             self._preload_data(preload)
 
-    def apply_gradient_compensation(self, grade):
+    @verbose
+    def apply_gradient_compensation(self, grade, verbose=None):
         """Apply CTF gradient compensation
+
+        .. warning:: The compensation matrices are stored with single
+                     precision, so repeatedly switching between different
+                     of compensation (e.g., 0->1->3->2) can increase
+                     numerical noise. It is thus best to only use a single
+                     gradient compensation level in final analyses,
+                     and if possible.
 
         Parameters
         ----------
         grade : int
             CTF gradient compensation level.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
 
         Returns
         -------
         raw : instance of Raw
             The modified Raw instance. Works in-place.
         """
-        current_comp = get_current_comp(self.info)
-        self.comp = make_compensator(self.info, current_comp, grade)
-        if self.comp is not None:
-            logger.info('Appropriate compensator added to change to '
-                        'grade %d.' % (grade,))
-            self._orig_comp_grade = current_comp
+        grade = int(grade)
+        current_comp = self.compensation_grade
+        if current_comp != grade:
+            # Figure out what operator to use (varies depending on preload)
+            from_comp = current_comp if self.preload else self._read_comp_grade
+            comp = make_compensator(self.info, from_comp, grade)
+            logger.info('Compensator constructed to change %d -> %d (%d)'
+                        % (current_comp, grade, from_comp))
             set_current_comp(self.info, grade)
+            # We might need to apply it to our data now
+            if self.preload:
+                logger.info('Applying compensator to loaded data')
+                # XXX do we need to make sure this is done before any
+                # projectors are applied (i.e., raise error here sometimes)?
+                lims = np.concatenate([np.arange(0, len(self.times), 10000),
+                                       [len(self.times)]])
+                for start, stop in zip(lims[:-1], lims[1:]):
+                    self._data[:, start:stop] = np.dot(
+                        comp, self._data[:, start:stop])
+            else:
+                self._comp = comp  # store it for later use
         return self
 
     @property
@@ -438,12 +461,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # set up cals and mult (cals, compensation, and projector)
         cals = self._cals.ravel()[np.newaxis, :]
-        if self.comp is not None:
+        if self._comp is not None:
             if projector is not None:
-                mult = self.comp * cals
+                mult = self._comp * cals
                 mult = np.dot(projector[idx], mult)
             else:
-                mult = self.comp[idx] * cals
+                mult = self._comp[idx] * cals
         elif projector is not None:
             mult = projector[idx] * cals
         else:
@@ -569,6 +592,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info['nchan']
         self.preload = True
+        self._comp = None  # no longer needed
         self.close()
 
     def _update_times(self):
@@ -1393,12 +1417,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             info = self.info
             projector = None
 
-        # set the correct compensation grade and make inverse compensator
-        inv_comp = None
-        if self.comp is not None:
-            inv_comp = linalg.inv(self.comp)
-            set_current_comp(info, self._orig_comp_grade)
-
         #
         #   Set up the reading parameters
         #
@@ -1416,8 +1434,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # write the raw file
         _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
-                   start, stop, buffer_size, projector, inv_comp,
-                   drop_small_buffer, split_size, 0, None)
+                   start, stop, buffer_size, projector, drop_small_buffer,
+                   split_size, 0, None)
 
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
@@ -2007,7 +2025,7 @@ class _RawShell():
 ###############################################################################
 # Writing
 def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
-               stop, buffer_size, projector, inv_comp, drop_small_buffer,
+               stop, buffer_size, projector, drop_small_buffer,
                split_size, part_idx, prev_fname):
     """Write raw file with splitting
     """
@@ -2065,7 +2083,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                         '[done]')
             break
         logger.info('Writing ...')
-        _write_raw_buffer(fid, data, cals, fmt, inv_comp)
+        _write_raw_buffer(fid, data, cals, fmt)
 
         pos = fid.tell()
         this_buff_size_bytes = pos - pos_prev
@@ -2088,7 +2106,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             next_fname, next_idx = _write_raw(
                 fname, raw, info, picks, fmt,
                 data_type, reset_range, first + buffer_size, stop, buffer_size,
-                projector, inv_comp, drop_small_buffer, split_size,
+                projector, drop_small_buffer, split_size,
                 part_idx + 1, use_fname)
 
             start_block(fid, FIFF.FIFFB_REF)
@@ -2193,7 +2211,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     return fid, cals
 
 
-def _write_raw_buffer(fid, buf, cals, fmt, inv_comp):
+def _write_raw_buffer(fid, buf, cals, fmt):
     """Write raw buffer
 
     Parameters
@@ -2208,9 +2226,6 @@ def _write_raw_buffer(fid, buf, cals, fmt, inv_comp):
         'short', 'int', 'single', or 'double' for 16/32 bit int or 32/64 bit
         float for each item. This will be doubled for complex datatypes. Note
         that short and int formats cannot be used for complex data.
-    inv_comp : array | None
-        The CTF compensation matrix used to revert compensation
-        change when reading.
     """
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
@@ -2236,11 +2251,7 @@ def _write_raw_buffer(fid, buf, cals, fmt, inv_comp):
             raise ValueError('only "single" and "double" supported for '
                              'writing complex data')
 
-    if inv_comp is not None:
-        buf = np.dot(inv_comp / np.ravel(cals)[:, None], buf)
-    else:
-        buf = buf / np.ravel(cals)[:, None]
-
+    buf = buf / np.ravel(cals)[:, None]
     write_function(fid, FIFF.FIFF_DATA_BUFFER, buf)
 
 

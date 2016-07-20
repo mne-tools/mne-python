@@ -59,6 +59,21 @@ events = np.where(np.diff(sinusoid > 0.5) > 0)[1] + raw.first_samp
 events = np.vstack((events, np.zeros_like(events), np.ones_like(events))).T
 
 ###############################################################################
+# The CTF software compensation works reasonably well:
+
+raw.plot()
+
+###############################################################################
+# But here we can get slightly better noise suppression, lower localization
+# bias, and a better dipole goodness of fit with spatio-temporal (tSSS)
+# Maxwell filtering:
+
+raw.apply_gradient_compensation(0)  # must un-do software compensation first
+raw = mne.preprocessing.maxwell_filter(
+    raw, origin=(0., 0., 0.), st_duration=10.)
+raw.plot()
+
+###############################################################################
 # Our choice of tmin and tmax should capture exactly one cycle, so
 # we can make the unusual choice of baselining using the entire epoch
 # when creating our evoked data. We also then crop to a single time point

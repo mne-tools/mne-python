@@ -20,7 +20,6 @@ from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
 from ..io.constants import FIFF
-from ..io.compensator import get_current_comp
 from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, _BaseRaw
@@ -896,8 +895,8 @@ def _check_usable(inst):
     """Helper to ensure our data are clean"""
     if inst.proj:
         raise RuntimeError('Projectors cannot be applied to data.')
-    current_comp = get_current_comp(inst.info)
-    if current_comp != 0:
+    current_comp = inst.compensation_grade
+    if current_comp not in (0, None):
             raise RuntimeError('Maxwell filter cannot be done on compensated '
                                'channels, but data have been compensated with '
                                'grade %s.' % current_comp)
