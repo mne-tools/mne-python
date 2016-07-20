@@ -11,8 +11,7 @@
 import numpy as np
 from os.path import splitext
 
-from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
-                    deprecated)
+from .utils import check_fname, logger, verbose, _get_stim_channel, warn
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -188,8 +187,6 @@ def _read_events_fif(fid, tree):
     event_list = event_list.reshape(len(event_list) // 3, 3)
     return event_list, mappings
 
-@deprecated("The default setting for the argument 'mask_type' will change "
-            "from None to 'and' in v0.14.")
 def read_events(filename, include=None, exclude=None, mask=0,
                 mask_type=None):
     """Reads events from fif or text file
@@ -278,6 +275,9 @@ def read_events(filename, include=None, exclude=None, mask=0,
         if masked_len < unmasked_len:
             warn('{0} of {1} events masked'.format(unmasked_len - masked_len,
                                                    unmasked_len))
+    else:
+        warn("The default setting for the argument 'mask_type' will change "
+             "from None to 'and' in v0.14.", DeprecationWarning)
     return event_list
 
 
@@ -492,8 +492,6 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     return events
 
 @verbose
-@deprecated("The default setting for the argument 'mask_type' will change "
-            "from None to 'and' in v0.14.")
 def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
                 shortest_event=2, mask=0, uint_cast=False,
@@ -669,7 +667,7 @@ def _mask_trigs(events, mask, mask_type):
 
     if mask_type is None:
         warn("The default setting will change from 'not_and' "
-             "to 'and' in v0.14.")
+             "to 'and' in v0.14.", DeprecationWarning)
     if mask_type in ('not_and', None):
         mask = np.bitwise_not(mask)
     elif mask_type != 'and':
