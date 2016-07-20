@@ -1285,7 +1285,6 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
     fig : Figure
         The figure on which the plot is drawn.
     """
-    from scipy import stats
     from ..evoked import Evoked
     import matplotlib.pyplot as plt
 
