@@ -1200,7 +1200,7 @@ def set_cache_dir(cache_dir):
     if cache_dir is not None and not op.exists(cache_dir):
         raise IOError('Directory %s does not exist' % cache_dir)
 
-    set_config('MNE_CACHE_DIR', cache_dir)
+    set_config('MNE_CACHE_DIR', cache_dir, set_env=False)
 
 
 def set_memmap_min_size(memmap_min_size):
@@ -1220,7 +1220,7 @@ def set_memmap_min_size(memmap_min_size):
             raise ValueError('The size has to be given in kilo-, mega-, or '
                              'gigabytes, e.g., 100K, 500M, 1G.')
 
-    set_config('MNE_MEMMAP_MIN_SIZE', memmap_min_size)
+    set_config('MNE_MEMMAP_MIN_SIZE', memmap_min_size, set_env=False)
 
 
 # List the known configuration values
@@ -1320,7 +1320,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
         val = config.get(key, default)
     if not key_found and raise_error is True:
         meth_1 = 'os.environ["%s"] = VALUE' % key
-        meth_2 = 'mne.utils.set_config("%s", VALUE)' % key
+        meth_2 = 'mne.utils.set_config("%s", VALUE, set_env=True)' % key
         raise KeyError('Key "%s" not found in environment or in the '
                        'mne-python config file: %s '
                        'Try either:'
@@ -1332,7 +1332,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     return val
 
 
-def set_config(key, value, home_dir=None):
+def set_config(key, value, home_dir=None, set_env=None):
     """Set mne-python preference in config
 
     Parameters
@@ -1346,6 +1346,9 @@ def set_config(key, value, home_dir=None):
     home_dir : str | None
         The folder that contains the .mne config folder.
         If None, it is found automatically.
+    set_env : bool
+        If True, update :inst:`os.environ` in addition to updating the
+        MNE-Python config file.
 
     See Also
     --------
@@ -1362,6 +1365,11 @@ def set_config(key, value, home_dir=None):
     if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
         warn('Setting non-standard config type: "%s"' % key)
+    if set_env is None:
+        warnings.warn('set_env defaults to False in 0.13 but will change '
+                      'to True in 0.14, set it explicitly to avoid this '
+                      'warning', DeprecationWarning)
+        set_env = False
 
     # Read all previous values
     config_path = get_config_path(home_dir=home_dir)
@@ -1373,8 +1381,12 @@ def set_config(key, value, home_dir=None):
                     'file:\n%s' % config_path)
     if value is None:
         config.pop(key, None)
+        if set_env and key in os.environ:
+            del os.environ[key]
     else:
         config[key] = value
+        if set_env:
+            os.environ[key] = value
 
     # Write all values. This may fail if the default directory is not
     # writeable.

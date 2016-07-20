@@ -534,7 +534,7 @@ def figure_nobar(*args, **kwargs):
 def _helper_raw_resize(event, params):
     """Helper for resizing"""
     size = ','.join([str(s) for s in params['fig'].get_size_inches()])
-    set_config('MNE_BROWSE_RAW_SIZE', size)
+    set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
     _layout_figure(params)
 
 

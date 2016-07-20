@@ -103,7 +103,7 @@ mne.set_log_level('INFO')
 # You can set the default level by setting the environment variable
 # "MNE_LOGGING_LEVEL", or by having mne-python write preferences to a file:
 
-mne.set_config('MNE_LOGGING_LEVEL', 'WARNING')
+mne.set_config('MNE_LOGGING_LEVEL', 'WARNING', set_env=True)
 
 ##############################################################################
 # Note that the location of the mne-python preferences file (for easier manual
@@ -170,7 +170,7 @@ print(events[:5])
 # system (e.g., a newer system that uses channel 'STI101' by default), you can
 # use the following to set the default stim channel to use for finding events:
 
-mne.set_config('MNE_STIM_CHANNEL', 'STI101')
+mne.set_config('MNE_STIM_CHANNEL', 'STI101', set_env=True)
 
 ##############################################################################
 # Events are stored as 2D numpy array where the first column is the time
