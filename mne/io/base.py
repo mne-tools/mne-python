@@ -377,8 +377,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # Figure out what operator to use (varies depending on preload)
             from_comp = current_comp if self.preload else self._read_comp_grade
             comp = make_compensator(self.info, from_comp, grade)
-            logger.info('Compensator constructed to change %d -> %d (%d)'
-                        % (current_comp, grade, from_comp))
+            logger.info('Compensator constructed to change %d -> %d'
+                        % (current_comp, grade))
             set_current_comp(self.info, grade)
             # We might need to apply it to our data now
             if self.preload:
