@@ -45,6 +45,8 @@ def test_searchlight():
     # score
     score = sl.score(X, y)
     assert_array_equal(score.shape, [n_time])
+    assert_true(np.sum(np.abs(score)) != 0)
+    assert_true(score.dtype == float)
 
     # n_jobs
     sl = SearchLight(LogisticRegression(), n_jobs=2)
@@ -89,6 +91,8 @@ def test_generalizationlight():
     # score
     score = gl.score(X[:, :, :3], y)
     assert_array_equal(score.shape, [n_time, 3])
+    assert_true(np.sum(np.abs(score)) != 0)
+    assert_true(score.dtype == float)
 
     # n_jobs
     gl = GeneralizationLight(LogisticRegression(), n_jobs=2)

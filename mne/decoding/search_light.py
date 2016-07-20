@@ -261,8 +261,15 @@ def _sl_score(estimators, X, y):
         _score = est.score(X[..., ii], y)
         # init predictions
         if ii == 0:
-            score = np.zeros(np.r_[n_iter, _score.shape], int)
-        score[ii, ...] = _score
+            if isinstance(_score, np.ndarray):
+                dtype = _score.dtype
+                shape = _score.shape
+                np.r_[n_iter, _score.shape]
+            else:
+                dtype = type(_score)
+                shape = n_iter
+            score = np.zeros(shape, dtype)
+        score[ii] = _score
     return score
 
 
@@ -470,11 +477,15 @@ def _gl_score(estimators, X, y):
     for ii, est in enumerate(estimators):
         for jj in range(X.shape[-1]):
             _score = est.score(X[..., jj], y)
+
             # init predictions
             if (ii == 0) & (jj == 0):
-                if np.ndim(_score):
-                    score = np.zeros(np.r_[n_est, n_iter, _score.shape], int)
+                if isinstance(_score, np.ndarray):
+                    dtype = _score.dtype
+                    shape = np.r_[n_est, n_iter, _score.shape]
                 else:
-                    score = np.zeros([n_est, n_iter])
+                    dtype = type(_score)
+                    shape = [n_est, n_iter]
+                score = np.zeros(shape, dtype)
             score[ii, jj, ...] = _score
     return score
