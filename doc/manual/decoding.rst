@@ -29,7 +29,7 @@ To recover the original 3D data, an ``inverse_transform`` can be used. The ``epo
 
 Vectorizer
 ^^^^^^^^^^
-Scikit-learn API provides functionality to chain transformers and estimators by using :class:`sklearn.pipeline.Pipeline`. We can construct decoding pipeline and perform cross-validation and grid-search. However scikit-Learn transformers and estimators generally expect 2D data (n_samples * n_features), MNE transformers typically output data with higher dimensionality (e.g. n_samples * n_channels * n_frequencies * n_times). A Vectorizer therefore needs to be applied between the MNE and the Scikit-Learn steps: e.g: make_pipeline(Xdawn(), Vectorizer(), LogisticRegression())
+Scikit-learn API provides functionality to chain transformers and estimators by using :class:`sklearn.pipeline.Pipeline`. We can construct decoding pipeline and perform cross-validation and grid-search. However scikit-Learn transformers and estimators generally expect 2D data (n_samples * n_features), whereas MNE transformers typically output data with higher dimensionality (e.g. n_samples * n_channels * n_frequencies * n_times). A Vectorizer therefore needs to be applied between the MNE and the Scikit-Learn steps: e.g: make_pipeline(Xdawn(), Vectorizer(), LogisticRegression())
 
 PSDEstimator
 ^^^^^^^^^^^^

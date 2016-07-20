@@ -248,23 +248,28 @@ class EpochsVectorizer(TransformerMixin):
 class Vectorizer(TransformerMixin):
     """Transforms n-dimensional array into 2D array of n_sample by n_features.
 
-    MNE transformer have three, four dimensional output. This class converts
-    them into two dimension so as to comply with scikit-learn API.
+    This class reshapes an n-dimensional array into an n_sample * n_features
+    array, usable by the estimators and transformers of scikit-learn.
 
     Examples
-    -------
+    --------
     clf = make_pipeline(SpatialFilter(), XdawnTransformer(), Vectorizer(),
                         LogisticRegression())
+
+    Attributes
+    ----------
+    ``shape_`` : array
+         Stores the original dimension of data.
     """
 
     def fit(self, X, y=None):
-        """Does nothing. Added for scikit-learn compatibility.
+        """Stores the shape of X.
 
         Parameters
         ----------
         X : array-like
             The data to fit. Can be, for example a list, or an array of at
-            least 2d. The first dimension must be of shape (n_sample).
+            least 2d. The first dimension must be of shape (n_samples).
         y : None
             Used for scikit-learn compatibility.
 
@@ -273,7 +278,7 @@ class Vectorizer(TransformerMixin):
         self : Instance of Vectorizer
             Return the modified instance.
         """
-        self.shape_ = X.shape
+        self.shape_ = X.shape[1:]
         return self
 
     def transform(self, X):
@@ -282,13 +287,13 @@ class Vectorizer(TransformerMixin):
         Parameters
         ----------
         X : array-like
-            The data to be transformed. Can be, for example a list, or an 
+            The data to be transformed. Can be, for example a list, or an
             array of at least 2d. The first dimension must be of
-            shape (n_sample).
+            shape (n_samples).
 
         Returns
         -------
-        X : numpy ndarray of shape(n_trials, n_chan * n_times * n_freqs)
+        X : array, shape (n_trials, n_chan * n_times)
             The transformed data.
         """
         return X.reshape(len(X), -1)
@@ -299,36 +304,36 @@ class Vectorizer(TransformerMixin):
         Parameters
         ----------
         X : array-like
-            The data to be transformed. Can be, for example a list, or an 
+            The data to be transformed. Can be, for example a list, or an
             array of at least 2d. The first dimension must be of
-            shape (n_sample).
+            shape (n_samples).
         y : None
             Used for scikit-learn compatibility.
 
         Returns
         -------
-        X : numpy ndarray of shape(n_trials, n_chan * n_times * n_freqs)
+        X : array, shape (n_trials, n_chan * n_times)
             The transformed data.
         """
         return self.fit(X).transform(X)
 
     def inverse_transform(self, X):
-        """Transform 2D data back to shape used in fit.
+        """Transform 2D data back to its original feature shape.
 
         Parameters
         ----------
         X : array-like
-            The data to be transformed. Can be, for example a list, or an 
+            The data to be transformed. Can be, for example a list, or an
             array of at least 2d. The first dimension must be of
-            shape (n_sample).
+            shape (n_samples).
 
         Returns
         -------
         X : array-like
             The data transformed into shape as used in fit. The first
-            dimension is of shape (n_sample).
+            dimension is of shape (n_samples).
         """
-        return X.reshape(self.shape_)
+        return X.reshape(np.r_[len(X), self.shape_])
 
 
 class PSDEstimator(TransformerMixin):
