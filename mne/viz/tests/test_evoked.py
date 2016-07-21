@@ -138,8 +138,8 @@ def test_plot_evoked():
         red.data *= 1.1
         blue.data *= 0.9
         contrast = dict()
-        dict["red/stim"] = list(evoked.copy(), red)
-        dict["blue/stim"] = list(evoked.copy(), blue)
+        contrast["red/stim"] = list((evoked.copy(), red))
+        contrast["blue/stim"] = list((evoked.copy(), blue))
         plot_compare_evokeds(contrast, colors=colors,
                              picks=evoked.ch_names[0])
 

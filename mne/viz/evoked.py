@@ -1376,7 +1376,6 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                 else:
                     data = np.asarray([evoked_.data[picks, :].mean(0)
                                        for evoked_ in evokeds[condition]])
-
                 sem_array[condition] = _ci(data, ci)
 
         # get the grand mean
