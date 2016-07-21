@@ -897,9 +897,9 @@ def _check_usable(inst):
         raise RuntimeError('Projectors cannot be applied to data.')
     current_comp = inst.compensation_grade
     if current_comp not in (0, None):
-            raise RuntimeError('Maxwell filter cannot be done on compensated '
-                               'channels, but data have been compensated with '
-                               'grade %s.' % current_comp)
+        raise RuntimeError('Maxwell filter cannot be done on compensated '
+                           'channels, but data have been compensated with '
+                           'grade %s.' % current_comp)
 
 
 def _col_norm_pinv(x):
