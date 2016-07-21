@@ -142,7 +142,7 @@ class _GeneralizationAcrossTime(object):
         self.ch_names = [epochs.ch_names[p] for p in self.picks_]
 
         # Prepare cross-validation
-        self.cv_, self._cv_splits = _set_cv(self.cv, clf=self.clf, X=X, y=y)
+        self.cv_, self._cv_splits = _set_cv(self.cv, self.clf, X=X, y=y)
 
         self.y_train_ = y
 

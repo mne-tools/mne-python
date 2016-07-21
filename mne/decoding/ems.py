@@ -40,7 +40,7 @@ class EMS(TransformerMixin, EstimatorMixin):
         by the objective_function. If None keys in epochs.event_id are used.
     picks : array-like of int | None
         Channels to be included. If None only good data channels are used.
-        Defaults to None
+        Defaults to None.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
@@ -92,7 +92,7 @@ class EMS(TransformerMixin, EstimatorMixin):
 
         Returns
         -------
-        X : array, shape (n_epochs, n_filter, n_times)
+        X : array, shape (n_epochs, n_filters, n_times)
             The input data transformed by the spatial filters.
         """
         Xt = np.sum(X * self.filters_, axis=1)
@@ -105,7 +105,7 @@ class EMS(TransformerMixin, EstimatorMixin):
 @verbose
 def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
                 cv='LeaveOneOut'):
-    """Compute event-matched spatial filter on epochs
+    """Compute event-matched spatial filter on epochs.
 
     This version operates on the entire time course. No time window needs to
     be specified. The result is a spatial filter at each time point and a
@@ -136,7 +136,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
         by the objective_function. If None keys in epochs.event_id are used.
     picks : array-like of int | None
         Channels to be included. If None only good data channels are used.
-        Defaults to None
+        Defaults to None.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
@@ -154,8 +154,6 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
     conditions : ndarray, shape (n_epochs,)
         The conditions used. Values correspond to original event ids.
     """
-    from sklearn.linear_model import LogisticRegression
-
     logger.info('...computing surrogate time series. This can take some time')
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True)
@@ -200,7 +198,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
     # Setup cross-validation. Need to use _set_cv to deal with sklearn
     # deprecation of cv objects.
     y = epochs.events[:, 2]
-    _, cv_splits = _set_cv(cv, clf=LogisticRegression(), X=y, y=y)
+    _, cv_splits = _set_cv(cv, 'classifier', X=y, y=y)
 
     parallel, p_func, _ = parallel_func(_run_ems, n_jobs=n_jobs)
     # FIXME this parallization should be removed.

@@ -650,29 +650,35 @@ class LinearModel(BaseEstimator):
                                     head_pos=head_pos)
 
 
-def _set_cv(cv, clf=None, X=None, y=None):
+def _set_cv(cv, estimator=None, X=None, y=None):
     """ Set the default cross-validation depending on whether clf is classifier
         or regressor. """
 
     from sklearn.base import is_classifier
 
+    # Detect whether classification or regression
+    if estimator in ['classifier', 'regressor']:
+        est_is_classifier = estimator == 'classifier'
+    else:
+        est_is_classifier = is_classifier(estimator)
+    # Setup CV
     if check_version('sklearn', '0.18'):
         from sklearn import model_selection as models
         from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
         if isinstance(cv, (int, np.int)):
-            XFold = StratifiedKFold if is_classifier(clf) else KFold
+            XFold = StratifiedKFold if est_is_classifier else KFold
             cv = XFold(n_folds=cv)
         elif isinstance(cv, str):
             if not hasattr(models, cv):
                 raise ValueError('Unknown cross-validation')
             cv = getattr(models, cv)
             cv = cv()
-        cv = check_cv(cv=cv, y=y, classifier=is_classifier(clf))
+        cv = check_cv(cv=cv, y=y, classifier=est_is_classifier)
     else:
         from sklearn import cross_validation as models
         from sklearn.cross_validation import (check_cv, StratifiedKFold, KFold)
         if isinstance(cv, (int, np.int)):
-            if is_classifier(clf):
+            if est_is_classifier:
                 cv = StratifiedKFold(y=y, n_folds=cv)
             else:
                 cv = KFold(n=len(y), n_folds=cv)
@@ -681,7 +687,7 @@ def _set_cv(cv, clf=None, X=None, y=None):
                 raise ValueError('Unknown cross-validation')
             cv = getattr(models, cv)
             cv = cv()
-        cv = check_cv(cv=cv, X=X, y=y, classifier=is_classifier(clf))
+        cv = check_cv(cv=cv, X=X, y=y, classifier=est_is_classifier)
 
     # Extract train and test set to retrieve them at predict time
     if hasattr(cv, 'split'):
