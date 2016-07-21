@@ -1,5 +1,6 @@
 # Author: Denis Engemann <denis.engemann@gmail.com>
 #         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -12,7 +13,8 @@ from .. import pick_types, pick_info
 
 
 @verbose
-def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
+def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
+                cv=None):
     """Compute event-matched spatial filter on epochs
 
     This version operates on the entire time course. No time window needs to
@@ -20,6 +22,13 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
     corresponding time course. Intuitively, the result gives the similarity
     between the filter at each time point and the data vector (sensors) at
     that time point.
+
+    .. note : EMS only works for binary classification.
+    .. note : The present function applies a leave-one-out cross-validation,
+              following Schurger et al's paper. However, we recommend using
+              a Stratified K-Fold cross-validation, which is known to have
+              less biases. Because of the leave-one-out, thise function needs
+              an equal number of epochs in each condition.
 
     References
     ----------
@@ -43,10 +52,12 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
+    cv : cross-validation object | None
+        If None, uses a leave-one-out cv.
 
     Returns
     -------
-    surrogate_trials : ndarray, shape (trials, n_trials, n_time_points)
+    surrogate_trials : ndarray, shape (n_trials // 2, n_times)
         The trial surrogates.
     mean_spatial_filter : ndarray, shape (n_channels, n_times)
         The set of spatial filters.
@@ -76,7 +87,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
                          len(conditions))
 
     ev = epochs.events[:, 2]
-    # special care to avoid path dependent mappings and orders
+    # Special care to avoid path dependent mappings and orders
     conditions = list(sorted(conditions))
     cond_idx = [np.where(ev == epochs.event_id[k])[0] for k in conditions]
 
@@ -84,30 +95,33 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
     data = epochs.get_data()[:, picks]
 
     # Scale (z-score) the data by channel type
+    # XXX the z-scoring is applied outside the CV! Not standard!
     for ch_type in ['mag', 'grad', 'eeg']:
         if ch_type in epochs:
+            # FIXME should be applied to all sort of data channels
             if ch_type == 'eeg':
                 this_picks = pick_types(info, meg=False, eeg=True)
             else:
                 this_picks = pick_types(info, meg=ch_type, eeg=False)
             data[:, this_picks] /= np.std(data[:, this_picks])
 
-    try:
-        from sklearn.model_selection import LeaveOneOut
-    except:  # XXX support sklearn < 0.18
-        from sklearn.cross_validation import LeaveOneOut
+    if cv is None:
+        # XXX the cv is a LOO! Not standard!
+        try:
+            from sklearn.model_selection import LeaveOneOut as cv
+        except:  # XXX support sklearn < 0.18
+            from sklearn.cross_validation import LeaveOneOut as cv
 
-    def _iter_cv(n):  # XXX support sklearn < 0.18
-        if hasattr(LeaveOneOut, 'split'):
-            cv = LeaveOneOut()
-            return cv.split(np.zeros((n, 1)))
+    # FIXME: need to clean this code
+    def _iter_cv(n, cv):  # XXX support sklearn < 0.18
+        if hasattr(cv, 'split'):
+            return cv().split(np.zeros((n, 1)))
         else:
-            cv = LeaveOneOut(len(data))
-            return cv
+            return cv(n)
 
     parallel, p_func, _ = parallel_func(_run_ems, n_jobs=n_jobs)
     out = parallel(p_func(_ems_diff, data, cond_idx, train, test)
-                   for train, test in _iter_cv(len(data)))
+                   for train, test in _iter_cv(len(data), cv))
 
     surrogate_trials, spatial_filter = zip(*out)
     surrogate_trials = np.array(surrogate_trials)
