@@ -43,6 +43,9 @@ Changelog
 
     - Add the ``--no-decimate`` option to :ref:`mne make_scalp_surfaces <gen_mne_make_scalp_surfaces>` to skip the high-resolution surface decimation step, by `Eric Larson`_
 
+    - Add :func:`mne.time_frequency.single_trial_complex` to compute the complex values of single trial time-frequency decompositions, by `Jean-Remi King`_
+
+
 BUG
 ~~~
 

@@ -7,7 +7,7 @@ import mne
 from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
                        grand_average)
-from mne.time_frequency import single_trial_power
+from mne.time_frequency import single_trial_power, single_trial_complex
 from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
                                     _dpss_wavelet, tfr_multitaper,
                                     AverageTFR, read_tfrs, write_tfrs,
@@ -207,6 +207,12 @@ def test_time_frequency():
     assert_raises(TypeError, tfr_morlet, epochs, freqs=freqs,
                   n_cycles=n_cycles, use_fft=True, return_itc=True,
                   decim='decim')
+
+    # Test single_trial_complex
+    power = single_trial_power(data, Fs, freqs, use_fft=False, n_cycles=2)
+    cmplx = single_trial_complex(data, Fs, freqs, use_fft=False, n_cycles=2)
+    assert_true(cmplx.dtype == np.complex128)
+    assert_array_almost_equal(np.abs(cmplx) ** 2, power)
 
 
 def test_dpsswavelet():

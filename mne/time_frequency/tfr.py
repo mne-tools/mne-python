@@ -374,11 +374,11 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     Parameters
     ----------
     data : array of shape [n_epochs, n_channels, n_times]
-        The epochs
+        The epochs.
     sfreq : float
-        Sampling rate
+        Sampling rate.
     frequencies : array-like
-        The frequencies
+        The frequencies.
     use_fft : bool
         Use the FFT for convolutions or not.
     n_cycles : float | array of float
@@ -403,7 +403,54 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
         first.
         If None no baseline correction is applied.
     times : array
-        Required to define baseline
+        Required to define baseline.
+    decim : int | slice
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice` returns tfr[..., decim].
+        Note that decimation may create aliasing artifacts.
+        Defaults to 1.
+    n_jobs : int
+        The number of epochs to process at the same time.
+    zero_mean : bool
+        Make sure the wavelets are zero mean.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    power : 4D array
+        Power estimate (Epochs x Channels x Frequencies x Timepoints).
+    """
+    decim = _check_decim(decim)
+    power = _single_trial_tfr(data, sfreq, frequencies, 'power', use_fft,
+                              n_cycles, decim, n_jobs, zero_mean, verbose)
+    # Run baseline correction.  Be sure to decimate the times array as well if
+    # needed.
+    if times is not None:
+        times = times[decim]
+    power = rescale(power, times, baseline, baseline_mode, copy=False)
+    return power
+
+
+def single_trial_complex(data, sfreq, frequencies, use_fft=True, n_cycles=7,
+                         decim=1, n_jobs=1, zero_mean=False, verbose=None):
+    """Compute time-frequency complex or power decompositions on single epochs.
+
+    Parameters
+    ----------
+    data : array of shape [n_epochs, n_channels, n_times]
+        The epochs.
+    sfreq : float
+        Sampling rate.
+    frequencies : array-like
+        The frequencies
+    use_fft : bool
+        Use the FFT for convolutions or not.
+    n_cycles : float | array of float
+        Number of cycles  in the Morlet wavelet. Fixed number
+        or one per frequency.
     decim : int | slice
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
@@ -423,6 +470,51 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     power : 4D array
         Power estimate (Epochs x Channels x Frequencies x Timepoints).
     """
+    return _single_trial_tfr(data, sfreq, frequencies, 'complex', use_fft,
+                             n_cycles, decim, n_jobs, zero_mean, verbose)
+
+
+def _single_trial_tfr(data, sfreq, frequencies, out_type, use_fft=True,
+                      n_cycles=7, decim=1, n_jobs=1, zero_mean=False,
+                      verbose=None):
+    """Compute time-frequency complex or power decompositions on single epochs.
+
+    Parameters
+    ----------
+    data : array of shape [n_epochs, n_channels, n_times]
+        The epochs.
+    sfreq : float
+        Sampling rate.
+    frequencies : array-like
+        The frequencies
+    use_fft : bool
+        Use the FFT for convolutions or not.
+    out_type : 'power' | 'complex'
+        The type of decomposition to return
+    n_cycles : float | array of float
+        Number of cycles  in the Morlet wavelet. Fixed number
+        or one per frequency.
+    decim : int | slice
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice` returns tfr[..., decim].
+        Note that decimation may create aliasing artifacts.
+        Defaults to 1.
+    n_jobs : int
+        The number of epochs to process at the same time
+    zero_mean : bool
+        Make sure the wavelets are zero mean.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    power : 4D array
+        Power estimate (Epochs x Channels x Frequencies x Timepoints).
+    """
+    if out_type not in ['power', 'complex']:
+        raise ValueError('out_type must be "power" or "complex"')
     decim = _check_decim(decim)
     mode = 'same'
     n_frequencies = len(frequencies)
@@ -435,8 +527,8 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
 
     logger.info("Computing time-frequency power on single epochs...")
 
-    power = np.empty((n_epochs, n_channels, n_frequencies, n_times),
-                     dtype=np.float)
+    dtype = np.float if out_type == 'power' else np.complex128
+    out = np.empty((n_epochs, n_channels, n_frequencies, n_times), dtype)
 
     # Package arguments for `cwt` here to minimize omissions where only one of
     # the two calls below is updated with new function arguments.
@@ -444,19 +536,19 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     if n_jobs == 1:
         for k, e in enumerate(data):
             x = cwt(e, **cwt_kw)
-            power[k] = (x * x.conj()).real
+            if out_type == 'power':
+                out[k] = (x * x.conj()).real
+            else:
+                out[k] = x
     else:
         # Precompute tf decompositions in parallel
         tfrs = parallel(my_cwt(e, **cwt_kw) for e in data)
         for k, tfr in enumerate(tfrs):
-            power[k] = (tfr * tfr.conj()).real
-
-    # Run baseline correction.  Be sure to decimate the times array as well if
-    # needed.
-    if times is not None:
-        times = times[decim]
-    power = rescale(power, times, baseline, baseline_mode, copy=False)
-    return power
+            if out_type == 'power':
+                out[k] = (tfr * tfr.conj()).real
+            else:
+                out[k] = tfr
+    return out
 
 
 def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
