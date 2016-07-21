@@ -246,9 +246,9 @@ class EpochsVectorizer(TransformerMixin):
 
 
 class Vectorizer(TransformerMixin):
-    """Transforms n-dimensional array into 2D array of n_sample by n_features.
+    """Transforms n-dimensional array into 2D array of n_samples by n_features.
 
-    This class reshapes an n-dimensional array into an n_sample * n_features
+    This class reshapes an n-dimensional array into an n_samples * n_features
     array, usable by the estimators and transformers of scikit-learn.
 
     Examples
@@ -259,17 +259,17 @@ class Vectorizer(TransformerMixin):
     Attributes
     ----------
     ``shape_`` : array
-         Stores the original dimension of data.
+         Stores the original shape of data.
     """
 
     def fit(self, X, y=None):
-        """Stores the shape of X.
+        """Stores the shape of the features of X.
 
         Parameters
         ----------
         X : array-like
             The data to fit. Can be, for example a list, or an array of at
-            least 2d. The first dimension must be of shape (n_samples).
+            least 2d. The first dimension must be of length (n_samples).
         y : None
             Used for scikit-learn compatibility.
 
@@ -278,18 +278,18 @@ class Vectorizer(TransformerMixin):
         self : Instance of Vectorizer
             Return the modified instance.
         """
-        self.shape_ = X.shape[1:]
+        self.features_shape_ = X.shape[1:]
         return self
 
     def transform(self, X):
-        """Convert matrix data into two dimensions.
+        """Convert given array into two dimensions.
 
         Parameters
         ----------
         X : array-like
             The data to be transformed. Can be, for example a list, or an
             array of at least 2d. The first dimension must be of
-            shape (n_samples).
+            length (n_samples).
 
         Returns
         -------
@@ -306,7 +306,7 @@ class Vectorizer(TransformerMixin):
         X : array-like
             The data to be transformed. Can be, for example a list, or an
             array of at least 2d. The first dimension must be of
-            shape (n_samples).
+            length (n_samples).
         y : None
             Used for scikit-learn compatibility.
 
@@ -325,15 +325,15 @@ class Vectorizer(TransformerMixin):
         X : array-like
             The data to be transformed. Can be, for example a list, or an
             array of at least 2d. The first dimension must be of
-            shape (n_samples).
+            length (n_samples).
 
         Returns
         -------
         X : array-like
             The data transformed into shape as used in fit. The first
-            dimension is of shape (n_samples).
+            dimension is of length (n_samples).
         """
-        return X.reshape(np.r_[len(X), self.shape_])
+        return X.reshape((len(X),) + self.features_shape_)
 
 
 class PSDEstimator(TransformerMixin):
