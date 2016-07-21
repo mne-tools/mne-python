@@ -498,13 +498,19 @@ class ICA(ContainsMixin):
 
     def _fit(self, data, max_pca_components, fit_type):
         """Aux function """
-        from sklearn.decomposition import RandomizedPCA
 
         random_state = check_random_state(self.random_state)
 
-        # XXX fix copy==True later. Bug in sklearn, see PR #2273
-        pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
-                            copy=True, random_state=random_state)
+        if not check_version('sklearn', '0.17'):
+            from sklearn.decomposition import RandomizedPCA
+            # XXX fix copy==True later. Bug in sklearn, see PR #2273
+            pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
+                                copy=True, random_state=random_state)
+
+        else:
+            from sklearn.decomposition import PCA
+            pca = PCA(n_components=max_pca_components, copy=True, whiten=True,
+                      svd_solver='randomized', random_state=random_state)
 
         if isinstance(self.n_components, float):
             # compute full feature variance before doing PCA
