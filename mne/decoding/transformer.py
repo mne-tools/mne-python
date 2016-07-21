@@ -269,7 +269,9 @@ class Vectorizer(TransformerMixin):
         ----------
         X : array-like
             The data to fit. Can be, for example a list, or an array of at
-            least 2d. The first dimension must be of length (n_samples).
+            least 2d. The first dimension must be of length n_samples, where
+            samples are the independent samples used by the estimator
+            (e.g. n_epochs for epoched data).
         y : None
             Used for scikit-learn compatibility.
 
@@ -287,13 +289,14 @@ class Vectorizer(TransformerMixin):
         Parameters
         ----------
         X : array-like
-            The data to be transformed. Can be, for example a list, or an
-            array of at least 2d. The first dimension must be of
-            length (n_samples).
+            The data to fit. Can be, for example a list, or an array of at
+            least 2d. The first dimension must be of length n_samples, where
+            samples are the independent samples used by the estimator
+            (e.g. n_epochs for epoched data).
 
         Returns
         -------
-        X : array, shape (n_trials, n_chan * n_times)
+        X : array, shape (n_trials, -1)
             The transformed data.
         """
         return X.reshape(len(X), -1)
@@ -304,15 +307,16 @@ class Vectorizer(TransformerMixin):
         Parameters
         ----------
         X : array-like
-            The data to be transformed. Can be, for example a list, or an
-            array of at least 2d. The first dimension must be of
-            length (n_samples).
+            The data to fit. Can be, for example a list, or an array of at
+            least 2d. The first dimension must be of length n_samples, where
+            samples are the independent samples used by the estimator
+            (e.g. n_epochs for epoched data).
         y : None
             Used for scikit-learn compatibility.
 
         Returns
         -------
-        X : array, shape (n_trials, n_chan * n_times)
+        X : array, shape (n_trials, -1)
             The transformed data.
         """
         return self.fit(X).transform(X)
@@ -323,9 +327,10 @@ class Vectorizer(TransformerMixin):
         Parameters
         ----------
         X : array-like
-            The data to be transformed. Can be, for example a list, or an
-            array of at least 2d. The first dimension must be of
-            length (n_samples).
+            The data to fit. Can be, for example a list, or an array of at
+            least 2d. The first dimension must be of length n_samples, where
+            samples are the independent samples used by the estimator
+            (e.g. n_epochs for epoched data).
 
         Returns
         -------
