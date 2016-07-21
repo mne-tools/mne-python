@@ -1307,7 +1307,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
 
     if conditions is None:
         conditions = sorted([str(ii) for ii in evokeds])
-    if isinstance(conditions, str):
+    if isinstance(conditions, string_types):
         conditions = [conditions]
 
     # get and set a few limits and variables (times, channels, units)
@@ -1327,12 +1327,12 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         if isinstance(picks, int):
             ch_names = [example.ch_names[picks]]
             picks = [picks]
-        elif isinstance(picks, str):
+        elif isinstance(picks, string_types):
             ch_names = [picks]
             picks = [example.ch_names.index(picks)]
         elif isinstance(picks[0], int):
             ch_names = [example.ch_names[pick] for pick in picks]
-        elif isinstance(picks[0], str):
+        elif isinstance(picks[0], string_types):
             ch_names = picks[:]
             picks = [example.ch_names.index(pick) for pick in picks]
         else:
@@ -1362,6 +1362,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         if not isinstance(evokeds[conditions[0]][0], Evoked):
             raise ValueError("evokeds must be an `mne.Evoked` "
                              "or of a collection of `mne.Evoked`s")
+
         if ci and picks is not None:
             # calculate the CI
             sem_array = {}
@@ -1379,11 +1380,12 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                 sem_array[condition] = _ci(data, ci)
 
         # get the grand mean
-        evokeds = dict((condition, combine_evoked(evokeds[condition],
-                                                  weights='equal'))
-                       for condition in conditions)
+        for cond in conditions:
+            evokeds[cond] = combine_evoked(evokeds[cond], weights='equal')
+
         if picks is None:
             warn("CI not drawn if plotting GFP.")
+
     else:
         ci = False
 
@@ -1490,7 +1492,6 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
 
     # style the spines/axes
     ax.set_title(", ".join(ch_names) if title is None else title)
-#    ax.title.set_position([0.1, 0.85])
     ax.spines["top"].set_position('zero')
     ax.spines["top"].set_smart_bounds(True)
 
