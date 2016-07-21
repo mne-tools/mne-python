@@ -873,7 +873,7 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False):
     # KIT gradiometers are marked as having units T, not T/M (argh)
     # We need a separate variable for this because KIT grads should be
     # treated mostly like magnetometers (e.g., scaled by 100) for reg
-    mag_or_fine[np.array([ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD
+    mag_or_fine[np.array([ch['coil_type'] & 0xFFFF == FIFF.FIFFV_COIL_KIT_GRAD
                           for ch in meg_info['chs']], bool)] = False
     msg = ('    Processing %s gradiometers and %s magnetometers'
            % (len(grad_picks), len(mag_picks)))
@@ -895,14 +895,11 @@ def _check_usable(inst):
     """Helper to ensure our data are clean"""
     if inst.proj:
         raise RuntimeError('Projectors cannot be applied to data.')
-    if hasattr(inst, 'comp'):
-        if inst.comp is not None:
+    current_comp = inst.compensation_grade
+    if current_comp not in (0, None):
             raise RuntimeError('Maxwell filter cannot be done on compensated '
-                               'channels.')
-    else:
-        if len(inst.info['comps']) > 0:  # more conservative check
-            raise RuntimeError('Maxwell filter cannot be done on data that '
-                               'might have been compensated.')
+                               'channels, but data have been compensated with '
+                               'grade %s.' % current_comp)
 
 
 def _col_norm_pinv(x):

@@ -1190,39 +1190,118 @@ def test_with_statement():
 def test_compensation_raw():
     """Test Raw compensation"""
     tempdir = _TempDir()
-    raw1 = Raw(ctf_comp_fname, compensation=None)
-    assert_true(raw1.comp is None)
-    data1, times1 = raw1[:, :]
-    raw2 = Raw(ctf_comp_fname, compensation=3)
-    data2, times2 = raw2[:, :]
-    assert_true(raw2.comp is None)  # unchanged (data come with grade 3)
-    assert_array_equal(times1, times2)
-    assert_array_equal(data1, data2)
-    raw3 = Raw(ctf_comp_fname, compensation=1)
-    data3, times3 = raw3[:, :]
-    assert_true(raw3.comp is not None)
-    assert_array_equal(times1, times3)
-    # make sure it's different with a different compensation:
-    assert_true(np.mean(np.abs(data1 - data3)) > 1e-12)
-    assert_raises(ValueError, Raw, ctf_comp_fname, compensation=33)
+    raw_3 = Raw(ctf_comp_fname)
+    assert_equal(raw_3.compensation_grade, 3)
+    data_3, times = raw_3[:, :]
+
+    # data come with grade 3
+    for ii in range(2):
+        raw_3_new = raw_3.copy()
+        if ii == 0:
+            raw_3_new.load_data()
+        raw_3_new.apply_gradient_compensation(3)
+        assert_equal(raw_3_new.compensation_grade, 3)
+        data_new, times_new = raw_3_new[:, :]
+        assert_array_equal(times, times_new)
+        assert_array_equal(data_3, data_new)
+        # deprecated way
+        preload = True if ii == 0 else False
+        raw_3_new = Raw(ctf_comp_fname, compensation=3,
+                        preload=preload, verbose='error')
+        assert_equal(raw_3_new.compensation_grade, 3)
+        data_new, times_new = raw_3_new[:, :]
+        assert_array_equal(times, times_new)
+        assert_array_equal(data_3, data_new)
+
+    # change to grade 0
+    raw_0 = raw_3.copy().apply_gradient_compensation(0)
+    assert_equal(raw_0.compensation_grade, 0)
+    data_0, times_new = raw_0[:, :]
+    assert_array_equal(times, times_new)
+    assert_true(np.mean(np.abs(data_0 - data_3)) > 1e-12)
+    # change to grade 1
+    raw_1 = raw_0.copy().apply_gradient_compensation(1)
+    assert_equal(raw_1.compensation_grade, 1)
+    data_1, times_new = raw_1[:, :]
+    assert_array_equal(times, times_new)
+    assert_true(np.mean(np.abs(data_1 - data_3)) > 1e-12)
+    assert_raises(ValueError, Raw, ctf_comp_fname, compensation=33,
+                  verbose='error')
+    raw_bad = raw_0.copy()
+    raw_bad.add_proj(compute_proj_raw(raw_0, duration=0.5, verbose='error'))
+    raw_bad.apply_proj()
+    assert_raises(RuntimeError, raw_bad.apply_gradient_compensation, 1)
+    # with preload
+    tols = dict(rtol=1e-12, atol=1e-25)
+    raw_1_new = raw_3.copy().load_data().apply_gradient_compensation(1)
+    assert_equal(raw_1_new.compensation_grade, 1)
+    data_1_new, times_new = raw_1_new[:, :]
+    assert_array_equal(times, times_new)
+    assert_true(np.mean(np.abs(data_1_new - data_3)) > 1e-12)
+    assert_allclose(data_1, data_1_new, **tols)
+    # deprecated way
+    for preload in (True, False):
+        raw_1_new = Raw(ctf_comp_fname, compensation=1, verbose='error',
+                        preload=preload)
+        assert_equal(raw_1_new.compensation_grade, 1)
+        data_1_new, times_new = raw_1_new[:, :]
+        assert_array_equal(times, times_new)
+        assert_true(np.mean(np.abs(data_1_new - data_3)) > 1e-12)
+        assert_allclose(data_1, data_1_new, **tols)
+    # change back
+    raw_3_new = raw_1.copy().apply_gradient_compensation(3)
+    data_3_new, times_new = raw_3_new[:, :]
+    assert_allclose(data_3, data_3_new, **tols)
+    raw_3_new = raw_1.copy().load_data().apply_gradient_compensation(3)
+    data_3_new, times_new = raw_3_new[:, :]
+    assert_allclose(data_3, data_3_new, **tols)
+
+    for load in (False, True):
+        for raw in (raw_0, raw_1):
+            raw_3_new = raw.copy()
+            if load:
+                raw_3_new.load_data()
+            raw_3_new.apply_gradient_compensation(3)
+            assert_equal(raw_3_new.compensation_grade, 3)
+            data_3_new, times_new = raw_3_new[:, :]
+            assert_array_equal(times, times_new)
+            assert_true(np.mean(np.abs(data_3_new - data_1)) > 1e-12)
+            assert_allclose(data_3, data_3_new, **tols)
 
     # Try IO with compensation
     temp_file = op.join(tempdir, 'raw.fif')
-
-    raw1.save(temp_file, overwrite=True)
-    raw4 = Raw(temp_file)
-    data4, times4 = raw4[:, :]
-    assert_array_equal(times1, times4)
-    assert_array_equal(data1, data4)
+    raw_3.save(temp_file, overwrite=True)
+    for preload in (True, False):
+        raw_read = read_raw_fif(temp_file, preload=preload)
+        assert_equal(raw_read.compensation_grade, 3)
+        data_read, times_new = raw_read[:, :]
+        assert_array_equal(times, times_new)
+        assert_allclose(data_3, data_read, **tols)
+        raw_read.apply_gradient_compensation(1)
+        data_read, times_new = raw_read[:, :]
+        assert_array_equal(times, times_new)
+        assert_allclose(data_1, data_read, **tols)
 
     # Now save the file that has modified compensation
-    # and make sure we can the same data as input ie. compensation
-    # is undone
-    raw3.save(temp_file, overwrite=True)
-    raw5 = Raw(temp_file)
-    data5, times5 = raw5[:, :]
-    assert_array_equal(times1, times5)
-    assert_allclose(data1, data5, rtol=1e-12, atol=1e-22)
+    # and make sure the compensation is the same as it was,
+    # but that we can undo it
+
+    # These channels have norm 1e-11/1e-12, so atol=1e-18 isn't awesome,
+    # but it's due to the single precision of the info['comps'] leading
+    # to inexact inversions with saving/loading (casting back to single)
+    # in between (e.g., 1->3->1 will degrade like this)
+    looser_tols = dict(rtol=1e-6, atol=1e-18)
+    raw_1.save(temp_file, overwrite=True)
+    for preload in (True, False):
+        raw_read = read_raw_fif(temp_file, preload=preload, verbose=True)
+        assert_equal(raw_read.compensation_grade, 1)
+        data_read, times_new = raw_read[:, :]
+        assert_array_equal(times, times_new)
+        assert_allclose(data_1, data_read, **looser_tols)
+        raw_read.apply_gradient_compensation(3, verbose=True)
+        data_read, times_new = raw_read[:, :]
+        assert_array_equal(times, times_new)
+        assert_allclose(data_3, data_read, **looser_tols)
 
 
 @requires_mne

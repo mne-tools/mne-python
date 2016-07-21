@@ -59,6 +59,21 @@ events = np.where(np.diff(sinusoid > 0.5) > 0)[1] + raw.first_samp
 events = np.vstack((events, np.zeros_like(events), np.ones_like(events))).T
 
 ###############################################################################
+# The CTF software compensation works reasonably well:
+
+raw.plot()
+
+###############################################################################
+# But here we can get slightly better noise suppression, lower localization
+# bias, and a better dipole goodness of fit with spatio-temporal (tSSS)
+# Maxwell filtering:
+
+raw.apply_gradient_compensation(0)  # must un-do software compensation first
+mf_kwargs = dict(origin=(0., 0., 0.), st_duration=10.)
+raw = mne.preprocessing.maxwell_filter(raw, **mf_kwargs)
+raw.plot()
+
+###############################################################################
 # Our choice of tmin and tmax should capture exactly one cycle, so
 # we can make the unusual choice of baselining using the entire epoch
 # when creating our evoked data. We also then crop to a single time point
@@ -71,13 +86,17 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=tmin, tmax=tmax,
 evoked = epochs.average()
 evoked.plot()
 evoked.crop(0., 0.)
+del raw, epochs
 
 ###############################################################################
 # To do a dipole fit, let's use the covariance provided by the empty room
 # recording.
 
-raw_erm = read_raw_ctf(erm_path)
+raw_erm = read_raw_ctf(erm_path).apply_gradient_compensation(0)
+raw_erm = mne.preprocessing.maxwell_filter(raw_erm, coord_frame='meg',
+                                           **mf_kwargs)
 cov = mne.compute_raw_covariance(raw_erm)
+del raw_erm
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None)
 dip = fit_dipole(evoked, cov, sphere)[0]
 
