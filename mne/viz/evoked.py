@@ -1216,7 +1216,8 @@ def _ci(arr, ci, t=True):
 def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                          colors=None, linestyles=['-'], styles=None,
                          vlines=[0], ci=0.95, truncate_yaxis=True, ymin=None,
-                         ymax=None, invert_y=False, ax=None, show=True):
+                         ymax=None, invert_y=False, ax=None, title=None,
+                         show=True):
     """ Plot, for multiple conditions, individual evoked time courses of one or
     the mean of multiple sensors
 
@@ -1237,6 +1238,8 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
     picks : int | list of int | str | list of str | None
         The indices (int) or names (str) of the sensors to plot. Must all
         have the same channel type.
+        If the selected channels are gradiometers, the corresponding pairs
+        will be selected.
         If None, the global field power is plotted instead.
     conditions : list of str | None
         If evokeds is a single instance or a list (but not a dictionary),
@@ -1277,6 +1280,9 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         What axes to plot to. If None, a new axes is created.
     ymin, ymax : float | None
         If not `None`, can be used to manually scale the y axis.
+    title : None | str
+        If str, will be plotted as figure title. If None, the channel
+        names will be shown.
     show : bool
         Show the figure?
 
@@ -1336,6 +1342,20 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         ch_type = channel_type(example.info, picks[0])
     scaling = _handle_default("scalings")[ch_type]
 
+    if ch_type == 'grad' and picks is not None:
+        from ..channels.layout import _merge_grad_data, _pair_grad_sensors
+        picked_chans = []
+        pairpicks = _pair_grad_sensors(example.info, topomap_coords=False)
+        for pick in picks:
+            picked_chans.append(pairpicks.index(pick))
+            picked_chans.append(pairpicks.index(pick - 1)
+                                if pick % 2 else pairpicks.index(pick + 1))
+        picks = list(sorted(set(picked_chans)))
+        ch_names = [example.ch_names[pick] for pick in
+                    [pairpicks[p_] for p_ in picks]]
+        if ymin is None:
+            ymin = 0
+
     # deal with dict/list of lists, and calculate the CI
     if not isinstance(evokeds[conditions[0]], Evoked):
         from ..evoked import combine_evoked
@@ -1346,8 +1366,17 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
             # calculate the CI
             sem_array = {}
             for condition in conditions:
-                data = np.asarray([evoked_.data[picks, :].mean(0)
-                                   for evoked_ in evokeds[condition]])
+                # this will fail if evokeds do not have the same structure
+                # (e.g. channel count)
+                if ch_type == 'grad' and picks is not None:
+                    data = np.asarray([
+                        _merge_grad_data(
+                                evoked_.data[pairpicks, :]).mean(0)[picks, :]
+                        for evoked_ in evokeds[condition]])
+                else:
+                    data = np.asarray([evoked_.data[picks, :].mean(0)
+                                       for evoked_ in evokeds[condition]])
+
                 sem_array[condition] = _ci(data, ci)
 
         # get the grand mean
@@ -1355,13 +1384,14 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                                                   weights='equal'))
                        for condition in conditions)
         if picks is None:
-            warn("CI not drawn if plotting STD.")
+            warn("CI not drawn if plotting GFP.")
     else:
         ci = False
 
     # let's plot!
     if ax is None:
         fig, ax = plt.subplots(1, 1)
+        fig.set_size_inches(8, 6)
 
     # style the individual condition time series
     if not isinstance(colors, dict):
@@ -1406,7 +1436,11 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
     any_negative, any_positive = False, False
     for condition in conditions:
         if picks is not None:
-            d = ((evokeds[condition].data[picks, :]).T * scaling).mean(-1)
+            if ch_type == 'grad':
+                d = ((_merge_grad_data(evokeds[condition]
+                      .data[pairpicks, :][picks, :])).T * scaling).mean(-1)
+            else:
+                d = ((evokeds[condition].data[picks, :]).T * scaling).mean(-1)
         else:
             d = ((evokeds[condition].data).T * scaling).std(-1)
         if ci and picks is not None:
@@ -1446,19 +1480,18 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                        ymax_ if any_positive else 0))
         ymin_bound, ymax_bound = (-(abs_lims // fraction),
                                   abs_lims // fraction)
-        y_range = -np.subtract(*ax.get_ylim())
         if ymin is not None and ymin > ymin_bound:
             ymin_bound = ymin
         if ymax is not None and ymax < ymax_bound:
             ymax_bound = ymax
         ax.spines['left'].set_bounds(ymin_bound, ymax_bound)
     else:
-        y_range = -np.subtract(*ax.get_ylim())
         ymax_bound = ax.get_ylim()[-1]
+    y_range = -np.subtract(*ax.get_ylim())
 
     # style the spines/axes
-    ax.set_title(", ".join(ch_names))
-    ax.title.set_position([0.1, 0.85])
+    ax.set_title(", ".join(ch_names) if title is None else title)
+#    ax.title.set_position([0.1, 0.85])
     ax.spines["top"].set_position('zero')
     ax.spines["top"].set_smart_bounds(True)
 
@@ -1503,7 +1536,6 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                    frameon=True, fontsize=10)
 
     fig = plt.gcf()
-    fig.set_size_inches(8, 6)
 
     plt_show(show)
     return fig
