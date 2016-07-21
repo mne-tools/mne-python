@@ -10,6 +10,7 @@ import numpy as np
 
 from ..externals.six import iteritems
 from ..fixes import _get_args
+from ..utils import check_version
 
 
 class BaseEstimator(object):
@@ -647,3 +648,38 @@ class LinearModel(BaseEstimator):
                                     contours=contours, title=title,
                                     image_interp=image_interp, show=show,
                                     head_pos=head_pos)
+
+
+def _set_cv(cv, clf=None, X=None, y=None):
+    """ Set the default cross-validation depending on whether clf is classifier
+        or regressor. """
+
+    from sklearn.base import is_classifier
+
+    if check_version('sklearn', '0.18'):
+        from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
+        if isinstance(cv, (int, np.int)):
+            XFold = StratifiedKFold if is_classifier(clf) else KFold
+            cv = XFold(n_folds=cv)
+        cv = check_cv(cv=cv, y=y, classifier=is_classifier(clf))
+    else:
+        from sklearn.cross_validation import (check_cv, StratifiedKFold, KFold)
+        if isinstance(cv, (int, np.int)):
+            if is_classifier(clf):
+                cv = StratifiedKFold(y=y, n_folds=cv)
+            else:
+                cv = KFold(n=len(y), n_folds=cv)
+        cv = check_cv(cv=cv, X=X, y=y, classifier=is_classifier(clf))
+
+    # Extract train and test set to retrieve them at predict time
+    if hasattr(cv, 'split'):
+        cv_splits = [(train, test) for train, test in
+                     cv.split(X=np.zeros_like(y), y=y)]
+    else:
+        # XXX support sklearn.cross_validation cv
+        cv_splits = [(train, test) for train, test in cv]
+
+    if not np.all([len(train) for train, _ in cv_splits]):
+        raise ValueError('Some folds do not have any train epochs.')
+
+    return cv, cv_splits
