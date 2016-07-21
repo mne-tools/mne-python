@@ -12,8 +12,8 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.transformer import UnsupervisedSpatialFilter
-from mne.xdawn import XdawnTransformer
+from mne.decoding import (UnsupervisedSpatialFilter, EpochsVectorizer,
+                          XdawnTransformer)
 
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
@@ -46,7 +46,7 @@ spatial_filter = UnsupervisedSpatialFilter(PCA(10))
 X = epochs.get_data()
 y = epochs.events[:, 2]
 pipeline = make_pipeline(UnsupervisedSpatialFilter(PCA(3)), 
-                         Vectorizer(), LogisticRegression())
+                         EpochsVectorizer(), LogisticRegression())
 evoked = epochs.average()
 evoked.data = np.average(X, axis=1)
 evoked.plot_topomap()
