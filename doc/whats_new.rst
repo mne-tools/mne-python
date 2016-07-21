@@ -43,6 +43,8 @@ Changelog
 
     - Add the ``--no-decimate`` option to :ref:`mne make_scalp_surfaces <gen_mne_make_scalp_surfaces>` to skip the high-resolution surface decimation step, by `Eric Larson`_
 
+    - Add new class :class:`mne.decoding.EMS` to transform epochs with the event-matched spatial filters, by `Jean-Remi King`_
+
 BUG
 ~~~
 
