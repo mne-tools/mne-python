@@ -6,10 +6,99 @@
 
 import numpy as np
 
+from .mixin import TransformerMixin, EstimatorMixin
 from ..utils import logger, verbose
 from ..fixes import Counter
 from ..parallel import parallel_func
 from .. import pick_types, pick_info
+
+
+class EMS(TransformerMixin, EstimatorMixin):
+    """Transformer to compute event-matched spatial filters.
+
+    This version operates on the entire time course. The result is a spatial
+    filter at each time point and a corresponding time course. Intuitively,
+    the result gives the similarity between the filter at each time point and
+    the data vector (sensors) at that time point.
+
+    .. note : EMS only works for binary classification.
+
+    References
+    ----------
+    [1] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
+        multi-sensor data to a single time course that reveals experimental
+        effects", BMC Neuroscience 2013, 14:122
+
+    Parameters
+    ----------
+    epochs : instance of mne.Epochs
+        The epochs.
+    conditions : list of str | None
+        If a list of strings, strings must match the
+        epochs.event_id's key as well as the number of conditions supported
+        by the objective_function. If None keys in epochs.event_id are used.
+    picks : array-like of int | None
+        Channels to be included. If None only good data channels are used.
+        Defaults to None
+    n_jobs : int
+        Number of jobs to run in parallel.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to self.verbose.
+
+    Attributes
+    ----------
+    filters_ : ndarray, shape (n_channels, n_times)
+        The set of spatial filters.
+    classes_ : ndarray, shape (n_epochs,)
+        The target classes.
+    """
+
+    def fit(self, X, y):
+        """Fit the spatial filters.
+
+        .. note : EMS is fitted on data normalized by channel type before the
+                  fitting of the spatial filters.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The training data.
+        y : array of int, shape (n_epochs)
+            The target classes.
+
+        Returns
+        -------
+        self : returns and instance of self.
+        """
+        classes = np.unique(y)
+        if len(classes) != 2:
+            raise ValueError('EMS only works for binary classification.')
+        self.classes_ = classes
+        filters = X[y == classes[0]].mean(0) - X[y == classes[1]].mean(0)
+        # XXX not sure how this scaling is useful but ok...
+        filters /= np.sqrt(np.sum(filters ** 2, axis=0))[None, :]
+        self.filters_ = filters
+        return self
+
+    def transform(self, X):
+        """Transform the data by the spatial filters.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The input data.
+
+        Returns
+        -------
+        X : array, shape (n_epochs, n_filter, n_times)
+            The input data transformed by the spatial filters.
+        """
+        Xt = np.sum(X * self.filters_, axis=1)
+        # Xt = [np.dot(filt.T, x.T) for filt, x in
+        #       zip(self.filters_.T, X.transpose(2, 0, 1))]
+        # Xt = np.transpose(Xt)
+        return Xt
 
 
 @verbose
