@@ -8,7 +8,7 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_equal, assert_raises
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, check_version
 from mne.decoding import compute_ems, EMS
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -54,11 +54,26 @@ def test_ems():
     assert_equal(n_expected, len(surrogates))
     assert_equal(n_expected, len(conditions))
     assert_equal(list(set(conditions)), [2, 3])
+
+    # test compute_ems cv
+    epochs = epochs['aud_r', 'vis_l']
+    epochs.equalize_event_counts(epochs.event_id)
+    if check_version('sklearn', '0.18'):
+        from sklearn.model_selection import StratifiedKFold
+        cv = StratifiedKFold()
+    else:
+        from sklearn.cross_validation import StratifiedKFold
+        cv = StratifiedKFold(len(epochs))
+    compute_ems(epochs, cv=cv)
+    compute_ems(epochs, cv=2)
+    compute_ems(epochs, cv=StratifiedKFold())
+    assert_raises(ValueError, compute_ems, epochs, cv='foo')
+    assert_raises(ValueError, compute_ems, epochs, cv=len(epochs) + 1)
     raw.close()
 
     # EMS transformer, check that identical to compute_ems
-    X = epochs['aud_r', 'vis_l'].get_data()
-    y = epochs['aud_r', 'vis_l'].events[:, 2]
+    X = epochs.get_data()
+    y = epochs.events[:, 2]
     X = X / np.std(X)  # X scaled outside cv in compute_ems
     Xt, coefs = list(), list()
     ems = EMS()

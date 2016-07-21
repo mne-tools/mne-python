@@ -7,6 +7,7 @@
 import numpy as np
 
 from .mixin import TransformerMixin, EstimatorMixin
+from .base import _set_cv
 from ..utils import logger, verbose
 from ..fixes import Counter
 from ..parallel import parallel_func
@@ -103,7 +104,7 @@ class EMS(TransformerMixin, EstimatorMixin):
 
 @verbose
 def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
-                cv=None):
+                cv='LeaveOneOut'):
     """Compute event-matched spatial filter on epochs
 
     This version operates on the entire time course. No time window needs to
@@ -141,8 +142,8 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
-    cv : cross-validation object | None
-        If None, uses a leave-one-out cv.
+    cv : cross-validation object | str
+        The cross-validation scheme. Defaults to 'LeaveOneOut'
 
     Returns
     -------
@@ -153,6 +154,8 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
     conditions : ndarray, shape (n_epochs,)
         The conditions used. Values correspond to original event ids.
     """
+    from sklearn.linear_model import LogisticRegression
+
     logger.info('...computing surrogate time series. This can take some time')
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True)
@@ -194,23 +197,18 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
                 this_picks = pick_types(info, meg=ch_type, eeg=False)
             data[:, this_picks] /= np.std(data[:, this_picks])
 
-    if cv is None:
-        # XXX the cv is a LOO! Not standard!
-        try:
-            from sklearn.model_selection import LeaveOneOut as cv
-        except:  # XXX support sklearn < 0.18
-            from sklearn.cross_validation import LeaveOneOut as cv
-
-    # FIXME: need to clean this code
-    def _iter_cv(n, cv):  # XXX support sklearn < 0.18
-        if hasattr(cv, 'split'):
-            return cv().split(np.zeros((n, 1)))
-        else:
-            return cv(n)
+    # Setup cross-validation. Need to use _set_cv to deal with sklearn
+    # deprecation of cv objects.
+    y = epochs.events[:, 2]
+    _, cv_splits = _set_cv(cv, clf=LogisticRegression(), X=y, y=y)
 
     parallel, p_func, _ = parallel_func(_run_ems, n_jobs=n_jobs)
+    # FIXME this parallization should be removed.
+    #   1) it's numpy computation so it's already efficient,
+    #   2) it duplicates the data in RAM,
+    #   3) the computation is already super fast.
     out = parallel(p_func(_ems_diff, data, cond_idx, train, test)
-                   for train, test in _iter_cv(len(data), cv))
+                   for train, test in cv_splits)
 
     surrogate_trials, spatial_filter = zip(*out)
     surrogate_trials = np.array(surrogate_trials)
