@@ -633,7 +633,6 @@ class UnsupervisedSpatialFilter(TransformerMixin):
     ----------
     estimator : scikit-learn estimator
         Estimator using some decomposition algorithm.
-        The number of channels.
     """
     def __init__(self, estimator):
         self.estimator = estimator
@@ -646,7 +645,7 @@ class UnsupervisedSpatialFilter(TransformerMixin):
 
         Parameters
         ----------
-        X : numpy array, shape(n_epochs, n_chans, n_times)
+        X : array, shape (n_epochs, n_chans, n_times)
             The data to be filtered.
         y : None
             Used for scikit-learn compatibility.
@@ -667,14 +666,14 @@ class UnsupervisedSpatialFilter(TransformerMixin):
 
         Parameters
         ----------
-        X : numpy array, shape(n_epochs, n_chans, n_times)
+        X : array, shape (n_epochs, n_chans, n_times)
             The data to be filtered.
         y : None
             Used for scikit-learn compatibility.
 
         Returns
         -------
-        X : numpy ndarray of shape(n_trials, n_chans, n_times)
+        X : array, shape (n_trials, n_chans, n_times)
             The transformed data.
         """
         self.fit(X)
@@ -685,12 +684,12 @@ class UnsupervisedSpatialFilter(TransformerMixin):
 
         Parameters
         ----------
-        X : numpy array, shape(n_epochs, n_chans, n_times)
+        X : array, shape (n_epochs, n_chans, n_times)
             The data to be filtered.
 
         Returns
         -------
-        X : numpy ndarray of shape(n_trials, n_chans, n_times)
+        X : array, shape (n_trials, n_chans, n_times)
             The transformed data.
         """
         n_epoch, n_chan, n_time = X.shape
