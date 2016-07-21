@@ -625,6 +625,7 @@ class FilterEstimator(TransformerMixin):
                                      copy=False, verbose=False)
         return epochs_data
 
+
 class UnsupervisedSpatialFilter(TransformerMixin):
     """Fit and transform with an unsupervised spatial filtering across time
     and samples.
