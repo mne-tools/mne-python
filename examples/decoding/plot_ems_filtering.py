@@ -33,7 +33,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne import io
 from mne.datasets import sample
-from mne.decoding import EMS
+from mne.decoding import EMS, compute_ems
 from sklearn.cross_validation import StratifiedKFold
 
 print(__doc__)
@@ -83,7 +83,8 @@ for train, test in StratifiedKFold(y):
     # However, we recommend to apply this preprocessing inside the CV.
     # Note that such scaling should be done separately for each channels if the
     # data contains multiple channel types.
-    X_scaled = X / np.std(X)  # X_scaled does not have any unit anymore
+    # Note that X_scaled does not have any unit anymore.
+    X_scaled = X / np.std(X[train])
 
     # Fit and store the spatial filters
     ems.fit(X_scaled[train], y[train])
@@ -120,3 +121,10 @@ plt.show()
 evoked = epochs.average()
 evoked.data = filters
 evoked.plot_topomap(ch_type=ch_type)
+
+# Note that a similar transformation can be applied with `compute_ems`
+# However, this function replicates Schurger et al's original paper, and thus
+# applies the normalization outside a leave-one-out cross-validation, which we
+# recommend not to do.
+epochs.equalize_event_counts(event_ids)
+X_transform, filters, classes = compute_ems(epochs)
