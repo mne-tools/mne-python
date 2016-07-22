@@ -1206,7 +1206,6 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 def _ci(arr, ci):
     """Calculate the `ci`% parametric confidence interval for `arr`"""
     from scipy import stats
-    print(arr.shape)
     mean, sigma = arr.mean(0), stats.sem(arr, 0)
     # This is highly convoluted to support 17th century Scipy
     # XXX Fix when Python 2.6 support is dropped!
