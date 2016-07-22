@@ -63,10 +63,9 @@ def test_ems():
         cv = StratifiedKFold()
     else:
         from sklearn.cross_validation import StratifiedKFold
-        cv = StratifiedKFold(len(epochs))
+        cv = StratifiedKFold(epochs.events[:, 2])
     compute_ems(epochs, cv=cv)
     compute_ems(epochs, cv=2)
-    compute_ems(epochs, cv=StratifiedKFold())
     assert_raises(ValueError, compute_ems, epochs, cv='foo')
     assert_raises(ValueError, compute_ems, epochs, cv=len(epochs) + 1)
     raw.close()

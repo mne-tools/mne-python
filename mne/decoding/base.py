@@ -662,7 +662,7 @@ def _set_cv(cv, estimator=None, X=None, y=None):
     else:
         est_is_classifier = is_classifier(estimator)
     # Setup CV
-    if False:  # check_version('sklearn', '0.18'):
+    if check_version('sklearn', '0.18'):
         from sklearn import model_selection as models
         from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
         if isinstance(cv, (int, np.int)):
@@ -686,7 +686,10 @@ def _set_cv(cv, estimator=None, X=None, y=None):
             if not hasattr(models, cv):
                 raise ValueError('Unknown cross-validation')
             cv = getattr(models, cv)
-            cv = cv(y=y)
+            if cv.__name__ not in ['KFold', 'LeaveOneOut']:
+                raise NotImplementedError('CV cannot be defined with str for'
+                                          ' sklearn < .017.')
+            cv = cv(len(y))
         cv = check_cv(cv=cv, X=X, y=y, classifier=est_is_classifier)
 
     # Extract train and test set to retrieve them at predict time
