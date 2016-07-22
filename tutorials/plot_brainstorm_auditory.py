@@ -287,7 +287,7 @@ evoked_dev.plot_topomap(times=times, title='Deviant')
 # We can see the MMN effect more clearly by looking at the difference between
 # the two conditions. P50 and N100 are no longer visible, but MMN/P200 and
 # P300 are emphasised.
-evoked_difference = combine_evoked([evoked_dev, evoked_std], weights=[1, -1])
+evoked_difference = combine_evoked([evoked_dev, -evoked_std], weights='equal')
 evoked_difference.plot(window_title='Difference', gfp=True)
 
 ###############################################################################

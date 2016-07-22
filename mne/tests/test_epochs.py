@@ -834,7 +834,7 @@ def test_evoked_arithmetic():
     epochs = Epochs(raw, events[:8], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     evoked = epochs.average()
-    evoked_sum = combine_evoked([evoked1, evoked2])
+    evoked_sum = combine_evoked([evoked1, evoked2], weights='nave')
     assert_array_equal(evoked.data, evoked_sum.data)
     assert_array_equal(evoked.times, evoked_sum.times)
     assert_equal(evoked_sum.nave, evoked1.nave + evoked2.nave)

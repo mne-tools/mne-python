@@ -172,7 +172,8 @@ all_evokeds = [aud_l, aud_r, vis_l, vis_r]
 # all_evokeds = [epochs[cond] for cond in event_id]
 
 # Then, we construct and plot an unweighted average of left vs. right trials.
-mne.combine_evoked(all_evokeds, weights=(1, -1, 1, -1)).plot_joint()
+mne.combine_evoked(all_evokeds,
+                   weights=(0.25, -0.25, 0.25, -0.25)).plot_joint()
 
 ###############################################################################
 # Often, it makes sense to store Evoked objects in a dictionary or a list -

@@ -907,7 +907,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @deprecated('ev1 + ev2 weighted summation has been deprecated and will be '
                 'removed in 0.14, use combine_evoked([ev1, ev2],'
-                'weight="nave") instead')
+                'weights="nave") instead')
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs
 
@@ -918,12 +918,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         --------
         mne.combine_evoked
         """
-        out = combine_evoked([self, evoked])
+        out = combine_evoked([self, evoked], weights='nave')
         out.comment = self.comment + " + " + evoked.comment
         return out
 
     @deprecated('ev1 - ev2 weighted subtraction has been deprecated and will '
-                'be removed in 0.14, use combine_evoked instead')
+                'be removed in 0.14, use combine_evoked([ev1, -ev2], '
+                'weights="nave") instead')
     def __sub__(self, evoked):
         """Subtract evoked taking into account number of epochs
 
@@ -936,7 +937,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         this_evoked = deepcopy(evoked)
         this_evoked.data *= -1.
-        out = combine_evoked([self, this_evoked])
+        out = combine_evoked([self, this_evoked], weights='nave')
         if self.comment is None or this_evoked.comment is None:
             warn('evoked.comment expects a string but is None')
             out.comment = 'unknown'
@@ -1205,7 +1206,7 @@ def grand_average(all_evoked, interpolate_bads=True):
     return grand_average
 
 
-def combine_evoked(all_evoked, weights='nave'):
+def combine_evoked(all_evoked, weights=None):
     """Merge evoked data by weighted addition or subtraction
 
     Data should have the same channels and the same time instants.
@@ -1229,6 +1230,11 @@ def combine_evoked(all_evoked, weights='nave'):
     -----
     .. versionadded:: 0.9.0
     """
+    if weights is None:
+        weights = 'nave'
+        warn('In 0.13 the default weights="nave", but in 0.14 the default '
+             'will be removed and it will have to be explicitly set',
+             DeprecationWarning)
     evoked = all_evoked[0].copy()
     if isinstance(weights, string_types):
         if weights not in ('nave', 'equal'):
