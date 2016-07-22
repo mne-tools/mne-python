@@ -16,8 +16,7 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.decoding import (UnsupervisedSpatialFilter, EpochsVectorizer,
-                          EpochsVectorizer)
+from mne.decoding import UnsupervisedSpatialFilter
 
 from sklearn.decomposition import PCA, FastICA
 
