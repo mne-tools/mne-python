@@ -658,22 +658,24 @@ def find_events(raw, stim_channel=None, output='onset',
 
 def _mask_trigs(events, mask, mask_type):
     """Helper function for masking digital trigger values"""
-    if not isinstance(mask, int):
-        raise TypeError('You provided a(n) %s. Mask must be an int.'
-                        % type(mask))
+    if mask is not None:
+        if not isinstance(mask, int):
+            raise TypeError('You provided a(n) %s.' % type(mask) +
+                            'Mask must be an int or None.')
     n_events = len(events)
     if n_events == 0:
         return events.copy()
 
-    if mask:
+    if mask is not None:
         if mask_type is None:
             warn("The default setting will change from 'not_and' "
                  "to 'and' in v0.14.", DeprecationWarning)
         if mask_type == 'not_and':
             mask = np.bitwise_not(mask)
         elif mask_type != 'and':
-            raise ValueError("'mask_type' should be either 'and' or 'not_and',"
-                             " instead of '%s'" % mask_type)
+            if mask_type is not None:
+                raise ValueError("'mask_type' should be either 'and'"
+                                 " or 'not_and', instead of '%s'" % mask_type)
         events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
     events = events[events[:, 1] != events[:, 2]]
 
