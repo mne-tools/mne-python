@@ -1374,7 +1374,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                 if ch_type == 'grad' and picks is not None:
                     data = np.asarray([
                         _merge_grad_data(
-                                evoked_.data[pairpicks, :]).mean(0)[picks, :]
+                            evoked_.data[pairpicks, :]).mean(0)[picks, :]
                         for evoked_ in evokeds[condition]])
                 else:
                     data = np.asarray([evoked_.data[picks, :].mean(0)
