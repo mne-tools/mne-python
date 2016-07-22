@@ -402,7 +402,6 @@ def test_evoked_arithmetic():
 
     # with same trial counts, a bunch of things should be equivalent
     for weights in ('nave', 'equal', [0.5, 0.5]):
-        print(weights)
         ev = combine_evoked([ev1, ev1], weights=weights)
         assert_allclose(ev.data, ev1.data)
         assert_equal(ev.nave, 2 * ev1.nave)
