@@ -176,7 +176,7 @@ def test_vectorizer():
     # check with different shape
     vect.fit_transform(np.random.rand(150, 18, 6, 3))
     vect.fit_transform(data[1:])
-    
+
     # check if raised errors are working correctly
     vect.fit(np.random.rand(105, 12, 3))
     assert_raises(ValueError, vect.transform, np.random.rand(105, 12, 3, 1))
