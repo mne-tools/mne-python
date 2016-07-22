@@ -77,7 +77,6 @@ class EMS(TransformerMixin, EstimatorMixin):
             raise ValueError('EMS only works for binary classification.')
         self.classes_ = classes
         filters = X[y == classes[0]].mean(0) - X[y == classes[1]].mean(0)
-        # XXX not sure how this scaling is useful but ok...
         filters /= np.sqrt(np.sum(filters ** 2, axis=0))[None, :]
         self.filters_ = filters
         return self
@@ -96,9 +95,6 @@ class EMS(TransformerMixin, EstimatorMixin):
             The input data transformed by the spatial filters.
         """
         Xt = np.sum(X * self.filters_, axis=1)
-        # Xt = [np.dot(filt.T, x.T) for filt, x in
-        #       zip(self.filters_.T, X.transpose(2, 0, 1))]
-        # Xt = np.transpose(Xt)
         return Xt
 
 
@@ -185,7 +181,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
     data = epochs.get_data()[:, picks]
 
     # Scale (z-score) the data by channel type
-    # XXX the z-scoring is applied outside the CV! Not standard!
+    # XXX the z-scoring is applied outside the CV, which is not standard.
     for ch_type in ['mag', 'grad', 'eeg']:
         if ch_type in epochs:
             # FIXME should be applied to all sort of data channels
