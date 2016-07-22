@@ -258,7 +258,7 @@ class Vectorizer(TransformerMixin):
 
     Attributes
     ----------
-    ``shape_`` : array
+    ``features_shape_`` : tuple
          Stores the original shape of data.
     """
 
@@ -280,6 +280,7 @@ class Vectorizer(TransformerMixin):
         self : Instance of Vectorizer
             Return the modified instance.
         """
+        X = np.asarray(X)
         self.features_shape_ = X.shape[1:]
         return self
 
@@ -299,6 +300,10 @@ class Vectorizer(TransformerMixin):
         X : array, shape (n_trials, -1)
             The transformed data.
         """
+        X = np.asarray(X)
+        if X.shape[1:] != self.features_shape_:
+            raise ValueError("Shape of X used in fit and transform must be "
+                             "same")
         return X.reshape(len(X), -1)
 
     def fit_transform(self, X, y=None):
@@ -338,6 +343,10 @@ class Vectorizer(TransformerMixin):
             The data transformed into shape as used in fit. The first
             dimension is of length (n_samples).
         """
+        X = np.asarray(X)
+        if X.ndim != 2:
+            raise ValueError("X should be of 2 dimensions but given has %s "
+                             "dimension(s)" %X.ndim)
         return X.reshape((len(X),) + self.features_shape_)
 
 

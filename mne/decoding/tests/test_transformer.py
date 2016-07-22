@@ -169,8 +169,16 @@ def test_vectorizer():
     result = vect.fit_transform(data)
     assert_equal(result.ndim, 2)
     # check inverse_trasnform
+
     assert_equal(vect.inverse_transform(result).ndim, 3)
     assert_array_equal(vect.inverse_transform(result), data)
+
     # check with different shape
     vect.fit_transform(np.random.rand(150, 18, 6, 3))
     vect.fit_transform(data[1:])
+    
+    # check if raised errors are working correctly
+    vect.fit(np.random.rand(105, 12, 3))
+    assert_raises(ValueError, vect.transform, np.random.rand(105, 12, 3, 1))
+    assert_raises(ValueError, vect.inverse_transform,
+                  np.random.rand(102, 12, 12))
