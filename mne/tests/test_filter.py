@@ -39,9 +39,10 @@ def test_estimate_ringing():
 def test_1d_filter():
     """Test our private overlap-add filtering function"""
     # make some random signals and filters
-    for n_signal in (1, 2, 5, 10, 20, 40, 100, 200, 400, 1000, 2000):
+    for n_signal in (1, 2, 3, 5, 10, 20, 40, 100, 200, 400, 1000, 2000):
         x = rng.randn(n_signal)
-        for n_filter in (2, 5, 10, 20, 40, 100, 200, 400, 1000, 2000):
+        for n_filter in (1, 2, 3, 5, 10, 11, 20, 21, 40, 41, 100, 101, 200,
+                         201, 400, 401, 1000, 1001, 2000, 2001):
             # Don't test n_filter == 1 because scipy can't handle it.
             if n_filter > n_signal:
                 continue  # only equal or lesser lengths supported
@@ -51,41 +52,43 @@ def test_1d_filter():
                 else:  # filter_type == 'identity'
                     h = np.concatenate([[1.], np.zeros(n_filter - 1)])
                 # ensure we pad the signal the same way for both filters
-                n_pad = max(min(n_filter, n_signal - 1), 0)
+                n_pad = n_filter - 1
                 x_pad = _smart_pad(x, np.array([n_pad, n_pad]))
-                for zero_phase in (True, False):
+                for phase in ('zero', 'linear'):
                     # compute our expected result the slow way
-                    if zero_phase:
-                        x_expected = np.convolve(x_pad, h)[::-1]
-                        x_expected = np.convolve(x_expected, h)[::-1]
-                        x_expected = x_expected[len(h) - 1:-(len(h) - 1)]
-                    else:
+                    if phase == 'zero':
+                        # only allow zero-phase for odd-length filters
+                        if n_filter % 2 == 0:
+                            assert_raises(RuntimeError, _overlap_add_filter,
+                                          x[np.newaxis], h, phase=phase)
+                            continue
+                        shift = (len(h) - 1) // 2
                         x_expected = np.convolve(x_pad, h)
-                        x_expected = x_expected[:-(len(h) - 1)]
+                        x_expected = x_expected[shift:len(x_expected) - shift]
+                    else:
+                        shift = 0
+                        x_expected = np.convolve(x_pad, h)
+                        x_expected = x_expected[:len(x_expected) - len(h) + 1]
                     # remove padding
                     if n_pad > 0:
-                        x_expected = x_expected[n_pad:-n_pad]
+                        x_expected = x_expected[n_pad:len(x_expected) - n_pad]
                     # make sure we actually set things up reasonably
                     if filter_type == 'identity':
-                        assert_allclose(x_expected, x)
+                        assert_allclose(x[shift:],
+                                        x_expected[:len(x_expected) - shift])
+                    assert_equal(len(x_expected), len(x))
+
                     # compute our version
                     for n_fft in (None, 32, 128, 129, 1023, 1024, 1025, 2048):
                         # need to use .copy() b/c signal gets modified inplace
                         x_copy = x[np.newaxis, :].copy()
-                        if (n_fft is not None and n_fft < 2 * n_filter - 1 and
-                                zero_phase):
+                        if n_fft is not None and n_fft < 2 * n_filter - 1:
                             assert_raises(ValueError, _overlap_add_filter,
-                                          x_copy, h, n_fft, zero_phase)
-                        elif (n_fft is not None and n_fft < n_filter and not
-                                zero_phase):
-                            assert_raises(ValueError, _overlap_add_filter,
-                                          x_copy, h, n_fft, zero_phase)
+                                          x_copy, h, n_fft, phase=phase)
                         else:
-                            # bad len warning
-                            with warnings.catch_warnings(record=True):
-                                x_filtered = _overlap_add_filter(
-                                    x_copy, h, n_fft, zero_phase)[0]
-                            assert_allclose(x_expected, x_filtered)
+                            x_filtered = _overlap_add_filter(
+                                x_copy, h, n_fft, phase=phase)[0]
+                            assert_allclose(x_filtered, x_expected)
 
 
 @requires_version('scipy', '0.16')
@@ -147,8 +150,7 @@ def test_iir_stability():
 
 
 def test_notch_filters():
-    """Test notch filters
-    """
+    """Test notch filters"""
     # let's use an ugly, prime sfreq for fun
     sfreq = 487.0
     sig_len_secs = 20
@@ -171,7 +173,7 @@ def test_notch_filters():
     for meth, lf, fl, tol in zip(methods, line_freqs, filter_lengths, tols):
         with catch_logging() as log_file:
             b = notch_filter(a, sfreq, lf, filter_length=fl, method=meth,
-                             verbose='INFO')
+                             verbose=True)
 
         if lf is None:
             out = log_file.getvalue().split('\n')[:-1]
@@ -233,8 +235,7 @@ def test_resample_stim_channel():
 @requires_version('scipy', '0.16')
 @slow_test
 def test_filters():
-    """Test low-, band-, high-pass, and band-stop filters plus resampling
-    """
+    """Test low-, band-, high-pass, and band-stop filters plus resampling"""
     sfreq = 500
     sig_len_secs = 30
 
@@ -242,13 +243,16 @@ def test_filters():
 
     # let's test our catchers
     for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
-        assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8,
-                      filter_length=fl)
+        assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, fl,
+                      1.0, 1.0)
     for nj in ['blah', 0.5]:
-        assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, n_jobs=nj)
+        assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, 100,
+                      1.0, 1.0, n_jobs=nj)
     # > Nyq/2
-    assert_raises(ValueError, band_pass_filter, a, sfreq, 4, sfreq / 2.)
-    assert_raises(ValueError, low_pass_filter, a, sfreq, sfreq / 2.)
+    assert_raises(ValueError, band_pass_filter, a, sfreq, 4, sfreq / 2.,
+                  100, 1.0, 1.0)
+    assert_raises(ValueError, low_pass_filter, a, sfreq, sfreq / 2.,
+                  100, 1.0)
     # check our short-filter warning:
     with warnings.catch_warnings(record=True) as w:
         # Warning for low attenuation
@@ -258,51 +262,29 @@ def test_filters():
     assert_true(len(w) >= 2)
 
     # try new default and old default
-    for fl in ['10s', '5000ms', None]:
-        bp = band_pass_filter(a, sfreq, 4, 8, filter_length=fl)
-        bs = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, filter_length=fl)
-        lp = low_pass_filter(a, sfreq, 8, filter_length=fl, n_jobs=2)
-        hp = high_pass_filter(lp, sfreq, 4, filter_length=fl)
-        assert_array_almost_equal(hp, bp, 2)
-        assert_array_almost_equal(bp + bs, a, 1)
-
-    # Overlap-add filtering with a fixed filter length
-    filter_length = 8192
-    bp_oa = band_pass_filter(a, sfreq, 4, 8, filter_length)
-    bs_oa = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, filter_length)
-    lp_oa = low_pass_filter(a, sfreq, 8, filter_length)
-    hp_oa = high_pass_filter(lp_oa, sfreq, 4, filter_length)
-    assert_array_almost_equal(hp_oa, bp_oa, 2)
-    # Our filters are no longer quite complementary with linear rolloffs :(
-    # this is the tradeoff for stability of the filtering
-    # obtained by directly using the result of firwin2 instead of
-    # modifying it...
-    assert_array_almost_equal(bp_oa + bs_oa, a, 1)
-
-    # The two methods should give the same result
-    # As filtering for short signals uses a circular convolution (FFT) and
-    # the overlap-add filter implements a linear convolution, the signal
-    # boundary will be slightly different and we ignore it
-    n_edge_ignore = 0
-    assert_array_almost_equal(hp[n_edge_ignore:-n_edge_ignore],
-                              hp_oa[n_edge_ignore:-n_edge_ignore], 2)
+    for fl in ['10s', '5000ms', None, 8192]:
+        bp = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0)
+        bs = band_stop_filter(a, sfreq, 4 - 1.0, 8 + 1.0, fl, 1.0, 1.0)
+        lp = low_pass_filter(a, sfreq, 8, fl, 1.0, n_jobs=2)
+        hp = high_pass_filter(lp, sfreq, 4, fl, 1.0)
+        assert_array_almost_equal(hp, bp, 5)
+        assert_array_almost_equal(bp + bs, a, 5)
 
     # and since these are low-passed, downsampling/upsampling should be close
     n_resamp_ignore = 10
-    bp_up_dn = resample(resample(bp_oa, 2, 1, n_jobs=2), 1, 2, n_jobs=2)
-    assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
+    bp_up_dn = resample(resample(bp, 2, 1, n_jobs=2), 1, 2, n_jobs=2)
+    assert_array_almost_equal(bp[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
     # note that on systems without CUDA, this line serves as a test for a
     # graceful fallback to n_jobs=1
-    bp_up_dn = resample(resample(bp_oa, 2, 1, n_jobs='cuda'), 1, 2,
-                        n_jobs='cuda')
-    assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
+    bp_up_dn = resample(resample(bp, 2, 1, n_jobs='cuda'), 1, 2, n_jobs='cuda')
+    assert_array_almost_equal(bp[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
     # test to make sure our resamling matches scipy's
-    bp_up_dn = sp_resample(sp_resample(bp_oa, 2 * bp_oa.shape[-1], axis=-1,
+    bp_up_dn = sp_resample(sp_resample(bp, 2 * bp.shape[-1], axis=-1,
                                        window='boxcar'),
-                           bp_oa.shape[-1], window='boxcar', axis=-1)
-    assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
+                           bp.shape[-1], window='boxcar', axis=-1)
+    assert_array_almost_equal(bp[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
 
     # make sure we don't alias
@@ -335,17 +317,19 @@ def test_filters():
     a = rng.randn(5 * sfreq, 5 * sfreq)
     b = a[:, None, :]
 
-    with warnings.catch_warnings(record=True) as w:
-        a_filt = band_pass_filter(a, sfreq, 4, 8)
-        b_filt = band_pass_filter(b, sfreq, 4, 8, picks=[0])
+    a_filt = band_pass_filter(a, sfreq, 4, 8, 1000, 2.0, 2.0)
+    b_filt = band_pass_filter(b, sfreq, 4, 8, 1000, 2.0, 2.0, picks=[0])
 
     assert_array_equal(a_filt[:, None, :], b_filt)
 
     # check for n-dimensional case
     a = rng.randn(2, 2, 2, 2)
-    assert_raises(ValueError, band_pass_filter, a, sfreq, Fp1=4, Fp2=8,
+    assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, 100, 1.0, 1.0,
                   picks=np.array([0, 1]))
 
+
+def test_filter_auto():
+    """Test filter auto parameters"""
     # test that our overlap-add filtering doesn't introduce strange
     # artifacts (from mne_analyze mailing list 2015/06/25)
     N = 300
@@ -353,11 +337,11 @@ def test_filters():
     lp = 10.
     sine_freq = 1.
     x = np.ones(N)
-    x += np.sin(2 * np.pi * sine_freq * np.arange(N) / sfreq)
-    with warnings.catch_warnings(record=True):  # filter attenuation
-        x_filt = low_pass_filter(x, sfreq, lp, '1s')
+    t = np.arange(N) / sfreq
+    x += np.sin(2 * np.pi * sine_freq * t)
+    x_filt = low_pass_filter(x, sfreq, lp, 'auto', 'auto', verbose=True)
     # the firwin2 function gets us this close
-    assert_allclose(x, x_filt, rtol=1e-3, atol=1e-3)
+    assert_allclose(x, x_filt, rtol=1e-4, atol=1e-4)
 
     # degenerate conditions
     assert_raises(ValueError, filter_data, x, sfreq, 1, 10)  # not 2D
@@ -379,20 +363,20 @@ def test_cuda():
 
     with catch_logging() as log_file:
         for fl in ['10s', None, 2048]:
-            bp = band_pass_filter(a, sfreq, 4, 8, n_jobs=1, filter_length=fl)
-            bs = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, n_jobs=1,
-                                  filter_length=fl)
-            lp = low_pass_filter(a, sfreq, 8, n_jobs=1, filter_length=fl)
-            hp = high_pass_filter(lp, sfreq, 4, n_jobs=1, filter_length=fl)
+            bp = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0, n_jobs=1)
+            bs = band_stop_filter(a, sfreq, 4 - 1.0, 8 + 1.0, fl, 1.0, 1.0,
+                                  n_jobs=1)
+            lp = low_pass_filter(a, sfreq, 8, fl, 1.0, n_jobs=1)
+            hp = high_pass_filter(lp, sfreq, 4, fl, 1.0, n_jobs=1)
 
-            bp_c = band_pass_filter(a, sfreq, 4, 8, n_jobs='cuda',
-                                    filter_length=fl, verbose='INFO')
-            bs_c = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, n_jobs='cuda',
-                                    filter_length=fl, verbose='INFO')
-            lp_c = low_pass_filter(a, sfreq, 8, n_jobs='cuda',
-                                   filter_length=fl, verbose='INFO')
-            hp_c = high_pass_filter(lp, sfreq, 4, n_jobs='cuda',
-                                    filter_length=fl, verbose='INFO')
+            bp_c = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0,
+                                    n_jobs='cuda', verbose='INFO')
+            bs_c = band_stop_filter(a, sfreq, 4 - 1.0, 8 + 1.0, fl, 1.0, 1.0,
+                                    n_jobs='cuda', verbose='INFO')
+            lp_c = low_pass_filter(a, sfreq, 8, fl, 1.0,
+                                   n_jobs='cuda', verbose='INFO')
+            hp_c = high_pass_filter(lp, sfreq, 4, fl, 1.0,
+                                    n_jobs='cuda', verbose='INFO')
 
             assert_array_almost_equal(bp, bp_c, 12)
             assert_array_almost_equal(bs, bs_c, 12)

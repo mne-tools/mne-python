@@ -895,9 +895,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                 n_fft, envelope=envelope)
 
     @verbose
-    def filter(self, l_freq, h_freq, picks=None, filter_length='10s',
-               l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-               method='fft', iir_params=None, verbose=None):
+    def filter(self, l_freq, h_freq, picks=None, filter_length='',
+               l_trans_bandwidth=None, h_trans_bandwidth=None, n_jobs=1,
+               method='fir', iir_params=None, verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -947,9 +947,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             (low pass or cutoff 2 in bandpass). Not used for 'iir' filters.
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-            is installed properly, CUDA is initialized, and method='fft'.
+            is installed properly, CUDA is initialized, and method='fir'.
         method : str
-            'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+            'fir' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt).
         iir_params : dict | None
             Dictionary of parameters to use for IIR filtering.
@@ -1011,7 +1011,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     @verbose
-    def notch_filter(self, freqs, picks=None, filter_length='10s',
+    def notch_filter(self, freqs, picks=None, filter_length='',
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
                      method='fft', iir_params=None, mt_bandwidth=None,
                      p_value=0.05, verbose=None):
@@ -1052,9 +1052,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Width of the transition band in Hz.
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-            is installed properly, CUDA is initialized, and method='fft'.
+            is installed properly, CUDA is initialized, and method='fir'.
         method : str
-            'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+            'fir' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt). 'spectrum_fit' will
             use multi-taper estimation of sinusoidal components.
         iir_params : dict | None

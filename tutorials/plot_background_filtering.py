@@ -9,10 +9,31 @@ Background information on filtering
 Here we give some background information on filtering in general,
 and how it is done in MNE-Python in particular.
 Recommended reading for practical applications of digital
-filter design can be found in [1]_. To see how to use the default filters
+filter design can be found in [1]_, and for filtering in an M/EEG context
+we recommend reading [7]_. To see how to use the default filters
 in MNE-Python on actual data, see the :ref:`tut_artifacts_filter` tutorial.
 
 .. contents::
+
+Problem statement
+=================
+
+The practical issues with filtering electrophysiological data are covered
+well by Widmann et al. in [7]_, in a follow-up to an article where they
+conclude with this statement:
+
+    Filtering can result in considerable distortions of the time course
+    (and amplitude) of a signal as demonstrated by VanRullen (2011) [[3]_].
+    Thus, filtering should not be used lightly. However, if effects of
+    filtering are cautiously considered and filter artifacts are minimized,
+    a valid interpretation of the temporal dynamics of filtered
+    electrophysiological data is possible and signals missed otherwise
+    can be detected with filtering.
+
+In other words, filtering can increase SNR, but if it is not used carefully,
+it can distorte data. Here we hope to cover some filtering basics so
+users can better understand filtering tradeoffs, and why MNE-Python has
+chosen particular defaults.
 
 .. _filtering-basics:
 
@@ -66,6 +87,17 @@ As outlined in [1]_, FIR and IIR have different tradeoffs:
     * IIR filters are generally less numerically stable, in part due to
       accumulating error (due to its recursive calculations).
 
+In MNE-Python we default to using FIR filtering. As noted in [7]_:
+
+    Despite IIR filters often being considered as computationally more
+    efficient, they are recommended only when high throughput and sharp
+    cutoffs are required (Ifeachor and Jervis, 2002 [[2]_], p. 321),
+    ...FIR filters are easier to control, are always stable, have a
+    well-defined passband, can be corrected to zero-phase without
+    additional computations, and can be converted to minimum-phase.
+    We therefore recommend FIR filters for most purposes in
+    electrophysiological data analysis.
+
 When designing a filter (FIR or IIR), there are always tradeoffs that
 need to be considered, including but not limited to:
 
@@ -79,6 +111,7 @@ In general, the sharper something is in frequency, the broader it is in time,
 and vice-versa. This is a fundamental time-frequency tradeoff, and it will
 show up below.
 
+FIR Filters
 ===========
 
 First we will focus first on FIR filters, which are the default filters used by
@@ -483,6 +516,13 @@ mne.viz.tight_layout()
 plt.show()
 
 ###############################################################################
+# Some pitfalls of filtering
+# ==========================
+# Recently multiple papers have addressed the potential risks of drawing
+# errant inferences due to misapplication of filters.
+#
+
+###############################################################################
 # Filtering in MNE-Python
 # =======================
 # Most often, filtering in MNE-Python is done at the :class:`mne.io.Raw` level,
@@ -491,7 +531,46 @@ plt.show()
 # filter the data.
 #
 # :func:`mne.filter.filter_data` by default applies a FIR filter designed using
-# :func:`scipy.signal.firwin2`. For more information on how to use the
+# :func:`scipy.signal.firwin2`. In [7]_, they suggest a specific set of
+# parameters to use for high-pass filtering, including:
+#
+#     "... providing a transition bandwidth of 25% of the lower passband
+#     edge but, where possible, not lower than 2 Hz and otherwise the
+#     distance from the passband edge to the critical frequency.”
+#
+# Although this is a mouthful, it means that for each high-pass value
+# ``l_freq`` below, you would get this corresponding ``l_trans_bandwidth``:
+#
+# +--------+-------------------+
+# | l_freq | l_trans_bandwidth |
+# +========+===================+
+# |   0.01 |              0.01 |
+# +--------+-------------------+
+# |    0.1 |               0.1 |
+# +--------+-------------------+
+# |    1.0 |               1.0 |
+# +--------+-------------------+
+# |    2.0 |               2.0 |
+# +--------+-------------------+
+# |    4.0 |               2.0 |
+# +--------+-------------------+
+# |    8.0 |               2.0 |
+# +--------+-------------------+
+# |   10.0 |               2.5 |
+# +--------+-------------------+
+#
+# MNE-Python has adopted this definition for its high-pass (and low-pass)
+# transition bandwidth choices when using ``l_trans_bandwidth='auto'`` and
+# ``h_trans_bandwidth='auto'``.
+#
+# To choose the filter length automatically with ``filter_length='auto'``,
+# 5 times the wavelength of the transition bandwidth is used.
+#
+# .. note:: In band-pass applications, often a low-pass filter can operate
+#           effectively with fewer samples than the high-pass filter, so
+#           it is advisable to apply the high-pass and low-pass separately.
+#
+# For more information on how to use the
 # MNE-Python filtering functions with real data, consult the preprocessing
 # tutorial on :ref:`tut_artifacts_filter`.
 #
@@ -509,8 +588,40 @@ plt.show()
 ###############################################################################
 # References
 # ==========
-# .. [1] Parks TW, Burrus CS. Digital Filter Design.
-#    New York: Wiley-Interscience, 1987.
+# .. [1] Parks TW, Burrus CS (1987). Digital Filter Design.
+#        New York: Wiley-Interscience.
+# .. [2] Ifeachor, E. C., & Jervis, B. W. (2002). Digital Signal Processing:
+#        A Practical Approach. Prentice Hall.
+# .. [3] Vanrullen, R. (2011). Four common conceptual fallacies in mapping
+#        the time course of recognition. Perception Science, 2, 365.
+# .. [4] Acunzo, D. J., MacKenzie, G., & van Rossum, M. C. W. (2012).
+#        Systematic biases in early ERP and ERF components as a result
+#        of high-pass filtering. Journal of Neuroscience Methods,
+#        209(1), 212–218. http://doi.org/10.1016/j.jneumeth.2012.06.011
+# .. [5] Rousselet, G. A. (2012). Does filtering preclude us from studying
+#        ERP time-courses? Frontiers in Psychology, 3(131)
+# .. [6] Widmann, A., & Schröger, E. (2012). Filter effects and filter
+#        artifacts in the analysis of electrophysiological data.
+#        Perception Science, 233.
+# .. [7] Widmann, A., Schröger, E., & Maess, B. (2015). Digital filter
+#        design for electrophysiological data – a practical approach.
+#        Journal of Neuroscience Methods, 250, 34–46.
+# .. [8] Tanner, D., Morgan-Short, K., & Luck, S. J. (2015).
+#        How inappropriate high-pass filters can produce artifactual effects
+#        and incorrect conclusions in ERP studies of language and cognition.
+#        Psychophysiology, 52(8), 997–1009. http://doi.org/10.1111/psyp.12437
+# .. [9] Maess, B., Schröger, E., & Widmann, A. (2016).
+#        High-pass filters and baseline correction in M/EEG analysis.
+#        Commentary on: “How inappropriate high-pass filters can produce
+#        artefacts and incorrect conclusions in ERP studies of language
+#        and cognition.” Journal of Neuroscience Methods, 266, 164–165.
+# .. [10] Tanner, D., Norton, J. J. S., Morgan-Short, K., & Luck, S. J. (2016).
+#        On high-pass filter artifacts (they’re real) and baseline correction
+#        (it’s a good idea) in ERP/ERMF analysis.
+# .. [11] Maess, B., Schröger, E., & Widmann, A. (2016).
+#        High-pass filters and baseline correction in M/EEG analysis-continued
+#        discussion. Journal of Neuroscience Methods, 266, 171–172.
+#        Journal of Neuroscience Methods, 266, 166–170.
 #
 # .. _FIR: https://en.wikipedia.org/wiki/Finite_impulse_response
 # .. _IIR: https://en.wikipedia.org/wiki/Infinite_impulse_response
