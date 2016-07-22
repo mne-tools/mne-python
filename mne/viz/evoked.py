@@ -1203,14 +1203,16 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     return fig
 
 
-def _ci(arr, ci, t=True):
+def _ci(arr, ci):
     """Calculate the `ci`% parametric confidence interval for `arr`"""
     from scipy import stats
+    print(arr.shape)
     mean, sigma = arr.mean(0), stats.sem(arr, 0)
-    if t:
-        return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])
-    else:
-        return stats.norm.interval(ci, loc=mean, scale=sigma)
+    # This is highly convoluted to support 17th century Scipy
+    # XXX Fix when Python 2.6 support is dropped!
+    return np.asarray([stats.t.interval(ci, arr.shape[0],
+                       loc=mean_, scale=sigma_)
+                       for mean_, sigma_ in zip(mean, sigma)]).T
 
 
 def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
@@ -1533,7 +1535,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
 
     if len(conditions) > 1:
         plt.legend(loc='best', ncol=1 + (len(conditions) // 5),
-                   frameon=True, fontsize=10)
+                   frameon=True, prop=dict(size=10))
 
     fig = plt.gcf()
 
