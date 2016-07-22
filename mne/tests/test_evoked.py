@@ -75,8 +75,7 @@ def test_decim():
 
 @requires_version('scipy', '0.14')
 def test_savgol_filter():
-    """Test savgol filtering
-    """
+    """Test savgol filtering"""
     h_freq = 10.
     evoked = read_evokeds(fname, 0)
     freqs = fftpack.fftfreq(len(evoked.times), 1. / evoked.info['sfreq'])
@@ -98,8 +97,7 @@ def test_savgol_filter():
 
 
 def test_hash_evoked():
-    """Test evoked hashing
-    """
+    """Test evoked hashing"""
     ave = read_evokeds(fname, 0)
     ave_2 = read_evokeds(fname, 0)
     assert_equal(hash(ave), hash(ave_2))
@@ -112,8 +110,7 @@ def test_hash_evoked():
 
 @slow_test
 def test_io_evoked():
-    """Test IO for evoked data (fif + gz) with integer and str args
-    """
+    """Test IO for evoked data (fif + gz) with integer and str args"""
     tempdir = _TempDir()
     ave = read_evokeds(fname, 0)
 
@@ -172,8 +169,7 @@ def test_io_evoked():
 
 
 def test_shift_time_evoked():
-    """ Test for shifting of time scale
-    """
+    """ Test for shifting of time scale"""
     tempdir = _TempDir()
     # Shift backward
     ave = read_evokeds(fname, 0)
@@ -213,8 +209,7 @@ def test_shift_time_evoked():
 
 
 def test_evoked_resample():
-    """Test for resampling of evoked data
-    """
+    """Test for resampling of evoked data"""
     tempdir = _TempDir()
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
@@ -245,8 +240,7 @@ def test_evoked_resample():
 
 
 def test_evoked_detrend():
-    """Test for detrending evoked data
-    """
+    """Test for detrending evoked data"""
     ave = read_evokeds(fname, 0)
     ave_normal = read_evokeds(fname, 0)
     ave.detrend(0)
@@ -270,8 +264,7 @@ def test_to_data_frame():
 
 
 def test_evoked_proj():
-    """Test SSP proj operations
-    """
+    """Test SSP proj operations"""
     for proj in [True, False]:
         ave = read_evokeds(fname, condition=0, proj=proj)
         assert_true(all(p['active'] == proj for p in ave.info['projs']))
@@ -299,8 +292,7 @@ def test_evoked_proj():
 
 
 def test_get_peak():
-    """Test peak getter
-    """
+    """Test peak getter"""
 
     evoked = read_evokeds(fname, condition=0, proj=True)
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmin=1)
@@ -342,8 +334,7 @@ def test_get_peak():
 
 
 def test_drop_channels_mixin():
-    """Test channels-dropping functionality
-    """
+    """Test channels-dropping functionality"""
     evoked = read_evokeds(fname, condition=0, proj=True)
     drop_ch = evoked.ch_names[:3]
     ch_names = evoked.ch_names[3:]
@@ -360,8 +351,7 @@ def test_drop_channels_mixin():
 
 
 def test_pick_channels_mixin():
-    """Test channel-picking functionality
-    """
+    """Test channel-picking functionality"""
     evoked = read_evokeds(fname, condition=0, proj=True)
     ch_names = evoked.ch_names[:3]
 
@@ -385,8 +375,7 @@ def test_pick_channels_mixin():
 
 
 def test_equalize_channels():
-    """Test equalization of channels
-    """
+    """Test equalization of channels"""
     evoked1 = read_evokeds(fname, condition=0, proj=True)
     evoked2 = evoked1.copy()
     ch_names = evoked1.ch_names[2:]
@@ -399,8 +388,7 @@ def test_equalize_channels():
 
 
 def test_evoked_arithmetic():
-    """Test evoked arithmetic
-    """
+    """Test evoked arithmetic"""
     ev = read_evokeds(fname, condition=0)
     ev1 = EvokedArray(np.ones_like(ev.data), ev.info, ev.times[0], nave=20)
     ev2 = EvokedArray(-np.ones_like(ev.data), ev.info, ev.times[0], nave=10)
@@ -411,6 +399,19 @@ def test_evoked_arithmetic():
     ev = combine_evoked([ev1, ev2])
     assert_equal(ev.nave, ev1.nave + ev2.nave)
     assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
+
+    # with same trial counts, a bunch of things should be equivalent
+    for weights in ('nave', 'equal', [0.5, 0.5]):
+        print(weights)
+        ev = combine_evoked([ev1, ev1], weights=weights)
+        assert_allclose(ev.data, ev1.data)
+        assert_equal(ev.nave, 2 * ev1.nave)
+        ev = combine_evoked([ev1, -ev1], weights=weights)
+        assert_allclose(ev.data, 0., atol=1e-20)
+        assert_equal(ev.nave, 2 * ev1.nave)
+    ev = combine_evoked([ev1, ev1], weights=[0.5, -0.5])
+    assert_allclose(ev.data, 0., atol=1e-20)
+    assert_equal(ev.nave, 2 * ev1.nave)
 
     # default comment behavior if evoked.comment is None
     old_comment1 = ev1.comment
@@ -450,8 +451,7 @@ def test_evoked_arithmetic():
 
 
 def test_array_epochs():
-    """Test creating evoked from array
-    """
+    """Test creating evoked from array"""
     tempdir = _TempDir()
 
     # creating

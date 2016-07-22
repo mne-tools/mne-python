@@ -276,10 +276,39 @@ evoked2 = mne.read_evokeds(
     evoked_fname, condition='Right Auditory', baseline=(None, 0), proj=True)
 
 ##############################################################################
-# Compute a contrast:
+# Two evoked objects can be contrasted using :func:`mne.combine_evoked`.
+# By default, this function uses ``weights='nave'``, which means that the
+# number of trials used to obtain the averages for ``evoked1`` and ``evoked2``
+# are taken into account when computing the resulting ``contrast``. That is,
+# the following provides a weighted difference here, not a simple
+# element-by-element subtraction:
+
+contrast = mne.combine_evoked([evoked1, -evoked2])
+print(contrast)
+
+##############################################################################
+# To do a an unweighted difference, you can use either of the following, but
+# note that the resulting estimated number of averages might not be correct,
+# so it is not well suited to use in inverses:
 
 contrast = mne.combine_evoked([evoked1, evoked2], weights=[1, -1])
+contrast = mne.combine_evoked([evoked1, -evoked2], weights='equal')
 print(contrast)
+
+##############################################################################
+# Instead of dealing with mismatches in the number of averages, we can use
+# trial-count equalization before computing a contrast, which is recommended
+# for inverse imaging (note that here the ``weights='nave'`` default will
+# give the same result as ``weights='equal'`` here):
+
+epochs_eq = epochs.copy().equalize_event_counts(['aud_l', 'aud_r'])[0]
+evoked1, evoked2 = epochs_eq['aud_l'].average(), epochs_eq['aud_r'].average()
+print(evoked1)
+print(evoked2)
+contrast = mne.combine_evoked([evoked1, -evoked2])
+contrast.comment = 'aud_l - aud_r'
+print(contrast)
+raise RuntimeError
 
 ##############################################################################
 # Time-Frequency: Induced power and inter trial coherence

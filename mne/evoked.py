@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -890,6 +891,20 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         evoked = deepcopy(self)
         return evoked
 
+    def __neg__(self):
+        """Negate channel responses
+
+        Returns
+        -------
+        evoked_neg : instance of Evoked
+            The Evoked instance with channel data negated and '-'
+            prepended to the comment.
+        """
+        out = self.copy()
+        out.data *= -1
+        out.comment = '-' + out.comment
+        return out
+
     @deprecated('ev1 + ev2 weighted summation has been deprecated and will be '
                 'removed in 0.14, use combine_evoked([ev1, ev2],'
                 'weight="nave") instead')
@@ -1243,8 +1258,22 @@ def combine_evoked(all_evoked, weights='nave'):
     evoked.info['bads'] = bads
 
     evoked.data = sum(w * e.data for w, e in zip(weights, all_evoked))
-    evoked.nave = max(int(1. / sum(w ** 2 / e.nave
-                                   for w, e in zip(weights, all_evoked))), 1)
+    # We should set nave based on how variances change when summing Gaussian
+    # random variables. From:
+    #
+    #    https://en.wikipedia.org/wiki/Weighted_arithmetic_mean
+    #
+    # We know that the variance of a weighted sample mean is:
+    #
+    #    σ^2 = w_1^2 σ_1^2 + w_2^2 σ_2^2 + ... + w_n^2 σ_n^2
+    #
+    # We estimate the variance of each evoked instance as 1 / nave to get:
+    #
+    #    σ^2 = w_1^2 / nave_1 + w_2^2 / nave_2 + ... + w_n^2 / nave_n
+    #
+    # And our resulting nave is the reciprocal of this:
+    evoked.nave = max(int(round(
+        1. / sum(w ** 2 / e.nave for w, e in zip(weights, all_evoked)))), 1)
     return evoked
 
 
