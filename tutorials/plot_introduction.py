@@ -294,7 +294,7 @@ print(contrast)
 
 average = mne.combine_evoked([evoked1, evoked2], weights='nave')
 print(contrast)
-raise RuntimeError
+
 ##############################################################################
 # Instead of dealing with mismatches in the number of averages, we can use
 # trial-count equalization before computing a contrast, which can have some
