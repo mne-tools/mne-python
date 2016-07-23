@@ -751,8 +751,9 @@ def buggy_mkl_test(function):
         except np.linalg.LinAlgError as exp:
             if 'SVD did not converge' in str(exp):
                 from nose.plugins.skip import SkipTest
-                raise SkipTest('Intel MKL SVD convergence error detected,'
-                               'skipping test')
+                msg = 'Intel MKL SVD convergence error detected, skipping test'
+                warn(msg)
+                raise SkipTest(msg)
             raise
     return dec
 
