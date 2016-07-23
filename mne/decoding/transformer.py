@@ -13,7 +13,7 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       band_stop_filter)
 from ..time_frequency.psd import _psd_multitaper
 from ..externals import six
-from ..utils import _check_type_picks
+from ..utils import _check_type_picks, deprecated
 
 
 class Scaler(TransformerMixin):
@@ -147,6 +147,7 @@ class Scaler(TransformerMixin):
         return X
 
 
+@deprecated("EpochsVectorizer will be deprecated; use Vectorizer instead")
 class EpochsVectorizer(TransformerMixin):
     """EpochsVectorizer transforms epoch data to fit into a scikit-learn pipeline.
 
