@@ -662,11 +662,12 @@ class UnsupervisedSpatialFilter(TransformerMixin):
             Return the modified instance.
         """
         if self.average:
-            X = np.mean(X, axis=0)
+            X = np.mean(X, axis=0).T
         else:
             n_epoch, n_chan, n_time = X.shape
             # trial as time samples
-            X = np.transpose(X, (1, 0, 2)).reshape((n_chan, n_epoch * n_time)).T
+            X = np.transpose(X, (1, 0, 2)).reshape((n_chan, n_epoch *
+                                                    n_time)).T
         self.estimator.fit(X)
         return self
 
@@ -701,12 +702,9 @@ class UnsupervisedSpatialFilter(TransformerMixin):
         X : array, shape (n_trials, n_chans, n_times)
             The transformed data.
         """
-        if self.average = True:
-            X = np.average(X, axis=0)
-        else:
-            n_epoch, n_chan, n_time = X.shape
-            # trial as time samples
-            X = np.transpose(X, [1, 0, 2]).reshape([n_chan, n_epoch * n_time]).T
+        n_epoch, n_chan, n_time = X.shape
+        # trial as time samples
+        X = np.transpose(X, [1, 0, 2]).reshape([n_chan, n_epoch * n_time]).T
         X = self.estimator.transform(X)
         X = np.reshape(X.T, [-1, n_epoch, n_time]).transpose([1, 0, 2])
         return X
