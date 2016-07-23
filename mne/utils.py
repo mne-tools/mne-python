@@ -742,10 +742,10 @@ def requires_nibabel(vox2ras_tkr=False):
                                  'Requires nibabel%s' % extra)
 
 
-def buggy_mkl_test(function, *args, **kwargs):
+def buggy_mkl_test(function):
     """Decorator for tests that make calls to SVD and intermittently fail"""
     @wraps(function)
-    def dec():
+    def dec(*args, **kwargs):
         try:
             return function(*args, **kwargs)
         except np.linalg.LinAlgError as exp:

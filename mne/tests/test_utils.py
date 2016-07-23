@@ -49,14 +49,14 @@ def test_buggy_mkl():
     from nose.plugins.skip import SkipTest
 
     @buggy_mkl_test
-    def foo():
+    def foo(a, b):
         raise np.linalg.LinAlgError('SVD did not converge')
-    assert_raises(SkipTest, foo)
+    assert_raises(SkipTest, foo, 1, 2)
 
     @buggy_mkl_test
-    def bar():
+    def bar(c, d, e):
         raise RuntimeError('SVD did not converge')
-    assert_raises(RuntimeError, bar)
+    assert_raises(RuntimeError, bar, 1, 2, 3)
 
 
 def test_sys_info():
