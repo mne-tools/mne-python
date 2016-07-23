@@ -742,7 +742,7 @@ def requires_nibabel(vox2ras_tkr=False):
                                  'Requires nibabel%s' % extra)
 
 
-def buggy_mkl_test(function):
+def buggy_mkl_svd(function):
     """Decorator for tests that make calls to SVD and intermittently fail"""
     @wraps(function)
     def dec(*args, **kwargs):

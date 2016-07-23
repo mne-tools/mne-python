@@ -24,7 +24,7 @@ from mne.preprocessing.maxwell import (
     _bases_real_to_complex, _sph_harm, _prep_mf_coils)
 from mne.tests.common import assert_meg_snr
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, catch_logging,
-                       requires_version, object_diff, buggy_mkl_test)
+                       requires_version, object_diff, buggy_mkl_svd)
 from mne.externals.six import PY3
 
 warnings.simplefilter('always')  # Always throw warnings
@@ -760,7 +760,7 @@ def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
                 'Shielding factor %0.3f < %0.3f' % (factor, shielding_factor))
 
 
-@buggy_mkl_test
+@buggy_mkl_svd
 @slow_test
 @requires_svd_convergence
 @testing.requires_testing_data

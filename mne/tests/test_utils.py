@@ -23,7 +23,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        create_slices, _time_mask, random_permutation,
                        _get_call_line, compute_corr, sys_info, verbose,
                        check_fname, requires_ftp, get_config_path,
-                       object_size, buggy_mkl_test)
+                       object_size, buggy_mkl_svd)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -48,12 +48,12 @@ def test_buggy_mkl():
     """Test decorator for buggy MKL issues"""
     from nose.plugins.skip import SkipTest
 
-    @buggy_mkl_test
+    @buggy_mkl_svd
     def foo(a, b):
         raise np.linalg.LinAlgError('SVD did not converge')
     assert_raises(SkipTest, foo, 1, 2)
 
-    @buggy_mkl_test
+    @buggy_mkl_svd
     def bar(c, d, e):
         raise RuntimeError('SVD did not converge')
     assert_raises(RuntimeError, bar, 1, 2, 3)
