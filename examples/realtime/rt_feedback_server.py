@@ -43,7 +43,7 @@ import mne
 from mne.datasets import sample
 from mne.realtime import StimServer
 from mne.realtime import MockRtClient
-from mne.decoding import EpochsVectorizer, FilterEstimator
+from mne.decoding import EpochsVectorizer
 
 print(__doc__)
 
@@ -64,12 +64,11 @@ with StimServer(port=4218) as stim_server:
     rt_client = MockRtClient(raw)
 
     # Constructing the pipeline for classification
-    filt = FilterEstimator(raw.info, 1, 40)
     scaler = preprocessing.StandardScaler()
     vectorizer = EpochsVectorizer()
     clf = SVC(C=1, kernel='linear')
 
-    concat_classifier = Pipeline([('filter', filt), ('vector', vectorizer),
+    concat_classifier = Pipeline([('vector', vectorizer),
                                   ('scaler', scaler), ('svm', clf)])
 
     stim_server.start(verbose=True)
