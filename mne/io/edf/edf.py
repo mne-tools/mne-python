@@ -252,13 +252,13 @@ def _parse_tal_channel(tal_channel_data):
     """
 
     # convert tal_channel to an ascii string
-    tals = bytearray()
+    tals = bytearray(u'', encoding='UTF-8')
     for s in tal_channel_data:
         i = int(s)
         tals.extend([i % 256, i // 256])
 
     regex_tal = '([+-]\d+\.?\d*)(\x15(\d+\.?\d*))?(\x14.*?)\x14\x00'
-    tal_list = re.findall(regex_tal, tals.decode('ascii'))
+    tal_list = re.findall(regex_tal, tals.decode(encoding='UTF-8'))
     events = []
     for ev in tal_list:
         onset = float(ev[0])
