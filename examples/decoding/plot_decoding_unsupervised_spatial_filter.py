@@ -4,7 +4,7 @@ Analysis of evoked response using ICA and PCA reduction techniques
 ==================================================================
 
 This example computes PCA and ICA of epochs data. Then the evoked response
-for any single event is taken for visual comparision between the two.
+for any single event is taken for visual comparison between the two.
 """
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>
 #          Asish Panda <asishrocks95@gmail.com>

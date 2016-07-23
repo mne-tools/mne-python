@@ -635,11 +635,16 @@ class UnsupervisedSpatialFilter(TransformerMixin):
     estimator : scikit-learn estimator
         Estimator using some decomposition algorithm.
     """
-    def __init__(self, estimator):
-        self.estimator = estimator
+    def __init__(self, estimator, average=False):
         for attr in ('fit', 'transform', 'fit_transform'):
             if not hasattr(estimator, attr):
                 raise ValueError('estimator must be a sklearn transformer')
+
+        if not isinstance(average, bool):
+            raise ValueError("average parameter must be of bool type, got "
+                             "%s instead" % type(bool))
+        self.estimator = estimator
+        self.average = average
 
     def fit(self, X, y=None):
         """Make the data compatibile with scikit-learn estimator.
@@ -656,9 +661,12 @@ class UnsupervisedSpatialFilter(TransformerMixin):
         self : Instance of UnsupervisedSpatialFilter
             Return the modified instance.
         """
-        n_epoch, n_chan, n_time = X.shape
-        # trial as time samples
-        X = np.transpose(X, (1, 0, 2)).reshape((n_chan, n_epoch * n_time)).T
+        if self.average:
+            X = np.mean(X, axis=0)
+        else:
+            n_epoch, n_chan, n_time = X.shape
+            # trial as time samples
+            X = np.transpose(X, (1, 0, 2)).reshape((n_chan, n_epoch * n_time)).T
         self.estimator.fit(X)
         return self
 
@@ -693,9 +701,12 @@ class UnsupervisedSpatialFilter(TransformerMixin):
         X : array, shape (n_trials, n_chans, n_times)
             The transformed data.
         """
-        n_epoch, n_chan, n_time = X.shape
-        # trial as time samples
-        X = np.transpose(X, [1, 0, 2]).reshape([n_chan, n_epoch * n_time]).T
+        if self.average = True:
+            X = np.average(X, axis=0)
+        else:
+            n_epoch, n_chan, n_time = X.shape
+            # trial as time samples
+            X = np.transpose(X, [1, 0, 2]).reshape([n_chan, n_epoch * n_time]).T
         X = self.estimator.transform(X)
         X = np.reshape(X.T, [-1, n_epoch, n_time]).transpose([1, 0, 2])
         return X
