@@ -634,6 +634,8 @@ class UnsupervisedSpatialFilter(TransformerMixin):
     ----------
     estimator : scikit-learn estimator
         Estimator using some decomposition algorithm.
+    average : bool, default False
+        If true, average of X is used in estimator's fit.
     """
     def __init__(self, estimator, average=False):
         for attr in ('fit', 'transform', 'fit_transform'):
