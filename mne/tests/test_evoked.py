@@ -387,7 +387,7 @@ def test_equalize_channels():
         assert_equal(ch_names, e.ch_names)
 
 
-def test_evoked_arithmetic():
+def test_arithmetic():
     """Test evoked arithmetic"""
     ev = read_evokeds(fname, condition=0)
     ev1 = EvokedArray(np.ones_like(ev.data), ev.info, ev.times[0], nave=20)
@@ -409,16 +409,22 @@ def test_evoked_arithmetic():
         ev = combine_evoked([ev1, -ev1], weights=weights)
         assert_allclose(ev.data, 0., atol=1e-20)
         assert_equal(ev.nave, 2 * ev1.nave)
-    ev = combine_evoked([ev1, ev1], weights=[0.5, -0.5])
+    ev = combine_evoked([ev1, -ev1], weights='equal')
     assert_allclose(ev.data, 0., atol=1e-20)
     assert_equal(ev.nave, 2 * ev1.nave)
+    ev = combine_evoked([ev1, -ev2], weights='equal')
+    expected = int(round(1. / (0.25 / ev1.nave + 0.25 / ev2.nave)))
+    assert_equal(expected, 27)  # this is reasonable
+    assert_equal(ev.nave, expected)
 
     # default comment behavior if evoked.comment is None
     old_comment1 = ev1.comment
     old_comment2 = ev2.comment
     ev1.comment = None
-    ev = combine_evoked([ev1, ev2], weights=[1, -1])
-    assert_true(ev.comment is None)
+    ev = combine_evoked([ev1, -ev2], weights=[1, -1])
+    assert_equal(ev.comment.count('unknown'), 2)
+    assert_true('-unknown' in ev.comment)
+    assert_true(' + ' in ev.comment)
     ev1.comment = old_comment1
     ev2.comment = old_comment2
 

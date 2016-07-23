@@ -277,34 +277,35 @@ evoked2 = mne.read_evokeds(
 
 ##############################################################################
 # Two evoked objects can be contrasted using :func:`mne.combine_evoked`.
-# This function can use ``weights='nave'``, which means that the
-# number of trials used to obtain the averages for ``evoked1`` and ``evoked2``
-# are taken into account when computing the resulting ``contrast``. That is,
-# the following provides a weighted difference here, not a simple
-# element-by-element subtraction:
-
-contrast = mne.combine_evoked([evoked1, -evoked2], weights='equal')
-print(contrast)
-
-##############################################################################
-# To do a an unweighted difference, you can use either of the following:
+# This function can use ``weights='equal'``, which provides a simple
+# element-by-element subtraction (and sets the
+# :attr:`mne.Evoked.nave` attribute properly based on the underlying number
+# of trials) using either equivalent call:
 
 contrast = mne.combine_evoked([evoked1, evoked2], weights=[0.5, -0.5])
 contrast = mne.combine_evoked([evoked1, -evoked2], weights='equal')
 print(contrast)
 
 ##############################################################################
+# To do a weighted sum based on the number of averages, which will give
+# you what you would have gotten from pooling all trials together in
+# :class:`mne.Epochs` before creating the :class:`mne.Evoked` instance,
+# you can use ``weights='nave'``:
+
+average = mne.combine_evoked([evoked1, evoked2], weights='nave')
+print(contrast)
+raise RuntimeError
+##############################################################################
 # Instead of dealing with mismatches in the number of averages, we can use
-# trial-count equalization before computing a contrast, which is recommended
-# for most cases for inverse imaging (note that here ``weights='nave'`` will
-# give the same result as ``weights='equal'`` here):
+# trial-count equalization before computing a contrast, which can have some
+# benefits in inverse imaging (note that here ``weights='nave'`` will
+# give the same result as ``weights='equal'``):
 
 epochs_eq = epochs.copy().equalize_event_counts(['aud_l', 'aud_r'])[0]
 evoked1, evoked2 = epochs_eq['aud_l'].average(), epochs_eq['aud_r'].average()
 print(evoked1)
 print(evoked2)
 contrast = mne.combine_evoked([evoked1, -evoked2], weights='equal')
-contrast.comment = 'aud_l - aud_r'
 print(contrast)
 
 ##############################################################################

@@ -902,7 +902,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         out = self.copy()
         out.data *= -1
-        out.comment = '-' + out.comment
+        out.comment = '-' + (out.comment or 'unknown')
         return out
 
     @deprecated('ev1 + ev2 weighted summation has been deprecated and will be '
@@ -1232,7 +1232,7 @@ def combine_evoked(all_evoked, weights=None):
     """
     if weights is None:
         weights = 'nave'
-        warn('In 0.13 the default weights="nave", but in 0.14 the default '
+        warn('In 0.13 the default is weights="nave", but in 0.14 the default '
              'will be removed and it will have to be explicitly set',
              DeprecationWarning)
     evoked = all_evoked[0].copy()
@@ -1280,6 +1280,8 @@ def combine_evoked(all_evoked, weights=None):
     # And our resulting nave is the reciprocal of this:
     evoked.nave = max(int(round(
         1. / sum(w ** 2 / e.nave for w, e in zip(weights, all_evoked)))), 1)
+    evoked.comment = ' + '.join('%0.3f * %s' % (w, e.comment or 'unknown')
+                                for w, e in zip(weights, all_evoked))
     return evoked
 
 
