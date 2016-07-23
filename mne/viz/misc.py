@@ -246,9 +246,9 @@ def _plot_mri_contours(mri_fname, surfaces, orientation='coronal',
     ----------
     mri_fname : str
         The name of the file containing anatomical data.
-    surfaces : dict
-        A {filename: color} dictionary for the BEM surfaces to plot. Colors
-        should be matplotlib-compatible.
+    surfaces : list of (str, str) tuples
+        A list containing the BEM surfaces to plot as (filename, color) tuples.
+        Colors should be matplotlib-compatible.
     orientation : str
         'coronal' or 'axial' or 'sagittal'
     slices : list of int
@@ -288,9 +288,9 @@ def _plot_mri_contours(mri_fname, surfaces, orientation='coronal',
     # XXX : next line is a hack don't ask why
     trans[:3, -1] = [n_sag // 2, n_axi // 2, n_cor // 2]
 
-    for surf_fname, color in surfaces.items():
+    for file_name, color in surfaces:
         surf = dict()
-        surf['rr'], surf['tris'] = read_surface(surf_fname)
+        surf['rr'], surf['tris'] = read_surface(file_name)
         # move back surface to MRI coordinate system
         surf['rr'] = nib.affines.apply_affine(trans, surf['rr'])
         surfs.append((surf, color))
@@ -349,8 +349,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         Slice indices.
     brain_surfaces : None | str | list of str
         One or more brain surface to plot (optional). Entries should correspond
-        to files in the subject's ``surf`` directory, e.g., ``"white"`` will
-        plot ``<subject>/surf/lh.white`` and ``<subject>/surf/rh.white``.
+        to files in the subject's ``surf`` directory (e.g. ``"white"``).
     show : bool
         Show figure if True.
 
@@ -372,7 +371,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     if not op.isdir(bem_path):
         raise IOError('Subject bem directory "%s" does not exist' % bem_path)
 
-    surfaces = {}
+    surfaces = []
     for surf_name, color in (('*inner_skull', '#FF0000'),
                              ('*outer_skull', '#FFFF00'),
                              ('*outer_skin', '#FFAA80')):
@@ -380,7 +379,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         if len(surf_fname) > 0:
             surf_fname = surf_fname[0]
             logger.info("Using surface: %s" % surf_fname)
-            surfaces[surf_fname] = color
+            surfaces.append((surf_fname, color))
 
     if brain_surfaces is not None:
         if isinstance(brain_surfaces, string_types):
@@ -390,7 +389,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
                 surf_fname = op.join(subjects_dir, subject, 'surf',
                                      hemi + '.' + surf_name)
                 if op.exists(surf_fname):
-                    surfaces[surf_fname] = '#00DD00'
+                    surfaces.append((surf_fname, '#00DD00'))
                 else:
                     raise IOError("Surface %s does not exist." % surf_fname)
 
