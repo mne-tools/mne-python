@@ -68,6 +68,9 @@ def test_plot_bem():
                   subjects_dir=subjects_dir, orientation='bad-ori')
     plot_bem(subject='sample', subjects_dir=subjects_dir,
              orientation='sagittal', slices=[25, 50])
+    plot_bem(subject='sample', subjects_dir=subjects_dir,
+             orientation='coronal', slices=[25, 50],
+             brain_surfaces='white')
 
 
 def test_plot_events():
