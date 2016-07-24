@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne import io
-from mne.time_frequency import tfr_transform
+from mne.time_frequency import timefreq_transform
 from mne.stats import permutation_cluster_test
 from mne.datasets import sample
 
@@ -82,7 +82,7 @@ times = 1e3 * epochs_condition_1.times  # change unit to ms
 
 ###############################################################################
 # Factor to downsample the temporal dimension of the PSD computed by
-# tfr_transform.  Decimation occurs after frequency decomposition and can
+# timefreq_transform. Decimation occurs after frequency decomposition and can
 # be used to reduce memory usage (and possibly comptuational time of downstream
 # operations such as nonparametric statistics) if you don't need high
 # spectrotemporal resolution.
@@ -91,13 +91,13 @@ frequencies = np.arange(7, 30, 3)  # define frequencies of interest
 sfreq = raw.info['sfreq']  # sampling in Hz
 n_cycles = 1.5
 
-epochs_power_1 = tfr_transform(data_condition_1, frequencies, sfreq=sfreq,
-                               n_cycles=n_cycles, decim=decim, output='power',
-                               method='morlet')
+epochs_power_1 = timefreq_transform(data_condition_1, frequencies, sfreq=sfreq,
+                                    n_cycles=n_cycles, decim=decim,
+                                    output='power', method='morlet')
 
-epochs_power_2 = tfr_transform(data_condition_2, frequencies, sfreq=sfreq,
-                               n_cycles=n_cycles, decim=decim, output='power',
-                               method='morlet')
+epochs_power_2 = timefreq_transform(data_condition_2, frequencies, sfreq=sfreq,
+                                    n_cycles=n_cycles, decim=decim,
+                                    output='power', method='morlet')
 
 epochs_power_1 = epochs_power_1[:, 0, :, :]  # only 1 channel to get 3D matrix
 epochs_power_2 = epochs_power_2[:, 0, :, :]  # only 1 channel to get 3D matrix
