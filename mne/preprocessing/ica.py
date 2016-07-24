@@ -498,13 +498,19 @@ class ICA(ContainsMixin):
 
     def _fit(self, data, max_pca_components, fit_type):
         """Aux function """
-        from sklearn.decomposition import RandomizedPCA
 
         random_state = check_random_state(self.random_state)
 
-        # XXX fix copy==True later. Bug in sklearn, see PR #2273
-        pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
-                            copy=True, random_state=random_state)
+        if not check_version('sklearn', '0.18'):
+            from sklearn.decomposition import RandomizedPCA
+            # XXX fix copy==True later. Bug in sklearn, see PR #2273
+            pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
+                                copy=True, random_state=random_state)
+
+        else:
+            from sklearn.decomposition import PCA
+            pca = PCA(n_components=max_pca_components, copy=True, whiten=True,
+                      svd_solver='randomized', random_state=random_state)
 
         if isinstance(self.n_components, float):
             # compute full feature variance before doing PCA
@@ -539,9 +545,12 @@ class ICA(ContainsMixin):
         # the things to store for PCA
         self.pca_mean_ = pca.mean_
         self.pca_components_ = pca.components_
-        # unwhiten pca components and put scaling in unmixintg matrix later.
         self.pca_explained_variance_ = exp_var = pca.explained_variance_
-        self.pca_components_ *= np.sqrt(exp_var[:, None])
+        if not check_version('sklearn', '0.18'):
+            # unwhiten pca components and put scaling in unmixing matrix later.
+            # RandomizedPCA applies the whitening to the components
+            # but not the new PCA class.
+            self.pca_components_ *= np.sqrt(exp_var[:, None])
         del pca
         # update number of components
         self.n_components_ = sel.stop
