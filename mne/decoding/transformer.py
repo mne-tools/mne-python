@@ -147,7 +147,8 @@ class Scaler(TransformerMixin):
         return X
 
 
-@deprecated("EpochsVectorizer will be deprecated; use Vectorizer instead")
+@deprecated("EpochsVectorizer will be deprecated in version 0.14; "
+            "use Vectorizer instead")
 class EpochsVectorizer(TransformerMixin):
     """EpochsVectorizer transforms epoch data to fit into a scikit-learn pipeline.
 
@@ -298,7 +299,7 @@ class Vectorizer(TransformerMixin):
 
         Returns
         -------
-        X : array, shape (n_trials, -1)
+        X : array, shape (n_samples, -1)
             The transformed data.
         """
         X = np.asarray(X)
@@ -322,7 +323,7 @@ class Vectorizer(TransformerMixin):
 
         Returns
         -------
-        X : array, shape (n_trials, -1)
+        X : array, shape (n_samples, -1)
             The transformed data.
         """
         return self.fit(X).transform(X)
