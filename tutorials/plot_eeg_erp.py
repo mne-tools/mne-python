@@ -172,7 +172,7 @@ print(all_evokeds)
 
 ###############################################################################
 # This can be simplified with a Python list comprehension:
-all_evokeds = [epochs[cond] for cond in sorted(event_id.keys())]
+all_evokeds = [epochs[cond].average() for cond in sorted(event_id.keys())]
 print(all_evokeds)
 
 # Then, we construct and plot an unweighted average of left vs. right trials

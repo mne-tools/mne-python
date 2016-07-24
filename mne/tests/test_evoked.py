@@ -454,6 +454,7 @@ def test_arithmetic():
     assert_equal(gave.data.shape, [len(ch_names), evoked1.data.shape[1]])
     assert_equal(ch_names, gave.ch_names)
     assert_equal(gave.nave, 2)
+    assert_raises(ValueError, grand_average, [1, evoked1])
 
 
 def test_array_epochs():
