@@ -69,11 +69,11 @@ signal_cov = compute_raw_covariance(raw, picks=picks)
 # Xdawn instance
 xd = Xdawn(n_components=2, signal_cov=signal_cov)
 
-# Fit xdawn and pass events to correct for overlapping epochs
+# Fit xdawn
 xd.fit(epochs)
 
-# Denoise epochs. Note that it outputs a numpy array
+# Denoise epochs
 epochs_denoised = xd.apply(epochs)
 
-# Plot
+# Plot image epoch after Xdawn
 plot_epochs_image(epochs_denoised['vis_r'], picks=[230], vmin=-500, vmax=500)

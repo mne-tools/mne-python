@@ -5,11 +5,11 @@
 
 import numpy as np
 import os.path as op
-from nose.tools import (assert_equal, assert_raises)
+from nose.tools import assert_equal, assert_raises, assert_true
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne import (io, Epochs, read_events, pick_types,
                  compute_raw_covariance)
-from mne.utils import requires_sklearn, run_tests_if_main
+from mne.utils import requires_sklearn, run_tests_if_main, buggy_mkl_svd
 from mne.preprocessing.xdawn import Xdawn, XdawnTransformer
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -46,10 +46,9 @@ def test_xdawn_fit():
                     preload=True, baseline=None, verbose=False)
     # =========== Basic Fit test =================
     # Test base xdawn
-    xd = Xdawn(n_components=2, correct_overlap='auto',
-               signal_cov=None, reg=None)
+    xd = Xdawn(n_components=2, correct_overlap='auto')
     xd.fit(epochs)
-    # With this parameters, the overlap correction must be False
+    # With these parameters, the overlap correction must be False
     assert_equal(xd.correct_overlap_, False)
     # No overlap correction should give averaged evoked
     evoked = epochs['cond2'].average()
@@ -59,22 +58,22 @@ def test_xdawn_fit():
     # Provide covariance object
     signal_cov = compute_raw_covariance(raw, picks=picks)
     xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=signal_cov, reg=None)
+               signal_cov=signal_cov)
     xd.fit(epochs)
     # Provide ndarray
     signal_cov = np.eye(len(picks))
     xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=signal_cov, reg=None)
+               signal_cov=signal_cov)
     xd.fit(epochs)
     # Provide ndarray of bad shape
     signal_cov = np.eye(len(picks) - 1)
     xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=signal_cov, reg=None)
+               signal_cov=signal_cov)
     assert_raises(ValueError, xd.fit, epochs)
     # Provide another type
     signal_cov = 42
     xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=signal_cov, reg=None)
+               signal_cov=signal_cov)
     assert_raises(ValueError, xd.fit, epochs)
     # Fit with baseline correction and overlap correction should throw an
     # error
@@ -86,24 +85,22 @@ def test_xdawn_fit():
     assert_raises(ValueError, xd.fit, epochs)
 
 
+@buggy_mkl_svd
 def test_xdawn_apply_transform():
     """Test Xdawn apply and transform."""
     # Get data
     raw, events, picks = _get_data()
-    raw.pick_types(eeg=True, meg=False)  # XXX FIXME previous code was buggy
+    raw.pick_types(eeg=True, meg=False)
     epochs = Epochs(raw, events, event_id, tmin, tmax,
                     preload=True, baseline=None, verbose=False)
     n_components = 2
     # Fit Xdawn
-    xd = Xdawn(n_components=n_components, correct_overlap='auto')
+    xd = Xdawn(n_components=n_components, correct_overlap=False)
     xd.fit(epochs)
 
-    # Apply on raw
-    xd.apply(raw)
-    # Apply on epochs
-    denoise = xd.apply(epochs)
-    # Apply on evoked
-    xd.apply(epochs.average())
+    # Apply on different types of instances
+    for inst in [raw, epochs.average(), epochs]:
+        denoise = xd.apply(inst)
     # Apply on other thing should raise an error
     assert_raises(ValueError, xd.apply, 42)
 
@@ -132,23 +129,25 @@ def test_xdawn_regularization():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=True, baseline=None, verbose=False)
 
-    # Test Xdawn with overlap correction
-    xd = Xdawn(n_components=2, correct_overlap=True,
-               signal_cov=None, reg=0.1)
+    # Test with overlapping events.
+    # modify events to simulate one overlap
+    events = epochs.events
+    sel = np.where(events[:, 2] == 2)[0][:2]
+    modified_event = events[sel[0]]
+    modified_event[0] += 1
+    epochs.events[sel[1]] = modified_event
+    # Fit and check that overlap was found and applied
+    xd = Xdawn(n_components=2, correct_overlap='auto', reg='oas')
     xd.fit(epochs)
-    # ========== with cov regularization ====================
-    # Ledoit-Wolf
-    xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=np.eye(len(picks)), reg='ledoit_wolf')
-    xd.fit(epochs)
-    # OAS
-    xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=np.eye(len(picks)), reg='oas')
-    xd.fit(epochs)
-    # With shrinkage
-    xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=np.eye(len(picks)), reg=0.1)
-    xd.fit(epochs)
+    assert_equal(xd.correct_overlap_, True)
+    evoked = epochs['cond2'].average()
+    assert_true(np.sum(np.abs(evoked.data - xd.evokeds_['cond2'].data)))
+
+    # With covariance regularization
+    for reg in [.1, 0.1, 'ledoit_wolf', 'oas']:
+        xd = Xdawn(n_components=2, correct_overlap=False,
+                   signal_cov=np.eye(len(picks)), reg=reg)
+        xd.fit(epochs)
     # With bad shrinkage
     xd = Xdawn(n_components=2, correct_overlap=False,
                signal_cov=np.eye(len(picks)), reg=2)
