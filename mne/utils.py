@@ -745,6 +745,22 @@ def requires_nibabel(vox2ras_tkr=False):
                                  'Requires nibabel%s' % extra)
 
 
+def buggy_mkl_svd(function):
+    """Decorator for tests that make calls to SVD and intermittently fail"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+        except np.linalg.LinAlgError as exp:
+            if 'SVD did not converge' in str(exp):
+                from nose.plugins.skip import SkipTest
+                msg = 'Intel MKL SVD convergence error detected, skipping test'
+                warn(msg)
+                raise SkipTest(msg)
+            raise
+    return dec
+
+
 def requires_version(library, min_version):
     """Helper for testing"""
     return np.testing.dec.skipif(not check_version(library, min_version),
