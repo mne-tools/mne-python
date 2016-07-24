@@ -32,9 +32,9 @@ from ..externals.six import string_types
 
 # Make wavelet
 
-
+@deprecated("This function will be removed in mne 0.14.")
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
-    """Compute wavelets for the given frequency range.
+    """Compute Morlet wavelets for the given frequency range.
 
     Parameters
     ----------
@@ -62,7 +62,41 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
     See Also
     --------
-    mne.time_frequency.tfr_transform
+    mne.time_frequency.timefreq_transform
+    """
+    return _make_morlet(sfreq, freqs, n_cycles, sigma, zero_mean)
+
+
+def _make_morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
+    """Compute Morlet wavelets for the given frequency range.
+
+    Parameters
+    ----------
+    sfreq : float
+        The sampling Frequency.
+    freqs : array
+        frequency range of interest (1 x Frequencies)
+    n_cycles: float | array of float, defaults to 7.0
+        Number of cycles. Fixed number or one per frequency.
+    sigma : float, defaults to None
+        It controls the width of the wavelet ie its temporal
+        resolution. If sigma is None the temporal resolution
+        is adapted with the frequency like for all wavelet transform.
+        The higher the frequency the shorter is the wavelet.
+        If sigma is fixed the temporal resolution is fixed
+        like for the short time Fourier transform and the number
+        of oscillations increases with the frequency.
+    zero_mean : bool, defaults to False
+        Make sure the wavelet has a mean of zero.
+
+    Returns
+    -------
+    Ws : list of array
+        The wavelets time series.
+
+    See Also
+    --------
+    mne.time_frequency.timefreq_transform
     """
     Ws = list()
     n_cycles = np.atleast_1d(n_cycles)
@@ -95,9 +129,9 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     return Ws
 
 
-def dpss_wavelet(sfreq, freqs, n_cycles=7., time_bandwidth=4.0,
-                 zero_mean=False):
-    """Compute DPSS wavelets for the given frequency range.
+def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
+    """Compute discrete prolate spheroidal sequences (DPSS) tapers for the
+    given frequency range.
 
     Parameters
     ----------
@@ -252,10 +286,10 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 # Loop of convolution: single trial
 
 
-def tfr_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
-                  n_cycles=7.0, zero_mean=None, time_bandwidth=4.0,
-                  use_fft=True, decim=1, output='complex', n_jobs=1,
-                  verbose='INFO'):
+def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
+                       n_cycles=7.0, zero_mean=None, time_bandwidth=4.0,
+                       use_fft=True, decim=1, output='complex', n_jobs=1,
+                       verbose=None):
     """Computes time frequency transforms.
 
     Parameters
@@ -268,7 +302,7 @@ def tfr_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
         Sampling frequency of the data.
     method : 'mtm' | 'morlet', defaults to 'morlet'
         The time frequency method. 'morlet' convolves a Morlet wavelet. 'mtm'
-        convolves DPSS wavelets using a multitaper approach.
+        convolves DPSS tapers.
     n_cycles : float | array of float, defaults to 7.0
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.
@@ -297,7 +331,7 @@ def tfr_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
     n_jobs : int, defaults to 1
         The number of epochs to process at the same time. The parallization is
         implemented across channels.
-    verbose : bool, str, int, or None, defaults to 'INFO'
+    verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
@@ -351,13 +385,14 @@ def tfr_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
 
     # Setup wavelet
     if method == 'morlet':
-        W = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
+        W = _make_morlet(sfreq, frequencies, n_cycles=n_cycles,
+                         zero_mean=zero_mean)
         Ws = [W]  # to have same dimensionality as the 'mtm' case
         if time_bandwidth != 4.0:
             raise ValueError('time_bandwidth only applies to "mtm" method.')
     elif method == 'mtm':
-        Ws = dpss_wavelet(sfreq, frequencies, n_cycles=n_cycles,
-                          time_bandwidth=time_bandwidth, zero_mean=zero_mean)
+        Ws = _make_dpss(sfreq, frequencies, n_cycles=n_cycles,
+                        time_bandwidth=time_bandwidth, zero_mean=zero_mean)
 
     # Check wavelets
     if len(Ws[0][0]) > epoch_data.shape[2]:
@@ -398,7 +433,7 @@ def tfr_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
 
 
 def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
-    """Aux. function to tfr_transform.
+    """Aux. function to timefreq_transform.
 
     Loops time frequency transform across wavelets and epochs.
 
@@ -406,7 +441,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
     ----------
     X : array, shape (n_epochs, n_times)
         The epochs data of a single channel.
-    Ws : list, shape(n_tappers, n_wavelets, n_times)
+    Ws : list, shape (n_tapers, n_wavelets, n_times)
         The wavelets.
     output : str
         If 'complex', single trial complex.
@@ -436,7 +471,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
     else:
         tfrs = np.zeros((n_epochs, n_freqs, n_times), dtype=dtype)
 
-    # Loops across tappers.
+    # Loops across tapers.
     for W in Ws:
         coefs = _cwt(X, W, mode, decim=decim, use_fft=use_fft)
 
@@ -481,7 +516,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
 
 
 @deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
-            ".tfr_transform() instead.")
+            ".timefreq_transform() instead.")
 def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
                decim=1):
     """Compute time freq decomposition with Morlet wavelets
@@ -526,7 +561,7 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     n_signals, n_times = X[:, decim].shape
 
     # Precompute wavelets for given frequency range to save time
-    Ws = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
+    Ws = _make_morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
 
     coefs = cwt(X, Ws, use_fft=use_fft, mode=mode, decim=decim)
 
@@ -583,7 +618,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
 @verbose
 @deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
-            ".tfr_transform() instead.")
+            ".timefreq_transform() instead.")
 def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
                        decim=1, n_jobs=1, zero_mean=False, verbose=None):
@@ -647,7 +682,8 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     n_epochs, n_channels, n_times = data[:, :, decim].shape
 
     # Precompute wavelets for given frequency range to save time
-    Ws = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
+    Ws = _make_morlet(sfreq, frequencies, n_cycles=n_cycles,
+                      zero_mean=zero_mean)
 
     parallel, my_cwt, _ = parallel_func(cwt, n_jobs)
 
@@ -732,10 +768,10 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     info, data, picks = _prepare_picks(info, data, picks)
     data = data[:, picks, :]
 
-    out = tfr_transform(data, freqs, info['sfreq'], n_cycles=n_cycles,
-                        n_jobs=n_jobs, use_fft=use_fft, decim=decim,
-                        zero_mean=True, method='morlet',
-                        output='avg_power_phaselock')
+    out = timefreq_transform(data, freqs, info['sfreq'], n_cycles=n_cycles,
+                             n_jobs=n_jobs, use_fft=use_fft, decim=decim,
+                             zero_mean=True, method='morlet',
+                             output='avg_power_phaselock')
     power, itc = out.real, out.imag
     times = inst.times[decim].copy()
     nave = len(data)
@@ -750,7 +786,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                    use_fft=True, return_itc=True, decim=1,
                    n_jobs=1, picks=None, verbose=None):
-    """Compute Time-Frequency Representation (TFR) using DPSS wavelets
+    """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
     Parameters
     ----------
@@ -809,11 +845,11 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     info, data, picks = _prepare_picks(info, data, picks)
     data = data = data[:, picks, :]
 
-    out = tfr_transform(data, freqs, info['sfreq'], n_cycles=n_cycles,
-                        n_jobs=n_jobs, use_fft=use_fft, decim=decim,
-                        zero_mean=True, method='mtm',
-                        time_bandwidth=time_bandwidth,
-                        output='avg_power_phaselock')
+    out = timefreq_transform(data, freqs, info['sfreq'], n_cycles=n_cycles,
+                             n_jobs=n_jobs, use_fft=use_fft, decim=decim,
+                             zero_mean=True, method='mtm',
+                             time_bandwidth=time_bandwidth,
+                             output='avg_power_phaselock')
     power, itc = out.real, out.imag
 
     times = inst.times[decim].copy()
