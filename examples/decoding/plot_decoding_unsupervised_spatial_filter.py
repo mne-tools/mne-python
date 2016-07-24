@@ -43,16 +43,15 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False,
                     add_eeg_ref=False, verbose=False)
 
 X = epochs.get_data()
-y = epochs.events[:, 2]
 
 pca = UnsupervisedSpatialFilter(PCA(10))
-pca_data = pca.fit_transform(X, y)
+pca_data = pca.fit_transform(X)
 ev = epochs['aud_l'].average()
 ev.data = np.average(pca_data, axis=1)
 ev.plot(show=False, window_title='PCA')
 
 ica = UnsupervisedSpatialFilter(FastICA(10))
-ica_data = ica.fit_transform(X, y)
+ica_data = ica.fit_transform(X)
 ev1 = epochs['aud_l'].average()
 ev1.data = np.average(ica_data, axis=1)
 ev1.plot(show=False, window_title='ICA')
