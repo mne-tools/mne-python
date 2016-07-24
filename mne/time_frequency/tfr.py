@@ -227,6 +227,237 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 # Loop of convolution: single trial
 
 
+
+def time_frequency(epoch_data, frequencies, sfreq=1., method='morlet',
+                   n_cycles=7., zero_mean=None, time_bandwidth=4.0,
+                   use_fft=True, decim=1, output='complex', n_jobs=1,
+                   verbose='INFO'):
+    """Computes time frequency transforms.
+
+    Parameters
+    ----------
+    epoch_data : array of shape (n_epochs, n_channels, n_times)
+        The epochs.
+    frequencies : array-like of floats, shape (n_freqs)
+        The frequencies.
+    sfreq : float | int, Defaults to 1.
+        Sampling frequency of the data.
+    method : 'mtm' | 'morlet', Defaults to 'morlet'
+        The time frequency method. 'morlet' convolves a Morlet wavelet. 'mtm'
+        convolves DPSS wavelets using a multitaper approach.
+    n_cycles : float | array of float, Defaults to 7.
+        Number of cycles  in the Morlet wavelet. Fixed number
+        or one per frequency.
+    zero_mean : bool
+        Make sure the wavelets are zero mean. Defaults to True if
+        method == 'mtm' and defaults to False if method == 'morlet'.
+    time_bandwidth : float, Defaults to 4.0 (3 tapers)
+        Time x (Full) Bandwidth product. Only applies if method == 'mtm'.
+        The number of good tapers (low-bias) is chosen automatically based on
+        this to equal floor(time_bandwidth - 1).
+    use_fft : bool, Defaults to True
+        Use the FFT for convolutions or not.
+    decim : int | slice, Defaults to 1
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice` returns tfr[..., decim].
+        Note that decimation may create aliasing artifacts.
+        Defaults to 1.
+    output : str, Defaults to 'complex'
+        'complex': single trial complex.
+        'power': single trial power.
+        'phase': single trial phase.
+        'avg_power': average of single trial power.
+        'avg_phaselock' phase locking factor across trials.
+        'avg_power_phaselock': average of single trial power and phase-locking factor across trials. # noqa
+    n_jobs : int, Defaults to 1
+        The number of epochs to process at the same time. The parallization is
+        implemented across channels.
+    verbose : bool, str, int, or None, Defaults to 'INFO'
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    out : array
+        Time frequency transform of epoch_data. If output is in ['complex',
+        'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
+        n_times), else it is (n_chans, n_freqs, n_times). If output is
+        'avg_power_phaselock', the real values code for 'avg_power' and the
+        imaginary values code for the 'avg_phaselock':
+        out = avg_power + i * avg_phaselock
+    """
+    # Check data
+    epoch_data = np.asarray(epoch_data)
+    if epoch_data.ndim != 3:
+        raise ValueError('epoch_data must be of shape '
+                         '(n_epochs, n_chans, n_times)')
+
+    # Check frequencies
+    if not isinstance(frequencies, (list, np.ndarray)):
+        raise ValueError('frequencies must be an array-like.')
+    frequencies = np.asarray(frequencies, dtype=float)
+    if frequencies.ndim != 1:
+        raise ValueError('frequencies must be of shape n_freqs.')
+
+    # Check sfreq
+    if not isinstance(sfreq, (float, int)):
+        raise ValueError('sfreq must be a float or an int.')
+    sfreq = float(sfreq)
+
+    # Check params
+    allowed_ouput = ('complex', 'power', 'phase',
+                     'avg_power_phaselock', 'avg_power', 'avg_phaselock')
+    if output not in allowed_ouput:
+        raise ValueError("Unknown output type.")
+
+    if method not in ('mtm', 'morlet'):
+        raise ValueError('method must be "morlet" or "mtm"')
+
+    # Default zero_mean = True if mtm else False
+    zero_mean = method == 'mtm' if zero_mean is None else zero_mean
+    if not isinstance(zero_mean, bool):
+        raise ValueError('')
+    frequencies = np.asarray(frequencies)
+
+    # XXX Check not sure whether it makes sense to compute single-trial phases
+    # with mtm.
+    if (method == 'mtm') and (output == 'phase'):
+        raise NotImplementedError(
+            'This function is not optimized to compute the phase using the '
+            'mtm method. Use np.angle of the complex output instead.')
+
+    # Setup wavelet
+    if method == 'morlet':
+        W = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
+        Ws = [W]  # to have same dimensionality as the 'mtm' case
+        if time_bandwidth != 4.0:
+            raise ValueError('time_bandwidth only applies to "mtm" method.')
+    elif method == 'mtm':
+        Ws = _dpss_wavelet(sfreq, frequencies, n_cycles=n_cycles,
+                           time_bandwidth=time_bandwidth, zero_mean=zero_mean)
+
+    # Check wavelets
+    if len(Ws[0][0]) > epoch_data.shape[2]:
+        raise ValueError('Wavelet is too long for such a short signal.')
+
+    # Initialize output
+    decim = _check_decim(decim)
+    n_freqs = len(frequencies)
+    n_epochs, n_chans, n_times = epoch_data[:, :, decim].shape
+    if output in ('power', 'phase', 'avg_power', 'avg_phaselock'):
+        dtype = np.float
+    elif output in ('complex', 'avg_power_phaselock'):
+        # avg_power_phaselock is stored as power + 1i * phase_lock to keep a
+        # simple dimensionality
+        dtype = np.complex
+
+    if 'avg_' in output:
+        out = np.empty((n_chans, n_freqs, n_times), dtype)
+    else:
+        out = np.empty((n_chans, n_epochs, n_freqs, n_times), dtype)
+
+    # Parallel computation
+    parallel, my_cwt, _ = parallel_func(_time_frequency_loop, n_jobs)
+
+    # Loop across different wavelet in case of multitaping
+    tfrs = parallel(
+        my_cwt(channel, Ws, output, use_fft, 'same', decim)
+        for channel in epoch_data.transpose(1, 0, 2))
+
+    # FIXME: to avoid overheads we should use np.array_split()
+    for channel_idx, tfr in enumerate(tfrs):
+        out[channel_idx] = tfr
+
+    if 'avg_' not in output:
+        out = out.transpose(1, 0, 2, 3)
+    return out
+
+
+def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
+    """Aux. function to time_frequency.
+
+    Loops time frequency transform across wavelets and epochs.
+
+    Parameters
+    ----------
+    X: np.array, shape (n_epochs, n_times)
+        The epochs data of a single channel.
+    Ws: list, shape(n_tappers, n_wavelets, n_times)
+        The wavelets.
+    output: str
+        'complex': single trial complex.
+        'power': single trial power.
+        'phase': single trial phase.
+        'avg_power': average of single trial power.
+        'avg_phaselock' phase locking factor across trials.
+        'avg_power_phaselock': average of single trial power and phase-locking factor across trials. # noqa
+    use_fft : bool
+        Use the FFT for convolutions or not.
+    mode : {'full', 'valid', 'same'}
+        See numpy.convolve.
+    decim : slice
+        The decimation slice: e.g. power[:, decim]
+    """
+    # Set output type
+    dtype = np.float
+    if output in ['complex', 'avg_phaselock', 'avg_power_phaselock']:
+        dtype = np.complex
+
+    # Init outputs
+    decim = _check_decim(decim)
+    n_epochs, n_times = X[:, decim].shape
+    n_freqs = len(Ws[0])
+    if 'avg_' in output:
+        tfrs = np.zeros((n_freqs, n_times), dtype=dtype)
+    else:
+        tfrs = np.zeros((n_epochs, n_freqs, n_times), dtype=dtype)
+
+    # Loops across tappers.
+    for W in Ws:
+        coefs = _cwt(X, W, mode, decim=decim, use_fft=use_fft)
+
+        # Inter-trial phase locking is apparently computed per taper...
+        if 'phaselock' in output:
+            plf = np.zeros((n_freqs, n_times), dtype=np.complex)
+
+        # Loop across epochs
+        for epoch_idx, tfr in enumerate(coefs):
+            # Transform complex values
+            if output in ['power', 'avg_power']:
+                tfr = (tfr * tfr.conj()).real  # power
+            elif output == 'phase':
+                tfr = np.angle(tfr)
+            elif output == 'avg_power_phaselock':
+                tfr_abs = np.abs(tfr)
+                plf += tfr / tfr_abs  # phase
+                tfr = tfr_abs ** 2  # power
+            elif output == 'avg_phaselock':
+                plf += tfr / np.abs(tfr)  # phase
+                continue  # not need to stack anything else than plf
+
+            # Stack or add
+            if 'avg_' in output:
+                tfrs += tfr
+            else:
+                tfrs[epoch_idx] = tfr
+
+        # Compute inter trial phase-locking factor
+        if output == 'avg_power_phaselock':
+            tfrs += 1j * np.abs(plf)
+        elif output == 'avg_phaselock':
+            tfrs += np.abs(plf)
+
+    # Normalization of average metrics
+    if 'avg_' in output:
+        tfrs /= n_epochs
+
+    # Normalization by number of taper
+    tfrs /= len(Ws)
+    return tfrs
+
+
+
 def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
                decim=1):
     """Compute time freq decomposition with Morlet wavelets
