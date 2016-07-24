@@ -5,6 +5,7 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 # Authors : Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #           Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
 #           Clement Moutard <clement.moutard@polytechnique.org>
+#           Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License : BSD (3-clause)
 
@@ -18,7 +19,7 @@ from scipy.fftpack import fftn, ifftn
 from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _time_mask, warn, check_fname
+from ..utils import logger, verbose, _time_mask, warn, check_fname, deprecated
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import pick_info, pick_types
@@ -95,20 +96,19 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False):
     return Ws
 
 
-def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
-                  zero_mean=False):
-    """Compute Wavelets for the given frequency range
+def dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
+                 zero_mean=False):
+    """Compute DPSS Wavelets for the given frequency range.
 
     Parameters
     ----------
     sfreq : float
-        Sampling Frequency.
+        Sampling frequency.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
-        The number of cycles globally or for each frequency.
-        Defaults to 7.
-    time_bandwidth : float, (optional)
+        The number of cycles globally or for each frequency. Defaults to 7.
+    time_bandwidth : float
         Time x Bandwidth product.
         The number of good tapers (low-bias) is chosen automatically based on
         this to equal floor(time_bandwidth - 1).
@@ -117,7 +117,7 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
     Returns
     -------
     Ws : list of array
-        Wavelets time series
+        Wavelets time series.
     """
     Ws = list()
     if time_bandwidth < 2.0:
@@ -227,7 +227,6 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 # Loop of convolution: single trial
 
 
-
 def time_frequency(epoch_data, frequencies, sfreq=1., method='morlet',
                    n_cycles=7., zero_mean=None, time_bandwidth=4.0,
                    use_fft=True, decim=1, output='complex', n_jobs=1,
@@ -334,8 +333,8 @@ def time_frequency(epoch_data, frequencies, sfreq=1., method='morlet',
         if time_bandwidth != 4.0:
             raise ValueError('time_bandwidth only applies to "mtm" method.')
     elif method == 'mtm':
-        Ws = _dpss_wavelet(sfreq, frequencies, n_cycles=n_cycles,
-                           time_bandwidth=time_bandwidth, zero_mean=zero_mean)
+        Ws = dpss_wavelet(sfreq, frequencies, n_cycles=n_cycles,
+                          time_bandwidth=time_bandwidth, zero_mean=zero_mean)
 
     # Check wavelets
     if len(Ws[0][0]) > epoch_data.shape[2]:
@@ -457,7 +456,8 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
     return tfrs
 
 
-
+@deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
+            ". time_frequency() instead.")
 def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
                decim=1):
     """Compute time freq decomposition with Morlet wavelets
@@ -513,6 +513,8 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     return tfrs
 
 
+@deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
+            ". time_frequency() instead.")
 def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     """Compute time freq decomposition with continuous wavelet transform
 
@@ -558,6 +560,8 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
 
 @verbose
+@deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
+            ". time_frequency() instead.")
 def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
                        decim=1, n_jobs=1, zero_mean=False, verbose=None):
@@ -652,7 +656,8 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
 
 
 # Loop of convolutions: averages
-
+@deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
+            ". time_frequency() instead.")
 def _time_frequency(X, Ws, use_fft, decim):
     """Aux of time_frequency for parallel computing over channels
     """
@@ -674,6 +679,8 @@ def _time_frequency(X, Ws, use_fft, decim):
     return psd, plf
 
 
+@deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
+            ". time_frequency() instead.")
 def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
                        decim=1, n_jobs=1, zero_mean=False):
     """Compute time induced power and inter-trial phase-locking factor
@@ -733,6 +740,8 @@ def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
 
 
 @verbose
+@deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
+            ". time_frequency() instead.")
 def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
                        use_fft=True, n_cycles=7, decim=1, n_jobs=1,
                        zero_mean=True, verbose=None):
@@ -787,8 +796,8 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
                 n_frequencies)
 
     # Precompute wavelets for given frequency range to save time
-    Ws = _dpss_wavelet(sfreq, frequencies, n_cycles=n_cycles,
-                       time_bandwidth=time_bandwidth, zero_mean=zero_mean)
+    Ws = dpss_wavelet(sfreq, frequencies, n_cycles=n_cycles,
+                      time_bandwidth=time_bandwidth, zero_mean=zero_mean)
     n_taps = len(Ws)
     logger.info('Using %d tapers', n_taps)
     n_times_wavelets = Ws[0][0].shape[0]
@@ -811,7 +820,8 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     return psd, itc
 
 
-# time frequency on MNE instance
+# time frequency on MNE instance: FIXME probably needs to be simplified to
+# reduce redundancy between morlet and mtm
 
 
 @verbose
@@ -866,11 +876,11 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     info, data, picks = _prepare_picks(info, data, picks)
     data = data[:, picks, :]
 
-    power, itc = _induced_power_cwt(data, sfreq=info['sfreq'],
-                                    frequencies=freqs,
-                                    n_cycles=n_cycles, n_jobs=n_jobs,
-                                    use_fft=use_fft, decim=decim,
-                                    zero_mean=True)
+    out = time_frequency(data, freqs, info['sfreq'], n_cycles=n_cycles,
+                         n_jobs=n_jobs, use_fft=use_fft, decim=decim,
+                         zero_mean=True, method='morlet',
+                         output='avg_power_phaselock')
+    power, itc = out.real, out.imag
     times = inst.times[decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave, method='morlet-power')
@@ -947,12 +957,13 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     info, data, picks = _prepare_picks(info, data, picks)
     data = data = data[:, picks, :]
 
-    power, itc = _induced_power_mtm(data, sfreq=info['sfreq'],
-                                    frequencies=freqs, n_cycles=n_cycles,
-                                    time_bandwidth=time_bandwidth,
-                                    use_fft=use_fft, decim=decim,
-                                    n_jobs=n_jobs, zero_mean=True,
-                                    verbose='INFO')
+    out = time_frequency(data, freqs, info['sfreq'], n_cycles=n_cycles,
+                         n_jobs=n_jobs, use_fft=use_fft, decim=decim,
+                         zero_mean=True, method='mtm',
+                         time_bandwidth=time_bandwidth,
+                         output='avg_power_phaselock')
+    power, itc = out.real, out.imag
+
     times = inst.times[decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave,
