@@ -11,8 +11,7 @@ from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
                                     dpss_wavelet, tfr_multitaper,
                                     AverageTFR, read_tfrs, write_tfrs,
-                                    combine_tfr, cwt, tfr_transform,
-                                    rescale)
+                                    combine_tfr, cwt, tfr_transform, rescale)
 from mne.viz.utils import _fake_click
 from itertools import product
 import matplotlib

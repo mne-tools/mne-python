@@ -27,7 +27,8 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne import io
-from mne.time_frequency import single_trial_power
+from mne.time_frequency import tfr_transform
+from mne.baseline import rescale
 from mne.stats import permutation_cluster_1samp_test
 from mne.datasets import sample
 
@@ -72,17 +73,20 @@ evoked_data = np.mean(data, 0)
 # evoked_data = np.mean(data, 0)
 
 # Factor to down-sample the temporal dimension of the PSD computed by
-# single_trial_power.  Decimation occurs after frequency decomposition and can
+# tfr_transform.  Decimation occurs after frequency decomposition and can
 # be used to reduce memory usage (and possibly computational time of downstream
 # operations such as nonparametric statistics) if you don't need high
 # spectrotemporal resolution.
 decim = 5
 frequencies = np.arange(8, 40, 2)  # define frequencies of interest
 sfreq = raw.info['sfreq']  # sampling in Hz
-epochs_power = single_trial_power(data, sfreq=sfreq, frequencies=frequencies,
-                                  n_cycles=4, n_jobs=1,
-                                  baseline=(-100, 0), times=times,
-                                  baseline_mode='ratio', decim=decim)
+epochs_power = tfr_transform(data, frequencies, sfreq=sfreq, n_cycles=4.,
+                             method='morlet', output='power', decim=decim,
+                             n_jobs=1)
+
+# Baseline power
+epochs_power = rescale(epochs_power, times=epochs.times[::decim],
+                       baseline=(-.100, 0), mode='ratio')
 
 # Crop in time to keep only what is between 0 and 400 ms
 time_mask = (times > 0) & (times < 400)

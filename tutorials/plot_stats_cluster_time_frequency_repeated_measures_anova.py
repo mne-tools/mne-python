@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne import io
-from mne.time_frequency import single_trial_power
+from mne.time_frequency import tfr_transform
 from mne.stats import f_threshold_mway_rm, f_mway_rm, fdr_correction
 from mne.datasets import sample
 
@@ -76,7 +76,7 @@ epochs.equalize_event_counts(event_id, copy=False)
 times = 1e3 * epochs.times  # change unit to ms
 
 # Factor to down-sample the temporal dimension of the PSD computed by
-# single_trial_power.
+# tfr_transform.
 decim = 2
 frequencies = np.arange(7, 30, 3)  # define frequencies of interest
 sfreq = raw.info['sfreq']  # sampling in Hz
@@ -88,15 +88,17 @@ baseline_mask = times[::decim] < 0
 # ---------------------------------------------
 epochs_power = list()
 for condition in [epochs[k].get_data()[:, 97:98, :] for k in event_id]:
-    this_power = single_trial_power(condition, sfreq=sfreq,
-                                    frequencies=frequencies, n_cycles=n_cycles,
-                                    decim=decim)
+    this_power = tfr_transform(condition, frequencies, sfreq=sfreq,
+                               n_cycles=n_cycles, decim=decim, method='morlet',
+                               output='power')
     this_power = this_power[:, 0, :, :]  # we only have one channel.
     # Compute ratio with baseline power (be sure to correct time vector with
     # decimation factor)
     epochs_baseline = np.mean(this_power[:, :, baseline_mask], axis=2)
     this_power /= epochs_baseline[..., np.newaxis]
     epochs_power.append(this_power)
+
+# See mne.baseline.rescale to apply time frequency baseline automatically.
 
 ###############################################################################
 # Setup repeated measures ANOVA
