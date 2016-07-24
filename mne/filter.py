@@ -61,6 +61,7 @@ def next_fast_len(target):
     -----
     Copied from SciPy with minor modifications.
     """
+    from bisect import bisect_left
     hams = (8, 9, 10, 12, 15, 16, 18, 20, 24, 25, 27, 30, 32, 36, 40, 45, 48,
             50, 54, 60, 64, 72, 75, 80, 81, 90, 96, 100, 108, 120, 125, 128,
             135, 144, 150, 160, 162, 180, 192, 200, 216, 225, 240, 243, 250,
@@ -133,8 +134,10 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
     n_fft : int
         Length of the FFT. If None, the best size is determined automatically.
     phase : str
-        If 'zero', the delay for the filter is compensated. If 'linear',
-        the response is uncompensated.
+        If 'zero', the delay for the filter is compensated (and it must be
+        an odd-lengeth symmetric filter). If 'linear', the response is
+        uncompensated. If 'zero-double', the filter is applied in the
+        forward and reverse directions.
     picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
@@ -151,40 +154,40 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
 
     # Extend the signal by mirroring the edges to reduce transient filter
     # response
-    n_h = len(h)
-    _check_zero_phase_length(n_h, phase)
-    if n_h == 1:
-        return x * h
-    if x.shape[1] < len(h):
-        raise ValueError('Overlap add should only be used for signals '
-                         'longer than the requested filter')
-    n_edge = n_h - 1
+    _check_zero_phase_length(len(h), phase)
+    if len(h) == 1:
+        return x * h ** 2 if phase == 'zero-double' else x * h
+    n_edge = max(min(len(h), x.shape[1]) - 1, 0)
+    logger.debug('Smart-padding with:  %s samples on each edge' % n_edge)
     n_x = x.shape[1] + 2 * n_edge
 
     # Determine FFT length to use
+    min_fft = 2 * len(h) - 1
     if n_fft is None:
-        min_fft = 2 * n_h - 1
         max_fft = n_x
         if max_fft >= min_fft:
             # cost function based on number of multiplications
             N = 2 ** np.arange(np.ceil(np.log2(min_fft)),
                                np.ceil(np.log2(max_fft)) + 1, dtype=int)
-            cost = (np.ceil(n_x / (N - n_h + 1).astype(np.float)) *
+            cost = (np.ceil(n_x / (N - len(h) + 1).astype(np.float)) *
                     N * (np.log2(N) + 1))
+
             # add a heuristic term to prevent too-long FFT's which are slow
             # (not predicted by mult. cost alone, 4e-5 exp. determined)
             cost += 4e-5 * N * n_x
+
             n_fft = N[np.argmin(cost)]
         else:
             # Use only a single block
-            n_fft = next_fast_len(n_x + n_h - 1)
-    if n_fft < 2 * n_h - 1:
+            n_fft = next_fast_len(min_fft)
+    if n_fft < min_fft:
         raise ValueError('n_fft is too short, has to be at least '
                          '2 * len(h) - 1, got %s' % n_fft)
 
     # Filter in frequency domain
-    h_fft = fft(np.concatenate([h, np.zeros(n_fft - n_h, dtype=h.dtype)]))
-    assert(len(h_fft) == n_fft)
+    if phase == 'zero-double':
+        h = np.convolve(h, h[::-1])
+    h_fft = fft(np.concatenate([h, np.zeros(n_fft - len(h), dtype=h.dtype)]))
 
     # Figure out if we should use CUDA
     n_jobs, cuda_dict, h_fft = setup_cuda_fft_multiply_repeated(n_jobs, h_fft)
@@ -192,14 +195,15 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
     # Process each row separately
     if n_jobs == 1:
         for p in picks:
-            x[p] = _1d_overlap_filter(x[p], h_fft, n_h, n_edge, phase,
+            x[p] = _1d_overlap_filter(x[p], h_fft, len(h), n_edge, phase,
                                       cuda_dict)
     else:
         parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
-        data_new = parallel(p_fun(x[p], h_fft, n_h, n_edge, phase, cuda_dict)
-                            for p in picks)
+        data_new = parallel(p_fun(x[p], h_fft, len(h), n_edge, phase,
+                                  cuda_dict) for p in picks)
         for pp, p in enumerate(picks):
             x[p] = data_new[pp]
+
     return x
 
 
@@ -216,9 +220,10 @@ def _1d_overlap_filter(x, h_fft, n_h, n_edge, phase, cuda_dict):
 
     n_seg = n_fft - n_h + 1
     n_segments = int(np.ceil(n_x / float(n_seg)))
-    shift = (n_h - 1) // 2 if phase == 'zero' else 0
+    shift = ((n_h - 1) // 2 if phase.startswith('zero') else 0) + n_edge
 
-    # The actual filtering step is identical for zero-phase or single-pass
+    # Now the actual filtering step is identical for zero-phase (filtfilt-like)
+    # or single-pass
     for seg_idx in range(n_segments):
         start = seg_idx * n_seg
         stop = (seg_idx + 1) * n_seg
@@ -226,11 +231,16 @@ def _1d_overlap_filter(x, h_fft, n_h, n_edge, phase, cuda_dict):
         seg = np.concatenate([seg, np.zeros(n_fft - len(seg))])
 
         prod = fft_multiply_repeated(h_fft, seg, cuda_dict)
-        x_sl = x_filtered[start:start + n_fft]
-        x_sl += prod[:len(x_sl)]
+
+        start_filt = max(0, start - shift)
+        stop_filt = min(start - shift + n_fft, n_x)
+        start_prod = max(0, shift - start)
+        stop_prod = start_prod + stop_filt - start_filt
+        x_filtered[start_filt:stop_filt] += prod[start_prod:stop_prod]
 
     # Remove mirrored edges that we added and cast (n_edge can be zero)
-    return x_filtered[n_edge + shift:n_x - n_edge + shift].astype(x.dtype)
+    x_filtered = x_filtered[:n_x - 2 * n_edge].astype(x.dtype)
+    return x_filtered
 
 
 def _filter_attenuation(h, freq, gain):
@@ -290,7 +300,7 @@ def _filter(x, Fs, freq, gain, filter_length, picks=None, n_jobs=1,
     gain : 1d array
         Filter gain at frequency sampling points.
     filter_length : int
-        Length of the filter to use. Must be odd length.
+        Length of the filter to use. Must be odd length if phase == "zero".
     picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
@@ -302,7 +312,8 @@ def _filter(x, Fs, freq, gain, filter_length, picks=None, n_jobs=1,
     phase : str
         If 'zero', the delay for the filter is compensated (and it must be
         an odd-lengeth symmetric filter). If 'linear', the response is
-        uncompensated.
+        uncompensated. If 'zero-double', the filter is applied in the
+        forward and reverse directions.
 
     Returns
     -------
@@ -318,15 +329,19 @@ def _filter(x, Fs, freq, gain, filter_length, picks=None, n_jobs=1,
 
     # normalize frequencies
     freq = np.array(freq) / (Fs / 2.)
+    if freq[0] != 0 or freq[-1] != 1:
+        raise ValueError('freq must start at 0 and end an Nyquist (%s), got %s'
+                         % (Fs / 2., freq))
     gain = np.array(gain)
     n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
 
     # Use overlap-add filter with a fixed length
-    N = int(filter_length)
-    _check_zero_phase_length(N, phase)
+    N = _check_zero_phase_length(filter_length, phase, gain[-1])
     # construct symmetric (linear phase) filter
     h = firwin2(N, freq, gain, window='hann')
     att_db, att_freq = _filter_attenuation(h, freq, gain)
+    if phase == 'zero-double':
+        att_db += 6
     if att_db < min_att_db:
         att_freq *= Fs / 2.
         warn('Attenuation at stop frequency %0.1fHz is only %0.1fdB. '
@@ -337,10 +352,15 @@ def _filter(x, Fs, freq, gain, filter_length, picks=None, n_jobs=1,
     return x
 
 
-def _check_zero_phase_length(N, phase):
-    if N % 2 == 0 and phase == 'zero':
-        raise RuntimeError('filter_length must be odd if phase="zero", '
-                           'got %s' % N)
+def _check_zero_phase_length(N, phase, gain_nyq=0):
+    N = int(N)
+    if N % 2 == 0:
+        if phase == 'zero':
+            raise RuntimeError('filter_length must be odd if phase="zero", '
+                               'got %s' % N)
+        elif phase == 'zero-double' and gain_nyq == 1:
+            N += 1
+    return N
 
 
 def _check_coefficients(system):
@@ -632,17 +652,22 @@ def _check_method(method, iir_params, extra_types):
         method = 'fir'  # use the better name
     if method == 'iir':
         if iir_params is None:
-            iir_params = dict(order=4, ftype='butter')
+            iir_params = dict()
+        elif len(iir_params) == 0 or (len(iir_params) == 1 and
+                                      'output' in iir_params):
+            # XXX update this after deprecation of ba
+            iir_params = dict(order=4, ftype='butter',
+                              output=iir_params.get('output', 'ba'))
     elif iir_params is not None:
         raise ValueError('iir_params must be None if method != "iir"')
-    method = method.lower()
-    return iir_params
+    return iir_params, method
 
 
 @verbose
 def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
                 l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
-                method='fir', iir_params=None, copy=True, verbose=None):
+                method='fir', iir_params=None, copy=True, phase='',
+                verbose=None):
     """Filter a subset of channels.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -674,19 +699,35 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     picks : array-like of int | None
         Indices of channels to filter. If None all channels will be
         filtered.
-    filter_length : str | int | None
-        Length of the filter to use. If None or ``len(x) < filter_length``,
-        the filter length used is ``len(x)``. If int, a filter of the
-        specified length in samples is used. If str, a human-readable time
-        in units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
-        to the shortest power-of-two length at least that duration.
-        Not used for 'iir' filters.
-    l_trans_bandwidth : float
+    filter_length : str | int
+        Length of the FIR filter to use (if applicable):
+
+            * int: specified length in samples.
+            * 'auto' (default in 0.14): the filter length is chosen based
+              on the size of the transition regions (7 times the reciprocal
+              of the shortest transition band).
+            * str: (default in 0.13 is "10s") a human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
+
+    l_trans_bandwidth : float | str
         Width of the transition band at the low cut-off frequency in Hz
-        (high pass or cutoff 1 in bandpass). Not used for 'iir' filters.
-    h_trans_bandwidth : float
+        (high pass or cutoff 1 in bandpass). Can be "auto"
+        (default in 0.14) to use a multiple of ``l_freq``::
+
+            min(max(l_freq * 0.25, 2), l_freq)
+
+        Only used for ``method='fir'``.
+    h_trans_bandwidth : float | str
         Width of the transition band at the high cut-off frequency in Hz
-        (low pass or cutoff 2 in bandpass). Not used for 'iir' filters.
+        (low pass or cutoff 2 in bandpass). Can be "auto"
+        (default in 0.14) to use a multiple of ``h_freq``::
+
+            min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+        Only used for ``method='fir'``.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly, CUDA is initialized, and method='fir'.
@@ -700,6 +741,13 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
+    phase : str
+        Phase of the filter, only used if ``method='fir'``.
+        By default, a symmetric linear-phase FIR filter is constructed.
+        If ``phase='zero'`` (default in 0.14), the delay of this filter
+        is compensated for. If ``phase=='zero-double'`` (default in 0.13
+        and before), then this filter is applied twice, once forward, and
+        once backward.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
@@ -745,13 +793,14 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
                         filter_length=filter_length,
                         trans_bandwidth=h_trans_bandwidth, method=method,
                         iir_params=iir_params, picks=picks, n_jobs=n_jobs,
-                        copy=copy)
+                        copy=copy, phase=phase)
     if l_freq is not None and h_freq is None:
         logger.info('High-pass filtering at %0.2g Hz' % l_freq)
         high_pass_filter(
             data, sfreq, l_freq, filter_length=filter_length,
             trans_bandwidth=l_trans_bandwidth, method=method,
-            iir_params=iir_params, picks=picks, n_jobs=n_jobs, copy=copy)
+            iir_params=iir_params, picks=picks, n_jobs=n_jobs, copy=copy,
+            phase=phase)
     if l_freq is not None and h_freq is not None:
         if l_freq < h_freq:
             logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
@@ -762,7 +811,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
                 l_trans_bandwidth=l_trans_bandwidth,
                 h_trans_bandwidth=h_trans_bandwidth,
                 method=method, iir_params=iir_params, picks=picks,
-                n_jobs=n_jobs, copy=copy)
+                n_jobs=n_jobs, copy=copy, phase=phase)
         else:
             logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
                         % (h_freq, l_freq))
@@ -772,15 +821,15 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
                 l_trans_bandwidth=h_trans_bandwidth,
                 h_trans_bandwidth=l_trans_bandwidth, method=method,
                 iir_params=iir_params, picks=picks, n_jobs=n_jobs,
-                copy=copy)
+                copy=copy, phase=phase)
     return data
 
 
 @verbose
 def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
                      l_trans_bandwidth=None, h_trans_bandwidth=None,
-                     method='fir', iir_params=None,
-                     picks=None, n_jobs=1, copy=True, verbose=None):
+                     method='fir', iir_params=None, picks=None, n_jobs=1,
+                     copy=True, phase='', verbose=None):
     """Bandpass filter for the signal x.
 
     Applies a zero-phase bandpass filter to the signal x, operating on the
@@ -796,20 +845,33 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
         Low cut-off frequency in Hz.
     Fp2 : float
         High cut-off frequency in Hz.
-    filter_length : str | int | None
-        Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, if int, overlap-add
-        filtering with a filter of the specified length in samples) is
-        used (faster for long signals). If str, a human-readable time in
-        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
-        to the shortest power-of-two length at least that duration.
-        Not used for 'iir' filters.
-    l_trans_bandwidth : float
-        Width of the transition band at the low cut-off frequency in Hz.
-        Not used if 'order' is specified in iir_params.
-    h_trans_bandwidth : float
-        Width of the transition band at the high cut-off frequency in Hz.
-        Not used if 'order' is specified in iir_params.
+    filter_length : str | int
+        Length of the FIR filter to use (if applicable):
+
+            * int: specified length in samples.
+            * 'auto' (default in 0.14): the filter length is chosen based
+              on the size of the transition regions (7 times the reciprocal
+              of the shortest transition band).
+            * str: (default in 0.13 is "10s") a human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
+
+    l_trans_bandwidth : float | str
+        Width of the transition band at the low cut-off frequency in Hz
+        Can be "auto" (default in 0.14) to use a multiple of ``l_freq``::
+
+            min(max(l_freq * 0.25, 2), l_freq)
+
+        Only used for ``method='fir'``.
+    h_trans_bandwidth : float | str
+        Width of the transition band at the high cut-off frequency in Hz
+        Can be "auto" (default in 0.14) to use a multiple of ``h_freq``::
+
+            min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+        Only used for ``method='fir'``.
     method : str
         'fir' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
@@ -825,6 +887,13 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
+    phase : str
+        Phase of the filter, only used if ``method='fir'``.
+        By default, a symmetric linear-phase FIR filter is constructed.
+        If ``phase='zero'`` (default in 0.14), the delay of this filter
+        is compensated for. If ``phase=='zero-double'`` (default in 0.13
+        and before), then this filter is applied twice, once forward, and
+        once backward.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -861,12 +930,11 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
         * Fs2 = Fp2 + h_trans_bandwidth in Hz
 
     """
-    phase = 'zero'
-    iir_params = _check_method(method, iir_params, [])
-    x, Fs, Fp1, Fp2, Fs1, Fs2, filter_length, = _triage_filter_params(
+    iir_params, method = _check_method(method, iir_params, [])
+    x, Fs, Fp1, Fp2, Fs1, Fs2, filter_length, phase = _triage_filter_params(
         x, Fs, Fp1, Fp2, l_trans_bandwidth, h_trans_bandwidth, filter_length,
         method, phase)
-    if method in ('fir', 'fft'):
+    if method == 'fir':
         freq = [Fs1, Fp1, Fp2, Fs2]
         gain = [0, 1, 1, 0]
         if Fs1 != 0:
@@ -881,14 +949,15 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
         iir_params = construct_iir_filter(iir_params, [Fp1, Fp2],
                                           [Fs1, Fs2], Fs, 'bandpass')
         xf = _filtfilt(x, iir_params, picks, n_jobs, copy)
+
     return xf
 
 
 @verbose
 def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
                      l_trans_bandwidth=None, h_trans_bandwidth=None,
-                     method='fir', iir_params=None,
-                     picks=None, n_jobs=1, copy=True, verbose=None):
+                     method='fir', iir_params=None, picks=None, n_jobs=1,
+                     copy=True, phase='', verbose=None):
     """Bandstop filter for the signal x.
 
     Applies a zero-phase bandstop filter to the signal x, operating on the
@@ -904,20 +973,33 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
         Low cut-off frequency in Hz.
     Fp2 : float | array of float
         High cut-off frequency in Hz.
-    filter_length : str (Default: '10s') | int | None
-        Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, if int, overlap-add
-        filtering with a filter of the specified length in samples) is
-        used (faster for long signals). If str, a human-readable time in
-        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
-        to the shortest power-of-two length at least that duration.
-        Not used for 'iir' filters.
-    l_trans_bandwidth : float
-        Width of the transition band at the low cut-off frequency in Hz.
-        Not used if 'order' is specified in iir_params.
-    h_trans_bandwidth : float
-        Width of the transition band at the high cut-off frequency in Hz.
-        Not used if 'order' is specified in iir_params.
+    filter_length : str | int
+        Length of the FIR filter to use (if applicable):
+
+            * int: specified length in samples.
+            * 'auto' (default in 0.14): the filter length is chosen based
+              on the size of the transition regions (7 times the reciprocal
+              of the shortest transition band).
+            * str: (default in 0.13 is "10s") a human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
+
+    l_trans_bandwidth : float | str
+        Width of the transition band at the low cut-off frequency in Hz
+        Can be "auto" (default in 0.14) to use a multiple of ``l_freq``::
+
+            min(max(l_freq * 0.25, 2), l_freq)
+
+        Only used for ``method='fir'``.
+    h_trans_bandwidth : float | str
+        Width of the transition band at the high cut-off frequency in Hz
+        Can be "auto" (default in 0.14) to use a multiple of ``h_freq``::
+
+            min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+        Only used for ``method='fir'``.
     method : str
         'fir' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
@@ -933,6 +1015,13 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
+    phase : str
+        Phase of the filter, only used if ``method='fir'``.
+        By default, a symmetric linear-phase FIR filter is constructed.
+        If ``phase='zero'`` (default in 0.14), the delay of this filter
+        is compensated for. If ``phase=='zero-double'`` (default in 0.13
+        and before), then this filter is applied twice, once forward, and
+        once backward.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -968,17 +1057,16 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
 
     Multiple stop bands can be specified using arrays.
     """
-    phase = 'zero'
-    iir_params = _check_method(method, iir_params, [])
+    iir_params, method = _check_method(method, iir_params, [])
     Fp1 = np.array(Fp1, float).ravel()
     Fp2 = np.array(Fp2, float).ravel()
     if len(Fp1) != len(Fp2):
         raise ValueError('Fp1 and Fp2 must be the same length')
     # Note: order of outputs is intentionally switched here!
-    x, Fs, Fs1, Fs2, Fp1, Fp2, filter_length, = _triage_filter_params(
+    x, Fs, Fs1, Fs2, Fp1, Fp2, filter_length, phase = _triage_filter_params(
         x, Fs, Fp1, Fp2, l_trans_bandwidth, h_trans_bandwidth, filter_length,
         method, phase, bands='arr', reverse=True)
-    if method in ('fir', 'fft'):
+    if method == 'fir':
         freq = np.r_[Fp1, Fs1, Fs2, Fp2]
         gain = np.r_[np.ones_like(Fp1), np.zeros_like(Fs1),
                      np.zeros_like(Fs2), np.ones_like(Fp2)]
@@ -994,7 +1082,7 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
         if np.any(np.abs(np.diff(gain, 2)) > 1):
             raise ValueError('Stop bands are not sufficiently separated.')
         xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy,
-                     phase='zero')
+                     phase=phase)
     else:
         for fp_1, fp_2, fs_1, fs_2 in zip(Fp1, Fp2, Fs1, Fs2):
             iir_params_new = construct_iir_filter(iir_params, [fp_1, fp_2],
@@ -1006,8 +1094,8 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
 
 @verbose
 def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
-                    method='fir', iir_params=None,
-                    picks=None, n_jobs=1, copy=True, verbose=None):
+                    method='fir', iir_params=None, picks=None, n_jobs=1,
+                    copy=True, phase='', verbose=None):
     """Lowpass filter for the signal x.
 
     Applies a zero-phase lowpass filter to the signal x, operating on the
@@ -1021,17 +1109,26 @@ def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
         Sampling rate in Hz.
     Fp : float
         Cut-off frequency in Hz.
-    filter_length : str (Default: '10s') | int | None
-        Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, if int, overlap-add
-        filtering with a filter of the specified length in samples) is
-        used (faster for long signals). If str, a human-readable time in
-        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
-        to the shortest power-of-two length at least that duration.
-        Not used for 'iir' filters.
-    trans_bandwidth : float
-        Width of the transition band in Hz. Not used if 'order' is specified
-        in iir_params.
+    filter_length : str | int
+        Length of the FIR filter to use (if applicable):
+
+            * int: specified length in samples.
+            * 'auto' (default in 0.14): the filter length is chosen based
+              on the size of the transition regions (7 times the reciprocal
+              of the shortest transition band).
+            * str: (default in 0.13 is "10s") a human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
+
+    trans_bandwidth : float | str
+        Width of the transition band in Hz. Can be "auto"
+        (default in 0.14) to use a multiple of ``l_freq``::
+
+            min(max(l_freq * 0.25, 2), l_freq)
+
+        Only used for ``method='fir'``.
     method : str
         'fir' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
@@ -1047,6 +1144,13 @@ def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
+    phase : str
+        Phase of the filter, only used if ``method='fir'``.
+        By default, a symmetric linear-phase FIR filter is constructed.
+        If ``phase='zero'`` (default in 0.14), the delay of this filter
+        is compensated for. If ``phase=='zero-double'`` (default in 0.13
+        and before), then this filter is applied twice, once forward, and
+        once backward.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1079,11 +1183,10 @@ def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
 
     Where ``Fstop = Fp + trans_bandwidth``.
     """
-    phase = 'zero'
-    iir_params = _check_method(method, iir_params, [])
-    x, Fs, _, Fp, _, Fstop, filter_length = _triage_filter_params(
+    iir_params, method = _check_method(method, iir_params, [])
+    x, Fs, _, Fp, _, Fstop, filter_length, phase = _triage_filter_params(
         x, Fs, None, Fp, None, trans_bandwidth, filter_length, method, phase)
-    if method in ('fir', 'fft'):
+    if method == 'fir':
         freq = [0, Fp, Fstop]
         gain = [1, 1, 0]
         if Fstop != Fs / 2.:
@@ -1100,8 +1203,8 @@ def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
 
 @verbose
 def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
-                     method='fir', iir_params=None,
-                     picks=None, n_jobs=1, copy=True, verbose=None):
+                     method='fir', iir_params=None, picks=None, n_jobs=1,
+                     copy=True, phase='', verbose=None):
     """Highpass filter for the signal x.
 
     Applies a zero-phase highpass filter to the signal x, operating on the
@@ -1115,17 +1218,26 @@ def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
         Sampling rate in Hz.
     Fp : float
         Cut-off frequency in Hz.
-    filter_length : str (Default: '10s') | int | None
-        Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, if int, overlap-add
-        filtering with a filter of the specified length in samples) is
-        used (faster for long signals). If str, a human-readable time in
-        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
-        to the shortest power-of-two length at least that duration.
-        Not used for 'iir' filters.
-    trans_bandwidth : float
-        Width of the transition band in Hz. Not used if 'order' is
-        specified in iir_params.
+    filter_length : str | int
+        Length of the FIR filter to use (if applicable):
+
+            * int: specified length in samples.
+            * 'auto' (default in 0.14): the filter length is chosen based
+              on the size of the transition regions (7 times the reciprocal
+              of the shortest transition band).
+            * str: (default in 0.13 is "10s") a human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
+
+    trans_bandwidth : float | str
+        Width of the transition band in Hz. Can be "auto"
+        (default in 0.14) to use a multiple of ``h_freq``::
+
+            min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+        Only used for ``method='fir'``.
     method : str
         'fir' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
@@ -1141,6 +1253,13 @@ def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
+    phase : str
+        Phase of the filter, only used if ``method='fir'``.
+        By default, a symmetric linear-phase FIR filter is constructed.
+        If ``phase='zero'`` (default in 0.14), the delay of this filter
+        is compensated for. If ``phase=='zero-double'`` (default in 0.13
+        and before), then this filter is applied twice, once forward, and
+        once backward.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1173,11 +1292,10 @@ def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
 
     Where ``Fstop = Fp - trans_bandwidth``.
     """
-    phase = 'zero'
-    iir_params = _check_method(method, iir_params, [])
-    x, Fs, Fp, _, Fstop, _, filter_length = _triage_filter_params(
+    iir_params, method = _check_method(method, iir_params, [])
+    x, Fs, Fp, _, Fstop, _, filter_length, phase = _triage_filter_params(
         x, Fs, Fp, None, trans_bandwidth, None, filter_length, method, phase)
-    if method in ('fir', 'fft'):
+    if method == 'fir':
         freq = [Fstop, Fp, Fs / 2.]
         gain = [0, 1, 1]
         if Fstop != 0:
@@ -1193,9 +1311,9 @@ def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
 
 @verbose
 def notch_filter(x, Fs, freqs, filter_length='', notch_widths=None,
-                 trans_bandwidth=1, method='fir',
-                 iir_params=None, mt_bandwidth=None,
-                 p_value=0.05, picks=None, n_jobs=1, copy=True, verbose=None):
+                 trans_bandwidth=1, method='fir', iir_params=None,
+                 mt_bandwidth=None, p_value=0.05, picks=None, n_jobs=1,
+                 copy=True, phase='', verbose=None):
     """Notch filter for the signal x.
 
     Applies a zero-phase notch filter to the signal x, operating on the last
@@ -1211,20 +1329,25 @@ def notch_filter(x, Fs, freqs, filter_length='', notch_widths=None,
         Frequencies to notch filter in Hz, e.g. np.arange(60, 241, 60).
         None can only be used with the mode 'spectrum_fit', where an F
         test is used to find sinusoidal components.
-    filter_length : str (Default: '10s') | int | None
-        Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, if int, overlap-add
-        filtering with a filter of the specified length in samples) is
-        used (faster for long signals). If str, a human-readable time in
-        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
-        to the shortest power-of-two length at least that duration.
-        Not used for 'iir' filters.
+    filter_length : str | int
+        Length of the FIR filter to use (if applicable):
+
+            * int: specified length in samples.
+            * 'auto' (default in 0.14): the filter length is chosen based
+              on the size of the transition regions (7 times the reciprocal
+              of the shortest transition band).
+            * str: (default in 0.13 is "10s") a human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
+
     notch_widths : float | array of float | None
         Width of the stop band (centred at each freq in freqs) in Hz.
         If None, freqs / 200 is used.
     trans_bandwidth : float
-        Width of the transition band in Hz. Not used if 'order' is
-        specified in iir_params.
+        Width of the transition band in Hz.
+        Only used for ``method='fir'``.
     method : str
         'fir' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt). 'spectrum_fit' will
@@ -1251,6 +1374,13 @@ def notch_filter(x, Fs, freqs, filter_length='', notch_widths=None,
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
+    phase : str
+        Phase of the filter, only used if ``method='fir'``.
+        By default, a symmetric linear-phase FIR filter is constructed.
+        If ``phase='zero'`` (default in 0.14), the delay of this filter
+        is compensated for. If ``phase=='zero-double'`` (default in 0.13
+        and before), then this filter is applied twice, once forward, and
+        once backward.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1291,7 +1421,7 @@ def notch_filter(x, Fs, freqs, filter_length='', notch_widths=None,
     & Hemant Bokil, Oxford University Press, New York, 2008. Please
     cite this in publications if method 'spectrum_fit' is used.
     """
-    iir_params = _check_method(method, iir_params, ['spectrum_fit'])
+    iir_params, method = _check_method(method, iir_params, ['spectrum_fit'])
 
     if freqs is not None:
         freqs = np.atleast_1d(freqs)
@@ -1313,7 +1443,7 @@ def notch_filter(x, Fs, freqs, filter_length='', notch_widths=None,
                 raise ValueError('notch_widths must be None, scalar, or the '
                                  'same length as freqs')
 
-    if method in ['fir', 'fft', 'iir']:
+    if method in ['fir', 'iir']:
         # Speed this up by computing the fourier coefficients once
         tb_2 = trans_bandwidth / 2.0
         lows = [freq - nw / 2.0 - tb_2
@@ -1321,7 +1451,8 @@ def notch_filter(x, Fs, freqs, filter_length='', notch_widths=None,
         highs = [freq + nw / 2.0 + tb_2
                  for freq, nw in zip(freqs, notch_widths)]
         xf = band_stop_filter(x, Fs, lows, highs, filter_length, tb_2, tb_2,
-                              method, iir_params, picks, n_jobs, copy)
+                              method, iir_params, picks, n_jobs, copy,
+                              phase=phase)
     elif method == 'spectrum_fit':
         xf = _mt_spectrum_proc(x, Fs, freqs, notch_widths, mt_bandwidth,
                                p_value, picks, n_jobs, copy)
@@ -1701,8 +1832,14 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                           filter_length, method, phase, bands='scalar',
                           reverse=False):
     """Helper to validate and automate filter parameter selection"""
-    if not isinstance(phase, string_types) or phase not in ('linear', 'zero'):
+    dep = list()
+    if not isinstance(phase, string_types) or phase not in \
+            ('linear', 'zero', 'zero-double', ''):
         raise ValueError('phase must be "linear" or "zero", got "%s"' % phase)
+    if phase == '' and method == 'fir':
+        dep += ['phase in 0.13 is "zero-double" but will change to "zero" in '
+                '0.14']
+        phase = 'zero-double'
 
     def float_array(c):
         return np.array(c, float).ravel()
@@ -1711,18 +1848,16 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
         cast = float_array
     else:
         cast = float
-    if bands == 'scalar':
-        assert cast is float
     x = np.asanyarray(x)
     len_x = x.shape[-1]
     sfreq = float(sfreq)
     if l_freq is not None:
-        l_freq = np.array(l_freq, float).ravel()
+        l_freq = cast(l_freq)
         if np.any(l_freq <= 0):
             raise ValueError('highpass frequency %s must be greater than zero'
                              % (l_freq,))
     if h_freq is not None:
-        h_freq = np.array(h_freq, float).ravel()
+        h_freq = cast(h_freq)
         if np.any(h_freq >= sfreq / 2.):
             raise ValueError('lowpass frequency %s must be less than Nyquist '
                              '(%s)' % (h_freq, sfreq / 2.))
@@ -1741,8 +1876,8 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                 logger.info('l_trans_bandwidth chosen to be %0.1f Hz'
                             % (l_trans_bandwidth,))
             elif l_trans_bandwidth is None:
-                warn('lower transition bandwidth in 0.13 is 0.5 Hz but '
-                     'will change to "auto" in 0.14', DeprecationWarning)
+                dep += ['lower transition bandwidth in 0.13 is 0.5 Hz but '
+                        'will change to "auto" in 0.14']
                 l_trans_bandwidth = 0.5
             l_trans_bandwidth = cast(l_trans_bandwidth)
             if np.any(l_trans_bandwidth <= 0):
@@ -1767,8 +1902,8 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                 logger.info('h_trans_bandwidth chosen to be %0.1f Hz'
                             % (h_trans_bandwidth))
             elif h_trans_bandwidth is None:
-                warn('upper transition bandwidth in 0.13 is 0.5 Hz but '
-                     'will change to "auto" in 0.14', DeprecationWarning)
+                dep += ['upper transition bandwidth in 0.13 is 0.5 Hz but '
+                        'will change to "auto" in 0.14']
                 h_trans_bandwidth = 0.5
             h_trans_bandwidth = cast(h_trans_bandwidth)
             if np.any(h_trans_bandwidth <= 0):
@@ -1785,12 +1920,10 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
     if isinstance(filter_length, string_types):
         filter_length = filter_length.lower()
         if filter_length == '':
-            if method == 'iir':
-                filter_length = '0s'
-            else:
-                warn('The default filter length in 0.13 is "10s" but will '
-                     'be changed to "auto" in 0.14', DeprecationWarning)
-                filter_length = '10s'
+            if method == 'fir':
+                dep += ['The default filter length in 0.13 is "10s" but will '
+                        'change to "auto" in 0.14']
+            filter_length = '10s'
         if filter_length == 'auto':
             filter_length = max(int(round(
                 7 * sfreq / min(h_trans_bandwidth or np.inf,
@@ -1813,21 +1946,37 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                 filter_length = float(filter_length)
             except ValueError:
                 raise ValueError(err_msg)
-            filter_length = max(int(np.ceil(filter_length * mult_fact *
-                                            sfreq)), 1)
-    if filter_length is None:
+            if phase == 'zero-double':  # old mode
+                filter_length = 2 ** int(np.ceil(np.log2(
+                    filter_length * mult_fact * sfreq)))
+            else:
+                filter_length = max(int(np.ceil(filter_length * mult_fact *
+                                                sfreq)), 1)
+    elif filter_length is None:
         filter_length = len_x
         if phase == 'zero':
             filter_length -= (filter_length % 2 == 0)
+        dep += ['filter_length=None has been deprecated, set the filter '
+                'length using an integer or string']
     elif not isinstance(filter_length, integer_types):
         raise ValueError('filter_length must be a str, int, or None, got %s'
                          % (type(filter_length),))
     if phase == 'zero':
         filter_length += (filter_length % 2 == 0)
-    if not 0 < filter_length <= len_x:
-        raise ValueError('filter_length %s must be greater than zero and at '
-                         'most the signal length %s' % (filter_length, len_x))
-    return x, sfreq, l_freq, h_freq, l_stop, h_stop, filter_length
+    if method != 'fir':
+        filter_length = len_x
+    if filter_length <= 0:
+        raise ValueError('filter_length must be positive, got %s'
+                         % (filter_length,))
+    if filter_length > len_x:
+        dep += ['filter_length (%s) is longer than the signal (%s), '
+                'distortion is likely. Reduce filter length or filter a '
+                'longer signal.' % (filter_length, len_x)]
+    logger.debug('Using filter length: %s' % filter_length)
+    if len(dep) > 0:
+        warn(('Multiple deprecated filter parameters were used:\n'
+              if len(dep) > 1 else '') + '\n'.join(dep), DeprecationWarning)
+    return x, sfreq, l_freq, h_freq, l_stop, h_stop, filter_length, phase
 
 
 class FilterMixin(object):

@@ -66,23 +66,24 @@ def test_array_raw():
     picks = pick_types(raw2.info, misc=True, exclude='bads')[:4]
     assert_equal(len(picks), 4)
     raw_lp = raw2.copy()
-    with warnings.catch_warnings(record=True):
-        raw_lp.filter(0., 4.0 - 0.25, picks=picks, n_jobs=2)
+    raw_lp.filter(None, 4.0, h_trans_bandwidth=4.,
+                  filter_length='auto', picks=picks, n_jobs=2, phase='zero')
     raw_hp = raw2.copy()
-    with warnings.catch_warnings(record=True):
-        raw_hp.filter(8.0 + 0.25, None, picks=picks, n_jobs=2)
+    raw_hp.filter(16.0, None, l_trans_bandwidth=4.,
+                  filter_length='auto', picks=picks, n_jobs=2, phase='zero')
     raw_bp = raw2.copy()
-    with warnings.catch_warnings(record=True):
-        raw_bp.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks)
+    raw_bp.filter(8.0, 12.0, l_trans_bandwidth=4.,
+                  h_trans_bandwidth=4., filter_length='auto', picks=picks,
+                  phase='zero')
     raw_bs = raw2.copy()
-    with warnings.catch_warnings(record=True):
-        raw_bs.filter(8.0 + 0.25, 4.0 - 0.25, picks=picks, n_jobs=2)
+    raw_bs.filter(16.0, 4.0, l_trans_bandwidth=4., h_trans_bandwidth=4.,
+                  filter_length='auto', picks=picks, n_jobs=2, phase='zero')
     data, _ = raw2[picks, :]
     lp_data, _ = raw_lp[picks, :]
     hp_data, _ = raw_hp[picks, :]
     bp_data, _ = raw_bp[picks, :]
     bs_data, _ = raw_bs[picks, :]
-    sig_dec = 11
+    sig_dec = 15
     assert_array_almost_equal(data, lp_data + bp_data + hp_data, sig_dec)
     assert_array_almost_equal(data, bp_data + bs_data, sig_dec)
 

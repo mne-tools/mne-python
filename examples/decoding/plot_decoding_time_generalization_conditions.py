@@ -39,7 +39,9 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 events_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')  # Pick MEG channels
-raw.filter(1, 30, method='fft')  # Band pass filtering signals
+# Band pass filter signals
+raw.filter(1, 30, method='fir', filter_length='auto',
+           l_trans_bandwidth='auto', h_trans_bandwidth='auto', phase='zero')
 events = mne.read_events(events_fname)
 event_id = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
 decim = 2  # decimate to make the example faster to run

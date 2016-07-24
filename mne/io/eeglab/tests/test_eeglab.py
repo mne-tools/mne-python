@@ -61,7 +61,8 @@ def test_io_set():
         assert_array_equal(raw0[:][-1], raw1[:][-1], raw2[:][-1], raw3[:][-1])
         assert_equal(len(w), 4)
         # 1 for preload=False / str with fname_onefile, 3 for dropped events
-        raw0.filter(1, None)  # test that preloading works
+        raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
+                    phase='zero')  # test that preloading works
 
     # test old EEGLAB version event import
     eeg = io.loadmat(raw_fname, struct_as_record=False,

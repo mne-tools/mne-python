@@ -763,7 +763,8 @@ def test_filter():
 
     trans = 2.0
     filter_params = dict(picks=picks, filter_length='auto',
-                         h_trans_bandwidth=trans, l_trans_bandwidth=trans)
+                         h_trans_bandwidth=trans, l_trans_bandwidth=trans,
+                         phase='zero')
     raw_lp = raw.copy().filter(None, 8.0, **filter_params)
     raw_hp = raw.copy().filter(16.0, None, **filter_params)
     raw_bp = raw.copy().filter(8.0 + trans, 16.0 - trans, **filter_params)
@@ -781,7 +782,8 @@ def test_filter():
     assert_allclose(data, lp_data + bp_data + hp_data, **tols)
     assert_allclose(data, bp_data + bs_data, **tols)
 
-    filter_params_iir = dict(picks=picks, n_jobs=2, method='iir')
+    filter_params_iir = dict(picks=picks, n_jobs=2, method='iir',
+                             iir_params=dict(output='ba'))
     raw_lp_iir = raw.copy().filter(None, 4.0, **filter_params_iir)
     raw_hp_iir = raw.copy().filter(8.0, None, **filter_params_iir)
     raw_bp_iir = raw.copy().filter(4.0, 8.0, **filter_params_iir)
@@ -801,7 +803,7 @@ def test_filter():
 
     # ... and that inplace changes are inplace
     raw_copy = raw.copy()
-    raw_copy.filter(None, 20., picks=picks, n_jobs=2)
+    raw_copy.filter(None, 20., n_jobs=2, **filter_params)
     assert_true(raw._data[0, 0] != raw_copy._data[0, 0])
     assert_equal(raw.copy().filter(None, 20., **filter_params)._data,
                  raw_copy._data)
@@ -809,10 +811,11 @@ def test_filter():
     # do a very simple check on line filtering
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        raw_bs = raw.copy().filter(60.0 + 0.5, 60.0 - 0.5, **filter_params)
+        raw_bs = raw.copy().filter(60.0 + trans, 60.0 - trans, **filter_params)
         data_bs, _ = raw_bs[picks, :]
         raw_notch = raw.copy().notch_filter(
-            60.0, picks=picks, n_jobs=2, method='fir', filter_length='auto')
+            60.0, picks=picks, n_jobs=2, method='fir', filter_length='auto',
+            trans_bandwidth=2 * trans)
     data_notch, _ = raw_notch[picks, :]
     assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
 
@@ -839,7 +842,7 @@ def test_filter():
         assert_true(raw.info['lowpass'] is None)
         assert_true(raw.info['highpass'] is None)
         kwargs = dict(l_trans_bandwidth=20, h_trans_bandwidth=20,
-                      filter_length=200)
+                      filter_length='auto', phase='zero')
         raw_filt = raw.copy().filter(l_freq, h_freq, picks=np.arange(1),
                                      **kwargs)
         assert_true(raw.info['lowpass'] is None)
@@ -870,11 +873,9 @@ def test_filter_picks():
         picks = dict((ch, ch == ch_type) for ch in ch_types)
         picks['meg'] = ch_type if ch_type in ('mag', 'grad') else False
         raw_ = raw.copy().pick_types(**picks)
-        # Avoid RuntimeWarning due to Attenuation
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            raw_.filter(10, 30)
-        assert_true(any(['Attenuation' in str(ww.message) for ww in w]))
+        raw_.filter(10, 30, l_trans_bandwidth='auto',
+                    h_trans_bandwidth='auto', filter_length='auto',
+                    phase='zero')
 
     # -- Error if no data channel
     for ch_type in ('misc', 'stim'):
@@ -1060,7 +1061,7 @@ def test_hilbert():
     raw2 = raw.copy()
     raw3 = raw.copy()
     raw.apply_hilbert(picks)
-    raw2.apply_hilbert(picks, envelope=True, n_jobs=2)
+    raw2.apply_hilbert(picks, envelope=True)
 
     # Test custom n_fft
     raw_filt.apply_hilbert(picks)

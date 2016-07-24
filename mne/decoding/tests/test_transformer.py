@@ -71,14 +71,18 @@ def test_filterestimator():
     epochs_data = epochs.get_data()
 
     # Add tests for different combinations of l_freq and h_freq
-    filt = FilterEstimator(epochs.info, l_freq=1, h_freq=40)
+    filt = FilterEstimator(epochs.info, l_freq=40, h_freq=80,
+                           filter_length='auto',
+                           l_trans_bandwidth='auto', h_trans_bandwidth='auto')
     y = epochs.events[:, -1]
     with warnings.catch_warnings(record=True):  # stop freq attenuation warning
         X = filt.fit_transform(epochs_data, y)
         assert_true(X.shape == epochs_data.shape)
         assert_array_equal(filt.fit(epochs_data, y).transform(epochs_data), X)
 
-    filt = FilterEstimator(epochs.info, l_freq=0, h_freq=40)
+    filt = FilterEstimator(epochs.info, l_freq=None, h_freq=40,
+                           filter_length='auto',
+                           l_trans_bandwidth='auto', h_trans_bandwidth='auto')
     y = epochs.events[:, -1]
     with warnings.catch_warnings(record=True):  # stop freq attenuation warning
         X = filt.fit_transform(epochs_data, y)
@@ -88,7 +92,9 @@ def test_filterestimator():
     with warnings.catch_warnings(record=True):  # stop freq attenuation warning
         assert_raises(ValueError, filt.fit_transform, epochs_data, y)
 
-    filt = FilterEstimator(epochs.info, l_freq=1, h_freq=None)
+    filt = FilterEstimator(epochs.info, l_freq=40, h_freq=None,
+                           filter_length='auto',
+                           l_trans_bandwidth='auto', h_trans_bandwidth='auto')
     with warnings.catch_warnings(record=True):  # stop freq attenuation warning
         X = filt.fit_transform(epochs_data, y)
 

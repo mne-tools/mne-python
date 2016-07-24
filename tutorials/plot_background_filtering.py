@@ -518,11 +518,165 @@ plt.show()
 ###############################################################################
 # Some pitfalls of filtering
 # ==========================
-# Recently multiple papers have addressed the potential risks of drawing
+# Multiple recent papers have noted potential risks of drawing
 # errant inferences due to misapplication of filters.
 #
+# Low-pass problems
+# -----------------
+# Filters in general, especially those that are acausal (zero-phase), can make
+# activity appear to occur earlier or later than it truly did. As
+# mentioned in [3]_, investigations of commonly (at the time) used low-pass
+# filters created artifacts. However, such deleterious effects of low-passing
+# were found to have minimal impact for many real-world examples [5]_.
 
+# Perhaps more revealing, it was noted in [6]_ that the problematic
+# low-pass filters from [3]_:
+#
+#    1. Used a least-squares design (like :func:`scipy.signal.firls`) that
+#       included "do-not-care" transition regions, which can lead to
+#       uncontrolled behavior.
+#    2. Filter length that was independent of the transition bandwidth,
+#       which can cause excessive ringing and signal distortion.
+#
+# .. _filtering-hp-problems:
+#
+# High-pass problems
+# ------------------
+# When it comes to high-pass filtering, using corner frequencies above 0.1 Hz
+# were found in [4]_ to:
+#
+#    "...generate a systematic bias easily leading to misinterpretations of
+#    neural activity.”
+#
+# In a related paper, Widmann et al. [7]_ also came to suggest a 0.1 Hz
+# highpass. And more evidence followed in [8]_ of such distortions. Using
+# data from language ERP studies of semantic and syntactic processing
+# (i.e., N400 and P600), using a high-pass above 0.3 Hz caused significant
+# effects to be introduced implausibly early when compared to the
+# unfiltered data. From this, the authors suggested the optimal high-pass
+# value for language processing to be 0.1 Hz.
+#
+# We can recreate a problematic simulation from [8]_:
+#
+#    "The simulated component is a single-cycle cosine wave with an amplitude
+#    of 5µV, onset of 500 ms poststimulus, and duration of 800 ms. The
+#    simulated component was embedded in 20 s of zero values to avoid
+#    filtering edge effects... Distortions [were] caused by 2 Hz low-pass and
+#    high-pass filters... No visible distortion to the original waveform
+#    [occurred] with 30 Hz low-pass and 0.01 Hz high-pass filters...
+#    Filter frequencies correspond to the half-amplitude (-6 dB) cutoff
+#    (12 dB/octave roll-off)."
+#
+# .. note:: This simulated signal contains energy not just within the
+#           pass-band, but also within the transition and stop-bands -- perhaps
+#           most easily understood because the signal has a non-zero DC value,
+#           but also because it is a cosine that has been *windowed* (here
+#           multiplied by a rectangular window), which makes the
+#           cosine frequency content spread beyond the original frequency.
+
+x = np.zeros(int(2 * sfreq))
+t = np.arange(0, len(x)) / sfreq - 0.2
+onset = np.where(t >= 0.5)[0][0]
+cos_t = np.arange(0, int(sfreq * 0.8)) / sfreq
+sig = 2.5 - 2.5 * np.cos(2 * np.pi * (1. / 0.8) * cos_t)
+x[onset:onset + len(sig)] = sig
+
+iir_lp_30 = signal.iirfilter(2, 30. / sfreq, btype='lowpass')
+iir_hp_p1 = signal.iirfilter(2, 0.1 / sfreq, btype='highpass')
+iir_lp_2 = signal.iirfilter(2, 2. / sfreq, btype='lowpass')
+iir_hp_2 = signal.iirfilter(2, 2. / sfreq, btype='highpass')
+x_lp_30 = signal.filtfilt(iir_lp_30[0], iir_lp_30[1], x, padlen=0)
+x_hp_p1 = signal.filtfilt(iir_hp_p1[0], iir_hp_p1[1], x, padlen=0)
+x_lp_2 = signal.filtfilt(iir_lp_2[0], iir_lp_2[1], x, padlen=0)
+x_hp_2 = signal.filtfilt(iir_hp_2[0], iir_hp_2[1], x, padlen=0)
+
+xlim = t[[0, -1]]
+ylim = [-2, 6]
+xlabel = 'Time (sec)'
+ylabel = u'Amplitude (μV)'
+tticks = [0, 0.5, 1.3, t[-1]]
+axs = plt.subplots(2, 2)[1].ravel()
+for ax, x_f, title in zip(axs, [x_lp_2, x_lp_30, x_hp_2, x_hp_p1],
+                          ['LP$_2$', 'LP$_{30}$', 'HP$_2$', 'LP$_{0.1}$']):
+    ax.plot(t, x, color='0.5')
+    ax.plot(t, x_f, color='k', linestyle='--')
+    ax.set(ylim=ylim, xlim=xlim, xticks=tticks,
+           title=title, xlabel=xlabel, ylabel=ylabel)
+    box_off(ax)
+mne.viz.tight_layout()
+plt.show()
+
+# Baseline problems (or solutions?)
+# ---------------------------------
+# In an evolving discussion, Tanner et al. [8]_ suggest using baseline
+# correction to remove slow drifts in data. However, Maess et al. [9]_
+# suggest that baseline correction, which is a form of high-passing, does
+# not offer substantial advantages over standard high-pass filtering.
+# Tanner et al. [10]_ rebutted that baseline correction can correct for
+# problems with filtering.
+#
+# To see what they mean, consider again our old simulated signal ``x`` from
+# before:
+
+def baseline_plot(x):
+    all_axs = plt.subplots(3, 2)[1]
+    for ri, (axs, freq) in enumerate(zip(all_axs, [0.1, 0.3, 0.5])):
+        for ci, ax in enumerate(axs):
+            if ci == 0:
+                iir_hp = signal.iirfilter(4, freq / sfreq, btype='highpass',
+                                          output='sos')
+                x_hp = sosfiltfilt(iir_hp, x, padlen=0)
+            else:
+                x_hp -= x_hp[t < 0].mean()
+            ax.plot(t, x, color='0.5')
+            ax.plot(t, x_hp, color='k', linestyle='--')
+            if ri == 0:
+                ax.set(title=('' if ci == 0 else 'No ') +
+                       'Baseline Correction')
+            box_off(ax)
+            ax.set(xticks=tticks, ylim=ylim, xlim=xlim, xlabel=xlabel)
+            ax.set_ylabel('%0.1f Hz' % freq, rotation=0,
+                          horizontalalignment='right')
+    mne.viz.tight_layout()
+    plt.suptitle(title)
+    plt.show()
+
+baseline_plot(x)
+
+# In respose, Maess et al. [11]_ note that these simulations do not address
+# cases of pre-stimulus activity that is shared across conditions, as applying
+# baseline correction will effectively copy the topology outside the baseline
+# period. We can see this if we give our signal ``x`` with some consistent
+# pre-stimulus activity, which makes everything look bad:
+#
+# .. note:: An important thing to keep in mind with these plots is that they
+#           are for a single simulated sensor. In multielectrode recordings
+#           the topology (i.e., spatial pattiern) of the pre-stimulus activity
+#           will leak into the post-stimulus period. This will likely create a
+#           spatially varying distortion of the time-domain signals, as the
+#           averaged pre-stimulus spatial pattern gets subtracted from the
+#           sensor time courses.
+
+n_pre = (t < 0).sum()
+sig_pre = 1 - np.cos(2 * np.pi * np.arange(n_pre) / (0.5 * n_pre))
+x[:n_pre] += sig_pre
+baseline_plot(x)
+
+# Both groups seem to acknowledge that the choices of filtering cutoffs,
+# and perhaps even the application of baseline correction, depend on the
+# characteristics of the data being investigated, especially when it comes to:
+#
+#    1. The frequency content of the underlying evoked activity relative
+#       to the filtering parameters.
+#    2. The validity of the assumption of no consistent evoked activity
+#       in the baseline period.
+#
+# We thus recommend carefully applying baseline correction and/or high-pass
+# values based on the characteristics of the data to be analyzed.
+#
 ###############################################################################
+# .. _tut_filtering_in_python:
+#
 # Filtering in MNE-Python
 # =======================
 # Most often, filtering in MNE-Python is done at the :class:`mne.io.Raw` level,

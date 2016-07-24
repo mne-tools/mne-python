@@ -52,7 +52,8 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
 # Removing power-line noise can be done with a Notch filter, directly on the
 # Raw object, specifying an array of frequency to be cut off:
 
-raw.notch_filter(np.arange(60, 241, 60), picks=picks)
+raw.notch_filter(np.arange(60, 241, 60), picks=picks, filter_length='auto',
+                 phase='zero')
 raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
 
 ###############################################################################
@@ -62,24 +63,33 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
 # If you're only interested in low frequencies, below the peaks of power-line
 # noise you can simply low pass filter the data.
 
-raw.filter(None, 50.)  # low pass filtering below 50 Hz
+# low pass filtering below 50 Hz
+raw.filter(None, 50., h_trans_bandwidth='auto', filter_length='auto',
+           phase='zero')
 raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
 
 ###############################################################################
 # High-pass filtering to remove slow drifts
 # -----------------------------------------
 #
-# If you're only interested in low frequencies, below the peaks of power-line
-# noise you can simply high pass filter the data.
+# To remove slow drifts, you can high pass.
+#
+# ..warning:: There can be issues using high-passes greater than 0.1 Hz
+#             (see :ref:`here <filtering-hp-problems>`), so apply
+#             high-pass filters with caution.
 
-raw.filter(1., None)  # low pass filtering above 1 Hz
+raw.filter(1., None, l_trans_bandwidth='auto', filter_length='auto',
+           phase='zero')
 raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
+
 
 ###############################################################################
 # To do the low-pass and high-pass filtering in one step you can do
-# a so-called *band-pass* filter by running
+# a so-called *band-pass* filter by running the following:
 
-raw.filter(1., 50.)  # band-pass filtering in the range 1 Hz - 50 Hz
+# band-pass filtering in the range 1 Hz - 50 Hz
+raw.filter(1, 50., l_trans_bandwidth='auto', h_trans_bandwidth='auto',
+           filter_length='auto', phase='zero')
 
 ###############################################################################
 # Down-sampling (for performance reasons)

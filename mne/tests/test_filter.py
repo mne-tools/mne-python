@@ -43,9 +43,6 @@ def test_1d_filter():
         x = rng.randn(n_signal)
         for n_filter in (1, 2, 3, 5, 10, 11, 20, 21, 40, 41, 100, 101, 200,
                          201, 400, 401, 1000, 1001, 2000, 2001):
-            # Don't test n_filter == 1 because scipy can't handle it.
-            if n_filter > n_signal:
-                continue  # only equal or lesser lengths supported
             for filter_type in ('identity', 'random'):
                 if filter_type == 'random':
                     h = rng.randn(n_filter)
@@ -54,7 +51,7 @@ def test_1d_filter():
                 # ensure we pad the signal the same way for both filters
                 n_pad = n_filter - 1
                 x_pad = _smart_pad(x, np.array([n_pad, n_pad]))
-                for phase in ('zero', 'linear'):
+                for phase in ('zero', 'linear', 'zero-double'):
                     # compute our expected result the slow way
                     if phase == 'zero':
                         # only allow zero-phase for odd-length filters
@@ -65,6 +62,12 @@ def test_1d_filter():
                         shift = (len(h) - 1) // 2
                         x_expected = np.convolve(x_pad, h)
                         x_expected = x_expected[shift:len(x_expected) - shift]
+                    elif phase == 'zero-double':
+                        shift = len(h) - 1
+                        x_expected = np.convolve(x_pad, h)
+                        x_expected = np.convolve(x_expected[::-1], h)[::-1]
+                        x_expected = x_expected[shift:len(x_expected) - shift]
+                        shift = 0
                     else:
                         shift = 0
                         x_expected = np.convolve(x_pad, h)
@@ -72,10 +75,15 @@ def test_1d_filter():
                     # remove padding
                     if n_pad > 0:
                         x_expected = x_expected[n_pad:len(x_expected) - n_pad]
+                    assert_equal(len(x_expected), len(x))
                     # make sure we actually set things up reasonably
                     if filter_type == 'identity':
-                        assert_allclose(x[shift:],
-                                        x_expected[:len(x_expected) - shift])
+                        out = x_pad.copy()
+                        out = out[shift + n_pad:]
+                        out = out[:len(x)]
+                        out = np.concatenate((out, np.zeros(max(len(x) - len(out), 0))))
+                        assert_equal(len(out), len(x))
+                        assert_allclose(out, x_expected)
                     assert_equal(len(x_expected), len(x))
 
                     # compute our version
@@ -88,7 +96,7 @@ def test_1d_filter():
                         else:
                             x_filtered = _overlap_add_filter(
                                 x_copy, h, n_fft, phase=phase)[0]
-                            assert_allclose(x_filtered, x_expected)
+                            assert_allclose(x_filtered, x_expected, atol=1e-14)
 
 
 @requires_version('scipy', '0.16')
@@ -172,8 +180,9 @@ def test_notch_filters():
     tols = [2, 1, 1, 1]
     for meth, lf, fl, tol in zip(methods, line_freqs, filter_lengths, tols):
         with catch_logging() as log_file:
-            b = notch_filter(a, sfreq, lf, filter_length=fl, method=meth,
-                             verbose=True)
+            with warnings.catch_warnings(record=True):  # filter_length=None
+                b = notch_filter(a, sfreq, lf, filter_length=fl, method=meth,
+                                 phase='zero', verbose=True)
 
         if lf is None:
             out = log_file.getvalue().split('\n')[:-1]
@@ -244,29 +253,32 @@ def test_filters():
     # let's test our catchers
     for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
         assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, fl,
-                      1.0, 1.0)
+                      1.0, 1.0, phase='zero')
     for nj in ['blah', 0.5]:
         assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, 100,
-                      1.0, 1.0, n_jobs=nj)
+                      1.0, 1.0, n_jobs=nj, phase='zero')
     # > Nyq/2
     assert_raises(ValueError, band_pass_filter, a, sfreq, 4, sfreq / 2.,
-                  100, 1.0, 1.0)
+                  100, 1.0, 1.0, phase='zero')
     assert_raises(ValueError, low_pass_filter, a, sfreq, sfreq / 2.,
-                  100, 1.0)
+                  100, 1.0, phase='zero')
     # check our short-filter warning:
     with warnings.catch_warnings(record=True) as w:
         # Warning for low attenuation
-        band_pass_filter(a, sfreq, 1, 8, filter_length=1024)
+        band_pass_filter(a, sfreq, 1, 8, filter_length=1024, phase='zero')
+    assert_true(any('attenuation' in str(ww.message) for ww in w))
+    with warnings.catch_warnings(record=True) as w:
         # Warning for too short a filter
-        band_pass_filter(a, sfreq, 1, 8, filter_length='0.5s')
-    assert_true(len(w) >= 2)
+        band_pass_filter(a, sfreq, 1, 8, filter_length='0.5s', phase='zero')
+    assert_true(any('Increase filter_length' in str(ww.message) for ww in w))
 
     # try new default and old default
-    for fl in ['10s', '5000ms', None, 8192]:
-        bp = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0)
-        bs = band_stop_filter(a, sfreq, 4 - 1.0, 8 + 1.0, fl, 1.0, 1.0)
-        lp = low_pass_filter(a, sfreq, 8, fl, 1.0, n_jobs=2)
-        hp = high_pass_filter(lp, sfreq, 4, fl, 1.0)
+    for fl in ['auto', '10s', '5000ms', 8192]:
+        bp = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0, phase='zero')
+        bs = band_stop_filter(a, sfreq, 4 - 1.0, 8 + 1.0, fl, 1.0, 1.0,
+                              phase='zero')
+        lp = low_pass_filter(a, sfreq, 8, fl, 1.0, n_jobs=2, phase='zero')
+        hp = high_pass_filter(lp, sfreq, 4, fl, 1.0, phase='zero')
         assert_array_almost_equal(hp, bp, 5)
         assert_array_almost_equal(bp + bs, a, 5)
 
@@ -317,15 +329,17 @@ def test_filters():
     a = rng.randn(5 * sfreq, 5 * sfreq)
     b = a[:, None, :]
 
-    a_filt = band_pass_filter(a, sfreq, 4, 8, 1000, 2.0, 2.0)
-    b_filt = band_pass_filter(b, sfreq, 4, 8, 1000, 2.0, 2.0, picks=[0])
+    a_filt = band_pass_filter(a, sfreq, 4, 8, 1000, 2.0, 2.0, phase='zero')
+    b_filt = band_pass_filter(b, sfreq, 4, 8, 1000, 2.0, 2.0, picks=[0],
+                              phase='zero')
 
     assert_array_equal(a_filt[:, None, :], b_filt)
 
     # check for n-dimensional case
     a = rng.randn(2, 2, 2, 2)
-    assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, 100, 1.0, 1.0,
-                  picks=np.array([0, 1]))
+    with warnings.catch_warnings(record=True):  # filter too long
+        assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, 100,
+                      1.0, 1.0, picks=np.array([0, 1]), phase='zero')
 
 
 def test_filter_auto():
@@ -339,7 +353,7 @@ def test_filter_auto():
     x = np.ones(N)
     t = np.arange(N) / sfreq
     x += np.sin(2 * np.pi * sine_freq * t)
-    x_filt = low_pass_filter(x, sfreq, lp, 'auto', 'auto', verbose=True)
+    x_filt = low_pass_filter(x, sfreq, lp, 'auto', 'auto', phase='zero')
     # the firwin2 function gets us this close
     assert_allclose(x, x_filt, rtol=1e-4, atol=1e-4)
 
@@ -351,8 +365,7 @@ def test_filter_auto():
 
 
 def test_cuda():
-    """Test CUDA-based filtering
-    """
+    """Test CUDA-based filtering"""
     # NOTE: don't make test_cuda() the last test, or pycuda might spew
     # some warnings about clean-up failing
     # Also, using `n_jobs='cuda'` on a non-CUDA system should be fine,
@@ -362,21 +375,27 @@ def test_cuda():
     a = rng.randn(sig_len_secs * sfreq)
 
     with catch_logging() as log_file:
-        for fl in ['10s', None, 2048]:
-            bp = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0, n_jobs=1)
+        for fl in ['auto', '10s', 2048]:
+            bp = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0, n_jobs=1,
+                                  phase='zero')
             bs = band_stop_filter(a, sfreq, 4 - 1.0, 8 + 1.0, fl, 1.0, 1.0,
-                                  n_jobs=1)
-            lp = low_pass_filter(a, sfreq, 8, fl, 1.0, n_jobs=1)
-            hp = high_pass_filter(lp, sfreq, 4, fl, 1.0, n_jobs=1)
+                                  n_jobs=1, phase='zero')
+            lp = low_pass_filter(a, sfreq, 8, fl, 1.0, n_jobs=1, phase='zero')
+            hp = high_pass_filter(lp, sfreq, 4, fl, 1.0, n_jobs=1,
+                                  phase='zero')
 
             bp_c = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0,
-                                    n_jobs='cuda', verbose='INFO')
+                                    n_jobs='cuda', verbose='INFO',
+                                    phase='zero')
             bs_c = band_stop_filter(a, sfreq, 4 - 1.0, 8 + 1.0, fl, 1.0, 1.0,
-                                    n_jobs='cuda', verbose='INFO')
+                                    n_jobs='cuda', verbose='INFO',
+                                    phase='zero')
             lp_c = low_pass_filter(a, sfreq, 8, fl, 1.0,
-                                   n_jobs='cuda', verbose='INFO')
+                                   n_jobs='cuda', verbose='INFO',
+                                   phase='zero')
             hp_c = high_pass_filter(lp, sfreq, 4, fl, 1.0,
-                                    n_jobs='cuda', verbose='INFO')
+                                    n_jobs='cuda', verbose='INFO',
+                                    phase='zero')
 
             assert_array_almost_equal(bp, bp_c, 12)
             assert_array_almost_equal(bs, bs_c, 12)
@@ -408,8 +427,7 @@ def test_cuda():
 
 
 def test_detrend():
-    """Test zeroth and first order detrending
-    """
+    """Test zeroth and first order detrending"""
     x = np.arange(10)
     assert_array_almost_equal(detrend(x, 1), np.zeros_like(x))
     x = np.ones(10)
