@@ -4,7 +4,6 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
 import mne
-from mne.externals.six import iteritems
 from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
                        grand_average)
@@ -13,7 +12,6 @@ from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
                                     dpss_wavelet, tfr_multitaper,
                                     AverageTFR, read_tfrs, write_tfrs,
                                     combine_tfr, cwt, time_frequency,
-                                    _induced_power_cwt, _induced_power_mtm,
                                     rescale)
 from mne.viz.utils import _fake_click
 from itertools import product
@@ -505,21 +503,6 @@ def test_time_frequency():
     new_complex = time_frequency(data[[0]], freqs, sfreq, n_cycles=2.,
                                  method='morlet', output='complex')
     assert_array_almost_equal(old_complex, new_complex[0])
-
-    # iii) _induced_power_*: average of X, shape (n_signals, n_times, n_chans)
-    for method, old_function in iteritems(dict(mtm=_induced_power_mtm,
-                                               morlet=_induced_power_cwt)):
-        new_out = time_frequency(data, freqs, sfreq, n_cycles=2., n_jobs=2,
-                                 method=method, output='avg_power_phaselock')
-        new_power = time_frequency(data, freqs, sfreq, n_cycles=2.,
-                                   method=method, output='avg_power', n_jobs=2)
-        new_phase = time_frequency(data, freqs, sfreq, n_cycles=2., n_jobs=2,
-                                   method=method, output='avg_phaselock')
-        old_power, old_phase = old_function(data, sfreq, freqs, n_cycles=2)
-        assert_array_almost_equal(new_out.real, new_power)
-        assert_array_almost_equal(new_out.real, old_power)
-        assert_array_almost_equal(new_out.imag, old_phase)
-        assert_array_almost_equal(new_phase, old_phase)
 
     # Check errors params
     for _data in (None, 'foo', data[0]):
