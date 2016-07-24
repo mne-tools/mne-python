@@ -176,7 +176,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     mode : {'full', 'valid', 'same'}
         See numpy.convolve.
     decim : int | slice, defaults to 1
-        To reduce memory usage, decimation factor after time-frequency
+        To reduce memory usage, decimation factor after time frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
@@ -282,18 +282,18 @@ def tfr_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
     use_fft : bool, defaults to True
         Use the FFT for convolutions or not.
     decim : int | slice, defaults to 1
-        To reduce memory usage, decimation factor after time-frequency
+        To reduce memory usage, decimation factor after time frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
         Note that decimation may create aliasing artifacts.
     output : str, defaults to 'complex'
-        'complex': single trial complex.
-        'power': single trial power.
-        'phase': single trial phase.
-        'avg_power': average of single trial power.
-        'avg_phaselock' phase locking factor across trials.
-        'avg_power_phaselock': average of single trial power and phase-locking factor across trials. # noqa
+        If 'complex', single trial complex.
+        If 'power', single trial power.
+        If 'phase', single trial phase.
+        If 'avg_power', average of single trial power.
+        If 'avg_phaselock', phase locking factor across trials.
+        If 'avg_power_phaselock', average of single trial power and phase-locking factor across trials. # noqa
     n_jobs : int, defaults to 1
         The number of epochs to process at the same time. The parallization is
         implemented across channels.
@@ -328,7 +328,7 @@ def tfr_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
         raise ValueError('sfreq must be a float or an int.')
     sfreq = float(sfreq)
 
-    # Check params
+    # Check output
     allowed_ouput = ('complex', 'power', 'phase',
                      'avg_power_phaselock', 'avg_power', 'avg_phaselock')
     if output not in allowed_ouput:
@@ -383,7 +383,7 @@ def tfr_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
     # Parallel computation
     parallel, my_cwt, _ = parallel_func(_time_frequency_loop, n_jobs)
 
-    # Loop across different wavelets in case of multitaping
+    # Parallization is applied across channels.
     tfrs = parallel(
         my_cwt(channel, Ws, output, use_fft, 'same', decim)
         for channel in epoch_data.transpose(1, 0, 2))
@@ -398,23 +398,23 @@ def tfr_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
 
 
 def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
-    """Aux. function to time_frequency.
+    """Aux. function to tfr_transform.
 
     Loops time frequency transform across wavelets and epochs.
 
     Parameters
     ----------
-    X: np.array, shape (n_epochs, n_times)
+    X : array, shape (n_epochs, n_times)
         The epochs data of a single channel.
-    Ws: list, shape(n_tappers, n_wavelets, n_times)
+    Ws : list, shape(n_tappers, n_wavelets, n_times)
         The wavelets.
-    output: str
-        'complex': single trial complex.
-        'power': single trial power.
-        'phase': single trial phase.
-        'avg_power': average of single trial power.
-        'avg_phaselock' phase locking factor across trials.
-        'avg_power_phaselock': average of single trial power and phase-locking factor across trials. # noqa
+    output : str
+        If 'complex', single trial complex.
+        If 'power', single trial power.
+        If 'phase', single trial phase.
+        If 'avg_power', average of single trial power.
+        If 'avg_phaselock', phase locking factor across trials.
+        If 'avg_power_phaselock', average of single trial power and phase-locking factor across trials. # noqa
     use_fft : bool
         Use the FFT for convolutions or not.
     mode : {'full', 'valid', 'same'}
@@ -504,7 +504,7 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     zero_mean : bool
         Make sure the wavelets have a mean of zero.
     decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
+        To reduce memory usage, decimation factor after time frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
@@ -518,7 +518,7 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
 
     See Also
     --------
-    tfr.cwt : Compute time-frequency decomposition with user-provided wavelets
+    tfr.cwt : Compute time frequency decomposition with user-provided wavelets
     """
     mode = 'same'
     # mode = "valid"
@@ -552,7 +552,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
         Convention for convolution. 'full' is currently not implemented with
         `use_fft=False`. Defaults to 'same'.
     decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
+        To reduce memory usage, decimation factor after time frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
@@ -566,7 +566,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
     See Also
     --------
-    mne.time_frequency.cwt_morlet : Compute time-frequency decomposition
+    mne.time_frequency.cwt_morlet : Compute time frequency decomposition
                                     with Morlet wavelets
     """
     decim = _check_decim(decim)
@@ -587,7 +587,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
                        decim=1, n_jobs=1, zero_mean=False, verbose=None):
-    """Compute time-frequency power on single epochs
+    """Compute time frequency power on single epochs
 
     Parameters
     ----------
@@ -623,7 +623,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     times : array
         Required to define baseline
     decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
+        To reduce memory usage, decimation factor after time frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
@@ -651,7 +651,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
 
     parallel, my_cwt, _ = parallel_func(cwt, n_jobs)
 
-    logger.info("Computing time-frequency power on single epochs...")
+    logger.info("Computing time frequency power on single epochs...")
 
     power = np.empty((n_epochs, n_channels, n_frequencies, n_times),
                      dtype=np.float)
@@ -694,24 +694,23 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
-    use_fft : bool
+    use_fft : bool, defaults to False
         The fft based convolution or not.
-    return_itc : bool
+    return_itc : bool, defaults to True
         Return intertrial coherence (ITC) as well as averaged power.
         Must be ``False`` for evoked data.
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
+    decim : int | slice, defaults to 1
+        To reduce memory usage, decimation factor after time frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
         Note that decimation may create aliasing artifacts.
-        Defaults to 1.
-    n_jobs : int
+    n_jobs : int, defaults to 1
         The number of jobs to run in parallel.
-    picks : array-like of int | None
+    picks : array-like of int | None, defaults to None
         The indices of the channels to plot. If None all available
         channels are displayed.
-    verbose : bool, str, int, or None
+    verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
@@ -762,33 +761,29 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
         The time-window length is thus T = n_cycles / freq.
-    time_bandwidth : float, (optional)
+    time_bandwidth : float, (optional), default is 4.0 (3 good tapers).
         Time x (Full) Bandwidth product. Should be >= 2.0.
         Choose this along with n_cycles to get desired frequency resolution.
         The number of good tapers (least leakage from far away frequencies)
         is chosen automatically based on this to floor(time_bandwidth - 1).
-        Default is 4.0 (3 good tapers).
         E.g., With freq = 20 Hz and n_cycles = 10, we get time = 0.5 s.
         If time_bandwidth = 4., then frequency smoothing is (4 / time) = 8 Hz.
-    use_fft : bool
+    use_fft : bool, defaults to True
         The fft based convolution or not.
-        Defaults to True.
-    return_itc : bool
+    return_itc : bool, defaults to True
         Return intertrial coherence (ITC) as well as averaged power.
-        Defaults to True.
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
+    decim : int | slice, defaults to 1
+        To reduce memory usage, decimation factor after time frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
         Note that decimation may create aliasing artifacts.
-        Defaults to 1.
-    n_jobs : int
-        The number of jobs to run in parallel. Defaults to 1.
-    picks : array-like of int | None
+    n_jobs : int,  defaults to 1
+        The number of jobs to run in parallel.
+    picks : array-like of int | None, defaults to None
         The indices of the channels to plot. If None all available
         channels are displayed.
-    verbose : bool, str, int, or None
+    verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
@@ -851,12 +846,10 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         The frequencies in Hz.
     nave : int
         The number of averaged TFRs.
-    comment : str | None
+    comment : str | None, defaults to None
         Comment on the data, e.g., the experimental condition.
-        Defaults to None.
-    method : str | None
+    method : str | None, defaults to None
         Comment on the method used to compute the data, e.g., morlet wavelet.
-        Defaults to None.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1062,7 +1055,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         fmax = min(self.freqs, key=lambda x: abs(x - fmax))
         if tmin == tmax or fmin == fmax:
             logger.info('The selected area is too small. '
-                        'Select a larger time-frequency window.')
+                        'Select a larger time frequency window.')
             return
 
         types = list()
@@ -1205,7 +1198,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         return fig
 
     def _check_compat(self, tfr):
-        """checks that self and tfr have the same time-frequency ranges"""
+        """checks that self and tfr have the same time frequency ranges"""
         assert np.all(tfr.times == self.times)
         assert np.all(tfr.freqs == self.freqs)
 
@@ -1278,7 +1271,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                      sensors=True, colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head', head_pos=None):
-        """Plot topographic maps of time-frequency intervals of TFR data
+        """Plot topographic maps of time frequency intervals of TFR data
 
         Parameters
         ----------
@@ -1415,7 +1408,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
 
 
 def combine_tfr(all_tfr, weights='nave'):
-    """Merge AverageTFR data by weighted addition
+    """Merge AverageTFR data by weighted addition.
 
     Create a new AverageTFR instance, using a combination of the supplied
     instances as its data. By default, the mean (weighted by trials) is used.
