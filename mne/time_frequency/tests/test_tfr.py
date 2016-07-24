@@ -10,13 +10,12 @@ from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
                        grand_average)
 from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
-                                    _dpss_wavelet, tfr_multitaper,
+                                    dpss_wavelet, tfr_multitaper,
                                     AverageTFR, read_tfrs, write_tfrs,
-                                    combine_tfr, cwt,
+                                    combine_tfr, cwt, time_frequency,
                                     _induced_power_cwt, _induced_power_mtm,
                                     rescale)
 from mne.viz.utils import _fake_click
-from mne.time_frequency._tfr import time_frequency
 from itertools import product
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -216,8 +215,8 @@ def test_old_time_frequency():
 def test_dpsswavelet():
     """Test DPSS wavelet"""
     freqs = np.arange(5, 25, 3)
-    Ws = _dpss_wavelet(1000, freqs=freqs, n_cycles=freqs / 2.,
-                       time_bandwidth=4.0, zero_mean=True)
+    Ws = dpss_wavelet(1000, freqs=freqs, n_cycles=freqs / 2.,
+                      time_bandwidth=4.0, zero_mean=True)
 
     assert_true(len(Ws) == 3)  # 3 tapers expected
 
