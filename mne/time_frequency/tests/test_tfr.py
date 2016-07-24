@@ -4,6 +4,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
 import mne
+from mne.externals.six import iteritems
 from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
                        grand_average)
@@ -11,9 +12,12 @@ from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
                                     _dpss_wavelet, tfr_multitaper,
                                     AverageTFR, read_tfrs, write_tfrs,
-                                    combine_tfr, cwt)
+                                    combine_tfr, cwt,
+                                    _induced_power_cwt, _induced_power_mtm,
+                                    rescale)
 from mne.viz.utils import _fake_click
-
+from mne.time_frequency._tfr import time_frequency
+from itertools import product
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 
@@ -32,7 +36,7 @@ def test_morlet():
     assert_true(np.abs(np.mean(np.real(W[0]))) > 1e-3)
 
 
-def test_time_frequency():
+def test_old_time_frequency():
     """Test time frequency transform (PSD and phase lock)
     """
     # Set parameters
@@ -432,5 +436,135 @@ def test_add_channels():
     assert_raises(ValueError, tfr_meg.add_channels, [tfr_meg])
     assert_raises(AssertionError, tfr_meg.add_channels, tfr_badsf)
 
+
+def test_time_frequency():
+    # Set parameters
+    event_id = 1
+    tmin = -0.2
+    tmax = 0.498  # Allows exhaustive decimation testing
+
+    # Setup for reading the raw data
+    raw = io.read_raw_fif(raw_fname)
+    events = read_events(event_fname)
+
+    include = []
+    exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
+
+    # picks MEG gradiometers
+    picks = pick_types(raw.info, meg='grad', eeg=False,
+                       stim=False, include=include, exclude=exclude)
+
+    picks = picks[:2]
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0))
+    data = epochs.get_data()
+    sfreq = epochs.info['sfreq']
+    freqs = np.arange(10, 20, 3)
+
+    # Check all combination of options
+    for method, use_fft, zero_mean, output in product(
+        ('mtm', 'morlet'), (False, True), (False, True),
+        ('complex', 'power', 'phase', 'avg_power_phaselock', 'avg_power',
+         'avg_phaselock')):
+        # Check exception
+        if (method == 'mtm') and (output == 'phase'):
+            assert_raises(NotImplementedError, time_frequency, data, freqs,
+                          sfreq, method=method, output=output)
+            continue
+
+        # Check runs
+        out = time_frequency(data, freqs, sfreq, method=method,
+                             use_fft=use_fft, zero_mean=zero_mean,
+                             n_cycles=2., output=output)
+        # Check shapes
+        shape = np.r_[data.shape[:2], len(freqs), data.shape[2]]
+        if 'avg' in output:
+            assert_array_equal(shape[1:], out.shape)
+        else:
+            assert_array_equal(shape, out.shape)
+
+        # Check types
+        if output in ('complex', 'avg_power_phaselock'):
+            assert_equal(np.complex, out.dtype)
+        else:
+            assert_equal(np.float, out.dtype)
+        assert_true(np.all(np.isfinite(out)))
+
+    # Check that functions are equivalent to
+    # i) single_trial_power: X, shape (n_signals, n_chans, n_times)
+    old_power = single_trial_power(data, sfreq, freqs, n_cycles=2.)
+    new_power = time_frequency(data, freqs, sfreq, n_cycles=2.,
+                               method='morlet', output='power')
+    assert_array_almost_equal(old_power, new_power)
+    old_power = single_trial_power(data, sfreq, freqs,  n_cycles=2.,
+                                   times=epochs.times, baseline=(-.100, 0),
+                                   baseline_mode='ratio')
+    new_power = rescale(new_power, epochs.times, (-.100, 0), 'ratio')
+
+    # ii) cwt_morlet: X, shape (n_signals, n_times)
+    old_complex = cwt_morlet(data[0], sfreq, freqs, n_cycles=2.)
+    new_complex = time_frequency(data[[0]], freqs, sfreq, n_cycles=2.,
+                                 method='morlet', output='complex')
+    assert_array_almost_equal(old_complex, new_complex[0])
+
+    # iii) _induced_power_*: average of X, shape (n_signals, n_times, n_chans)
+    for method, old_function in iteritems(dict(mtm=_induced_power_mtm,
+                                               morlet=_induced_power_cwt)):
+        new_out = time_frequency(data, freqs, sfreq, n_cycles=2., n_jobs=2,
+                                 method=method, output='avg_power_phaselock')
+        new_power = time_frequency(data, freqs, sfreq, n_cycles=2.,
+                                   method=method, output='avg_power', n_jobs=2)
+        new_phase = time_frequency(data, freqs, sfreq, n_cycles=2., n_jobs=2,
+                                   method=method, output='avg_phaselock')
+        old_power, old_phase = old_function(data, sfreq, freqs, n_cycles=2)
+        assert_array_almost_equal(new_out.real, new_power)
+        assert_array_almost_equal(new_out.real, old_power)
+        assert_array_almost_equal(new_out.imag, old_phase)
+        assert_array_almost_equal(new_phase, old_phase)
+
+    # Check errors params
+    for _data in (None, 'foo', data[0]):
+        assert_raises(ValueError, time_frequency, _data, freqs, sfreq)
+    for _freqs in (None, 'foo', [[0]]):
+        assert_raises(ValueError, time_frequency, data, _freqs, sfreq)
+    for _sfreq in (None, 'foo'):
+        assert_raises(ValueError, time_frequency, data, freqs, _sfreq)
+    for key in ('output', 'method', 'use_fft', 'decim', 'n_jobs'):
+        for value in (None, 'foo'):
+            kwargs = {key: value}  # FIXME pep8
+            assert_raises(ValueError, time_frequency, data, freqs, sfreq,
+                          **kwargs)
+
+    # No time_bandwidth param in morlet
+    assert_raises(ValueError, time_frequency, data, freqs, sfreq,
+                  method='morlet', time_bandwidth=1)
+    # No phase in multitaper XXX Check ?
+    assert_raises(NotImplementedError, time_frequency, data, freqs, sfreq,
+                  method='mtm', output='phase')
+
+    # Phaselocking tests
+    out = time_frequency(data, freqs, sfreq, output='avg_phaselock',
+                         n_cycles=2.)
+    assert_true(np.sum(out >= 1) == 0)
+    assert_true(np.sum(out <= 0) == 0)
+
+    # Check decim shapes
+    # 2: multiple of len(times) even
+    # 3: multiple odd
+    # 8: not multiple, even
+    # 9: not multiple, odd
+    for decim in (2, 3, 8, 9, slice(0, 2), slice(1, 3), slice(2, 4)):
+        _decim = slice(None, None, decim) if isinstance(decim, int) else decim
+        n_time = len(np.arange(data.shape[2])[_decim])
+        shape = np.r_[data.shape[:2], len(freqs), n_time]
+        for method in ('mtm', 'morlet'):
+            # Single trials
+            out = time_frequency(data, freqs, sfreq, method=method,
+                                 decim=decim, n_cycles=2.)
+            assert_array_equal(shape, out.shape)
+            # Averages
+            out = time_frequency(data, freqs, sfreq, method=method,
+                                 decim=decim, output='avg_power', n_cycles=2.)
+            assert_array_equal(shape[1:], out.shape)
 
 run_tests_if_main()
