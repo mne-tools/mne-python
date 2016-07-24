@@ -209,7 +209,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
         the exclude parameter is ignored.
     mask : int | None
         The value of the digital mask to apply to the stim channel values.
-        The default value is None. ``None`` skips masking.
+        The default value is None. If None, trigger masking is skipped.
     mask_type: 'and' | 'not_and'
         The type of operation between the mask and the trigger.
         Choose 'and' for MNE-C masking behavior.
@@ -526,7 +526,7 @@ def find_events(raw, stim_channel=None, output='onset',
         duration is less than this an exception will be raised.
     mask : int
         The value of the digital mask to apply to the stim channel values.
-        The default value is None. ``None`` skips masking.
+        The default value is None. If None, trigger masking is skipped.
     uint_cast : bool
         If True (default False), do a cast to ``uint16`` on the channel
         data. This can be used to fix a bug with STI101 and STI014 in
