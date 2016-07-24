@@ -537,8 +537,6 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     return tfrs
 
 
-@deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
-            ".tfr_transform() instead.")
 def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     """Compute time freq decomposition with continuous wavelet transform
 

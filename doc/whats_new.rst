@@ -53,7 +53,7 @@ Changelog
 
     - Add new class :class:`mne.decoding.EMS` to transform epochs with the event-matched spatial filters and add 'cv' parameter to :func:`mne.decoding.compute_ems`, by `Jean-Remi King`_
 
-    - Added :func:`mne.time_frequency.time_frequency` and deprecated :func:`mne.time_frequency.cwt`, :func:`mne.time_frequency.cwt_morlet`, :func:`mne.time_frequency.single_trial_power`, to compute time frequency transforms on arrays, by `Jean-Remi King`_
+    - Added :func:`mne.time_frequency.time_frequency` and deprecated :func:`mne.time_frequency.cwt_morlet` and :func:`mne.time_frequency.single_trial_power`, to compute time frequency transforms on arrays, by `Jean-Remi King`_
 
 
 BUG
