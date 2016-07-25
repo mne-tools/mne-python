@@ -300,7 +300,8 @@ def test_tf_lcmv():
     noise_covs = []
     for (l_freq, h_freq), win_length in zip(freq_bins, win_lengths):
         raw_band = raw.copy()
-        raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1)
+        raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1,
+                        iir_params=dict(output='ba'))
         epochs_band = mne.Epochs(
             raw_band, epochs.events, epochs.event_id, tmin=tmin, tmax=tmax,
             baseline=None, proj=True)

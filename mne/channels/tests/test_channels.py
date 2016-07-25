@@ -81,7 +81,8 @@ def test_set_channel_types():
     # Test type change
     raw2 = Raw(raw_fname, add_eeg_ref=False)
     raw2.info['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
-    assert_raises(RuntimeError, raw2.set_channel_types, mapping)  # has proj
+    with warnings.catch_warnings(record=True):  # MEG channel change
+        assert_raises(RuntimeError, raw2.set_channel_types, mapping)  # has prj
     raw2.add_proj([], remove_existing=True)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')

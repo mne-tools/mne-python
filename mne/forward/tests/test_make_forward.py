@@ -190,7 +190,7 @@ def test_make_forward_solution_kit():
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
     # CTF with compensation changed in python
-    ctf_raw = Raw(fname_ctf_raw, compensation=2)
+    ctf_raw = Raw(fname_ctf_raw).apply_gradient_compensation(2)
 
     fwd_py = make_forward_solution(ctf_raw.info, fname_trans, src,
                                    fname_bem_meg, eeg=False, meg=True)

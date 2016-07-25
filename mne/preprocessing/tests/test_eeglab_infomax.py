@@ -36,10 +36,10 @@ def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
     picks = picks[idx_perm[:number_of_channels_to_use]]
 
     with warnings.catch_warnings(record=True):  # deprecated params
-        raw.filter(1, 45)
+        raw.filter(1, 45, picks=picks)
     # Eventually we will need to add these, but for now having none of
     # them is a nice deprecation sanity check.
-    # , picks=picks, filter_length='10s',
+    #           filter_length='10s',
     #           l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
     #           phase='zero-double')  # use the old way
     X = raw[picks, :][0][:, ::20]

@@ -653,8 +653,8 @@ def _check_method(method, iir_params, extra_types):
     if method == 'iir':
         if iir_params is None:
             iir_params = dict()
-        elif len(iir_params) == 0 or (len(iir_params) == 1 and
-                                      'output' in iir_params):
+        if len(iir_params) == 0 or (len(iir_params) == 1 and
+                                    'output' in iir_params):
             # XXX update this after deprecation of ba
             iir_params = dict(order=4, ftype='butter',
                               output=iir_params.get('output', 'ba'))

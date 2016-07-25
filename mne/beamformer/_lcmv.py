@@ -751,7 +751,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
 
         raw_band = raw.copy()
         raw_band.filter(l_freq, h_freq, picks=raw_picks, method='iir',
-                        n_jobs=n_jobs)
+                        n_jobs=n_jobs, iir_params=dict(output='ba'))
         raw_band.info['highpass'] = l_freq
         raw_band.info['lowpass'] = h_freq
         epochs_band = Epochs(raw_band, epochs.events, epochs.event_id,

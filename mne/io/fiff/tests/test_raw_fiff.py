@@ -1066,8 +1066,9 @@ def test_hilbert():
     raw2.apply_hilbert(picks, n_fft='auto', envelope=True)
 
     # Test custom n_fft
-    raw_filt.apply_hilbert(picks)
-    raw_filt_2.apply_hilbert(picks, n_fft=raw_filt_2.n_times + 1000)
+    raw_filt.apply_hilbert(picks, n_fft='auto')
+    n_fft = 2 ** int(np.ceil(np.log2(raw_filt_2.n_times + 1000)))
+    raw_filt_2.apply_hilbert(picks, n_fft=n_fft)
     assert_equal(raw_filt._data.shape, raw_filt_2._data.shape)
     assert_allclose(raw_filt._data[:, 50:-50], raw_filt_2._data[:, 50:-50],
                     atol=1e-13, rtol=1e-2)
@@ -1322,7 +1323,8 @@ def test_compensation_raw_mne():
         return Raw(tmp_fname, preload=True)
 
     for grad in [0, 2, 3]:
-        raw_py = Raw(ctf_comp_fname, preload=True, compensation=grad)
+        with warnings.catch_warnings(record=True):  # deprecated param
+            raw_py = Raw(ctf_comp_fname, preload=True, compensation=grad)
         raw_c = compensate_mne(ctf_comp_fname, grad)
         assert_allclose(raw_py._data, raw_c._data, rtol=1e-6, atol=1e-17)
         assert_equal(raw_py.info['nchan'], raw_c.info['nchan'])

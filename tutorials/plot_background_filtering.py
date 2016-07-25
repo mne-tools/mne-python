@@ -621,7 +621,7 @@ plt.show()
 #
 # To see what they mean, consider again our old simulated signal ``x`` from
 # before:
-
+#
 
 def baseline_plot(x):
     all_axs = plt.subplots(3, 2)[1]
@@ -649,11 +649,11 @@ def baseline_plot(x):
 baseline_plot(x)
 
 ###############################################################################
-# In respose, Maess *et al.* [11]_ note that these simulations do not address
-# cases of pre-stimulus activity that is shared across conditions, as applying
-# baseline correction will effectively copy the topology outside the baseline
-# period. We can see this if we give our signal ``x`` with some consistent
-# pre-stimulus activity, which makes everything look bad:
+# In respose, Maess *et al.* 2016 [11]_ note that these simulations do not
+# address cases of pre-stimulus activity that is shared across conditions, as
+# applying baseline correction will effectively copy the topology outside the
+# baseline period. We can see this if we give our signal ``x`` with some
+# consistent pre-stimulus activity, which makes everything look bad.
 #
 # .. note:: An important thing to keep in mind with these plots is that they
 #           are for a single simulated sensor. In multielectrode recordings
@@ -662,6 +662,8 @@ baseline_plot(x)
 #           spatially varying distortion of the time-domain signals, as the
 #           averaged pre-stimulus spatial pattern gets subtracted from the
 #           sensor time courses.
+#
+# Putting some activity in the baseline period:
 
 n_pre = (t < 0).sum()
 sig_pre = 1 - np.cos(2 * np.pi * np.arange(n_pre) / (0.5 * n_pre))

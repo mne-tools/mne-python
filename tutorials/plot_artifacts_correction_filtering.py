@@ -57,7 +57,7 @@ raw.notch_filter(np.arange(60, 241, 60), picks=picks, filter_length='auto',
 raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
 
 ###############################################################################
-# Removing power-line noise with low-pas filtering
+# Removing power-line noise with low-pass filtering
 # -------------------------------------------------
 #
 # If you're only interested in low frequencies, below the peaks of power-line

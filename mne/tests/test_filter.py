@@ -81,7 +81,8 @@ def test_1d_filter():
                         out = x_pad.copy()
                         out = out[shift + n_pad:]
                         out = out[:len(x)]
-                        out = np.concatenate((out, np.zeros(max(len(x) - len(out), 0))))
+                        out = np.concatenate((out, np.zeros(max(len(x) -
+                                                                len(out), 0))))
                         assert_equal(len(out), len(x))
                         assert_allclose(out, x_expected)
                     assert_equal(len(x_expected), len(x))
