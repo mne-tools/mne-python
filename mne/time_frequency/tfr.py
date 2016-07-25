@@ -326,8 +326,8 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
         If 'power', single trial power.
         If 'phase', single trial phase.
         If 'avg_power', average of single trial power.
-        If 'avg_phaselock', phase locking factor across trials.
-        If 'avg_power_phaselock', average of single trial power and phase-locking factor across trials. # noqa
+        If 'itc', inter-trial coherence.
+        If 'avg_power_itc', average of single trial power and inter-trial coherence across trials. # noqa
     n_jobs : int, defaults to 1
         The number of epochs to process at the same time. The parallization is
         implemented across channels.
@@ -340,9 +340,8 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
         Time frequency transform of epoch_data. If output is in ['complex',
         'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
         n_times), else it is (n_chans, n_freqs, n_times). If output is
-        'avg_power_phaselock', the real values code for 'avg_power' and the
-        imaginary values code for the 'avg_phaselock':
-        out = avg_power + i * avg_phaselock
+        'avg_power_itc', the real values code for 'avg_power' and the
+        imaginary values code for the 'itc': out = avg_power + i * itc
     """
     # Check data
     epoch_data = np.asarray(epoch_data)
@@ -364,7 +363,7 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
 
     # Check output
     allowed_ouput = ('complex', 'power', 'phase',
-                     'avg_power_phaselock', 'avg_power', 'avg_phaselock')
+                     'avg_power_itc', 'avg_power', 'itc')
     if output not in allowed_ouput:
         raise ValueError("Unknown output type.")
 
@@ -403,14 +402,14 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
     decim = _check_decim(decim)
     n_freqs = len(frequencies)
     n_epochs, n_chans, n_times = epoch_data[:, :, decim].shape
-    if output in ('power', 'phase', 'avg_power', 'avg_phaselock'):
+    if output in ('power', 'phase', 'avg_power', 'itc'):
         dtype = np.float
-    elif output in ('complex', 'avg_power_phaselock'):
-        # avg_power_phaselock is stored as power + 1i * phase_lock to keep a
+    elif output in ('complex', 'avg_power_itc'):
+        # avg_power_itc is stored as power + 1i * phase_lock to keep a
         # simple dimensionality
         dtype = np.complex
 
-    if 'avg_' in output:
+    if ('avg_' in output) or ('itc' in output):
         out = np.empty((n_chans, n_freqs, n_times), dtype)
     else:
         out = np.empty((n_chans, n_epochs, n_freqs, n_times), dtype)
@@ -427,7 +426,7 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
     for channel_idx, tfr in enumerate(tfrs):
         out[channel_idx] = tfr
 
-    if 'avg_' not in output:
+    if ('avg_' not in output) and ('itc' not in output):
         out = out.transpose(1, 0, 2, 3)
     return out
 
@@ -448,8 +447,8 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
         If 'power', single trial power.
         If 'phase', single trial phase.
         If 'avg_power', average of single trial power.
-        If 'avg_phaselock', phase locking factor across trials.
-        If 'avg_power_phaselock', average of single trial power and phase-locking factor across trials. # noqa
+        If 'itc', phase locking factor across trials.
+        If 'avg_power_itc', average of single trial power and inter-trial coherence across trials. # noqa
     use_fft : bool
         Use the FFT for convolutions or not.
     mode : {'full', 'valid', 'same'}
@@ -459,14 +458,14 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
     """
     # Set output type
     dtype = np.float
-    if output in ['complex', 'avg_phaselock', 'avg_power_phaselock']:
+    if output in ['complex', 'itc', 'avg_power_itc']:
         dtype = np.complex
 
     # Init outputs
     decim = _check_decim(decim)
     n_epochs, n_times = X[:, decim].shape
     n_freqs = len(Ws[0])
-    if 'avg_' in output:
+    if ('avg_' in output) or ('itc' in output):
         tfrs = np.zeros((n_freqs, n_times), dtype=dtype)
     else:
         tfrs = np.zeros((n_epochs, n_freqs, n_times), dtype=dtype)
@@ -476,7 +475,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
         coefs = _cwt(X, W, mode, decim=decim, use_fft=use_fft)
 
         # Inter-trial phase locking is apparently computed per taper...
-        if 'phaselock' in output:
+        if 'itc' in output:
             plf = np.zeros((n_freqs, n_times), dtype=np.complex)
 
         # Loop across epochs
@@ -486,28 +485,28 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
                 tfr = (tfr * tfr.conj()).real  # power
             elif output == 'phase':
                 tfr = np.angle(tfr)
-            elif output == 'avg_power_phaselock':
+            elif output == 'avg_power_itc':
                 tfr_abs = np.abs(tfr)
                 plf += tfr / tfr_abs  # phase
                 tfr = tfr_abs ** 2  # power
-            elif output == 'avg_phaselock':
+            elif output == 'itc':
                 plf += tfr / np.abs(tfr)  # phase
                 continue  # not need to stack anything else than plf
 
             # Stack or add
-            if 'avg_' in output:
+            if ('avg_' in output) or ('itc' in output):
                 tfrs += tfr
             else:
                 tfrs[epoch_idx] = tfr
 
-        # Compute inter trial phase-locking factor
-        if output == 'avg_power_phaselock':
+        # Compute inter trial coherence
+        if output == 'avg_power_itc':
             tfrs += 1j * np.abs(plf)
-        elif output == 'avg_phaselock':
+        elif output == 'itc':
             tfrs += np.abs(plf)
 
     # Normalization of average metrics
-    if 'avg_' in output:
+    if ('avg_' in output) or ('itc' in output):
         tfrs /= n_epochs
 
     # Normalization by number of taper
@@ -771,7 +770,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     out = timefreq_transform(data, freqs, info['sfreq'], n_cycles=n_cycles,
                              n_jobs=n_jobs, use_fft=use_fft, decim=decim,
                              zero_mean=True, method='morlet',
-                             output='avg_power_phaselock')
+                             output='avg_power_itc')
     power, itc = out.real, out.imag
     times = inst.times[decim].copy()
     nave = len(data)
@@ -849,7 +848,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                              n_jobs=n_jobs, use_fft=use_fft, decim=decim,
                              zero_mean=True, method='mtm',
                              time_bandwidth=time_bandwidth,
-                             output='avg_power_phaselock')
+                             output='avg_power_itc')
     power, itc = out.real, out.imag
 
     times = inst.times[decim].copy()
