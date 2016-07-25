@@ -76,11 +76,13 @@ def test_ems():
     X = X / np.std(X)  # X scaled outside cv in compute_ems
     Xt, coefs = list(), list()
     ems = EMS()
+    assert_equal(ems.__repr__(), 'EMS: not fitted.')
     # manual leave-one-out to avoid sklearn version problem
     for test in range(len(y)):
         train = np.setdiff1d(range(len(y)), test)
         ems.fit(X[train], y[train])
         coefs.append(ems.filters_)
         Xt.append(ems.transform(X[[test]]))
+    assert_equal(ems.__repr__(), 'EMS: fitted with 4 filters on 2 classes.')
     assert_array_almost_equal(filters, np.mean(coefs, axis=0))
     assert_array_almost_equal(surrogates, np.vstack(Xt))

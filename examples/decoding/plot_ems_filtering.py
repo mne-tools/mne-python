@@ -31,7 +31,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne import io
+from mne import io, EvokedArray
 from mne.datasets import sample
 from mne.decoding import EMS, compute_ems
 from sklearn.cross_validation import StratifiedKFold
@@ -118,8 +118,7 @@ plt.legend(loc='best')
 plt.show()
 
 # Visualize spatial filters across time
-evoked = epochs.average()
-evoked.data = filters
+evoked = EvokedArray(filters, epochs.info, tmin=epochs.tmin)
 evoked.plot_topomap(ch_type=ch_type)
 
 # Note that a similar transformation can be applied with `compute_ems`

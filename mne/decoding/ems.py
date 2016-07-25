@@ -30,30 +30,20 @@ class EMS(TransformerMixin, EstimatorMixin):
         multi-sensor data to a single time course that reveals experimental
         effects", BMC Neuroscience 2013, 14:122
 
-    Parameters
-    ----------
-    epochs : instance of mne.Epochs
-        The epochs.
-    conditions : list of str | None
-        If a list of strings, strings must match the
-        epochs.event_id's key as well as the number of conditions supported
-        by the objective_function. If None keys in epochs.event_id are used.
-    picks : array-like of int | None
-        Channels to be included. If None only good data channels are used.
-        Defaults to None.
-    n_jobs : int
-        Number of jobs to run in parallel.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to self.verbose.
-
     Attributes
     ----------
     filters_ : ndarray, shape (n_channels, n_times)
         The set of spatial filters.
-    classes_ : ndarray, shape (n_epochs,)
+    classes_ : ndarray, shape (n_classes,)
         The target classes.
     """
+
+    def __repr__(self):
+        if hasattr(self, 'filters_'):
+            return 'EMS: fitted with %i filters on %i classes.' % (
+                len(self.filters_), len(self.classes_))
+        else:
+            return 'EMS: not fitted.'
 
     def fit(self, X, y):
         """Fit the spatial filters.
@@ -77,7 +67,7 @@ class EMS(TransformerMixin, EstimatorMixin):
             raise ValueError('EMS only works for binary classification.')
         self.classes_ = classes
         filters = X[y == classes[0]].mean(0) - X[y == classes[1]].mean(0)
-        filters /= np.sqrt(np.sum(filters ** 2, axis=0))[None, :]
+        filters /= np.linalg.norm(filters, axis=0)[None, :]
         self.filters_ = filters
         return self
 
@@ -91,7 +81,7 @@ class EMS(TransformerMixin, EstimatorMixin):
 
         Returns
         -------
-        X : array, shape (n_epochs, n_filters, n_times)
+        X : array, shape (n_epochs, n_times)
             The input data transformed by the spatial filters.
         """
         Xt = np.sum(X * self.filters_, axis=1)
@@ -100,7 +90,7 @@ class EMS(TransformerMixin, EstimatorMixin):
 
 @verbose
 def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
-                cv='LeaveOneOut'):
+                cv=None):
     """Compute event-matched spatial filter on epochs.
 
     This version operates on the entire time course. No time window needs to
@@ -126,20 +116,18 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
     ----------
     epochs : instance of mne.Epochs
         The epochs.
-    conditions : list of str | None
-        If a list of strings, strings must match the
-        epochs.event_id's key as well as the number of conditions supported
-        by the objective_function. If None keys in epochs.event_id are used.
-    picks : array-like of int | None
+    conditions : list of str | None, defaults to None
+        If a list of strings, strings must match the epochs.event_id's key as
+        well as the number of conditions supported by the objective_function.
+        If None keys in epochs.event_id are used.
+    picks : array-like of int | None, defaults to None
         Channels to be included. If None only good data channels are used.
-        Defaults to None.
-    n_jobs : int
+    n_jobs : int, defaults to 1
         Number of jobs to run in parallel.
-    verbose : bool, str, int, or None
+    verbose : bool, str, int, or None, defaults to self.verbose
         If not None, override default verbose level (see mne.verbose).
-        Defaults to self.verbose.
-    cv : cross-validation object | str
-        The cross-validation scheme. Defaults to 'LeaveOneOut'
+    cv : cross-validation object | str | None, defaults to LeaveOneOut
+        The cross-validation scheme.
 
     Returns
     -------
@@ -147,10 +135,14 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
         The trial surrogates.
     mean_spatial_filter : ndarray, shape (n_channels, n_times)
         The set of spatial filters.
-    conditions : ndarray, shape (n_epochs,)
+    conditions : ndarray, shape (n_classes,)
         The conditions used. Values correspond to original event ids.
     """
     logger.info('...computing surrogate time series. This can take some time')
+
+    # Default to leave-one-out cv
+    cv = 'LeaveOneOut' if cv is None else cv
+
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True)
 
@@ -212,7 +204,8 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
 
 
 def _ems_diff(data0, data1):
-    """default diff objective function"""
+    """Aux. function to compute_ems that computes the default diff
+    objective function."""
     return np.mean(data0, axis=0) - np.mean(data1, axis=0)
 
 
