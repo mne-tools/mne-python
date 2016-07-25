@@ -33,7 +33,7 @@ def test_morlet():
 
 
 def test_time_frequency():
-    """Test the to-be-deprecated time frequency transform (PSD and phase lock).
+    """Test the to-be-deprecated time frequency transform (PSD and ITC).
     """
     # Set parameters
     event_id = 1
@@ -460,8 +460,8 @@ def test_timefreq_transform():
     # Check all combination of options
     for method, use_fft, zero_mean, output in product(
         ('mtm', 'morlet'), (False, True), (False, True),
-        ('complex', 'power', 'phase', 'avg_power_phaselock', 'avg_power',
-         'avg_phaselock')):
+        ('complex', 'power', 'phase',
+         'avg_power_itc', 'avg_power', 'itc')):
         # Check exception
         if (method == 'mtm') and (output == 'phase'):
             assert_raises(NotImplementedError, timefreq_transform, data, freqs,
@@ -474,13 +474,13 @@ def test_timefreq_transform():
                                  n_cycles=2., output=output)
         # Check shapes
         shape = np.r_[data.shape[:2], len(freqs), data.shape[2]]
-        if 'avg' in output:
+        if ('avg' in output) or ('itc' in output):
             assert_array_equal(shape[1:], out.shape)
         else:
             assert_array_equal(shape, out.shape)
 
         # Check types
-        if output in ('complex', 'avg_power_phaselock'):
+        if output in ('complex', 'avg_power_itc'):
             assert_equal(np.complex, out.dtype)
         else:
             assert_equal(np.float, out.dtype)
@@ -523,9 +523,8 @@ def test_timefreq_transform():
     assert_raises(NotImplementedError, timefreq_transform, data, freqs, sfreq,
                   method='mtm', output='phase')
 
-    # Phaselocking tests
-    out = timefreq_transform(data, freqs, sfreq, output='avg_phaselock',
-                             n_cycles=2.)
+    # Inter-trial coherence tests
+    out = timefreq_transform(data, freqs, sfreq, output='itc', n_cycles=2.)
     assert_true(np.sum(out >= 1) == 0)
     assert_true(np.sum(out <= 0) == 0)
 
