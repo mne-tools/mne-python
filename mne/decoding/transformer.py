@@ -274,7 +274,7 @@ class Vectorizer(TransformerMixin):
             least 2d. The first dimension must be of length n_samples, where
             samples are the independent samples used by the estimator
             (e.g. n_epochs for epoched data).
-        y : None
+        y : None | array, shape (n_samples,)
             Used for scikit-learn compatibility.
 
         Returns
@@ -318,7 +318,7 @@ class Vectorizer(TransformerMixin):
             least 2d. The first dimension must be of length n_samples, where
             samples are the independent samples used by the estimator
             (e.g. n_epochs for epoched data).
-        y : None
+        y : None | array, shape (n_samples,)
             Used for scikit-learn compatibility.
 
         Returns
@@ -333,15 +333,12 @@ class Vectorizer(TransformerMixin):
 
         Parameters
         ----------
-        X : array-like
-            The data to fit. Can be, for example a list, or an array of at
-            least 2d. The first dimension must be of length n_samples, where
-            samples are the independent samples used by the estimator
-            (e.g. n_epochs for epoched data).
+        X : array-like, shape (n_samples,  n_features)
+            Transform data back to original shape.
 
         Returns
         -------
-        X : array-like
+        X : array
             The data transformed into shape as used in fit. The first
             dimension is of length (n_samples).
         """

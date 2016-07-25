@@ -113,7 +113,7 @@ API
 
     - The ``compensation`` parameter in :func:`mne.io.read_raw_fif` has been deprecated in favor of the method :meth:`mne.io.Raw.apply_gradient_compensation` by `Eric Larson`_
 
-    - Added :class:`mne.decoding.Vectorizer` to convert the output of an MNE transformer into two dimensions so as to pipeline it to scikit-learn estimators by `Asish Panda`_
+    - :class:`mne.decoding.EpochsVectorizer` has been deprecated in favor of :class:`mne.decoding.Vectorizer` by `Asish Panda`_
 
 .. _changes_0_12:
 
