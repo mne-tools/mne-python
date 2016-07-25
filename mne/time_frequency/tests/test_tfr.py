@@ -8,7 +8,7 @@ from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
                        grand_average)
 from mne.time_frequency import single_trial_power
-from mne.time_frequency.tfr import (cwt_morlet, _make_morlet, tfr_morlet,
+from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
                                     _make_dpss, tfr_multitaper, rescale,
                                     AverageTFR, read_tfrs, write_tfrs,
                                     combine_tfr, cwt, timefreq_transform)
@@ -25,8 +25,8 @@ event_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 
 def test_morlet():
     """Test morlet with and without zero mean"""
-    Wz = _make_morlet(1000, [10], 2., zero_mean=True)
-    W = _make_morlet(1000, [10], 2., zero_mean=False)
+    Wz = morlet(1000, [10], 2., zero_mean=True)
+    W = morlet(1000, [10], 2., zero_mean=False)
 
     assert_true(np.abs(np.mean(np.real(Wz[0]))) < 1e-5)
     assert_true(np.abs(np.mean(np.real(W[0]))) > 1e-3)
@@ -190,7 +190,7 @@ def test_time_frequency():
     assert_equal(tfr.shape, (n_chan, len(freqs), n_time // decim))
 
     # Test cwt modes
-    Ws = _make_morlet(512, [10, 20], n_cycles=2)
+    Ws = morlet(512, [10, 20], n_cycles=2)
     assert_raises(ValueError, cwt, data[0, :, :], Ws, mode='foo')
     for use_fft in [True, False]:
         for mode in ['same', 'valid', 'full']:
