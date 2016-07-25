@@ -616,9 +616,9 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     return tfrs
 
 
-@verbose
 @deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
             ".timefreq_transform() instead.")
+@verbose
 def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
                        decim=1, n_jobs=1, zero_mean=False, verbose=None):
