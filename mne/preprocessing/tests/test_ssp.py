@@ -55,7 +55,7 @@ def test_compute_proj_ecg():
                                              average=average, avg_ref=True,
                                              no_proj=True, l_freq=None,
                                              h_freq=None, tmax=dur_use)
-            assert_equal(len(w), 1)
+        assert_true(len(w) >= 1)
         assert_equal(projs, None)
 
 
@@ -94,7 +94,7 @@ def test_compute_proj_eog():
                                              avg_ref=True, no_proj=False,
                                              l_freq=None, h_freq=None,
                                              tmax=dur_use)
-            assert_equal(len(w), 1)
+        assert_true(len(w) >= 1)
         assert_equal(projs, None)
 
 

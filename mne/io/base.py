@@ -28,7 +28,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, write_name_list, _get_split_size)
 
-from ..filter import (filter_data, notch_filter, resample,
+from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _resample_stim_channels)
 from ..fixes import in1d
 from ..parallel import parallel_func
@@ -823,7 +823,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 self._data[p, :] = data_picks_new[pp]
 
     @verbose
-    def apply_hilbert(self, picks, envelope=False, n_jobs=1, n_fft=None,
+    def apply_hilbert(self, picks, envelope=False, n_jobs=1, n_fft='',
                       verbose=None):
         """ Compute analytic signal or envelope for a subset of channels.
 
@@ -857,10 +857,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Compute the envelope signal of each channel.
         n_jobs: int
             Number of jobs to run in parallel.
-        n_fft : int > self.n_times | None
+        n_fft : int | None | str
             Points to use in the FFT for Hilbert transformation. The signal
             will be padded with zeros before computing Hilbert, then cut back
-            to original length. If None, n == self.n_times.
+            to original length. If None, n == self.n_times. If 'auto',
+            the next highest fast FFT length will be use.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -884,7 +885,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         is cut off, but it may result in a slightly different result
         (particularly around the edges). Use at your own risk.
         """
-        n_fft = self.n_times if n_fft is None else n_fft
+        if n_fft is None:
+            n_fft = len(self.times)
+        elif isinstance(n_fft, string_types):
+            if n_fft == '':
+                n_fft = len(self.times)
+                warn('n_fft is None by default in 0.13 but will change to '
+                     '"auto" in 0.14', DeprecationWarning)
+            elif n_fft == 'auto':
+                n_fft = next_fast_len(len(self.times))
+        n_fft = int(n_fft)
         if n_fft < self.n_times:
             raise ValueError("n_fft must be greater than n_times")
         if envelope is True:
@@ -2301,9 +2311,9 @@ def _my_hilbert(x, n_fft=None, envelope=False):
     ----------
     x : array, shape (n_times)
         The signal to convert
-    n_fft : int, length > x.shape[-1] | None
-        How much to pad the signal before Hilbert transform.
-        Note that signal will then be cut back to original length.
+    n_fft : int
+        Size of the FFT to perform, must be at least ``len(x)``.
+        The signal will be cut back to original length.
     envelope : bool
         Whether to compute amplitude of the hilbert transform in order
         to return the signal envelope.
@@ -2314,7 +2324,6 @@ def _my_hilbert(x, n_fft=None, envelope=False):
         The hilbert transform of the signal, or the envelope.
     """
     from scipy.signal import hilbert
-    n_fft = x.shape[-1] if n_fft is None else n_fft
     n_x = x.shape[-1]
     out = hilbert(x, N=n_fft)[:n_x]
     if envelope is True:

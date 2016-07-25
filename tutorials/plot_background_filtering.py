@@ -9,9 +9,10 @@ Background information on filtering
 Here we give some background information on filtering in general,
 and how it is done in MNE-Python in particular.
 Recommended reading for practical applications of digital
-filter design can be found in [1]_, and for filtering in an M/EEG context
-we recommend reading [7]_. To see how to use the default filters
-in MNE-Python on actual data, see the :ref:`tut_artifacts_filter` tutorial.
+filter design can be found in Parks & Burrus [1]_, and for filtering in an
+M/EEG context we recommend reading Widmann *et al.* 2015 [7]_.
+To see how to use the default filters in MNE-Python on actual data, see
+the :ref:`tut_artifacts_filter` tutorial.
 
 .. contents::
 
@@ -19,7 +20,7 @@ Problem statement
 =================
 
 The practical issues with filtering electrophysiological data are covered
-well by Widmann et al. in [7]_, in a follow-up to an article where they
+well by Widmann *et al.* in [7]_, in a follow-up to an article where they
 conclude with this statement:
 
     Filtering can result in considerable distortions of the time course
@@ -35,7 +36,7 @@ it can distorte data. Here we hope to cover some filtering basics so
 users can better understand filtering tradeoffs, and why MNE-Python has
 chosen particular defaults.
 
-.. _filtering-basics:
+.. _tut_filtering_basics:
 
 Filtering basics
 ================
@@ -87,7 +88,8 @@ As outlined in [1]_, FIR and IIR have different tradeoffs:
     * IIR filters are generally less numerically stable, in part due to
       accumulating error (due to its recursive calculations).
 
-In MNE-Python we default to using FIR filtering. As noted in [7]_:
+In MNE-Python we default to using FIR filtering. As noted in Widmann *et al.*
+2015 [7]_:
 
     Despite IIR filters often being considered as computationally more
     efficient, they are recommended only when high throughput and sharp
@@ -457,7 +459,7 @@ x_shallow = sosfiltfilt(sos, x)
 #           hood, :func:`scipy.signal.zpk2sos` when passing the
 #           ``output='sos'`` keyword argument to
 #           :func:`scipy.signal.iirfilter`. The filter definitions
-#           given in :ref:`filtering-basics` use the polynomial
+#           given in filtering_basics_ use the polynomial
 #           numerator/denominator (sometimes called "tf") form ``(b, a)``,
 #           which are theoretically equivalent to the SOS form used here.
 #           In practice, however, the SOS form can give much better results
@@ -525,12 +527,13 @@ plt.show()
 # -----------------
 # Filters in general, especially those that are acausal (zero-phase), can make
 # activity appear to occur earlier or later than it truly did. As
-# mentioned in [3]_, investigations of commonly (at the time) used low-pass
-# filters created artifacts. However, such deleterious effects of low-passing
-# were found to have minimal impact for many real-world examples [5]_.
-
-# Perhaps more revealing, it was noted in [6]_ that the problematic
-# low-pass filters from [3]_:
+# mentioned in VanRullen 2011 [3]_, investigations of commonly (at the time)
+# used low-pass filters created artifacts. However, such deleterious effects
+# of low-passing were found to have minimal impact for many real-world
+# examples in Rousselet 2012 [5]_.
+#
+# Perhaps more revealing, it was noted in Widmann & Schröger 2012 [6]_ that
+# the problematic low-pass filters from VanRullen 2011 [3]_:
 #
 #    1. Used a least-squares design (like :func:`scipy.signal.firls`) that
 #       included "do-not-care" transition regions, which can lead to
@@ -538,25 +541,25 @@ plt.show()
 #    2. Filter length that was independent of the transition bandwidth,
 #       which can cause excessive ringing and signal distortion.
 #
-# .. _filtering-hp-problems:
+# .. _tut_filtering_hp_problems:
 #
 # High-pass problems
 # ------------------
 # When it comes to high-pass filtering, using corner frequencies above 0.1 Hz
-# were found in [4]_ to:
+# were found in Acunzo *et al.* 2012 [4]_ to:
 #
 #    "...generate a systematic bias easily leading to misinterpretations of
 #    neural activity.”
 #
-# In a related paper, Widmann et al. [7]_ also came to suggest a 0.1 Hz
-# highpass. And more evidence followed in [8]_ of such distortions. Using
-# data from language ERP studies of semantic and syntactic processing
-# (i.e., N400 and P600), using a high-pass above 0.3 Hz caused significant
-# effects to be introduced implausibly early when compared to the
+# In a related paper, Widmann *et al.* 2015 [7]_ also came to suggest a 0.1 Hz
+# highpass. And more evidence followed in Tanner *et al.* 2015 [8]_ of such
+# distortions. Using data from language ERP studies of semantic and syntactic
+# processing (i.e., N400 and P600), using a high-pass above 0.3 Hz caused
+# significant effects to be introduced implausibly early when compared to the
 # unfiltered data. From this, the authors suggested the optimal high-pass
 # value for language processing to be 0.1 Hz.
 #
-# We can recreate a problematic simulation from [8]_:
+# We can recreate a problematic simulation from Tanner *et al.* 2015 [8]_:
 #
 #    "The simulated component is a single-cycle cosine wave with an amplitude
 #    of 5µV, onset of 500 ms poststimulus, and duration of 800 ms. The
@@ -606,17 +609,19 @@ for ax, x_f, title in zip(axs, [x_lp_2, x_lp_30, x_hp_2, x_hp_p1],
 mne.viz.tight_layout()
 plt.show()
 
+###############################################################################
 # Baseline problems (or solutions?)
 # ---------------------------------
-# In an evolving discussion, Tanner et al. [8]_ suggest using baseline
-# correction to remove slow drifts in data. However, Maess et al. [9]_
+# In an evolving discussion, Tanner *et al.* 2015 [8]_ suggest using baseline
+# correction to remove slow drifts in data. However, Maess *et al.* 2016 [9]_
 # suggest that baseline correction, which is a form of high-passing, does
 # not offer substantial advantages over standard high-pass filtering.
-# Tanner et al. [10]_ rebutted that baseline correction can correct for
+# Tanner *et al.* [10]_ rebutted that baseline correction can correct for
 # problems with filtering.
 #
 # To see what they mean, consider again our old simulated signal ``x`` from
 # before:
+
 
 def baseline_plot(x):
     all_axs = plt.subplots(3, 2)[1]
@@ -643,7 +648,8 @@ def baseline_plot(x):
 
 baseline_plot(x)
 
-# In respose, Maess et al. [11]_ note that these simulations do not address
+###############################################################################
+# In respose, Maess *et al.* [11]_ note that these simulations do not address
 # cases of pre-stimulus activity that is shared across conditions, as applying
 # baseline correction will effectively copy the topology outside the baseline
 # period. We can see this if we give our signal ``x`` with some consistent
@@ -662,6 +668,7 @@ sig_pre = 1 - np.cos(2 * np.pi * np.arange(n_pre) / (0.5 * n_pre))
 x[:n_pre] += sig_pre
 baseline_plot(x)
 
+###############################################################################
 # Both groups seem to acknowledge that the choices of filtering cutoffs,
 # and perhaps even the application of baseline correction, depend on the
 # characteristics of the data being investigated, especially when it comes to:
@@ -674,7 +681,6 @@ baseline_plot(x)
 # We thus recommend carefully applying baseline correction and/or high-pass
 # values based on the characteristics of the data to be analyzed.
 #
-###############################################################################
 # .. _tut_filtering_in_python:
 #
 # Filtering in MNE-Python
@@ -682,11 +688,9 @@ baseline_plot(x)
 # Most often, filtering in MNE-Python is done at the :class:`mne.io.Raw` level,
 # and thus :func:`mne.io.Raw.filter` is used. This function under the hood
 # (among other things) calls :func:`mne.filter.filter_data` to actually
-# filter the data.
-#
-# :func:`mne.filter.filter_data` by default applies a FIR filter designed using
-# :func:`scipy.signal.firwin2`. In [7]_, they suggest a specific set of
-# parameters to use for high-pass filtering, including:
+# filter the data, which by default applies a FIR filter designed using
+# :func:`scipy.signal.firwin2`. In Widmann *et al.* 2015 [7]_, they suggest a
+# specific set of parameters to use for high-pass filtering, including:
 #
 #     "... providing a transition bandwidth of 25% of the lower passband
 #     edge but, where possible, not lower than 2 Hz and otherwise the
@@ -738,7 +742,7 @@ baseline_plot(x)
 # in the transition band. In general, therefore, the wider a transition band
 # that can be tolerated, the better behaved the filter will be in the time
 # domain.
-
+#
 ###############################################################################
 # References
 # ==========

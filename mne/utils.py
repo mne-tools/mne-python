@@ -1363,7 +1363,7 @@ def set_config(key, value, home_dir=None, set_env=None):
         The folder that contains the .mne config folder.
         If None, it is found automatically.
     set_env : bool
-        If True, update :inst:`os.environ` in addition to updating the
+        If True, update :data:`os.environ` in addition to updating the
         MNE-Python config file.
 
     See Also

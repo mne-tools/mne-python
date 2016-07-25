@@ -1055,13 +1055,15 @@ def test_hilbert():
     picks = picks_meg[:4]
 
     raw_filt = raw.copy()
-    raw_filt.filter(10, 20)
+    raw_filt.filter(10, 20, picks=picks, l_trans_bandwidth='auto',
+                    h_trans_bandwidth='auto', filter_length='auto',
+                    phase='zero')
     raw_filt_2 = raw_filt.copy()
 
     raw2 = raw.copy()
     raw3 = raw.copy()
-    raw.apply_hilbert(picks)
-    raw2.apply_hilbert(picks, envelope=True)
+    raw.apply_hilbert(picks, n_fft='auto')
+    raw2.apply_hilbert(picks, n_fft='auto', envelope=True)
 
     # Test custom n_fft
     raw_filt.apply_hilbert(picks)

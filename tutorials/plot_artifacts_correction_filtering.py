@@ -16,7 +16,7 @@ the power-line frequency, e.g. 100Hz, 150Hz, ... (or 120Hz, 180Hz, ...).
 
 This tutorial covers some basics of how to filter data in MNE-Python.
 For more in-depth information about filter design in general and in
-MNE-Python in particular, check out _tut_background_filtering_.
+MNE-Python in particular, check out :ref:`tut_background_filtering`.
 """
 
 import numpy as np
@@ -75,8 +75,8 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
 # To remove slow drifts, you can high pass.
 #
 # ..warning:: There can be issues using high-passes greater than 0.1 Hz
-#             (see :ref:`here <filtering-hp-problems>`), so apply
-#             high-pass filters with caution.
+#             (see examples in :ref:`tut_filtering_hp_problems`),
+#             so apply high-pass filters with caution.
 
 raw.filter(1., None, l_trans_bandwidth='auto', filter_length='auto',
            phase='zero')
