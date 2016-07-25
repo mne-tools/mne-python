@@ -634,13 +634,15 @@ class UnsupervisedSpatialFilter(TransformerMixin):
     ----------
     estimator : scikit-learn estimator
         Estimator using some decomposition algorithm.
-    average : bool, default False
-        If true, average of X is used in estimator's fit.
+    average : bool, defaults to False
+        If True, the estimator is fitted on the average across samples
+        (e.g. epochs).
     """
     def __init__(self, estimator, average=False):
         for attr in ('fit', 'transform', 'fit_transform'):
             if not hasattr(estimator, attr):
-                raise ValueError('estimator must be a sklearn transformer')
+                raise ValueError('estimator must be a scikit-learn '
+                                 'transformer, missing %s method' % attr)
 
         if not isinstance(average, bool):
             raise ValueError("average parameter must be of bool type, got "
@@ -649,7 +651,7 @@ class UnsupervisedSpatialFilter(TransformerMixin):
         self.average = average
 
     def fit(self, X, y=None):
-        """Make the data compatibile with scikit-learn estimator.
+        """Fit the spatial filters.
 
         Parameters
         ----------
@@ -666,7 +668,7 @@ class UnsupervisedSpatialFilter(TransformerMixin):
         if self.average:
             X = np.mean(X, axis=0).T
         else:
-            n_epoch, n_chan, n_time = X.shape
+            n_epochs, n_channels, n_times = X.shape
             # trial as time samples
             X = np.transpose(X, (1, 0, 2)).reshape((n_chan, n_epoch *
                                                     n_time)).T
@@ -674,7 +676,7 @@ class UnsupervisedSpatialFilter(TransformerMixin):
         return self
 
     def fit_transform(self, X, y=None):
-        """Transform the data to its filtered components after fitting
+        """Transform the data to its filtered components after fitting.
 
         Parameters
         ----------
@@ -688,8 +690,7 @@ class UnsupervisedSpatialFilter(TransformerMixin):
         X : array, shape (n_trials, n_chans, n_times)
             The transformed data.
         """
-        self.fit(X)
-        return self.transform(X)
+        return self.fit(X).transform(X)
 
     def transform(self, X):
         """Transform the data to its spatial filters.
@@ -704,7 +705,7 @@ class UnsupervisedSpatialFilter(TransformerMixin):
         X : array, shape (n_trials, n_chans, n_times)
             The transformed data.
         """
-        n_epoch, n_chan, n_time = X.shape
+        n_epochs, n_channels, n_times = X.shape
         # trial as time samples
         X = np.transpose(X, [1, 0, 2]).reshape([n_chan, n_epoch * n_time]).T
         X = self.estimator.transform(X)
