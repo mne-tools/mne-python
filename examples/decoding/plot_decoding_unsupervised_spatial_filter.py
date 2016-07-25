@@ -21,6 +21,7 @@ from mne.decoding import UnsupervisedSpatialFilter
 from sklearn.decomposition import PCA, FastICA
 
 print(__doc__)
+spatial_filter = make_pipeline(UnsupervisedSpatialFilter(PCA(10)),
 
 # Preprocess data
 data_path = sample.data_path()
@@ -46,14 +47,14 @@ X = epochs.get_data()
 
 pca = UnsupervisedSpatialFilter(PCA(10))
 pca_data = pca.fit_transform(X)
-ev = epochs['aud_l'].average()
-ev.data = np.average(pca_data, axis=1)
+ev = mne.EvokedArray(np.mean(X, axis=0), epochs.info, tmin=tmin)
+ev.data = np.average(pca_data, axis=0)
 ev.plot(show=False, window_title='PCA')
 
 ica = UnsupervisedSpatialFilter(FastICA(10))
 ica_data = ica.fit_transform(X)
-ev1 = epochs['aud_l'].average()
-ev1.data = np.average(ica_data, axis=1)
+ev1 = mne.EvokedArray(np.mean(X, axis=0), epochs.info, tmin=tmin)
+ev1.data = ica_data
 ev1.plot(show=False, window_title='ICA')
 
 plt.show()
