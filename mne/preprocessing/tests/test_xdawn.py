@@ -9,7 +9,7 @@ from nose.tools import assert_equal, assert_raises, assert_true
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne import (io, Epochs, read_events, pick_types,
                  compute_raw_covariance)
-from mne.utils import requires_sklearn, run_tests_if_main, buggy_mkl_svd
+from mne.utils import requires_sklearn, run_tests_if_main
 from mne.preprocessing.xdawn import Xdawn, XdawnTransformer
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -85,14 +85,14 @@ def test_xdawn_fit():
     assert_raises(ValueError, xd.fit, epochs)
 
 
-@buggy_mkl_svd
 def test_xdawn_apply_transform():
     """Test Xdawn apply and transform."""
     # Get data
     raw, events, picks = _get_data()
     raw.pick_types(eeg=True, meg=False)
-    epochs = Epochs(raw, events, event_id, tmin, tmax,
-                    preload=True, baseline=None, verbose=False)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
+                    add_eeg_ref=False, preload=True, baseline=None,
+                    verbose=False)
     n_components = 2
     # Fit Xdawn
     xd = Xdawn(n_components=n_components, correct_overlap=False)
