@@ -658,6 +658,7 @@ def _check_method(method, iir_params, extra_types):
     allowed_types = ['iir', 'fft'] + extra_types
     if not isinstance(method, string_types):
         raise TypeError('method must be a string')
+    method = method.lower()
     if method not in allowed_types:
         raise ValueError('method must be one of %s, not "%s"'
                          % (allowed_types, method))
@@ -666,7 +667,6 @@ def _check_method(method, iir_params, extra_types):
             iir_params = dict(order=4, ftype='butter')
     elif iir_params is not None:
         raise ValueError('iir_params must be None if method != "iir"')
-    method = method.lower()
     return iir_params
 
 
