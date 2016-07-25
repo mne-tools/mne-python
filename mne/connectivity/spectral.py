@@ -16,7 +16,7 @@ from ..epochs import _BaseEpochs
 from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
-from ..time_frequency.tfr import _make_morlet, cwt
+from ..time_frequency.tfr import morlet, cwt
 from ..utils import logger, verbose, _time_mask, warn
 
 ########################################################################
@@ -924,8 +924,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                     cwt_n_cycles = cwt_n_cycles[freq_mask]
 
                 # get the Morlet wavelets
-                wavelets = _make_morlet(sfreq, freqs, n_cycles=cwt_n_cycles,
-                                        zero_mean=True)
+                wavelets = morlet(sfreq, freqs, n_cycles=cwt_n_cycles,
+                                  zero_mean=True)
                 eigvals = None
                 n_tapers = None
                 window_fun = None

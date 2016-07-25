@@ -32,42 +32,7 @@ from ..externals.six import string_types
 
 # Make wavelet
 
-@deprecated("This function will be removed in mne 0.14.")
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
-    """Compute Morlet wavelets for the given frequency range.
-
-    Parameters
-    ----------
-    sfreq : float
-        The sampling Frequency.
-    freqs : array
-        frequency range of interest (1 x Frequencies)
-    n_cycles: float | array of float, defaults to 7.0
-        Number of cycles. Fixed number or one per frequency.
-    sigma : float, defaults to None
-        It controls the width of the wavelet ie its temporal
-        resolution. If sigma is None the temporal resolution
-        is adapted with the frequency like for all wavelet transform.
-        The higher the frequency the shorter is the wavelet.
-        If sigma is fixed the temporal resolution is fixed
-        like for the short time Fourier transform and the number
-        of oscillations increases with the frequency.
-    zero_mean : bool, defaults to False
-        Make sure the wavelet has a mean of zero.
-
-    Returns
-    -------
-    Ws : list of array
-        The wavelets time series.
-
-    See Also
-    --------
-    mne.time_frequency.timefreq_transform
-    """
-    return _make_morlet(sfreq, freqs, n_cycles, sigma, zero_mean)
-
-
-def _make_morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     """Compute Morlet wavelets for the given frequency range.
 
     Parameters
@@ -146,7 +111,7 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
         The number of good tapers (low-bias) is chosen automatically based on
         this to equal floor(time_bandwidth - 1).
         Default is 4.0, giving 3 good tapers.
-    zero_mean : bool, defaults to False
+    zero_mean : bool | None, , defaults to False
         Make sure the wavelet has a mean of zero.
 
 
@@ -214,7 +179,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
+        .. note: Decimation may create aliasing artifacts.
     use_fft : bool, defaults to True
         Use the FFT for convolutions or not.
 
@@ -306,8 +271,8 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
     n_cycles : float | array of float, defaults to 7.0
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.
-    zero_mean : bool
-        Make sure the wavelets have a mean of zero. Defaults to True if
+    zero_mean : bool | None, defaults to None, which will use True for method='mtm' and False for method='morlet'. # noqa
+        Make sure the wavelets have a mean of zero.
         method == 'mtm' and defaults to False if method == 'morlet'.
     time_bandwidth : float, defaults to 4.0 (3 tapers)
         Time x (Full) Bandwidth product. Only applies if method == 'mtm'.
@@ -320,14 +285,17 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
+        .. note: Decimation may create aliasing artifacts.
     output : str, defaults to 'complex'
-        If 'complex', single trial complex.
-        If 'power', single trial power.
-        If 'phase', single trial phase.
-        If 'avg_power', average of single trial power.
-        If 'itc', inter-trial coherence.
-        If 'avg_power_itc', average of single trial power and inter-trial coherence across trials. # noqa
+
+        * 'complex' : single trial complex.
+        * 'power' : single trial power.
+        * 'phase' : single trial phase.
+        * 'avg_power' : average of single trial power.
+        * 'itc' : inter-trial coherence.
+        * 'avg_power_itc' : average of single trial power and inter-trial
+          coherence across trials.
+
     n_jobs : int, defaults to 1
         The number of epochs to process at the same time. The parallization is
         implemented across channels.
@@ -384,8 +352,7 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
 
     # Setup wavelet
     if method == 'morlet':
-        W = _make_morlet(sfreq, frequencies, n_cycles=n_cycles,
-                         zero_mean=zero_mean)
+        W = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
         Ws = [W]  # to have same dimensionality as the 'mtm' case
         if time_bandwidth != 4.0:
             raise ValueError('time_bandwidth only applies to "mtm" method.')
@@ -405,7 +372,7 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
     if output in ('power', 'phase', 'avg_power', 'itc'):
         dtype = np.float
     elif output in ('complex', 'avg_power_itc'):
-        # avg_power_itc is stored as power + 1i * phase_lock to keep a
+        # avg_power_itc is stored as power + 1i * itc to keep a
         # simple dimensionality
         dtype = np.complex
 
@@ -443,12 +410,15 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
     Ws : list, shape (n_tapers, n_wavelets, n_times)
         The wavelets.
     output : str
-        If 'complex', single trial complex.
-        If 'power', single trial power.
-        If 'phase', single trial phase.
-        If 'avg_power', average of single trial power.
-        If 'itc', phase locking factor across trials.
-        If 'avg_power_itc', average of single trial power and inter-trial coherence across trials. # noqa
+
+        * 'complex' : single trial complex.
+        * 'power' : single trial power.
+        * 'phase' : single trial phase.
+        * 'avg_power' : average of single trial power.
+        * 'itc' : inter-trial coherence.
+        * 'avg_power_itc' : average of single trial power and inter-trial
+          coherence across trials.
+
     use_fft : bool
         Use the FFT for convolutions or not.
     mode : {'full', 'valid', 'same'}
@@ -542,7 +512,7 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
+        .. note: Decimation may create aliasing artifacts.
         Defaults to 1.
 
     Returns
@@ -560,7 +530,7 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     n_signals, n_times = X[:, decim].shape
 
     # Precompute wavelets for given frequency range to save time
-    Ws = _make_morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
+    Ws = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
 
     coefs = cwt(X, Ws, use_fft=use_fft, mode=mode, decim=decim)
 
@@ -590,7 +560,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
+        .. note: Decimation may create aliasing artifacts.
         Defaults to 1.
 
     Returns
@@ -661,7 +631,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
+        .. note: Decimation may create aliasing artifacts.
         Defaults to 1.
     n_jobs : int
         The number of epochs to process at the same time
@@ -681,8 +651,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     n_epochs, n_channels, n_times = data[:, :, decim].shape
 
     # Precompute wavelets for given frequency range to save time
-    Ws = _make_morlet(sfreq, frequencies, n_cycles=n_cycles,
-                      zero_mean=zero_mean)
+    Ws = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
 
     parallel, my_cwt, _ = parallel_func(cwt, n_jobs)
 
@@ -739,7 +708,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
+        .. note: Decimation may create aliasing artifacts.
     n_jobs : int, defaults to 1
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None
@@ -812,7 +781,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
+        .. note: Decimation may create aliasing artifacts.
     n_jobs : int,  defaults to 1
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None

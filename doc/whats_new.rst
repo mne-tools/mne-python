@@ -138,9 +138,13 @@ API
 
     - The ``compensation`` parameter in :func:`mne.io.read_raw_fif` has been deprecated in favor of the method :meth:`mne.io.Raw.apply_gradient_compensation` by `Eric Larson`_
 
+<<<<<<< HEAD
     - :class:`mne.decoding.EpochsVectorizer` has been deprecated in favor of :class:`mne.decoding.Vectorizer` by `Asish Panda`_
 
     - Added :class:`mne.decoding.UnsupervisedSpatialFilter` providing interface for scikit-learn decomposition algorithms to be used with MNE data, by `Jean-Remi King`_ and `Asish Panda`_
+=======
+    - Deprecated :func:`mne.time_frequency.cwt_morlet` and :func:`mne.time_frequency.single_trial_power` in favour of :func:`mne.time_frequency.timefreq_transform`, by `Jean-Remi King`_
+>>>>>>> FIX: address comments
 
 .. _changes_0_12:
 
