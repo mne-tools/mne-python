@@ -344,9 +344,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
                     # plot channels
                     for ch_idx, z in enumerate(z_ord):
-                        line_list.append(ax.plot(times, D[ch_idx], picker=3.,
-                                                 zorder=1 + z,
-                                                 color=colors[ch_idx])[0])
+                        line_list.append(
+                            ax.plot(times, D[ch_idx], picker=3.,
+                                    zorder=z + 1 if spatial_colors else 1,
+                                    color=colors[ch_idx])[0])
 
                 if gfp:  # 'only' or boolean True
                     gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
