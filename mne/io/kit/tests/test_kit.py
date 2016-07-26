@@ -170,8 +170,8 @@ def test_hsp_elp():
     raw_elp = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
 
     # head points
-    pts_txt = np.array([d['r'] for d in raw_txt.info['dig']])
-    pts_elp = np.array([d['r'] for d in raw_elp.info['dig']])
+    pts_txt = np.array([dig_point['r'] for dig_point in raw_txt.info['dig']])
+    pts_elp = np.array([dig_point['r'] for dig_point in raw_elp.info['dig']])
     assert_array_almost_equal(pts_elp, pts_txt, decimal=5)
 
     # transforms

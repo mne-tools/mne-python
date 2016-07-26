@@ -34,11 +34,11 @@ def test_io_mrk():
     # pickle
     fname = os.path.join(tempdir, 'mrk.pickled')
     with open(fname, 'wb') as fid:
-        pickle.dump({'mrk': pts}, fid)
+        pickle.dump(dict(mrk=pts), fid)
     pts_2 = read_mrk(fname)
     assert_array_equal(pts_2, pts, "pickle mrk")
     with open(fname, 'wb') as fid:
-        pickle.dump({}, fid)
+        pickle.dump(dict(), fid)
     assert_raises(ValueError, read_mrk, fname)
 
     # unsupported extension
