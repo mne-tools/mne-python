@@ -52,7 +52,6 @@ ev = mne.EvokedArray(np.average(pca_data, axis=0),
                                      ch_types='eeg'), tmin=tmin)
 ev.plot(show=False, window_title="PCA")
 
-
 ica = UnsupervisedSpatialFilter(FastICA(30))
 ica_data = ica.fit_transform(X)
 ev1 = mne.EvokedArray(np.average(ica_data, axis=0),
