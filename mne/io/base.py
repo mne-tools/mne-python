@@ -685,7 +685,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if sel is not None and len(sel) == 0:
             raise ValueError("Empty channel list")
 
-        start, stop = int(start), int(stop)
         return sel, start, stop
 
     def __getitem__(self, item):
