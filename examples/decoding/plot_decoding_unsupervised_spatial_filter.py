@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
 from mne.decoding import UnsupervisedSpatialFilter
-from mne.io.pick import _pick_data_channels
 
 from sklearn.decomposition import PCA, FastICA
 
