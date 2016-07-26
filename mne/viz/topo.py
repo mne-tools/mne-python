@@ -474,9 +474,9 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         The values at which to show a horizontal line.
     fig_facecolor : str | obj
         The figure face color. Defaults to black.
-    fig_background : None | numpy ndarray
-        A background image for the figure. This must work with a call to
-        plt.imshow. Defaults to None.
+    fig_background : None | array
+        A background image for the figure. This must be a valid input to
+        `matplotlib.pyplot.imshow`. Defaults to None.
     axis_facecolor : str | obj
         The face color to be used for each sensor plot. Defaults to black.
     font_color : str | obj
@@ -608,8 +608,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      axis_facecolor=axis_facecolor, title=title,
                      x_label='Time (s)', y_label=y_label, unified=True)
 
-    if fig_background is not None:
-        add_background_image(fig, fig_background)
+    add_background_image(fig, fig_background)
 
     if proj == 'interactive':
         for e in evoked:
@@ -685,9 +684,9 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         matplotlib borders style to be used for each sensor plot.
     fig_facecolor : str | obj
         The figure face color. Defaults to black.
-    fig_background : None | numpy ndarray
-        A background image for the figure. This must work with a call to
-        plt.imshow. Defaults to None.
+    fig_background : None | array
+        A background image for the figure. This must be a valid input to
+        `matplotlib.pyplot.imshow`. Defaults to None.
     font_color : str | obj
         The color of tick labels in the colorbar. Defaults to white.
     show : bool
@@ -724,7 +723,6 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
                      fig_facecolor=fig_facecolor, font_color=font_color,
                      border=border, x_label='Time (s)', y_label='Epoch',
                      unified=True, img=True)
-    if fig_background is not None:
-        add_background_image(fig, fig_background)
+    add_background_image(fig, fig_background)
     plt_show(show)
     return fig

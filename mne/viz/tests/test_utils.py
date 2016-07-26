@@ -89,6 +89,9 @@ def test_add_background_image():
     for ax in axs:
         assert_true(ax.get_aspect() == 'auto')
 
+    # Make sure passing None as image returns None
+    assert_true(add_background_image(f, None) is None)
+
 
 def test_auto_scale():
     """Test auto-scaling of channels for quick plotting."""

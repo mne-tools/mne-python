@@ -866,9 +866,9 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             matplotlib borders style to be used for each sensor plot.
         fig_facecolor : str | obj
             The figure face color. Defaults to black.
-        fig_background : None | numpy ndarray
-            A background image for the figure. This must work with a call to
-            plt.imshow. Defaults to None.
+        fig_background : None | array
+            A background image for the figure. This must be a valid input to
+            `matplotlib.pyplot.imshow`. Defaults to None.
         font_color: str | obj
             The color of tick labels in the colorbar. Defaults to white.
 
@@ -910,8 +910,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                          fig_facecolor=fig_facecolor, font_color=font_color,
                          unified=True, img=True)
 
-        if fig_background is not None:
-            add_background_image(fig, fig_background)
+        add_background_image(fig, fig_background)
         plt_show(show)
         return fig
 
