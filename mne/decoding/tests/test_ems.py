@@ -3,12 +3,13 @@
 # License: BSD (3-clause)
 
 import os.path as op
-
+import numpy as np
+from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_equal, assert_raises
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import requires_sklearn
-from mne.decoding import compute_ems
+from mne.utils import requires_sklearn, check_version
+from mne.decoding import compute_ems, EMS
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 curdir = op.join(op.dirname(__file__))
@@ -53,4 +54,35 @@ def test_ems():
     assert_equal(n_expected, len(surrogates))
     assert_equal(n_expected, len(conditions))
     assert_equal(list(set(conditions)), [2, 3])
+
+    # test compute_ems cv
+    epochs = epochs['aud_r', 'vis_l']
+    epochs.equalize_event_counts(epochs.event_id)
+    if check_version('sklearn', '0.18'):
+        from sklearn.model_selection import StratifiedKFold
+        cv = StratifiedKFold()
+    else:
+        from sklearn.cross_validation import StratifiedKFold
+        cv = StratifiedKFold(epochs.events[:, 2])
+    compute_ems(epochs, cv=cv)
+    compute_ems(epochs, cv=2)
+    assert_raises(ValueError, compute_ems, epochs, cv='foo')
+    assert_raises(ValueError, compute_ems, epochs, cv=len(epochs) + 1)
     raw.close()
+
+    # EMS transformer, check that identical to compute_ems
+    X = epochs.get_data()
+    y = epochs.events[:, 2]
+    X = X / np.std(X)  # X scaled outside cv in compute_ems
+    Xt, coefs = list(), list()
+    ems = EMS()
+    assert_equal(ems.__repr__(), '<EMS: not fitted.>')
+    # manual leave-one-out to avoid sklearn version problem
+    for test in range(len(y)):
+        train = np.setdiff1d(range(len(y)), test)
+        ems.fit(X[train], y[train])
+        coefs.append(ems.filters_)
+        Xt.append(ems.transform(X[[test]]))
+    assert_equal(ems.__repr__(), '<EMS: fitted with 4 filters on 2 classes.>')
+    assert_array_almost_equal(filters, np.mean(coefs, axis=0))
+    assert_array_almost_equal(surrogates, np.vstack(Xt))
