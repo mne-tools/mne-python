@@ -81,7 +81,7 @@ def next_fast_len(target):
         return target
 
     # Quickly check if it's already a power of 2
-    if not (target & (target-1)):
+    if not (target & (target - 1)):
         return target
 
     # Get result quickly for small sizes, since FFT itself is similarly fast.
@@ -1926,8 +1926,8 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
             filter_length = '10s'
         if filter_length == 'auto':
             filter_length = max(int(round(
-                7 * sfreq / min(h_trans_bandwidth or np.inf,
-                                l_trans_bandwidth or np.inf))), 1)
+                7 * sfreq / float(min(h_trans_bandwidth or np.inf,
+                                      l_trans_bandwidth or np.inf)))), 1)
             logger.info('Filter length of %s samples (%0.3f sec) selected'
                         % (filter_length, filter_length / sfreq))
         else:

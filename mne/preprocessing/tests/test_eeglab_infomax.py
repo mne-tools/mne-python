@@ -9,7 +9,6 @@ import scipy.io as sio
 
 from mne.io import Raw
 from mne import pick_types
-from mne.filter import band_pass_filter
 from mne.preprocessing.infomax_ import infomax
 from mne.utils import random_permutation, slow_test
 from mne.datasets import testing

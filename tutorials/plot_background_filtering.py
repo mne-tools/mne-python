@@ -447,8 +447,10 @@ x_shallow = sosfiltfilt(sos, x)
 #
 # .. warning:: For brevity, we do not show the phase of these filters here.
 #              In the FIR case, we can design linear-phase filters, and
-#              compensate for the delay if necessary. This cannot be done
-#              with IIR filters, and as the filter order increases, the
+#              compensate for the delay (making the fliter acausal) if
+#              necessary. This cannot be done
+#              with IIR filters, as they have a non-linear phase.
+#              As the filter order increases, the
 #              phase distortion near and in the transition band worsens.
 #              However, if acausal (forward-backward) filtering can be used,
 #              e.g. with :func:`scipy.signal.filtfilt`, these phase issues
@@ -596,7 +598,7 @@ x_hp_2 = signal.filtfilt(iir_hp_2[0], iir_hp_2[1], x, padlen=0)
 xlim = t[[0, -1]]
 ylim = [-2, 6]
 xlabel = 'Time (sec)'
-ylabel = u'Amplitude (μV)'
+ylabel = 'Amplitude ($\mu$V)'
 tticks = [0, 0.5, 1.3, t[-1]]
 axs = plt.subplots(2, 2)[1].ravel()
 for ax, x_f, title in zip(axs, [x_lp_2, x_lp_30, x_hp_2, x_hp_p1],
@@ -622,6 +624,7 @@ plt.show()
 # To see what they mean, consider again our old simulated signal ``x`` from
 # before:
 #
+
 
 def baseline_plot(x):
     all_axs = plt.subplots(3, 2)[1]
@@ -685,46 +688,59 @@ baseline_plot(x)
 #
 # .. _tut_filtering_in_python:
 #
-# Filtering in MNE-Python
-# =======================
+# Filtering defaults in MNE-Python
+# ================================
+#
 # Most often, filtering in MNE-Python is done at the :class:`mne.io.Raw` level,
 # and thus :func:`mne.io.Raw.filter` is used. This function under the hood
 # (among other things) calls :func:`mne.filter.filter_data` to actually
-# filter the data, which by default applies a FIR filter designed using
-# :func:`scipy.signal.firwin2`. In Widmann *et al.* 2015 [7]_, they suggest a
-# specific set of parameters to use for high-pass filtering, including:
+# filter the data, which by default applies a zero-phase FIR filter designed
+# using :func:`scipy.signal.firwin2`. In Widmann *et al.* 2015 [7]_, they
+# suggest a specific set of parameters to use for high-pass filtering,
+# including:
 #
 #     "... providing a transition bandwidth of 25% of the lower passband
 #     edge but, where possible, not lower than 2 Hz and otherwise the
 #     distance from the passband edge to the critical frequency.”
 #
-# Although this is a mouthful, it means that for each high-pass value
-# ``l_freq`` below, you would get this corresponding ``l_trans_bandwidth``:
+# In practices, this means that for each high-pass value ``l_freq`` or
+# low-pass value ``h_freq`` below, you would get this corresponding
+# ``l_trans_bandwidth`` or ``h_trans_bandwidth``, respectively,
+# if the sample rate were 100 Hz (i.e., Nyquist frequency of 50 Hz):
 #
-# +--------+-------------------+
-# | l_freq | l_trans_bandwidth |
-# +========+===================+
-# |   0.01 |              0.01 |
-# +--------+-------------------+
-# |    0.1 |               0.1 |
-# +--------+-------------------+
-# |    1.0 |               1.0 |
-# +--------+-------------------+
-# |    2.0 |               2.0 |
-# +--------+-------------------+
-# |    4.0 |               2.0 |
-# +--------+-------------------+
-# |    8.0 |               2.0 |
-# +--------+-------------------+
-# |   10.0 |               2.5 |
-# +--------+-------------------+
+# +==========================+=======================+=======================+
+# | ``l_freq`` or ``h_freq`` | ``l_trans_bandwidth`` | ``h_trans_bandwidth`` |
+# +==========================+=======================+=======================+
+# |                     0.01 |                  0.01 |                   2.0 |
+# +--------------------------+-----------------------+-----------------------+
+# |                      0.1 |                   0.1 |                   2.0 |
+# +--------------------------+-----------------------+-----------------------+
+# |                      1.0 |                   1.0 |                   2.0 |
+# +--------------------------+-----------------------+-----------------------+
+# |                      2.0 |                   2.0 |                   2.0 |
+# +--------------------------+-----------------------+-----------------------+
+# |                      4.0 |                   2.0 |                   2.0 |
+# +--------------------------+-----------------------+-----------------------+
+# |                      8.0 |                   2.0 |                   2.0 |
+# +--------------------------+-----------------------+-----------------------+
+# |                     10.0 |                   2.5 |                   2.5 |
+# +--------------------------+-----------------------+-----------------------+
+# |                     20.0 |                   5.0 |                   5.0 |
+# +--------------------------+-----------------------+-----------------------+
+# |                     40.0 |                  10.0 |                  10.0 |
+# +--------------------------+-----------------------+-----------------------+
+# |                     45.0 |                 11.25 |                  5.0  |
+# +--------------------------+-----------------------+-----------------------+
+# |                     48.0 |                  12.0 |                  2.0  |
+# +--------------------------+-----------------------+-----------------------+
 #
 # MNE-Python has adopted this definition for its high-pass (and low-pass)
 # transition bandwidth choices when using ``l_trans_bandwidth='auto'`` and
 # ``h_trans_bandwidth='auto'``.
 #
 # To choose the filter length automatically with ``filter_length='auto'``,
-# 5 times the wavelength of the transition bandwidth is used.
+# 7 times the reciprocal of the shortest transition bandwidth is used to ensure
+# decent attenuation by the stop frequency.
 #
 # .. note:: In band-pass applications, often a low-pass filter can operate
 #           effectively with fewer samples than the high-pass filter, so
