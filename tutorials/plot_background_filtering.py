@@ -125,7 +125,7 @@ MNE-Python.
 # ---------------------
 # Here we'll try designing a low-pass filter, and look at trade-offs in terms
 # of time- and frequency-domain filter characteristics. Later, in
-# :ref:`effect_on_signals`, we'll look at how such filters can affect
+# :ref:`tut_effect_on_signals`, we'll look at how such filters can affect
 # signals when they are used.
 #
 # First let's import some useful tools for filtering, and set some default
@@ -318,7 +318,7 @@ h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, 'Windowed 50-Hz transition (0.2 sec)', freq, gain)
 
 ###############################################################################
-# .. _effect_on_signals:
+# .. _tut_effect_on_signals:
 #
 # Applying FIR filters
 # --------------------
@@ -461,7 +461,7 @@ x_shallow = sosfiltfilt(sos, x)
 #           hood, :func:`scipy.signal.zpk2sos` when passing the
 #           ``output='sos'`` keyword argument to
 #           :func:`scipy.signal.iirfilter`. The filter definitions
-#           given in filtering_basics_ use the polynomial
+#           given in tut_filtering_basics_ use the polynomial
 #           numerator/denominator (sometimes called "tf") form ``(b, a)``,
 #           which are theoretically equivalent to the SOS form used here.
 #           In practice, however, the SOS form can give much better results
@@ -674,8 +674,8 @@ x[:n_pre] += sig_pre
 baseline_plot(x)
 
 ###############################################################################
-# Both groups seem to acknowledge that the choices of filtering cutoffs,
-# and perhaps even the application of baseline correction, depend on the
+# Both groups seem to acknowledge that the choices of filtering cutoffs, and
+# perhaps even the application of baseline correction, depend on the
 # characteristics of the data being investigated, especially when it comes to:
 #
 #    1. The frequency content of the underlying evoked activity relative
@@ -690,7 +690,6 @@ baseline_plot(x)
 #
 # Filtering defaults in MNE-Python
 # ================================
-#
 # Most often, filtering in MNE-Python is done at the :class:`mne.io.Raw` level,
 # and thus :func:`mne.io.Raw.filter` is used. This function under the hood
 # (among other things) calls :func:`mne.filter.filter_data` to actually
@@ -703,36 +702,36 @@ baseline_plot(x)
 #     edge but, where possible, not lower than 2 Hz and otherwise the
 #     distance from the passband edge to the critical frequency.”
 #
-# In practices, this means that for each high-pass value ``l_freq`` or
+# In practice, this means that for each high-pass value ``l_freq`` or
 # low-pass value ``h_freq`` below, you would get this corresponding
 # ``l_trans_bandwidth`` or ``h_trans_bandwidth``, respectively,
 # if the sample rate were 100 Hz (i.e., Nyquist frequency of 50 Hz):
 #
-# +==========================+=======================+=======================+
-# | ``l_freq`` or ``h_freq`` | ``l_trans_bandwidth`` | ``h_trans_bandwidth`` |
-# +==========================+=======================+=======================+
-# |                     0.01 |                  0.01 |                   2.0 |
-# +--------------------------+-----------------------+-----------------------+
-# |                      0.1 |                   0.1 |                   2.0 |
-# +--------------------------+-----------------------+-----------------------+
-# |                      1.0 |                   1.0 |                   2.0 |
-# +--------------------------+-----------------------+-----------------------+
-# |                      2.0 |                   2.0 |                   2.0 |
-# +--------------------------+-----------------------+-----------------------+
-# |                      4.0 |                   2.0 |                   2.0 |
-# +--------------------------+-----------------------+-----------------------+
-# |                      8.0 |                   2.0 |                   2.0 |
-# +--------------------------+-----------------------+-----------------------+
-# |                     10.0 |                   2.5 |                   2.5 |
-# +--------------------------+-----------------------+-----------------------+
-# |                     20.0 |                   5.0 |                   5.0 |
-# +--------------------------+-----------------------+-----------------------+
-# |                     40.0 |                  10.0 |                  10.0 |
-# +--------------------------+-----------------------+-----------------------+
-# |                     45.0 |                 11.25 |                  5.0  |
-# +--------------------------+-----------------------+-----------------------+
-# |                     48.0 |                  12.0 |                  2.0  |
-# +--------------------------+-----------------------+-----------------------+
+# +------------------+-------------------+-------------------+
+# | l_freq or h_freq | l_trans_bandwidth | h_trans_bandwidth |
+# +==================+===================+===================+
+# |             0.01 |              0.01 |               2.0 |
+# +------------------+-------------------+-------------------+
+# |              0.1 |               0.1 |               2.0 |
+# +------------------+-------------------+-------------------+
+# |              1.0 |               1.0 |               2.0 |
+# +------------------+-------------------+-------------------+
+# |              2.0 |               2.0 |               2.0 |
+# +------------------+-------------------+-------------------+
+# |              4.0 |               2.0 |               2.0 |
+# +------------------+-------------------+-------------------+
+# |              8.0 |               2.0 |               2.0 |
+# +------------------+-------------------+-------------------+
+# |             10.0 |               2.5 |               2.5 |
+# +------------------+-------------------+-------------------+
+# |             20.0 |               5.0 |               5.0 |
+# +------------------+-------------------+-------------------+
+# |             40.0 |              10.0 |              10.0 |
+# +------------------+-------------------+-------------------+
+# |             45.0 |             11.25 |              5.0  |
+# +------------------+-------------------+-------------------+
+# |             48.0 |              12.0 |              2.0  |
+# +------------------+-------------------+-------------------+
 #
 # MNE-Python has adopted this definition for its high-pass (and low-pass)
 # transition bandwidth choices when using ``l_trans_bandwidth='auto'`` and
@@ -761,7 +760,6 @@ baseline_plot(x)
 # that can be tolerated, the better behaved the filter will be in the time
 # domain.
 #
-###############################################################################
 # References
 # ==========
 # .. [1] Parks TW, Burrus CS (1987). Digital Filter Design.
