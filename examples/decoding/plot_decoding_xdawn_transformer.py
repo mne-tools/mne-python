@@ -17,7 +17,7 @@ from sklearn.preprocessing import label_binarize
 
 from mne import io, pick_types, read_events, Epochs
 from mne.datasets import sample
-from mne.decoding import XdawnTransformer, EpochsVectorizer
+from mne.decoding import XdawnTransformer, Vectorizer
 
 data_path = sample.data_path()
 
@@ -43,7 +43,7 @@ X = epochs.get_data()
 y = label_binarize(epochs.events[:, 2], classes=[1, 3]).ravel()
 
 clf = make_pipeline(XdawnTransformer(n_components=3),
-                    EpochsVectorizer(),
+                    Vectorizer(),
                     LogisticRegression())
 score = cross_val_score(clf, X, y, cv=5)
 print(score)

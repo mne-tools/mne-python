@@ -115,6 +115,8 @@ API
 
     - The ``compensation`` parameter in :func:`mne.io.read_raw_fif` has been deprecated in favor of the method :meth:`mne.io.Raw.apply_gradient_compensation` by `Eric Larson`_
 
+    - :class:`mne.decoding.EpochsVectorizer` has been deprecated in favor of :class:`mne.decoding.Vectorizer` by `Asish Panda`_
+
 .. _changes_0_12:
 
 Version 0.12

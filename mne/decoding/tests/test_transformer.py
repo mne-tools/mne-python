@@ -8,11 +8,11 @@ import os.path as op
 import numpy as np
 
 from nose.tools import assert_true, assert_raises
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_equal
 
 from mne import io, read_events, Epochs, pick_types
 from mne.decoding import Scaler, FilterEstimator
-from mne.decoding import PSDEstimator, EpochsVectorizer
+from mne.decoding import PSDEstimator, EpochsVectorizer, Vectorizer
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -160,3 +160,28 @@ def test_epochs_vectorizer():
     # Test init exception
     assert_raises(ValueError, vector.fit, epochs, y)
     assert_raises(ValueError, vector.transform, epochs, y)
+
+
+def test_vectorizer():
+    """Test Vectorizer."""
+    data = np.random.rand(150, 18, 6)
+    vect = Vectorizer()
+    result = vect.fit_transform(data)
+    assert_equal(result.ndim, 2)
+
+    # check inverse_trasnform
+    orig_data = vect.inverse_transform(result)
+    assert_equal(orig_data.ndim, 3)
+    assert_array_equal(orig_data, data)
+    assert_array_equal(vect.inverse_transform(result[1:]), data[1:])
+
+    # check with different shape
+    assert_equal(vect.fit_transform(np.random.rand(150, 18, 6, 3)).shape,
+                 (150, 324))
+    assert_equal(vect.fit_transform(data[1:]).shape, (149, 108))
+
+    # check if raised errors are working correctly
+    vect.fit(np.random.rand(105, 12, 3))
+    assert_raises(ValueError, vect.transform, np.random.rand(105, 12, 3, 1))
+    assert_raises(ValueError, vect.inverse_transform,
+                  np.random.rand(102, 12, 12))
