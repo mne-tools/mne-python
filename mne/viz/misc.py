@@ -20,6 +20,7 @@ import numpy as np
 from scipy import linalg
 
 from ..surface import read_surface
+from ..externals.six import string_types
 from ..io.proj import make_projector
 from ..utils import logger, verbose, get_subjects_dir, warn
 from ..io.pick import pick_types
@@ -237,7 +238,7 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     return fig
 
 
-def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
+def _plot_mri_contours(mri_fname, surfaces, orientation='coronal',
                        slices=None, show=True):
     """Plot BEM contours on anatomical slices.
 
@@ -245,9 +246,9 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     ----------
     mri_fname : str
         The name of the file containing anatomical data.
-    surf_fnames : list of str
-        The filenames for the BEM surfaces in the format
-        ['inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf'].
+    surfaces : list of (str, str) tuples
+        A list containing the BEM surfaces to plot as (filename, color) tuples.
+        Colors should be matplotlib-compatible.
     orientation : str
         'coronal' or 'axial' or 'sagittal'
     slices : list of int
@@ -287,12 +288,12 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     # XXX : next line is a hack don't ask why
     trans[:3, -1] = [n_sag // 2, n_axi // 2, n_cor // 2]
 
-    for surf_fname in surf_fnames:
+    for file_name, color in surfaces:
         surf = dict()
-        surf['rr'], surf['tris'] = read_surface(surf_fname)
+        surf['rr'], surf['tris'] = read_surface(file_name)
         # move back surface to MRI coordinate system
         surf['rr'] = nib.affines.apply_affine(trans, surf['rr'])
-        surfs.append(surf)
+        surfs.append((surf, color))
 
     fig, axs = _prepare_trellis(len(slices), 4)
 
@@ -311,19 +312,19 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
         ax.axis('off')
 
         # and then plot the contours on top
-        for surf in surfs:
+        for surf, color in surfs:
             if orientation == 'coronal':
                 ax.tricontour(surf['rr'][:, 0], surf['rr'][:, 1],
                               surf['tris'], surf['rr'][:, 2],
-                              levels=[sl], colors='yellow', linewidths=2.0)
+                              levels=[sl], colors=color, linewidths=2.0)
             elif orientation == 'axial':
                 ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 0],
                               surf['tris'], surf['rr'][:, 1],
-                              levels=[sl], colors='yellow', linewidths=2.0)
+                              levels=[sl], colors=color, linewidths=2.0)
             elif orientation == 'sagittal':
                 ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 1],
                               surf['tris'], surf['rr'][:, 0],
-                              levels=[sl], colors='yellow', linewidths=2.0)
+                              levels=[sl], colors=color, linewidths=2.0)
 
     plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                         hspace=0.)
@@ -332,7 +333,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
-             slices=None, show=True):
+             slices=None, brain_surfaces=None, show=True):
     """Plot BEM contours on anatomical slices.
 
     Parameters
@@ -346,6 +347,9 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         'coronal' or 'axial' or 'sagittal'.
     slices : list of int
         Slice indices.
+    brain_surfaces : None | str | list of str
+        One or more brain surface to plot (optional). Entries should correspond
+        to files in the subject's ``surf`` directory (e.g. ``"white"``).
     show : bool
         Show figure if True.
 
@@ -367,20 +371,34 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     if not op.isdir(bem_path):
         raise IOError('Subject bem directory "%s" does not exist' % bem_path)
 
-    surf_fnames = []
-    for surf_name in ['*inner_skull', '*outer_skull', '*outer_skin']:
+    surfaces = []
+    for surf_name, color in (('*inner_skull', '#FF0000'),
+                             ('*outer_skull', '#FFFF00'),
+                             ('*outer_skin', '#FFAA80')):
         surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
         if len(surf_fname) > 0:
             surf_fname = surf_fname[0]
             logger.info("Using surface: %s" % surf_fname)
-            surf_fnames.append(surf_fname)
+            surfaces.append((surf_fname, color))
 
-    if len(surf_fnames) == 0:
+    if brain_surfaces is not None:
+        if isinstance(brain_surfaces, string_types):
+            brain_surfaces = (brain_surfaces,)
+        for surf_name in brain_surfaces:
+            for hemi in ('lh', 'rh'):
+                surf_fname = op.join(subjects_dir, subject, 'surf',
+                                     hemi + '.' + surf_name)
+                if op.exists(surf_fname):
+                    surfaces.append((surf_fname, '#00DD00'))
+                else:
+                    raise IOError("Surface %s does not exist." % surf_fname)
+
+    if len(surfaces) == 0:
         raise IOError('No surface files found. Surface files must end with '
                       'inner_skull.surf, outer_skull.surf or outer_skin.surf')
 
     # Plot the contours
-    return _plot_mri_contours(mri_fname, surf_fnames, orientation=orientation,
+    return _plot_mri_contours(mri_fname, surfaces, orientation=orientation,
                               slices=slices, show=show)
 
 
