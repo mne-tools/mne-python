@@ -17,11 +17,11 @@ import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
 from mne.decoding import UnsupervisedSpatialFilter
+from mne.io.pick import _pick_data_channels
 
 from sklearn.decomposition import PCA, FastICA
 
 print(__doc__)
-spatial_filter = make_pipeline(UnsupervisedSpatialFilter(PCA(10)),
 
 # Preprocess data
 data_path = sample.data_path()
@@ -45,16 +45,20 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False,
 
 X = epochs.get_data()
 
-pca = UnsupervisedSpatialFilter(PCA(10))
+pca = UnsupervisedSpatialFilter(PCA(30))
 pca_data = pca.fit_transform(X)
-ev = mne.EvokedArray(np.mean(X, axis=0), epochs.info, tmin=tmin)
-ev.data = np.average(pca_data, axis=0)
-ev.plot(show=False, window_title='PCA')
+ev = mne.EvokedArray(np.average(pca_data, axis=0),
+                     mne.create_info(30, epochs.info['sfreq'],
+                                     ch_types='eeg'), tmin=tmin)
+ev.plot(show=False, window_title="PCA")
 
-ica = UnsupervisedSpatialFilter(FastICA(10))
+
+ica = UnsupervisedSpatialFilter(FastICA(30))
 ica_data = ica.fit_transform(X)
-ev1 = mne.EvokedArray(np.mean(X, axis=0), epochs.info, tmin=tmin)
-ev1.data = ica_data
+ev1 = mne.EvokedArray(np.average(ica_data, axis=0),
+                      mne.create_info(30, epochs.info['sfreq'],
+                                      ch_types='eeg'), tmin=tmin)
+ev1.data = np.average(ica_data, axis=1)
 ev1.plot(show=False, window_title='ICA')
 
 plt.show()
