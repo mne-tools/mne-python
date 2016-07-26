@@ -1,7 +1,7 @@
 """
-========================================
+======================================================
 Regression on continuous event-related data (rER[P/F])
-========================================
+======================================================
 
 This demonstrates how rER[P/F]s - regressing the continuous data - is a
 generalisation of traditional averaging. If all preprocessing steps

@@ -1,7 +1,7 @@
 """
-========================================
+=============================
 Regression on continuous data
-========================================
+=============================
 
 This demonstrates how encoding models can be fit with multiple continuous
 inputs. In this case, a encoding model is fit for one electrode, using the
@@ -28,7 +28,8 @@ import matplotlib.pyplot as plt
 import mne
 import numpy as np
 from mne.datasets import sample
-from mne.encoding import SampleMasker
+from mne.encoding import SampleMasker, get_coefs
+from mne.channels.layout import _auto_topomap_coords
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler, scale
@@ -37,13 +38,13 @@ from sklearn.preprocessing import StandardScaler, scale
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True).pick_types(
-    meg='grad', stim=False, eeg=False).filter(1, None, method='iir')
-ix_enc = 10
-ixs_X = np.setdiff1d(range(len(raw.ch_names)), [ix_enc])
+    meg=False, stim=False, eeg=True).filter(1, None, method='iir')
+ix_y = 10
+ixs_X = np.setdiff1d(range(len(raw.ch_names)), [ix_y])
 
-# Encoding Model
-X = raw._data[ixs_X]
-y = raw._data[ix_enc]
+# Set up encoding model variables
+X = raw[:][0][ixs_X]
+y = raw[:][0][ix_y]
 
 f, axs = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
 ix_plt = 200
@@ -55,33 +56,47 @@ axs[1].set_title('Continuous Output Data')
 axs[1].set_xlabel('Time (s)')
 axs[1].set_ylabel('Amplitude (mV)')
 
+
+# --- Fit the model / Make predictions ---
 # Define model preprocessing and parameters
-ix_split = int(X.shape[-1] * .998)  # Using 99.8% of the data to train
+ix_split = int(X.shape[-1] * .998)  # Using 99.8% of the data for pred viz
 tr = np.arange(X.shape[-1])[:ix_split]
 tt = np.arange(X.shape[-1])[ix_split:]
-splitter_tr = SampleMasker(ixs=tr)
-splitter_tt = SampleMasker(ixs=tt)
 
+# This is the final estimator that will be called after masking data
 pipe_est = make_pipeline(StandardScaler(), Ridge(alpha=0.))
-pipe_full = SampleMasker(pipe_est, ixs=splitter_tr)
+# This allows us to only use particular indices in training
+pipe_full = SampleMasker(pipe_est, ixs=tr, ixs_pred=tt)
 
 # Fit / predict w/ the model
 pipe_full.fit(X.T, y)
 y_pred = pipe_full.predict(X.T)
 
-# Now plot results
+
+# --- Now plot results ---
 cmap = plt.cm.rainbow
 f, axs = plt.subplots(1, 2, figsize=(15, 8))
 
 # Plot the first 40 coefficients (one coefficient per channel)
 ax = axs[0]
-coefs = pipe_full._final_estimator.coef_[0]
+coefs = get_coefs(pipe_full)
 ax.plot(coefs)
 ax.set_xlabel('Channel index')
 ax.set_ylabel('Channel weight')
 ax.set_title('Encoding model coefficients')
 ax.set_xlim([0, coefs.shape[-1]])
 
+# Plot the coefficients as a topomap
+fig, ax = plt.subplots()
+pos = _auto_topomap_coords(raw.info, range(len(raw.ch_names)), True)
+pos_X = pos[ixs_X]
+pos_y = pos[ix_y]
+coefs = scale(coefs)
+ax.scatter(*pos_X.T, c=coefs, s=np.abs(coefs) * 100, cmap=plt.cm.coolwarm,
+           vmin=-1, vmax=1)
+sc_y = ax.scatter(*pos_y, c='k', s=100)
+ax.set_title('Scaled model coefficients')
+ax.legend([sc_y], ['Predicted electrode'], fontsize=15)
 
 # Now plot the predictions on the test set
 ax = axs[1]
@@ -89,9 +104,9 @@ time_test = np.arange(y_pred.shape[0]) / float(raw.info['sfreq'])
 ax.plot(time_test, y_pred, color='r', alpha=.6)
 
 # Plot true output signal
-ln = ax.plot(time_test, scale(y[tt]), color='k', alpha=.6, lw=3,
+ln = ax.plot(time_test, y[tt], color='k', alpha=.6, lw=3,
              label='True Signal')
-ax.set_title('Predicted (colors) and actual (black) activity')
+ax.set_title('Predicted (red) and actual (black) activity')
 ax.set_xlabel('Time (s)')
 ax.set_ylabel('Signal amplitude (z-scored)')
 ax.set_xlim([0, time_test[-1]])

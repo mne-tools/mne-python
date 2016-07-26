@@ -139,10 +139,8 @@ class EventRelatedRegressor(object):
         # Unstack coefficients so they're shape (n_chans, n_feats, n_lags)
         n_delays = len(self.delayer.delays)
 
-        est = self.est._final_estimator
-        if isinstance(est, SampleMasker):
-            est = est.est
-        coefs = _get_coefs(est, self.coef_name)
+        est = get_final_est(self.est)
+        coefs = get_coefs(est, self.coef_name)
         coefs = np.array([icoef.reshape(-1, n_delays) for icoef in coefs])
         # Reverse last dimension so that it is in time, not lags
         coefs = coefs[..., ::-1]
@@ -166,22 +164,31 @@ class SampleMasker(object):
     ----------
     estimator : instance of sklearn-style estimator
         The estimator to be called after samples are removed.
-    mask_val : float, int | nan
-        The value that will be removed from the dataset
-    ixs : array, shape (n_samples_to_keep,)
+    mask_val : float, int, nan | callable.
+        The value that will be removed from the dataset. If a callable,
+        it should return a boolean mask of length n_samples that takes
+        X an array of shape (n_samples, n_features) as input.
+    ixs : array, shape (n_samples,)
         An optional array of indices for manually specifying which samples
-        to keep. Defaults to None.
+        to keep during training. Defaults to None.
+    ixs_pred : array, shape (n_samples,) | None
+        An optional array of indices for manually specifying which samples
+        to keep during prediction. Defaults to None.
     mask_condition : 'all', 'any'
         Whether only 1 `mask_val` will trigger removal of a row, or if
-        all values of the row must be `mask_val`.
+        all values of the row must be `mask_val` for removal.
     """
-    def __init__(self, estimator, mask_val=None, ixs=None,
+    def __init__(self, estimator, mask_val=None, ixs=None, ixs_pred=None,
                  mask_condition='all'):
         if all(ii is not None for ii in [mask_val, ixs]):
             raise ValueError('Supply one of mask_val | ixs, or both')
         if ixs is not None:
             ixs = np.asarray(ixs).astype(int)
         self.ixs = ixs
+        if ixs_pred is not None:
+            ixs_pred = np.asarray(ixs_pred).astype(int)
+        self.ixs_pred = ixs_pred
+
         self.mask_val = mask_val
         if mask_condition not in ['all', 'any']:
             raise ValueError('condition must be one of "all" or "any"')
@@ -189,48 +196,98 @@ class SampleMasker(object):
         self.est = _check_estimator(estimator)
 
     def fit(self, X, y):
-        """Remove datapoints then fit the estimator."""
-        X, y = self.mask_data(X, y)
+        """Remove datapoints then fit the estimator.
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_features)
+            The input array for the model. Rows will be removed.
+        y : array, shape (n_samples, n_targets)
+            The output array for the model. Rows will be removed.
+        """
+        X, y = self.mask_data(X, y, ixs=self.ixs)
         self.est.fit(X, y)
         return self
 
     def predict(self, X):
-        self.est.predict(X)
+        """Call self.est.predict.
 
-    def mask_data(self, X, y=None):
-        """Remove datapoints according to indices or masked values."""
-        ixs = self.ixs
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_features)
+            The input array for the model. Rows will NOT be removed.
+        """
+        X = self.mask_data(X, ixs=self.ixs_pred)
+        return self.est.predict(X)
+
+    def mask_data(self, X, y=None, ixs=None):
+        """Remove datapoints according to indices or masked values.
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_features)
+            The input array for the model. Rows will be removed.
+        y : array, shape (n_samples, n_targets)
+            The output array for the model. Rows will be removed.
+        ixs : array, shape (n_samples_to_keep,)
+            An optional array of indices to keep before removing
+            any samples based on their values.
+
+        Returns
+        -------
+        X : array, shape (n_samples_after_removal, n_features)
+            The input X array after removing rows based on ixs, then
+            based on the values in X.
+        y : array, shape (n_samples_after_removal, n_targets) (optional)
+            The output y array after removing rows based on ixs, then
+            based on the values in X. Only returned if `y` is passed.
+        """
+
         # First remove indices if we've manually specified them
+        if y is not None:
+            if y.ndim == 1:
+                y = y[:, np.newaxis]
         if ixs is not None:
             if X.shape[0] < ixs.max():
                 raise ValueError('ixs exceed data shape')
             X = X[ixs]
             if y is not None:
                 y = y[ixs]
+
         # Find data points with value we want to remove
         if self.mask_val is not None:
-            if self.mask_val is np.nan:
-                if X.dtype in [int, np.int]:
-                    raise ValueError("X is dtype int, mask_val can't be nan")
-                mask = np.isnan(X)
+            if hasattr(self.mask_val, '__call__'):
+                # If a callable, pass X as an input, assume bool output
+                mask = self.mask_val(X)
+                if mask.ndim > 1:
+                    raise ValueError('Output mask must be shape (n_samples,)')
             else:
-                mask = X != self.mask_val
+                if self.mask_val is np.nan:
+                    mask = ~np.isnan(X)
+                else:
+                    mask = X != self.mask_val
 
-        # To work w/ sparse matrices as well, not using `np.all`
-        if self.mask_condition == 'all':
-            # All columns have the bad value
-            mask = mask.sum(axis=1) == 0
+                # Decide which rows to remove
+                if self.mask_condition == 'all':
+                    # Remove rows w/ NO good values
+                    mask = mask.sum(axis=1) == 0
+                else:
+                    # Remove rows w/ AT LEAST 1 bad value
+                    mask = mask.sum(axis=1) < mask.shape[-1]
+
+            # Now change mask to rows that we wish to *keep*
+            self.mask = ~mask
+            mask_ixs = np.where(self.mask)[0]
+            mask_ixs = np.asarray(mask_ixs).squeeze()  # In case its a matrix
+            X = X[mask_ixs, :]
+            if y is not None:
+                y = y[mask_ixs, :]
         else:
-            # At least one column has the bad value
-            mask = mask.sum(axis=1) < mask.shape[-1]
-
-        # Now change mask to rows that we wish to *keep*
-        self.mask = ~mask
-        mask_ixs = np.where(self.mask)[0]  # So this works w/ sparse matrices
+            self.mask = np.ones(X.shape[0], dtype=bool)
+        # Return masked values
         if y is not None:
-            return X[mask_ixs, :], y[mask_ixs, :]
-        else:
-            return X[mask_ixs, :]
+            return X, y
+        return X
 
     def transform(self, X, y=None):
         """Return a subset of data points.
@@ -240,7 +297,7 @@ class SampleMasker(object):
         data : array, shape (n_features, n_ixs)
             A subset of rows from the input array.
         """
-        return self.remove_times(X, y)
+        return self.mask_data(X, y)
 
 
 def remove_outliers(X, y, reject=None, flat=None, info=None, tstep=None):
@@ -303,11 +360,41 @@ def remove_outliers(X, y, reject=None, flat=None, info=None, tstep=None):
     return X[keep_rows], y[keep_rows]
 
 
-def _get_coefs(est, coef_name='coef_'):
-    """Return the coefficients in the final component of a sklearn estimator.
+def get_final_est(est):
+    """Return the final component of a sklearn estimator/pipeline.
 
     Parameters
     ----------
+    est : pipeline, or sklearn / MNE estimator
+        An estimator chain from which you wish to pull the final estimator.
+
+    Returns
+    -------
+    est : the sklearn-style estimator at the end of the input chain.
+    """
+    # Define classes where we pull `est` manually
+    import sklearn
+    from distutils.version import LooseVersion
+    if LooseVersion(sklearn.__version__) < '0.16':
+        raise ValueError('Encoding models require sklearn version >= 0.16')
+
+    iter_classes = (SampleMasker,)
+    # Iterate in case we have meta estimators w/in meta estimators
+    while hasattr(est, '_final_estimator') or isinstance(est, iter_classes):
+        if isinstance(est, iter_classes):
+            est = est.est
+        else:
+            est = est._final_estimator
+    return est
+
+
+def get_coefs(est, coef_name='coef_'):
+    """Pull coefficients from an estimator object.
+
+    Parameters
+    ----------
+    est : a sklearn estimator
+        The estimator from which to pull the coefficients.
     coef_name : string
         The name of the attribute corresponding to the coefficients created
         after fitting. Defaults to 'coef_'
@@ -317,10 +404,10 @@ def _get_coefs(est, coef_name='coef_'):
     coefs : array, shape (n_targets, n_coefs)
         The output coefficients.
     """
-    if not hasattr(est._final_estimator, coef_name):
-            raise ValueError('Estimator either is not fit or does not use'
-                             ' coefficient name: %s' % coef_name)
-    coefs = getattr(est._final_estimator, coef_name)
+    if not hasattr(est, coef_name):
+        raise ValueError('Estimator either is not fit or does not use'
+                         ' coefficient name: %s' % coef_name)
+    coefs = getattr(est, coef_name)
     return coefs
 
 
