@@ -173,7 +173,7 @@ def test_vectorizer():
     orig_data = vect.inverse_transform(result)
     assert_equal(orig_data.ndim, 3)
     assert_array_equal(orig_data, data)
-    asser_array_equal(vect.inverse_transform(esult[1:]), data[1:])
+    assert_array_equal(vect.inverse_transform(result[1:]), data[1:])
 
     # check with different shape
     assert_equal(vect.fit_transform(np.random.rand(150, 18, 6, 3)).shape,
