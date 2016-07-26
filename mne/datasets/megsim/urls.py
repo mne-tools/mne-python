@@ -31,7 +31,7 @@ urls = ['/empdata/neuromag/visual/subject1_day1_vis_raw.fif',
         '/simdata_singleTrials/4545_sim_oscOnly_v1_IPS_ILOG_30hzAdded.fif',
 
         '/index.html',
-]
+        ]
 
 data_formats = ['raw',
                 'raw',

@@ -39,42 +39,26 @@ def test_montage():
     """Test making montages"""
     tempdir = _TempDir()
     # no pep8
-    input_str = ["""FidNz 0.00000 10.56381 -2.05108
-    FidT9 -7.82694 0.45386 -3.76056
-    very_very_very_long_name 7.82694 0.45386 -3.76056""",
-    """// MatLab   Sphere coordinates [degrees]         Cartesian coordinates
-    // Label       Theta       Phi    Radius         X         Y         Z       off sphere surface
-      E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011
-      E2      44.600      -0.880       1.000    0.7119    0.7021   -0.0154   0.00000000000000000
-      E3      51.700      11.000       1.000    0.6084    0.7704    0.1908   0.00000000000000000""",  # noqa
-    """# ASA electrode file
-    ReferenceLabel  avg
-    UnitPosition    mm
-    NumberPositions=    68
-    Positions
-    -86.0761 -19.9897 -47.9860
-    85.7939 -20.0093 -48.0310
-    0.0083 86.8110 -39.9830
-    Labels
-    LPA
-    RPA
-    Nz
-    """,
-    """Site  Theta  Phi
-    Fp1  -92    -72
-    Fp2   92     72
-    very_very_very_long_name   -60    -51
-    """,
-    """346
-     EEG	      F3	 -62.027	 -50.053	      85
-     EEG	      Fz	  45.608	      90	      85
-     EEG	      F4	   62.01	  50.103	      85
-    """,
-    """
-    eeg Fp1 -95.0 -31.0 -3.0
-    eeg AF7 -81 -59 -3
-    eeg AF3 -87 -41 28
-    """]
+    input_str = [
+        'FidNz 0.00000 10.56381 -2.05108\nFidT9 -7.82694 0.45386 -3.76056\n'
+        'very_very_very_long_name 7.82694 0.45386 -3.76056',
+        '// MatLab   Sphere coordinates [degrees]         Cartesian coordinates\n'  # noqa
+        '// Label       Theta       Phi    Radius         X         Y         Z       off sphere surface\n'  # noqa
+        'E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011\n'  # noqa
+        'E2      44.600      -0.880       1.000    0.7119    0.7021   -0.0154   0.00000000000000000\n'  # noqa
+        'E3      51.700      11.000       1.000    0.6084    0.7704    0.1908   0.00000000000000000',  # noqa
+        '# ASA electrode file\nReferenceLabel  avg\nUnitPosition    mm\n'
+        'NumberPositions=    68\nPositions\n-86.0761 -19.9897 -47.9860\n'
+        '85.7939 -20.0093 -48.0310\n0.0083 86.8110 -39.9830\n'
+        'Labels\nLPA\nRPA\nNz\n',
+        'Site  Theta  Phi\nFp1  -92    -72\nFp2   92     72\n'
+        'very_very_very_long_name   -60    -51\n',
+        '346\n'
+        'EEG	      F3	 -62.027	 -50.053	      85\n'
+        'EEG	      Fz	  45.608	      90	      85\n'
+        'EEG	      F4	   62.01	  50.103	      85\n',
+        'eeg Fp1 -95.0 -31.0 -3.0\neeg AF7 -81 -59 -3\neeg AF3 -87 -41 28\n'
+    ]
     kinds = ['test.sfp', 'test.csd', 'test.elc', 'test.txt', 'test.elp',
              'test.hpts']
     for kind, text in zip(kinds, input_str):

@@ -59,7 +59,8 @@ import numpy as np
 from scipy import stats
 from functools import partial
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # noqa; this changes hidden mpl vars
+# this changes hidden MPL vars:
+from mpl_toolkits.mplot3d import Axes3D  # noqa
 
 from mne.stats import (spatio_temporal_cluster_1samp_test,
                        bonferroni_correction, ttest_1samp_no_p)
