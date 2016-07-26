@@ -53,10 +53,9 @@ def _fig_to_img(function=None, fig=None, image_format='png',
     from matplotlib.figure import Figure
     if not isinstance(fig, Figure) and function is None:
         from scipy.misc import imread
-        mayavi = None
+        mlab = None
         try:
-            from mayavi import mlab  # noqa, mlab imported
-            import mayavi
+            from mayavi import mlab  # noqa
         except:  # on some systems importing Mayavi raises SystemExit (!)
             warn('Could not import mayavi. Trying to render'
                  '`mayavi.core.scene.Scene` figure instances'
@@ -70,7 +69,7 @@ def _fig_to_img(function=None, fig=None, image_format='png',
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
-        mayavi.mlab.close(fig)
+        mlab.close(fig)
         fig = plt.figure()
         plt.imshow(img)
         plt.axis('off')

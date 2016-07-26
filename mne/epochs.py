@@ -2542,7 +2542,7 @@ def _read_one_epoch_file(f, tree, fname, preload):
         if selection is None:
             selection = np.arange(len(events))
         if drop_log is None:
-            drop_log = [[] for _ in range(len(epochs))]  # noqa, analysis:ignore
+            drop_log = [[] for _ in range(len(events))]
 
     return (info, data, data_tag, events, event_id, tmin, tmax, baseline, name,
             selection, drop_log, epoch_shape, cals)

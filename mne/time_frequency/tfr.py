@@ -392,15 +392,15 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
         and if b is None then b is set to the end of the interval.
         If baseline is equal ot (None, None) all the time
         interval is used.
-    baseline_mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio' # noqa
+    baseline_mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
         deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline)), mean
-        simply subtracts the mean power, percent is the same as applying ratio
-        then mean, logratio is the same as mean but then rendered in log-scale,
-        zlogratio is the same as zscore but data is rendered in log-scale
-        first.
+        power = [power - mean(power_baseline)] / std(power_baseline)),
+        mean simply subtracts the mean power, percent is the same as
+        applying ratio then mean, logratio is the same as mean but then
+        rendered in log-scale, zlogratio is the same as zscore but data
+        is rendered in log-scale first.
         If None no baseline correction is applied.
     times : array
         Required to define baseline
@@ -422,7 +422,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     -------
     power : 4D array
         Power estimate (Epochs x Channels x Frequencies x Timepoints).
-    """
+    """  # noqa
     decim = _check_decim(decim)
     mode = 'same'
     n_frequencies = len(frequencies)
@@ -654,15 +654,15 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             and if b is None then b is set to the end of the interval.
             If baseline is equal ot (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio' # noqa
+        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
             Do baseline correction with ratio (power is divided by mean
             power during baseline) or zscore (power is divided by standard
             deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)), mean
-            simply subtracts the mean power, percent is the same as applying ratio
-            then mean, logratio is the same as mean but then rendered in log-scale,
-            zlogratio is the same as zscore but data is rendered in log-scale
-            first.
+            power = [power - mean(power_baseline)] / std(power_baseline)),
+            mean simply subtracts the mean power, percent is the same as
+            applying ratio then mean, logratio is the same as mean but then
+            rendered in log-scale, zlogratio is the same as zscore but data
+            is rendered in log-scale first.
             If None no baseline correction is applied.
         tmin : None | float
             The first time instant to display. If None the first time point
@@ -720,7 +720,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
-        """
+        """  # noqa
         from ..viz.topo import _imshow_tfr
         import matplotlib.pyplot as plt
         times, freqs = self.times.copy(), self.freqs.copy()
@@ -830,15 +830,15 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             and if b is None then b is set to the end of the interval.
             If baseline is equal ot (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio' # noqa
+        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
             Do baseline correction with ratio (power is divided by mean
             power during baseline) or zscore (power is divided by standard
             deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)), mean
-            simply subtracts the mean power, percent is the same as applying ratio
-            then mean, logratio is the same as mean but then rendered in log-scale,
-            zlogratio is the same as zscore but data is rendered in log-scale
-            first.
+            power = [power - mean(power_baseline)] / std(power_baseline)),
+            mean simply subtracts the mean power, percent is the same as
+            applying ratio then mean, logratio is the same as mean but then
+            rendered in log-scale, zlogratio is the same as zscore but data
+            is rendered in log-scale first.
             If None no baseline correction is applied.
         tmin : None | float
             The first time instant to display. If None the first time point
@@ -885,7 +885,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
-        """
+        """  # noqa
         from ..viz.topo import _imshow_tfr, _plot_topo, _imshow_tfr_unified
         times = self.times.copy()
         freqs = self.freqs
@@ -972,19 +972,19 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             and if b is None then b is set to the end of the interval.
             If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio' # noqa
+        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
             Do baseline correction with ratio (power is divided by mean
             power during baseline) or zscore (power is divided by standard
             deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)), mean
-            simply subtracts the mean power, percent is the same as applying ratio
-            then mean, logratio is the same as mean but then rendered in log-scale,
-            zlogratio is the same as zscore but data is rendered in log-scale
-            first.
+            power = [power - mean(power_baseline)] / std(power_baseline)),
+            mean simply subtracts the mean power, percent is the same as
+            applying ratio then mean, logratio is the same as mean but then
+            rendered in log-scale, zlogratio is the same as zscore but data
+            is rendered in log-scale first.
             If None no baseline correction is applied.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
-        """
+        """  # noqa
         self.data = rescale(self.data, self.times, baseline, mode,
                             copy=False)
 
@@ -1023,15 +1023,15 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             and if b is None then b is set to the end of the interval.
             If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio' # noqa
+        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
             Do baseline correction with ratio (power is divided by mean
             power during baseline) or zscore (power is divided by standard
             deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)), mean
-            simply subtracts the mean power, percent is the same as applying ratio
-            then mean, logratio is the same as mean but then rendered in log-scale,
-            zlogratio is the same as zscore but data is rendered in log-scale
-            first.
+            power = [power - mean(power_baseline)] / std(power_baseline)),
+            mean simply subtracts the mean power, percent is the same as
+            applying ratio then mean, logratio is the same as mean but then
+            rendered in log-scale, zlogratio is the same as zscore but data
+            is rendered in log-scale first.
             If None no baseline correction is applied.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
@@ -1106,7 +1106,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
-        """
+        """  # noqa
         from ..viz import plot_tfr_topomap
         return plot_tfr_topomap(self, tmin=tmin, tmax=tmax, fmin=fmin,
                                 fmax=fmax, ch_type=ch_type, baseline=baseline,
