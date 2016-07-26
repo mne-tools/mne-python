@@ -121,6 +121,7 @@ plt.show()
 evoked = EvokedArray(filters, epochs.info, tmin=epochs.tmin)
 evoked.plot_topomap(ch_type=ch_type)
 
+#############################################################################
 # Note that a similar transformation can be applied with `compute_ems`
 # However, this function replicates Schurger et al's original paper, and thus
 # applies the normalization outside a leave-one-out cross-validation, which we

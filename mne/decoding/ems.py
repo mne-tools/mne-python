@@ -40,10 +40,10 @@ class EMS(TransformerMixin, EstimatorMixin):
 
     def __repr__(self):
         if hasattr(self, 'filters_'):
-            return 'EMS: fitted with %i filters on %i classes.' % (
+            return '<EMS: fitted with %i filters on %i classes.>' % (
                 len(self.filters_), len(self.classes_))
         else:
-            return 'EMS: not fitted.'
+            return '<EMS: not fitted.>'
 
     def fit(self, X, y):
         """Fit the spatial filters.
