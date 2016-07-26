@@ -265,17 +265,17 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
         The frequencies.
     sfreq : float | int, defaults to 1.0
         Sampling frequency of the data.
-    method : 'mtm' | 'morlet', defaults to 'morlet'
-        The time frequency method. 'morlet' convolves a Morlet wavelet. 'mtm'
+    method : 'multitaper' | 'morlet', defaults to 'morlet'
+        The time frequency method. 'morlet' convolves a Morlet wavelet. 'multitaper'
         convolves DPSS tapers.
     n_cycles : float | array of float, defaults to 7.0
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.
-    zero_mean : bool | None, defaults to None, which will use True for method='mtm' and False for method='morlet'. # noqa
+    zero_mean : bool | None, defaults to None, which will use True for method='multitaper' and False for method='morlet'. # noqa
         Make sure the wavelets have a mean of zero.
-        method == 'mtm' and defaults to False if method == 'morlet'.
+        method == 'multitaper' and defaults to False if method == 'morlet'.
     time_bandwidth : float, defaults to 4.0 (3 tapers)
-        Time x (Full) Bandwidth product. Only applies if method == 'mtm'.
+        Time x (Full) Bandwidth product. Only applies if method == 'multitaper'.
         The number of good tapers (low-bias) is chosen automatically based on
         this to equal floor(time_bandwidth - 1).
     use_fft : bool, defaults to True
@@ -335,28 +335,28 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
     if output not in allowed_ouput:
         raise ValueError("Unknown output type.")
 
-    if method not in ('mtm', 'morlet'):
-        raise ValueError('method must be "morlet" or "mtm"')
+    if method not in ('multitaper', 'morlet'):
+        raise ValueError('method must be "morlet" or "multitaper"')
 
-    # Default zero_mean = True if mtm else False
-    zero_mean = method == 'mtm' if zero_mean is None else zero_mean
+    # Default zero_mean = True if multitaper else False
+    zero_mean = (method == 'multitaper' if zero_mean is None else zero_mean)
     if not isinstance(zero_mean, bool):
         raise ValueError('')
     frequencies = np.asarray(frequencies)
 
-    # XXX Can we compute single-trial phases with mtm?
-    if (method == 'mtm') and (output == 'phase'):
+    # XXX Can we compute single-trial phases with multitaper?
+    if (method == 'multitaper') and (output == 'phase'):
         raise NotImplementedError(
             'This function is not optimized to compute the phase using the '
-            'mtm method. Use np.angle of the complex output instead.')
+            'multitaper method. Use np.angle of the complex output instead.')
 
     # Setup wavelet
     if method == 'morlet':
         W = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
-        Ws = [W]  # to have same dimensionality as the 'mtm' case
+        Ws = [W]  # to have same dimensionality as the 'multitaper' case
         if time_bandwidth != 4.0:
-            raise ValueError('time_bandwidth only applies to "mtm" method.')
-    elif method == 'mtm':
+            raise ValueError('time_bandwidth only works with "multitaper".')
+    elif method == 'multitaper':
         Ws = _make_dpss(sfreq, frequencies, n_cycles=n_cycles,
                         time_bandwidth=time_bandwidth, zero_mean=zero_mean)
 
@@ -682,7 +682,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
 
 
 # Time frequency on MNE instance: FIXME probably needs to be simplified to
-# reduce redundancy between morlet and mtm
+# reduce redundancy between morlet and multitaper
 
 
 @verbose
@@ -815,7 +815,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
     out = timefreq_transform(data, freqs, info['sfreq'], n_cycles=n_cycles,
                              n_jobs=n_jobs, use_fft=use_fft, decim=decim,
-                             zero_mean=True, method='mtm',
+                             zero_mean=True, method='multitaper',
                              time_bandwidth=time_bandwidth,
                              output='avg_power_itc')
     power, itc = out.real, out.imag

@@ -459,11 +459,11 @@ def test_timefreq_transform():
 
     # Check all combination of options
     for method, use_fft, zero_mean, output in product(
-        ('mtm', 'morlet'), (False, True), (False, True),
+        ('multitaper', 'morlet'), (False, True), (False, True),
         ('complex', 'power', 'phase',
          'avg_power_itc', 'avg_power', 'itc')):
         # Check exception
-        if (method == 'mtm') and (output == 'phase'):
+        if (method == 'multitaper') and (output == 'phase'):
             assert_raises(NotImplementedError, timefreq_transform, data, freqs,
                           sfreq, method=method, output=output)
             continue
@@ -521,7 +521,7 @@ def test_timefreq_transform():
                   method='morlet', time_bandwidth=1)
     # No phase in multitaper XXX Check ?
     assert_raises(NotImplementedError, timefreq_transform, data, freqs, sfreq,
-                  method='mtm', output='phase')
+                  method='multitaper', output='phase')
 
     # Inter-trial coherence tests
     out = timefreq_transform(data, freqs, sfreq, output='itc', n_cycles=2.)
@@ -537,7 +537,7 @@ def test_timefreq_transform():
         _decim = slice(None, None, decim) if isinstance(decim, int) else decim
         n_time = len(np.arange(data.shape[2])[_decim])
         shape = np.r_[data.shape[:2], len(freqs), n_time]
-        for method in ('mtm', 'morlet'):
+        for method in ('multitaper', 'morlet'):
             # Single trials
             out = timefreq_transform(data, freqs, sfreq, method=method,
                                      decim=decim, n_cycles=2.)
