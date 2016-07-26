@@ -299,7 +299,7 @@ class Vectorizer(TransformerMixin):
 
         Returns
         -------
-        X : array, shape (n_samples, -1)
+        X : array, shape (n_samples, n_features)
             The transformed data.
         """
         X = np.asarray(X)
@@ -334,13 +334,13 @@ class Vectorizer(TransformerMixin):
         Parameters
         ----------
         X : array-like, shape (n_samples,  n_features)
-            Transform data back to original shape.
+            Data to be transformed back to original shape.
 
         Returns
         -------
         X : array
             The data transformed into shape as used in fit. The first
-            dimension is of length (n_samples).
+            dimension is of length n_samples.
         """
         X = np.asarray(X)
         if X.ndim != 2:
