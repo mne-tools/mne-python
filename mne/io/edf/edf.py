@@ -204,7 +204,7 @@ class RawEDF(_BaseRaw):
                     # make sure events without duration get one sample
                     n_stop = n_stop if n_stop > n_start else n_start + 1
                     if any(stim[n_start:n_stop]):
-                        warn('EDF+ with overlapping events not supported.')
+                        warn('EDF+ with overlapping events are not fully supported.')
                     stim[n_start:n_stop] = evid
                 data[stim_channel_idx, :] = stim[start:stop]
             else:
@@ -258,7 +258,7 @@ def _parse_tal_channel(tal_channel_data):
         if  0 <= i0 < 128 and 0 <= i1 < 128:
             tals.extend([i0, i1])
         else:
-            warn('Skipped invalid caracters...')
+            warn('Skipped invalid character...')
 
     regex_tal = '([+-]\d+\.?\d*)(\x15(\d+\.?\d*))?(\x14.*?)\x14\x00'
     tal_list = re.findall(regex_tal, tals.decode('ascii'))
