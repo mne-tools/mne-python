@@ -40,27 +40,22 @@ print(__doc__)
 
 data_path = sample.data_path()
 
-# Set parameters
+# Preprocess the data
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 event_ids = {'AudL': 1, 'VisL': 3}
-tmin = -0.2
-tmax = 0.5
 
 # Read data and create epochs
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 45)
+raw.filter(.6, 45)
 events = mne.read_events(event_fname)
 
-include = []  # or stim channels ['STI 014']
-ch_type = 'grad'
-picks = mne.pick_types(raw.info, meg=ch_type, eeg=False, stim=False, eog=True,
-                       include=include, exclude='bads')
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
+                       exclude='bads')
 
-reject = dict(grad=4000e-13, eog=150e-6)
-
-epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
-                    baseline=None, reject=reject, preload=True)
+epochs = mne.Epochs(raw, events, event_ids, tmin=-0.2, tmax=0.5, picks=picks,
+                    baseline=None, reject=dict(grad=4000e-13, eog=150e-6),
+                    preload=True)
 epochs.drop_bad()
 epochs.pick_types(meg='grad')
 
@@ -69,31 +64,37 @@ X = epochs.get_data()  # The MEG data
 y = epochs.events[:, 2]  # The conditions indices
 n_epochs, n_channels, n_times = X.shape
 
+#############################################################################
+
 # Initialize EMS transformer
 ems = EMS()
 
-# initialize the variables of interest
+# Initialize the variables of interest
 X_transform = np.zeros((n_epochs, n_times))  # Data after EMS transformation
 filters = list()  # Spatial filters at each time point
 
 # In the original paper, the cross-validation is a leave-one-out. However,
-# we recommend using a Stratified KFold, as LOO is known to generate biases.
+# we recommend using a Stratified KFold, because leave-one-out tends
+# to overfit and cannot be used to estimate the variance of the
+# prediction within a given fold.
+
 for train, test in StratifiedKFold(y):
     # In the original paper, the z-scoring is applied outside the CV.
     # However, we recommend to apply this preprocessing inside the CV.
     # Note that such scaling should be done separately for each channels if the
     # data contains multiple channel types.
-    # Note that X_scaled does not have any unit anymore.
     X_scaled = X / np.std(X[train])
 
     # Fit and store the spatial filters
     ems.fit(X_scaled[train], y[train])
+
+    # Store filters for future plotting
     filters.append(ems.filters_)
 
     # Generate the transformed data
     X_transform[test] = ems.transform(X_scaled[test])
 
-# Average the spatial filters
+# Average the spatial filters across folds
 filters = np.mean(filters, axis=0)
 
 # Plot individual trials
@@ -119,7 +120,7 @@ plt.show()
 
 # Visualize spatial filters across time
 evoked = EvokedArray(filters, epochs.info, tmin=epochs.tmin)
-evoked.plot_topomap(ch_type=ch_type)
+evoked.plot_topomap()
 
 #############################################################################
 # Note that a similar transformation can be applied with `compute_ems`

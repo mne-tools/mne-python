@@ -102,9 +102,11 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
     .. note : EMS only works for binary classification.
     .. note : The present function applies a leave-one-out cross-validation,
               following Schurger et al's paper. However, we recommend using
-              a Stratified K-Fold cross-validation, which is known to have
-              less biases. Because of the leave-one-out, thise function needs
-              an equal number of epochs in each condition.
+              a stratified k-fold cross-validation. Indeed, leave-one-out tends
+              to overfit and cannot be used to estimate the variance of the
+              prediction within a given fold.
+    .. note : Because of the leave-one-out, thise function needs an equal
+              number of epochs in each of the two conditions.
 
     References
     ----------
