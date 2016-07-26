@@ -7,6 +7,7 @@
 import numpy as np
 
 from .mixin import TransformerMixin
+from .base import BaseEstimator
 
 from .. import pick_types
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
@@ -626,7 +627,7 @@ class FilterEstimator(TransformerMixin):
         return epochs_data
 
 
-class UnsupervisedSpatialFilter(TransformerMixin):
+class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
     """Fit and transform with an unsupervised spatial filtering across time
     and samples.
 
@@ -639,6 +640,11 @@ class UnsupervisedSpatialFilter(TransformerMixin):
         (e.g. epochs).
     """
     def __init__(self, estimator, average=False):
+        self._check_estimator(estimator, average)
+        self.estimator = estimator
+        self.average = average
+
+    def _check_estimator(self, estimator, average):
         for attr in ('fit', 'transform', 'fit_transform'):
             if not hasattr(estimator, attr):
                 raise ValueError('estimator must be a scikit-learn '
@@ -647,8 +653,6 @@ class UnsupervisedSpatialFilter(TransformerMixin):
         if not isinstance(average, bool):
             raise ValueError("average parameter must be of bool type, got "
                              "%s instead" % type(bool))
-        self.estimator = estimator
-        self.average = average
 
     def fit(self, X, y=None):
         """Fit the spatial filters.
@@ -670,8 +674,8 @@ class UnsupervisedSpatialFilter(TransformerMixin):
         else:
             n_epochs, n_channels, n_times = X.shape
             # trial as time samples
-            X = np.transpose(X, (1, 0, 2)).reshape((n_chan, n_epoch *
-                                                    n_time)).T
+            X = np.transpose(X, (1, 0, 2)).reshape((n_channels, n_epochs *
+                                                    n_times)).T
         self.estimator.fit(X)
         return self
 
@@ -707,7 +711,8 @@ class UnsupervisedSpatialFilter(TransformerMixin):
         """
         n_epochs, n_channels, n_times = X.shape
         # trial as time samples
-        X = np.transpose(X, [1, 0, 2]).reshape([n_chan, n_epoch * n_time]).T
+        X = np.transpose(X, [1, 0, 2]).reshape([n_channels, n_epochs *
+                                                n_times]).T
         X = self.estimator.transform(X)
-        X = np.reshape(X.T, [-1, n_epoch, n_time]).transpose([1, 0, 2])
+        X = np.reshape(X.T, [-1, n_epochs, n_times]).transpose([1, 0, 2])
         return X
