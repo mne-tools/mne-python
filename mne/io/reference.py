@@ -157,6 +157,10 @@ def add_reference_channels(inst, ref_channels, copy=True):
         if ch in inst.info['ch_names']:
             raise ValueError("Channel %s already specified in inst." % ch)
 
+    # Once CAR is applied (active), don't allow adding channels
+    if _has_eeg_average_ref_proj(inst.info['projs'], check_active=True):
+        raise RuntimeError('Average reference already applied to data.')
+
     if copy:
         inst = inst.copy()
 
@@ -181,6 +185,22 @@ def add_reference_channels(inst, ref_channels, copy=True):
         raise TypeError("inst should be Raw, Epochs, or Evoked instead of %s."
                         % type(inst))
     nchan = len(inst.info['ch_names'])
+
+    # "zeroth" EEG electrode dig points is reference
+    ref_dig_loc = [dl for dl in inst.info['dig'] if (
+                   dl['kind'] == FIFF.FIFFV_POINT_EEG and
+                   dl['ident'] == 0)]
+    if len(ref_channels) > 1 or len(ref_dig_loc) != len(ref_channels):
+        ref_dig_array = np.zeros(12)
+        warn('The locations of multiple reference channels are ignored '
+             '(set to zero).')
+    else:  # n_ref_channels == 1 and a single ref digitization exists
+        ref_dig_array = np.concatenate((ref_dig_loc[0]['r'],
+                                       ref_dig_loc[0]['r'], np.zeros(6)))
+        # Replace the (possibly new) Ref location for each channel
+        for idx in pick_types(inst.info, meg=False, eeg=True, exclude=[]):
+            inst.info['chs'][idx]['loc'][3:6] = ref_dig_loc[0]['r']
+
     for ch in ref_channels:
         chan_info = {'ch_name': ch,
                      'coil_type': FIFF.FIFFV_COIL_EEG,
@@ -192,12 +212,13 @@ def add_reference_channels(inst, ref_channels, copy=True):
                      'unit_mul': 0.,
                      'unit': FIFF.FIFF_UNIT_V,
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                     'loc': np.zeros(12)}
+                     'loc': ref_dig_array}
         inst.info['chs'].append(chan_info)
         inst.info._update_redundant()
     if isinstance(inst, _BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
     inst.info._check_consistency()
+    set_eeg_reference(inst, ref_channels=ref_channels, copy=False)
     return inst
 
 

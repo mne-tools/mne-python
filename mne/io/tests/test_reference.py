@@ -249,6 +249,11 @@ def test_add_reference():
     assert_equal(raw.info['nchan'], orig_nchan + 1)
     _check_channel_names(raw, 'Ref')
 
+    # for Neuromag fif's, the reference electrode location is placed in
+    # elements [3:6] of each "data" electrode location
+    assert_allclose(raw.info['chs'][-1]['loc'][:3],
+                    raw.info['chs'][picks_eeg[0]]['loc'][3:6], 1e-6)
+
     ref_idx = raw.ch_names.index('Ref')
     ref_data, _ = raw[ref_idx]
     assert_array_equal(ref_data, 0)
@@ -280,7 +285,16 @@ def test_add_reference():
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True)
+    # default: proj=True, after which adding a Ref channel is prohibited
+    assert_raises(RuntimeError, add_reference_channels, epochs, 'Ref')
+
+    # create epochs in delayed mode, allowing removal of CAR when re-reffing
+    epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
+                    picks=picks_eeg, preload=True, proj='delayed')
     epochs_ref = add_reference_channels(epochs, 'Ref', copy=True)
+    # CAR after custom reference is an Error
+    assert_raises(RuntimeError, epochs_ref.add_eeg_average_proj)
+
     assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 1)
     _check_channel_names(epochs_ref, 'Ref')
     ref_idx = epochs_ref.ch_names.index('Ref')
@@ -294,8 +308,9 @@ def test_add_reference():
     raw = Raw(fif_fname, preload=True)
     events = read_events(eve_fname)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    # create epochs in delayed mode, allowing removal of CAR when re-reffing
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
-                    picks=picks_eeg, preload=True)
+                    picks=picks_eeg, preload=True, proj='delayed')
     epochs_ref = add_reference_channels(epochs, ['M1', 'M2'], copy=True)
     assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 2)
     _check_channel_names(epochs_ref, ['M1', 'M2'])
@@ -313,8 +328,9 @@ def test_add_reference():
     raw = Raw(fif_fname, preload=True)
     events = read_events(eve_fname)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    # create epochs in delayed mode, allowing removal of CAR when re-reffing
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
-                    picks=picks_eeg, preload=True)
+                    picks=picks_eeg, preload=True, proj='delayed')
     evoked = epochs.average()
     evoked_ref = add_reference_channels(evoked, 'Ref', copy=True)
     assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 1)
@@ -330,8 +346,9 @@ def test_add_reference():
     raw = Raw(fif_fname, preload=True)
     events = read_events(eve_fname)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    # create epochs in delayed mode, allowing removal of CAR when re-reffing
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
-                    picks=picks_eeg, preload=True)
+                    picks=picks_eeg, preload=True, proj='delayed')
     evoked = epochs.average()
     evoked_ref = add_reference_channels(evoked, ['M1', 'M2'], copy=True)
     assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 2)
