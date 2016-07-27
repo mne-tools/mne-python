@@ -262,7 +262,10 @@ def _parse_tal_channel(tal_channel_data):
             warn('Skipped invalid character...')
 
     regex_tal = '([+-]\d+\.?\d*)(\x15(\d+\.?\d*))?(\x14.*?)\x14\x00'
-    tal_list = re.findall(regex_tal, tals.decode('ascii'))
+    # use of latin-1 because characters are only encoded for the first 256
+    # code points and utf-8 can triggers an "invalid continuation byte" error
+    tal_list = re.findall(regex_tal, tals.decode('latin-1'))
+
     events = []
     for ev in tal_list:
         onset = float(ev[0])
