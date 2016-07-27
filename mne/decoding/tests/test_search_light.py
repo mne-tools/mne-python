@@ -27,6 +27,8 @@ def test_searchlight():
     from sklearn.pipeline import make_pipeline
     X, y = make_data()
     n_epochs, _, n_time = X.shape
+    # init
+    assert_raises(ValueError, SearchLight, 'foo')
     # fit
     sl = SearchLight(LogisticRegression())
     assert_equal(sl.__repr__()[:13], '<SearchLight(')

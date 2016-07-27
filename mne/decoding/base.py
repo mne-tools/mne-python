@@ -704,3 +704,16 @@ def _set_cv(cv, estimator=None, X=None, y=None):
         raise ValueError('Some folds do not have any train epochs.')
 
     return cv, cv_splits
+
+
+def _check_estimator(estimator, get_params=True):
+    """Check whether an object has the fit, transform, fit_transform and
+    get_params methods required by scikit-learn"""
+    for attr in ('fit', 'transform', 'fit_transform'):
+        if not hasattr(estimator, attr):
+            raise ValueError('estimator must be a scikit-learn transformer or '
+                             'an estimator with the %s method' % attr)
+    if get_params and not hasattr(estimator, attr):
+        raise ValueError('estimator must be a scikit-learn transformer or an '
+                         'estimator with the get_params method that allows '
+                         'cloning.')

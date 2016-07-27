@@ -5,7 +5,7 @@
 import numpy as np
 
 from .mixin import TransformerMixin
-from .base import BaseEstimator  # XXX reorganize sklearn objects.
+from .base import BaseEstimator, _check_estimator
 from ..parallel import parallel_func
 
 
@@ -31,6 +31,7 @@ class SearchLight(BaseEstimator, TransformerMixin):
         return repr_str + '>'
 
     def __init__(self, base_estimator, n_jobs=1):
+        _check_estimator(base_estimator)
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
         if not isinstance(self.n_jobs, int):
