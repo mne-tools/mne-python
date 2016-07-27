@@ -353,16 +353,20 @@ x += np.sin(2. * np.pi * 60. * np.arange(len(x)) / sfreq) / 2000.
 
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
-filter_dur = 5. / transition_band  # sec
+filter_dur = 7. / transition_band  # sec
 n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
 x_shallow = np.convolve(h, x)[len(h) // 2:]
 
+plot_filter(h, 'MNE-Python 0.14 default', freq, gain)
+
 ###############################################################################
-# Now let's filter it with the MNE-Python 0.12 defaults, which is a
-# long-duration, steep cutoff FIR:
+# This is actually set to become the default type of filter used in MNE-Python
+# in 0.14 (see :ref:`tut_filtering_in_python`). Let's also filter it with the
+# MNE-Python 0.12 default, which is a long-duration, steep cutoff FIR
+# that gets applied twice:
 
 transition_band = 0.5  # Hz
 f_s = f_p + transition_band
@@ -371,13 +375,13 @@ n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
-x_steep = np.convolve(h, x)[len(h) // 2:]
+x_steep = np.convolve(np.convolve(h, x)[::-1], h)[::-1][len(h) - 1:-len(h) - 1]
 
 plot_filter(h, 'MNE-Python 0.12 default', freq, gain)
 
 ###############################################################################
 # It has excellent frequency attenuation, but this comes at a cost of potential
-# ringing (long-lasting ripples) in the time domain. Ripple can occur with
+# ringing (long-lasting ripples) in the time domain. Ringing can occur with
 # steep filters, especially on signals with frequency content around the
 # transition band. Our Morlet wavelet signal has power in our transition band,
 # and the time-domain ringing is thus more pronounced for the steep-slope,
@@ -400,12 +404,12 @@ def plot_signal(x, offset):
     axs[1].set(xlim=xlim)
 
 yticks = np.arange(4) / -30.
-yticklabels = ['Original', 'Noisy', 'FIR-shallow', 'FIR-steep']
+yticklabels = ['Original', 'Noisy', 'FIR-shallow (0.14)', 'FIR-steep (0.12)']
 plot_signal(x_orig, offset=yticks[0])
 plot_signal(x, offset=yticks[1])
 plot_signal(x_shallow, offset=yticks[2])
 plot_signal(x_steep, offset=yticks[3])
-axs[0].set(xlim=tlim, title='Lowpass=%d Hz' % f_p, xticks=tticks,
+axs[0].set(xlim=tlim, title='FIR, Lowpass=%d Hz' % f_p, xticks=tticks,
            ylim=[-0.125, 0.025], yticks=yticks, yticklabels=yticklabels,)
 for text in axs[0].get_yticklabels():
     text.set(rotation=45, size=8)
@@ -508,7 +512,7 @@ plot_signal(x_orig, offset=yticks[0])
 plot_signal(x, offset=yticks[1])
 plot_signal(x_shallow, offset=yticks[2])
 plot_signal(x_steep, offset=yticks[3])
-axs[0].set(xlim=tlim, title='Lowpass=%d Hz' % f_p, xticks=tticks,
+axs[0].set(xlim=tlim, title='IIR, Lowpass=%d Hz' % f_p, xticks=tticks,
            ylim=[-0.125, 0.025], yticks=yticks, yticklabels=yticklabels,)
 for text in axs[0].get_yticklabels():
     text.set(rotation=45, size=8)

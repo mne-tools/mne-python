@@ -17,6 +17,8 @@ Changelog
 
     - Adds automatic determiniation of FIR filter parameters ``filter_length``, ``l_trans_bandwidth``, and ``h_trans_bandwidth`` and adds ``phase`` argument in e.g. in :meth:`mne.io.Raw.filter` by `Eric Larson`_
 
+    - Adds faster ``n_fft='auto'`` option to :meth:`mne.io.Raw.apply_hilbert` by `Eric Larson`_
+
     - Adds new function :func:`mne.time_frequency.csd_array` to compute the cross-spectral density of multivariate signals stored in an array, by `Nick Foti`_
 
     - Add order params 'selection' and 'position' for :func:`mne.viz.plot_raw` to allow plotting of specific brain regions by `Jaakko Leppakangas`_
@@ -89,7 +91,7 @@ API
 
           4. A warning is provided when the filter is longer than the signal of interest, as this is unlikely to produce desired results.
 
-          5. Previously, if the filter was as long or longer than the signal of interest, direct FFT-based computations were used. Now a single path (overlap-add filtering) is used for all filters. This could cause minor changes in how short signals are filtered.
+          5. Previously, if the filter was as long or longer than the signal of interest, direct FFT-based computations were used. Now a single path (overlap-add filtering) is used for all FIR filters. This could cause minor changes in how short signals are filtered.
 
     - When CTF gradient compensation is applied to raw data, it is no longer reverted on save of :meth:`mne.io.Raw.save` by `Eric Larson`_
 
