@@ -2851,8 +2851,11 @@ def _compare_epochs_infos(info1, info2, ind):
             (info1['dev_head_t'] is not None and not
              np.allclose(info1['dev_head_t']['trans'],
                          info2['dev_head_t']['trans'], rtol=1e-6)):
-        raise ValueError('epochs[%d][\'info\'][\'dev_head_t\'] must match'
-                         % ind)
+        raise ValueError('epochs[%d][\'info\'][\'dev_head_t\'] must match. '
+                         'The epochs probably come from different blocks, and '
+                         'are therefore associated with different head '
+                         'positions. Manually change info[\'dev_head_t\'] to '
+                         'avoid this message.' % ind)
 
 
 def _concatenate_epochs(epochs_list, with_data=True):
