@@ -640,8 +640,8 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         (e.g. epochs).
     """
     def __init__(self, estimator, average=False):
-         # XXX: Use _check_estimator #3381
-         for attr in ('fit', 'transform', 'fit_transform'):
+        # XXX: Use _check_estimator #3381
+        for attr in ('fit', 'transform', 'fit_transform'):
             if not hasattr(estimator, attr):
                 raise ValueError('estimator must be a scikit-learn '
                                  'transformer, missing %s method' % attr)
