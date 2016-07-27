@@ -79,6 +79,7 @@ BUG
     - Fixed a bug with channel order determination that could lead to an ``AssertionError`` when using :class:`mne.Covariance` matrices by `Eric Larson`_
 
     - Fixed the check for CTF gradient compensation in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
+    - Fixed the import of EDF files with encoding characters in :func:`edf.py` by `Guillaume Dumas`_
 
 API
 ~~~
@@ -1691,3 +1692,5 @@ of commits):
 .. _Felix Raimundo: https://github.com/gamazeps
 
 .. _Nick Foti: http://nfoti.github.io
+
+.. _Guillaume Dumas: http://www.extrospection.eu
