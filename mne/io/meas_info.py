@@ -7,6 +7,7 @@
 from copy import deepcopy
 from datetime import datetime as dt
 import os.path as op
+import re
 
 import numpy as np
 from scipy import linalg
@@ -358,10 +359,11 @@ def _read_dig_fif(fid, meas_info):
     return dig
 
 
-def _read_dig_points(fname, comments='%'):
+def _read_dig_points(fname, comments='%', unit='auto'):
     """Read digitizer data from a text file.
 
-    This function can read space-delimited text files of digitizer data.
+    If fname ends in .hsp or .esp, the function assumes digitizer files in [m],
+    otherwise it assumes space-delimited text files in [mm].
 
     Parameters
     ----------
@@ -370,16 +372,44 @@ def _read_dig_points(fname, comments='%'):
     comments : str
         The character used to indicate the start of a comment;
         Default: '%'.
+    unit : 'auto' | 'm' | 'cm' | 'mm'
+        Unit of the digitizer files (hsp and elp). If not 'm', coordinates will
+        be rescaled to 'm'. Default is 'auto', which assumes 'm' for *.hsp and
+        *.elp files and 'mm' for *.txt files, corresponding to the known
+        Polhemus export formats.
 
     Returns
     -------
     dig_points : np.ndarray, shape (n_points, 3)
-        Array of dig points.
+        Array of dig points in [m].
     """
-    dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
+    if unit not in ('auto', 'm', 'mm', 'cm'):
+        raise ValueError('unit must be one of "auto", "m", "mm", or "cm"')
+
+    _, ext = op.splitext(fname)
+    if ext == '.elp' or ext == '.hsp':
+        with open(fname) as fid:
+            file_str = fid.read()
+        value_pattern = "\-?\d+\.?\d*e?\-?\d*"
+        coord_pattern = "({0})\s+({0})\s+({0})\s*$".format(value_pattern)
+        if ext == '.hsp':
+            coord_pattern = '^' + coord_pattern
+        points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
+                                                      re.MULTILINE)]
+        dig_points = np.array(points_str, dtype=float)
+    else:
+        dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
+        if unit == 'auto':
+            unit = 'mm'
+
     if dig_points.shape[-1] != 3:
         err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
         raise ValueError(err)
+
+    if unit == 'mm':
+        dig_points /= 1000.
+    elif unit == 'cm':
+        dig_points /= 100.
 
     return dig_points
 

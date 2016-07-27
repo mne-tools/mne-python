@@ -22,8 +22,6 @@ from .externals.six import string_types
 # right/anterior/superior:
 als_ras_trans = np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0],
                           [0, 0, 0, 1]])
-# simultaneously convert [m] to [mm]:
-als_ras_trans_mm = als_ras_trans * [0.001, 0.001, 0.001, 1]
 
 
 _str_to_frame = dict(meg=FIFF.FIFFV_COORD_DEVICE,

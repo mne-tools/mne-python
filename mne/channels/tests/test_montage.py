@@ -5,7 +5,7 @@
 import os.path as op
 import warnings
 
-from nose.tools import assert_equal, assert_true
+from nose.tools import assert_equal, assert_true, assert_raises
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_almost_equal,
@@ -144,7 +144,7 @@ def test_montage():
 def test_read_dig_montage():
     """Test read_dig_montage"""
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
-    montage = read_dig_montage(hsp, hpi, elp, names, unit='m', transform=False)
+    montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
     elp_points = _read_dig_points(elp)
     hsp_points = _read_dig_points(hsp)
     hpi_points = read_mrk(hpi)
@@ -167,6 +167,21 @@ def test_read_dig_montage():
                                     src_pts=montage.hpi, out='trans')
     assert_array_equal(montage.dev_head_t, dev_head_t)
 
+    # Digitizer as array
+    m2 = read_dig_montage(hsp_points, hpi_points, elp_points, names, unit='m')
+    assert_array_equal(m2.hsp, montage.hsp)
+    m3 = read_dig_montage(hsp_points * 1000, hpi_points, elp_points * 1000,
+                          names)
+    assert_allclose(m3.hsp, montage.hsp)
+
+    # test unit parameter
+    montage_cm = read_dig_montage(hsp, hpi, elp, names, unit='cm')
+    assert_allclose(montage_cm.hsp, montage.hsp * 10.)
+    assert_allclose(montage_cm.elp, montage.elp * 10.)
+    assert_array_equal(montage_cm.hpi, montage.hpi)
+    assert_raises(ValueError, read_dig_montage, hsp, hpi, elp, names,
+                  unit='km')
+
 
 def test_set_dig_montage():
     """Test applying DigMontage to inst
@@ -183,7 +198,7 @@ def test_set_dig_montage():
     nasion_point, lpa_point, rpa_point = elp_points[:3]
     hsp_points = apply_trans(nm_trans, hsp_points)
 
-    montage = read_dig_montage(hsp, hpi, elp, names, unit='m', transform=True)
+    montage = read_dig_montage(hsp, hpi, elp, names, transform=True)
     info = create_info(['Test Ch'], 1e3, ['eeg'])
     _set_montage(info, montage)
     hs = np.array([p['r'] for i, p in enumerate(info['dig'])
