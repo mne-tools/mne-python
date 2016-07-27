@@ -22,7 +22,7 @@ from scipy import linalg
 from ..surface import read_surface
 from ..externals.six import string_types
 from ..io.proj import make_projector
-from ..source_space import read_source_spaces
+from ..source_space import read_source_spaces, SourceSpaces
 from ..utils import logger, verbose, get_subjects_dir, warn
 from ..io.pick import pick_types
 from .utils import tight_layout, COLORS, _prepare_trellis, plt_show
@@ -250,8 +250,8 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     surfaces : list of (str, str) tuples
         A list containing the BEM surfaces to plot as (filename, color) tuples.
         Colors should be matplotlib-compatible.
-    src : None | str
-        Path to a source space for plotting individual sources.
+    src : None | SourceSpaces
+        SourceSpaces object for plotting individual sources.
     orientation : str
         'coronal' or 'axial' or 'sagittal'
     slices : list of int
@@ -306,11 +306,13 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         surfs.append((surf, color))
 
     src_points = list()
-    if src is not None:
-        src = read_source_spaces(src)
+    if isinstance(src, SourceSpaces):
         for src_ in src:
             points = src_['rr'][src_['inuse'].astype(bool)] * 1e3
             src_points.append(nib.affines.apply_affine(trans, points))
+    elif src is not None:
+        raise TypeError("src needs to be None or SourceSpaces instance, not "
+                        "%s" % repr(src))
 
     fig, axs = _prepare_trellis(len(slices), 4)
 
@@ -366,11 +368,11 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     brain_surfaces : None | str | list of str
         One or more brain surface to plot (optional). Entries should correspond
         to files in the subject's ``surf`` directory (e.g. ``"white"``).
-    src : None | str
-        Path to a source space to plot individual sources as scatter-plot.
-        Only sources lying in the shown slices will be visible, sources that
-        lie between visible slices are not shown. Path can be absolute or
-        relative to the subject's ``bem`` folder.
+    src : None | SourceSpaces | str
+        SourceSpaces instance or path to a source space to plot individual
+        sources as scatter-plot. Only sources lying in the shown slices will be
+        visible, sources that lie between visible slices are not shown. Path
+        can be absolute or relative to the subject's ``bem`` folder.
     show : bool
         Show figure if True.
 
@@ -414,16 +416,17 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
                 else:
                     raise IOError("Surface %s does not exist." % surf_fname)
 
-    if src is not None:
-        if not isinstance(src, string_types):
-            raise TypeError("The src argument needs to be None or a string, "
-                            "not %s" % repr(src))
-        elif not op.exists(src):
+    if isinstance(src, string_types):
+        if not op.exists(src):
             src_ = op.join(subjects_dir, subject, 'bem', src)
             if op.exists(src_):
                 src = src_
             else:
                 raise IOError("%s does not exist" % src)
+        src = read_source_spaces(src)
+    elif src is not None and not isinstance(src, SourceSpaces):
+        raise TypeError("src needs to be None, str or SourceSpaces instance, "
+                        "not %s" % repr(src))
 
     if len(surfaces) == 0:
         raise IOError('No surface files found. Surface files must end with '
