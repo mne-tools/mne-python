@@ -814,7 +814,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
                   layout=None, cmap='RdBu_r', title=None, dB=False,
                   colorbar=True, layout_scale=0.945, show=True,
-                  border='none', fig_facecolor='k', font_color='w'):
+                  border='none', fig_facecolor='k', fig_background=None,
+                  font_color='w'):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -878,6 +879,9 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             matplotlib borders style to be used for each sensor plot.
         fig_facecolor : str | obj
             The figure face color. Defaults to black.
+        fig_background : None | array
+            A background image for the figure. This must be a valid input to
+            `matplotlib.pyplot.imshow`. Defaults to None.
         font_color: str | obj
             The color of tick labels in the colorbar. Defaults to white.
 
@@ -887,6 +891,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             The figure containing the topography.
         """  # noqa
         from ..viz.topo import _imshow_tfr, _plot_topo, _imshow_tfr_unified
+        from ..viz import add_background_image
         times = self.times.copy()
         freqs = self.freqs
         data = self.data
@@ -917,6 +922,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                          x_label='Time (ms)', y_label='Frequency (Hz)',
                          fig_facecolor=fig_facecolor, font_color=font_color,
                          unified=True, img=True)
+
+        add_background_image(fig, fig_background)
         plt_show(show)
         return fig
 

@@ -999,10 +999,9 @@ def add_background_image(fig, im, set_ratios=None):
     ----------
     fig : plt.figure
         The figure you wish to add a bg image to.
-    im : ndarray
-        A numpy array that works with a call to
-        plt.imshow(im). This will be plotted
-        as the background of the figure.
+    im : array, shape (M, N, {3, 4})
+        A background image for the figure. This must be a valid input to
+        `matplotlib.pyplot.imshow`. Defaults to None.
     set_ratios : None | str
         Set the aspect ratio of any axes in fig
         to the value in set_ratios. Defaults to None,
@@ -1018,6 +1017,9 @@ def add_background_image(fig, im, set_ratios=None):
     .. versionadded:: 0.9.0
 
     """
+    if im is None:
+        # Don't do anything and return nothing
+        return None
     if set_ratios is not None:
         for ax in fig.axes:
             ax.set_aspect(set_ratios)

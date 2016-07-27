@@ -999,8 +999,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
                         colorbar=True, order=None, cmap='RdBu_r',
                         layout_scale=.95, title=None, scalings=None,
-                        border='none', fig_facecolor='k', font_color='w',
-                        show=True):
+                        border='none', fig_facecolor='k', fig_background=None,
+                        font_color='w', show=True):
         """Plot Event Related Potential / Fields image on topographies
 
         Parameters
@@ -1038,6 +1038,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             matplotlib borders style to be used for each sensor plot.
         fig_facecolor : str | obj
             The figure face color. Defaults to black.
+        fig_background : None | array
+            A background image for the figure. This must be a valid input to
+            `matplotlib.pyplot.imshow`. Defaults to None.
         font_color : str | obj
             The color of tick labels in the colorbar. Defaults to white.
         show : bool
@@ -1052,8 +1055,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self, layout=layout, sigma=sigma, vmin=vmin, vmax=vmax,
             colorbar=colorbar, order=order, cmap=cmap,
             layout_scale=layout_scale, title=title, scalings=scalings,
-            border=border, fig_facecolor=fig_facecolor, font_color=font_color,
-            show=show)
+            border=border, fig_facecolor=fig_facecolor,
+            fig_background=fig_background, font_color=font_color, show=show)
 
     @verbose
     def drop_bad(self, reject='existing', flat='existing', verbose=None):
