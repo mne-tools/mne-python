@@ -267,7 +267,14 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     import matplotlib.pyplot as plt
     import nibabel as nib
 
-    if orientation not in ['coronal', 'axial', 'sagittal']:
+    # plot axes (x, y, z) as data axes (0, 1, 2)
+    if orientation == 'coronal':
+        x, y, z = 0, 1, 2
+    elif orientation == 'axial':
+        x, y, z = 2, 0, 1
+    elif orientation == 'sagittal':
+        x, y, z = 2, 1, 0
+    else:
         raise ValueError("Orientation must be 'coronal', 'axial' or "
                          "'sagittal'. Got %s." % orientation)
 
@@ -324,41 +331,16 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
 
         # and then plot the contours on top
         for surf, color in surfs:
-            if orientation == 'coronal':
-                ax.tricontour(surf['rr'][:, 0], surf['rr'][:, 1],
-                              surf['tris'], surf['rr'][:, 2],
-                              levels=[sl], colors=color, linewidths=2.0,
-                              zorder=1)
-            elif orientation == 'axial':
-                ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 0],
-                              surf['tris'], surf['rr'][:, 1],
-                              levels=[sl], colors=color, linewidths=2.0,
-                              zorder=1)
-            elif orientation == 'sagittal':
-                ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 1],
-                              surf['tris'], surf['rr'][:, 0],
-                              levels=[sl], colors=color, linewidths=2.0,
-                              zorder=1)
+            ax.tricontour(surf['rr'][:, x], surf['rr'][:, y],
+                          surf['tris'], surf['rr'][:, z],
+                          levels=[sl], colors=color, linewidths=2.0,
+                          zorder=1)
 
         for sources in src_points:
-            if orientation == 'coronal':
-                index = np.logical_and(sources[:, 2] > sl - 0.5,
-                                       sources[:, 2] < sl + 0.5)
-                x_ = sources[index, 0]
-                y_ = sources[index, 1]
-            elif orientation == 'axial':
-                index = np.logical_and(sources[:, 1] > sl - 0.5,
-                                       sources[:, 1] < sl + 0.5)
-                x_ = sources[index, 2]
-                y_ = sources[index, 0]
-            elif orientation == 'sagittal':
-                index = np.logical_and(sources[:, 0] > sl - 0.5,
-                                       sources[:, 0] < sl + 0.5)
-                x_ = sources[index, 2]
-                y_ = sources[index, 1]
-
-            ax.scatter(x_, y_, marker='.', color='#FF00FF', s=1,
-                              zorder=2)
+            in_slice = np.logical_and(sources[:, z] > sl - 0.5,
+                                      sources[:, z] < sl + 0.5)
+            ax.scatter(sources[in_slice, x], sources[in_slice, y], marker='.',
+                       color='#FF00FF', s=1, zorder=2)
 
     plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                         hspace=0.)
