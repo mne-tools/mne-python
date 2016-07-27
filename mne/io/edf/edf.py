@@ -255,7 +255,7 @@ def _parse_tal_channel(tal_channel_data):
     for s in tal_channel_data:
         i = int(s)
         i0, i1 = i % 256, i // 256
-        if  0 <= i0 < 128 and 0 <= i1 < 128:
+        if 0 <= i0 < 128 and 0 <= i1 < 128:
             tals.extend([i0, i1])
         else:
             warn('Skipped invalid character...')
