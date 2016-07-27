@@ -250,11 +250,11 @@ class RawKIT(_BaseRaw):
 
                 # Create a synthetic stim channel
                 if stim is not None:
+                    params = self._raw_extras[fi]
                     stim_ch = _make_stim_channel(block[stim, :],
-                                        self._raw_extras[fi]['slope'],
-                                        self._raw_extras[fi]['stimthresh'],
-                                        self._raw_extras[fi]['stim_code'],
-                                        stim)
+                                                 params['slope'],
+                                                 params['stimthresh'],
+                                                 params['stim_code'], stim)
                     block = np.vstack((block, stim_ch))
 
                 _mult_cal_one(data_view, block, idx, None, mult)
