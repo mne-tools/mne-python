@@ -17,7 +17,8 @@ from sklearn.preprocessing import label_binarize
 
 from mne import io, pick_types, read_events, Epochs
 from mne.datasets import sample
-from mne.decoding import XdawnTransformer, Vectorizer
+from mne.decoding import Vectorizer
+from mne.preprocessing import XdawnTransformer
 
 data_path = sample.data_path()
 

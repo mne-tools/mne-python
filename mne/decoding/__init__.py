@@ -5,4 +5,3 @@ from .base import BaseEstimator, LinearModel
 from .csp import CSP
 from .ems import compute_ems, EMS
 from .time_gen import GeneralizationAcrossTime, TimeDecoding
-from .xdawn import XdawnTransformer
