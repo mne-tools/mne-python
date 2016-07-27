@@ -7,6 +7,7 @@
 import numpy as np
 
 from .mixin import TransformerMixin
+from .base import BaseEstimator
 
 from .. import pick_types
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
@@ -624,3 +625,93 @@ class FilterEstimator(TransformerMixin):
                                      picks=self.picks, n_jobs=self.n_jobs,
                                      copy=False, verbose=False)
         return epochs_data
+
+
+class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
+    """Fit and transform with an unsupervised spatial filtering across time
+    and samples.
+
+    Parameters
+    ----------
+    estimator : scikit-learn estimator
+        Estimator using some decomposition algorithm.
+    average : bool, defaults to False
+        If True, the estimator is fitted on the average across samples
+        (e.g. epochs).
+    """
+    def __init__(self, estimator, average=False):
+        # XXX: Use _check_estimator #3381
+        for attr in ('fit', 'transform', 'fit_transform'):
+            if not hasattr(estimator, attr):
+                raise ValueError('estimator must be a scikit-learn '
+                                 'transformer, missing %s method' % attr)
+
+        if not isinstance(average, bool):
+            raise ValueError("average parameter must be of bool type, got "
+                             "%s instead" % type(bool))
+
+        self.estimator = estimator
+        self.average = average
+
+    def fit(self, X, y=None):
+        """Fit the spatial filters.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data to be filtered.
+        y : None | array, shape (n_samples,)
+            Used for scikit-learn compatibility.
+
+        Returns
+        -------
+        self : Instance of UnsupervisedSpatialFilter
+            Return the modified instance.
+        """
+        if self.average:
+            X = np.mean(X, axis=0).T
+        else:
+            n_epochs, n_channels, n_times = X.shape
+            # trial as time samples
+            X = np.transpose(X, (1, 0, 2)).reshape((n_channels, n_epochs *
+                                                    n_times)).T
+        self.estimator.fit(X)
+        return self
+
+    def fit_transform(self, X, y=None):
+        """Transform the data to its filtered components after fitting.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data to be filtered.
+        y : None | array, shape (n_samples,)
+            Used for scikit-learn compatibility.
+
+        Returns
+        -------
+        X : array, shape (n_trials, n_channels, n_times)
+            The transformed data.
+        """
+        return self.fit(X).transform(X)
+
+    def transform(self, X):
+        """Transform the data to its spatial filters.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data to be filtered.
+
+        Returns
+        -------
+        X : array, shape (n_trials, n_channels, n_times)
+            The transformed data.
+        """
+        n_epochs, n_channels, n_times = X.shape
+        # trial as time samples
+        X = np.transpose(X, [1, 0, 2]).reshape([n_channels, n_epochs *
+                                                n_times]).T
+        X = self.estimator.transform(X)
+        X = np.reshape(X.T, [-1, n_epochs, n_times]).transpose([1, 0, 2])
+        return X

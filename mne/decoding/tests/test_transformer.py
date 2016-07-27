@@ -8,11 +8,14 @@ import os.path as op
 import numpy as np
 
 from nose.tools import assert_true, assert_raises
-from numpy.testing import assert_array_equal, assert_equal
+from numpy.testing import (assert_array_equal, assert_equal,
+                           assert_array_almost_equal)
 
 from mne import io, read_events, Epochs, pick_types
 from mne.decoding import Scaler, FilterEstimator
-from mne.decoding import PSDEstimator, EpochsVectorizer, Vectorizer
+from mne.decoding import (PSDEstimator, EpochsVectorizer, Vectorizer,
+                          UnsupervisedSpatialFilter)
+from mne.utils import requires_sklearn
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -185,3 +188,38 @@ def test_vectorizer():
     assert_raises(ValueError, vect.transform, np.random.rand(105, 12, 3, 1))
     assert_raises(ValueError, vect.inverse_transform,
                   np.random.rand(102, 12, 12))
+
+
+@requires_sklearn
+def test_unsupervised_spatial_filter():
+    from sklearn.decomposition import PCA
+    from sklearn.kernel_ridge import KernelRidge
+    raw = io.read_raw_fif(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')
+    picks = picks[1:13:3]
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    preload=True, baseline=None, verbose=False)
+
+    # Test estimator
+    assert_raises(ValueError, UnsupervisedSpatialFilter, KernelRidge(2))
+
+    # Test fit
+    X = epochs.get_data()
+    n_components = 4
+    usf = UnsupervisedSpatialFilter(PCA(n_components))
+    usf.fit(X)
+    usf1 = UnsupervisedSpatialFilter(PCA(n_components))
+
+    # test transform
+    assert_equal(usf.transform(X).ndim, 3)
+    # test fit_transform
+    assert_array_almost_equal(usf.transform(X), usf1.fit_transform(X))
+    # assert shape
+    assert_equal(usf.transform(X).shape[1], n_components)
+
+    # Test with average param
+    usf = UnsupervisedSpatialFilter(PCA(4), average=True)
+    usf.fit_transform(X)
+    assert_raises(ValueError, UnsupervisedSpatialFilter, PCA(4), 2)
