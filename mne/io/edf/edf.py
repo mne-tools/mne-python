@@ -204,7 +204,8 @@ class RawEDF(_BaseRaw):
                     # make sure events without duration get one sample
                     n_stop = n_stop if n_stop > n_start else n_start + 1
                     if any(stim[n_start:n_stop]):
-                        warn('EDF+ with overlapping events are not fully supported.')
+                        warn('EDF+ with overlapping events'
+                             ' are not fully supported')
                     stim[n_start:n_stop] = evid
                 data[stim_channel_idx, :] = stim[start:stop]
             else:
