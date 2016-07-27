@@ -80,7 +80,7 @@ BUG
 
     - Fixed the check for CTF gradient compensation in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
 
-    - Fixed the import of EDF files with encoding characters in :func:`mne.io.edf.edf.py` by `Guillaume Dumas`_
+    - Fixed the import of EDF files with encoding characters in :func:`mne.io.read_raw_edf` by `Guillaume Dumas`_
 
 API
 ~~~
