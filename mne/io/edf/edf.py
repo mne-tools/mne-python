@@ -255,11 +255,7 @@ def _parse_tal_channel(tal_channel_data):
     tals = bytearray()
     for s in tal_channel_data:
         i = int(s)
-        i0, i1 = i % 256, i // 256
-        if 0 <= i0 < 128 and 0 <= i1 < 128:
-            tals.extend([i0, i1])
-        else:
-            warn('Skipped invalid character...')
+        tals.extend(np.uint8([i % 256, i // 256]))
 
     regex_tal = '([+-]\d+\.?\d*)(\x15(\d+\.?\d*))?(\x14.*?)\x14\x00'
     # use of latin-1 because characters are only encoded for the first 256
