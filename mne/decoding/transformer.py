@@ -640,12 +640,8 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         (e.g. epochs).
     """
     def __init__(self, estimator, average=False):
-        self._check_estimator(estimator, average)
-        self.estimator = estimator
-        self.average = average
-
-    def _check_estimator(self, estimator, average):
-        for attr in ('fit', 'transform', 'fit_transform'):
+         # XXX: Use _check_estimator #3381
+         for attr in ('fit', 'transform', 'fit_transform'):
             if not hasattr(estimator, attr):
                 raise ValueError('estimator must be a scikit-learn '
                                  'transformer, missing %s method' % attr)
@@ -654,14 +650,17 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
             raise ValueError("average parameter must be of bool type, got "
                              "%s instead" % type(bool))
 
+        self.estimator = estimator
+        self.average = average
+
     def fit(self, X, y=None):
         """Fit the spatial filters.
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_chans, n_times)
+        X : array, shape (n_epochs, n_channels, n_times)
             The data to be filtered.
-        y : None
+        y : None | array, shape (n_samples,)
             Used for scikit-learn compatibility.
 
         Returns
@@ -684,14 +683,14 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_chans, n_times)
+        X : array, shape (n_epochs, n_channels, n_times)
             The data to be filtered.
-        y : None
+        y : None | array, shape (n_samples,)
             Used for scikit-learn compatibility.
 
         Returns
         -------
-        X : array, shape (n_trials, n_chans, n_times)
+        X : array, shape (n_trials, n_channels, n_times)
             The transformed data.
         """
         return self.fit(X).transform(X)
@@ -701,12 +700,12 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_chans, n_times)
+        X : array, shape (n_epochs, n_channels, n_times)
             The data to be filtered.
 
         Returns
         -------
-        X : array, shape (n_trials, n_chans, n_times)
+        X : array, shape (n_trials, n_channels, n_times)
             The transformed data.
         """
         n_epochs, n_channels, n_times = X.shape

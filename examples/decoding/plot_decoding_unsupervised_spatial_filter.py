@@ -46,17 +46,16 @@ X = epochs.get_data()
 
 pca = UnsupervisedSpatialFilter(PCA(30))
 pca_data = pca.fit_transform(X)
-ev = mne.EvokedArray(np.average(pca_data, axis=0),
+ev = mne.EvokedArray(np.mean(pca_data, axis=0),
                      mne.create_info(30, epochs.info['sfreq'],
                                      ch_types='eeg'), tmin=tmin)
 ev.plot(show=False, window_title="PCA")
 
 ica = UnsupervisedSpatialFilter(FastICA(30))
 ica_data = ica.fit_transform(X)
-ev1 = mne.EvokedArray(np.average(ica_data, axis=0),
+ev1 = mne.EvokedArray(np.mean(ica_data, axis=0),
                       mne.create_info(30, epochs.info['sfreq'],
                                       ch_types='eeg'), tmin=tmin)
-ev1.data = np.average(ica_data, axis=1)
 ev1.plot(show=False, window_title='ICA')
 
 plt.show()
