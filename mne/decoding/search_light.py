@@ -23,6 +23,13 @@ class SearchLight(BaseEstimator, TransformerMixin):
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
     """
+    def __repr__(self):
+        repr_str = '<' + super(SearchLight, self).__repr__()
+        if hasattr(self, 'estimators_'):
+            repr_str = repr_str[:-1]
+            repr_str += ', fitted with %i estimators' % len(self.estimators_)
+        return repr_str + '>'
+
     def __init__(self, base_estimator, n_jobs=1):
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
@@ -350,6 +357,13 @@ class GeneralizationLight(SearchLight):
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
     """
+
+    def __repr__(self):
+        repr_str = super(GeneralizationLight, self).__repr__()
+        if hasattr(self, 'estimators_'):
+            repr_str = repr_str[:-1]
+            repr_str += ', fitted with %i estimators>' % len(self.estimators_)
+        return repr_str
 
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation"""

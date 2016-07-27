@@ -5,7 +5,7 @@
 
 import numpy as np
 from numpy.testing import assert_array_equal
-from nose.tools import assert_raises, assert_true
+from nose.tools import assert_raises, assert_true, assert_equal
 from ...utils import requires_sklearn
 from ..search_light import SearchLight, GeneralizationLight
 
@@ -29,7 +29,9 @@ def test_searchlight():
     n_epochs, _, n_time = X.shape
     # fit
     sl = SearchLight(LogisticRegression())
+    assert_equal(sl.__repr__()[:13], '<SearchLight(')
     sl.fit(X, y)
+    assert_equal(sl.__repr__()[-28:], ', fitted with 10 estimators>')
     assert_raises(ValueError, sl.fit, X[1:], y)
     assert_raises(ValueError, sl.fit, X[:, :, 0], y)
 
@@ -74,8 +76,10 @@ def test_generalizationlight():
     n_epochs, _, n_time = X.shape
     # fit
     gl = GeneralizationLight(LogisticRegression())
+    assert_equal(gl.__repr__()[:21], '<GeneralizationLight(')
     gl.fit(X, y)
 
+    assert_equal(gl.__repr__()[-28:], ', fitted with 10 estimators>')
     # transforms
     y_pred = gl.predict(X)
     assert_array_equal(y_pred.shape, [n_epochs, n_time, n_time])
