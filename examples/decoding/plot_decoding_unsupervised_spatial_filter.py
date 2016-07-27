@@ -3,8 +3,10 @@
 Analysis of evoked response using ICA and PCA reduction techniques
 ==================================================================
 
-This example computes PCA and ICA of epochs data. Then the evoked response
-for any single event is taken for visual comparison between the two.
+This example computes PCA and ICA of evoked or epochs data. Then the
+PCA / ICA components, a.k.a. spatial filters, are used to transform
+the channel data to new sources / virtual channels. The output is
+visualized on the average of all the epochs.
 """
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>
 #          Asish Panda <asishrocks95@gmail.com>
@@ -44,14 +46,18 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False,
 
 X = epochs.get_data()
 
-pca = UnsupervisedSpatialFilter(PCA(30))
+##############################################################################
+# Transform data with PCA computed on the average ie evoked response
+pca = UnsupervisedSpatialFilter(PCA(30), average=False)
 pca_data = pca.fit_transform(X)
 ev = mne.EvokedArray(np.mean(pca_data, axis=0),
                      mne.create_info(30, epochs.info['sfreq'],
                                      ch_types='eeg'), tmin=tmin)
 ev.plot(show=False, window_title="PCA")
 
-ica = UnsupervisedSpatialFilter(FastICA(30))
+##############################################################################
+# Transform data with ICA computed on the raw epochs (no averaging)
+ica = UnsupervisedSpatialFilter(FastICA(30), average=False)
 ica_data = ica.fit_transform(X)
 ev1 = mne.EvokedArray(np.mean(ica_data, axis=0),
                       mne.create_info(30, epochs.info['sfreq'],
