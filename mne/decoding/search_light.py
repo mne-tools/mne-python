@@ -38,12 +38,12 @@ class SearchLight(BaseEstimator, TransformerMixin):
         X : array, shape (n_samples, n_features, n_estimators)
             The training input samples. For each data slice, a clone estimator
             is fitted independently.
-        y : array, shape (n_samples,)
+        y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
 
         Returns
         -------
-        y_pred : array, shape (n_samples, n_estimators)
+        y_pred : array, shape (n_samples, n_estimators) | (n_samples, n_estimators, n_targets)  # noqa
             Predicted values for each estimator.
         """
         return self.fit(X, y).transform(X)
@@ -56,7 +56,7 @@ class SearchLight(BaseEstimator, TransformerMixin):
         X : array, shape (n_samples, n_features, n_estimators)
             The training input samples. For each data slice, a clone estimator
             is fitted independently.
-        y : array, shape (n_samples,)
+        y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
 
         Returns
@@ -126,7 +126,7 @@ class SearchLight(BaseEstimator, TransformerMixin):
 
         Returns
         -------
-        y_pred : array, shape (n_samples, n_estimators)
+        y_pred : array, shape (n_samples, n_estimators) | (n_samples, n_estimators, n_targets)  # noqa
             Predicted values for each estimator/data slice.
         """
         return self._transform(X, 'predict')
@@ -144,7 +144,7 @@ class SearchLight(BaseEstimator, TransformerMixin):
 
         Returns
         -------
-        y_pred : array, shape (n_samples, n_estimators, n_categories)
+        y_pred : array, shape (n_samples, n_estimators, n_classes)
             Predicted probabilities for each estimator/data slice.
         """
         return self._transform(X, 'predict_proba')
@@ -188,12 +188,12 @@ class SearchLight(BaseEstimator, TransformerMixin):
             The input samples. For each data slice, the corresponding estimator
             score the prediction: e.g. [estimators[ii].score(X[..., ii], y)
                                         for ii in range(n_estimators)]
-        y : array, shape (n_samples,)
+        y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
 
         Returns
         -------
-        score : array, shape (n_samples, n_estimators, n_score_dim)  # noqa
+        score : array, shape (n_samples, n_estimators)
             Score for each estimator / data slice couple.
         """
         self._check_Xy(X)
@@ -216,7 +216,24 @@ class SearchLight(BaseEstimator, TransformerMixin):
 
 
 def _sl_fit(estimator, X, y):
-    """Aux. function to fit SearchLight in parallel."""
+    """Aux. function to fit SearchLight in parallel.
+
+    Fit a clone estimator to each slice of data.
+
+    Parameters
+    ----------
+    base_estimator : object
+        The base estimator to iteratively fit on a subset of the dataset.
+    X : array, shape (n_samples, n_features, n_estimators)
+        The target data.
+    y : array, shape (n_sample, )
+        The target values.
+
+    Returns
+    -------
+    estimators_ : list of estimators
+        The fitted estimators.
+    """
     from sklearn.base import clone
     estimators_ = list()
     for ii in range(X.shape[-1]):
@@ -227,12 +244,29 @@ def _sl_fit(estimator, X, y):
 
 
 def _sl_transform(estimators, X, method):
-    """Aux. function to transform SearchLight in parallel."""
+    """Aux. function to transform SearchLight in parallel.
+
+    Applies transform/predict/decision_function etc for each slice of data.
+
+    Parameters
+    ----------
+    estimators : list of estimators
+        The fitted estimators.
+    X : array, shape (n_samples, n_features, n_estimators)
+        The target data.
+    method : str
+        The estimator method to use (e.g. 'predict', 'transform').
+
+    Returns
+    -------
+    y_pred : array, shape (n_samples, n_estimators, n_classes * (n_classes-1) / 2)  # noqa
+        The transformations for each slice of data.
+    """
     n_sample, n_chan, n_iter = X.shape
     for ii, est in enumerate(estimators):
         transform = getattr(est, method)
         _y_pred = transform(X[..., ii])
-        # init predictions
+        # Initialize array of predictions on the first transform iteration
         if ii == 0:
             y_pred = _sl_init_pred(_y_pred, X)
         y_pred[:, ii, ...] = _y_pred
@@ -255,11 +289,28 @@ def _sl_init_pred(y_pred, X):
 
 
 def _sl_score(estimators, X, y):
-    """Aux. function to score SearchLight in parallel"""
+    """Aux. function to score SearchLight in parallel.
+
+    Predict and score each slice of data.
+
+    Parameters
+    ----------
+    estimators : list of estimators
+        The fitted estimators.
+    X : array, shape (n_samples, n_features, n_estimators)
+        The target data.
+    y : array, shape (n_samples,) | (n_samples, n_targets)
+        The target values.
+
+    Returns
+    -------
+    score : array, shape (n_estimators,)
+        The score for each slice of data.
+    """
     n_sample, n_chan, n_iter = X.shape
     for ii, est in enumerate(estimators):
         _score = est.score(X[..., ii], y)
-        # init predictions
+        # Initialize array of scores on the first score iteration
         if ii == 0:
             if isinstance(_score, np.ndarray):
                 dtype = _score.dtype
@@ -317,7 +368,7 @@ class GeneralizationLight(SearchLight):
 
         Parameters
         ----------
-        X : array, shape (n_samples, n_features, n_estimators)
+        X : array, shape (n_samples, n_features, n_slices)
             The input samples. For estimator the corresponding data slice is
             used to make a transformation.
 
@@ -333,13 +384,13 @@ class GeneralizationLight(SearchLight):
 
         Parameters
         ----------
-        X : array, shape (n_samples, n_features, n_estimators)
+        X : array, shape (n_samples, n_features, n_slices)
             The training input samples. For each data slice, a clone estimator
             is fitted independently.
 
         Returns
         -------
-        y_pred : array, shape (n_samples, n_estimators, n_slices)
+        y_pred : array, shape (n_samples, n_estimators, n_slices) | (n_samples, n_estimators, n_slices, n_targets) # noqa
             Predicted values for each estimator.
         """
         return self._transform(X, 'predict')
@@ -350,7 +401,7 @@ class GeneralizationLight(SearchLight):
 
         Parameters
         ----------
-        X : array, shape (n_samples, n_features, n_estimators)
+        X : array, shape (n_samples, n_features, n_slices)
             The training input samples. For each data slice, a clone estimator
             is fitted independently.
 
@@ -370,14 +421,14 @@ class GeneralizationLight(SearchLight):
 
         Parameters
         ----------
-        X : array, shape (n_samples, n_features, n_estimators)
+        X : array, shape (n_samples, n_features, n_slices)
             The training input samples. Each estimator output the distance to
             its hyperplane: e.g. [estimators[ii].decision_function(X[..., ii])
                                   for ii in range(n_estimators)]
 
         Returns
         -------
-        y_pred : array, shape (n_samples, n_estimators, n_slices, n_classes)
+        y_pred : array, shape (n_samples, n_estimators, n_slices, n_classes * (n_classes-1) / 2) # noqa
             Predicted values for each estimator.
 
         Notes
@@ -392,17 +443,17 @@ class GeneralizationLight(SearchLight):
 
         Parameters
         ----------
-        X : array, shape (n_samples, n_features, n_estimators)
+        X : array, shape (n_samples, n_features, n_slices)
             The input samples. For each data slice, the corresponding estimator
             score the prediction:
             e.g. [estimators[ii].score(X[..., ii], y)
-                  for ii in range(n_estimators)]
-        y : array, shape (n_samples,)
+                  for ii in range(n_slices)]
+        y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
 
         Returns
         -------
-        score : array, shape (n_samples, n_estimators, n_slices, n_score_dim)  # noqa
+        score : array, shape (n_samples, n_estimators, n_slices)
             Score for each estimator / data slice couple.
 
         Notes
@@ -429,13 +480,13 @@ def _gl_transform(estimators, X, method):
 
     Parameters
     ----------
-    X : array, shape (n_samples, n_features, n_estimators)
+    X : array, shape (n_samples, n_features, n_slices)
         The training input samples. For each data slice, a clone estimator
         is fitted independently.
 
     Returns
     -------
-    Xt : array, shape (n_samples, n_estimators)
+    Xt : array, shape (n_samples, n_slices)
         Transformed values generated by each estimator.
     """
     n_sample, n_chan, n_iter = X.shape
@@ -451,7 +502,7 @@ def _gl_transform(estimators, X, method):
         else:
             shape = np.r_[n_sample, n_iter, _y_pred.shape[1:]].astype(int)
             _y_pred = np.reshape(_y_pred, shape)
-        # init
+        # Initialize array of predictions on the first transform iteration
         if ii == 0:
             y_pred = _gl_init_pred(_y_pred, X, len(estimators))
         y_pred[:, ii, ...] = _y_pred
@@ -470,15 +521,32 @@ def _gl_init_pred(y_pred, X, n_train):
 
 
 def _gl_score(estimators, X, y):
-    """Aux. function to score GeneralizationLight in parallel"""
-    # FIXME: The parallization is a bit high, it might be memory consuming.
+    """Aux. function to score GeneralizationLight in parallel
+    Predict and score each slice of data.
+
+    Parameters
+    ----------
+    estimators : list of estimators
+        The fitted estimators.
+    X : array, shape (n_samples, n_features, n_slices)
+        The target data.
+    y : array, shape (n_samples,) | (n_samples, n_targets)
+        The target values.
+
+    Returns
+    -------
+    score : array, shape (n_estimators, n_slices)
+        The score for each slice of data.
+    """
+    # FIXME: The level parallization may be a bit high, and might be memory
+    # consuming. Perhaps need to lower it down to the loop across X slices.
     n_sample, n_chan, n_iter = X.shape
     n_est = len(estimators)
     for ii, est in enumerate(estimators):
         for jj in range(X.shape[-1]):
             _score = est.score(X[..., jj], y)
 
-            # init predictions
+            # Initialize array of predictions on the first score iteration
             if (ii == 0) & (jj == 0):
                 if isinstance(_score, np.ndarray):
                     dtype = _score.dtype
