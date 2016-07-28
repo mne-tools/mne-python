@@ -41,10 +41,17 @@ def test_kit2fiff_model():
     model.fid_file = fid_path
     assert_true(model.can_save)
 
+    # events
+    model.stim_slope = '+'
+    assert_equal(model.get_event_info(), {1: 2})
+    model.stim_slope = '-'
+    assert_equal(model.get_event_info(), {254: 2, 255: 2})
+
     # stim channels
     model.stim_chs = "181:184, 186"
     assert_array_equal(model.stim_chs_array, [181, 182, 183, 186])
     assert_true(model.stim_chs_ok)
+    assert_equal(model.get_event_info(), {})
     model.stim_chs = "181:184, bad"
     assert_false(model.stim_chs_ok)
     assert_false(model.can_save)
