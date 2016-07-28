@@ -29,6 +29,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
+src_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 inv_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
 evoked_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
@@ -71,6 +72,8 @@ def test_plot_bem():
     plot_bem(subject='sample', subjects_dir=subjects_dir,
              orientation='coronal', slices=[25, 50],
              brain_surfaces='white')
+    plot_bem(subject='sample', subjects_dir=subjects_dir,
+             orientation='coronal', slices=[25, 50], src=src_fname)
 
 
 def test_plot_events():
