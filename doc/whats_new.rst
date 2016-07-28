@@ -39,7 +39,7 @@ Changelog
 
     - Add possibility to select a subset of sensors by lasso selector to :func:`mne.viz.plot_sensors` and :func:`mne.viz.plot_raw` when using order='selection' or order='position' by `Jaakko Leppakangas`_
 
-    - Add the option to plot brain surfaces to :func:`viz.plot_bem` by `Christian Brodbeck`_
+    - Add the option to plot brain surfaces and source spaces to :func:`viz.plot_bem` by `Christian Brodbeck`_
 
     - Add the ``--filterchpi`` option to :ref:`mne browse_raw <gen_mne_browse_raw>`, by `Felix Raimundo`_
 
