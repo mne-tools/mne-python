@@ -45,9 +45,10 @@ ax2.set_title('Band-pass filtered data')
 
 ###############################################################################
 # In addition, there are functions for applying the Hilbert transform, which is
-# useful to calculate phase / amplitude of your signal
+# useful to calculate phase / amplitude of your signal.
 
 # Filter signal with a fairly steep filter, then take hilbert transform
+
 raw_band = raw.copy()
 raw_band.filter(12, 18, l_trans_bandwidth=2., h_trans_bandwidth=2.,
                 filter_length='auto', phase='zero')
@@ -57,10 +58,13 @@ raw_hilb.apply_hilbert(hilb_picks)
 print(raw_hilb._data.dtype)
 
 ###############################################################################
-# Finally, it is possible to apply arbitrary to your data to do what you want.
-# Here we will use this to take the amplitude and phase of the hilbert
-# transformed data. (note that you can use `amplitude=True` in the call to
-# :func:`mne.io.Raw.apply_hilbert` to do this automatically).
+# Finally, it is possible to apply arbitrary functions to your data to do
+# what you want. Here we will use this to take the amplitude and phase of
+# the hilbert transformed data.
+#
+# .. note:: You can also use ``amplitude=True`` in the call to
+#           :meth:`mne.io.Raw.apply_hilbert` to do this automatically.
+#
 
 # Take the amplitude and phase
 raw_amp = raw_hilb.copy()

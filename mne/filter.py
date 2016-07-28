@@ -135,7 +135,7 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
         Length of the FFT. If None, the best size is determined automatically.
     phase : str
         If 'zero', the delay for the filter is compensated (and it must be
-        an odd-lengeth symmetric filter). If 'linear', the response is
+        an odd-length symmetric filter). If 'linear', the response is
         uncompensated. If 'zero-double', the filter is applied in the
         forward and reverse directions.
     picks : array-like of int | None
@@ -311,7 +311,7 @@ def _filter(x, Fs, freq, gain, filter_length, picks=None, n_jobs=1,
         on x in place.
     phase : str
         If 'zero', the delay for the filter is compensated (and it must be
-        an odd-lengeth symmetric filter). If 'linear', the response is
+        an odd-length symmetric filter). If 'linear', the response is
         uncompensated. If 'zero-double', the filter is applied in the
         forward and reverse directions.
 
@@ -1835,7 +1835,8 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
     dep = list()
     if not isinstance(phase, string_types) or phase not in \
             ('linear', 'zero', 'zero-double', ''):
-        raise ValueError('phase must be "linear" or "zero", got "%s"' % phase)
+        raise ValueError('phase must be "linear", "zero", or "zero-double", '
+                         'got "%s"' % phase)
     if phase == '' and method == 'fir':
         dep += ['phase in 0.13 is "zero-double" but will change to "zero" in '
                 '0.14']

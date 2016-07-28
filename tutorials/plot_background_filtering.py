@@ -32,7 +32,7 @@ conclude with this statement:
     can be detected with filtering.
 
 In other words, filtering can increase SNR, but if it is not used carefully,
-it can distorte data. Here we hope to cover some filtering basics so
+it can distort data. Here we hope to cover some filtering basics so
 users can better understand filtering tradeoffs, and why MNE-Python has
 chosen particular defaults.
 
@@ -40,6 +40,7 @@ chosen particular defaults.
 
 Filtering basics
 ================
+
 Let's get some of the basic math down. In the frequency domain, digital
 filters have a transfer function that is given by:
 
@@ -322,6 +323,7 @@ plot_filter(h, 'Windowed 50-Hz transition (0.2 sec)', freq, gain)
 #
 # Applying FIR filters
 # --------------------
+#
 # Now lets look at some practical effects of these filters by applying
 # them to some data.
 #
@@ -423,6 +425,7 @@ plt.show()
 ###############################################################################
 # IIR filters
 # ===========
+#
 # MNE-Python also offers IIR filtering functionality that is based on the
 # methods from :mod:`scipy.signal`. Specifically, we use the general-purpose
 # functions :func:`scipy.signal.iirfilter` and :func:`scipy.signal.iirdesign`,
@@ -430,6 +433,7 @@ plt.show()
 #
 # Designing IIR filters
 # ---------------------
+#
 # Let's continue with our design of a 40 Hz low-pass filter, and look at
 # some trade-offs of different IIR filters.
 #
@@ -451,7 +455,7 @@ x_shallow = sosfiltfilt(sos, x)
 #
 # .. warning:: For brevity, we do not show the phase of these filters here.
 #              In the FIR case, we can design linear-phase filters, and
-#              compensate for the delay (making the fliter acausal) if
+#              compensate for the delay (making the filter acausal) if
 #              necessary. This cannot be done
 #              with IIR filters, as they have a non-linear phase.
 #              As the filter order increases, the
@@ -502,6 +506,7 @@ plot_filter(sos, 'Chebychev-1 order=8, ripple=6 dB', freq, gain)
 ###############################################################################
 # Applying IIR filters
 # --------------------
+#
 # Now let's look at how our shallow and steep Butterworth IIR filters
 # perform on our Morlet signal from before:
 
@@ -526,16 +531,18 @@ plt.show()
 ###############################################################################
 # Some pitfalls of filtering
 # ==========================
+#
 # Multiple recent papers have noted potential risks of drawing
 # errant inferences due to misapplication of filters.
 #
 # Low-pass problems
 # -----------------
+#
 # Filters in general, especially those that are acausal (zero-phase), can make
 # activity appear to occur earlier or later than it truly did. As
 # mentioned in VanRullen 2011 [3]_, investigations of commonly (at the time)
-# used low-pass filters created artifacts. However, such deleterious effects
-# of low-passing were found to have minimal impact for many real-world
+# used low-pass filters created artifacts when they were applied to smulated
+# data. However, such deleterious effects were minimal in many real-world
 # examples in Rousselet 2012 [5]_.
 #
 # Perhaps more revealing, it was noted in Widmann & Schröger 2012 [6]_ that
@@ -544,13 +551,14 @@ plt.show()
 #    1. Used a least-squares design (like :func:`scipy.signal.firls`) that
 #       included "do-not-care" transition regions, which can lead to
 #       uncontrolled behavior.
-#    2. Filter length that was independent of the transition bandwidth,
+#    2. Had a filter length that was independent of the transition bandwidth,
 #       which can cause excessive ringing and signal distortion.
 #
 # .. _tut_filtering_hp_problems:
 #
 # High-pass problems
 # ------------------
+#
 # When it comes to high-pass filtering, using corner frequencies above 0.1 Hz
 # were found in Acunzo *et al.* 2012 [4]_ to:
 #
@@ -579,9 +587,14 @@ plt.show()
 # .. note:: This simulated signal contains energy not just within the
 #           pass-band, but also within the transition and stop-bands -- perhaps
 #           most easily understood because the signal has a non-zero DC value,
-#           but also because it is a cosine that has been *windowed* (here
-#           multiplied by a rectangular window), which makes the
-#           cosine frequency content spread beyond the original frequency.
+#           but also because it is a shifted cosine that has been
+#           *windowed* (here multiplied by a rectangular window), which
+#           makes the cosine and DC frequencies spread to other frequencies
+#           (multiplication in time is convolution in frequency, so multiplying
+#           by a rectangular window in the time domain means convolving a sinc
+#           function with the impulses at DC and the cosine frequency in the
+#           frequency domain).
+#
 
 x = np.zeros(int(2 * sfreq))
 t = np.arange(0, len(x)) / sfreq - 0.2
@@ -616,8 +629,27 @@ mne.viz.tight_layout()
 plt.show()
 
 ###############################################################################
+# Similarly, in a P300 paradigm reported by Kappenman & Luck 2010 [12]_,
+# they found that applying a 1 Hz high-pass decreased the probaility of
+# finding a significant difference in the N100 response, likely because
+# the P300 response was smeared (and inverted) in time by the high-pass
+# filter such that it tended to cancel out the increased N100. However,
+# they nonetheless note that some high-passing can still be useful to deal
+# with drifts in the data.
+#
+# Even though these papers generally advise a 0.1 HZ or lower frequency for
+# a high-pass, it is important to keep in mind (as most authors note) that
+# filtering choices should depend on the frequency content of both the
+# signal(s) of interest and the noise to be suppressed. For example, in
+# some of the MNE-Python examples involving :ref:`ch_sample_data`,
+# high-pass values of around 1 Hz are used when looking at auditory
+# or visual N100 responses, because we analyze standard (not deviant) trials
+# and thus expect that contamination by later or slower components will
+# be limited.
+#
 # Baseline problems (or solutions?)
 # ---------------------------------
+#
 # In an evolving discussion, Tanner *et al.* 2015 [8]_ suggest using baseline
 # correction to remove slow drifts in data. However, Maess *et al.* 2016 [9]_
 # suggest that baseline correction, which is a form of high-passing, does
@@ -627,7 +659,6 @@ plt.show()
 #
 # To see what they mean, consider again our old simulated signal ``x`` from
 # before:
-#
 
 
 def baseline_plot(x):
@@ -694,6 +725,7 @@ baseline_plot(x)
 #
 # Filtering defaults in MNE-Python
 # ================================
+#
 # Most often, filtering in MNE-Python is done at the :class:`mne.io.Raw` level,
 # and thus :func:`mne.io.Raw.filter` is used. This function under the hood
 # (among other things) calls :func:`mne.filter.filter_data` to actually
@@ -743,7 +775,7 @@ baseline_plot(x)
 #
 # To choose the filter length automatically with ``filter_length='auto'``,
 # 7 times the reciprocal of the shortest transition bandwidth is used to ensure
-# decent attenuation by the stop frequency.
+# decent attenuation at the stop frequency.
 #
 # .. note:: In band-pass applications, often a low-pass filter can operate
 #           effectively with fewer samples than the high-pass filter, so
@@ -755,6 +787,7 @@ baseline_plot(x)
 #
 # Summary
 # =======
+#
 # When filtering, there are always tradeoffs that should be considered.
 # One important tradeoff is between time-domain characteristics (like ringing)
 # and frequency-domain attenuation characteristics (like effective transition
@@ -766,6 +799,7 @@ baseline_plot(x)
 #
 # References
 # ==========
+#
 # .. [1] Parks TW, Burrus CS (1987). Digital Filter Design.
 #        New York: Wiley-Interscience.
 # .. [2] Ifeachor, E. C., & Jervis, B. W. (2002). Digital Signal Processing:
@@ -800,6 +834,9 @@ baseline_plot(x)
 #        High-pass filters and baseline correction in M/EEG analysis-continued
 #        discussion. Journal of Neuroscience Methods, 266, 171–172.
 #        Journal of Neuroscience Methods, 266, 166–170.
+# .. [12] Kappenman E. & Luck, S. (2010). The effects of impedance on data
+#        quality and statistical significance in ERP recordings.
+#        Psychophysiology, 47, 888-904.
 #
 # .. _FIR: https://en.wikipedia.org/wiki/Finite_impulse_response
 # .. _IIR: https://en.wikipedia.org/wiki/Infinite_impulse_response

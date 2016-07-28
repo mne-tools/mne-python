@@ -91,7 +91,7 @@ API
 
           4. A warning is provided when the filter is longer than the signal of interest, as this is unlikely to produce desired results.
 
-          5. Previously, if the filter was as long or longer than the signal of interest, direct FFT-based computations were used. Now a single path (overlap-add filtering) is used for all FIR filters. This could cause minor changes in how short signals are filtered.
+          5. Previously, if the filter was as long or longer than the signal of interest, direct FFT-based computations were used. Now a single code path (overlap-add filtering) is used for all FIR filters. This could cause minor changes in how short signals are filtered.
 
     - When CTF gradient compensation is applied to raw data, it is no longer reverted on save of :meth:`mne.io.Raw.save` by `Eric Larson`_
 
