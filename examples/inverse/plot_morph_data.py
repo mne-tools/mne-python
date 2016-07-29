@@ -28,7 +28,6 @@ subject_to = 'fsaverage'
 subjects_dir = data_path + '/subjects'
 
 fname = data_path + '/MEG/sample/sample_audvis-meg'
-src_fname = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 
 # Read input stc file
 stc_from = mne.read_source_estimate(fname)
