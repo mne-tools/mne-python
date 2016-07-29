@@ -5,11 +5,13 @@ Regression on continuous data
 
 This demonstrates how encoding models can be fit with multiple continuous
 inputs. In this case, a encoding model is fit for one electrode, using the
-values of all other electrodes as inputs. These inputs could also be stimulus
-features, such as spectral features of sound.
+values of all other electrodes as inputs. The coefficients in this case are
+interpreted as a measure of functional connectivity. These inputs could also
+be stimulus features, such as spectral features of sound. In this case, model
+coefficients would be measures of receptive field properties for the channel.
 
-Estimation of receptive fields and modeling with continuous inputs
-is described in:
+Estimation of spectro-temporal and spatio-temporal receptive fields using
+modeling with continuous inputs is described in:
 
     Theunissen, F. E. et al. Estimating spatio-temporal receptive
     fields of auditory and visual neurons from their responses to
@@ -28,7 +30,7 @@ import matplotlib.pyplot as plt
 import mne
 import numpy as np
 from mne.datasets import sample
-from mne.encoding import SampleMasker, get_coefs
+from mne.encoding import SampleMasker, get_coefs, get_final_est
 from mne.channels.layout import _auto_topomap_coords
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge
@@ -79,7 +81,7 @@ f, axs = plt.subplots(1, 2, figsize=(15, 8))
 
 # Plot the first 40 coefficients (one coefficient per channel)
 ax = axs[0]
-coefs = get_coefs(pipe_full)
+coefs = get_coefs(get_final_est(pipe_full))[0]
 ax.plot(coefs)
 ax.set_xlabel('Channel index')
 ax.set_ylabel('Channel weight')

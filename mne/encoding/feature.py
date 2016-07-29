@@ -105,7 +105,7 @@ class EventsBinarizer(object):
             Optional covariate names.
         """
         if event_ixs.ndim > 1:
-            raise ValueError("events must be shape (n_trials, 3),"
+            raise ValueError("events must be shape (n_events,),"
                              " found shape %s" % str(event_ixs.shape))
         event_ids = np.ones_like(event_ixs) if event_ids is None else event_ids
         unique_event_types = np.unique(event_ids)

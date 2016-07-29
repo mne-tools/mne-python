@@ -8,9 +8,9 @@ import os.path as op
 
 from nose.tools import assert_raises, assert_true, assert_equal
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_array_equal
 
-from mne import io, Epochs, read_events, pick_types
+from mne import io, read_events, pick_types
 from mne.utils import (requires_sklearn, run_tests_if_main)
 
 
@@ -25,66 +25,11 @@ event_id = dict(aud_l=1, vis_l=3)
 
 warnings.simplefilter('always')
 
-# Loading raw data + epochs
+# Loading raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-events = read_events(event_name)
 picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                    eog=False, exclude='bads')
 picks = picks[0:2]
-
-with warnings.catch_warnings(record=True):
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=None, preload=True)
-
-
-@requires_sklearn
-def test_rerp():
-    from mne.encoding import EventRelatedRegressor
-    rerp = EventRelatedRegressor(raw, events, est='cholesky',
-                                 event_id=event_id, tmin=tmin, tmax=tmax,
-                                 picks=picks)
-    rerp.fit()
-
-    cond = 'aud_l'
-    evoked_erp = rerp.to_evoked()[cond]
-    evoked_avg = epochs[cond].average()
-
-    assert_array_almost_equal(evoked_erp.data, evoked_avg.data, 12)
-
-    # Covariates
-    cov = np.random.randn(events.shape[0], 2)
-    # Test outputs are correct when working properly
-    rerp = EventRelatedRegressor(raw, events, est='cholesky', covariates=cov,
-                                 tmin=tmin, tmax=tmax, picks=picks,
-                                 sparse=False)
-    assert_equal(rerp.events_continuous_.shape[-1],
-                 len(set(events[:, 2])) + cov.shape[-1])
-    new_names = ['%s' % e for e in set(events[:, 2])] + ['cov_0', 'cov_1']
-    covs_new = rerp.events_continuous_[:, -2:].toarray()
-    covs_new = covs_new[(covs_new != 0).all(1), :]
-    assert_array_equal(cov, covs_new)
-    assert_array_equal(set(new_names), set(rerp.ev_names))
-    # Make sure covariates are correct shape / num
-    assert_raises(ValueError, EventRelatedRegressor, raw, events,
-                  covariates=cov[:-1])
-    assert_raises(ValueError, EventRelatedRegressor, raw, events,
-                  covariates=cov[np.newaxis, ...])
-    # Cov names
-    assert_raises(ValueError, EventRelatedRegressor, raw, events,
-                  covariates=cov, covariate_names=['foo', 'bar', 'haz'])
-    rerp = EventRelatedRegressor(raw, events, covariates=cov,
-                                 covariate_names=['foo', 'bar'])
-    assert_equal(['foo', 'bar'], rerp.ev_names[-2:])
-    # Make sure events are MNE-style
-    raw_nopreload = io.read_raw_fif(raw_fname, preload=False)
-    assert_raises(ValueError, EventRelatedRegressor, raw, events[:, 0])
-    # Data needs to be preloaded
-    assert_raises(ValueError, EventRelatedRegressor, raw_nopreload, events)
-    # Data must be fit before we get evoked coefficients
-    rerp = EventRelatedRegressor(raw, events, est='cholesky',
-                                 event_id=event_id, tmin=tmin, tmax=tmax,
-                                 picks=picks)
-    assert_raises(ValueError, rerp.to_evoked)
 
 
 @requires_sklearn
@@ -92,6 +37,8 @@ def test_feature():
     from mne.encoding import (SampleMasker, EventsBinarizer,
                               FeatureDelayer)
     from sklearn.linear_model import Ridge
+    events = read_events(event_name)
+    events[:, 0] -= raw.first_samp
 
     sfreq = raw.info['sfreq']
     # Delayer must have sfreq if twin given
@@ -101,9 +48,43 @@ def test_feature():
     assert_raises(ValueError, FeatureDelayer, time_window=[tmin, tmax],
                   sfreq=sfreq, delays=[1.])
     assert_raises(ValueError, FeatureDelayer)
+
+    # --- Events Binarizer ---
     # EventsBinarizer must have proper events shape
     binarizer = EventsBinarizer(raw.n_times)
     assert_raises(ValueError, binarizer.fit, events)
+
+    # Test outputs are correct when working properly
+    events = events[events[:, 0] <= raw.n_times, :]
+    binarizer = EventsBinarizer(raw.n_times, sparse=True)
+    ev_cont = binarizer.fit_transform(events[:, 0], events[:, 2])
+
+    # Covariates
+    cov = np.random.randn(events.shape[0], 2)
+    ev_cont = binarizer.fit_transform(events[:, 0], events[:, 2],
+                                      covariates=cov)
+    assert_equal(ev_cont.shape[-1],
+                 len(set(events[:, 2])) + cov.shape[-1])
+    new_names = (['event_%s' % e for e in set(events[:, 2])] +
+                 ['cov_0', 'cov_1'])
+    covs_new = ev_cont[:, -2:].toarray()
+    covs_new = covs_new[(covs_new != 0).all(1), :]
+    assert_array_equal(cov, covs_new)
+    assert_array_equal(set(new_names), set(binarizer.names_))
+    # Make sure covariates are correct shape / num
+    assert_raises(ValueError, binarizer.fit_transform, events,
+                  covariates=cov[:-1])
+    assert_raises(ValueError, binarizer.fit_transform, events,
+                  covariates=cov[np.newaxis, ...])
+    # Cov names
+    assert_raises(ValueError, binarizer.fit_transform, events,
+                  covariates=cov, covariate_names=['foo', 'bar', 'haz'])
+    ev_cont = binarizer.fit_transform(events[:, 0], events[:, 2],
+                                      covariates=cov,
+                                      covariate_names=['foo', 'bar'])
+    assert_equal(['foo', 'bar'], binarizer.names_[-2:])
+
+    # --- DataSubsetter ---
     # Subsetter works for indexing
     data = np.arange(1, 100)[:, np.newaxis]
     masker = SampleMasker(Ridge(), ixs=np.arange(50))
