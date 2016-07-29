@@ -137,7 +137,6 @@ class EventsBinarizer(object):
             for iev, icov in zip(event_ixs, covs):
                 events_continuous[iev, -n_covs:] = icov
             event_names = event_names + cov_names
-        if self.sparse is True:
             events_continuous = sparse.csr_matrix(events_continuous)
 
         self.names_ = event_names
@@ -155,8 +154,10 @@ class EventsBinarizer(object):
         """
         return self.events_continuous_
 
-    def fit_transform(self, event_ixs, event_ids=None, event_dict=None):
-        self.fit(event_ixs, event_ids=event_ids, event_dict=event_dict)
+    def fit_transform(self, event_ixs, event_ids=None, event_dict=None,
+                      covariates=None, covariate_names=None):
+        self.fit(event_ixs, event_ids=event_ids, event_dict=event_dict,
+                 covariates=covariates, covariate_names=covariate_names)
         return self.transform()
 
 

@@ -51,6 +51,30 @@ def test_rerp():
 
     assert_array_almost_equal(evoked_erp.data, evoked_avg.data, 12)
 
+    # Covariates
+    cov = np.random.randn(events.shape[0], 2)
+    # Test outputs are correct when working properly
+    rerp = EventRelatedRegressor(raw, events, est='cholesky', covariates=cov,
+                                 tmin=tmin, tmax=tmax, picks=picks,
+                                 sparse=False)
+    assert_equal(rerp.events_continuous_.shape[-1],
+                 len(set(events[:, 2])) + cov.shape[-1])
+    new_names = ['%s' % e for e in set(events[:, 2])] + ['cov_0', 'cov_1']
+    covs_new = rerp.events_continuous_[:, -2:].toarray()
+    covs_new = covs_new[(covs_new != 0).all(1), :]
+    assert_array_equal(cov, covs_new)
+    assert_array_equal(set(new_names), set(rerp.ev_names))
+    # Make sure covariates are correct shape / num
+    assert_raises(ValueError, EventRelatedRegressor, raw, events,
+                  covariates=cov[:-1])
+    assert_raises(ValueError, EventRelatedRegressor, raw, events,
+                  covariates=cov[np.newaxis, ...])
+    # Cov names
+    assert_raises(ValueError, EventRelatedRegressor, raw, events,
+                  covariates=cov, covariate_names=['foo', 'bar', 'haz'])
+    rerp = EventRelatedRegressor(raw, events, covariates=cov,
+                                 covariate_names=['foo', 'bar'])
+    assert_equal(['foo', 'bar'], rerp.ev_names[-2:])
     # Make sure events are MNE-style
     raw_nopreload = io.read_raw_fif(raw_fname, preload=False)
     assert_raises(ValueError, EventRelatedRegressor, raw, events[:, 0])
@@ -124,7 +148,8 @@ def test_feature():
 @requires_sklearn
 def test_encoding():
     from mne.encoding import (SampleMasker, get_coefs, get_final_est)
-    from sklearn.pipeline import make_pipeline
+    from mne.encoding.model import _check_estimator
+    from sklearn.pipeline import make_pipeline, Pipeline
     from sklearn.linear_model import Ridge
     # Make sure estimator pulling works
     mod = Ridge()
@@ -143,5 +168,13 @@ def test_encoding():
     # Incorrect coefficient name
     assert_raises(ValueError, get_coefs, est, 'foo')
 
+    # Make sure the checks are working
+    # None returns Ridge instance
+    assert_true(isinstance(_check_estimator(None), Pipeline))
+    assert_true(isinstance(_check_estimator(None)._final_estimator, type(mod)))
+    # Incorrect string type
+    assert_raises(ValueError, _check_estimator, 'foo')
+    # Estimator must have fit/predict methods
+    assert_raises(ValueError, _check_estimator, lambda a: a + 1)
 
 run_tests_if_main()

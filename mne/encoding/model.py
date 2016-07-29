@@ -30,6 +30,9 @@ class EventRelatedRegressor(object):
     event_id : dictionary | None
         An optional dictionary of (event_id: event_num) pairs. Used for
         labeling event types. Defaults to None.
+    sparse : bool
+        Whether to use continuous events as a dense array or a sparse
+        matrix. Defaults to True.
     covariates : array, shape (n_events, n_covariates)
         An optional array of covariate (e.g., continuous) values for each
         event. Defaults to None.
@@ -62,9 +65,10 @@ class EventRelatedRegressor(object):
        ERP waveforms: II. Non-linear effects, overlap correction, and
        practical considerations. Psychophysiology, 52(2), 169-189.
     """
-    def __init__(self, raw, events, event_id=None, covariates=None,
-                 covariate_names=None, est=None, tmin=-.1, tmax=.5, picks=None,
-                 coef_name='coef_', remove_outliers=True, remove_empty=True):
+    def __init__(self, raw, events, event_id=None, sparse=True,
+                 covariates=None, covariate_names=None, est=None, tmin=-.1,
+                 tmax=.5, picks=None, coef_name='coef_', remove_outliers=True,
+                 remove_empty=True):
         from .feature import EventsBinarizer, FeatureDelayer
 
         if events.shape[-1] != 3:
@@ -75,9 +79,10 @@ class EventRelatedRegressor(object):
         # Pull event information
         if event_id is None:
             event_id = dict(('%s' % i, i)
-                            for i in range(len(np.unique(events[:, 2]))))
+                            for i in np.unique(events[:, 2]))
         events = events.copy()
         events[:, 0] = events[:, 0] - raw.first_samp
+
         msk_keep = np.array([ii in event_id.values() for ii in events[:, 2]])
         events = events[msk_keep]
         self.ev_ixs, _, self.ev_types = events.T
@@ -85,9 +90,10 @@ class EventRelatedRegressor(object):
         self.event_id = event_id
 
         # Create events representation, pulling only events given in event_dict
-        binarizer = EventsBinarizer(raw.n_times, sfreq=1., sparse=True)
-        self.ev_binary = binarizer.fit_transform(self.ev_ixs, self.ev_types,
-                                                 self.event_id, )
+        binarizer = EventsBinarizer(raw.n_times, sfreq=1., sparse=sparse)
+        self.events_continuous_ = binarizer.fit_transform(
+            self.ev_ixs, self.ev_types, self.event_id, covariates=covariates,
+            covariate_names=covariate_names)
         self.ev_names = binarizer.names_
 
         # Prepare output data
@@ -120,7 +126,7 @@ class EventRelatedRegressor(object):
     def fit(self, X=None, y=None):
         """Fit the encoding model."""
         self.raw.info = pick_info(self.raw.info, self.picks)
-        X = self.ev_binary
+        X = self.events_continuous_
         Y = self.raw._data[self.picks].T
         if self.remove_outliers is True:
             X, Y = remove_outliers(X, Y)
@@ -435,16 +441,4 @@ def _check_estimator(est):
     # Make sure we have a pipeline
     if not isinstance(est, Pipeline):
         est = Pipeline([('est', est)])
-    return est
-
-
-def _check_preproc(est):
-    """Ensure that the estimator is a Pipeline w/ transforms."""
-    from sklearn.pipeline import Pipeline
-    if est is None:
-        pass
-    elif not isinstance(est, Pipeline):
-        raise ValueError('preproc must be a sklearn Pipeline or None')
-    elif not hasattr(est, 'transform'):
-        raise ValueError('preproc must have a transform method')
     return est
