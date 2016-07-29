@@ -28,7 +28,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, write_name_list, _get_split_size)
 
-from ..filter import (filter_data, notch_filter, resample,
+from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _resample_stim_channels)
 from ..fixes import in1d
 from ..parallel import parallel_func
@@ -823,7 +823,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 self._data[p, :] = data_picks_new[pp]
 
     @verbose
-    def apply_hilbert(self, picks, envelope=False, n_jobs=1, n_fft=None,
+    def apply_hilbert(self, picks, envelope=False, n_jobs=1, n_fft='',
                       verbose=None):
         """ Compute analytic signal or envelope for a subset of channels.
 
@@ -857,10 +857,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Compute the envelope signal of each channel.
         n_jobs: int
             Number of jobs to run in parallel.
-        n_fft : int > self.n_times | None
+        n_fft : int | None | str
             Points to use in the FFT for Hilbert transformation. The signal
             will be padded with zeros before computing Hilbert, then cut back
-            to original length. If None, n == self.n_times.
+            to original length. If None, n == self.n_times. If 'auto',
+            the next highest fast FFT length will be use.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -884,7 +885,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         is cut off, but it may result in a slightly different result
         (particularly around the edges). Use at your own risk.
         """
-        n_fft = self.n_times if n_fft is None else n_fft
+        if n_fft is None:
+            n_fft = len(self.times)
+        elif isinstance(n_fft, string_types):
+            if n_fft == '':
+                n_fft = len(self.times)
+                warn('n_fft is None by default in 0.13 but will change to '
+                     '"auto" in 0.14', DeprecationWarning)
+            elif n_fft == 'auto':
+                n_fft = next_fast_len(len(self.times))
+        n_fft = int(n_fft)
         if n_fft < self.n_times:
             raise ValueError("n_fft must be greater than n_times")
         if envelope is True:
@@ -895,9 +905,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                 n_fft, envelope=envelope)
 
     @verbose
-    def filter(self, l_freq, h_freq, picks=None, filter_length='10s',
-               l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-               method='fft', iir_params=None, verbose=None):
+    def filter(self, l_freq, h_freq, picks=None, filter_length='',
+               l_trans_bandwidth=None, h_trans_bandwidth=None, n_jobs=1,
+               method='fir', iir_params=None, phase='', verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -932,29 +942,52 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         picks : array-like of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
             channels will be filtered.
-        filter_length : str (Default: '10s') | int | None
-            Length of the filter to use. If None or ``len(x) < filter_length``,
-            the filter length used is ``len(x)``. If int, a filter of the
-            specified length in samples is used. If str, a human-readable time
-            in units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
-            to the shortest power-of-two length at least that duration.
-            Not used for 'iir' filters.
-        l_trans_bandwidth : float
+        filter_length : str | int
+            Length of the FIR filter to use (if applicable):
+
+                * int: specified length in samples.
+                * 'auto' (default in 0.14): the filter length is chosen based
+                  on the size of the transition regions (7 times the reciprocal
+                  of the shortest transition band).
+                * str: (default in 0.13 is "10s") a human-readable time in
+                  units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+                  converted to that number of samples if ``phase="zero"``, or
+                  the shortest power-of-two length at least that duration for
+                  ``phase="zero-double"``.
+
+        l_trans_bandwidth : float | str
             Width of the transition band at the low cut-off frequency in Hz
-            (high pass or cutoff 1 in bandpass). Not used for 'iir' filters.
-        h_trans_bandwidth : float
+            (high pass or cutoff 1 in bandpass). Can be "auto"
+            (default in 0.14) to use a multiple of ``l_freq``::
+
+                min(max(l_freq * 0.25, 2), l_freq)
+
+            Only used for ``method='fir'``.
+        h_trans_bandwidth : float | str
             Width of the transition band at the high cut-off frequency in Hz
-            (low pass or cutoff 2 in bandpass). Not used for 'iir' filters.
+            (low pass or cutoff 2 in bandpass). Can be "auto"
+            (default in 0.14) to use a multiple of ``h_freq``::
+
+                min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+            Only used for ``method='fir'``.
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-            is installed properly, CUDA is initialized, and method='fft'.
+            is installed properly, CUDA is initialized, and method='fir'.
         method : str
-            'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+            'fir' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt).
         iir_params : dict | None
             Dictionary of parameters to use for IIR filtering.
             See mne.filter.construct_iir_filter for details. If iir_params
             is None and method="iir", 4th order Butterworth will be used.
+        phase : str
+            Phase of the filter, only used if ``method='fir'``.
+            By default, a symmetric linear-phase FIR filter is constructed.
+            If ``phase='zero'`` (default in 0.14), the delay of this filter
+            is compensated for. If ``phase=='zero-double'`` (default in 0.13
+            and before), then this filter is applied twice, once forward, and
+            once backward.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -996,7 +1029,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                             'be updated.')
         filter_data(self._data, self.info['sfreq'], l_freq, h_freq, picks,
                     filter_length, l_trans_bandwidth, h_trans_bandwidth,
-                    n_jobs, method, iir_params, copy=False)
+                    n_jobs, method, iir_params, copy=False, phase=phase)
         # update info if filter is applied to all data channels,
         # and it's not a band-stop filter
         if update_info:
@@ -1011,10 +1044,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     @verbose
-    def notch_filter(self, freqs, picks=None, filter_length='10s',
+    def notch_filter(self, freqs, picks=None, filter_length='',
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
                      method='fft', iir_params=None, mt_bandwidth=None,
-                     p_value=0.05, verbose=None):
+                     p_value=0.05, phase='', verbose=None):
         """Notch filter a subset of channels.
 
         Applies a zero-phase notch filter to the channels selected by
@@ -1037,24 +1070,30 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         picks : array-like of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
             channels will be filtered.
-        filter_length : str (Default: '10s') | int | None
-            Length of the filter to use. If None or "len(x) < filter_length",
-            the filter length used is len(x). Otherwise, if int, overlap-add
-            filtering with a filter of the specified length in samples) is
-            used (faster for long signals). If str, a human-readable time in
-            units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
-            to the shortest power-of-two length at least that duration.
-            Not used for 'iir' filters.
+        filter_length : str | int
+            Length of the FIR filter to use (if applicable):
+
+                * int: specified length in samples.
+                * 'auto' (default in 0.14): the filter length is chosen based
+                  on the size of the transition regions (7 times the reciprocal
+                  of the shortest transition band).
+                * str: (default in 0.13 is "10s") a human-readable time in
+                  units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+                  converted to that number of samples if ``phase="zero"``, or
+                  the shortest power-of-two length at least that duration for
+                  ``phase="zero-double"``.
+
         notch_widths : float | array of float | None
             Width of each stop band (centred at each freq in freqs) in Hz.
             If None, freqs / 200 is used.
         trans_bandwidth : float
             Width of the transition band in Hz.
+            Only used for ``method='fir'``.
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-            is installed properly, CUDA is initialized, and method='fft'.
+            is installed properly, CUDA is initialized, and method='fir'.
         method : str
-            'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+            'fir' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt). 'spectrum_fit' will
             use multi-taper estimation of sinusoidal components.
         iir_params : dict | None
@@ -1069,6 +1108,13 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             sinusoidal components to remove when method='spectrum_fit' and
             freqs=None. Note that this will be Bonferroni corrected for the
             number of frequencies, so large p-values may be justified.
+        phase : str
+            Phase of the filter, only used if ``method='fir'``.
+            By default, a symmetric linear-phase FIR filter is constructed.
+            If ``phase='zero'`` (default in 0.14), the delay of this filter
+            is compensated for. If ``phase=='zero-double'`` (default in 0.13
+            and before), then this filter is applied twice, once forward, and
+            once backward.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -1099,7 +1145,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._data, fs, freqs, filter_length=filter_length,
             notch_widths=notch_widths, trans_bandwidth=trans_bandwidth,
             method=method, iir_params=iir_params, mt_bandwidth=mt_bandwidth,
-            p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False)
+            p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False,
+            phase=phase)
         return self
 
     @verbose
@@ -2264,9 +2311,9 @@ def _my_hilbert(x, n_fft=None, envelope=False):
     ----------
     x : array, shape (n_times)
         The signal to convert
-    n_fft : int, length > x.shape[-1] | None
-        How much to pad the signal before Hilbert transform.
-        Note that signal will then be cut back to original length.
+    n_fft : int
+        Size of the FFT to perform, must be at least ``len(x)``.
+        The signal will be cut back to original length.
     envelope : bool
         Whether to compute amplitude of the hilbert transform in order
         to return the signal envelope.
@@ -2277,7 +2324,6 @@ def _my_hilbert(x, n_fft=None, envelope=False):
         The hilbert transform of the signal, or the envelope.
     """
     from scipy.signal import hilbert
-    n_fft = x.shape[-1] if n_fft is None else n_fft
     n_x = x.shape[-1]
     out = hilbert(x, N=n_fft)[:n_x]
     if envelope is True:

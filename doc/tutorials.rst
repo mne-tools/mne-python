@@ -115,6 +115,7 @@ For further reading:
     :maxdepth: 1
 
     auto_tutorials/plot_object_raw.rst
+    auto_tutorials/plot_modifying_data_inplace.rst
     auto_tutorials/plot_object_epochs.rst
     auto_tutorials/plot_object_evoked.rst
     auto_tutorials/plot_creating_data_structures.rst

@@ -756,17 +756,19 @@ def test_filter():
     """Test filtering (FIR and IIR) and Raw.apply_function interface"""
     raw = Raw(fif_fname).crop(0, 7, copy=False)
     raw.load_data()
-    sig_dec = 11
     sig_dec_notch = 12
     sig_dec_notch_fit = 12
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
 
-    filter_params = dict(picks=picks, n_jobs=2)
-    raw_lp = raw.copy().filter(0., 4.0 - 0.25, **filter_params)
-    raw_hp = raw.copy().filter(8.0 + 0.25, None, **filter_params)
-    raw_bp = raw.copy().filter(4.0 + 0.25, 8.0 - 0.25, **filter_params)
-    raw_bs = raw.copy().filter(8.0 + 0.25, 4.0 - 0.25, **filter_params)
+    trans = 2.0
+    filter_params = dict(picks=picks, filter_length='auto',
+                         h_trans_bandwidth=trans, l_trans_bandwidth=trans,
+                         phase='zero')
+    raw_lp = raw.copy().filter(None, 8.0, **filter_params)
+    raw_hp = raw.copy().filter(16.0, None, **filter_params)
+    raw_bp = raw.copy().filter(8.0 + trans, 16.0 - trans, **filter_params)
+    raw_bs = raw.copy().filter(16.0, 8.0, **filter_params)
 
     data, _ = raw[picks, :]
 
@@ -775,11 +777,14 @@ def test_filter():
     bp_data, _ = raw_bp[picks, :]
     bs_data, _ = raw_bs[picks, :]
 
-    assert_array_almost_equal(data, lp_data + bp_data + hp_data, sig_dec)
-    assert_array_almost_equal(data, bp_data + bs_data, sig_dec)
+    tols = dict(atol=1e-20, rtol=1e-5)
+    assert_allclose(bs_data, lp_data + hp_data, **tols)
+    assert_allclose(data, lp_data + bp_data + hp_data, **tols)
+    assert_allclose(data, bp_data + bs_data, **tols)
 
-    filter_params_iir = dict(picks=picks, n_jobs=2, method='iir')
-    raw_lp_iir = raw.copy().filter(0., 4.0, **filter_params_iir)
+    filter_params_iir = dict(picks=picks, n_jobs=2, method='iir',
+                             iir_params=dict(output='ba'))
+    raw_lp_iir = raw.copy().filter(None, 4.0, **filter_params_iir)
     raw_hp_iir = raw.copy().filter(8.0, None, **filter_params_iir)
     raw_bp_iir = raw.copy().filter(4.0, 8.0, **filter_params_iir)
     del filter_params_iir
@@ -787,8 +792,7 @@ def test_filter():
     hp_data_iir, _ = raw_hp_iir[picks, :]
     bp_data_iir, _ = raw_bp_iir[picks, :]
     summation = lp_data_iir + hp_data_iir + bp_data_iir
-    assert_array_almost_equal(data[:, 100:-100], summation[:, 100:-100],
-                              sig_dec)
+    assert_array_almost_equal(data[:, 100:-100], summation[:, 100:-100], 11)
 
     # make sure we didn't touch other channels
     data, _ = raw[picks_meg[4:], :]
@@ -799,7 +803,7 @@ def test_filter():
 
     # ... and that inplace changes are inplace
     raw_copy = raw.copy()
-    raw_copy.filter(None, 20., picks=picks, n_jobs=2)
+    raw_copy.filter(None, 20., n_jobs=2, **filter_params)
     assert_true(raw._data[0, 0] != raw_copy._data[0, 0])
     assert_equal(raw.copy().filter(None, 20., **filter_params)._data,
                  raw_copy._data)
@@ -807,10 +811,11 @@ def test_filter():
     # do a very simple check on line filtering
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        raw_bs = raw.copy().filter(60.0 + 0.5, 60.0 - 0.5, **filter_params)
+        raw_bs = raw.copy().filter(60.0 + trans, 60.0 - trans, **filter_params)
         data_bs, _ = raw_bs[picks, :]
         raw_notch = raw.copy().notch_filter(
-            60.0, picks=picks, n_jobs=2, method='fft')
+            60.0, picks=picks, n_jobs=2, method='fir', filter_length='auto',
+            trans_bandwidth=2 * trans)
     data_notch, _ = raw_notch[picks, :]
     assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
 
@@ -837,7 +842,7 @@ def test_filter():
         assert_true(raw.info['lowpass'] is None)
         assert_true(raw.info['highpass'] is None)
         kwargs = dict(l_trans_bandwidth=20, h_trans_bandwidth=20,
-                      filter_length=200)
+                      filter_length='auto', phase='zero')
         raw_filt = raw.copy().filter(l_freq, h_freq, picks=np.arange(1),
                                      **kwargs)
         assert_true(raw.info['lowpass'] is None)
@@ -868,11 +873,9 @@ def test_filter_picks():
         picks = dict((ch, ch == ch_type) for ch in ch_types)
         picks['meg'] = ch_type if ch_type in ('mag', 'grad') else False
         raw_ = raw.copy().pick_types(**picks)
-        # Avoid RuntimeWarning due to Attenuation
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            raw_.filter(10, 30)
-        assert_true(any(['Attenuation' in str(ww.message) for ww in w]))
+        raw_.filter(10, 30, l_trans_bandwidth='auto',
+                    h_trans_bandwidth='auto', filter_length='auto',
+                    phase='zero')
 
     # -- Error if no data channel
     for ch_type in ('misc', 'stim'):
@@ -1052,17 +1055,20 @@ def test_hilbert():
     picks = picks_meg[:4]
 
     raw_filt = raw.copy()
-    raw_filt.filter(10, 20)
+    raw_filt.filter(10, 20, picks=picks, l_trans_bandwidth='auto',
+                    h_trans_bandwidth='auto', filter_length='auto',
+                    phase='zero')
     raw_filt_2 = raw_filt.copy()
 
     raw2 = raw.copy()
     raw3 = raw.copy()
-    raw.apply_hilbert(picks)
-    raw2.apply_hilbert(picks, envelope=True, n_jobs=2)
+    raw.apply_hilbert(picks, n_fft='auto')
+    raw2.apply_hilbert(picks, n_fft='auto', envelope=True)
 
     # Test custom n_fft
-    raw_filt.apply_hilbert(picks)
-    raw_filt_2.apply_hilbert(picks, n_fft=raw_filt_2.n_times + 1000)
+    raw_filt.apply_hilbert(picks, n_fft='auto')
+    n_fft = 2 ** int(np.ceil(np.log2(raw_filt_2.n_times + 1000)))
+    raw_filt_2.apply_hilbert(picks, n_fft=n_fft)
     assert_equal(raw_filt._data.shape, raw_filt_2._data.shape)
     assert_allclose(raw_filt._data[:, 50:-50], raw_filt_2._data[:, 50:-50],
                     atol=1e-13, rtol=1e-2)
@@ -1317,7 +1323,8 @@ def test_compensation_raw_mne():
         return Raw(tmp_fname, preload=True)
 
     for grad in [0, 2, 3]:
-        raw_py = Raw(ctf_comp_fname, preload=True, compensation=grad)
+        with warnings.catch_warnings(record=True):  # deprecated param
+            raw_py = Raw(ctf_comp_fname, preload=True, compensation=grad)
         raw_c = compensate_mne(ctf_comp_fname, grad)
         assert_allclose(raw_py._data, raw_c._data, rtol=1e-6, atol=1e-17)
         assert_equal(raw_py.info['nchan'], raw_c.info['nchan'])

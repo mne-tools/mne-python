@@ -57,7 +57,7 @@ class RawBrainVision(_BaseRaw):
         typically another value or None will be necessary.
     event_id : dict | None
         The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('SXXX').
+        follow the normal Brainvision trigger format ('S###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus events are added to the
@@ -146,7 +146,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         vmrk file to be read.
     event_id : dict | None
         The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('SXXX').
+        follow the normal Brainvision trigger format ('S###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus events are added to the
@@ -213,7 +213,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
             examples += ", ..."
         warn("Currently, {0} trigger(s) will be dropped, such as [{1}]. "
              "Consider using ``event_id`` to parse triggers that "
-             "do not follow the 'SXXX' pattern.".format(
+             "do not follow the 'S###' pattern.".format(
                  len(dropped), examples))
 
     events = np.array(events).reshape(-1, 3)
@@ -512,7 +512,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         typically another value or None will be necessary.
     event_id : dict | None
         The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('SXXX').
+        follow the normal Brainvision trigger format ('S###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus events are added to the

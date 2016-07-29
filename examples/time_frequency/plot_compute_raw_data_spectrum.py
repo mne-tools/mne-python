@@ -75,7 +75,7 @@ raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
 ax.set_title('Four left-temporal magnetometers')
 plt.legend(['Without SSP', 'With SSP', 'SSP + Notch'])
 
-# Alternatively, you may also create PSDs from Raw objects with psd_XXX
+# Alternatively, you may also create PSDs from Raw objects with ``psd_*``
 f, ax = plt.subplots()
 psds, freqs = psd_multitaper(raw, low_bias=True, tmin=tmin, tmax=tmax,
                              fmin=fmin, fmax=fmax, proj=True, picks=picks,

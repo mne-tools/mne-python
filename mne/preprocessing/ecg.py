@@ -53,7 +53,9 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     win_size = int(round((60.0 * sfreq) / 120.0))
 
     filtecg = band_pass_filter(ecg, sfreq, l_freq, h_freq,
-                               filter_length=filter_length)
+                               filter_length=filter_length,
+                               l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
+                               phase='zero-double')
 
     ecg_abs = np.abs(filtecg)
     init = int(sfreq)

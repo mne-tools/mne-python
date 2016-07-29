@@ -228,7 +228,9 @@ def test_fif_dig_montage():
     dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
 
     # Make a BrainVision file like the one the user would have had
-    raw_bv = read_raw_brainvision(bv_fname, preload=True)
+    with warnings.catch_warnings(record=True) as w:
+        raw_bv = read_raw_brainvision(bv_fname, preload=True)
+    assert_true(any('will be dropped' in str(ww.message) for ww in w))
     raw_bv_2 = raw_bv.copy()
     mapping = dict()
     for ii, ch_name in enumerate(raw_bv.ch_names[:-1]):

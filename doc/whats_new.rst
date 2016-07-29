@@ -15,6 +15,10 @@ Current
 Changelog
 ~~~~~~~~~
 
+    - Adds automatic determiniation of FIR filter parameters ``filter_length``, ``l_trans_bandwidth``, and ``h_trans_bandwidth`` and adds ``phase`` argument in e.g. in :meth:`mne.io.Raw.filter` by `Eric Larson`_
+
+    - Adds faster ``n_fft='auto'`` option to :meth:`mne.io.Raw.apply_hilbert` by `Eric Larson`_
+
     - Adds new function :func:`mne.time_frequency.csd_array` to compute the cross-spectral density of multivariate signals stored in an array, by `Nick Foti`_
 
     - Add order params 'selection' and 'position' for :func:`mne.viz.plot_raw` to allow plotting of specific brain regions by `Jaakko Leppakangas`_
@@ -78,6 +82,18 @@ BUG
 
 API
 ~~~
+
+    - Multiple aspects of FIR filtering in MNE-Python has been refactored:
+
+          1. New recommended defaults for ``l_trans_bandwidth='auto'``, ``h_trans_bandwidth='auto'``, and ``filter_length='auto'``. This should generally reduce filter artifacts at the expense of slight decrease in effective filter stop-band attenuation. For details see :ref:`tut_filtering_in_python`. The default values of ``l_trans_bandwidth=h_trans_bandwidth=0.5`` and ``filter_length='10s'`` will change to ``'auto'`` in 0.14.
+
+          2. The ``filter_length=None`` option (i.e. use ``len(x)``) has been deprecated.
+
+          3. An improved ``phase='zero'`` zero-phase FIR filtering has been added. Instead of running the designed filter forward and backward, the filter is applied once and we compensate for the linear phase of the filter. The previous ``phase='zero-double'`` default will change to ``phase='zero'`` in 0.14.
+
+          4. A warning is provided when the filter is longer than the signal of interest, as this is unlikely to produce desired results.
+
+          5. Previously, if the filter was as long or longer than the signal of interest, direct FFT-based computations were used. Now a single code path (overlap-add filtering) is used for all FIR filters. This could cause minor changes in how short signals are filtered.
 
     - When CTF gradient compensation is applied to raw data, it is no longer reverted on save of :meth:`mne.io.Raw.save` by `Eric Larson`_
 
@@ -966,7 +982,7 @@ API
 
    - Pick functions (e.g., ``pick_types``) are now in the mne namespace (e.g. use ``mne.pick_types``).
 
-   - Deprecated ICA methods specific to one container type. Use ICA.fit, ICA.get_sources ICA.apply and ICA.plot_XXX for processing Raw, Epochs and Evoked objects.
+   - Deprecated ICA methods specific to one container type. Use ICA.fit, ICA.get_sources ICA.apply and ``ICA.plot_*`` for processing Raw, Epochs and Evoked objects.
 
    - The default smoothing method for ``mne.stc_to_label`` will change in v0.9, and the old method is deprecated.
 

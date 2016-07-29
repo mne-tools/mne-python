@@ -27,7 +27,8 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 45, n_jobs=1)
+raw.filter(1, 45, n_jobs=1, l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
+           filter_length='10s', phase='zero-double')
 
 ###############################################################################
 # 1) Fit ICA model using the FastICA algorithm

@@ -45,7 +45,7 @@ def test_pick_refs():
     infos.append(raw_bti.info)
     # CTF
     fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
-    raw_ctf = Raw(fname_ctf_raw, compensation=2)
+    raw_ctf = Raw(fname_ctf_raw).apply_gradient_compensation(2)
     infos.append(raw_ctf.info)
     for info in infos:
         info['bads'] = []

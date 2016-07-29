@@ -277,8 +277,8 @@ def test_ica_additional():
     stop2 = 500
     raw = Raw(raw_fname).crop(1.5, stop, copy=False)
     raw.load_data()
-    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
+    # XXX This breaks the tests :(
+    # raw.info['bads'] = [raw.ch_names[1]]
     test_cov = read_cov(test_cov_name)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
@@ -388,14 +388,15 @@ def test_ica_additional():
 
         # test filtering
         d1 = ica_raw._data[0].copy()
-        with warnings.catch_warnings(record=True):  # dB warning
-            ica_raw.filter(4, 20)
-            assert_equal(type(ica_raw.info['lowpass']), float)
-            assert_equal(type(ica_raw.info['highpass']), float)
+        ica_raw.filter(4, 20, l_trans_bandwidth='auto',
+                       h_trans_bandwidth='auto', filter_length='auto',
+                       phase='zero')
+        assert_equal(ica_raw.info['lowpass'], 20.)
+        assert_equal(ica_raw.info['highpass'], 4.)
         assert_true((d1 != ica_raw._data[0]).any())
         d1 = ica_raw._data[0].copy()
-        with warnings.catch_warnings(record=True):  # dB warning
-            ica_raw.notch_filter([10])
+        ica_raw.notch_filter([10], filter_length='auto', trans_bandwidth=10,
+                             phase='zero')
         assert_true((d1 != ica_raw._data[0]).any())
 
         ica.n_pca_components = 2

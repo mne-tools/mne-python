@@ -498,8 +498,8 @@ class FilterEstimator(TransformerMixin):
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
     """
-    def __init__(self, info, l_freq, h_freq, picks=None, filter_length='10s',
-                 l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
+    def __init__(self, info, l_freq, h_freq, picks=None, filter_length='',
+                 l_trans_bandwidth=None, h_trans_bandwidth=None, n_jobs=1,
                  method='fft', iir_params=None, verbose=None):
         self.info = info
         self.l_freq = l_freq

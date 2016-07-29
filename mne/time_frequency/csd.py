@@ -269,12 +269,11 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
 
     Returns
     -------
-    csd : array, shape (n_freqs, n_series, n_series) if fsum is True,
-          otherwise (n_series, n_series).
+    csd : array, shape (n_freqs, n_series, n_series) if fsum is True, otherwise (n_series, n_series).
         The computed cross spectral-density (either summed or not).
     freqs : array
         Frequencies the cross spectral-density is evaluated at.
-    """
+    """  # noqa
 
     # Check correctness of input data and parameters
     if fmax < fmin:
