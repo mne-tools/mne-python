@@ -444,6 +444,8 @@ class PSDEstimator(TransformerMixin):
         return psd
 
 
+@deprecated("FilterEstimator will be deprecated in version 0.14; "
+            "use Filterer instead")
 class FilterEstimator(TransformerMixin):
     """Estimator to filter RtEpochs
 
@@ -715,3 +717,164 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         X = self.estimator.transform(X)
         X = np.reshape(X.T, [-1, n_epochs, n_times]).transpose([1, 0, 2])
         return X
+
+
+class Filterer(TransformerMixin):
+    """Estimator to filter RtEpochs
+
+    Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
+    filter to the channels.
+
+    l_freq and h_freq are the frequencies below which and above which,
+    respectively, to filter out of the data. Thus the uses are:
+
+        - l_freq < h_freq: band-pass filter
+        - l_freq > h_freq: band-stop filter
+        - l_freq is not None, h_freq is None: low-pass filter
+        - l_freq is None, h_freq is not None: high-pass filter
+
+    If n_jobs > 1, more memory is required as "len(picks) * n_times"
+    additional time points need to be temporarily stored in memory.
+
+    Parameters
+    ----------
+    sfreq : float
+        Sampling frequency in Hz.
+    l_freq : float | None
+        Low cut-off frequency in Hz. If None the data are only low-passed.
+    h_freq : float | None
+        High cut-off frequency in Hz. If None the data are only
+        high-passed.
+        channels will be filtered.
+    filter_length : str (Default: '10s') | int | None
+        Length of the filter to use. If None or "len(x) < filter_length",
+        the filter length used is len(x). Otherwise, if int, overlap-add
+        filtering with a filter of the specified length in samples) is
+        used (faster for long signals). If str, a human-readable time in
+        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+        to the shortest power-of-two length at least that duration.
+    l_trans_bandwidth : float
+        Width of the transition band at the low cut-off frequency in Hz.
+    h_trans_bandwidth : float
+        Width of the transition band at the high cut-off frequency in Hz.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+        is installed properly, CUDA is initialized, and method='fft'.
+    method : str
+        'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+        forward-backward filtering (via filtfilt).
+    iir_params : dict | None
+        Dictionary of parameters to use for IIR filtering.
+        See mne.filter.construct_iir_filter for details. If iir_params
+        is None and method="iir", 4th order Butterworth will be used.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to self.verbose.
+    """
+    def __init__(self, sfreq, l_freq, h_freq, filter_length='',
+                 l_trans_bandwidth=None, h_trans_bandwidth=None, n_jobs=1,
+                 method='fft', iir_params=None, verbose=None):
+        self.sfreq = sfreq
+        self.l_freq = l_freq
+        self.h_freq = h_freq
+        self.filter_length = filter_length
+        self.l_trans_bandwidth = l_trans_bandwidth
+        self.h_trans_bandwidth = h_trans_bandwidth
+        self.n_jobs = n_jobs
+        self.method = method
+        self.iir_params = iir_params
+
+    def fit(self, epochs_data, y):
+        """Filters data
+
+        Parameters
+        ----------
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
+            The data.
+        y : array, shape (n_epochs,)
+            The label for each epoch.
+
+        Returns
+        -------
+        self : instance of Filterer
+            Returns the modified instance
+        """
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
+
+        if self.l_freq == 0:
+            self.l_freq = None
+        if self.h_freq is not None and self.h_freq > (self.sfreq / 2.):
+            self.h_freq = None
+        if self.l_freq is not None and not isinstance(self.l_freq, float):
+            self.l_freq = float(self.l_freq)
+        if self.h_freq is not None and not isinstance(self.h_freq, float):
+            self.h_freq = float(self.h_freq)
+
+        return self
+
+    def transform(self, epochs_data, y=None):
+        """Filters data
+
+        Parameters
+        ----------
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
+            The data.
+        y : None | array, shape (n_epochs,)
+            The label for each epoch.
+            If None not used. Defaults to None.
+
+        Returns
+        -------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data after filtering
+        """
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
+
+        epochs_data = np.atleast_3d(epochs_data)
+
+        if self.l_freq is None and self.h_freq is not None:
+            epochs_data = \
+                low_pass_filter(epochs_data, self.sfreq, self.h_freq,
+                                filter_length=self.filter_length,
+                                trans_bandwidth=self.l_trans_bandwidth,
+                                method=self.method, iir_params=self.iir_params,
+                                n_jobs=self.n_jobs, copy=False, verbose=False)
+
+        if self.l_freq is not None and self.h_freq is None:
+            epochs_data = \
+                high_pass_filter(epochs_data, self.sfreq, self.l_freq,
+                                 filter_length=self.filter_length,
+                                 trans_bandwidth=self.h_trans_bandwidth,
+                                 method=self.method,
+                                 iir_params=self.iir_params,
+                                 n_jobs=self.n_jobs, copy=False,
+                                 verbose=False)
+
+        if self.l_freq is not None and self.h_freq is not None:
+            if self.l_freq < self.h_freq:
+                epochs_data = \
+                    band_pass_filter(epochs_data, self.sfreq,
+                                     self.l_freq, self.h_freq,
+                                     filter_length=self.filter_length,
+                                     l_trans_bandwidth=self.l_trans_bandwidth,
+                                     h_trans_bandwidth=self.h_trans_bandwidth,
+                                     method=self.method,
+                                     iir_params=self.iir_params,
+                                     n_jobs=self.n_jobs, copy=False,
+                                     verbose=False)
+            else:
+                epochs_data = \
+                    band_stop_filter(epochs_data, self.sfreq,
+                                     self.h_freq, self.l_freq,
+                                     filter_length=self.filter_length,
+                                     l_trans_bandwidth=self.h_trans_bandwidth,
+                                     h_trans_bandwidth=self.l_trans_bandwidth,
+                                     method=self.method,
+                                     iir_params=self.iir_params,
+                                     n_jobs=self.n_jobs, copy=False,
+                                     verbose=False)
+        return epochs_data

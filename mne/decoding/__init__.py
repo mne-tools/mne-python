@@ -1,6 +1,6 @@
 from .transformer import Scaler, FilterEstimator
 from .transformer import (PSDEstimator, EpochsVectorizer, Vectorizer,
-                          UnsupervisedSpatialFilter)
+                          UnsupervisedSpatialFilter, Filterer)
 from .mixin import TransformerMixin
 from .base import BaseEstimator, LinearModel
 from .csp import CSP
