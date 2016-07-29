@@ -61,7 +61,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
     See Also
     --------
-    mne.time_frequency.timefreq_transform
+    mne.time_frequency.compute_tfr
     """
     Ws = list()
     n_cycles = np.atleast_1d(n_cycles)
@@ -251,10 +251,10 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 # Loop of convolution: single trial
 
 
-def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
-                       n_cycles=7.0, zero_mean=None, time_bandwidth=4.0,
-                       use_fft=True, decim=1, output='complex', n_jobs=1,
-                       verbose=None):
+def compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
+                n_cycles=7.0, zero_mean=None, time_bandwidth=4.0,
+                use_fft=True, decim=1, output='complex', n_jobs=1,
+                verbose=None):
     """Computes time frequency transforms.
 
     Parameters
@@ -399,7 +399,7 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
 
 
 def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
-    """Aux. function to timefreq_transform.
+    """Aux. function to compute_tfr.
 
     Loops time frequency transform across wavelets and epochs.
 
@@ -485,7 +485,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
 
 
 @deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
-            ".timefreq_transform() instead.")
+            ".compute_tfr() instead.")
 def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
                decim=1):
     """Compute time freq decomposition with Morlet wavelets
@@ -586,7 +586,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
 
 @deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
-            ".timefreq_transform() instead.")
+            ".compute_tfr() instead.")
 @verbose
 def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
@@ -736,10 +736,9 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     info, data, picks = _prepare_picks(info, data, picks)
     data = data[:, picks, :]
 
-    out = timefreq_transform(data, freqs, info['sfreq'], n_cycles=n_cycles,
-                             n_jobs=n_jobs, use_fft=use_fft, decim=decim,
-                             zero_mean=True, method='morlet',
-                             output='avg_power_itc')
+    out = compute_tfr(data, freqs, info['sfreq'], n_cycles=n_cycles,
+                      n_jobs=n_jobs, use_fft=use_fft, decim=decim,
+                      zero_mean=True, method='morlet', output='avg_power_itc')
     power, itc = out.real, out.imag
     times = inst.times[decim].copy()
     nave = len(data)
@@ -813,11 +812,10 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     info, data, picks = _prepare_picks(info, data, picks)
     data = data = data[:, picks, :]
 
-    out = timefreq_transform(data, freqs, info['sfreq'], n_cycles=n_cycles,
-                             n_jobs=n_jobs, use_fft=use_fft, decim=decim,
-                             zero_mean=True, method='multitaper',
-                             time_bandwidth=time_bandwidth,
-                             output='avg_power_itc')
+    out = compute_tfr(data, freqs, info['sfreq'], n_cycles=n_cycles,
+                      n_jobs=n_jobs, use_fft=use_fft, decim=decim,
+                      zero_mean=True, method='multitaper',
+                      time_bandwidth=time_bandwidth, output='avg_power_itc')
     power, itc = out.real, out.imag
 
     times = inst.times[decim].copy()
