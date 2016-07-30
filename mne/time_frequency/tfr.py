@@ -59,9 +59,6 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     Ws : list of array
         The wavelets time series.
 
-    See Also
-    --------
-    mne.time_frequency.timefreq_transform
     """
     Ws = list()
     n_cycles = np.atleast_1d(n_cycles)
@@ -251,10 +248,10 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 # Loop of convolution: single trial
 
 
-def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
-                       n_cycles=7.0, zero_mean=None, time_bandwidth=4.0,
-                       use_fft=True, decim=1, output='complex', n_jobs=1,
-                       verbose=None):
+def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
+                 n_cycles=7.0, zero_mean=None, time_bandwidth=4.0,
+                 use_fft=True, decim=1, output='complex', n_jobs=1,
+                 verbose=None):
     """Computes time frequency transforms.
 
     Parameters
@@ -271,9 +268,9 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
     n_cycles : float | array of float, defaults to 7.0
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.
-    zero_mean : bool | None, defaults to None, which will use True for method='mtm' and False for method='morlet'. # noqa
-        Make sure the wavelets have a mean of zero.
-        method == 'mtm' and defaults to False if method == 'morlet'.
+    zero_mean : bool | None, defaults to None
+        None means True for method='mtm' and False for method='morlet'.
+        If True, make sure the wavelets have a mean of zero.
     time_bandwidth : float, defaults to 4.0 (3 tapers)
         Time x (Full) Bandwidth product. Only applies if method == 'mtm'.
         The number of good tapers (low-bias) is chosen automatically based on
@@ -333,7 +330,8 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
     allowed_ouput = ('complex', 'power', 'phase',
                      'avg_power_itc', 'avg_power', 'itc')
     if output not in allowed_ouput:
-        raise ValueError("Unknown output type.")
+        raise ValueError("Unknown output type. Allowed are %s but "
+                         "got %s" % (allowed_ouput, output))
 
     if method not in ('mtm', 'morlet'):
         raise ValueError('method must be "morlet" or "mtm"')
@@ -384,7 +382,7 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
     # Parallel computation
     parallel, my_cwt, _ = parallel_func(_time_frequency_loop, n_jobs)
 
-    # Parallization is applied across channels.
+    # Parallelization is applied across channels.
     tfrs = parallel(
         my_cwt(channel, Ws, output, use_fft, 'same', decim)
         for channel in epoch_data.transpose(1, 0, 2))
@@ -399,7 +397,7 @@ def timefreq_transform(epoch_data, frequencies, sfreq=1.0, method='morlet',
 
 
 def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
-    """Aux. function to timefreq_transform.
+    """Aux. function to _compute_tfr.
 
     Loops time frequency transform across wavelets and epochs.
 
@@ -485,7 +483,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
 
 
 @deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
-            ".timefreq_transform() instead.")
+            ".tfr_morlet() with average=False instead.")
 def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
                decim=1):
     """Compute time freq decomposition with Morlet wavelets
@@ -586,7 +584,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
 
 @deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
-            ".timefreq_transform() instead.")
+            ".tfr_morlet() with average=False instead.")
 @verbose
 def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
@@ -687,7 +685,8 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
 
 @verbose
 def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
-               n_jobs=1, picks=None, verbose=None):
+               n_jobs=1, picks=None, zero_mean=True, average=True,
+               verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets
 
     Parameters
@@ -714,14 +713,18 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     picks : array-like of int | None, defaults to None
         The indices of the channels to plot. If None all available
         channels are displayed.
+    zero_mean : bool, defaults to True
+        Make sure the wavelet has a mean of zero.
+    average : bool, defaults to True
+        If True average accross Epochs.
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    power : instance of AverageTFR
+    power : AverageTFR | EpochsTFR
         The averaged power.
-    itc : instance of AverageTFR
+    itc : AverageTFR | EpochsTFR
         The intertrial coherence (ITC). Only returned if return_itc
         is True.
 
@@ -736,24 +739,47 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     info, data, picks = _prepare_picks(info, data, picks)
     data = data[:, picks, :]
 
-    out = timefreq_transform(data, freqs, info['sfreq'], n_cycles=n_cycles,
-                             n_jobs=n_jobs, use_fft=use_fft, decim=decim,
-                             zero_mean=True, method='morlet',
-                             output='avg_power_itc')
-    power, itc = out.real, out.imag
+    if average:
+        if return_itc:
+            output = 'avg_power_itc'
+        else:
+            output = 'avg_power'
+    else:
+        output = 'complex'
+
+    out = _compute_tfr(data, freqs, info['sfreq'], n_cycles=n_cycles,
+                       n_jobs=n_jobs, use_fft=use_fft, decim=decim,
+                       zero_mean=zero_mean, method='morlet',
+                       output=output)
     times = inst.times[decim].copy()
-    nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave, method='morlet-power')
-    if return_itc:
-        out = (out, AverageTFR(info, itc, times, freqs, nave,
-                               method='morlet-itc'))
+
+    if average:
+        if return_itc:
+            power, itc = out.real, out.imag
+        else:
+            power = out
+        nave = len(data)
+        out = AverageTFR(info, power, times, freqs, nave, method='morlet-power')
+        if return_itc:
+            out = (out, AverageTFR(info, itc, times, freqs, nave,
+                                   method='morlet-itc'))
+    else:
+        power = np.abs(out)
+        if return_itc:
+            itc = out / power
+        power **= 2
+        out = EpochsTFR(info, power, times, freqs, method='morlet-power')
+        if return_itc:
+            out = (out, EpochsTFR(info, itc, times, freqs,
+                                  method='morlet-itc'))
+
     return out
 
 
 @verbose
 def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                    use_fft=True, return_itc=True, decim=1,
-                   n_jobs=1, picks=None, verbose=None):
+                   n_jobs=1, picks=None, average=True, verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
     Parameters
@@ -787,14 +813,16 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     picks : array-like of int | None, defaults to None
         The indices of the channels to plot. If None all available
         channels are displayed.
+    average : bool, defaults to True
+        If True average accross Epochs.
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    power : AverageTFR
+    power : AverageTFR | EpochsTFR
         The averaged power.
-    itc : AverageTFR
+    itc : AverageTFR | EpochsTFR
         The intertrial coherence (ITC). Only returned if return_itc
         is True.
 
@@ -813,26 +841,107 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     info, data, picks = _prepare_picks(info, data, picks)
     data = data = data[:, picks, :]
 
-    out = timefreq_transform(data, freqs, info['sfreq'], n_cycles=n_cycles,
-                             n_jobs=n_jobs, use_fft=use_fft, decim=decim,
-                             zero_mean=True, method='mtm',
-                             time_bandwidth=time_bandwidth,
-                             output='avg_power_itc')
-    power, itc = out.real, out.imag
+    # XXX don't compute ITC if not requested
+    if average:
+        if return_itc:
+            output = 'avg_power_itc'
+        else:
+            output = 'avg_power'
+    else:
+        output = 'complex'
 
+    out = _compute_tfr(data, freqs, info['sfreq'], n_cycles=n_cycles,
+                       n_jobs=n_jobs, use_fft=use_fft, decim=decim,
+                       zero_mean=True, method='mtm',
+                       time_bandwidth=time_bandwidth, output=output)
     times = inst.times[decim].copy()
-    nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave,
-                     method='mutlitaper-power')
-    if return_itc:
-        out = (out, AverageTFR(info, itc, times, freqs, nave,
-                               method='mutlitaper-itc'))
+
+    if average:
+        if return_itc:
+            power, itc = out.real, out.imag
+        else:
+            power = out
+        nave = len(data)
+        out = AverageTFR(info, power, times, freqs, nave, method='mutlitaper-power')
+        if return_itc:
+            out = (out, AverageTFR(info, itc, times, freqs, nave,
+                                   method='mutlitaper-itc'))
+    else:
+        power = np.abs(out)
+        if return_itc:
+            itc = out / power
+        power **= 2
+        out = EpochsTFR(info, power, times, freqs, method='mutlitaper-power')
+        if return_itc:
+            out = (out, EpochsTFR(info, itc, times, freqs,
+                                  method='mutlitaper-itc'))
+
     return out
 
 
-# AverageTFR class
+# TFR(s) class
 
-class AverageTFR(ContainsMixin, UpdateChannelsMixin):
+class _BaseTFR(ContainsMixin, UpdateChannelsMixin):
+    @property
+    def ch_names(self):
+        return self.info['ch_names']
+
+    def crop(self, tmin=None, tmax=None):
+        """Crop data to a given time interval
+
+        Parameters
+        ----------
+        tmin : float | None
+            Start time of selection in seconds.
+        tmax : float | None
+            End time of selection in seconds.
+
+        Returns
+        -------
+        inst : instance of AverageTFR
+            The modified instance.
+        """
+        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
+        self.times = self.times[mask]
+        self.data = self.data[..., mask]
+        return self
+
+    def copy(self):
+        """Return a copy of the instance."""
+        return deepcopy(self)
+
+    @verbose
+    def apply_baseline(self, baseline, mode='mean', verbose=None):
+        """Baseline correct the data
+
+        Parameters
+        ----------
+        baseline : tuple or list of length 2
+            The time interval to apply rescaling / baseline correction.
+            If None do not apply it. If baseline is (a, b)
+            the interval is between "a (s)" and "b (s)".
+            If a is None the beginning of the data is used
+            and if b is None then b is set to the end of the interval.
+            If baseline is equal to (None, None) all the time
+            interval is used.
+        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
+            Do baseline correction with ratio (power is divided by mean
+            power during baseline) or zscore (power is divided by standard
+            deviation of power during baseline after subtracting the mean,
+            power = [power - mean(power_baseline)] / std(power_baseline)),
+            mean simply subtracts the mean power, percent is the same as
+            applying ratio then mean, logratio is the same as mean but then
+            rendered in log-scale, zlogratio is the same as zscore but data
+            is rendered in log-scale first.
+            If None no baseline correction is applied.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+        """  # noqa
+        self.data = rescale(self.data, self.times, baseline, mode,
+                            copy=False)
+
+
+class AverageTFR(_BaseTFR):
     """Container for Time-Frequency data
 
     Can for example store induced power at sensor level or intertrial
@@ -879,35 +988,11 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             raise ValueError("Number of times and data size don't match"
                              " (%d != %d)." % (n_times, len(times)))
         self.data = data
-        self.times = np.asarray(times)
-        self.freqs = np.asarray(freqs)
+        self.times = np.array(times)
+        self.freqs = np.array(freqs)
         self.nave = nave
         self.comment = comment
         self.method = method
-
-    @property
-    def ch_names(self):
-        return self.info['ch_names']
-
-    def crop(self, tmin=None, tmax=None):
-        """Crop data to a given time interval
-
-        Parameters
-        ----------
-        tmin : float | None
-            Start time of selection in seconds.
-        tmax : float | None
-            End time of selection in seconds.
-
-        Returns
-        -------
-        inst : instance of AverageTFR
-            The modified instance.
-        """
-        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
-        self.times = self.times[mask]
-        self.data = self.data[:, :, mask]
-        return self
 
     @verbose
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
@@ -1228,175 +1313,12 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         self.data -= tfr.data
         return self
 
-    def copy(self):
-        """Return a copy of the instance."""
-        return deepcopy(self)
-
     def __repr__(self):
         s = "time : [%f, %f]" % (self.times[0], self.times[-1])
         s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])
         s += ", nave : %d" % self.nave
         s += ', channels : %d' % self.data.shape[0]
         return "<AverageTFR  |  %s>" % s
-
-    @verbose
-    def apply_baseline(self, baseline, mode='mean', verbose=None):
-        """Baseline correct the data
-
-        Parameters
-        ----------
-        baseline : tuple or list of length 2
-            The time interval to apply rescaling / baseline correction.
-            If None do not apply it. If baseline is (a, b)
-            the interval is between "a (s)" and "b (s)".
-            If a is None the beginning of the data is used
-            and if b is None then b is set to the end of the interval.
-            If baseline is equal to (None, None) all the time
-            interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
-            If None no baseline correction is applied.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-        """  # noqa
-        self.data = rescale(self.data, self.times, baseline, mode,
-                            copy=False)
-
-    def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
-                     ch_type=None, baseline=None, mode='mean',
-                     layout=None, vmin=None, vmax=None, cmap=None,
-                     sensors=True, colorbar=True, unit=None, res=64, size=2,
-                     cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, outlines='head', head_pos=None):
-        """Plot topographic maps of time frequency intervals of TFR data
-
-        Parameters
-        ----------
-        tmin : None | float
-            The first time instant to display. If None the first time point
-            available is used.
-        tmax : None | float
-            The last time instant to display. If None the last time point
-            available is used.
-        fmin : None | float
-            The first frequency to display. If None the first frequency
-            available is used.
-        fmax : None | float
-            The last frequency to display. If None the last frequency
-            available is used.
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-            The channel type to plot. For 'grad', the gradiometers are
-            collected in pairs and the RMS for each pair is plotted.
-            If None, then first available channel type from order given
-            above is used. Defaults to None.
-        baseline : tuple or list of length 2
-            The time interval to apply rescaling / baseline correction.
-            If None do not apply it. If baseline is (a, b)
-            the interval is between "a (s)" and "b (s)".
-            If a is None the beginning of the data is used
-            and if b is None then b is set to the end of the interval.
-            If baseline is equal to (None, None) all the time
-            interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
-            If None no baseline correction is applied.
-        layout : None | Layout
-            Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If possible, the correct layout
-            file is inferred from the data; if no appropriate layout file was
-            found, the layout is automatically generated from the sensor
-            locations.
-        vmin : float | callable | None
-            The value specifying the lower bound of the color range. If None,
-            and vmax is None, -vmax is used. Else np.min(data) or in case
-            data contains only positive values 0. If callable, the output
-            equals vmin(data). Defaults to None.
-        vmax : float | callable | None
-            The value specifying the upper bound of the color range. If None,
-            the maximum value is used. If callable, the output equals
-            vmax(data). Defaults to None.
-        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-            Colormap to use. If tuple, the first value indicates the colormap
-            to use and the second value is a boolean defining interactivity. In
-            interactive mode the colors are adjustable by clicking and dragging
-            the colorbar with left and right mouse button. Left mouse button
-            moves the scale up and down and right mouse button adjusts the
-            range. Hitting space bar resets the range. Up and down arrows can
-            be used to change the colormap. If None (default), 'Reds' is used
-            for all positive data, otherwise defaults to 'RdBu_r'. If
-            'interactive', translates to (None, True).
-        sensors : bool | str
-            Add markers for sensor locations to the plot. Accepts matplotlib
-            plot format string (e.g., 'r+' for red plusses). If True, a circle
-            will be used (via .add_artist). Defaults to True.
-        colorbar : bool
-            Plot a colorbar.
-        unit : dict | str | None
-            The unit of the channel type used for colorbar label. If
-            scale is None the unit is automatically determined.
-        res : int
-            The resolution of the topomap image (n pixels along each side).
-        size : float
-            Side length per topomap in inches.
-        cbar_fmt : str
-            String format for colorbar values.
-        show_names : bool | callable
-            If True, show channel names on top of the map. If a callable is
-            passed, channel names will be formatted using the callable; e.g.,
-            to delete the prefix 'MEG ' from all channel names, pass the
-            function lambda x: x.replace('MEG ', ''). If `mask` is not None,
-            only significant sensors will be shown.
-        title : str | None
-            Title. If None (default), no title is displayed.
-        axes : instance of Axes | None
-            The axes to plot to. If None the axes is defined automatically.
-        show : bool
-            Call pyplot.show() at the end.
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will
-            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos'
-            will serve as image mask, and the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside
-            the outline. Alternatively, a matplotlib patch object can be passed
-            for advanced masking options, either directly or as a function that
-            returns patches (required for multi-axis plots). If None, nothing
-            will be drawn. Defaults to 'head'.
-        head_pos : dict | None
-            If None (default), the sensors are positioned such that they span
-            the head circle. If dict, can have entries 'center' (tuple) and
-            'scale' (tuple) for what the center and scale of the head should be
-            relative to the electrode locations.
-
-        Returns
-        -------
-        fig : matplotlib.figure.Figure
-            The figure containing the topography.
-        """  # noqa
-        from ..viz import plot_tfr_topomap
-        return plot_tfr_topomap(self, tmin=tmin, tmax=tmax, fmin=fmin,
-                                fmax=fmax, ch_type=ch_type, baseline=baseline,
-                                mode=mode, layout=layout, vmin=vmin, vmax=vmax,
-                                cmap=cmap, sensors=sensors, colorbar=colorbar,
-                                unit=unit, res=res, size=size,
-                                cbar_fmt=cbar_fmt, show_names=show_names,
-                                title=title, axes=axes, show=show,
-                                outlines=outlines, head_pos=head_pos)
 
     def save(self, fname, overwrite=False):
         """Save TFR object to hdf5 file
@@ -1409,6 +1331,70 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             If True, overwrite file (if it exists). Defaults to false
         """
         write_tfrs(fname, self, overwrite=overwrite)
+
+
+class EpochsTFR(_BaseTFR):
+    """Container for Time-Frequency data on epochs
+
+    Can for example store induced power at sensor level or intertrial
+    coherence.
+
+    Parameters
+    ----------
+    info : Info
+        The measurement info.
+    data : ndarray, shape (n_epochs, n_channels, n_freqs, n_times)
+        The data.
+    times : ndarray, shape (n_times,)
+        The time values in seconds.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    comment : str | None, defaults to None
+        Comment on the data, e.g., the experimental condition.
+    method : str | None, defaults to None
+        Comment on the method used to compute the data, e.g., morlet wavelet.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Attributes
+    ----------
+    ch_names : list
+        The names of the channels.
+    """
+    @verbose
+    def __init__(self, info, data, times, freqs, comment=None,
+                 method=None, verbose=None):
+        self.info = info
+        if data.ndim != 4:
+            raise ValueError('data should be 4d. Got %d.' % data.ndim)
+        n_epochs, n_channels, n_freqs, n_times = data.shape
+        if n_channels != len(info['chs']):
+            raise ValueError("Number of channels and data size don't match"
+                             " (%d != %d)." % (n_channels, len(info['chs'])))
+        if n_freqs != len(freqs):
+            raise ValueError("Number of frequencies and data size don't match"
+                             " (%d != %d)." % (n_freqs, len(freqs)))
+        if n_times != len(times):
+            raise ValueError("Number of times and data size don't match"
+                             " (%d != %d)." % (n_times, len(times)))
+        self.data = data
+        self.times = np.array(times)
+        self.freqs = np.array(freqs)
+        self.comment = comment
+        self.method = method
+
+    def __repr__(self):
+        s = "time : [%f, %f]" % (self.times[0], self.times[-1])
+        s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])
+        s += ", epochs : %d" % self.data.shape[0]
+        s += ', channels : %d' % self.data.shape[1]
+        return "<EpochsTFR  |  %s>" % s
+
+    def average(self):
+        data = np.mean(self.data, axis=0)
+        return AverageTFR(info=self.info.copy(), data=data, times=self.times.copy(),
+                          freqs=self.freqs.copy(), nave=self.data.shape[0],
+                          method=self.method)
 
 
 def combine_tfr(all_tfr, weights='nave'):

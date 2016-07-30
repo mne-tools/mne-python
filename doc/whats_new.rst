@@ -53,7 +53,7 @@ Changelog
 
     - Add new class :class:`mne.decoding.EMS` to transform epochs with the event-matched spatial filters and add 'cv' parameter to :func:`mne.decoding.compute_ems`, by `Jean-Remi King`_
 
-    - Added :func:`mne.time_frequency.timefreq_transform` to compute time frequency transforms on arrays, by `Jean-Remi King`_
+    - Added :class:`mne.time_frequency.EpochsTFR` and average parameter in :func:`mne.time_frequency.tfr_morlet` and :func:`mne.time_frequency.tfr_multitaper` to compute time frequency transforms on epochs without averaging, by `Jean-Remi King`_ and `Alex Gramfort`_
 
 
 BUG
@@ -142,7 +142,8 @@ API
 
     - Added :class:`mne.decoding.UnsupervisedSpatialFilter` providing interface for scikit-learn decomposition algorithms to be used with MNE data, by `Jean-Remi King`_ and `Asish Panda`_
 
-    - Deprecated :func:`mne.time_frequency.cwt_morlet` and :func:`mne.time_frequency.single_trial_power` in favour of :func:`mne.time_frequency.timefreq_transform`, by `Jean-Remi King`_
+    - Deprecated :func:`mne.time_frequency.cwt_morlet` and :func:`mne.time_frequency.single_trial_power` in favour of :func:`mne.time_frequency.tfr_morlet` with parameter average=False,
+    by `Jean-Remi King`_ and 'Alex Gramfort'_
 
 
 .. _changes_0_12:

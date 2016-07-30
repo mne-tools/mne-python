@@ -3,7 +3,7 @@
 
 from .tfr import (single_trial_power, morlet, tfr_morlet, cwt_morlet,
                   AverageTFR, tfr_multitaper, read_tfrs, write_tfrs,
-                  timefreq_transform)
+                  _compute_tfr, EpochsTFR)
 from .psd import psd_welch, psd_multitaper
 from .csd import (CrossSpectralDensity, compute_epochs_csd, csd_epochs,
                   csd_array)
