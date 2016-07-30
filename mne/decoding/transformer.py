@@ -11,7 +11,7 @@ from .base import BaseEstimator
 
 from .. import pick_types
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
-                      band_stop_filter)
+                      band_stop_filter, filter_data)
 from ..time_frequency.psd import _psd_multitaper
 from ..externals import six
 from ..utils import _check_type_picks, deprecated
@@ -444,8 +444,6 @@ class PSDEstimator(TransformerMixin):
         return psd
 
 
-@deprecated("FilterEstimator will be deprecated in version 0.14; "
-            "use Filterer instead")
 class FilterEstimator(TransformerMixin):
     """Estimator to filter RtEpochs
 
@@ -720,7 +718,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
 
 class Filterer(TransformerMixin):
-    """Estimator to filter RtEpochs
+    """Estimator to filter 3D array(epochs).
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
     filter to the channels.
@@ -738,14 +736,14 @@ class Filterer(TransformerMixin):
 
     Parameters
     ----------
-    sfreq : float
-        Sampling frequency in Hz.
     l_freq : float | None
         Low cut-off frequency in Hz. If None the data are only low-passed.
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
         channels will be filtered.
+    sfreq : float, Default: 1.0
+        Sampling frequency in Hz.
     filter_length : str (Default: '10s') | int | None
         Length of the filter to use. If None or "len(x) < filter_length",
         the filter length used is len(x). Otherwise, if int, overlap-add
@@ -771,10 +769,10 @@ class Filterer(TransformerMixin):
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
     """
-    def __init__(self, sfreq, l_freq, h_freq, filter_length='',
-                 l_trans_bandwidth=None, h_trans_bandwidth=None, n_jobs=1,
-                 method='fft', iir_params=None, verbose=None):
-        self.sfreq = sfreq
+    def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
+                 filter_length='10s', l_trans_bandwidth=None,
+                 h_trans_bandwidth=None, n_jobs=1, method='fft',
+                 iir_params=None, verbose=None):
         self.l_freq = l_freq
         self.h_freq = h_freq
         self.filter_length = filter_length
@@ -784,25 +782,10 @@ class Filterer(TransformerMixin):
         self.method = method
         self.iir_params = iir_params
 
-    def fit(self, epochs_data, y):
-        """Filters data
-
-        Parameters
-        ----------
-        epochs_data : array, shape (n_epochs, n_channels, n_times)
-            The data.
-        y : array, shape (n_epochs,)
-            The label for each epoch.
-
-        Returns
-        -------
-        self : instance of Filterer
-            Returns the modified instance
-        """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
-
+        if not isinstance(sfreq, (int, float)):
+            raise ValueError("sfreq must be of type int or float, got %s "
+                             "instead" %type(sfreq))
+        self.sfreq = float(sfreq)
         if self.l_freq == 0:
             self.l_freq = None
         if self.h_freq is not None and self.h_freq > (self.sfreq / 2.):
@@ -812,14 +795,34 @@ class Filterer(TransformerMixin):
         if self.h_freq is not None and not isinstance(self.h_freq, float):
             self.h_freq = float(self.h_freq)
 
-        return self
 
-    def transform(self, epochs_data, y=None):
-        """Filters data
+    def fit(self, X, y=None):
+        """Does nothing. For scikit-learn compatibility purposes.
 
         Parameters
         ----------
-        epochs_data : array, shape (n_epochs, n_channels, n_times)
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data.
+        y : array, shape (n_epochs,) | None
+            The label for each epoch.
+
+        Returns
+        -------
+        self : instance of Filterer
+            Returns the modified instance.
+        """
+        if not isinstance(X, np.ndarray):
+            raise ValueError("X should be of type ndarray (got %s)."
+                             % type(X))
+
+        return self
+
+    def transform(self, X, y=None):
+        """Filters data along the third axis.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
             The data.
         y : None | array, shape (n_epochs,)
             The label for each epoch.
@@ -828,53 +831,16 @@ class Filterer(TransformerMixin):
         Returns
         -------
         X : array, shape (n_epochs, n_channels, n_times)
-            The data after filtering
+            The data after filtering.
         """
-        if not isinstance(epochs_data, np.ndarray):
+        if not isinstance(X, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
+                             % type(X))
 
-        epochs_data = np.atleast_3d(epochs_data)
-
-        if self.l_freq is None and self.h_freq is not None:
-            epochs_data = \
-                low_pass_filter(epochs_data, self.sfreq, self.h_freq,
-                                filter_length=self.filter_length,
-                                trans_bandwidth=self.l_trans_bandwidth,
-                                method=self.method, iir_params=self.iir_params,
-                                n_jobs=self.n_jobs, copy=False, verbose=False)
-
-        if self.l_freq is not None and self.h_freq is None:
-            epochs_data = \
-                high_pass_filter(epochs_data, self.sfreq, self.l_freq,
-                                 filter_length=self.filter_length,
-                                 trans_bandwidth=self.h_trans_bandwidth,
-                                 method=self.method,
-                                 iir_params=self.iir_params,
-                                 n_jobs=self.n_jobs, copy=False,
-                                 verbose=False)
-
-        if self.l_freq is not None and self.h_freq is not None:
-            if self.l_freq < self.h_freq:
-                epochs_data = \
-                    band_pass_filter(epochs_data, self.sfreq,
-                                     self.l_freq, self.h_freq,
-                                     filter_length=self.filter_length,
-                                     l_trans_bandwidth=self.l_trans_bandwidth,
-                                     h_trans_bandwidth=self.h_trans_bandwidth,
-                                     method=self.method,
-                                     iir_params=self.iir_params,
-                                     n_jobs=self.n_jobs, copy=False,
-                                     verbose=False)
-            else:
-                epochs_data = \
-                    band_stop_filter(epochs_data, self.sfreq,
-                                     self.h_freq, self.l_freq,
-                                     filter_length=self.filter_length,
-                                     l_trans_bandwidth=self.h_trans_bandwidth,
-                                     h_trans_bandwidth=self.l_trans_bandwidth,
-                                     method=self.method,
-                                     iir_params=self.iir_params,
-                                     n_jobs=self.n_jobs, copy=False,
-                                     verbose=False)
-        return epochs_data
+        X = np.atleast_3d(X)
+        X = filter_data(X, self.sfreq, self.l_freq, self.h_freq,
+                        filter_length=self.filter_length,
+                        l_trans_bandwidth=self.l_trans_bandwidth,
+                        h_trans_bandwidth=self.h_trans_bandwidth,
+                        n_jobs=self.n_jobs, copy=False, verbose=False)
+        return X

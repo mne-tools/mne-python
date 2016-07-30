@@ -227,3 +227,49 @@ def test_unsupervised_spatial_filter():
     usf = UnsupervisedSpatialFilter(PCA(4), average=True)
     usf.fit_transform(X)
     assert_raises(ValueError, UnsupervisedSpatialFilter, PCA(4), 2)
+
+
+def test_filterer():
+    """Test methods of Filterer
+    """
+    raw = io.read_raw_fif(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')
+    picks = picks[1:13:3]
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+    epochs_data = epochs.get_data()
+
+    # Add tests for different combinations of l_freq and h_freq
+    filt = Filterer(epochs.info['sfreq'], l_freq=40, h_freq=80,
+                           filter_length='auto',
+                           l_trans_bandwidth='auto', h_trans_bandwidth='auto')
+    y = epochs.events[:, -1]
+    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
+        X = filt.fit_transform(epochs_data, y)
+        assert_true(X.shape == epochs_data.shape)
+        assert_array_equal(filt.fit(epochs_data, y).transform(epochs_data), X)
+        result = X
+
+    filt = Filterer(epochs.info['sfreq'], l_freq=None, h_freq=40,
+                           filter_length='auto',
+                           l_trans_bandwidth='auto', h_trans_bandwidth='auto')
+    y = epochs.events[:, -1]
+    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
+        X = filt.fit_transform(epochs_data, y)
+
+    filt = Filterer(epochs.info['sfreq'], l_freq=1, h_freq=1)
+    y = epochs.events[:, -1]
+    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
+        assert_raises(ValueError, filt.fit_transform, epochs_data, y)
+
+    filt = Filterer(epochs.info['sfreq'], l_freq=40, h_freq=None,
+                           filter_length='auto',
+                           l_trans_bandwidth='auto', h_trans_bandwidth='auto')
+    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
+        X = filt.fit_transform(epochs_data, y)
+
+    # Test init exception
+    assert_raises(ValueError, filt.fit, epochs, y)
+    assert_raises(ValueError, filt.transform, epochs, y)
