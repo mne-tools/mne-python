@@ -43,6 +43,8 @@ edf_txt_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.txt')
 
 data_path = testing.data_path(download=False)
 edf_stim_resamp_path = op.join(data_path, 'EDF', 'test_edf_stim_resamp.edf')
+edf_overlap_annot_path = op.join(data_path, 'EDF',
+                                 'test_edf_overlapping_annotations.edf')
 
 
 eog = ['REOG', 'LEOG', 'IEOG']
@@ -68,6 +70,14 @@ def test_bdf_data():
     assert_true((raw_py.info['chs'][0]['loc']).any())
     assert_true((raw_py.info['chs'][25]['loc']).any())
     assert_true((raw_py.info['chs'][63]['loc']).any())
+
+
+def test_edf_overlapping_annotations():
+    n_warning = 2
+    with warnings.catch_warnings(record=True) as w:
+        read_raw_edf(edf_overlap_annot_path, verbose=True)
+        assert_equal(sum('overlapping' in str(ww.message) for ww in w),
+                     n_warning)
 
 
 def test_edf_data():
