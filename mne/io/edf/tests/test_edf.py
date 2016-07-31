@@ -75,7 +75,7 @@ def test_bdf_data():
 def test_edf_overlapping_annotations():
     n_warning = 2
     with warnings.catch_warnings(record=True) as w:
-        read_raw_edf(edf_overlap_annot_path, verbose=True)
+        read_raw_edf(edf_overlap_annot_path, preload=True, verbose=True)
         assert_equal(sum('overlapping' in str(ww.message) for ww in w),
                      n_warning)
 
