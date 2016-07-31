@@ -1141,7 +1141,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     ts_args_def = dict(picks=None, unit=True, ylim=None, xlim='tight',
                        proj=False, hline=None, units=None, scalings=None,
                        titles=None, gfp=False, window_title=None,
-                       spatial_colors=True, zorder='std')
+                       spatial_colors=True, zorder='unsorted')
     for key in ts_args_def:
         if key not in ts_args:
             ts_args_pass[key] = ts_args_def[key]
