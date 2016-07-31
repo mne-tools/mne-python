@@ -72,6 +72,7 @@ def test_bdf_data():
     assert_true((raw_py.info['chs'][63]['loc']).any())
 
 
+@testing.requires_testing_data
 def test_edf_overlapping_annotations():
     n_warning = 2
     with warnings.catch_warnings(record=True) as w:
