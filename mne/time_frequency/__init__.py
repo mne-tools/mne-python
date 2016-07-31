@@ -2,7 +2,8 @@
 """
 
 from .tfr import (single_trial_power, morlet, tfr_morlet, cwt_morlet,
-                  AverageTFR, tfr_multitaper, read_tfrs, write_tfrs)
+                  AverageTFR, tfr_multitaper, read_tfrs, write_tfrs,
+                  compute_tfr)
 from .psd import psd_welch, psd_multitaper
 from .csd import (CrossSpectralDensity, compute_epochs_csd, csd_epochs,
                   csd_array)

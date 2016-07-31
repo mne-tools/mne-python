@@ -924,8 +924,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                     cwt_n_cycles = cwt_n_cycles[freq_mask]
 
                 # get the Morlet wavelets
-                wavelets = morlet(sfreq, freqs,
-                                  n_cycles=cwt_n_cycles, zero_mean=True)
+                wavelets = morlet(sfreq, freqs, n_cycles=cwt_n_cycles,
+                                  zero_mean=True)
                 eigvals = None
                 n_tapers = None
                 window_fun = None

@@ -53,6 +53,9 @@ Changelog
 
     - Add new class :class:`mne.decoding.EMS` to transform epochs with the event-matched spatial filters and add 'cv' parameter to :func:`mne.decoding.compute_ems`, by `Jean-Remi King`_
 
+    - Added :func:`mne.time_frequency.compute_tfr` and deprecated :func:`mne.time_frequency.morlet`, :func:`mne.time_frequency.cwt_morlet` and :func:`mne.time_frequency.single_trial_power`, to compute time frequency transforms on arrays, by `Jean-Remi King`_
+
+
 BUG
 ~~~
 
@@ -137,9 +140,13 @@ API
 
     - The ``compensation`` parameter in :func:`mne.io.read_raw_fif` has been deprecated in favor of the method :meth:`mne.io.Raw.apply_gradient_compensation` by `Eric Larson`_
 
+<<<<<<< HEAD
     - :class:`mne.decoding.EpochsVectorizer` has been deprecated in favor of :class:`mne.decoding.Vectorizer` by `Asish Panda`_
 
     - Added :class:`mne.decoding.UnsupervisedSpatialFilter` providing interface for scikit-learn decomposition algorithms to be used with MNE data, by `Jean-Remi King`_ and `Asish Panda`_
+=======
+    - Deprecated :func:`mne.time_frequency.cwt_morlet` and :func:`mne.time_frequency.single_trial_power` in favour of :func:`mne.time_frequency.compute_tfr`, by `Jean-Remi King`_
+>>>>>>> FIX: address comments
 
 .. _changes_0_12:
 
