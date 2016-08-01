@@ -426,7 +426,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
     """
     # Set output type
     dtype = np.float
-    if output in ['complex', 'itc', 'avg_power_itc']:
+    if output in ['complex', 'avg_power_itc']:
         dtype = np.complex
 
     # Init outputs
@@ -465,7 +465,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
             if ('avg_' in output) or ('itc' in output):
                 tfrs += tfr
             else:
-                tfrs[epoch_idx] = tfr
+                tfrs[epoch_idx] += tfr
 
         # Compute inter trial coherence
         if output == 'avg_power_itc':
@@ -715,8 +715,12 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         channels are displayed.
     zero_mean : bool, defaults to True
         Make sure the wavelet has a mean of zero.
+
+        .. versionadded:: 0.12.0
     average : bool, defaults to True
         If True average accross Epochs.
+
+        .. versionadded:: 0.12.0
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see mne.verbose).
 
@@ -745,7 +749,10 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         else:
             output = 'avg_power'
     else:
-        output = 'complex'
+        output = 'power'
+        if return_itc:
+            raise ValueError('Inter-trial coherence is not supported'
+                             ' with average=False')
 
     out = _compute_tfr(data, freqs, info['sfreq'], n_cycles=n_cycles,
                        n_jobs=n_jobs, use_fft=use_fft, decim=decim,
@@ -764,10 +771,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
             out = (out, AverageTFR(info, itc, times, freqs, nave,
                                    method='morlet-itc'))
     else:
-        power = np.abs(out)
-        if return_itc:
-            itc = out / power
-        power **= 2
+        power = out
         out = EpochsTFR(info, power, times, freqs, method='morlet-power')
         if return_itc:
             out = (out, EpochsTFR(info, itc, times, freqs,
@@ -815,6 +819,8 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         channels are displayed.
     average : bool, defaults to True
         If True average accross Epochs.
+
+        .. versionadded:: 0.12.0
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see mne.verbose).
 
@@ -841,14 +847,16 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     info, data, picks = _prepare_picks(info, data, picks)
     data = data = data[:, picks, :]
 
-    # XXX don't compute ITC if not requested
     if average:
         if return_itc:
             output = 'avg_power_itc'
         else:
             output = 'avg_power'
     else:
-        output = 'complex'
+        output = 'power'
+        if return_itc:
+            raise ValueError('Inter-trial coherence is not supported'
+                             ' with average=False')
 
     out = _compute_tfr(data, freqs, info['sfreq'], n_cycles=n_cycles,
                        n_jobs=n_jobs, use_fft=use_fft, decim=decim,
@@ -867,10 +875,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
             out = (out, AverageTFR(info, itc, times, freqs, nave,
                                    method='mutlitaper-itc'))
     else:
-        power = np.abs(out)
-        if return_itc:
-            itc = out / power
-        power **= 2
+        power = out
         out = EpochsTFR(info, power, times, freqs, method='mutlitaper-power')
         if return_itc:
             out = (out, EpochsTFR(info, itc, times, freqs,

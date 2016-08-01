@@ -77,15 +77,22 @@ def test_time_frequency():
     power_, itc_ = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                               use_fft=True, return_itc=True, decim=slice(0, 2))
     # Test picks argument and average parameter
-    epochs_power_picks, epochs_itc_picks = \
+    assert_raises(ValueError, tfr_morlet, epochs, freqs=freqs,
+                  n_cycles=n_cycles, return_itc=True, average=False)
+
+    power_picks, itc_picks = \
         tfr_morlet(epochs_nopicks,
                    freqs=freqs, n_cycles=n_cycles, use_fft=True,
-                   return_itc=True, picks=picks, average=False)
-    power_picks = epochs_power_picks.average()
-    itc_picks = epochs_itc_picks.average()
-    itc_picks.data = np.abs(itc_picks.data)
+                   return_itc=True, picks=picks, average=True)
+
+    epochs_power_picks = \
+        tfr_morlet(epochs_nopicks,
+                   freqs=freqs, n_cycles=n_cycles, use_fft=True,
+                   return_itc=False, picks=picks, average=False)
+    power_picks_avg = epochs_power_picks.average()
     # the actual data arrays here are equivalent, too...
     assert_array_almost_equal(power.data, power_picks.data)
+    assert_array_almost_equal(power.data, power_picks_avg.data)
     assert_array_almost_equal(itc.data, itc_picks.data)
     assert_array_almost_equal(power.data, power_evoked.data)
 
@@ -259,19 +266,8 @@ def test_tfr_multitaper():
 
     freqs = np.arange(5, 100, 3, dtype=np.float)
 
-    # XXX this should pass but breaks
     power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
-                                time_bandwidth=4.0, average=False)
-    power = power.average()
-    power2, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
-                                 time_bandwidth=4.0, average=True)
-    # --- end debug test
-
-    power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
-                                time_bandwidth=4.0, average=False)
-    power = power.average()
-    itc = itc.average()
-    itc.data = np.abs(itc.data)
+                                time_bandwidth=4.0)
     power2, itc2 = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
                                   time_bandwidth=4.0, decim=slice(0, 2))
     picks = np.arange(len(ch_names))
@@ -281,6 +277,11 @@ def test_tfr_multitaper():
     power_evoked = tfr_multitaper(epochs.average(), freqs=freqs,
                                   n_cycles=freqs / 2., time_bandwidth=4.0,
                                   return_itc=False, average=False).average()
+
+    assert_raises(ValueError, tfr_multitaper, epochs,
+                  freqs=freqs, n_cycles=freqs / 2.,
+                  return_itc=True, average=False)
+
     # test picks argument
     assert_array_almost_equal(power.data, power_picks.data)
     assert_array_almost_equal(itc.data, itc_picks.data)
