@@ -3,8 +3,8 @@
 Regression on continuous data
 =============================
 
-This demonstrates how encoding models can be fit with multiple continuous
-inputs. In this case, a encoding model is fit for one electrode, using the
+This demonstrates how an encoding model can be fit with multiple continuous
+inputs. In this case, a encoding model is fit for one EEG channel, using the
 values of all other electrodes as inputs. The coefficients in this case are
 interpreted as a measure of functional connectivity. These inputs could also
 be stimulus features, such as spectral features of sound. In this case, model
@@ -31,87 +31,93 @@ import mne
 import numpy as np
 from mne.datasets import sample
 from mne.encoding import SampleMasker, get_coefs, get_final_est
-from mne.channels.layout import _auto_topomap_coords
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge
-from sklearn.preprocessing import StandardScaler, scale
+from sklearn.preprocessing import StandardScaler
 
+###############################################################################
 # Load and preprocess data
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True).pick_types(
     meg=False, stim=False, eeg=True).filter(1, None, method='iir')
-ix_y = 10
-ixs_X = np.setdiff1d(range(len(raw.ch_names)), [ix_y])
+seed_elec = 'EEG 011'
+ix_seed = mne.pick_channels(raw.ch_names, [seed_elec])[0]
+ix_targets = np.setdiff1d(range(len(raw.ch_names)), [ix_seed])
 
 # Set up encoding model variables
-X = raw[:][0][ixs_X]
-y = raw[:][0][ix_y]
+X = raw[:][0][ix_targets]
+y = raw[:][0][ix_seed]
+n_targets, n_times = X.shape
 
-f, axs = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
-ix_plt = 200
-axs[0].plot(raw.times[:ix_plt], X[:, :ix_plt].T, color='k', alpha=.2)
-axs[0].set_title('Continuous Input Data')
-axs[0].set_xlim([0, raw.times[:ix_plt][-1]])
-axs[1].plot(raw.times[:ix_plt], y[:ix_plt], color='k')
-axs[1].set_title('Continuous Output Data')
-axs[1].set_xlabel('Time (s)')
-axs[1].set_ylabel('Amplitude (mV)')
+###############################################################################
+# Plot raw data
+plt_times = raw.times[:200]
+fig, ax = plt.subplots(figsize=(10, 5))
+for idata, alpha, lw, color in zip([X, y], [.2, .8], [1, 3], ['k', 'r']):
+    ax.plot(plt_times, idata[..., :200].T, color=color, alpha=alpha, lw=lw)
+ax.set_title('Continuous Data')
+ax.set_xlim([0, plt_times[-1]])
+ax.legend([ax.lines[0], ax.lines[-1]], ['Inputs', 'Seed'])
+ax.set_xlabel('Time (s)')
+ax.set_ylabel('Amplitude (mV)')
 
-
-# --- Fit the model / Make predictions ---
+###############################################################################
+# Fit the model / Make predictions
 # Define model preprocessing and parameters
-ix_split = int(X.shape[-1] * .998)  # Using 99.8% of the data for pred viz
-tr = np.arange(X.shape[-1])[:ix_split]
-tt = np.arange(X.shape[-1])[ix_split:]
+ix_split = int(n_times * .998)  # Using subset of data so it fits in a plot
+ix_tr = np.arange(n_times)[:ix_split]
+ix_tt = np.arange(n_times)[ix_split:]
 
 # This is the final estimator that will be called after masking data
 pipe_est = make_pipeline(StandardScaler(), Ridge(alpha=0.))
-# This allows us to only use particular indices in training
-pipe_full = SampleMasker(pipe_est, ixs=tr, ixs_pred=tt)
+# This allows us to use a subset of indices for training / prediction
+pipe_full = SampleMasker(pipe_est, ixs=ix_tr, ixs_pred=ix_tt)
 
 # Fit / predict w/ the model
 pipe_full.fit(X.T, y)
 y_pred = pipe_full.predict(X.T)
 
 
-# --- Now plot results ---
-cmap = plt.cm.rainbow
-f, axs = plt.subplots(1, 2, figsize=(15, 8))
+###############################################################################
+# Plot raw coefficients
+cmap = plt.get_cmap('rainbow')
+fig, (ax_input, ax_output) = plt.subplots(1, 2, figsize=(15, 8))
 
 # Plot the first 40 coefficients (one coefficient per channel)
-ax = axs[0]
 coefs = get_coefs(get_final_est(pipe_full))[0]
-ax.plot(coefs)
-ax.set_xlabel('Channel index')
-ax.set_ylabel('Channel weight')
-ax.set_title('Encoding model coefficients')
-ax.set_xlim([0, coefs.shape[-1]])
+ax_input.plot(coefs)
+ax_input.set_xlabel('Channel index')
+ax_input.set_ylabel('Channel weight')
+ax_input.set_title('Encoding model coefficients')
+ax_input.set_xlim([0, coefs.shape[-1]])
 
-# Plot the coefficients as a topomap
-fig, ax = plt.subplots()
-pos = _auto_topomap_coords(raw.info, range(len(raw.ch_names)), True)
-pos_X = pos[ixs_X]
-pos_y = pos[ix_y]
-coefs = scale(coefs)
-ax.scatter(*pos_X.T, c=coefs, s=np.abs(coefs) * 100, cmap=plt.cm.coolwarm,
-           vmin=-1, vmax=1)
-sc_y = ax.scatter(*pos_y, c='k', s=100)
-ax.set_title('Scaled model coefficients')
-ax.legend([sc_y], ['Predicted electrode'], fontsize=15)
-
+###############################################################################
 # Now plot the predictions on the test set
-ax = axs[1]
 time_test = np.arange(y_pred.shape[0]) / float(raw.info['sfreq'])
-ax.plot(time_test, y_pred, color='r', alpha=.6)
+ax_output.plot(time_test, y_pred, color='r', alpha=.6)
 
 # Plot true output signal
-ln = ax.plot(time_test, y[tt], color='k', alpha=.6, lw=3,
-             label='True Signal')
-ax.set_title('Predicted (red) and actual (black) activity')
-ax.set_xlabel('Time (s)')
-ax.set_ylabel('Signal amplitude (z-scored)')
-ax.set_xlim([0, time_test[-1]])
+ln = ax_output.plot(time_test, y[ix_tt], color='k', alpha=.3, lw=3,
+                    label='True Signal')
+ax_output.set_title('Predicted (red) and actual (black) activity')
+ax_output.set_xlabel('Time (s)')
+ax_output.set_ylabel('Signal amplitude (z-scored)')
+ax_output.set_xlim([0, time_test[-1]])
+
+###############################################################################
+# Plot the coefficients as a topomap
+fig = raw.plot_sensors()
+scat = fig.axes[0].collections[0]
+coefs = (coefs - coefs.min()) / (coefs.max() - coefs.min())
+colors = plt.cm.coolwarm(coefs)
+sizes = coefs * 1000
+# Insert values for the seed electrode
+colors = np.insert(colors, ix_seed, [1, 1, 1, 1], axis=0)
+sizes = np.insert(sizes, ix_seed, 500)
+scat.set_facecolors(colors)
+scat.set_sizes(sizes)
+fig.suptitle('Scaled model coefficients (white = seed)')
 
 plt.tight_layout()
 plt.show()

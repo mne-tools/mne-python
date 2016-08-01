@@ -6,7 +6,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import sparse
 from ..externals.six import string_types
 
 
@@ -151,66 +150,6 @@ class SampleMasker(object):
             A subset of rows from the input array.
         """
         return self.mask_data(X, y)
-
-
-def remove_outliers(X, y, reject=None, flat=None, info=None, tstep=None):
-    """Remove data points based on peak to peak amplitude.
-
-    Parameters
-    ----------
-    X : array, shape (n_times, n_features)
-        The input array (usually stimuli or continuous events)
-    y : array, shape (n_times, n_channels)
-        The neural data. Will be used for detecting noisy datapoints
-    reject : None | dict
-        For cleaning raw data before the regression is performed: set up
-        rejection parameters based on peak-to-peak amplitude in continuously
-        selected subepochs. If None, no rejection is done.
-        If dict, keys are types ('grad' | 'mag' | 'eeg' | 'eog' | 'ecg')
-        and values are the maximal peak-to-peak values to select rejected
-        epochs, e.g.::
-
-            reject = dict(grad=4000e-12, # T / m (gradiometers)
-                          mag=4e-11, # T (magnetometers)
-                          eeg=40e-5, # V (EEG channels)
-                          eog=250e-5 # V (EOG channels))
-
-    flat : None | dict
-        or cleaning raw data before the regression is performed: set up
-        rejection parameters based on flatness of the signal. If None, no
-        rejection is done. If a dict, keys are ('grad' | 'mag' |
-        'eeg' | 'eog' | 'ecg') and values are minimal peak-to-peak values to
-        select rejected epochs.
-    info : None | instance of MNE Info object
-        The Info object corresponding to the neural data `y`.
-    tstep : float
-        Length of windows for peak-to-peak detection for raw data cleaning.
-
-    Returns
-    -------
-    X_cleaned : array, shape (n_clean_times, n_features)
-        The input X array w/ non-active and noisy rows removed.
-    y_cleaned : array, shape (n_clean_times, n_channels)
-        The input y array w/ non-active and noisy rows removed.
-    """
-    from ..utils import _reject_data_segments
-
-    if X.shape[0] != y.shape[0]:
-        raise ValueError('X and y have different numbers of timepoints')
-    is_sparse = True if isinstance(X, sparse.spmatrix) else False
-
-    # reject positions based on extreme steps in the data
-    keep_rows = np.arange(X.shape[0])
-    if reject is not None:
-        _, inds_bad = _reject_data_segments(y.T, reject, flat, decim=None,
-                                            info=info, tstep=tstep)
-        # Expand to include all bad indices, and remove from rows to keep
-        inds_bad = np.hstack(range(t0, t1) for t0, t1 in inds_bad)
-        keep_rows = np.setdiff1d(keep_rows, inds_bad)
-
-    if is_sparse is True:
-        X = X.tocsr()
-    return X[keep_rows], y[keep_rows]
 
 
 def get_final_est(est):
