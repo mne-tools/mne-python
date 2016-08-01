@@ -263,8 +263,8 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
     sfreq : float | int, defaults to 1.0
         Sampling frequency of the data.
     method : 'multitaper' | 'morlet', defaults to 'morlet'
-        The time frequency method. 'morlet' convolves a Morlet wavelet. 'multitaper'
-        convolves DPSS tapers.
+        The time frequency method. 'morlet' convolves a Morlet wavelet.
+        'multitaper' convolves DPSS tapers.
     n_cycles : float | array of float, defaults to 7.0
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.
@@ -272,9 +272,9 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         None means True for method='multitaper' and False for method='morlet'.
         If True, make sure the wavelets have a mean of zero.
     time_bandwidth : float, defaults to 4.0 (3 tapers)
-        Time x (Full) Bandwidth product. Only applies if method == 'multitaper'.
-        The number of good tapers (low-bias) is chosen automatically based on
-        this to equal floor(time_bandwidth - 1).
+        Time x (Full) Bandwidth product. Only applies if
+        method == 'multitaper'. The number of good tapers (low-bias) is
+        chosen automatically based on this to equal floor(time_bandwidth - 1).
     use_fft : bool, defaults to True
         Use the FFT for convolutions or not.
     decim : int | slice, defaults to 1
@@ -353,7 +353,8 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         W = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
         Ws = [W]  # to have same dimensionality as the 'multitaper' case
         if time_bandwidth != 4.0:
-            raise ValueError('time_bandwidth only applies to "multitaper" method.')
+            raise ValueError('time_bandwidth only applies to "multitaper"'
+                             ' method.')
     elif method == 'multitaper':
         Ws = _make_dpss(sfreq, frequencies, n_cycles=n_cycles,
                         time_bandwidth=time_bandwidth, zero_mean=zero_mean)
@@ -681,7 +682,8 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
 
 # Aux function to reduce redundancy between tfr_morlet and tfr_multitaper
 
-def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average, **tfr_params):
+def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
+             **tfr_params):
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
     info = inst.info
@@ -1364,8 +1366,9 @@ class EpochsTFR(_BaseTFR):
 
     def average(self):
         data = np.mean(self.data, axis=0)
-        return AverageTFR(info=self.info.copy(), data=data, times=self.times.copy(),
-                          freqs=self.freqs.copy(), nave=self.data.shape[0],
+        return AverageTFR(info=self.info.copy(), data=data,
+                          times=self.times.copy(), freqs=self.freqs.copy(),
+                          nave=self.data.shape[0],
                           method=self.method)
 
 
