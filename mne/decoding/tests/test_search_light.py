@@ -23,14 +23,15 @@ def make_data():
 
 @requires_sklearn
 def test_searchlight():
-    from sklearn.linear_model import LogisticRegression
+    from sklearn.linear_model import Ridge, LogisticRegression
     from sklearn.pipeline import make_pipeline
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # init
     assert_raises(ValueError, SearchLight, 'foo')
-    # fit
+    sl = SearchLight(Ridge())
     sl = SearchLight(LogisticRegression())
+    # fit
     assert_equal(sl.__repr__()[:13], '<SearchLight(')
     sl.fit(X, y)
     assert_equal(sl.__repr__()[-28:], ', fitted with 10 estimators>')
