@@ -709,14 +709,12 @@ def _set_cv(cv, estimator=None, X=None, y=None):
 def _check_estimator(estimator, get_params=True):
     """Check whether an object has the fit, transform, fit_transform and
     get_params methods required by scikit-learn"""
-    err = True
-    for attr in ('predict', 'transform', 'predict_proba', 'decision_function'):
-        if hasattr(estimator, attr):
-            err = False
-    if not hasattr(estimator, 'fit'):
-        err = True
-
-    if err:
+    valid_methods = ('predict', 'transform', 'predict_proba',
+                     'decision_function')
+    if (
+        (not hasattr(estimator, 'fit')) or
+        (not np.any([hasattr(estimator, method) for method in valid_methods]))
+    ):
         raise ValueError('estimator must be a scikit-learn transformer or '
                          'an estimator with the fit and a predict-like (e.g. '
                          'predict_proba) or a transform method.')
