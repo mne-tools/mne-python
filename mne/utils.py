@@ -1744,9 +1744,9 @@ class SizeMixin(object):
         return size
 
     def __hash__(self):
-        from ..evoked import Evoked
-        from ..epochs import _BaseEpochs
-        from ..io.base import _BaseRaw
+        from .evoked import Evoked
+        from .epochs import _BaseEpochs
+        from .io.base import _BaseRaw
         if isinstance(self, Evoked):
             return object_hash(dict(info=self.info, data=self.data))
         elif isinstance(self, (_BaseEpochs, _BaseRaw)):
