@@ -161,7 +161,7 @@ for effect, sig, effect_label in zip(fvals, pvals, effect_labels):
                times[-1], frequencies[0], frequencies[-1]], aspect='auto',
                origin='lower')
     plt.colorbar()
-    plt.xlabel('time (ms)')
+    plt.xlabel('Time (ms)')
     plt.ylabel('Frequency (Hz)')
     plt.title(r"Time-locked response for '%s' (%s)" % (effect_label, ch_name))
     plt.show()
@@ -210,7 +210,7 @@ for f_image, cmap in zip([T_obs, T_obs_plot], [plt.cm.gray, 'RdBu_r']):
     plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
                frequencies[0], frequencies[-1]], aspect='auto',
                origin='lower')
-plt.xlabel('time (ms)')
+plt.xlabel('Time (ms)')
 plt.ylabel('Frequency (Hz)')
 plt.title("Time-locked response for 'modality by location' (%s)\n"
           " cluster-level corrected (p <= 0.05)" % ch_name)
@@ -228,7 +228,7 @@ for f_image, cmap in zip([T_obs, T_obs_plot2], [plt.cm.gray, 'RdBu_r']):
                frequencies[0], frequencies[-1]], aspect='auto',
                origin='lower')
 
-plt.xlabel('time (ms)')
+plt.xlabel('Time (ms)')
 plt.ylabel('Frequency (Hz)')
 plt.title("Time-locked response for 'modality by location' (%s)\n"
           " FDR corrected (p <= 0.05)" % ch_name)

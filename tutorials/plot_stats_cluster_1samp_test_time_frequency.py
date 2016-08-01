@@ -116,7 +116,7 @@ plt.imshow(T_obs_plot, cmap=plt.cm.RdBu_r,
            extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
            aspect='auto', origin='lower', vmin=vmin, vmax=vmax)
 plt.colorbar()
-plt.xlabel('time (ms)')
+plt.xlabel('Time (ms)')
 plt.ylabel('Frequency (Hz)')
 plt.title('Induced power (%s)' % ch_name)
 
