@@ -768,7 +768,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 
         .. versionadded:: 0.13.0
     average : bool, defaults to True
-        If True average accross Epochs.
+        If True average across Epochs.
 
         .. versionadded:: 0.13.0
     verbose : bool, str, int, or None, defaults to None
@@ -830,7 +830,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         The indices of the channels to plot. If None, all available
         channels are displayed.
     average : bool, defaults to True
-        If True average accross Epochs.
+        If True average across Epochs.
 
         .. versionadded:: 0.13.0
     verbose : bool, str, int, or None, defaults to None
@@ -967,8 +967,8 @@ class AverageTFR(_BaseTFR):
             raise ValueError("Number of times and data size don't match"
                              " (%d != %d)." % (n_times, len(times)))
         self.data = data
-        self.times = np.array(times)
-        self.freqs = np.array(freqs)
+        self.times = np.array(times, dtype=float)
+        self.freqs = np.array(freqs, dtype=float)
         self.nave = nave
         self.comment = comment
         self.method = method
@@ -1445,8 +1445,7 @@ class AverageTFR(_BaseTFR):
 class EpochsTFR(_BaseTFR):
     """Container for Time-Frequency data on epochs
 
-    Can for example store induced power at sensor level or inter-trial
-    coherence.
+    Can for example store induced power at sensor level.
 
     Parameters
     ----------
@@ -1491,8 +1490,8 @@ class EpochsTFR(_BaseTFR):
             raise ValueError("Number of times and data size don't match"
                              " (%d != %d)." % (n_times, len(times)))
         self.data = data
-        self.times = np.array(times)
-        self.freqs = np.array(freqs)
+        self.times = np.array(times, dtype=float)
+        self.freqs = np.array(freqs, dtype=float)
         self.comment = comment
         self.method = method
 
@@ -1566,6 +1565,7 @@ def combine_tfr(all_tfr, weights='nave'):
                                               for t_ in all_tfr[1:])))
     tfr.info['bads'] = bads
 
+    # XXX : should be refactored with combined_evoked function
     tfr.data = sum(w * t_.data for w, t_ in zip(weights, all_tfr))
     tfr.nave = max(int(1. / sum(w ** 2 / e.nave
                                 for w, e in zip(weights, all_tfr))), 1)
