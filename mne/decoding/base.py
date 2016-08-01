@@ -713,7 +713,7 @@ def _check_estimator(estimator, get_params=True):
                      'decision_function')
     if (
         (not hasattr(estimator, 'fit')) or
-        (not any([hasattr(estimator, method) for method in valid_methods]))
+        (not any(hasattr(estimator, method) for method in valid_methods))
     ):
         raise ValueError('estimator must be a scikit-learn transformer or '
                          'an estimator with the fit and a predict-like (e.g. '
