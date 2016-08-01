@@ -751,9 +751,9 @@ class Filterer(TransformerMixin):
         used (faster for long signals). If str, a human-readable time in
         units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
-    l_trans_bandwidth : float
+    l_trans_bandwidth : float | str
         Width of the transition band at the low cut-off frequency in Hz.
-    h_trans_bandwidth : float
+    h_trans_bandwidth : float | str
         Width of the transition band at the high cut-off frequency in Hz.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -781,11 +781,44 @@ class Filterer(TransformerMixin):
         self.n_jobs = n_jobs
         self.method = method
         self.iir_params = iir_params
+        self.sfreq = sfreq
 
-        if not isinstance(sfreq, (int, float)):
-            raise ValueError("sfreq must be of type int or float, got %s "
-                             "instead" %type(sfreq))
-        self.sfreq = float(sfreq)
+        # check frequency params
+        float_params = dict([(self.l_freq, 'l_freq'), (self.h_freq, 'h_freq')])
+        for param in float_params.keys():
+            if not isinstance(param, (int, float)) and param is not None:
+                raise ValueError("%s must be of type int or float or None, "
+                                 "got %s instead" % (float_params[param],
+                                                     type(param)))
+
+        if not isinstance(self.sfreq, (int, float)):
+            raise ValueError("Sampling frequency must be int or float, "
+                             "got %s instead" % type(sfreq))
+
+        trans_bandwidth_params = dict([(self.l_trans_bandwidth,
+                                        'l_trans_bandwidth'),
+                                       (self.h_trans_bandwidth,
+                                        'h_trans_bandwidth')])
+        for param in trans_bandwidth_params.keys():
+            if not isinstance(param, (int, float)) and param is not None
+            and param != 'auto':
+                raise ValueError("%s must be of type int, float or None, "
+                                 "got %s instead" % (trans_bandwidth_params[
+                                     param], type(param)))
+
+        if not isinstance(self.filter_length, (int, str))
+        and param is not None:
+            raise ValueError("filter_length must be a int, string or None. "
+                             "Got %s instead." % type(self.filter_length))
+
+        if not isinstance(self.n_jobs, int) and self.n_jobs == 'cuda':
+            raise ValueError('n_jobs must be int or "cuda", got %s instead.'
+                             % type(self.n_jobs))
+
+        if self.method not in ('fft', 'iir'):
+            raise ValueError('method must be either "fft" or "iir" or None. '
+                             'Got %s instead.' % self.method)
+
         if self.l_freq == 0:
             self.l_freq = None
         if self.h_freq is not None and self.h_freq > (self.sfreq / 2.):
@@ -794,7 +827,6 @@ class Filterer(TransformerMixin):
             self.l_freq = float(self.l_freq)
         if self.h_freq is not None and not isinstance(self.h_freq, float):
             self.h_freq = float(self.h_freq)
-
 
     def fit(self, X, y=None):
         """Does nothing. For scikit-learn compatibility purposes.
@@ -838,9 +870,12 @@ class Filterer(TransformerMixin):
                              % type(X))
 
         X = np.atleast_3d(X)
+        shape = X.shape
+        X = X.reshape(shape[0] * shape[1], shape[2])
         X = filter_data(X, self.sfreq, self.l_freq, self.h_freq,
                         filter_length=self.filter_length,
                         l_trans_bandwidth=self.l_trans_bandwidth,
                         h_trans_bandwidth=self.h_trans_bandwidth,
-                        n_jobs=self.n_jobs, copy=False, verbose=False)
-        return X
+                        n_jobs=self.n_jobs, method=self.method,
+                        iir_params=self.iir_params, copy=False, verbose=False)
+        return X.reshape(shape)

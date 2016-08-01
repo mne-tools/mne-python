@@ -273,3 +273,5 @@ def test_filterer():
     # Test init exception
     assert_raises(ValueError, filt.fit, epochs, y)
     assert_raises(ValueError, filt.transform, epochs, y)
+
+    assert_raises(ValueError, Filterer, "10 Hz")
