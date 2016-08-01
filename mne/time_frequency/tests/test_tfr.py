@@ -237,8 +237,8 @@ def test_dpsswavelet():
 def test_tfr_multitaper():
     """Test tfr_multitaper"""
     sfreq = 200.0
-    ch_names = ['SIM0001', 'SIM0002', 'SIM0003']
-    ch_types = ['grad', 'grad', 'grad']
+    ch_names = ['SIM0001', 'SIM0002']
+    ch_types = ['grad', 'grad']
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
 
     n_times = int(sfreq)  # Second long epochs
@@ -263,7 +263,7 @@ def test_tfr_multitaper():
     epochs = EpochsArray(data=dat, info=info, events=events, event_id=event_id,
                          reject=reject)
 
-    freqs = np.arange(5, 100, 3, dtype=np.float)
+    freqs = np.arange(35, 70, 5, dtype=np.float)
 
     power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
                                 time_bandwidth=4.0)
@@ -293,7 +293,7 @@ def test_tfr_multitaper():
     assert_array_almost_equal(power.times, power_epochs.times)
     assert_array_almost_equal(power.times, power_averaged.times)
     assert_equal(power.nave, power_averaged.nave)
-    assert_equal(power_epochs.data.shape, (3, 3, 32, 200))
+    assert_equal(power_epochs.data.shape, (3, 2, 7, 200))
     assert_array_almost_equal(itc.data, itc_picks.data)
     # one is squared magnitude of the average (evoked) and
     # the other is average of the squared magnitudes (epochs PSD)
