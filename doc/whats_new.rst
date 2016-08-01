@@ -142,7 +142,7 @@ API
 
     - Added :class:`mne.decoding.UnsupervisedSpatialFilter` providing interface for scikit-learn decomposition algorithms to be used with MNE data, by `Jean-Remi King`_ and `Asish Panda`_
 
-    - Deprecated :func:`mne.time_frequency.cwt_morlet` and :func:`mne.time_frequency.single_trial_power` in favour of :func:`mne.time_frequency.tfr_morlet` with parameter average=False, by `Jean-Remi King`_ and 'Alex Gramfort'_
+    - Deprecated :func:`mne.time_frequency.cwt_morlet` and :func:`mne.time_frequency.single_trial_power` in favour of :func:`mne.time_frequency.tfr_morlet` with parameter average=False, by `Jean-Remi King`_ and `Alex Gramfort`_
 
 
 .. _changes_0_12:

@@ -19,11 +19,13 @@ from scipy.fftpack import fftn, ifftn
 from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _time_mask, check_fname, deprecated
+from ..utils import (logger, verbose, _time_mask, check_fname, deprecated,
+                     sizeof_fmt)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
+from ..utils import SizeMixin
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar, plt_show
 from ..externals.h5io import write_hdf5, read_hdf5
@@ -249,7 +251,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 
 
 def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
-                 n_cycles=7.0, zero_mean=None, time_bandwidth=4.0,
+                 n_cycles=7.0, zero_mean=None, time_bandwidth=None,
                  use_fft=True, decim=1, output='complex', n_jobs=1,
                  verbose=None):
     """Computes time-frequency transforms.
@@ -271,7 +273,8 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
     zero_mean : bool | None, defaults to None
         None means True for method='multitaper' and False for method='morlet'.
         If True, make sure the wavelets have a mean of zero.
-    time_bandwidth : float, defaults to 4.0 (3 tapers)
+    time_bandwidth : float, defaults to None
+        If method=multitaper, will be set to 4.0 (3 tapers).
         Time x (Full) Bandwidth product. Only applies if
         method == 'multitaper'. The number of good tapers (low-bias) is
         chosen automatically based on this to equal floor(time_bandwidth - 1).
@@ -296,8 +299,8 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
           coherence across trials.
 
     n_jobs : int, defaults to 1
-        The number of epochs to process at the same time. The parallization is
-        implemented across channels.
+        The number of epochs to process at the same time. The parallelization
+        is implemented across channels.
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see mne.verbose).
 
@@ -341,7 +344,8 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
     # Default zero_mean = True if multitaper else False
     zero_mean = method == 'multitaper' if zero_mean is None else zero_mean
     if not isinstance(zero_mean, bool):
-        raise ValueError('')
+        raise ValueError('zero_mean should be of type bool. Got %s.'
+                         % type(zero_mean))
     frequencies = np.asarray(frequencies)
 
     # XXX Can we compute single-trial phases with multitaper?
@@ -354,10 +358,12 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
     if method == 'morlet':
         W = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
         Ws = [W]  # to have same dimensionality as the 'multitaper' case
-        if time_bandwidth != 4.0:
+        if time_bandwidth is not None:
             raise ValueError('time_bandwidth only applies to "multitaper"'
                              ' method.')
     elif method == 'multitaper':
+        if time_bandwidth is None:
+            time_bandwidth = 4.0
         Ws = _make_dpss(sfreq, frequencies, n_cycles=n_cycles,
                         time_bandwidth=time_bandwidth, zero_mean=zero_mean)
 
@@ -395,6 +401,7 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         out[channel_idx] = tfr
 
     if ('avg_' not in output) and ('itc' not in output):
+        # This is to enforce that the first dimension is for epochs
         out = out.transpose(1, 0, 2, 3)
     return out
 
@@ -759,11 +766,11 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     zero_mean : bool, defaults to True
         Make sure the wavelet has a mean of zero.
 
-        .. versionadded:: 0.12.0
+        .. versionadded:: 0.13.0
     average : bool, defaults to True
         If True average accross Epochs.
 
-        .. versionadded:: 0.12.0
+        .. versionadded:: 0.13.0
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see mne.verbose).
 
@@ -825,7 +832,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     average : bool, defaults to True
         If True average accross Epochs.
 
-        .. versionadded:: 0.12.0
+        .. versionadded:: 0.13.0
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see mne.verbose).
 
@@ -853,7 +860,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
 # TFR(s) class
 
-class _BaseTFR(ContainsMixin, UpdateChannelsMixin):
+class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
     @property
     def ch_names(self):
         return self.info['ch_names']
@@ -1419,6 +1426,7 @@ class AverageTFR(_BaseTFR):
         s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])
         s += ", nave : %d" % self.nave
         s += ', channels : %d' % self.data.shape[0]
+        s += ', ~%s' % (sizeof_fmt(self._size),)
         return "<AverageTFR  |  %s>" % s
 
     def save(self, fname, overwrite=False):
@@ -1464,7 +1472,7 @@ class EpochsTFR(_BaseTFR):
 
     Notes
     -----
-    .. versionadded:: 0.12.0
+    .. versionadded:: 0.13.0
     """
     @verbose
     def __init__(self, info, data, times, freqs, comment=None,
@@ -1493,6 +1501,7 @@ class EpochsTFR(_BaseTFR):
         s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])
         s += ", epochs : %d" % self.data.shape[0]
         s += ', channels : %d' % self.data.shape[1]
+        s += ', ~%s' % (sizeof_fmt(self._size),)
         return "<EpochsTFR  |  %s>" % s
 
     def average(self):

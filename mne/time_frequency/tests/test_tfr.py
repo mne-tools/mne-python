@@ -33,8 +33,7 @@ def test_morlet():
 
 
 def test_time_frequency():
-    """Test the to-be-deprecated time frequency transform (PSD and ITC).
-    """
+    """Test the to-be-deprecated time frequency transform (PSD and ITC)"""
     # Set parameters
     event_id = 1
     tmin = -0.2
@@ -278,6 +277,8 @@ def test_tfr_multitaper():
                                   n_cycles=freqs / 2., time_bandwidth=4.0,
                                   return_itc=False, average=False).average()
 
+    print(power_evoked)  # test repr for EpochsTFR
+
     assert_raises(ValueError, tfr_multitaper, epochs,
                   freqs=freqs, n_cycles=freqs / 2.,
                   return_itc=True, average=False)
@@ -451,6 +452,7 @@ def test_add_channels():
 
 
 def test_compute_tfr():
+    """Test _compute_tfr function"""
     # Set parameters
     event_id = 1
     tmin = -0.2

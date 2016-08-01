@@ -1727,6 +1727,37 @@ def sizeof_fmt(num):
         return '1 byte'
 
 
+class SizeMixin(object):
+    """Class to estimate MNE object sizes"""
+    @property
+    def _size(self):
+        """Estimate of the object size"""
+        try:
+            size = object_size(self.info)
+        except Exception:
+            warn('Could not get size for self.info')
+            return -1
+        if hasattr(self, 'data'):
+            size += object_size(self.data)
+        elif hasattr(self, '_data'):
+            size += object_size(self._data)
+        return size
+
+    def __hash__(self):
+        from ..evoked import Evoked
+        from ..epochs import _BaseEpochs
+        from ..io.base import _BaseRaw
+        if isinstance(self, Evoked):
+            return object_hash(dict(info=self.info, data=self.data))
+        elif isinstance(self, (_BaseEpochs, _BaseRaw)):
+            if not self.preload:
+                raise RuntimeError('Cannot hash %s unless data are loaded'
+                                   % self.__class__.__name__)
+            return object_hash(dict(info=self.info, data=self._data))
+        else:
+            raise RuntimeError('Hashing unknown object type: %s' % type(self))
+
+
 def _url_to_local_path(url, path):
     """Mirror a url path in a local destination (keeping folder structure)"""
     destination = urllib.parse.urlparse(url).path

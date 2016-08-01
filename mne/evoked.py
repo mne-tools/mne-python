@@ -16,6 +16,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
 from .utils import check_fname, logger, verbose, _time_mask, warn, sizeof_fmt
+from .utils import SizeMixin
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import (_plot_evoked_white, plot_evoked_joint,
@@ -33,7 +34,7 @@ from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id)
-from .io.base import ToDataFrameMixin, TimeMixin, SizeMixin
+from .io.base import ToDataFrameMixin, TimeMixin
 
 _aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                 'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}

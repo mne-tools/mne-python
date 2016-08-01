@@ -30,7 +30,7 @@ from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
                       _pick_aux_channels, _DATA_CH_TYPES_SPLIT)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
-from .io.base import _BaseRaw, ToDataFrameMixin, TimeMixin, SizeMixin
+from .io.base import _BaseRaw, ToDataFrameMixin, TimeMixin
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale
@@ -43,7 +43,7 @@ from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, warn, _check_copy_dep,
-                    sizeof_fmt)
+                    sizeof_fmt, SizeMixin)
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
 
