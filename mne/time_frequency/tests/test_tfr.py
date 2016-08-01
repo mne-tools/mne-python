@@ -273,6 +273,10 @@ def test_tfr_multitaper():
     power_picks, itc_picks = tfr_multitaper(epochs, freqs=freqs,
                                             n_cycles=freqs / 2.,
                                             time_bandwidth=4.0, picks=picks)
+    power_epochs = tfr_multitaper(epochs, freqs=freqs,
+                                  n_cycles=freqs / 2., time_bandwidth=4.0,
+                                  return_itc=False, average=False)
+    power_averaged = power_epochs.average()
     power_evoked = tfr_multitaper(epochs.average(), freqs=freqs,
                                   n_cycles=freqs / 2., time_bandwidth=4.0,
                                   return_itc=False, average=False).average()
@@ -285,6 +289,11 @@ def test_tfr_multitaper():
 
     # test picks argument
     assert_array_almost_equal(power.data, power_picks.data)
+    assert_array_almost_equal(power.data, power_averaged.data)
+    assert_array_almost_equal(power.times, power_epochs.times)
+    assert_array_almost_equal(power.times, power_averaged.times)
+    assert_equal(power.nave, power_averaged.nave)
+    assert_equal(power_epochs.data.shape, (3, 3, 32, 200))
     assert_array_almost_equal(itc.data, itc_picks.data)
     # one is squared magnitude of the average (evoked) and
     # the other is average of the squared magnitudes (epochs PSD)
