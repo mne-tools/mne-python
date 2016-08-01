@@ -262,17 +262,17 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         The frequencies.
     sfreq : float | int, defaults to 1.0
         Sampling frequency of the data.
-    method : 'mtm' | 'morlet', defaults to 'morlet'
-        The time frequency method. 'morlet' convolves a Morlet wavelet. 'mtm'
+    method : 'multitaper' | 'morlet', defaults to 'morlet'
+        The time frequency method. 'morlet' convolves a Morlet wavelet. 'multitaper'
         convolves DPSS tapers.
     n_cycles : float | array of float, defaults to 7.0
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.
     zero_mean : bool | None, defaults to None
-        None means True for method='mtm' and False for method='morlet'.
+        None means True for method='multitaper' and False for method='morlet'.
         If True, make sure the wavelets have a mean of zero.
     time_bandwidth : float, defaults to 4.0 (3 tapers)
-        Time x (Full) Bandwidth product. Only applies if method == 'mtm'.
+        Time x (Full) Bandwidth product. Only applies if method == 'multitaper'.
         The number of good tapers (low-bias) is chosen automatically based on
         this to equal floor(time_bandwidth - 1).
     use_fft : bool, defaults to True
@@ -333,28 +333,28 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         raise ValueError("Unknown output type. Allowed are %s but "
                          "got %s" % (allowed_ouput, output))
 
-    if method not in ('mtm', 'morlet'):
-        raise ValueError('method must be "morlet" or "mtm"')
+    if method not in ('multitaper', 'morlet'):
+        raise ValueError('method must be "morlet" or "multitaper"')
 
-    # Default zero_mean = True if mtm else False
-    zero_mean = method == 'mtm' if zero_mean is None else zero_mean
+    # Default zero_mean = True if multitaper else False
+    zero_mean = method == 'multitaper' if zero_mean is None else zero_mean
     if not isinstance(zero_mean, bool):
         raise ValueError('')
     frequencies = np.asarray(frequencies)
 
-    # XXX Can we compute single-trial phases with mtm?
-    if (method == 'mtm') and (output == 'phase'):
+    # XXX Can we compute single-trial phases with multitaper?
+    if (method == 'multitaper') and (output == 'phase'):
         raise NotImplementedError(
             'This function is not optimized to compute the phase using the '
-            'mtm method. Use np.angle of the complex output instead.')
+            'multitaper method. Use np.angle of the complex output instead.')
 
     # Setup wavelet
     if method == 'morlet':
         W = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
-        Ws = [W]  # to have same dimensionality as the 'mtm' case
+        Ws = [W]  # to have same dimensionality as the 'multitaper' case
         if time_bandwidth != 4.0:
-            raise ValueError('time_bandwidth only applies to "mtm" method.')
-    elif method == 'mtm':
+            raise ValueError('time_bandwidth only applies to "multitaper" method.')
+    elif method == 'multitaper':
         Ws = _make_dpss(sfreq, frequencies, n_cycles=n_cycles,
                         time_bandwidth=time_bandwidth, zero_mean=zero_mean)
 
@@ -679,8 +679,47 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     return power
 
 
-# Time frequency on MNE instance: FIXME probably needs to be simplified to
-# reduce redundancy between morlet and mtm
+# Aux function to reduce redundancy between tfr_morlet and tfr_multitaper
+
+def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average, **tfr_params):
+    decim = _check_decim(decim)
+    data = _get_data(inst, return_itc)
+    info = inst.info
+
+    info, data, picks = _prepare_picks(info, data, picks)
+    data = data[:, picks, :]
+
+    if average:
+        if return_itc:
+            output = 'avg_power_itc'
+        else:
+            output = 'avg_power'
+    else:
+        output = 'power'
+        if return_itc:
+            raise ValueError('Inter-trial coherence is not supported'
+                             ' with average=False')
+
+    out = _compute_tfr(data, freqs, info['sfreq'], method=method,
+                       output=output, decim=decim, **tfr_params)
+    times = inst.times[decim].copy()
+
+    if average:
+        if return_itc:
+            power, itc = out.real, out.imag
+        else:
+            power = out
+        nave = len(data)
+        out = AverageTFR(info, power, times, freqs, nave,
+                         method='%s-power' % method)
+        if return_itc:
+            out = (out, AverageTFR(info, itc, times, freqs, nave,
+                                   method='%s-itc' % method))
+    else:
+        power = out
+        out = EpochsTFR(info, power, times, freqs, method='%s-power' % method)
+
+    return out
 
 
 @verbose
@@ -736,48 +775,10 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     --------
     tfr_multitaper, tfr_stockwell
     """
-    decim = _check_decim(decim)
-    data = _get_data(inst, return_itc)
-    info = inst.info
-
-    info, data, picks = _prepare_picks(info, data, picks)
-    data = data[:, picks, :]
-
-    if average:
-        if return_itc:
-            output = 'avg_power_itc'
-        else:
-            output = 'avg_power'
-    else:
-        output = 'power'
-        if return_itc:
-            raise ValueError('Inter-trial coherence is not supported'
-                             ' with average=False')
-
-    out = _compute_tfr(data, freqs, info['sfreq'], n_cycles=n_cycles,
-                       n_jobs=n_jobs, use_fft=use_fft, decim=decim,
-                       zero_mean=zero_mean, method='morlet',
-                       output=output)
-    times = inst.times[decim].copy()
-
-    if average:
-        if return_itc:
-            power, itc = out.real, out.imag
-        else:
-            power = out
-        nave = len(data)
-        out = AverageTFR(info, power, times, freqs, nave, method='morlet-power')
-        if return_itc:
-            out = (out, AverageTFR(info, itc, times, freqs, nave,
-                                   method='morlet-itc'))
-    else:
-        power = out
-        out = EpochsTFR(info, power, times, freqs, method='morlet-power')
-        if return_itc:
-            out = (out, EpochsTFR(info, itc, times, freqs,
-                                  method='morlet-itc'))
-
-    return out
+    tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
+                      zero_mean=zero_mean)
+    return _tfr_aux('morlet', inst, freqs, decim, return_itc, picks,
+                    average, **tfr_params)
 
 
 @verbose
@@ -840,48 +841,10 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     -----
     .. versionadded:: 0.9.0
     """
-    decim = _check_decim(decim)
-    data = _get_data(inst, return_itc)
-    info = inst.info
-
-    info, data, picks = _prepare_picks(info, data, picks)
-    data = data = data[:, picks, :]
-
-    if average:
-        if return_itc:
-            output = 'avg_power_itc'
-        else:
-            output = 'avg_power'
-    else:
-        output = 'power'
-        if return_itc:
-            raise ValueError('Inter-trial coherence is not supported'
-                             ' with average=False')
-
-    out = _compute_tfr(data, freqs, info['sfreq'], n_cycles=n_cycles,
-                       n_jobs=n_jobs, use_fft=use_fft, decim=decim,
-                       zero_mean=True, method='mtm',
-                       time_bandwidth=time_bandwidth, output=output)
-    times = inst.times[decim].copy()
-
-    if average:
-        if return_itc:
-            power, itc = out.real, out.imag
-        else:
-            power = out
-        nave = len(data)
-        out = AverageTFR(info, power, times, freqs, nave, method='mutlitaper-power')
-        if return_itc:
-            out = (out, AverageTFR(info, itc, times, freqs, nave,
-                                   method='mutlitaper-itc'))
-    else:
-        power = out
-        out = EpochsTFR(info, power, times, freqs, method='mutlitaper-power')
-        if return_itc:
-            out = (out, EpochsTFR(info, itc, times, freqs,
-                                  method='mutlitaper-itc'))
-
-    return out
+    tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
+                      zero_mean=True, time_bandwidth=time_bandwidth)
+    return _tfr_aux('multitaper', inst, freqs, decim, return_itc, picks,
+                    average, **tfr_params)
 
 
 # TFR(s) class
@@ -1365,6 +1328,10 @@ class EpochsTFR(_BaseTFR):
     ----------
     ch_names : list
         The names of the channels.
+
+    Notes
+    -----
+    .. versionadded:: 0.12.0
     """
     @verbose
     def __init__(self, info, data, times, freqs, comment=None,
