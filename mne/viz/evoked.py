@@ -1204,7 +1204,8 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
 
 def _ci(arr, ci):
-    """Calculate the `ci`% parametric confidence interval for `arr`"""
+    """Calculate the `ci`% parametric confidence interval for `arr`.
+    Aux function for plot_compare_evokeds."""
     from scipy import stats
     mean, sigma = arr.mean(0), stats.sem(arr, 0)
     # This is highly convoluted to support 17th century Scipy
@@ -1214,44 +1215,61 @@ def _ci(arr, ci):
                        for mean_, sigma_ in zip(mean, sigma)]).T
 
 
+def _setup_styles(conditions, style_dict, style, default):
+    """Aux function for plot_compare_evokeds to set linestyles and colors"""
+    style_warning = ("Condition {} could not be mapped to a " + style
+                     ", using the default of " + default)
+    for condition in conditions:
+        if condition not in style_dict:
+            if "/" not in condition:
+                warn(style_error.format(condition))
+                style_dict[condition] = default
+            for style_ in style_dict:
+                if style_ in condition.split("/"):
+                    style_dict[condition] = style_dict[style_]
+                    break
+    return style_dict
+
+
 def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                          colors=None, linestyles=['-'], styles=None,
                          vlines=[0], ci=0.95, truncate_yaxis=True, ymin=None,
                          ymax=None, invert_y=False, ax=None, title=None,
                          show=True):
-    """ Plot, for multiple conditions, individual evoked time courses of one or
-    the mean of multiple sensors
+    """ Plot, for multiple conditions, individual evoked time courses of one
+    sensor or of the mean of multiple sensors
 
     This function is useful for comparing ER[P/F]s at a specific location. It
-    plots grand averages or, if supplied with a list/dict of lists of evoked
+    plots Evoked data or, if supplied with a list/dict of lists of evoked
     instances, grand averages plus confidence intervals.
 
     Parameters
     ----------
     evokeds : instance of mne.Evoked | list | dict
         If a single evoked instance, it is plotted as a time series.
-        If a dict, the contents are plotted as single time series each and the
-        keys are used as condition labels.
+        If a dict whose values are Evoked objects, the contents are plotted as
+        single time series each and the keys are used as condition labels.
+        If a list of Evokeds, the contents are plotted with indices as labels.
         If a [dict/list] of lists, the unweighted mean is plotted as a time
         series and the parametric confidence interval is plotted as a shaded
         area. All instances must have the same shape - channel numbers, time
         points etc.
     picks : int | list of int | str | list of str | None
-        The indices (int) or names (str) of the sensors to plot. Must all
-        have the same channel type.
+        The indices (int) or names (str) of the sensors to average and plot.
+        Must all be of the same channel type.
         If the selected channels are gradiometers, the corresponding pairs
         will be selected.
         If None, the global field power is plotted instead.
     conditions : list of str | None
         If evokeds is a single instance or a list (but not a dictionary),
-        this can be used for legend labels.
+        this argument can be used to set legend labels.
     colors : list | dict | None
         If a list, will be sequentially used for line colors.
         If a dict, can map evoked keys or HED-like tags to conditions. For
         example, if `evokeds` is a dict with the keys "Aud/L", "Aud/R",
         "Vis/L", "Vis/R", `colors` can be dict(Aud='r', Vis='b') to map both
         Aud/L and Aud/R to the color red.
-        If None, a sequence of desaturated colors is used.
+        If None (default), a sequence of desaturated colors is used.
     linestyles : list | dict
         If a list, will be sequentially used for evoked plot linestyles.
         If a dict, can map the `evoked` keys or HED-like tags to conditions.
@@ -1296,20 +1314,23 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
     import matplotlib.pyplot as plt
 
     # set up labels and instances
+    if isinstance(conditions, string_types):
+        conditions = [conditions]
+
     if isinstance(evokeds, Evoked):
-        evokeds = dict(Condition=evokeds)
+        if conditions is None:
+            conditions = ['Evoked']  # empty title
+        evokeds = dict(conditions[0]=evokeds)
 
     if isinstance(evokeds, dict):
         conditions = sorted(list(evokeds.keys()))
-    else:
+    elif conditions is None:
         evokeds = dict((str(ii + 1), evoked)
                        for ii, evoked in enumerate(evokeds))
         conditions = sorted(list(evokeds.keys()))
-
-    if conditions is None:
-        conditions = sorted([str(ii) for ii in evokeds])
-    if isinstance(conditions, string_types):
-        conditions = [conditions]
+    else:  # if conditions is not none and evokeds a list
+        evokeds = dict((cond, evoked_) for cond, evoked_ in
+                       zip(conditions, evokeds))
 
     # get and set a few limits and variables (times, channels, units)
     example = (evokeds[conditions[0]]
@@ -1354,17 +1375,19 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         picks = list(sorted(set(picked_chans)))
         ch_names = [example.ch_names[pick] for pick in
                     [pairpicks[p_] for p_ in picks]]
-        if ymin is None:
+        if ymin is None:  # 'grad' is plotted as all-positive
             ymin = 0
 
     # deal with dict/list of lists, and calculate the CI
-    if not isinstance(evokeds[conditions[0]], Evoked):
+    if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
         from ..evoked import combine_evoked
         if not isinstance(evokeds[conditions[0]][0], Evoked):
             raise ValueError("evokeds must be an `mne.Evoked` "
                              "or of a collection of `mne.Evoked`s")
 
         if ci and picks is not None:
+            if not isinstance(ci, np.float):
+                raise TypeError("`ci` must be float")
             # calculate the CI
             sem_array = {}
             for condition in conditions:
@@ -1394,6 +1417,8 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
     if ax is None:
         fig, ax = plt.subplots(1, 1)
         fig.set_size_inches(8, 6)
+    else:
+        fig = ax.figure
 
     # style the individual condition time series
     if not isinstance(colors, dict):
@@ -1402,29 +1427,13 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         colors = dict((condition, color) for condition, color
                       in zip(conditions, colors_))
     else:
-        style_error = "Condition {} could not be mapped to a color."
-        for condition in conditions:
-            if condition not in colors:
-                if "/" not in condition:
-                    raise ValueError(style_error.format(condition))
-                for color in colors:
-                    if color in condition.split("/"):
-                        colors[condition] = colors[color]
-                        break
+        colors = _setup_styles(conditions, colors, "color", "grey")
 
     if not isinstance(linestyles, dict):
         linestyles = dict((condition, linestyle) for condition, linestyle in
                           zip(conditions, ['-'] * len(conditions)))
     else:
-        style_error = "Condition {} could not be mapped to a linestyle."
-        for condition in conditions:
-            if condition not in linestyles:
-                if "/" not in condition:
-                    raise ValueError(style_error.format(condition))
-                for linestyle in linestyles:
-                    if linestyle in condition.split("/"):
-                        linestyles[condition] = linestyles[linestyle]
-                        break
+        linestyles = _setup_styles(conditions, linestyles, "linestyle", "-")
 
     if styles is None:
         styles = dict()
@@ -1535,8 +1544,6 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
     if len(conditions) > 1:
         plt.legend(loc='best', ncol=1 + (len(conditions) // 5),
                    frameon=True, prop=dict(size=10))
-
-    fig = plt.gcf()
 
     plt_show(show)
     return fig
