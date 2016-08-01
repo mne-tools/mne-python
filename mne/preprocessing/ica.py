@@ -1624,6 +1624,72 @@ def _find_sources(sources, target, score_func):
     return scores
 
 
+def _ica_explained_variance(ica, inst, normalize=False):
+    """Checks variance accounted for by each component in supplied data.
+
+    parameters
+    ----------
+    ica : ICA
+        Instance of `mne.preprocessing.ICA`.
+    inst : Raw | Epochs | (Evoked?)
+        Data to explain with ICA. Instance of `mne.io.Epochs` ...
+    src : sources | None
+        Sources ...
+    normalize : bool
+        Whether to normalize the varience.
+
+    returns
+    -------
+    var : array
+        Variance explained by each component.
+    """
+    # check if ica is ICA and whether inst is Raw or Epochs
+    if not isinstance(ica, ICA):
+        raise TypeError('first argument must be an instance of ICA.')
+    if not isinstance(inst, (_BaseRaw, _BaseEpochs, Evoked)):
+        raise TypeError('second argument must an instance of either Raw, '
+            'Epochs or Evoked.')
+
+    src = ica.get_sources(inst)
+
+    # get data, if epochs - reshape
+    if isinstance(inst, _BaseRaw):
+        data = src._data
+    elif isinstance(inst, _BaseEpochs):
+        n_epochs, n_chan, n_samp = src._data.shape
+        data = src._data.transpose(1, 0, 2).reshape((n_chan, n_epochs * n_samp))
+    elif isinstance(inst, Evoked):
+        data = src.data
+    n_chan, n_samp = data.shape
+    var = np.sum(ica.mixing_matrix_**2, axis=0) * np.sum(
+        data**2, axis=1) / (n_chan * n_samp - 1)
+    if normalize:
+        var /= var.sum()
+    return var
+
+
+def _sort_components(ica, order, copy=True):
+    """Change the order of components in ica solution."""
+    assert ica.n_components_ == len(order)
+    if copy:
+        ica = ica.copy()
+
+    # reorder components
+    ica.mixing_matrix_ = ica.mixing_matrix_[:, order]
+    ica.unmixing_matrix_ = ica.unmixing_matrix_[order, :]
+
+    # reorder labels, excludes etc.
+    if isinstance(order, np.ndarray):
+        order = list(order)
+    if ica.exclude:
+        ica.exclude = [order.index(ic) for ic in ica.exclude]
+    if hasattr(ica, 'labels_'):
+        for k in ica.labels_.keys():
+            ica.labels_[k] = [order.index(ic) for ic in ica.labels_[k]]
+
+    return ica
+
+
 def _serialize(dict_, outer_sep=';', inner_sep=':'):
     """Aux function"""
     s = []
