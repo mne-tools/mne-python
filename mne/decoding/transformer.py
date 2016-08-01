@@ -800,7 +800,7 @@ class Filterer(TransformerMixin):
                                        (self.h_trans_bandwidth,
                                         'h_trans_bandwidth')])
         for param in trans_bandwidth_params.keys():
-            if not isinstance(param, (int, float)) and (param is not 
+            if not isinstance(param, (int, float)) and (param is not
                                                         None) and (param !=
                                                                    'auto'):
                 raise ValueError("%s must be of type int, float or None, "
