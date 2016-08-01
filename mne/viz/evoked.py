@@ -1320,7 +1320,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
     if isinstance(evokeds, Evoked):
         if conditions is None:
             conditions = ['Evoked']  # empty title
-        evokeds = dict(conditions[0]=evokeds)
+        evokeds = dict(Evoked=evokeds)
 
     if isinstance(evokeds, dict):
         conditions = sorted(list(evokeds.keys()))
