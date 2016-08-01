@@ -103,7 +103,7 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
         The sampling frequency.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
-    n_cycles : float | ndarray, shape (n_freqs,),  Defaults to 7.
+    n_cycles : float | ndarray, shape (n_freqs,), defaults to 7.
         The number of cycles globally or for each frequency.
     time_bandwidth : float, defaults to 4.0
         Time x Bandwidth product.
@@ -274,7 +274,7 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         None means True for method='multitaper' and False for method='morlet'.
         If True, make sure the wavelets have a mean of zero.
     time_bandwidth : float, defaults to None
-        If method=multitaper, will be set to 4.0 (3 tapers).
+        If None and method=multitaper, will be set to 4.0 (3 tapers).
         Time x (Full) Bandwidth product. Only applies if
         method == 'multitaper'. The number of good tapers (low-bias) is
         chosen automatically based on this to equal floor(time_bandwidth - 1).
@@ -348,7 +348,6 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
                          % type(zero_mean))
     frequencies = np.asarray(frequencies)
 
-    # XXX Can we compute single-trial phases with multitaper?
     if (method == 'multitaper') and (output == 'phase'):
         raise NotImplementedError(
             'This function is not optimized to compute the phase using the '

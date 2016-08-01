@@ -471,19 +471,18 @@ def test_compute_tfr():
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_fname)
 
-    include = []
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
     # picks MEG gradiometers
     picks = pick_types(raw.info, meg='grad', eeg=False,
-                       stim=False, include=include, exclude=exclude)
+                       stim=False, include=[], exclude=exclude)
 
     picks = picks[:2]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     data = epochs.get_data()
     sfreq = epochs.info['sfreq']
-    freqs = np.arange(10, 20, 3)
+    freqs = np.arange(10, 20, 3).astype(float)
 
     # Check all combination of options
     for method, use_fft, zero_mean, output in product(
