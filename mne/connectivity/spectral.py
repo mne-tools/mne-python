@@ -704,7 +704,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         The number of DPSS tapers used. Only defined in 'multitaper' mode.
         Otherwise None is returned.
     """
-    if n_jobs > 1:
+    if n_jobs != 1:
         parallel, my_epoch_spectral_connectivity, _ = \
             parallel_func(_epoch_spectral_connectivity, n_jobs,
                           verbose=verbose)
