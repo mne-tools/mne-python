@@ -20,7 +20,8 @@ from mne import Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
-from mne.preprocessing.ica import get_score_funcs, corrmap, _get_ica_map
+from mne.preprocessing.ica import (get_score_funcs, corrmap, _get_ica_map,
+                                   _ica_explained_variance, _sort_components)
 from mne.io import Raw, Info, RawArray
 from mne.io.meas_info import _kind_dict
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
@@ -351,6 +352,15 @@ def test_ica_additional():
     with warnings.catch_warnings(record=True):
         ica.fit(raw, picks=None, decim=3)
     assert_true(ica.n_components_ == 4)
+    ica_var = _ica_explained_variance(ica, raw, normalize=True)
+    assert_true(np.all(ica_var[:-1] >= ica_var[1:]))
+
+    # test ica sorting
+    ica.exclude = [0]
+    ica.labels_ = dict(blink=[0], think=[1])
+    ica_sorted = _sort_components(ica, [3, 2, 1, 0], copy=True)
+    assert_equal(ica_sorted.exclude, [3])
+    assert_equal(ica_sorted.labels_, dict(blink=[3], think=[2]))
 
     # epochs extraction from raw fit
     assert_raises(RuntimeError, ica.get_sources, epochs)
