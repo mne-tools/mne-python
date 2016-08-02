@@ -60,6 +60,10 @@ def test_searchlight():
     sl.predict(X)
     sl.score(X, y)
 
+    # n_jobs > n_estimators
+    sl.fit(X[..., [0]], y)
+    sl.predict(X[..., [0]])
+
     # pipeline
 
     class _LogRegTransformer(LogisticRegression):
@@ -120,6 +124,10 @@ def test_generalizationlight():
     assert_array_equal(y_pred.shape, [n_epochs, n_time, n_time])
     score = gl.score(X, y)
     assert_array_equal(score.shape, [n_time, n_time])
+
+    # n_jobs > n_estimators
+    gl.fit(X[..., [0]], y)
+    gl.predict(X[..., [0]])
 
     # n-dimensional feature space
     X = np.random.rand(10, 3, 4, 2)

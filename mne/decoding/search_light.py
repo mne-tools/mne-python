@@ -80,6 +80,7 @@ class SearchLight(BaseEstimator, TransformerMixin):
         self.estimators_ = list()
         # For fitting, the parallelization is across estimators.
         parallel, p_func, n_jobs = parallel_func(_sl_fit, self.n_jobs)
+        n_jobs = np.min([n_jobs, X.shape[-1]])
         estimators = parallel(
             p_func(self.base_estimator, split, y)
             for split in np.array_split(X, n_jobs, axis=-1))
@@ -96,6 +97,7 @@ class SearchLight(BaseEstimator, TransformerMixin):
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(_sl_transform, self.n_jobs)
+        n_jobs = np.min([n_jobs, X.shape[-1]])
         X_splits = np.array_split(X, n_jobs, axis=-1)
         est_splits = np.array_split(self.estimators_, n_jobs)
         y_pred = parallel(p_func(est, x, method)
@@ -227,6 +229,7 @@ class SearchLight(BaseEstimator, TransformerMixin):
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(_sl_score, self.n_jobs)
+        n_jobs = np.min([n_jobs, X.shape[-1]])
         X_splits = np.array_split(X, n_jobs, axis=-1)
         est_splits = np.array_split(self.estimators_, n_jobs)
         score = parallel(p_func(est, x, y)
@@ -389,6 +392,7 @@ class GeneralizationLight(SearchLight):
         self._check_Xy(X)
         method = _check_method(self.base_estimator, method)
         parallel, p_func, n_jobs = parallel_func(_gl_transform, self.n_jobs)
+        n_jobs = np.min([n_jobs, X.shape[-1]])
         y_pred = parallel(
             p_func(self.estimators_, x_split, method)
             for x_split in np.array_split(X, n_jobs, axis=-1))
@@ -501,6 +505,7 @@ class GeneralizationLight(SearchLight):
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(_gl_score, self.n_jobs)
+        n_jobs = np.min([n_jobs, X.shape[-1]])
         X_splits = np.array_split(X, n_jobs, axis=-1)
         score = parallel(p_func(self.estimators_, x, y) for x in X_splits)
 
