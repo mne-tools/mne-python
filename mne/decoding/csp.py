@@ -3,6 +3,7 @@
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Alexandre Barachant <alexandre.barachant@gmail.com>
 #          Clemens Brunner <clemens.brunner@gmail.com>
+#          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -11,11 +12,12 @@ import copy as cp
 import numpy as np
 from scipy import linalg
 
-from .mixin import TransformerMixin, EstimatorMixin
+from .mixin import TransformerMixin
+from .base import BaseEstimator
 from ..cov import _regularized_covariance
 
 
-class CSP(TransformerMixin, EstimatorMixin):
+class CSP(TransformerMixin, BaseEstimator):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
     This object can be used as a supervised decomposition to estimate
@@ -69,32 +71,24 @@ class CSP(TransformerMixin, EstimatorMixin):
         self.n_components = n_components
         self.reg = reg
         self.log = log
+        if not (cov_est == "concat" or cov_est == "epoch"):
+            raise ValueError("unknown covariance estimation method")
         self.cov_est = cov_est
-        self.filters_ = None
-        self.patterns_ = None
-        self.mean_ = None
-        self.std_ = None
 
-    def get_params(self, deep=True):
-        """Return all parameters (mimics sklearn API).
+    def _check_Xy(self, X, y=None):
+        """Aux. function to check input data."""
+        if y is not None:
+            if len(X) != len(y) or len(y) < 1:
+                raise ValueError('X and y must have the same length.')
+        if X.ndim < 3:
+            raise ValueError('X must have at least 3 dimensions.')
 
-        Parameters
-        ----------
-        deep: boolean, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
-        """
-        params = {"n_components": self.n_components,
-                  "reg": self.reg,
-                  "log": self.log}
-        return params
-
-    def fit(self, epochs_data, y):
+    def fit(self, X, y):
         """Estimate the CSP decomposition on epochs.
 
         Parameters
         ----------
-        epochs_data : ndarray, shape (n_epochs, n_channels, n_times)
+        X : ndarray, shape (n_epochs, n_channels, n_times)
             The data to estimate the CSP on.
         y : array, shape (n_epochs,)
             The class for each epoch.
@@ -104,55 +98,72 @@ class CSP(TransformerMixin, EstimatorMixin):
         self : instance of CSP
             Returns the modified instance.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
-        epochs_data = np.atleast_3d(epochs_data)
-        e, c, t = epochs_data.shape
-        # check number of epochs
-        if e != len(y):
-            raise ValueError("n_epochs must be the same for epochs_data and y")
-        classes = np.unique(y)
-        if len(classes) != 2:
-            raise ValueError("More than two different classes in the data.")
-        if not (self.cov_est == "concat" or self.cov_est == "epoch"):
-            raise ValueError("unknown covariance estimation method")
+        if not isinstance(X, np.ndarray):
+            raise ValueError("X should be of type ndarray (got %s)."
+                             % type(X))
+        self._check_Xy(X, y)
+        n_channels = X.shape[1]
 
-        if self.cov_est == "concat":  # concatenate epochs
-            class_1 = np.transpose(epochs_data[y == classes[0]],
-                                   [1, 0, 2]).reshape(c, -1)
-            class_2 = np.transpose(epochs_data[y == classes[1]],
-                                   [1, 0, 2]).reshape(c, -1)
-            cov_1 = _regularized_covariance(class_1, reg=self.reg)
-            cov_2 = _regularized_covariance(class_2, reg=self.reg)
-        elif self.cov_est == "epoch":
-            class_1 = epochs_data[y == classes[0]]
-            class_2 = epochs_data[y == classes[1]]
-            cov_1 = np.zeros((c, c))
-            for t in class_1:
-                cov_1 += _regularized_covariance(t, reg=self.reg)
-            cov_1 /= class_1.shape[0]
-            cov_2 = np.zeros((c, c))
-            for t in class_2:
-                cov_2 += _regularized_covariance(t, reg=self.reg)
-            cov_2 /= class_2.shape[0]
+        self._classes = np.unique(y)
+        n_classes = len(self._classes)
+        if n_classes < 2:
+            raise ValueError("n_classes must be >= 2.")
 
-        # normalize by trace
-        cov_1 /= np.trace(cov_1)
-        cov_2 /= np.trace(cov_2)
+        covs = np.zeros((n_classes, n_channels, n_channels))
+        for class_idx, this_class in enumerate(self._classes):
+            if self.cov_est == "concat":  # concatenate epochs
+                class_ = np.transpose(X[y == this_class], [1, 0, 2])
+                class_ = class_.reshape(n_channels, -1)
+                cov = _regularized_covariance(class_, reg=self.reg)
+            elif self.cov_est == "epoch":
+                class_ = X[y == this_class]
+                cov = np.zeros((n_channels, n_channels))
+                for this_X in class_:
+                    cov += _regularized_covariance(this_X, reg=self.reg)
+                cov /= len(class_)
 
-        e, w = linalg.eigh(cov_1, cov_1 + cov_2)
-        n_vals = len(e)
-        # Rearrange vectors
-        ind = np.empty(n_vals, dtype=int)
-        ind[::2] = np.arange(n_vals - 1, n_vals // 2 - 1, -1)
-        ind[1::2] = np.arange(0, n_vals // 2)
-        w = w[:, ind]  # first, last, second, second last, third, ...
-        self.filters_ = w.T
-        self.patterns_ = linalg.pinv(w)
+            # normalize by trace
+            covs[class_idx] = cov / np.trace(cov)
+
+        if n_classes == 2:
+            eigen_values, eigen_vectors = linalg.eigh(covs[0], covs.sum(0))
+            # sort eigenvectors
+            ix = np.argsort(np.abs(eigen_values - 0.5))[::-1]
+        else:
+            eigen_vectors, D = _ajd_pham(covs)
+            mean_cov = np.mean(covs, axis=0)  # see pyRiemann for other metrics
+            eigen_vectors = eigen_vectors.T
+
+            # normalize
+            for ii in range(eigen_vectors.shape[1]):
+                tmp = np.dot(np.dot(eigen_vectors[:, ii].T, mean_cov),
+                             eigen_vectors[:, ii])
+                eigen_vectors[:, ii] /= np.sqrt(tmp)
+
+            # class probability
+            class_probas = [np.mean(y == c) for c in self._classes]
+
+            # mutual information
+            mutual_info = []
+            for jj in range(eigen_vectors.shape[1]):
+                aa, bb = 0, 0
+                for (cov, prob) in zip(covs, class_probas):
+                    tmp = np.dot(np.dot(eigen_vectors[:, jj].T, cov),
+                                 eigen_vectors[:, jj])
+                    aa += prob * np.log(np.sqrt(tmp))
+                    bb += prob * (tmp ** 2 - 1)
+                mi = - (aa + (3.0 / 16) * (bb ** 2))
+                mutual_info.append(mi)
+            ix = np.argsort(mutual_info)[::-1]
+
+        # sort eigenvectors
+        eigen_vectors = eigen_vectors[:, ix]
+
+        self.filters_ = eigen_vectors.T
+        self.patterns_ = linalg.pinv(eigen_vectors)
 
         pick_filters = self.filters_[:self.n_components]
-        X = np.asarray([np.dot(pick_filters, epoch) for epoch in epochs_data])
+        X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
 
         # compute features (mean band power)
         X = (X ** 2).mean(axis=-1)
@@ -508,3 +519,86 @@ class CSP(TransformerMixin, EstimatorMixin):
                                     contours=contours,
                                     image_interp=image_interp, show=show,
                                     head_pos=head_pos)
+
+
+def _ajd_pham(X, eps=1e-6, max_iter=15):
+    """Approximate joint diagonalization based on Pham's algorithm.
+
+    This is a direct implementation of the PHAM's AJD algorithm [1].
+
+    Parameters
+    ----------
+    X : ndarray, shape (n_epochs, n_channels, n_channels)
+        A set of covariance matrices to diagonalize.
+    eps : float, defaults to 1e-6
+        The tolerance for stoping criterion.
+    max_iter : int, defaults to 1000
+        The maximum number of iteration to reach convergence.
+
+    Returns
+    -------
+    V : ndarray, shape (n_channels, n_channels)
+        The diagonalizer.
+    D : ndarray, shape (n_epochs, n_channels, n_channels)
+        The set of quasi diagonal matrices.
+
+    References
+    ----------
+    [1] Pham, Dinh Tuan. "Joint approximate diagonalization of positive
+    definite Hermitian matrices." SIAM Journal on Matrix Analysis and
+    Applications 22, no. 4 (2001): 1136-1152.
+
+    """
+    n_epochs = X.shape[0]
+
+    # Reshape input matrix
+    A = np.concatenate(X, axis=0).T
+
+    # Init variables
+    n_times, n_m = A.shape
+    V = np.eye(n_times)
+    epsilon = n_times * (n_times - 1) * eps
+
+    for it in range(max_iter):
+        decr = 0
+        for ii in range(1, n_times):
+            for jj in range(ii):
+                Ii = np.arange(ii, n_m, n_times)
+                Ij = np.arange(jj, n_m, n_times)
+
+                c1 = A[ii, Ii]
+                c2 = A[jj, Ij]
+
+                g12 = np.mean(A[ii, Ij] / c1)
+                g21 = np.mean(A[ii, Ij] / c2)
+
+                omega21 = np.mean(c1 / c2)
+                omega12 = np.mean(c2 / c1)
+                omega = np.sqrt(omega12 * omega21)
+
+                tmp = np.sqrt(omega21 / omega12)
+                tmp1 = (tmp * g12 + g21) / (omega + 1)
+                tmp2 = (tmp * g12 - g21) / np.max(omega - 1, 1e-9)
+
+                h12 = tmp1 + tmp2
+                h21 = np.conj((tmp1 - tmp2) / tmp)
+
+                decr = decr + n_epochs * (g12 * np.conj(h12) + g21 * h21) / 2.0
+
+                tmp = 1 + 1.j * 0.5 * np.imag(h12 * h21)
+                tmp = np.real(tmp + np.sqrt(tmp ** 2 - h12 * h21))
+                tau = np.array([[1, -h12 / tmp], [-h21 / tmp, 1]])
+
+                A[[ii, jj], :] = np.dot(tau, A[[ii, jj], :])
+                tmp = np.c_[A[:, Ii], A[:, Ij]]
+                tmp = np.reshape(tmp, (n_times * n_epochs, 2), order='F')
+                tmp = np.dot(tmp, tau.T)
+
+                tmp = np.reshape(tmp, (n_times, n_epochs * 2), order='F')
+                A[:, Ii] = tmp[:, :n_epochs]
+                A[:, Ij] = tmp[:, n_epochs:]
+                V[[ii, jj], :] = np.dot(tau, V[[ii, jj], :])
+        if decr < epsilon:
+            break
+    D = np.reshape(A, (n_times, n_m / n_times, n_times)).transpose(1, 0, 2)
+    return V, D

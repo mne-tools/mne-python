@@ -81,8 +81,19 @@ def test_csp():
         assert_true(corr >= 0.95, msg='%s < 0.95' % corr)
 
     # make sure error is raised for undefined estimation method
-    csp_fail = CSP(cov_est="undefined")
-    assert_raises(ValueError, csp_fail.fit, epochs_data, y)
+    assert_raises(ValueError, CSP, cov_est="undefined")
+
+    # test with 3 classes
+    epochs = Epochs(raw, events, event_id=dict(aud_l=1, aud_r=2, vis_l=3),
+                    tmin=tmin, tmax=tmax, picks=picks,
+                    baseline=(None, 0), preload=True, proj=False)
+    epochs_data = epochs.get_data()
+    n_channels = epochs_data.shape[1]
+
+    n_components = 3
+    csp = CSP(n_components=n_components)
+
+    csp.fit(epochs_data, epochs.events[:, -1]).transform(epochs_data)
 
 
 @requires_sklearn
