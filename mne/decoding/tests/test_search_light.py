@@ -8,6 +8,7 @@ from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
 from ...utils import requires_sklearn
 from ..search_light import SearchLight, GeneralizationLight
+from .. import Vectorizer
 
 
 def make_data():
@@ -71,9 +72,18 @@ def test_searchlight():
     pipe.fit(X, y)
     pipe.predict(X)
 
+    # n-dimensional feature space
+    X = np.random.rand(10, 3, 4, 2)
+    y = np.arange(10) % 2
+    pipe = SearchLight(make_pipeline(Vectorizer(), LogisticRegression()))
+    pipe.fit(X, y).predict(X)
+    features_shape = pipe.estimators_[0].steps[0][1].features_shape_
+    assert_array_equal(features_shape, [3, 4])
+
 
 @requires_sklearn
 def test_generalizationlight():
+    from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LogisticRegression
     X, y = make_data()
     n_epochs, _, n_time = X.shape
@@ -108,3 +118,12 @@ def test_generalizationlight():
     assert_array_equal(y_pred.shape, [n_epochs, n_time, n_time])
     score = gl.score(X, y)
     assert_array_equal(score.shape, [n_time, n_time])
+
+    # n-dimensional feature space
+    X = np.random.rand(10, 3, 4, 2)
+    y = np.arange(10) % 2
+    pipe = GeneralizationLight(
+        make_pipeline(Vectorizer(), LogisticRegression()))
+    pipe.fit(X, y).predict(X)
+    features_shape = pipe.estimators_[0].steps[0][1].features_shape_
+    assert_array_equal(features_shape, [3, 4])
