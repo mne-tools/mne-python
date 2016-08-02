@@ -11,7 +11,7 @@ from .base import BaseEstimator
 
 from .. import pick_types
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
-                      band_stop_filter, filter_data)
+                      band_stop_filter, filter_data, _triage_filter_params)
 from ..time_frequency.psd import _psd_multitaper
 from ..externals import six
 from ..utils import _check_type_picks, deprecated
@@ -497,6 +497,10 @@ class FilterEstimator(TransformerMixin):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
+
+    See Also
+    --------
+    TemporalFilter
     """
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='',
                  l_trans_bandwidth=None, h_trans_bandwidth=None, n_jobs=1,
@@ -717,8 +721,11 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         return X
 
 
-class Filterer(TransformerMixin):
-    """Estimator to filter 3D array(epochs).
+class TemporalFilter(TransformerMixin):
+    """Estimator to filter data array with atleast 2 dimensions. Could be
+    applied on epochs, evoked data.
+    This is compatible with scikit-learn pipeline and therefore useful for
+    chaining MNE processing steps.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
     filter to the channels.
@@ -744,22 +751,34 @@ class Filterer(TransformerMixin):
         channels will be filtered.
     sfreq : float, Default: 1.0
         Sampling frequency in Hz.
-    filter_length : str (Default: '10s') | int | None
-        Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, if int, overlap-add
-        filtering with a filter of the specified length in samples) is
-        used (faster for long signals). If str, a human-readable time in
-        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
-        to the shortest power-of-two length at least that duration.
+    filter_length : str | int
+        Length of the FIR filter to use (if applicable):
+            * int: specified length in samples.
+            * 'auto' (default in 0.14): the filter length is chosen based
+              on the size of the transition regions (7 times the reciprocal
+              of the shortest transition band).
+            * str: (default in 0.13 is "10s") a human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
     l_trans_bandwidth : float | str
-        Width of the transition band at the low cut-off frequency in Hz.
+        Width of the transition band at the low cut-off frequency in Hz
+        (high pass or cutoff 1 in bandpass). Can be "auto"
+        (default in 0.14) to use a multiple of ``l_freq``::
+            min(max(l_freq * 0.25, 2), l_freq)
+        Only used for ``method='fir'``.
     h_trans_bandwidth : float | str
-        Width of the transition band at the high cut-off frequency in Hz.
+        Width of the transition band at the high cut-off frequency in Hz
+        (low pass or cutoff 2 in bandpass). Can be "auto"
+        (default in 0.14) to use a multiple of ``h_freq``::
+            min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+        Only used for ``method='fir'``.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly, CUDA is initialized, and method='fft'.
     method : str
-        'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+        'fir' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
     iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
@@ -768,10 +787,15 @@ class Filterer(TransformerMixin):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
+
+    See Also
+    --------
+    FilterEstimator
+    Vectorizer
     """
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
-                 filter_length='10s', l_trans_bandwidth=None,
-                 h_trans_bandwidth=None, n_jobs=1, method='fft',
+                 filter_length='auto', l_trans_bandwidth='auto',
+                 h_trans_bandwidth='auto', n_jobs=1, method='fir',
                  iir_params=None, verbose=None):
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -783,42 +807,16 @@ class Filterer(TransformerMixin):
         self.iir_params = iir_params
         self.sfreq = sfreq
 
-        # check frequency params
-        float_params = dict([(self.l_freq, 'l_freq'), (self.h_freq, 'h_freq')])
-        for param in float_params.keys():
-            if not isinstance(param, (int, float)) and param is not None:
-                raise ValueError("%s must be of type int or float or None, "
-                                 "got %s instead" % (float_params[param],
-                                                     type(param)))
+        dummy_array = [1,2]
 
-        if not isinstance(self.sfreq, (int, float)):
-            raise ValueError("Sampling frequency must be int or float, "
-                             "got %s instead" % type(sfreq))
-
-        trans_bandwidth_params = dict([(self.l_trans_bandwidth,
-                                        'l_trans_bandwidth'),
-                                       (self.h_trans_bandwidth,
-                                        'h_trans_bandwidth')])
-        for param in trans_bandwidth_params.keys():
-            if not isinstance(param, (int, float)) and (param is not
-                                                        None) and (param !=
-                                                                   'auto'):
-                raise ValueError("%s must be of type int, float or None, "
-                                 "got %s instead" % (trans_bandwidth_params[
-                                     param], type(param)))
-
-        if not isinstance(self.filter_length, (int, str)) and (param is not
-                                                               None):
-            raise ValueError("filter_length must be a int, string or None. "
-                             "Got %s instead." % type(self.filter_length))
+        (_, self.sfreq, self.l_freq, self.h_freq, self.l_trans_bandwidth,
+        self.h_trans_bandwidth, self.filter_length, _) = _triage_filter_params(
+            dummy_array, sfreq, l_freq, h_freq, l_trans_bandwidth,
+            h_trans_bandwidth, filter_length, method, phase='zero')
 
         if not isinstance(self.n_jobs, int) and self.n_jobs == 'cuda':
             raise ValueError('n_jobs must be int or "cuda", got %s instead.'
                              % type(self.n_jobs))
-
-        if self.method not in ('fft', 'iir'):
-            raise ValueError('method must be either "fft" or "iir" or None. '
-                             'Got %s instead.' % self.method)
 
         if self.l_freq == 0:
             self.l_freq = None
@@ -851,28 +849,31 @@ class Filterer(TransformerMixin):
         return self
 
     def transform(self, X, y=None):
-        """Filters data along the third axis.
+        """Filters data along the last dimension.
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_channels, n_times)
-            The data.
-        y : None | array, shape (n_epochs,)
-            The label for each epoch.
+        X : array-like
+            The data to be filtered. Can be, for example a list, or an array
+            of at least 2d. The first dimension must be of length n_samples,
+            where samples are the independent samples used by the filter
+            (e.g. n_epochs for epoched data).
+        y : None | array, shape (n_samples,)
+            The label for each sample.
             If None not used. Defaults to None.
 
         Returns
         -------
-        X : array, shape (n_epochs, n_channels, n_times)
+        X : array, shape is same as used in input.
             The data after filtering.
         """
         if not isinstance(X, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(X))
 
-        X = np.atleast_3d(X)
+        X = np.atleast_2d(X)
         shape = X.shape
-        X = X.reshape(shape[0] * shape[1], shape[2])
+        X = X.reshape(-1, shape[-1])
         X = filter_data(X, self.sfreq, self.l_freq, self.h_freq,
                         filter_length=self.filter_length,
                         l_trans_bandwidth=self.l_trans_bandwidth,
