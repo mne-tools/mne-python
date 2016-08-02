@@ -23,7 +23,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        create_slices, _time_mask, random_permutation,
                        _get_call_line, compute_corr, sys_info, verbose,
                        check_fname, requires_ftp, get_config_path,
-                       object_size, buggy_mkl_svd)
+                       object_size, buggy_mkl_svd, copy_doc,
+                       copy_function_doc_to_method_doc)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -608,5 +609,121 @@ def test_random_permutation():
 
     assert_array_equal(python_randperm, matlab_randperm - 1)
 
+
+def test_copy_doc():
+    '''Test decorator for copying docstrings'''
+    class A:
+        def m1():
+            """Docstring for m1"""
+            pass
+
+    class B:
+        def m1():
+            pass
+
+    class C (A):
+        @copy_doc(A.m1)
+        def m1():
+            pass
+
+    assert_equal(C.m1.__doc__, 'Docstring for m1')
+    assert_raises(ValueError, copy_doc(B.m1), C.m1)
+
+
+def test_copy_function_doc_to_method_doc():
+    '''Test decorator for re-using function docstring as method docstrings'''
+    def f1(object, a, b, c):
+        """Docstring for f1
+
+        Parameters
+        ----------
+        object : object
+            Some object. This description also has
+
+            blank lines in it.
+        a : int
+            Parameter a
+        b : int
+            Parameter b
+        """
+        pass
+
+    def f2(object):
+        """Docstring for f2
+
+        Parameters
+        ----------
+        object : object
+            Only one parameter
+
+        Returns
+        -------
+        nothing.
+        """
+        pass
+
+    def f3(object):
+        """Docstring for f3
+
+        Parameters
+        ----------
+        object : object
+            Only one parameter
+        """
+        pass
+
+    def f4(object):
+        """Docstring for f4"""
+        pass
+
+    def f5(object):
+        """Docstring for f5
+
+        Parameters
+        ----------
+        Returns
+        -------
+        nothing.
+        """
+        pass
+
+    class A:
+        @copy_function_doc_to_method_doc(f1)
+        def method_f1(self, a, b, c):
+            pass
+
+        @copy_function_doc_to_method_doc(f2)
+        def method_f2(self):
+            "method_f3 own docstring"
+            pass
+
+        @copy_function_doc_to_method_doc(f3)
+        def method_f3(self):
+            pass
+
+    assert_equal(A.method_f1.__doc__,
+        """Docstring for f1
+
+        Parameters
+        ----------
+        a : int
+            Parameter a
+        b : int
+            Parameter b
+        """)
+
+    assert_equal(
+        A.method_f2.__doc__,
+        """Docstring for f2
+
+        Returns
+        -------
+        nothing.
+        method_f3 own docstring"""
+    )
+
+    assert_equal(A.method_f3.__doc__, 'Docstring for f3\n\n        ')
+    assert_raises(ValueError, copy_function_doc_to_method_doc(f4), A.method_f1)
+    assert_raises(ValueError, copy_function_doc_to_method_doc(f5), A.method_f1)
 
 run_tests_if_main()
