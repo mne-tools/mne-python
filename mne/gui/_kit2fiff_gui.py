@@ -118,13 +118,13 @@ class Kit2FiffModel(HasPrivateTraits):
     sqd_fname = Property(Str, depends_on='sqd_file')
     hsp_fname = Property(Str, depends_on='hsp_file')
     fid_fname = Property(Str, depends_on='fid_file')
-    can_save = Property(Bool, depends_on=['stim_chs_ok', 'sqd_file', 'fid',
+    can_save = Property(Bool, depends_on=['stim_chs_ok', 'fid',
                                           'elp', 'hsp', 'dev_head_trans'])
 
     @cached_property
     def _get_can_save(self):
         "Only allow saving when either all or no head shape elements are set."
-        if not self.stim_chs_ok or not self.sqd_file:
+        if not self.stim_chs_ok:
             return False
 
         has_all_hsp = (np.any(self.dev_head_trans) and np.any(self.hsp) and
