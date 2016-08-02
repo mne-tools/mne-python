@@ -359,6 +359,12 @@ class ICA(ContainsMixin):
                 self._fit_epochs(inst, picks, decim, verbose)
         else:
             raise ValueError('Data input must be of Raw or Epochs type')
+
+        # sort ICA components by explained variance
+        var = _ica_explained_variance(self, inst)
+        var_ord = var.argsort()[::-1]
+        _sort_components(self, var_ord, copy=False)
+
         return self
 
     def _reset(self):
@@ -1631,12 +1637,10 @@ def _ica_explained_variance(ica, inst, normalize=False):
     ----------
     ica : ICA
         Instance of `mne.preprocessing.ICA`.
-    inst : Raw | Epochs | (Evoked?)
-        Data to explain with ICA. Instance of `mne.io.Epochs` ...
-    src : sources | None
-        Sources ...
+    inst : Raw | Epochs | Evoked
+        Data to explain with ICA. Instance of Raw, Epochs or Evoked.
     normalize : bool
-        Whether to normalize the varience.
+        Whether to normalize the variance.
 
     returns
     -------
@@ -1648,7 +1652,7 @@ def _ica_explained_variance(ica, inst, normalize=False):
         raise TypeError('first argument must be an instance of ICA.')
     if not isinstance(inst, (_BaseRaw, _BaseEpochs, Evoked)):
         raise TypeError('second argument must an instance of either Raw, '
-            'Epochs or Evoked.')
+                        'Epochs or Evoked.')
 
     src = ica.get_sources(inst)
 
@@ -1657,7 +1661,8 @@ def _ica_explained_variance(ica, inst, normalize=False):
         data = src._data
     elif isinstance(inst, _BaseEpochs):
         n_epochs, n_chan, n_samp = src._data.shape
-        data = src._data.transpose(1, 0, 2).reshape((n_chan, n_epochs * n_samp))
+        data = src._data.transpose(1, 0, 2).reshape(
+            (n_chan, n_epochs * n_samp))
     elif isinstance(inst, Evoked):
         data = src.data
     n_chan, n_samp = data.shape
