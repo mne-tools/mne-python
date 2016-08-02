@@ -391,7 +391,7 @@ class GeneralizationLight(SearchLight):
         parallel, p_func, n_jobs = parallel_func(_gl_transform, self.n_jobs)
         y_pred = parallel(
             p_func(self.estimators_, x_split, method)
-            for x_split in np.array_split(X, n_jobs, axis=2))
+            for x_split in np.array_split(X, n_jobs, axis=-1))
 
         y_pred = np.concatenate(y_pred, axis=2)
         return y_pred
