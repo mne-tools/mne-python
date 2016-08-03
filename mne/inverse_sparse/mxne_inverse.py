@@ -374,7 +374,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                   verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE)
 
-    Compute L1/L2 + L1 mixed-norm solution on time frequency
+    Compute L1/L2 + L1 mixed-norm solution on time-frequency
     dictionary. Works with evoked data.
 
     References:

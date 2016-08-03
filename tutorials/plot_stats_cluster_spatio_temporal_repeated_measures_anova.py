@@ -180,7 +180,7 @@ n_conditions = 4
 #
 # Note. for further details on this ANOVA function consider the
 # corresponding
-# :ref:`time frequency tutorial <tut_stats_cluster_sensor_rANOVA_tfr>`.
+# :ref:`time-frequency tutorial <tut_stats_cluster_sensor_rANOVA_tfr>`.
 
 
 def stat_fun(*args):
