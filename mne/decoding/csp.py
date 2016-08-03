@@ -27,18 +27,18 @@ class CSP(TransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    n_components : int (default 4)
+    n_components : int, defaults to 4
         The number of components to decompose M/EEG signals.
         This number should be set by cross-validation.
-    reg : float | str | None (default None)
+    reg : float | str | None, defaults to None
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
         if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
         or Oracle Approximating Shrinkage ('oas').
-    log : bool (default True)
+    log : bool, defaults to True
         If true, apply log to standardize the features.
         If false, features are just z-scored.
-    cov_est : str (default 'concat')
+    cov_est : 'concat' | 'epoch', defaults to 'concat'
         If 'concat', covariance matrices are estimated on concatenated epochs
         for each class.
         If 'epoch', covariance matrices are estimated on each epoch separately
@@ -50,9 +50,9 @@ class CSP(TransformerMixin, BaseEstimator):
         If fit, the CSP components used to decompose the data, else None.
     ``patterns_`` : ndarray, shape (n_channels, n_channels)
         If fit, the CSP patterns used to restore M/EEG signals, else None.
-    ``mean_`` : ndarray, shape (n_channels,)
+    ``mean_`` : ndarray, shape (n_components,)
         If fit, the mean squared power for each component.
-    ``std_`` : ndarray, shape (n_channels,)
+    ``std_`` : ndarray, shape (n_components,)
         If fit, the std squared power for each component.
 
     References
@@ -68,7 +68,16 @@ class CSP(TransformerMixin, BaseEstimator):
 
     def __init__(self, n_components=4, reg=None, log=True, cov_est="concat"):
         """Init of CSP."""
+        if not isinstance(n_components, int):
+            raise ValueError('n_components must be an integer.')
         self.n_components = n_components
+        if (
+            (reg is not None) and
+            (reg not in ['oas', 'ledoit_wolf']) and
+            (not ((reg <= 1.) and (reg >= 0.)))
+        ):
+            raise ValueError('reg must be None, "oas", "ledoit_wolf" or a '
+                             'float in between 0. and 1.')
         self.reg = reg
         self.log = log
         if not (cov_est == "concat" or cov_est == "epoch"):
@@ -110,28 +119,36 @@ class CSP(TransformerMixin, BaseEstimator):
             raise ValueError("n_classes must be >= 2.")
 
         covs = np.zeros((n_classes, n_channels, n_channels))
+        sample_weights = list()
         for class_idx, this_class in enumerate(self._classes):
             if self.cov_est == "concat":  # concatenate epochs
                 class_ = np.transpose(X[y == this_class], [1, 0, 2])
                 class_ = class_.reshape(n_channels, -1)
                 cov = _regularized_covariance(class_, reg=self.reg)
+                weight = sum(y == this_class)
             elif self.cov_est == "epoch":
                 class_ = X[y == this_class]
                 cov = np.zeros((n_channels, n_channels))
                 for this_X in class_:
                     cov += _regularized_covariance(this_X, reg=self.reg)
                 cov /= len(class_)
+                weight = len(class_)
 
-            # normalize by trace
+            # normalize by trace and stack
             covs[class_idx] = cov / np.trace(cov)
+            sample_weights.append(weight)
 
         if n_classes == 2:
             eigen_values, eigen_vectors = linalg.eigh(covs[0], covs.sum(0))
             # sort eigenvectors
             ix = np.argsort(np.abs(eigen_values - 0.5))[::-1]
         else:
+            # The multiclass case is adapted from
+            # http://github.com/alexandrebarachant/pyRiemann
             eigen_vectors, D = _ajd_pham(covs)
-            mean_cov = np.mean(covs, axis=0)  # see pyRiemann for other metrics
+
+            # Here we apply an euclidean mean. See pyRiemann for other metrics
+            mean_cov = np.average(covs, axis=0, weights=sample_weights)
             eigen_vectors = eigen_vectors.T
 
             # normalize
@@ -141,7 +158,7 @@ class CSP(TransformerMixin, BaseEstimator):
                 eigen_vectors[:, ii] /= np.sqrt(tmp)
 
             # class probability
-            class_probas = [np.mean(y == c) for c in self._classes]
+            class_probas = [np.mean(y == _class) for _class in self._classes]
 
             # mutual information
             mutual_info = []
@@ -181,8 +198,8 @@ class CSP(TransformerMixin, BaseEstimator):
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
-        y : None
-            Not used.
+        y : None | array
+            Not used. For scikit-learn compatibility purposes.
 
         Returns
         -------
@@ -549,6 +566,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     Applications 22, no. 4 (2001): 1136-1152.
 
     """
+    # Adapted from http://github.com/alexandrebarachant/pyRiemann
     n_epochs = X.shape[0]
 
     # Reshape input matrix

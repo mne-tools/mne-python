@@ -5,9 +5,9 @@
 
 import os.path as op
 
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_equal
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
 from mne.decoding.csp import CSP
@@ -31,69 +31,77 @@ def test_csp():
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
-    picks = picks[2:9:3]  # subselect channels -> disable proj!
+    picks = picks[2:12:3]  # subselect channels -> disable proj!
     raw.add_proj([], remove_existing=True)
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True, proj=False)
     epochs_data = epochs.get_data()
     n_channels = epochs_data.shape[1]
+    y = epochs.events[:, -1]
+
+    # Init
+    assert_raises(ValueError, CSP, n_components='foo')
+    for reg in ['foo', -0.1, 1.1]:
+        assert_raises(ValueError, CSP, reg=reg)
+    for reg in ['oas', 'ledoit_wolf', 0, 0.5, 1.]:
+        CSP(reg=reg)
+    for cov_est in ['foo', None]:
+        assert_raises(ValueError, CSP, cov_est=cov_est)
+    for cov_est in ['concat', 'epoch']:
+        CSP(cov_est=cov_est)
 
     n_components = 3
     csp = CSP(n_components=n_components)
 
+    # Fit
     csp.fit(epochs_data, epochs.events[:, -1])
+    assert_equal(len(csp.mean_), n_components)
+    assert_equal(len(csp.std_), n_components)
 
-    y = epochs.events[:, -1]
+    # Transform
     X = csp.fit_transform(epochs_data, y)
+    sources = csp.transform(epochs_data)
+    assert_true(sources.shape[1] == n_components)
     assert_true(csp.filters_.shape == (n_channels, n_channels))
     assert_true(csp.patterns_.shape == (n_channels, n_channels))
-    assert_array_almost_equal(csp.fit(epochs_data, y).transform(epochs_data),
-                              X)
+    assert_array_almost_equal(sources, X)
 
-    # test init exception
+    # Test data exception
     assert_raises(ValueError, csp.fit, epochs_data,
                   np.zeros_like(epochs.events))
     assert_raises(ValueError, csp.fit, epochs, y)
     assert_raises(ValueError, csp.transform, epochs, y)
 
-    csp.n_components = n_components
-    sources = csp.transform(epochs_data)
-    assert_true(sources.shape[1] == n_components)
-
+    # Test plots
     epochs.pick_types(meg='mag')
-
-    # test plot patterns
     cmap = ('RdBu', True)
     components = np.arange(n_components)
-    csp.plot_patterns(epochs.info, components=components, res=12,
-                      show=False, cmap=cmap)
+    for plot in (csp.plot_patterns, csp.plot_filters):
+        plot(epochs.info, components=components, res=12, show=False, cmap=cmap)
 
-    # test plot filters
-    csp.plot_filters(epochs.info, components=components, res=12,
-                     show=False, cmap=cmap)
-
-    # test covariance estimation methods (results should be roughly equal)
+    # Test covariance estimation methods (results should be roughly equal)
+    np.random.seed(0)
     csp_epochs = CSP(cov_est="epoch")
     csp_epochs.fit(epochs_data, y)
     for attr in ('filters_', 'patterns_'):
         corr = np.corrcoef(getattr(csp, attr).ravel(),
                            getattr(csp_epochs, attr).ravel())[0, 1]
-        assert_true(corr >= 0.95, msg='%s < 0.95' % corr)
+        assert_true(corr >= 0.94)
 
-    # make sure error is raised for undefined estimation method
-    assert_raises(ValueError, CSP, cov_est="undefined")
-
-    # test with 3 classes
-    epochs = Epochs(raw, events, event_id=dict(aud_l=1, aud_r=2, vis_l=3),
-                    tmin=tmin, tmax=tmax, picks=picks,
-                    baseline=(None, 0), preload=True, proj=False)
+    # Test with more than 2 classes
+    epochs = Epochs(raw, events, tmin=tmin, tmax=tmax, picks=range(6),
+                    event_id=dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4),
+                    baseline=(None, 0), proj=False, preload=True)
     epochs_data = epochs.get_data()
     n_channels = epochs_data.shape[1]
 
-    n_components = 3
-    csp = CSP(n_components=n_components)
-
-    csp.fit(epochs_data, epochs.events[:, -1]).transform(epochs_data)
+    n_channels = epochs_data.shape[1]
+    for cov_est in ['concat', 'epoch']:
+        csp = CSP(n_components=n_components, cov_est=cov_est)
+        csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
+        assert_equal(len(csp._classes), 4)
+        assert_array_equal(csp.filters_.shape, [n_channels, n_channels])
+        assert_array_equal(csp.patterns_.shape, [n_channels, n_channels])
 
 
 @requires_sklearn
