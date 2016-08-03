@@ -70,7 +70,7 @@ def test_csp():
     assert_raises(ValueError, csp.fit, epochs_data,
                   np.zeros_like(epochs.events))
     assert_raises(ValueError, csp.fit, epochs, y)
-    assert_raises(ValueError, csp.transform, epochs, y)
+    assert_raises(ValueError, csp.transform, epochs)
 
     # Test plots
     epochs.pick_types(meg='mag')
@@ -134,7 +134,7 @@ def test_regularized_csp():
         assert_raises(ValueError, csp.fit, epochs_data,
                       np.zeros_like(epochs.events))
         assert_raises(ValueError, csp.fit, epochs, y)
-        assert_raises(ValueError, csp.transform, epochs, y)
+        assert_raises(ValueError, csp.transform, epochs)
 
         csp.n_components = n_components
         sources = csp.transform(epochs_data)

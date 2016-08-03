@@ -191,30 +191,27 @@ class CSP(TransformerMixin, BaseEstimator):
 
         return self
 
-    def transform(self, epochs_data, y=None):
+    def transform(self, X):
         """Estimate epochs sources given the CSP filters.
 
         Parameters
         ----------
-        epochs_data : array, shape (n_epochs, n_channels, n_times)
+        X : array, shape (n_epochs, n_channels, n_times)
             The data.
-        y : None | array
-            Not used. For scikit-learn compatibility purposes.
 
         Returns
         -------
         X : ndarray of shape (n_epochs, n_sources)
             The CSP features averaged over time.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
+        if not isinstance(X, np.ndarray):
+            raise ValueError("X should be of type ndarray (got %s)." % type(X))
         if self.filters_ is None:
             raise RuntimeError('No filters available. Please first fit CSP '
                                'decomposition.')
 
         pick_filters = self.filters_[:self.n_components]
-        X = np.asarray([np.dot(pick_filters, epoch) for epoch in epochs_data])
+        X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
 
         # compute features (mean band power)
         X = (X ** 2).mean(axis=-1)
