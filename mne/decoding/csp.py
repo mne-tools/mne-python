@@ -23,7 +23,8 @@ class CSP(TransformerMixin, BaseEstimator):
     This object can be used as a supervised decomposition to estimate
     spatial filters for feature extraction in a 2 class decoding problem.
     CSP in the context of EEG was first described in [1]; a comprehensive
-    tutorial on CSP can be found in [2].
+    tutorial on CSP can be found in [2]. Multiclass solving is implemented
+    from [3].
 
     Parameters
     ----------
@@ -64,6 +65,9 @@ class CSP(TransformerMixin, BaseEstimator):
         Klaus-Robert Müller. Optimizing Spatial Filters for Robust EEG
         Single-Trial Analysis. IEEE Signal Processing Magazine 25(1), 41-56,
         2008.
+    [3] Grosse-Wentrup, Moritz, and Martin Buss. Multiclass common spatial
+        patterns and information theoretic feature extraction. IEEE
+        Transactions on Biomedical Engineering, Vol 55, no. 8, 2008.
     """
 
     def __init__(self, n_components=4, reg=None, log=True, cov_est="concat"):
