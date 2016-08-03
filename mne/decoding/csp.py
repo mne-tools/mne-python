@@ -78,7 +78,8 @@ class CSP(TransformerMixin, BaseEstimator):
         if (
             (reg is not None) and
             (reg not in ['oas', 'ledoit_wolf']) and
-            (not ((reg <= 1.) and (reg >= 0.)))
+            ((not isinstance(reg, (float, int))) or
+             (not ((reg <= 1.) and (reg >= 0.))))
         ):
             raise ValueError('reg must be None, "oas", "ledoit_wolf" or a '
                              'float in between 0. and 1.')
