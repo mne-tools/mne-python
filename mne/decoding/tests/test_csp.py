@@ -89,7 +89,7 @@ def test_csp():
         assert_true(corr >= 0.94)
 
     # Test with more than 2 classes
-    epochs = Epochs(raw, events, tmin=tmin, tmax=tmax, picks=range(6),
+    epochs = Epochs(raw, events, tmin=tmin, tmax=tmax, picks=picks,
                     event_id=dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4),
                     baseline=(None, 0), proj=False, preload=True)
     epochs_data = epochs.get_data()
