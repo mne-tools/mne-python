@@ -10,7 +10,7 @@ import warnings
 from mne import read_evokeds
 from mne.datasets import testing
 from mne.externals.six.moves import StringIO
-from mne.io import show_fiff
+from mne.io import show_fiff, read_raw_fif
 from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
                        sum_squared, estimate_rank,
@@ -23,8 +23,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        create_slices, _time_mask, random_permutation,
                        _get_call_line, compute_corr, sys_info, verbose,
                        check_fname, requires_ftp, get_config_path,
-                       object_size, buggy_mkl_svd, copy_doc,
-                       copy_function_doc_to_method_doc)
+                       object_size, buggy_mkl_svd, _get_inst_data,
+                       copy_doc, copy_function_doc_to_method_doc)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -103,6 +103,21 @@ def test_object_size():
         size = object_size(obj)
         assert_true(lower < size < upper,
                     msg='%s < %s < %s:\n%s' % (lower, size, upper, obj))
+
+def test_get_inst_data():
+    from mne.epochs import _segment_raw
+
+    raw = read_raw_fif(fname_raw)
+    # chns = raw.ch_names[:5]
+    # raw.pick_channels(chns)
+    assert_equal(_get_inst_data(raw), raw._data)
+
+    epochs = _segment_raw(raw, 2.5)
+    assert_equal(_get_inst_data(epochs), epochs._data)
+
+    evoked = epochs.average()
+    assert_equal(_get_inst_data(evoked), evoked.data)
+
 
 
 def test_misc():
