@@ -79,12 +79,14 @@ def test_searchlight():
     # n-dimensional feature space
     X = np.random.rand(10, 3, 4, 2)
     y = np.arange(10) % 2
+    y_preds = list()
     for n_jobs in [1, 2]:
         pipe = SearchLight(make_pipeline(Vectorizer(), LogisticRegression()),
                            n_jobs=n_jobs)
-        pipe.fit(X, y).predict(X)
+        y_preds.append(pipe.fit(X, y).predict(X))
         features_shape = pipe.estimators_[0].steps[0][1].features_shape_
         assert_array_equal(features_shape, [3, 4])
+    assert_array_equal(y_preds[0], y_preds[1])
 
 
 @requires_sklearn
@@ -132,9 +134,11 @@ def test_generalizationlight():
     # n-dimensional feature space
     X = np.random.rand(10, 3, 4, 2)
     y = np.arange(10) % 2
+    y_preds = list()
     for n_jobs in [1, 2]:
         pipe = GeneralizationLight(
             make_pipeline(Vectorizer(), LogisticRegression()), n_jobs=n_jobs)
-        pipe.fit(X, y).predict(X)
+        y_preds.append(pipe.fit(X, y).predict(X))
         features_shape = pipe.estimators_[0].steps[0][1].features_shape_
         assert_array_equal(features_shape, [3, 4])
+    assert_array_equal(y_preds[0], y_preds[1])
