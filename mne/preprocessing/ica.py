@@ -45,7 +45,7 @@ from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
-                     _get_fast_dot, compute_corr,
+                     _get_fast_dot, compute_corr, _get_inst_data,
                      copy_function_doc_to_method_doc)
 from ..fixes import _get_args
 from ..filter import band_pass_filter
@@ -1654,20 +1654,17 @@ def _ica_explained_variance(ica, inst, normalize=False):
         raise TypeError('second argument must an instance of either Raw, '
                         'Epochs or Evoked.')
 
-    src = ica.get_sources(inst)
+    source_data = _get_inst_data(ica.get_sources(inst))
 
-    # get data, if epochs - reshape
-    if isinstance(inst, _BaseRaw):
-        data = src._data
-    elif isinstance(inst, _BaseEpochs):
-        n_epochs, n_chan, n_samp = src._data.shape
-        data = src._data.transpose(1, 0, 2).reshape(
+    # if epochs - reshape to channels x timesamples
+    if isinstance(inst, _BaseEpochs):
+        n_epochs, n_chan, n_samp = source_data.shape
+        source_data = source_data.transpose(1, 0, 2).reshape(
             (n_chan, n_epochs * n_samp))
-    elif isinstance(inst, Evoked):
-        data = src.data
-    n_chan, n_samp = data.shape
+
+    n_chan, n_samp = source_data.shape
     var = np.sum(ica.mixing_matrix_**2, axis=0) * np.sum(
-        data**2, axis=1) / (n_chan * n_samp - 1)
+        source_data**2, axis=1) / (n_chan * n_samp - 1)
     if normalize:
         var /= var.sum()
     return var

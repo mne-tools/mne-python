@@ -512,6 +512,21 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
     return data, drop_inds
 
 
+def _get_inst_data(inst):
+    """get data from MNE object instance like Raw, Epochs or Evoked.
+    Returns a view, not a copy!"""
+    from .io.base import _BaseRaw
+    from .epochs import _BaseEpochs
+    from . import Evoked
+
+    if isinstance(inst, (_BaseRaw, _BaseEpochs)):
+        if not inst.preload:
+            inst.load_data()
+        return inst._data
+    elif isinstance(inst, Evoked):
+        return inst.data
+
+
 class _FormatDict(dict):
     """Helper for pformat()"""
     def __missing__(self, key):
