@@ -34,43 +34,13 @@ from ..fixes import in1d
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, _check_copy_dep,
-                     check_fname, _get_stim_channel, object_hash,
-                     logger, verbose, _time_mask, warn, object_size)
+                     check_fname, _get_stim_channel,
+                     logger, verbose, _time_mask, warn, SizeMixin)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
 from ..annotations import _combine_annotations, _onset_to_seconds
-
-
-class SizeMixin(object):
-    """Class to estimate MNE object sizes"""
-    @property
-    def _size(self):
-        """Estimate of the object size"""
-        try:
-            size = object_size(self.info)
-        except Exception:
-            warn('Could not get size for self.info')
-            return -1
-        if hasattr(self, 'data'):
-            size += object_size(self.data)
-        elif hasattr(self, '_data'):
-            size += object_size(self._data)
-        return size
-
-    def __hash__(self):
-        from ..evoked import Evoked
-        from ..epochs import _BaseEpochs
-        if isinstance(self, Evoked):
-            return object_hash(dict(info=self.info, data=self.data))
-        elif isinstance(self, (_BaseEpochs, _BaseRaw)):
-            if not self.preload:
-                raise RuntimeError('Cannot hash %s unless data are loaded'
-                                   % self.__class__.__name__)
-            return object_hash(dict(info=self.info, data=self._data))
-        else:
-            raise RuntimeError('Hashing unknown object type: %s' % type(self))
 
 
 class ToDataFrameMixin(object):

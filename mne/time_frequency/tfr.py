@@ -1,10 +1,11 @@
-"""A module which implements the time frequency estimation.
+"""A module which implements the time-frequency estimation.
 
 Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 """
 # Authors : Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #           Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
 #           Clement Moutard <clement.moutard@polytechnique.org>
+#           Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License : BSD (3-clause)
 
@@ -18,44 +19,33 @@ from scipy.fftpack import fftn, ifftn
 from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _time_mask, warn, check_fname
+from ..utils import (logger, verbose, _time_mask, check_fname, deprecated,
+                     sizeof_fmt)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
+from ..utils import SizeMixin
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar, plt_show
 from ..externals.h5io import write_hdf5, read_hdf5
 from ..externals.six import string_types
 
 
-def _get_data(inst, return_itc):
-    """Get data from Epochs or Evoked instance as epochs x ch x time"""
-    from ..epochs import _BaseEpochs
-    from ..evoked import Evoked
-    if not isinstance(inst, (_BaseEpochs, Evoked)):
-        raise TypeError('inst must be Epochs or Evoked')
-    if isinstance(inst, _BaseEpochs):
-        data = inst.get_data()
-    else:
-        if return_itc:
-            raise ValueError('return_itc must be False for evoked data')
-        data = inst.data[np.newaxis, ...].copy()
-    return data
+# Make wavelet
 
-
-def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False):
-    """Compute Wavelets for the given frequency range
+def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
+    """Compute Morlet wavelets for the given frequency range.
 
     Parameters
     ----------
     sfreq : float
-        Sampling Frequency
+        The sampling Frequency.
     freqs : array
         frequency range of interest (1 x Frequencies)
-    n_cycles: float | array of float
+    n_cycles: float | array of float, defaults to 7.0
         Number of cycles. Fixed number or one per frequency.
-    sigma : float, (optional)
+    sigma : float, defaults to None
         It controls the width of the wavelet ie its temporal
         resolution. If sigma is None the temporal resolution
         is adapted with the frequency like for all wavelet transform.
@@ -63,18 +53,14 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False):
         If sigma is fixed the temporal resolution is fixed
         like for the short time Fourier transform and the number
         of oscillations increases with the frequency.
-    zero_mean : bool
-        Make sure the wavelet is zero mean
+    zero_mean : bool, defaults to False
+        Make sure the wavelet has a mean of zero.
 
     Returns
     -------
     Ws : list of array
-        Wavelets time series
+        The wavelets time series.
 
-    See Also
-    --------
-    mne.time_frequency.cwt_morlet : Compute time-frequency decomposition
-                                    with Morlet wavelets
     """
     Ws = list()
     n_cycles = np.atleast_1d(n_cycles)
@@ -107,29 +93,31 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False):
     return Ws
 
 
-def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
-                  zero_mean=False):
-    """Compute Wavelets for the given frequency range
+def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
+    """Compute discrete prolate spheroidal sequences (DPSS) tapers for the
+    given frequency range.
 
     Parameters
     ----------
     sfreq : float
-        Sampling Frequency.
+        The sampling frequency.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
-    n_cycles : float | ndarray, shape (n_freqs,)
+    n_cycles : float | ndarray, shape (n_freqs,), defaults to 7.
         The number of cycles globally or for each frequency.
-        Defaults to 7.
-    time_bandwidth : float, (optional)
+    time_bandwidth : float, defaults to 4.0
         Time x Bandwidth product.
         The number of good tapers (low-bias) is chosen automatically based on
         this to equal floor(time_bandwidth - 1).
         Default is 4.0, giving 3 good tapers.
+    zero_mean : bool | None, , defaults to False
+        Make sure the wavelet has a mean of zero.
+
 
     Returns
     -------
     Ws : list of array
-        Wavelets time series
+        The wavelets time series.
     """
     Ws = list()
     if time_bandwidth < 2.0:
@@ -171,20 +159,33 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
     return Ws
 
 
-def _centered(arr, newsize):
-    """Aux Function to center data"""
-    # Return the center newsize portion of the array.
-    newsize = np.asarray(newsize)
-    currsize = np.array(arr.shape)
-    startind = (currsize - newsize) // 2
-    endind = startind + newsize
-    myslice = [slice(startind[k], endind[k]) for k in range(len(endind))]
-    return arr[tuple(myslice)]
-
+# Low level convolution
 
 def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     """Compute cwt with fft based convolutions or temporal convolutions.
     Return a generator over signals.
+
+    Parameters
+    ----------
+    X : array of shape (n_signals, n_times)
+        The data.
+    Ws : list of array
+        Wavelets time series.
+    mode : {'full', 'valid', 'same'}
+        See numpy.convolve.
+    decim : int | slice, defaults to 1
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice`, returns tfr[..., decim].
+        .. note: Decimation may create aliasing artifacts.
+    use_fft : bool, defaults to True
+        Use the FFT for convolutions or not.
+
+    Returns
+    -------
+    out : array, shape (n_signals, n_freqs, n_time_decim)
+        The time-frequency transform of the signals.
     """
     if mode not in ['same', 'valid', 'full']:
         raise ValueError("`mode` must be 'same', 'valid' or 'full', "
@@ -211,8 +212,9 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
         fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
     for i, W in enumerate(Ws):
         if len(W) > n_times:
-            raise ValueError('Wavelet is too long for such a short signal. '
-                             'Reduce the number of cycles.')
+            raise ValueError('At least one of the wavelets is longer than the '
+                             'signal. Use a longer signal or shorter '
+                             'wavelets.')
         if use_fft:
             fft_Ws[i] = fftn(W, [fsize])
 
@@ -245,6 +247,252 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
         yield tfr
 
 
+# Loop of convolution: single trial
+
+
+def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
+                 n_cycles=7.0, zero_mean=None, time_bandwidth=None,
+                 use_fft=True, decim=1, output='complex', n_jobs=1,
+                 verbose=None):
+    """Computes time-frequency transforms.
+
+    Parameters
+    ----------
+    epoch_data : array of shape (n_epochs, n_channels, n_times)
+        The epochs.
+    frequencies : array-like of floats, shape (n_freqs)
+        The frequencies.
+    sfreq : float | int, defaults to 1.0
+        Sampling frequency of the data.
+    method : 'multitaper' | 'morlet', defaults to 'morlet'
+        The time-frequency method. 'morlet' convolves a Morlet wavelet.
+        'multitaper' convolves DPSS tapers.
+    n_cycles : float | array of float, defaults to 7.0
+        Number of cycles  in the Morlet wavelet. Fixed number
+        or one per frequency.
+    zero_mean : bool | None, defaults to None
+        None means True for method='multitaper' and False for method='morlet'.
+        If True, make sure the wavelets have a mean of zero.
+    time_bandwidth : float, defaults to None
+        If None and method=multitaper, will be set to 4.0 (3 tapers).
+        Time x (Full) Bandwidth product. Only applies if
+        method == 'multitaper'. The number of good tapers (low-bias) is
+        chosen automatically based on this to equal floor(time_bandwidth - 1).
+    use_fft : bool, defaults to True
+        Use the FFT for convolutions or not.
+    decim : int | slice, defaults to 1
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice`, returns tfr[..., decim].
+        .. note:
+            Decimation may create aliasing artifacts, yet decimation
+            is done after the convolutions.
+    output : str, defaults to 'complex'
+
+        * 'complex' : single trial complex.
+        * 'power' : single trial power.
+        * 'phase' : single trial phase.
+        * 'avg_power' : average of single trial power.
+        * 'itc' : inter-trial coherence.
+        * 'avg_power_itc' : average of single trial power and inter-trial
+          coherence across trials.
+
+    n_jobs : int, defaults to 1
+        The number of epochs to process at the same time. The parallelization
+        is implemented across channels.
+    verbose : bool, str, int, or None, defaults to None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    out : array
+        Time frequency transform of epoch_data. If output is in ['complex',
+        'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
+        n_times), else it is (n_chans, n_freqs, n_times). If output is
+        'avg_power_itc', the real values code for 'avg_power' and the
+        imaginary values code for the 'itc': out = avg_power + i * itc
+    """
+    # Check data
+    epoch_data = np.asarray(epoch_data)
+    if epoch_data.ndim != 3:
+        raise ValueError('epoch_data must be of shape '
+                         '(n_epochs, n_chans, n_times)')
+
+    # Check frequencies
+    if not isinstance(frequencies, (list, np.ndarray)):
+        raise ValueError('frequencies must be an array-like.')
+    frequencies = np.asarray(frequencies, dtype=float)
+    if frequencies.ndim != 1:
+        raise ValueError('frequencies must be of shape n_freqs.')
+
+    # Check sfreq
+    if not isinstance(sfreq, (float, int)):
+        raise ValueError('sfreq must be a float or an int.')
+    sfreq = float(sfreq)
+
+    # Check output
+    allowed_ouput = ('complex', 'power', 'phase',
+                     'avg_power_itc', 'avg_power', 'itc')
+    if output not in allowed_ouput:
+        raise ValueError("Unknown output type. Allowed are %s but "
+                         "got %s" % (allowed_ouput, output))
+
+    if method not in ('multitaper', 'morlet'):
+        raise ValueError('method must be "morlet" or "multitaper"')
+
+    # Default zero_mean = True if multitaper else False
+    zero_mean = method == 'multitaper' if zero_mean is None else zero_mean
+    if not isinstance(zero_mean, bool):
+        raise ValueError('zero_mean should be of type bool. Got %s.'
+                         % type(zero_mean))
+    frequencies = np.asarray(frequencies)
+
+    if (method == 'multitaper') and (output == 'phase'):
+        raise NotImplementedError(
+            'This function is not optimized to compute the phase using the '
+            'multitaper method. Use np.angle of the complex output instead.')
+
+    # Setup wavelet
+    if method == 'morlet':
+        W = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
+        Ws = [W]  # to have same dimensionality as the 'multitaper' case
+        if time_bandwidth is not None:
+            raise ValueError('time_bandwidth only applies to "multitaper"'
+                             ' method.')
+    elif method == 'multitaper':
+        if time_bandwidth is None:
+            time_bandwidth = 4.0
+        Ws = _make_dpss(sfreq, frequencies, n_cycles=n_cycles,
+                        time_bandwidth=time_bandwidth, zero_mean=zero_mean)
+
+    # Check wavelets
+    if len(Ws[0][0]) > epoch_data.shape[2]:
+        raise ValueError('At least one of the wavelets is longer than the '
+                         'signal. Use a longer signal or shorter wavelets.')
+
+    # Initialize output
+    decim = _check_decim(decim)
+    n_freqs = len(frequencies)
+    n_epochs, n_chans, n_times = epoch_data[:, :, decim].shape
+    if output in ('power', 'phase', 'avg_power', 'itc'):
+        dtype = np.float
+    elif output in ('complex', 'avg_power_itc'):
+        # avg_power_itc is stored as power + 1i * itc to keep a
+        # simple dimensionality
+        dtype = np.complex
+
+    if ('avg_' in output) or ('itc' in output):
+        out = np.empty((n_chans, n_freqs, n_times), dtype)
+    else:
+        out = np.empty((n_chans, n_epochs, n_freqs, n_times), dtype)
+
+    # Parallel computation
+    parallel, my_cwt, _ = parallel_func(_time_frequency_loop, n_jobs)
+
+    # Parallelization is applied across channels.
+    tfrs = parallel(
+        my_cwt(channel, Ws, output, use_fft, 'same', decim)
+        for channel in epoch_data.transpose(1, 0, 2))
+
+    # FIXME: to avoid overheads we should use np.array_split()
+    for channel_idx, tfr in enumerate(tfrs):
+        out[channel_idx] = tfr
+
+    if ('avg_' not in output) and ('itc' not in output):
+        # This is to enforce that the first dimension is for epochs
+        out = out.transpose(1, 0, 2, 3)
+    return out
+
+
+def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
+    """Aux. function to _compute_tfr.
+
+    Loops time-frequency transform across wavelets and epochs.
+
+    Parameters
+    ----------
+    X : array, shape (n_epochs, n_times)
+        The epochs data of a single channel.
+    Ws : list, shape (n_tapers, n_wavelets, n_times)
+        The wavelets.
+    output : str
+
+        * 'complex' : single trial complex.
+        * 'power' : single trial power.
+        * 'phase' : single trial phase.
+        * 'avg_power' : average of single trial power.
+        * 'itc' : inter-trial coherence.
+        * 'avg_power_itc' : average of single trial power and inter-trial
+          coherence across trials.
+
+    use_fft : bool
+        Use the FFT for convolutions or not.
+    mode : {'full', 'valid', 'same'}
+        See numpy.convolve.
+    decim : slice
+        The decimation slice: e.g. power[:, decim]
+    """
+    # Set output type
+    dtype = np.float
+    if output in ['complex', 'avg_power_itc']:
+        dtype = np.complex
+
+    # Init outputs
+    decim = _check_decim(decim)
+    n_epochs, n_times = X[:, decim].shape
+    n_freqs = len(Ws[0])
+    if ('avg_' in output) or ('itc' in output):
+        tfrs = np.zeros((n_freqs, n_times), dtype=dtype)
+    else:
+        tfrs = np.zeros((n_epochs, n_freqs, n_times), dtype=dtype)
+
+    # Loops across tapers.
+    for W in Ws:
+        coefs = _cwt(X, W, mode, decim=decim, use_fft=use_fft)
+
+        # Inter-trial phase locking is apparently computed per taper...
+        if 'itc' in output:
+            plf = np.zeros((n_freqs, n_times), dtype=np.complex)
+
+        # Loop across epochs
+        for epoch_idx, tfr in enumerate(coefs):
+            # Transform complex values
+            if output in ['power', 'avg_power']:
+                tfr = (tfr * tfr.conj()).real  # power
+            elif output == 'phase':
+                tfr = np.angle(tfr)
+            elif output == 'avg_power_itc':
+                tfr_abs = np.abs(tfr)
+                plf += tfr / tfr_abs  # phase
+                tfr = tfr_abs ** 2  # power
+            elif output == 'itc':
+                plf += tfr / np.abs(tfr)  # phase
+                continue  # not need to stack anything else than plf
+
+            # Stack or add
+            if ('avg_' in output) or ('itc' in output):
+                tfrs += tfr
+            else:
+                tfrs[epoch_idx] += tfr
+
+        # Compute inter trial coherence
+        if output == 'avg_power_itc':
+            tfrs += 1j * np.abs(plf)
+        elif output == 'itc':
+            tfrs += np.abs(plf)
+
+    # Normalization of average metrics
+    if ('avg_' in output) or ('itc' in output):
+        tfrs /= n_epochs
+
+    # Normalization by number of taper
+    tfrs /= len(Ws)
+    return tfrs
+
+
+@deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
+            ".tfr_morlet() with average=False instead.")
 def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
                decim=1):
     """Compute time freq decomposition with Morlet wavelets
@@ -265,13 +513,13 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     n_cycles: float | array of float
         Number of cycles. Fixed number or one per frequency.
     zero_mean : bool
-        Make sure the wavelets are zero mean.
+        Make sure the wavelets have a mean of zero.
     decim : int | slice
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
-        If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
+        If `slice`, returns tfr[..., decim].
+        .. note: Decimation may create aliasing artifacts.
         Defaults to 1.
 
     Returns
@@ -318,14 +566,14 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
-        If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
+        If `slice`, returns tfr[..., decim].
+        .. note: Decimation may create aliasing artifacts.
         Defaults to 1.
 
     Returns
     -------
     tfr : array, shape (n_signals, n_frequencies, n_times)
-        The time frequency decompositions.
+        The time-frequency decompositions.
 
     See Also
     --------
@@ -344,27 +592,8 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     return tfrs
 
 
-def _time_frequency(X, Ws, use_fft, decim):
-    """Aux of time_frequency for parallel computing over channels
-    """
-    decim = _check_decim(decim)
-    n_epochs, n_times = X[:, decim].shape
-    n_frequencies = len(Ws)
-    psd = np.zeros((n_frequencies, n_times))  # PSD
-    plf = np.zeros((n_frequencies, n_times), np.complex)  # phase lock
-
-    mode = 'same'
-    tfrs = _cwt(X, Ws, mode, decim=decim, use_fft=use_fft)
-
-    for tfr in tfrs:
-        tfr_abs = np.abs(tfr)
-        psd += tfr_abs ** 2
-        plf += tfr / tfr_abs
-    psd /= n_epochs
-    plf = np.abs(plf) / n_epochs
-    return psd, plf
-
-
+@deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
+            ".tfr_morlet() with average=False instead.")
 @verbose
 def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
@@ -373,7 +602,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
 
     Parameters
     ----------
-    data : array of shape [n_epochs, n_channels, n_times]
+    data : array, shape (n_epochs, n_channels, n_times)
         The epochs
     sfreq : float
         Sampling rate
@@ -408,13 +637,13 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
-        If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
+        If `slice`, returns tfr[..., decim].
+        .. note: Decimation may create aliasing artifacts.
         Defaults to 1.
     n_jobs : int
         The number of epochs to process at the same time
     zero_mean : bool
-        Make sure the wavelets are zero mean.
+        Make sure the wavelets have a mean of zero.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -459,107 +688,241 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     return power
 
 
-def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
-                       decim=1, n_jobs=1, zero_mean=False):
-    """Compute time induced power and inter-trial phase-locking factor
+# Aux function to reduce redundancy between tfr_morlet and tfr_multitaper
 
-    The time frequency decomposition is done with Morlet wavelets
+def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
+             **tfr_params):
+    decim = _check_decim(decim)
+    data = _get_data(inst, return_itc)
+    info = inst.info
+
+    info, data, picks = _prepare_picks(info, data, picks)
+    data = data[:, picks, :]
+
+    if average:
+        if return_itc:
+            output = 'avg_power_itc'
+        else:
+            output = 'avg_power'
+    else:
+        output = 'power'
+        if return_itc:
+            raise ValueError('Inter-trial coherence is not supported'
+                             ' with average=False')
+
+    out = _compute_tfr(data, freqs, info['sfreq'], method=method,
+                       output=output, decim=decim, **tfr_params)
+    times = inst.times[decim].copy()
+
+    if average:
+        if return_itc:
+            power, itc = out.real, out.imag
+        else:
+            power = out
+        nave = len(data)
+        out = AverageTFR(info, power, times, freqs, nave,
+                         method='%s-power' % method)
+        if return_itc:
+            out = (out, AverageTFR(info, itc, times, freqs, nave,
+                                   method='%s-itc' % method))
+    else:
+        power = out
+        out = EpochsTFR(info, power, times, freqs, method='%s-power' % method)
+
+    return out
+
+
+@verbose
+def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
+               n_jobs=1, picks=None, zero_mean=True, average=True,
+               verbose=None):
+    """Compute Time-Frequency Representation (TFR) using Morlet wavelets
 
     Parameters
     ----------
-    data : array
-        3D array of shape [n_epochs, n_channels, n_times]
-    sfreq : float
-        Sampling frequency.
-    frequencies : array
-        Array of frequencies of interest
-    use_fft : bool
-        Compute transform with fft based convolutions or temporal
-        convolutions.
-    n_cycles : float | array of float
-        Number of cycles. Fixed number or one per frequency.
-    decim : int | slice
+    inst : Epochs | Evoked
+        The epochs or evoked object.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    n_cycles : float | ndarray, shape (n_freqs,)
+        The number of cycles globally or for each frequency.
+    use_fft : bool, defaults to False
+        The fft based convolution or not.
+    return_itc : bool, defaults to True
+        Return inter-trial coherence (ITC) as well as averaged power.
+        Must be ``False`` for evoked data.
+    decim : int | slice, defaults to 1
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
-        If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
-        Defaults to 1.
-    n_jobs : int
-        The number of CPUs used in parallel. All CPUs are used in -1.
-        Requires joblib package.
-    zero_mean : bool
-        Make sure the wavelets are zero mean.
+        If `slice`, returns tfr[..., decim].
+        .. note: Decimation may create aliasing artifacts.
+    n_jobs : int, defaults to 1
+        The number of jobs to run in parallel.
+    picks : array-like of int | None, defaults to None
+        The indices of the channels to plot. If None, all available
+        channels are displayed.
+    zero_mean : bool, defaults to True
+        Make sure the wavelet has a mean of zero.
+
+        .. versionadded:: 0.13.0
+    average : bool, defaults to True
+        If True average across Epochs.
+
+        .. versionadded:: 0.13.0
+    verbose : bool, str, int, or None, defaults to None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    power : 2D array
-        Induced power (Channels x Frequencies x Timepoints).
-        Squared amplitude of time-frequency coefficients.
-    phase_lock : 2D array
-        Phase locking factor in [0, 1] (Channels x Frequencies x Timepoints)
+    power : AverageTFR | EpochsTFR
+        The averaged power.
+    itc : AverageTFR | EpochsTFR
+        The inter-trial coherence (ITC). Only returned if return_itc
+        is True.
+
+    See Also
+    --------
+    tfr_multitaper, tfr_stockwell
     """
-    decim = _check_decim(decim)
-    n_frequencies = len(frequencies)
-    n_epochs, n_channels, n_times = data[:, :, decim].shape
-
-    # Precompute wavelets for given frequency range to save time
-    Ws = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
-
-    psd = np.empty((n_channels, n_frequencies, n_times))
-    plf = np.empty((n_channels, n_frequencies, n_times))
-    # Separate to save memory for n_jobs=1
-    parallel, my_time_frequency, _ = parallel_func(_time_frequency, n_jobs)
-    psd_plf = parallel(my_time_frequency(data[:, c, :], Ws, use_fft, decim)
-                       for c in range(n_channels))
-    for c, (psd_c, plf_c) in enumerate(psd_plf):
-        psd[c, :, :], plf[c, :, :] = psd_c, plf_c
-    return psd, plf
+    tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
+                      zero_mean=zero_mean)
+    return _tfr_aux('morlet', inst, freqs, decim, return_itc, picks,
+                    average, **tfr_params)
 
 
-def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
-                 baseline, vmin, vmax, dB, sfreq):
-    """Aux Function to prepare tfr computation"""
-    from ..viz.utils import _setup_vmin_vmax
+@verbose
+def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
+                   use_fft=True, return_itc=True, decim=1,
+                   n_jobs=1, picks=None, average=True, verbose=None):
+    """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
-    copy = baseline is not None
-    data = rescale(data, times, baseline, mode, copy=copy)
+    Parameters
+    ----------
+    inst : Epochs | Evoked
+        The epochs or evoked object.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    n_cycles : float | ndarray, shape (n_freqs,)
+        The number of cycles globally or for each frequency.
+        The time-window length is thus T = n_cycles / freq.
+    time_bandwidth : float, (optional), defaults to 4.0 (3 good tapers).
+        Time x (Full) Bandwidth product. Should be >= 2.0.
+        Choose this along with n_cycles to get desired frequency resolution.
+        The number of good tapers (least leakage from far away frequencies)
+        is chosen automatically based on this to floor(time_bandwidth - 1).
+        E.g., With freq = 20 Hz and n_cycles = 10, we get time = 0.5 s.
+        If time_bandwidth = 4., then frequency smoothing is (4 / time) = 8 Hz.
+    use_fft : bool, defaults to True
+        The fft based convolution or not.
+    return_itc : bool, defaults to True
+        Return inter-trial coherence (ITC) as well as averaged power.
+    decim : int | slice, defaults to 1
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice`, returns tfr[..., decim].
+        .. note: Decimation may create aliasing artifacts.
+    n_jobs : int,  defaults to 1
+        The number of jobs to run in parallel.
+    picks : array-like of int | None, defaults to None
+        The indices of the channels to plot. If None, all available
+        channels are displayed.
+    average : bool, defaults to True
+        If True average across Epochs.
 
-    # crop time
-    itmin, itmax = None, None
-    idx = np.where(_time_mask(times, tmin, tmax, sfreq=sfreq))[0]
-    if tmin is not None:
-        itmin = idx[0]
-    if tmax is not None:
-        itmax = idx[-1] + 1
+        .. versionadded:: 0.13.0
+    verbose : bool, str, int, or None, defaults to None
+        If not None, override default verbose level (see mne.verbose).
 
-    times = times[itmin:itmax]
+    Returns
+    -------
+    power : AverageTFR | EpochsTFR
+        The averaged power.
+    itc : AverageTFR | EpochsTFR
+        The inter-trial coherence (ITC). Only returned if return_itc
+        is True.
 
-    # crop freqs
-    ifmin, ifmax = None, None
-    idx = np.where(_time_mask(freqs, fmin, fmax, sfreq=sfreq))[0]
-    if fmin is not None:
-        ifmin = idx[0]
-    if fmax is not None:
-        ifmax = idx[-1] + 1
+    See Also
+    --------
+    tfr_multitaper, tfr_stockwell
 
-    freqs = freqs[ifmin:ifmax]
-
-    # crop data
-    data = data[:, ifmin:ifmax, itmin:itmax]
-
-    times *= 1e3
-    if dB:
-        data = 10 * np.log10((data * data.conj()).real)
-
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
-    return data, times, freqs, vmin, vmax
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+    """
+    tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
+                      zero_mean=True, time_bandwidth=time_bandwidth)
+    return _tfr_aux('multitaper', inst, freqs, decim, return_itc, picks,
+                    average, **tfr_params)
 
 
-class AverageTFR(ContainsMixin, UpdateChannelsMixin):
+# TFR(s) class
+
+class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
+    @property
+    def ch_names(self):
+        return self.info['ch_names']
+
+    def crop(self, tmin=None, tmax=None):
+        """Crop data to a given time interval in place
+
+        Parameters
+        ----------
+        tmin : float | None
+            Start time of selection in seconds.
+        tmax : float | None
+            End time of selection in seconds.
+
+        Returns
+        -------
+        inst : instance of AverageTFR
+            The modified instance.
+        """
+        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
+        self.times = self.times[mask]
+        self.data = self.data[..., mask]
+        return self
+
+    def copy(self):
+        """Return a copy of the instance."""
+        return deepcopy(self)
+
+    @verbose
+    def apply_baseline(self, baseline, mode='mean', verbose=None):
+        """Baseline correct the data
+
+        Parameters
+        ----------
+        baseline : tuple or list of length 2
+            The time interval to apply rescaling / baseline correction.
+            If None do not apply it. If baseline is (a, b)
+            the interval is between "a (s)" and "b (s)".
+            If a is None the beginning of the data is used
+            and if b is None then b is set to the end of the interval.
+            If baseline is equal to (None, None) all the time
+            interval is used.
+        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
+            Do baseline correction with ratio (power is divided by mean
+            power during baseline) or zscore (power is divided by standard
+            deviation of power during baseline after subtracting the mean,
+            power = [power - mean(power_baseline)] / std(power_baseline)),
+            mean simply subtracts the mean power, percent is the same as
+            applying ratio then mean, logratio is the same as mean but then
+            rendered in log-scale, zlogratio is the same as zscore but data
+            is rendered in log-scale first.
+            If None no baseline correction is applied.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+        """  # noqa
+        self.data = rescale(self.data, self.times, baseline, mode,
+                            copy=False)
+
+
+class AverageTFR(_BaseTFR):
     """Container for Time-Frequency data
 
-    Can for example store induced power at sensor level or intertrial
+    Can for example store induced power at sensor level or inter-trial
     coherence.
 
     Parameters
@@ -574,12 +937,10 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         The frequencies in Hz.
     nave : int
         The number of averaged TFRs.
-    comment : str | None
+    comment : str | None, defaults to None
         Comment on the data, e.g., the experimental condition.
-        Defaults to None.
-    method : str | None
+    method : str | None, defaults to None
         Comment on the method used to compute the data, e.g., morlet wavelet.
-        Defaults to None.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -605,35 +966,11 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             raise ValueError("Number of times and data size don't match"
                              " (%d != %d)." % (n_times, len(times)))
         self.data = data
-        self.times = np.asarray(times)
-        self.freqs = np.asarray(freqs)
+        self.times = np.array(times, dtype=float)
+        self.freqs = np.array(freqs, dtype=float)
         self.nave = nave
         self.comment = comment
         self.method = method
-
-    @property
-    def ch_names(self):
-        return self.info['ch_names']
-
-    def crop(self, tmin=None, tmax=None):
-        """Crop data to a given time interval
-
-        Parameters
-        ----------
-        tmin : float | None
-            Start time of selection in seconds.
-        tmax : float | None
-            End time of selection in seconds.
-
-        Returns
-        -------
-        inst : instance of AverageTFR
-            The modified instance.
-        """
-        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
-        self.times = self.times[mask]
-        self.data = self.data[:, :, mask]
-        return self
 
     @verbose
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
@@ -821,7 +1158,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         Parameters
         ----------
         picks : array-like of int | None
-            The indices of the channels to plot. If None all available
+            The indices of the channels to plot. If None, all available
             channels are displayed.
         baseline : None (default) or tuple of length 2
             The time interval to apply baseline correction.
@@ -926,74 +1263,6 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         add_background_image(fig, fig_background)
         plt_show(show)
         return fig
-
-    def _check_compat(self, tfr):
-        """checks that self and tfr have the same time-frequency ranges"""
-        assert np.all(tfr.times == self.times)
-        assert np.all(tfr.freqs == self.freqs)
-
-    def __add__(self, tfr):
-        self._check_compat(tfr)
-        out = self.copy()
-        out.data += tfr.data
-        return out
-
-    def __iadd__(self, tfr):
-        self._check_compat(tfr)
-        self.data += tfr.data
-        return self
-
-    def __sub__(self, tfr):
-        self._check_compat(tfr)
-        out = self.copy()
-        out.data -= tfr.data
-        return out
-
-    def __isub__(self, tfr):
-        self._check_compat(tfr)
-        self.data -= tfr.data
-        return self
-
-    def copy(self):
-        """Return a copy of the instance."""
-        return deepcopy(self)
-
-    def __repr__(self):
-        s = "time : [%f, %f]" % (self.times[0], self.times[-1])
-        s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])
-        s += ", nave : %d" % self.nave
-        s += ', channels : %d' % self.data.shape[0]
-        return "<AverageTFR  |  %s>" % s
-
-    @verbose
-    def apply_baseline(self, baseline, mode='mean', verbose=None):
-        """Baseline correct the data
-
-        Parameters
-        ----------
-        baseline : tuple or list of length 2
-            The time interval to apply rescaling / baseline correction.
-            If None do not apply it. If baseline is (a, b)
-            the interval is between "a (s)" and "b (s)".
-            If a is None the beginning of the data is used
-            and if b is None then b is set to the end of the interval.
-            If baseline is equal to (None, None) all the time
-            interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
-            If None no baseline correction is applied.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-        """  # noqa
-        self.data = rescale(self.data, self.times, baseline, mode,
-                            copy=False)
 
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type=None, baseline=None, mode='mean',
@@ -1124,6 +1393,41 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                                 title=title, axes=axes, show=show,
                                 outlines=outlines, head_pos=head_pos)
 
+    def _check_compat(self, tfr):
+        """checks that self and tfr have the same time-frequency ranges"""
+        assert np.all(tfr.times == self.times)
+        assert np.all(tfr.freqs == self.freqs)
+
+    def __add__(self, tfr):
+        self._check_compat(tfr)
+        out = self.copy()
+        out.data += tfr.data
+        return out
+
+    def __iadd__(self, tfr):
+        self._check_compat(tfr)
+        self.data += tfr.data
+        return self
+
+    def __sub__(self, tfr):
+        self._check_compat(tfr)
+        out = self.copy()
+        out.data -= tfr.data
+        return out
+
+    def __isub__(self, tfr):
+        self._check_compat(tfr)
+        self.data -= tfr.data
+        return self
+
+    def __repr__(self):
+        s = "time : [%f, %f]" % (self.times[0], self.times[-1])
+        s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])
+        s += ", nave : %d" % self.nave
+        s += ', channels : %d' % self.data.shape[0]
+        s += ', ~%s' % (sizeof_fmt(self._size),)
+        return "<AverageTFR  |  %s>" % s
+
     def save(self, fname, overwrite=False):
         """Save TFR object to hdf5 file
 
@@ -1137,334 +1441,77 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         write_tfrs(fname, self, overwrite=overwrite)
 
 
-def _prepare_write_tfr(tfr, condition):
-    """Aux function"""
-    return (condition, dict(times=tfr.times, freqs=tfr.freqs,
-                            data=tfr.data, info=tfr.info,
-                            nave=tfr.nave, comment=tfr.comment,
-                            method=tfr.method))
+class EpochsTFR(_BaseTFR):
+    """Container for Time-Frequency data on epochs
 
-
-def write_tfrs(fname, tfr, overwrite=False):
-    """Write a TFR dataset to hdf5.
+    Can for example store induced power at sensor level.
 
     Parameters
     ----------
-    fname : string
-        The file name, which should end with -tfr.h5
-    tfr : AverageTFR instance, or list of AverageTFR instances
-        The TFR dataset, or list of TFR datasets, to save in one file.
-        Note. If .comment is not None, a name will be generated on the fly,
-        based on the order in which the TFR objects are passed
-    overwrite : bool
-        If True, overwrite file (if it exists). Defaults to False.
-
-    See Also
-    --------
-    read_tfrs
-
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-    """
-    out = []
-    if not isinstance(tfr, (list, tuple)):
-        tfr = [tfr]
-    for ii, tfr_ in enumerate(tfr):
-        comment = ii if tfr_.comment is None else tfr_.comment
-        out.append(_prepare_write_tfr(tfr_, condition=comment))
-    write_hdf5(fname, out, overwrite=overwrite, title='mnepython')
-
-
-def read_tfrs(fname, condition=None):
-    """
-    Read TFR datasets from hdf5 file.
-
-    Parameters
-    ----------
-    fname : string
-        The file name, which should end with -tfr.h5 .
-    condition : int or str | list of int or str | None
-        The condition to load. If None, all conditions will be returned.
-        Defaults to None.
-
-    See Also
-    --------
-    write_tfrs
-
-    Returns
-    -------
-    tfrs : list of instances of AverageTFR | instance of AverageTFR
-        Depending on `condition` either the TFR object or a list of multiple
-        TFR objects.
-
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-    """
-
-    check_fname(fname, 'tfr', ('-tfr.h5',))
-
-    logger.info('Reading %s ...' % fname)
-    tfr_data = read_hdf5(fname, title='mnepython')
-    for k, tfr in tfr_data:
-        tfr['info'] = Info(tfr['info'])
-
-    if condition is not None:
-        tfr_dict = dict(tfr_data)
-        if condition not in tfr_dict:
-            keys = ['%s' % k for k in tfr_dict]
-            raise ValueError('Cannot find condition ("{0}") in this file. '
-                             'I can give you "{1}""'
-                             .format(condition, " or ".join(keys)))
-        out = AverageTFR(**tfr_dict[condition])
-    else:
-        out = [AverageTFR(**d) for d in list(zip(*tfr_data))[1]]
-    return out
-
-
-@verbose
-def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
-               n_jobs=1, picks=None, verbose=None):
-    """Compute Time-Frequency Representation (TFR) using Morlet wavelets
-
-    Parameters
-    ----------
-    inst : Epochs | Evoked
-        The epochs or evoked object.
+    info : Info
+        The measurement info.
+    data : ndarray, shape (n_epochs, n_channels, n_freqs, n_times)
+        The data.
+    times : ndarray, shape (n_times,)
+        The time values in seconds.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
-    n_cycles : float | ndarray, shape (n_freqs,)
-        The number of cycles globally or for each frequency.
-    use_fft : bool
-        The fft based convolution or not.
-    return_itc : bool
-        Return intertrial coherence (ITC) as well as averaged power.
-        Must be ``False`` for evoked data.
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition.
-        If `int`, returns tfr[..., ::decim].
-        If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
-        Defaults to 1.
-    n_jobs : int
-        The number of jobs to run in parallel.
-    picks : array-like of int | None
-        The indices of the channels to plot. If None all available
-        channels are displayed.
+    comment : str | None, defaults to None
+        Comment on the data, e.g., the experimental condition.
+    method : str | None, defaults to None
+        Comment on the method used to compute the data, e.g., morlet wavelet.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
-    Returns
-    -------
-    power : instance of AverageTFR
-        The averaged power.
-    itc : instance of AverageTFR
-        The intertrial coherence (ITC). Only returned if return_itc
-        is True.
-
-    See Also
-    --------
-    tfr_multitaper, tfr_stockwell
-    """
-    decim = _check_decim(decim)
-    data = _get_data(inst, return_itc)
-    info = inst.info
-
-    info, data, picks = _prepare_picks(info, data, picks)
-    data = data[:, picks, :]
-
-    power, itc = _induced_power_cwt(data, sfreq=info['sfreq'],
-                                    frequencies=freqs,
-                                    n_cycles=n_cycles, n_jobs=n_jobs,
-                                    use_fft=use_fft, decim=decim,
-                                    zero_mean=True)
-    times = inst.times[decim].copy()
-    nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave, method='morlet-power')
-    if return_itc:
-        out = (out, AverageTFR(info, itc, times, freqs, nave,
-                               method='morlet-itc'))
-    return out
-
-
-def _prepare_picks(info, data, picks):
-    if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
-    if np.array_equal(picks, np.arange(len(data))):
-        picks = slice(None)
-    else:
-        info = pick_info(info, picks)
-
-    return info, data, picks
-
-
-@verbose
-def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
-                       use_fft=True, n_cycles=7, decim=1, n_jobs=1,
-                       zero_mean=True, verbose=None):
-    """Compute time induced power and inter-trial phase-locking factor
-
-    The time frequency decomposition is done with DPSS wavelets
-
-    Parameters
+    Attributes
     ----------
-    data : np.ndarray, shape (n_epochs, n_channels, n_times)
-        The input data.
-    sfreq : float
-        Sampling frequency.
-    frequencies : np.ndarray, shape (n_frequencies,)
-        Array of frequencies of interest
-    time_bandwidth : float
-        Time x (Full) Bandwidth product.
-        The number of good tapers (low-bias) is chosen automatically based on
-        this to equal floor(time_bandwidth - 1). Default is 4.0 (3 tapers).
-    use_fft : bool
-        Compute transform with fft based convolutions or temporal
-        convolutions. Defaults to True.
-    n_cycles : float | np.ndarray shape (n_frequencies,)
-        Number of cycles. Fixed number or one per frequency. Defaults to 7.
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition.
-        If `int`, returns tfr[..., ::decim].
-        If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
-        Defaults to 1.
-    n_jobs : int
-        The number of CPUs used in parallel. All CPUs are used in -1.
-        Requires joblib package. Defaults to 1.
-    zero_mean : bool
-        Make sure the wavelets are zero mean. Defaults to True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    power : np.ndarray, shape (n_channels, n_frequencies, n_times)
-        Induced power. Squared amplitude of time-frequency coefficients.
-    itc : np.ndarray, shape (n_channels, n_frequencies, n_times)
-        Phase locking value.
-    """
-    decim = _check_decim(decim)
-    n_epochs, n_channels, n_times = data[:, :, decim].shape
-    logger.info('Data is %d trials and %d channels', n_epochs, n_channels)
-    n_frequencies = len(frequencies)
-    logger.info('Multitaper time-frequency analysis for %d frequencies',
-                n_frequencies)
-
-    # Precompute wavelets for given frequency range to save time
-    Ws = _dpss_wavelet(sfreq, frequencies, n_cycles=n_cycles,
-                       time_bandwidth=time_bandwidth, zero_mean=zero_mean)
-    n_taps = len(Ws)
-    logger.info('Using %d tapers', n_taps)
-    n_times_wavelets = Ws[0][0].shape[0]
-    if data.shape[2] <= n_times_wavelets:
-        warn('Time windows are as long or longer than the epoch. Consider '
-             'reducing n_cycles.')
-    psd = np.zeros((n_channels, n_frequencies, n_times))
-    itc = np.zeros((n_channels, n_frequencies, n_times))
-    parallel, my_time_frequency, _ = parallel_func(_time_frequency,
-                                                   n_jobs)
-    for m in range(n_taps):
-        psd_itc = parallel(my_time_frequency(data[:, c, :], Ws[m], use_fft,
-                                             decim)
-                           for c in range(n_channels))
-        for c, (psd_c, itc_c) in enumerate(psd_itc):
-            psd[c, :, :] += psd_c
-            itc[c, :, :] += itc_c
-    psd /= n_taps
-    itc /= n_taps
-    return psd, itc
-
-
-@verbose
-def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
-                   use_fft=True, return_itc=True, decim=1,
-                   n_jobs=1, picks=None, verbose=None):
-    """Compute Time-Frequency Representation (TFR) using DPSS wavelets
-
-    Parameters
-    ----------
-    inst : Epochs | Evoked
-        The epochs or evoked object.
-    freqs : ndarray, shape (n_freqs,)
-        The frequencies in Hz.
-    n_cycles : float | ndarray, shape (n_freqs,)
-        The number of cycles globally or for each frequency.
-        The time-window length is thus T = n_cycles / freq.
-    time_bandwidth : float, (optional)
-        Time x (Full) Bandwidth product. Should be >= 2.0.
-        Choose this along with n_cycles to get desired frequency resolution.
-        The number of good tapers (least leakage from far away frequencies)
-        is chosen automatically based on this to floor(time_bandwidth - 1).
-        Default is 4.0 (3 good tapers).
-        E.g., With freq = 20 Hz and n_cycles = 10, we get time = 0.5 s.
-        If time_bandwidth = 4., then frequency smoothing is (4 / time) = 8 Hz.
-    use_fft : bool
-        The fft based convolution or not.
-        Defaults to True.
-    return_itc : bool
-        Return intertrial coherence (ITC) as well as averaged power.
-        Defaults to True.
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition.
-        If `int`, returns tfr[..., ::decim].
-        If `slice` returns tfr[..., decim].
-        Note that decimation may create aliasing artifacts.
-        Defaults to 1.
-    n_jobs : int
-        The number of jobs to run in parallel. Defaults to 1.
-    picks : array-like of int | None
-        The indices of the channels to plot. If None all available
-        channels are displayed.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    power : AverageTFR
-        The averaged power.
-    itc : AverageTFR
-        The intertrial coherence (ITC). Only returned if return_itc
-        is True.
-
-    See Also
-    --------
-    tfr_multitaper, tfr_stockwell
+    ch_names : list
+        The names of the channels.
 
     Notes
     -----
-    .. versionadded:: 0.9.0
+    .. versionadded:: 0.13.0
     """
-    decim = _check_decim(decim)
-    data = _get_data(inst, return_itc)
-    info = inst.info
+    @verbose
+    def __init__(self, info, data, times, freqs, comment=None,
+                 method=None, verbose=None):
+        self.info = info
+        if data.ndim != 4:
+            raise ValueError('data should be 4d. Got %d.' % data.ndim)
+        n_epochs, n_channels, n_freqs, n_times = data.shape
+        if n_channels != len(info['chs']):
+            raise ValueError("Number of channels and data size don't match"
+                             " (%d != %d)." % (n_channels, len(info['chs'])))
+        if n_freqs != len(freqs):
+            raise ValueError("Number of frequencies and data size don't match"
+                             " (%d != %d)." % (n_freqs, len(freqs)))
+        if n_times != len(times):
+            raise ValueError("Number of times and data size don't match"
+                             " (%d != %d)." % (n_times, len(times)))
+        self.data = data
+        self.times = np.array(times, dtype=float)
+        self.freqs = np.array(freqs, dtype=float)
+        self.comment = comment
+        self.method = method
 
-    info, data, picks = _prepare_picks(info, data, picks)
-    data = data = data[:, picks, :]
+    def __repr__(self):
+        s = "time : [%f, %f]" % (self.times[0], self.times[-1])
+        s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])
+        s += ", epochs : %d" % self.data.shape[0]
+        s += ', channels : %d' % self.data.shape[1]
+        s += ', ~%s' % (sizeof_fmt(self._size),)
+        return "<EpochsTFR  |  %s>" % s
 
-    power, itc = _induced_power_mtm(data, sfreq=info['sfreq'],
-                                    frequencies=freqs, n_cycles=n_cycles,
-                                    time_bandwidth=time_bandwidth,
-                                    use_fft=use_fft, decim=decim,
-                                    n_jobs=n_jobs, zero_mean=True,
-                                    verbose='INFO')
-    times = inst.times[decim].copy()
-    nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave,
-                     method='mutlitaper-power')
-    if return_itc:
-        out = (out, AverageTFR(info, itc, times, freqs, nave,
-                               method='mutlitaper-itc'))
-    return out
+    def average(self):
+        data = np.mean(self.data, axis=0)
+        return AverageTFR(info=self.info.copy(), data=data,
+                          times=self.times.copy(), freqs=self.freqs.copy(),
+                          nave=self.data.shape[0],
+                          method=self.method)
 
 
 def combine_tfr(all_tfr, weights='nave'):
-    """Merge AverageTFR data by weighted addition
+    """Merge AverageTFR data by weighted addition.
 
     Create a new AverageTFR instance, using a combination of the supplied
     instances as its data. By default, the mean (weighted by trials) is used.
@@ -1517,10 +1564,91 @@ def combine_tfr(all_tfr, weights='nave'):
                                               for t_ in all_tfr[1:])))
     tfr.info['bads'] = bads
 
+    # XXX : should be refactored with combined_evoked function
     tfr.data = sum(w * t_.data for w, t_ in zip(weights, all_tfr))
     tfr.nave = max(int(1. / sum(w ** 2 / e.nave
                                 for w, e in zip(weights, all_tfr))), 1)
     return tfr
+
+
+# Utils
+
+
+def _get_data(inst, return_itc):
+    """Get data from Epochs or Evoked instance as epochs x ch x time"""
+    from ..epochs import _BaseEpochs
+    from ..evoked import Evoked
+    if not isinstance(inst, (_BaseEpochs, Evoked)):
+        raise TypeError('inst must be Epochs or Evoked')
+    if isinstance(inst, _BaseEpochs):
+        data = inst.get_data()
+    else:
+        if return_itc:
+            raise ValueError('return_itc must be False for evoked data')
+        data = inst.data[np.newaxis, ...].copy()
+    return data
+
+
+def _prepare_picks(info, data, picks):
+    if picks is None:
+        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
+    if np.array_equal(picks, np.arange(len(data))):
+        picks = slice(None)
+    else:
+        info = pick_info(info, picks)
+
+    return info, data, picks
+
+
+def _centered(arr, newsize):
+    """Aux Function to center data"""
+    # Return the center newsize portion of the array.
+    newsize = np.asarray(newsize)
+    currsize = np.array(arr.shape)
+    startind = (currsize - newsize) // 2
+    endind = startind + newsize
+    myslice = [slice(startind[k], endind[k]) for k in range(len(endind))]
+    return arr[tuple(myslice)]
+
+
+def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
+                 baseline, vmin, vmax, dB, sfreq):
+    """Aux Function to prepare tfr computation"""
+    from ..viz.utils import _setup_vmin_vmax
+
+    copy = baseline is not None
+    data = rescale(data, times, baseline, mode, copy=copy)
+
+    # crop time
+    itmin, itmax = None, None
+    idx = np.where(_time_mask(times, tmin, tmax, sfreq=sfreq))[0]
+    if tmin is not None:
+        itmin = idx[0]
+    if tmax is not None:
+        itmax = idx[-1] + 1
+
+    times = times[itmin:itmax]
+
+    # crop freqs
+    ifmin, ifmax = None, None
+    idx = np.where(_time_mask(freqs, fmin, fmax, sfreq=sfreq))[0]
+    if fmin is not None:
+        ifmin = idx[0]
+    if fmax is not None:
+        ifmax = idx[-1] + 1
+
+    freqs = freqs[ifmin:ifmax]
+
+    # crop data
+    data = data[:, ifmin:ifmax, itmin:itmax]
+
+    times *= 1e3
+    if dB:
+        data = 10 * np.log10((data * data.conj()).real)
+
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+    return data, times, freqs, vmin, vmax
 
 
 def _check_decim(decim):
@@ -1531,3 +1659,92 @@ def _check_decim(decim):
         raise(TypeError, '`decim` must be int or slice, got %s instead'
                          % type(decim))
     return decim
+
+
+# i/o
+
+
+def write_tfrs(fname, tfr, overwrite=False):
+    """Write a TFR dataset to hdf5.
+
+    Parameters
+    ----------
+    fname : string
+        The file name, which should end with -tfr.h5
+    tfr : AverageTFR instance, or list of AverageTFR instances
+        The TFR dataset, or list of TFR datasets, to save in one file.
+        Note. If .comment is not None, a name will be generated on the fly,
+        based on the order in which the TFR objects are passed
+    overwrite : bool
+        If True, overwrite file (if it exists). Defaults to False.
+
+    See Also
+    --------
+    read_tfrs
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+    """
+    out = []
+    if not isinstance(tfr, (list, tuple)):
+        tfr = [tfr]
+    for ii, tfr_ in enumerate(tfr):
+        comment = ii if tfr_.comment is None else tfr_.comment
+        out.append(_prepare_write_tfr(tfr_, condition=comment))
+    write_hdf5(fname, out, overwrite=overwrite, title='mnepython')
+
+
+def _prepare_write_tfr(tfr, condition):
+    """Aux function"""
+    return (condition, dict(times=tfr.times, freqs=tfr.freqs,
+                            data=tfr.data, info=tfr.info,
+                            nave=tfr.nave, comment=tfr.comment,
+                            method=tfr.method))
+
+
+def read_tfrs(fname, condition=None):
+    """
+    Read TFR datasets from hdf5 file.
+
+    Parameters
+    ----------
+    fname : string
+        The file name, which should end with -tfr.h5 .
+    condition : int or str | list of int or str | None
+        The condition to load. If None, all conditions will be returned.
+        Defaults to None.
+
+    See Also
+    --------
+    write_tfrs
+
+    Returns
+    -------
+    tfrs : list of instances of AverageTFR | instance of AverageTFR
+        Depending on `condition` either the TFR object or a list of multiple
+        TFR objects.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+    """
+
+    check_fname(fname, 'tfr', ('-tfr.h5',))
+
+    logger.info('Reading %s ...' % fname)
+    tfr_data = read_hdf5(fname, title='mnepython')
+    for k, tfr in tfr_data:
+        tfr['info'] = Info(tfr['info'])
+
+    if condition is not None:
+        tfr_dict = dict(tfr_data)
+        if condition not in tfr_dict:
+            keys = ['%s' % k for k in tfr_dict]
+            raise ValueError('Cannot find condition ("{0}") in this file. '
+                             'The file contains "{1}""'
+                             .format(condition, " or ".join(keys)))
+        out = AverageTFR(**tfr_dict[condition])
+    else:
+        out = [AverageTFR(**d) for d in list(zip(*tfr_data))[1]]
+    return out

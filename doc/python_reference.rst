@@ -812,6 +812,7 @@ Classes:
    :template: class.rst
 
    AverageTFR
+   EpochsTFR
 
 Functions that operate on mne-python objects:
 
