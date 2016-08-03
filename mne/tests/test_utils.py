@@ -104,6 +104,7 @@ def test_object_size():
         assert_true(lower < size < upper,
                     msg='%s < %s < %s:\n%s' % (lower, size, upper, obj))
 
+
 def test_get_inst_data():
     from mne.epochs import _segment_raw
 
@@ -117,7 +118,6 @@ def test_get_inst_data():
 
     evoked = epochs.average()
     assert_equal(_get_inst_data(evoked), evoked.data)
-
 
 
 def test_misc():
