@@ -6,7 +6,7 @@ import os.path as op
 
 from nose.tools import assert_raises, assert_true, assert_equal
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_equal
 
 from mne import io, read_events, pick_types
 from mne.utils import (requires_sklearn, run_tests_if_main)
@@ -39,43 +39,14 @@ def test_feature():
     events = read_events(event_name)
     events[:, 0] -= raw.first_samp
 
-    sfreq = raw.info['sfreq']
     # --- Feature Delayer ---
-    # Delayer must have sfreq if twin given
-    assert_raises(ValueError, FeatureDelayer, time_window=[tmin, tmax],
-                  sfreq=None)
-    # Must give either twin or delays
-    assert_raises(ValueError, FeatureDelayer, time_window=[tmin, tmax],
-                  sfreq=sfreq, delays=[1.])
-    assert_raises(ValueError, FeatureDelayer)
-    assert_raises(ValueError, FeatureDelayer, time_window=[tmin, tmax],
-                  delays=[0., .1])
-    assert_raises(ValueError, FeatureDelayer, time_window=[tmin, tmax, 2])
-    # Window
-    delayer = FeatureDelayer(time_window=[tmin, tmax], sfreq=10.)
+    # Explicit delays + sfreq
     X = np.random.randn(1000, 2)
-    delayer.transform(X)
-    assert_array_almost_equal(np.unique(delayer.delays_[:, 1]),
-                              [-.1, 0, .1, .2, .3, .4, .5])
-
-    # Diff number of windows
-    del_wins = [[-2., 0.], [0., .5]]
-    delayer = FeatureDelayer(time_window=del_wins, sfreq=10.)
-    Xdel = delayer.transform(X)
-    for ii, this_win in zip([0, 1], del_wins):
-        this_delays = delayer.delays_[delayer.delays_[:, 0] == ii, 1]
-        assert_array_equal([this_delays.min(), this_delays.max()],
-                           this_win)
-    assert_equal(Xdel.shape[1], delayer.delays_.shape[0])
-    # Incorrect # windows
-    delayer = FeatureDelayer(time_window=[[1, 2], [2, 3], [1, 2]])
-    assert_raises(ValueError, delayer.transform, np.array([[1, 2], [2, 3]]))
-
-    # Explicit delays
-    delayer = FeatureDelayer(delays=[0, 1, 2])
-    Xdel = delayer.transform(X)
-    assert_array_equal(Xdel[:, 0], X[:, 0])
-    assert_array_equal(Xdel[:-1, 1], X[1:, 0])
+    for idel, isfreq in [[(0, 1, 2), 1], [(0, .1, .2), 10]]:
+        delayer = FeatureDelayer(delays=idel, sfreq=isfreq)
+        Xdel = delayer.transform(X)
+        assert_array_equal(Xdel[:, 0], X[:, 0])
+        assert_array_equal(Xdel[:-1, 1], X[1:, 0])
 
     # Sparse matrices
     X = np.zeros([100, 2])

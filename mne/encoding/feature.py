@@ -14,10 +14,6 @@ class FeatureDelayer(object):
 
     Parameters
     ----------
-    time_window : array, shape (2,)
-        Specifies a minimum/maximum delay in seconds. In this case, all
-        delays between `min(time_window)` and `max(time_window)`
-        will be calculated using `sfreq`.
     delays: array of floats, shape (n_delays,)
         The time (in seconds) of each delay for specifying
         pre-defined delays. Negative means timepoints in the past,
@@ -25,11 +21,10 @@ class FeatureDelayer(object):
     sfreq: float
         The sampling frequency of the series. Defaults to 1.0
     """
-    def __init__(self, delays=None, time_window=None, sfreq=1.):
-        delays, time_window, sfreq = _check_delayer_params(
-            delays, time_window, sfreq)
+    def __init__(self, delays=None, sfreq=1.):
+        delays, sfreq = _check_delayer_params(
+            delays, sfreq)
         self.delays = delays
-        self.time_window = time_window
         self.sfreq = float(sfreq)
 
     def fit(self, X, y=None):
@@ -60,7 +55,6 @@ class FeatureDelayer(object):
             The delayed featuers of X.
         """
         X_delayed, names = delay_timeseries(X, delays=self.delays,
-                                            window=self.time_window,
                                             sfreq=self.sfreq)
         self.delays_ = names
         return X_delayed
@@ -199,7 +193,7 @@ class EventsBinarizer(object):
         return out
 
 
-def delay_timeseries(ts, delays=None, window=None, sfreq=1.):
+def delay_timeseries(ts, delays, sfreq=1.):
     """Return a time-lagged input timeseries.
 
     Parameters
@@ -207,15 +201,11 @@ def delay_timeseries(ts, delays=None, window=None, sfreq=1.):
     ts: array, shape (n_times, n_feats)
         The timeseries to delay
     delays: array of floats, shape (n_delays) |
-            list of arrays, len == n_feats | None
+            list of arrays, len == n_feats
         The time (in seconds) of each delay for specifying
         pre-defined delays. Negative means timepoints in the past,
         positive means timepoints in the future. If a list, then
         one may supply a different number of delays per feature.
-    window : array, shape (n_feats, 2,) | None
-        The tmin / tmax for a time window of delays. If given, delays
-        will be created with from tmin to tmax with step `1. / sfreq`.
-        If n_feats > 1, then a different time window per feature may be given.
     sfreq: int
         The sampling frequency of the series
 
@@ -224,14 +214,7 @@ def delay_timeseries(ts, delays=None, window=None, sfreq=1.):
     delayed: array, shape(n_times, n_feats * n_delays)
         The delayed matrix
     """
-    delays, window, sfreq = _check_delayer_params(delays, window, sfreq)
-    if window is not None:
-        if window.shape[0] == 1:
-            window = np.tile(window, [ts.shape[1], 1])
-        period = 1. / sfreq
-        delays = []
-        for iwin in window:
-            delays.append(np.arange(iwin[0], iwin[1] + period, period))
+    delays, sfreq = _check_delayer_params(delays, sfreq)
     if not isinstance(delays[0], (list, np.ndarray)):
         delays = [delays] * ts.shape[1]
 
@@ -304,17 +287,12 @@ def _check_covariates(events, covariates, covariate_names):
     return covariates, covariate_names
 
 
-def _check_delayer_params(delays, window, sfreq):
-    """Check delayer input parameters."""
+def _check_delayer_params(delays, sfreq):
+    """Check delayer input parameters.
+
+    XXX for use w/ future time window support.
+    """
     # Check if we need to create delays ourselves
-    if window is not None and delays is not None:
-        raise ValueError('Delays must be None if `window` is given')
-    if window is None and delays is None:
-        raise ValueError('One of `window` or `delays` must be given.')
     if not isinstance(sfreq, (int, float)):
         raise ValueError('`sfreq` must be an integer or float')
-    if window is not None:
-        window = np.atleast_2d(window)
-        if window.shape[-1] != 2:
-            raise ValueError('`window` must be shape `(n_feats, 2)`')
-    return delays, window, sfreq
+    return delays, sfreq
