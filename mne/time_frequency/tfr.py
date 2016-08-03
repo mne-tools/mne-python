@@ -319,50 +319,17 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         raise ValueError('epoch_data must be of shape '
                          '(n_epochs, n_chans, n_times)')
 
-    # Check frequencies
-    if not isinstance(frequencies, (list, np.ndarray)):
-        raise ValueError('frequencies must be an array-like.')
-    frequencies = np.asarray(frequencies, dtype=float)
-    if frequencies.ndim != 1:
-        raise ValueError('frequencies must be of shape n_freqs.')
-
-    # Check sfreq
-    if not isinstance(sfreq, (float, int)):
-        raise ValueError('sfreq must be a float or an int.')
-    sfreq = float(sfreq)
-
-    # Check output
-    allowed_ouput = ('complex', 'power', 'phase',
-                     'avg_power_itc', 'avg_power', 'itc')
-    if output not in allowed_ouput:
-        raise ValueError("Unknown output type. Allowed are %s but "
-                         "got %s" % (allowed_ouput, output))
-
-    if method not in ('multitaper', 'morlet'):
-        raise ValueError('method must be "morlet" or "multitaper"')
-
-    # Default zero_mean = True if multitaper else False
-    zero_mean = method == 'multitaper' if zero_mean is None else zero_mean
-    if not isinstance(zero_mean, bool):
-        raise ValueError('zero_mean should be of type bool. Got %s.'
-                         % type(zero_mean))
-    frequencies = np.asarray(frequencies)
-
-    if (method == 'multitaper') and (output == 'phase'):
-        raise NotImplementedError(
-            'This function is not optimized to compute the phase using the '
-            'multitaper method. Use np.angle of the complex output instead.')
+    # Check params
+    frequencies, sfreq, zero_mean, n_cycles, time_bandwidth, decim = \
+        _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
+                         time_bandwidth, use_fft, decim, output)
 
     # Setup wavelet
     if method == 'morlet':
         W = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
         Ws = [W]  # to have same dimensionality as the 'multitaper' case
-        if time_bandwidth is not None:
-            raise ValueError('time_bandwidth only applies to "multitaper"'
-                             ' method.')
+
     elif method == 'multitaper':
-        if time_bandwidth is None:
-            time_bandwidth = 4.0
         Ws = _make_dpss(sfreq, frequencies, n_cycles=n_cycles,
                         time_bandwidth=time_bandwidth, zero_mean=zero_mean)
 
@@ -403,6 +370,76 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         # This is to enforce that the first dimension is for epochs
         out = out.transpose(1, 0, 2, 3)
     return out
+
+
+def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
+                     time_bandwidth, use_fft, decim, output):
+    """Aux. function to _compute_tfr to check the params validity."""
+    # Check frequencies
+    if not isinstance(frequencies, (list, np.ndarray)):
+        raise ValueError('frequencies must be an array-like.')
+    frequencies = np.asarray(frequencies, dtype=float)
+    if frequencies.ndim != 1:
+        raise ValueError('frequencies must be of shape n_freqs.')
+
+    # Check sfreq
+    if not isinstance(sfreq, (float, int)):
+        raise ValueError('sfreq must be a float or an int.')
+    sfreq = float(sfreq)
+
+    # Default zero_mean = True if multitaper else False
+    zero_mean = method == 'multitaper' if zero_mean is None else zero_mean
+    if not isinstance(zero_mean, bool):
+        raise ValueError('zero_mean should be of type bool. Got %s.'
+                         % type(zero_mean))
+    frequencies = np.asarray(frequencies)
+
+    if (method == 'multitaper') and (output == 'phase'):
+        raise NotImplementedError(
+            'This function is not optimized to compute the phase using the '
+            'multitaper method. Use np.angle of the complex output instead.')
+
+    # Check n_cycles
+    if isinstance(n_cycles, (int, float)):
+        n_cycles = float(n_cycles)
+    elif isinstance(n_cycles, (list, np.ndarray)):
+        n_cycles = np.array(n_cycles)
+        if len(n_cycles) != len(frequencies):
+            raise ValueError('n_cycles must be a float or an array of length '
+                             'n_frequencies.')
+    else:
+        raise ValueError('n_cycles must be a float or an array, got %s '
+                         'instead.' % type(n_cycles))
+
+    # Check time_bandwidth
+    if (method == 'morlet') and (time_bandwidth is not None):
+        raise ValueError('time_bandwidth only applies to "multitaper" method.')
+    elif method == 'multitaper':
+        time_bandwidth = (4.0 if time_bandwidth is None
+                          else float(time_bandwidth))
+
+    # Check use_fft
+    if not isinstance(use_fft, bool):
+        raise ValueError('use_fft must be a boolean, got %s '
+                         'instead.' % type(use_fft))
+    # Check decim
+    if isinstance(decim, int):
+        decim = slice(None, None, decim)
+    if not isinstance(decim, slice):
+        raise ValueError('decim must be an integer or a slice, '
+                         'got %s instead.' % type(decim))
+
+    # Check output
+    allowed_ouput = ('complex', 'power', 'phase',
+                     'avg_power_itc', 'avg_power', 'itc')
+    if output not in allowed_ouput:
+        raise ValueError("Unknown output type. Allowed are %s but "
+                         "got %s" % (allowed_ouput, output))
+
+    if method not in ('multitaper', 'morlet'):
+        raise ValueError('method must be "morlet" or "multitaper"')
+
+    return frequencies, sfreq, zero_mean, n_cycles, time_bandwidth, decim
 
 
 def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
