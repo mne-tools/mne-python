@@ -229,50 +229,47 @@ def test_unsupervised_spatial_filter():
     assert_raises(ValueError, UnsupervisedSpatialFilter, PCA(4), 2)
 
 
-def test_filterer():
-    """Test methods of Filterer
-    """
-    raw = io.read_raw_fif(raw_fname, preload=False)
-    events = read_events(event_name)
-    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
-    picks = picks[1:13:3]
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
-    epochs_data = epochs.get_data()
+def test_temporal_filterer():
+    """Test methods of TemporalFilter."""
+    X = np.random.rand(10, 5, 2)
 
     # Add tests for different combinations of l_freq and h_freq
-    filt = Filterer(epochs.info['sfreq'], l_freq=40, h_freq=80,
-                           filter_length='auto',
-                           l_trans_bandwidth='auto', h_trans_bandwidth='auto')
-    y = epochs.events[:, -1]
+    filt = TemporalFilter(l_freq=5, h_freq=15, sfreq=100,
+                          filter_length='auto', l_trans_bandwidth='auto',
+                          h_trans_bandwidth='auto')
     with warnings.catch_warnings(record=True):  # stop freq attenuation warning
-        X = filt.fit_transform(epochs_data, y)
-        assert_true(X.shape == epochs_data.shape)
-        assert_array_equal(filt.fit(epochs_data, y).transform(epochs_data), X)
-        result = X
+        result = filt.fit_transform(X)
+        assert_true(X.shape == result.shape)
+        assert_array_equal(filt.fit(X).transform(X), result)
 
-    filt = Filterer(epochs.info['sfreq'], l_freq=None, h_freq=40,
-                           filter_length='auto',
-                           l_trans_bandwidth='auto', h_trans_bandwidth='auto')
-    y = epochs.events[:, -1]
+    filt = TemporalFilter(l_freq=None, h_freq=15, sfreq=100,
+                          filter_length='auto', l_trans_bandwidth='auto',
+                          h_trans_bandwidth='auto')
     with warnings.catch_warnings(record=True):  # stop freq attenuation warning
-        X = filt.fit_transform(epochs_data, y)
+        X = filt.fit_transform(X)
 
-    filt = Filterer(epochs.info['sfreq'], l_freq=1, h_freq=1)
-    y = epochs.events[:, -1]
+    filt = TemporalFilter(l_freq=1, h_freq=1, sfreq=100)
     with warnings.catch_warnings(record=True):  # stop freq attenuation warning
-        assert_raises(ValueError, filt.fit_transform, epochs_data, y)
+        assert_raises(ValueError, filt.fit_transform, X)
 
-    filt = Filterer(epochs.info['sfreq'], l_freq=40, h_freq=None,
-                           filter_length='auto',
-                           l_trans_bandwidth='auto', h_trans_bandwidth='auto')
+    filt = TemporalFilter(l_freq=5, h_freq=None, sfreq=100,
+                          filter_length='auto', l_trans_bandwidth='auto',
+                          h_trans_bandwidth='auto')
     with warnings.catch_warnings(record=True):  # stop freq attenuation warning
-        X = filt.fit_transform(epochs_data, y)
+        result = filt.fit_transform(X)
 
-    # Test init exception
-    assert_raises(ValueError, filt.fit, epochs, y)
-    assert_raises(ValueError, filt.transform, epochs, y)
+    # Test fit and transform numpy type check
+    assert_raises(ValueError, filt.fit, filt)
+    assert_raises(ValueError, filt.transform, filt)
 
     # Test init test
-    assert_raises(ValueError, Filterer, "10 Hz")
+    assert_raises(ValueError, TemporalFilter, "10 Hz")
+    assert_raises(ValueError, TemporalFilter, 10, h_freq='5hz')
+    assert_raises(ValueError, TemporalFilter, 10, l_trans_bandwidth='10s')
+
+    # Test with different dimensions
+    filt = TemporalFilter(l_freq=5, h_freq=15, sfreq=100)
+    X = np.random.rand(16, 5, 2, 2)
+    assert_equal(filt.fit_transform(X).shape, X.shape)
+    X = np.random.rand(5, 6)
+    assert_equal(filt.fit_transform(X).shape, X.shape)
