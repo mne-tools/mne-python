@@ -14,7 +14,7 @@ from scipy import sparse
 
 from ..externals.six import string_types
 
-from ..utils import verbose, logger, warn
+from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
 from ..io.compensator import get_current_comp
 from ..io.meas_info import anonymize_info
 from ..io.pick import (channel_type, pick_info, pick_types,
@@ -420,43 +420,14 @@ class SetChannelsMixin(object):
         -------
         fig : instance of matplotlib figure
             Figure containing the sensor topography.
-        selection : list
-            A list of selected channels. Only returned if ``kind=='select'``.
-
-        See Also
-        --------
-        mne.viz.plot_layout
-
-        Notes
-        -----
-        This function plots the sensor locations from the info structure using
-        matplotlib. For drawing the sensors using mayavi see
-        :func:`mne.viz.plot_trans`.
-
-        .. versionadded:: 0.12.0
-
         """
         from ..viz.utils import plot_sensors
         return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
                             show_names=show_names, ch_groups=ch_groups,
                             axes=axes, block=block, show=show)
 
+    @copy_function_doc_to_method_doc(anonymize_info)
     def anonymize(self):
-        """Anonymize measurement information in place by removing
-        'subject_info', 'meas_date', 'file_id', 'meas_id' if they exist in
-        ``info``.
-
-        Returns
-        -------
-        self : instance of Raw | Epochs | Evoked
-            The data container.
-
-        Notes
-        -----
-        Operates in place.
-
-        .. versionadded:: 0.13.0
-        """
         anonymize_info(self.info)
         return self
 
@@ -464,70 +435,12 @@ class SetChannelsMixin(object):
 class UpdateChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR
     """
+    @copy_function_doc_to_method_doc(pick_types)
     def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, bio=False, ecog=False, include=[],
                    exclude='bads', selection=None):
-        """Pick some channels by type and names
-
-        Parameters
-        ----------
-        meg : bool | str
-            If True include all MEG channels. If False include None
-            If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
-            only magnetometers, all gradiometers, or a specific type of
-            gradiometer.
-        eeg : bool
-            If True include EEG channels.
-        stim : bool
-            If True include stimulus channels.
-        eog : bool
-            If True include EOG channels.
-        ecg : bool
-            If True include ECG channels.
-        emg : bool
-            If True include EMG channels.
-        ref_meg: bool | str
-            If True include CTF / 4D reference channels. If 'auto', the
-            reference channels are only included if compensations are present.
-        misc : bool
-            If True include miscellaneous analog channels.
-        resp : bool
-            If True include response-trigger channel. For some MEG systems this
-            is separate from the stim channel.
-        chpi : bool
-            If True include continuous HPI coil channels.
-        exci : bool
-            Flux excitation channel used to be a stimulus channel.
-        ias : bool
-            Internal Active Shielding data (maybe on Triux only).
-        syst : bool
-            System status channel information (on Triux systems only).
-        seeg : bool
-            Stereotactic EEG channels.
-        bio : bool
-            Bio channels.
-        ecog : bool
-            Electrocorticography channels.
-        include : list of string
-            List of additional channels to include. If empty do not include
-            any.
-        exclude : list of string | str
-            List of channels to exclude. If 'bads' (default), exclude channels
-            in ``info['bads']``.
-        selection : list of string
-            Restrict sensor channels (MEG, EEG) to this list of channel names.
-
-        Returns
-        -------
-        inst : instance of Raw, Epochs, or Evoked
-            The modified instance.
-
-        Notes
-        -----
-        .. versionadded:: 0.9.0
-        """
         idx = pick_types(
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,

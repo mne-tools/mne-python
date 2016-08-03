@@ -701,7 +701,8 @@ def test_copy_function_doc_to_method_doc():
         def method_f3(self):
             pass
 
-    assert_equal(A.method_f1.__doc__,
+    assert_equal(
+        A.method_f1.__doc__,
         """Docstring for f1
 
         Parameters
@@ -710,16 +711,19 @@ def test_copy_function_doc_to_method_doc():
             Parameter a
         b : int
             Parameter b
-        """)
+        """
+    )
+
+    assert_equal(A.method_f2.__doc__, "Docstring for f2")
 
     assert_equal(
-        A.method_f2.__doc__,
-        """Docstring for f2
+        A.method_f3.__doc__,
+        """Docstring for f3
 
         Returns
         -------
         nothing.
-        method_f3 own docstring"""
+        """
     )
 
     assert_equal(A.method_f3.__doc__, 'Docstring for f3\n\n        ')

@@ -35,7 +35,8 @@ from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, _check_copy_dep,
                      check_fname, _get_stim_channel,
-                     logger, verbose, _time_mask, warn, SizeMixin)
+                     logger, verbose, _time_mask, warn, SizeMixin,
+                     copy_function_doc_to_method_doc)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -1478,222 +1479,34 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                    start, stop, buffer_size, projector, drop_small_buffer,
                    split_size, 0, None)
 
+    @copy_function_doc_to_method_doc(plot_raw)
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None):
-        """Plot raw data
-
-        Parameters
-        ----------
-        events : array | None
-            Events to show with vertical bars.
-        duration : float
-            Time window (sec) to plot in a given time.
-        start : float
-            Initial time to show (can be changed dynamically once plotted).
-        n_channels : int
-            Number of channels to plot at once. Defaults to 20. Has no effect
-            if ``order`` is 'position' or 'selection'.
-        bgcolor : color object
-            Color of the background.
-        color : dict | color object | None
-            Color for the data traces. If None, defaults to::
-
-                dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
-                     emg='k', ref_meg='steelblue', misc='k', stim='k',
-                     resp='k', chpi='k')
-
-        bad_color : color object
-            Color to make bad channels.
-        event_color : color object
-            Color to use for events.
-        scalings : dict | None
-            Scaling factors for the traces. If any fields in scalings are
-            'auto', the scaling factor is set to match the 99.5th percentile of
-            a subset of the corresponding data. If scalings == 'auto', all
-            scalings fields are set to 'auto'. If any fields are 'auto' and
-            data is not preloaded, a subset of times up to 100mb will be
-            loaded. If None, defaults to::
-
-                dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
-                     emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
-                     resp=1, chpi=1e-4)
-
-        remove_dc : bool
-            If True remove DC component when plotting data.
-        order : str | array of int
-            Order in which to plot data. 'type' groups by channel type,
-            'original' plots in the order of ch_names, 'selection' uses
-            Elekta's channel groupings (only works for Neuromag data),
-            'position' groups the channels by the positions of the sensors.
-            'selection' and 'position' modes allow custom selections by using
-            lasso selector on the topomap. Pressing ``ctrl`` key while
-            selecting allows appending to the current selection. If array, only
-            the channels in the array are plotted in the given order. Defaults
-            to 'type'.
-        show_options : bool
-            If True, a dialog for options related to projection is shown.
-        title : str | None
-            The title of the window. If None, and either the filename of the
-            raw object or '<unknown>' will be displayed as title.
-        show : bool
-            Show figures if True
-        block : bool
-            Whether to halt program execution until the figure is closed.
-            Useful for setting bad channels on the fly (click on line).
-            May not work on all systems / platforms.
-        highpass : float | None
-            Highpass to apply when displaying data.
-        lowpass : float | None
-            Lowpass to apply when displaying data.
-        filtorder : int
-            Filtering order. Note that for efficiency and simplicity,
-            filtering during plotting uses forward-backward IIR filtering,
-            so the effective filter order will be twice ``filtorder``.
-            Filtering the lines for display may also produce some edge
-            artifacts (at the left and right edges) of the signals
-            during display. Filtering requires scipy >= 0.10.
-        clipping : str | None
-            If None, channels are allowed to exceed their designated bounds in
-            the plot. If "clamp", then values are clamped to the appropriate
-            range for display, creating step-like artifacts. If "transparent",
-            then excessive values are not shown, creating gaps in the traces.
-
-        Returns
-        -------
-        fig : Instance of matplotlib.figure.Figure
-            Raw traces.
-
-        Notes
-        -----
-        The arrow keys (up/down/left/right) can typically be used to navigate
-        between channels and time ranges, but this depends on the backend
-        matplotlib is configured to use (e.g., mpl.use('TkAgg') should work).
-        The scaling can be adjusted with - and + (or =) keys. The viewport
-        dimensions can be adjusted with page up/page down and home/end keys.
-        Full screen mode can be to toggled with f11 key. To mark or un-mark a
-        channel as bad, click on the rather flat segments of a channel's time
-        series. The changes will be reflected immediately in the raw object's
-        ``raw.info['bads']`` entry.
-        """
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
                         lowpass, filtorder, clipping)
 
     @verbose
+    @copy_function_doc_to_method_doc(plot_raw_psd)
     def plot_psd(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
                  proj=False, n_fft=2048, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
                  n_overlap=0, dB=True, show=True, n_jobs=1, verbose=None):
-        """Plot the power spectral density across channels
-
-        Parameters
-        ----------
-        tmin : float
-            Start time for calculations.
-        tmax : float
-            End time for calculations.
-        fmin : float
-            Start frequency to consider.
-        fmax : float
-            End frequency to consider.
-        proj : bool
-            Apply projection.
-        n_fft : int
-            Number of points to use in Welch FFT calculations.
-        picks : array-like of int | None
-            List of channels to use. Cannot be None if `ax` is supplied. If
-            both `picks` and `ax` are None, separate subplots will be created
-            for each standard channel type (`mag`, `grad`, and `eeg`).
-        ax : instance of matplotlib Axes | None
-            Axes to plot into. If None, axes will be created.
-        color : str | tuple
-            A matplotlib-compatible color to use.
-        area_mode : str | None
-            How to plot area. If 'std', the mean +/- 1 STD (across channels)
-            will be plotted. If 'range', the min and max (across channels)
-            will be plotted. Bad channels will be excluded from these
-            calculations. If None, no area will be plotted.
-        area_alpha : float
-            Alpha for the area.
-        n_overlap : int
-            The number of points of overlap between blocks. The default value
-            is 0 (no overlap).
-        dB : bool
-            If True, transform data to decibels.
-        show : bool
-            Call pyplot.show() at the end.
-        n_jobs : int
-            Number of jobs to run in parallel.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Returns
-        -------
-        fig : instance of matplotlib figure
-            Figure with frequency spectra of the data channels.
-        """
         return plot_raw_psd(self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
                             proj=proj, n_fft=n_fft, picks=picks, ax=ax,
                             color=color, area_mode=area_mode,
                             area_alpha=area_alpha, n_overlap=n_overlap,
                             dB=dB, show=show, n_jobs=n_jobs)
 
+    @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
                       show=True, n_jobs=1, verbose=None):
-        """Function for plotting channel wise frequency spectra as topography.
-
-        Parameters
-        ----------
-        tmin : float
-            Start time for calculations. Defaults to zero.
-        tmax : float | None
-            End time for calculations. If None (default), the end of data is
-            used.
-        fmin : float
-            Start frequency to consider. Defaults to zero.
-        fmax : float
-            End frequency to consider. Defaults to 100.
-        proj : bool
-            Apply projection. Defaults to False.
-        n_fft : int
-            Number of points to use in Welch FFT calculations. Defaults to
-            2048.
-        n_overlap : int
-            The number of points of overlap between blocks. Defaults to 0
-            (no overlap).
-        layout : instance of Layout | None
-            Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If None (default), the correct
-            layout is inferred from the data.
-        color : str | tuple
-            A matplotlib-compatible color to use for the curves. Defaults to
-            white.
-        fig_facecolor : str | tuple
-            A matplotlib-compatible color to use for the figure background.
-            Defaults to black.
-        axis_facecolor : str | tuple
-            A matplotlib-compatible color to use for the axis background.
-            Defaults to black.
-        dB : bool
-            If True, transform data to decibels. Defaults to True.
-        show : bool
-            Show figure if True. Defaults to True.
-        n_jobs : int
-            Number of jobs to run in parallel. Defaults to 1.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Returns
-        -------
-        fig : instance of matplotlib figure
-            Figure distributing one image per channel across sensor topography.
-        """
         return plot_raw_psd_topo(self, tmin=tmin, tmax=tmax, fmin=fmin,
                                  fmax=fmax, proj=proj, n_fft=n_fft,
                                  n_overlap=n_overlap, layout=layout,

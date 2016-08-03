@@ -23,7 +23,9 @@ from ..utils import _mult_cal_one
 
 from ...annotations import Annotations, _combine_annotations
 from ...externals.six import string_types
-from ...utils import check_fname, logger, verbose, warn
+from ...utils import (check_fname, logger, verbose, warn,
+                      copy_function_doc_to_method_doc)
+from ...channels import fix_mag_coil_types
 
 
 class Raw(_BaseRaw):
@@ -431,35 +433,8 @@ class Raw(_BaseRaw):
                 if this['last'] >= stop:
                     break
 
+    @copy_function_doc_to_method_doc(fix_mag_coil_types)
     def fix_mag_coil_types(self):
-        """Fix Elekta magnetometer coil types
-
-        Returns
-        -------
-        raw : instance of Raw
-            The raw object. Operates in place.
-
-        Notes
-        -----
-        This function changes magnetometer coil types 3022 (T1: SQ20483N) and
-        3023 (T2: SQ20483-A) to 3024 (T3: SQ20950N) in the channel definition
-        records in the info structure.
-
-        Neuromag Vectorview systems can contain magnetometers with two
-        different coil sizes (3022 and 3023 vs. 3024). The systems
-        incorporating coils of type 3024 were introduced last and are used at
-        the majority of MEG sites. At some sites with 3024 magnetometers,
-        the data files have still defined the magnetometers to be of type
-        3022 to ensure compatibility with older versions of Neuromag software.
-        In the MNE software as well as in the present version of Neuromag
-        software coil type 3024 is fully supported. Therefore, it is now safe
-        to upgrade the data files to use the true coil type.
-
-        .. note:: The effect of the difference between the coil sizes on the
-                  current estimates computed by the MNE software is very small.
-                  Therefore the use of this function is not mandatory.
-        """
-        from ...channels import fix_mag_coil_types
         fix_mag_coil_types(self.info)
         return self
 

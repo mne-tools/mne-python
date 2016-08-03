@@ -1736,9 +1736,7 @@ def plot_layout(layout, show=True):
 
     Notes
     -----
-
     .. versionadded:: 0.12.0
-
     """
     import matplotlib.pyplot as plt
     fig = plt.figure()
