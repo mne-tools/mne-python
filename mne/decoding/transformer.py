@@ -810,10 +810,10 @@ class TemporalFilter(TransformerMixin):
         dummy_array = [1, 2]
 
         (_, self.sfreq, self.l_freq, self.h_freq, self.l_trans_bandwidth,
-         self.h_trans_bandwidth, self.filter_length, _) =
-        _triage_filter_params(dummy_array, sfreq, l_freq, h_freq,
-                              l_trans_bandwidth, h_trans_bandwidth,
-                              filter_length, method, phase='zero')
+         self.h_trans_bandwidth, self.filter_length, _) = \
+            _triage_filter_params(dummy_array, sfreq, l_freq, h_freq,
+                                  l_trans_bandwidth, h_trans_bandwidth,
+                                  filter_length, method, phase='zero')
 
         if not isinstance(self.n_jobs, int) and self.n_jobs == 'cuda':
             raise ValueError('n_jobs must be int or "cuda", got %s instead.'
