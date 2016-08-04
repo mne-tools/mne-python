@@ -47,7 +47,7 @@ picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 n_components = 25  # if float, select n_components by explained variance of PCA
 method = 'fastica'  # for comparison with EEGLAB try "extended-infomax" here
-decim = 3  # we need sufficient statistics, not all time points -> save time
+decim = 3  # we need sufficient statistics, not all time points -> saves time
 
 # we will also set state of the random number generator - ICA is a
 # non-deterministic algorithm, but we want to have the same decomposition
@@ -69,7 +69,7 @@ print(ica)
 ###############################################################################
 # Plot ICA components
 
-ica.plot_components()  # can you see some potential bad guys?
+ica.plot_components()  # can you spot some potential bad guys?
 
 
 ###############################################################################
@@ -138,7 +138,6 @@ ica.plot_overlay(eog_average, exclude=eog_inds, show=False)
 
 # to definitely register this component as a bad one to be removed
 # there is the ``ica.exclude`` attribute, a simple Python list
-
 ica.exclude.extend(eog_inds)
 
 # from now on the ICA will reject this component even if no exclude

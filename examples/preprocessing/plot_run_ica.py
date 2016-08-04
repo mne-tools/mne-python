@@ -25,18 +25,25 @@ from mne.datasets import sample
 print(__doc__)
 
 ###############################################################################
-# Fit ICA model using the FastICA algorithm, detect and inspect components
+# Read and preprocess the data. Preprocessing consists of:
+# * meg channel selection
+# * 1 - 30 Hz band-pass IIR filter
+# * epoching -0.2 to 0.5 seconds with respect to events
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 30, method='iir')
 raw.pick_types(meg=True, eeg=False, exclude='bads', stim=True)
+raw.filter(1, 30, method='iir')
 
 # longer + more epochs for more artifact exposure
 events = mne.find_events(raw, stim_channel='STI 014')
 epochs = mne.Epochs(raw, events, event_id=None, tmin=-0.2, tmax=0.5)
+
+###############################################################################
+# Fit ICA model using the FastICA algorithm, detect and plot components
+# explaining ECG artifacts.
 
 ica = ICA(n_components=0.95, method='fastica').fit(epochs)
 
@@ -44,4 +51,19 @@ ecg_epochs = create_ecg_epochs(raw, tmin=-.5, tmax=.5)
 ecg_inds, scores = ica.find_bads_ecg(ecg_epochs)
 
 ica.plot_components(ecg_inds)
+
+###############################################################################
+# Plot properties of ECG components:
 ica.plot_properties(epochs, picks=ecg_inds)
+
+###############################################################################
+# Mark EOG components for removal and compare evoked response before/after:
+
+ica.exclude = ecg_inds
+ica.plot_overlay(epochs)
+
+###############################################################################
+# Although the epochs evoked response does not change much, we can see the
+# effects of component removal clearly on `ecg_epochs`:
+
+ica.plot_overlay(ecg_epochs)
