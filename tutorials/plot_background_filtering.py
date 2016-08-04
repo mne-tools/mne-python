@@ -94,7 +94,7 @@ In MNE-Python we default to using FIR filtering. As noted in Widmann *et al.*
 
     Despite IIR filters often being considered as computationally more
     efficient, they are recommended only when high throughput and sharp
-    cutoffs are required (Ifeachor and Jervis, 2002 [[2]_], p. 321),
+    cutoffs are required (Ifeachor and Jervis, 2002[2]_, p. 321),
     ...FIR filters are easier to control, are always stable, have a
     well-defined passband, can be corrected to zero-phase without
     additional computations, and can be converted to minimum-phase.
@@ -266,6 +266,11 @@ plot_filter(h, 'Sinc (10.0 sec)', freq, gain)
 #     2. Windowed FIR design (`scipy firwin2`_, `MATLAB fir2`_)
 #     3. Least squares designs (`MATLAB firls`_; coming to scipy 0.18)
 #
+# .. note:: Remez and least squares designs have advantages when there are
+#           "do not care" regions in our frequency response. However, we want
+#           well controlled responses in all frequency regions, so here we
+#           will use and explore only windowed FIR design.
+#
 # If we relax our frequency-domain filter requirements a little bit, we can
 # use these functions to construct a lowpass filter that instead has a
 # *transition band*, or a region between the pass frequency :math:`f_p`
@@ -355,7 +360,7 @@ x += np.sin(2. * np.pi * 60. * np.arange(len(x)) / sfreq) / 2000.
 
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
-filter_dur = 7. / transition_band  # sec
+filter_dur = 6.6 / transition_band  # sec
 n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
@@ -367,7 +372,7 @@ plot_filter(h, 'MNE-Python 0.14 default', freq, gain)
 ###############################################################################
 # This is actually set to become the default type of filter used in MNE-Python
 # in 0.14 (see :ref:`tut_filtering_in_python`). Let's also filter it with the
-# MNE-Python 0.12 default, which is a long-duration, steep cutoff FIR
+# MNE-Python 0.13 default, which is a long-duration, steep cutoff FIR
 # that gets applied twice:
 
 transition_band = 0.5  # Hz
@@ -379,7 +384,7 @@ gain = [1., 1., 0., 0.]
 h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
 x_steep = np.convolve(np.convolve(h, x)[::-1], h)[::-1][len(h) - 1:-len(h) - 1]
 
-plot_filter(h, 'MNE-Python 0.12 default', freq, gain)
+plot_filter(h, 'MNE-Python 0.13 default', freq, gain)
 
 ###############################################################################
 # It has excellent frequency attenuation, but this comes at a cost of potential
@@ -389,7 +394,7 @@ plot_filter(h, 'MNE-Python 0.12 default', freq, gain)
 # and the time-domain ringing is thus more pronounced for the steep-slope,
 # long-duration filter than the shorter, shallower-slope filter:
 
-axs = plt.subplots(2)[1]
+axs = plt.subplots(1, 2)[1]
 
 
 def plot_signal(x, offset):
@@ -406,7 +411,7 @@ def plot_signal(x, offset):
     axs[1].set(xlim=xlim)
 
 yticks = np.arange(4) / -30.
-yticklabels = ['Original', 'Noisy', 'FIR-shallow (0.14)', 'FIR-steep (0.12)']
+yticklabels = ['Original', 'Noisy', 'FIR-shallow (0.14)', 'FIR-steep (0.13)']
 plot_signal(x_orig, offset=yticks[0])
 plot_signal(x, offset=yticks[1])
 plot_signal(x_shallow, offset=yticks[2])
@@ -510,7 +515,7 @@ plot_filter(sos, 'Chebychev-1 order=8, ripple=6 dB', freq, gain)
 # Now let's look at how our shallow and steep Butterworth IIR filters
 # perform on our Morlet signal from before:
 
-axs = plt.subplots(2)[1]
+axs = plt.subplots(1, 2)[1]
 yticks = np.arange(4) / -30.
 yticklabels = ['Original', 'Noisy', 'Butterworth-2', 'Butterworth-8']
 plot_signal(x_orig, offset=yticks[0])
@@ -774,8 +779,25 @@ baseline_plot(x)
 # ``h_trans_bandwidth='auto'``.
 #
 # To choose the filter length automatically with ``filter_length='auto'``,
-# 7 times the reciprocal of the shortest transition bandwidth is used to ensure
-# decent attenuation at the stop frequency.
+# the reciprocal of the shortest transition bandwidth is used to ensure
+# decent attenuation at the stop frequency. Specifically, the reciprocal
+# (in samples) is multiplied by 6.2, 6.6, or 11.0 for the Hann, Hamming,
+# or Blackman windows, respectively as selected by the ``fir_window``
+# argument.
+#
+# .. note:: These multiplicative factors are double what is given in
+#           Ifeachor and Jervis [2]_ (p. 357). The window functions have a
+#           smearing effect on the frequency response; I&J thus take the
+#           approach of setting the stop frequency as
+#           :math:`f_s = f_p + f_{trans} / 2.`, but our stated definitions of
+#           :math:`f_s` and :math:`f_{trans}` do not
+#           allow us to do this in a nice way. Instead, we increase our filter
+#           length to achieve acceptable (20+ dB) attenuation by
+#           :math:`f_s = f_p + f_{trans}`, and excellent (50+ dB)
+#           attenuation by :math:`f_s + f_{trans}` (and usually earlier).
+#
+# In 0.14, we default to using a Hamming window in filter design, as it
+# provides up to 53 dB of stop-band attenuation with small pass-band ripple.
 #
 # .. note:: In band-pass applications, often a low-pass filter can operate
 #           effectively with fewer samples than the high-pass filter, so

@@ -877,7 +877,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length='',
                l_trans_bandwidth=None, h_trans_bandwidth=None, n_jobs=1,
-               method='fir', iir_params=None, phase='', verbose=None):
+               method='fir', iir_params=None, phase='', fir_window='',
+               verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -917,8 +918,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
                 * int: specified length in samples.
                 * 'auto' (default in 0.14): the filter length is chosen based
-                  on the size of the transition regions (7 times the reciprocal
-                  of the shortest transition band).
+                  on the size of the transition regions (6.6 times the
+                  reciprocal of the shortest transition band for
+                  fir_window='hamming').
                 * str: (default in 0.13 is "10s") a human-readable time in
                   units of "s" or "ms" (e.g., "10s" or "5500ms") will be
                   converted to that number of samples if ``phase="zero"``, or
@@ -958,6 +960,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             is compensated for. If ``phase=='zero-double'`` (default in 0.13
             and before), then this filter is applied twice, once forward, and
             once backward.
+
+            .. versionadded:: 0.13
+
+        fir_window : str
+            The window to use in FIR design, can be "hamming" (default in
+            0.14), "hann" (default in 0.13), or "blackman".
+
+            .. versionadded:: 0.13
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -999,7 +1010,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                             'be updated.')
         filter_data(self._data, self.info['sfreq'], l_freq, h_freq, picks,
                     filter_length, l_trans_bandwidth, h_trans_bandwidth,
-                    n_jobs, method, iir_params, copy=False, phase=phase)
+                    n_jobs, method, iir_params, copy=False, phase=phase,
+                    fir_window=fir_window)
         # update info if filter is applied to all data channels,
         # and it's not a band-stop filter
         if update_info:
@@ -1017,7 +1029,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def notch_filter(self, freqs, picks=None, filter_length='',
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
                      method='fft', iir_params=None, mt_bandwidth=None,
-                     p_value=0.05, phase='', verbose=None):
+                     p_value=0.05, phase='', fir_window='', verbose=None):
         """Notch filter a subset of channels.
 
         Applies a zero-phase notch filter to the channels selected by
@@ -1045,8 +1057,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
                 * int: specified length in samples.
                 * 'auto' (default in 0.14): the filter length is chosen based
-                  on the size of the transition regions (7 times the reciprocal
-                  of the shortest transition band).
+                  on the size of the transition regions (6.6 times the
+                  reciprocal of the shortest transition band for
+                  fir_window='hamming').
                 * str: (default in 0.13 is "10s") a human-readable time in
                   units of "s" or "ms" (e.g., "10s" or "5500ms") will be
                   converted to that number of samples if ``phase="zero"``, or
@@ -1085,6 +1098,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             is compensated for. If ``phase=='zero-double'`` (default in 0.13
             and before), then this filter is applied twice, once forward, and
             once backward.
+
+            .. versionadded:: 0.13
+
+        fir_window : str
+            The window to use in FIR design, can be "hamming" (default in
+            0.14), "hann" (default in 0.13), or "blackman".
+
+            .. versionadded:: 0.13
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -1116,7 +1138,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             notch_widths=notch_widths, trans_bandwidth=trans_bandwidth,
             method=method, iir_params=iir_params, mt_bandwidth=mt_bandwidth,
             p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False,
-            phase=phase)
+            phase=phase, fir_window=fir_window)
         return self
 
     @verbose

@@ -39,10 +39,9 @@ def test_estimate_ringing():
 def test_1d_filter():
     """Test our private overlap-add filtering function"""
     # make some random signals and filters
-    for n_signal in (1, 2, 3, 5, 10, 20, 40, 100, 200, 400, 1000, 2000):
+    for n_signal in (1, 2, 3, 5, 10, 20, 40):
         x = rng.randn(n_signal)
-        for n_filter in (1, 2, 3, 5, 10, 11, 20, 21, 40, 41, 100, 101, 200,
-                         201, 400, 401, 1000, 1001, 2000, 2001):
+        for n_filter in (1, 2, 3, 5, 10, 11, 20, 21, 40, 41, 100, 101):
             for filter_type in ('identity', 'random'):
                 if filter_type == 'random':
                     h = rng.randn(n_filter)
@@ -97,7 +96,7 @@ def test_1d_filter():
                         else:
                             x_filtered = _overlap_add_filter(
                                 x_copy, h, n_fft, phase=phase)[0]
-                            assert_allclose(x_filtered, x_expected, atol=1e-14)
+                            assert_allclose(x_filtered, x_expected, atol=1e-13)
 
 
 @requires_version('scipy', '0.16')
@@ -246,8 +245,8 @@ def test_resample_stim_channel():
 @slow_test
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters plus resampling"""
-    sfreq = 500
-    sig_len_secs = 30
+    sfreq = 100
+    sig_len_secs = 15
 
     a = rng.randn(2, sig_len_secs * sfreq)
 
@@ -257,16 +256,18 @@ def test_filters():
                       1.0, 1.0, phase='zero')
     for nj in ['blah', 0.5]:
         assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, 100,
-                      1.0, 1.0, n_jobs=nj, phase='zero')
+                      1.0, 1.0, n_jobs=nj, phase='zero', fir_window='hann')
+    assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, 100,
+                  1.0, 1.0, phase='zero', fir_window='foo')
     # > Nyq/2
     assert_raises(ValueError, band_pass_filter, a, sfreq, 4, sfreq / 2.,
-                  100, 1.0, 1.0, phase='zero')
+                  100, 1.0, 1.0, phase='zero', fir_window='hann')
     assert_raises(ValueError, low_pass_filter, a, sfreq, sfreq / 2.,
-                  100, 1.0, phase='zero')
+                  100, 1.0, phase='zero', fir_window='hann')
     # check our short-filter warning:
     with warnings.catch_warnings(record=True) as w:
         # Warning for low attenuation
-        band_pass_filter(a, sfreq, 1, 8, filter_length=1024, phase='zero')
+        band_pass_filter(a, sfreq, 1, 8, filter_length=256, phase='zero')
     assert_true(any('attenuation' in str(ww.message) for ww in w))
     with warnings.catch_warnings(record=True) as w:
         # Warning for too short a filter
@@ -274,14 +275,17 @@ def test_filters():
     assert_true(any('Increase filter_length' in str(ww.message) for ww in w))
 
     # try new default and old default
-    for fl in ['auto', '10s', '5000ms', 8192]:
-        bp = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0, phase='zero')
+    for fl in ['auto', '10s', '5000ms', 1024]:
+        bp = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0, phase='zero',
+                              fir_window='hamming')
         bs = band_stop_filter(a, sfreq, 4 - 1.0, 8 + 1.0, fl, 1.0, 1.0,
-                              phase='zero')
-        lp = low_pass_filter(a, sfreq, 8, fl, 1.0, n_jobs=2, phase='zero')
-        hp = high_pass_filter(lp, sfreq, 4, fl, 1.0, phase='zero')
-        assert_array_almost_equal(hp, bp, 5)
-        assert_array_almost_equal(bp + bs, a, 5)
+                              phase='zero', fir_window='hamming')
+        lp = low_pass_filter(a, sfreq, 8, fl, 1.0, n_jobs=2, phase='zero',
+                             fir_window='hamming')
+        hp = high_pass_filter(lp, sfreq, 4, fl, 1.0, phase='zero',
+                              fir_window='hamming')
+        assert_array_almost_equal(hp, bp, 4)
+        assert_array_almost_equal(bp + bs, a, 4)
 
     # and since these are low-passed, downsampling/upsampling should be close
     n_resamp_ignore = 10
@@ -330,9 +334,10 @@ def test_filters():
     a = rng.randn(5 * sfreq, 5 * sfreq)
     b = a[:, None, :]
 
-    a_filt = band_pass_filter(a, sfreq, 4, 8, 1000, 2.0, 2.0, phase='zero')
-    b_filt = band_pass_filter(b, sfreq, 4, 8, 1000, 2.0, 2.0, picks=[0],
-                              phase='zero')
+    a_filt = band_pass_filter(a, sfreq, 4, 8, 400, 2.0, 2.0, phase='zero',
+                              fir_window='hamming')
+    b_filt = band_pass_filter(b, sfreq, 4, 8, 400, 2.0, 2.0, picks=[0],
+                              phase='zero', fir_window='hamming')
 
     assert_array_equal(a_filt[:, None, :], b_filt)
 
@@ -354,7 +359,8 @@ def test_filter_auto():
     x = np.ones(N)
     t = np.arange(N) / sfreq
     x += np.sin(2 * np.pi * sine_freq * t)
-    x_filt = low_pass_filter(x, sfreq, lp, 'auto', 'auto', phase='zero')
+    x_filt = low_pass_filter(x, sfreq, lp, 'auto', 'auto', phase='zero',
+                             fir_window='hamming')
     # the firwin2 function gets us this close
     assert_allclose(x, x_filt, rtol=1e-4, atol=1e-4)
 
@@ -378,25 +384,26 @@ def test_cuda():
     with catch_logging() as log_file:
         for fl in ['auto', '10s', 2048]:
             bp = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0, n_jobs=1,
-                                  phase='zero')
+                                  phase='zero', fir_window='hann')
             bs = band_stop_filter(a, sfreq, 4 - 1.0, 8 + 1.0, fl, 1.0, 1.0,
-                                  n_jobs=1, phase='zero')
-            lp = low_pass_filter(a, sfreq, 8, fl, 1.0, n_jobs=1, phase='zero')
+                                  n_jobs=1, phase='zero', fir_window='hann')
+            lp = low_pass_filter(a, sfreq, 8, fl, 1.0, n_jobs=1, phase='zero',
+                                 fir_window='hann')
             hp = high_pass_filter(lp, sfreq, 4, fl, 1.0, n_jobs=1,
-                                  phase='zero')
+                                  phase='zero', fir_window='hann')
 
             bp_c = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0,
                                     n_jobs='cuda', verbose='INFO',
-                                    phase='zero')
+                                    phase='zero', fir_window='hann')
             bs_c = band_stop_filter(a, sfreq, 4 - 1.0, 8 + 1.0, fl, 1.0, 1.0,
                                     n_jobs='cuda', verbose='INFO',
-                                    phase='zero')
+                                    phase='zero', fir_window='hann')
             lp_c = low_pass_filter(a, sfreq, 8, fl, 1.0,
                                    n_jobs='cuda', verbose='INFO',
-                                   phase='zero')
+                                   phase='zero', fir_window='hann')
             hp_c = high_pass_filter(lp, sfreq, 4, fl, 1.0,
                                     n_jobs='cuda', verbose='INFO',
-                                    phase='zero')
+                                    phase='zero', fir_window='hann')
 
             assert_array_almost_equal(bp, bp_c, 12)
             assert_array_almost_equal(bs, bs_c, 12)

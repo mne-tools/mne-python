@@ -14,6 +14,10 @@ from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from .utils import logger, verbose, sum_squared, check_version, warn
 
 
+# These values are *double* what is given in Ifeachor and Jervis.
+_length_factors = dict(hann=6.2, hamming=6.6, blackman=11.0)
+
+
 def is_power2(num):
     """Test if number is a power of 2
 
@@ -280,7 +284,7 @@ def _prep_for_filtering(x, copy, picks=None):
 
 
 def _filter(x, Fs, freq, gain, filter_length, picks=None, n_jobs=1,
-            copy=True, phase='zero'):
+            copy=True, phase='zero', fir_window='hamming'):
     """Filter signal using gain control points in the frequency domain.
 
     The filter impulse response is constructed from a Hann window (window
@@ -314,6 +318,9 @@ def _filter(x, Fs, freq, gain, filter_length, picks=None, n_jobs=1,
         an odd-length symmetric filter). If 'linear', the response is
         uncompensated. If 'zero-double', the filter is applied in the
         forward and reverse directions.
+    fir_window : str
+        The window to use in FIR design, can be "hamming" (default),
+        "hann", or "blackman".
 
     Returns
     -------
@@ -338,7 +345,7 @@ def _filter(x, Fs, freq, gain, filter_length, picks=None, n_jobs=1,
     # Use overlap-add filter with a fixed length
     N = _check_zero_phase_length(filter_length, phase, gain[-1])
     # construct symmetric (linear phase) filter
-    h = firwin2(N, freq, gain, window='hann')
+    h = firwin2(N, freq, gain, window=fir_window)
     att_db, att_freq = _filter_attenuation(h, freq, gain)
     if phase == 'zero-double':
         att_db += 6
@@ -666,8 +673,8 @@ def _check_method(method, iir_params, extra_types):
 @verbose
 def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
                 l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
-                method='fir', iir_params=None, copy=True, phase='',
-                verbose=None):
+                method='fir', iir_params=None, copy=True, phase='zero',
+                fir_window='hamming', verbose=None):
     """Filter a subset of channels.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -704,8 +711,8 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
             * int: specified length in samples.
             * 'auto' (default in 0.14): the filter length is chosen based
-              on the size of the transition regions (7 times the reciprocal
-              of the shortest transition band).
+              on the size of the transition regions (6.6 times the reciprocal
+              of the shortest transition band for fir_window='hamming').
             * str: (default in 0.13 is "10s") a human-readable time in
               units of "s" or "ms" (e.g., "10s" or "5500ms") will be
               converted to that number of samples if ``phase="zero"``, or
@@ -744,10 +751,18 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     phase : str
         Phase of the filter, only used if ``method='fir'``.
         By default, a symmetric linear-phase FIR filter is constructed.
-        If ``phase='zero'`` (default in 0.14), the delay of this filter
-        is compensated for. If ``phase=='zero-double'`` (default in 0.13
-        and before), then this filter is applied twice, once forward, and
-        once backward.
+        If ``phase='zero'`` (default), the delay of this filter
+        is compensated for. If ``phase=='zero-double'``, then this filter
+        is applied twice, once forward, and once backward.
+
+        .. versionadded:: 0.13
+
+    fir_window : str
+        The window to use in FIR design, can be "hamming" (default),
+        "hann" (default in 0.13), or "blackman".
+
+        .. versionadded:: 0.13
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
@@ -793,14 +808,14 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
                         filter_length=filter_length,
                         trans_bandwidth=h_trans_bandwidth, method=method,
                         iir_params=iir_params, picks=picks, n_jobs=n_jobs,
-                        copy=copy, phase=phase)
+                        copy=copy, phase=phase, fir_window=fir_window)
     if l_freq is not None and h_freq is None:
         logger.info('High-pass filtering at %0.2g Hz' % l_freq)
         high_pass_filter(
             data, sfreq, l_freq, filter_length=filter_length,
             trans_bandwidth=l_trans_bandwidth, method=method,
             iir_params=iir_params, picks=picks, n_jobs=n_jobs, copy=copy,
-            phase=phase)
+            phase=phase, fir_window=fir_window)
     if l_freq is not None and h_freq is not None:
         if l_freq < h_freq:
             logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
@@ -811,7 +826,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
                 l_trans_bandwidth=l_trans_bandwidth,
                 h_trans_bandwidth=h_trans_bandwidth,
                 method=method, iir_params=iir_params, picks=picks,
-                n_jobs=n_jobs, copy=copy, phase=phase)
+                n_jobs=n_jobs, copy=copy, phase=phase, fir_window=fir_window)
         else:
             logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
                         % (h_freq, l_freq))
@@ -821,7 +836,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
                 l_trans_bandwidth=h_trans_bandwidth,
                 h_trans_bandwidth=l_trans_bandwidth, method=method,
                 iir_params=iir_params, picks=picks, n_jobs=n_jobs,
-                copy=copy, phase=phase)
+                copy=copy, phase=phase, fir_window=fir_window)
     return data
 
 
@@ -829,7 +844,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
                      l_trans_bandwidth=None, h_trans_bandwidth=None,
                      method='fir', iir_params=None, picks=None, n_jobs=1,
-                     copy=True, phase='', verbose=None):
+                     copy=True, phase='', fir_window='', verbose=None):
     """Bandpass filter for the signal x.
 
     Applies a zero-phase bandpass filter to the signal x, operating on the
@@ -850,8 +865,8 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
 
             * int: specified length in samples.
             * 'auto' (default in 0.14): the filter length is chosen based
-              on the size of the transition regions (7 times the reciprocal
-              of the shortest transition band).
+              on the size of the transition regions (6.6 times the reciprocal
+              of the shortest transition band for fir_window='hamming').
             * str: (default in 0.13 is "10s") a human-readable time in
               units of "s" or "ms" (e.g., "10s" or "5500ms") will be
               converted to that number of samples if ``phase="zero"``, or
@@ -894,6 +909,15 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
         is compensated for. If ``phase=='zero-double'`` (default in 0.13
         and before), then this filter is applied twice, once forward, and
         once backward.
+
+        .. versionadded:: 0.13
+
+    fir_window : str
+        The window to use in FIR design, can be "hamming" (default in
+        0.14), "hann" (default in 0.13), or "blackman".
+
+        .. versionadded:: 0.13
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -931,9 +955,10 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
 
     """
     iir_params, method = _check_method(method, iir_params, [])
-    x, Fs, Fp1, Fp2, Fs1, Fs2, filter_length, phase = _triage_filter_params(
-        x, Fs, Fp1, Fp2, l_trans_bandwidth, h_trans_bandwidth, filter_length,
-        method, phase)
+    x, Fs, Fp1, Fp2, Fs1, Fs2, filter_length, phase, fir_window = \
+        _triage_filter_params(
+            x, Fs, Fp1, Fp2, l_trans_bandwidth, h_trans_bandwidth,
+            filter_length, method, phase, fir_window)
     if method == 'fir':
         freq = [Fs1, Fp1, Fp2, Fs2]
         gain = [0, 1, 1, 0]
@@ -944,7 +969,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
             freq += [Fs / 2.]
             gain += [0.]
         xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy,
-                     phase)
+                     phase, fir_window)
     else:
         iir_params = construct_iir_filter(iir_params, [Fp1, Fp2],
                                           [Fs1, Fs2], Fs, 'bandpass')
@@ -957,7 +982,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
 def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
                      l_trans_bandwidth=None, h_trans_bandwidth=None,
                      method='fir', iir_params=None, picks=None, n_jobs=1,
-                     copy=True, phase='', verbose=None):
+                     copy=True, phase='', fir_window='', verbose=None):
     """Bandstop filter for the signal x.
 
     Applies a zero-phase bandstop filter to the signal x, operating on the
@@ -978,8 +1003,8 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
 
             * int: specified length in samples.
             * 'auto' (default in 0.14): the filter length is chosen based
-              on the size of the transition regions (7 times the reciprocal
-              of the shortest transition band).
+              on the size of the transition regions (6.6 times the reciprocal
+              of the shortest transition band for fir_window='hamming').
             * str: (default in 0.13 is "10s") a human-readable time in
               units of "s" or "ms" (e.g., "10s" or "5500ms") will be
               converted to that number of samples if ``phase="zero"``, or
@@ -1022,6 +1047,15 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
         is compensated for. If ``phase=='zero-double'`` (default in 0.13
         and before), then this filter is applied twice, once forward, and
         once backward.
+
+        .. versionadded:: 0.13
+
+    fir_window : str
+        The window to use in FIR design, can be "hamming" (default in
+        0.14), "hann" (default in 0.13), or "blackman".
+
+        .. versionadded:: 0.13
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1063,9 +1097,11 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
     if len(Fp1) != len(Fp2):
         raise ValueError('Fp1 and Fp2 must be the same length')
     # Note: order of outputs is intentionally switched here!
-    x, Fs, Fs1, Fs2, Fp1, Fp2, filter_length, phase = _triage_filter_params(
-        x, Fs, Fp1, Fp2, l_trans_bandwidth, h_trans_bandwidth, filter_length,
-        method, phase, bands='arr', reverse=True)
+    x, Fs, Fs1, Fs2, Fp1, Fp2, filter_length, phase, fir_window = \
+        _triage_filter_params(
+            x, Fs, Fp1, Fp2, l_trans_bandwidth, h_trans_bandwidth,
+            filter_length, method, phase, fir_window,
+            bands='arr', reverse=True)
     if method == 'fir':
         freq = np.r_[Fp1, Fs1, Fs2, Fp2]
         gain = np.r_[np.ones_like(Fp1), np.zeros_like(Fs1),
@@ -1082,7 +1118,7 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
         if np.any(np.abs(np.diff(gain, 2)) > 1):
             raise ValueError('Stop bands are not sufficiently separated.')
         xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy,
-                     phase=phase)
+                     phase, fir_window)
     else:
         for fp_1, fp_2, fs_1, fs_2 in zip(Fp1, Fp2, Fs1, Fs2):
             iir_params_new = construct_iir_filter(iir_params, [fp_1, fp_2],
@@ -1095,7 +1131,7 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
 @verbose
 def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
                     method='fir', iir_params=None, picks=None, n_jobs=1,
-                    copy=True, phase='', verbose=None):
+                    copy=True, phase='', fir_window='', verbose=None):
     """Lowpass filter for the signal x.
 
     Applies a zero-phase lowpass filter to the signal x, operating on the
@@ -1114,8 +1150,8 @@ def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
 
             * int: specified length in samples.
             * 'auto' (default in 0.14): the filter length is chosen based
-              on the size of the transition regions (7 times the reciprocal
-              of the shortest transition band).
+              on the size of the transition regions (6.6 times the reciprocal
+              of the shortest transition band for fir_window='hamming').
             * str: (default in 0.13 is "10s") a human-readable time in
               units of "s" or "ms" (e.g., "10s" or "5500ms") will be
               converted to that number of samples if ``phase="zero"``, or
@@ -1151,6 +1187,15 @@ def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
         is compensated for. If ``phase=='zero-double'`` (default in 0.13
         and before), then this filter is applied twice, once forward, and
         once backward.
+
+        .. versionadded:: 0.13
+
+    fir_window : str
+        The window to use in FIR design, can be "hamming" (default in
+        0.14), "hann" (default in 0.13), or "blackman".
+
+        .. versionadded:: 0.13
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1184,8 +1229,10 @@ def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
     Where ``Fstop = Fp + trans_bandwidth``.
     """
     iir_params, method = _check_method(method, iir_params, [])
-    x, Fs, _, Fp, _, Fstop, filter_length, phase = _triage_filter_params(
-        x, Fs, None, Fp, None, trans_bandwidth, filter_length, method, phase)
+    x, Fs, _, Fp, _, Fstop, filter_length, phase, fir_window = \
+        _triage_filter_params(
+            x, Fs, None, Fp, None, trans_bandwidth, filter_length, method,
+            phase, fir_window)
     if method == 'fir':
         freq = [0, Fp, Fstop]
         gain = [1, 1, 0]
@@ -1193,7 +1240,7 @@ def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
             freq += [Fs / 2.]
             gain += [0]
         xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy,
-                     phase)
+                     phase, fir_window)
     else:
         iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'low')
         xf = _filtfilt(x, iir_params, picks, n_jobs, copy)
@@ -1204,7 +1251,7 @@ def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
 @verbose
 def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
                      method='fir', iir_params=None, picks=None, n_jobs=1,
-                     copy=True, phase='', verbose=None):
+                     copy=True, phase='', fir_window='', verbose=None):
     """Highpass filter for the signal x.
 
     Applies a zero-phase highpass filter to the signal x, operating on the
@@ -1223,8 +1270,8 @@ def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
 
             * int: specified length in samples.
             * 'auto' (default in 0.14): the filter length is chosen based
-              on the size of the transition regions (7 times the reciprocal
-              of the shortest transition band).
+              on the size of the transition regions (6.6 times the reciprocal
+              of the shortest transition band for fir_window='hamming').
             * str: (default in 0.13 is "10s") a human-readable time in
               units of "s" or "ms" (e.g., "10s" or "5500ms") will be
               converted to that number of samples if ``phase="zero"``, or
@@ -1260,6 +1307,15 @@ def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
         is compensated for. If ``phase=='zero-double'`` (default in 0.13
         and before), then this filter is applied twice, once forward, and
         once backward.
+
+        .. versionadded:: 0.13
+
+    fir_window : str
+        The window to use in FIR design, can be "hamming" (default in
+        0.14), "hann" (default in 0.13), or "blackman".
+
+        .. versionadded:: 0.13
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1293,8 +1349,10 @@ def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
     Where ``Fstop = Fp - trans_bandwidth``.
     """
     iir_params, method = _check_method(method, iir_params, [])
-    x, Fs, Fp, _, Fstop, _, filter_length, phase = _triage_filter_params(
-        x, Fs, Fp, None, trans_bandwidth, None, filter_length, method, phase)
+    x, Fs, Fp, _, Fstop, _, filter_length, phase, fir_window = \
+        _triage_filter_params(
+            x, Fs, Fp, None, trans_bandwidth, None, filter_length, method,
+            phase, fir_window)
     if method == 'fir':
         freq = [Fstop, Fp, Fs / 2.]
         gain = [0, 1, 1]
@@ -1302,7 +1360,7 @@ def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
             freq = [0] + freq
             gain = [0] + gain
         xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy,
-                     phase)
+                     phase, fir_window)
     else:
         iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'high')
         xf = _filtfilt(x, iir_params, picks, n_jobs, copy)
@@ -1313,7 +1371,7 @@ def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
 def notch_filter(x, Fs, freqs, filter_length='', notch_widths=None,
                  trans_bandwidth=1, method='fir', iir_params=None,
                  mt_bandwidth=None, p_value=0.05, picks=None, n_jobs=1,
-                 copy=True, phase='', verbose=None):
+                 copy=True, phase='', fir_window='', verbose=None):
     """Notch filter for the signal x.
 
     Applies a zero-phase notch filter to the signal x, operating on the last
@@ -1334,8 +1392,8 @@ def notch_filter(x, Fs, freqs, filter_length='', notch_widths=None,
 
             * int: specified length in samples.
             * 'auto' (default in 0.14): the filter length is chosen based
-              on the size of the transition regions (7 times the reciprocal
-              of the shortest transition band).
+              on the size of the transition regions (6.6 times the reciprocal
+              of the shortest transition band for fir_window='hamming').
             * str: (default in 0.13 is "10s") a human-readable time in
               units of "s" or "ms" (e.g., "10s" or "5500ms") will be
               converted to that number of samples if ``phase="zero"``, or
@@ -1381,6 +1439,15 @@ def notch_filter(x, Fs, freqs, filter_length='', notch_widths=None,
         is compensated for. If ``phase=='zero-double'`` (default in 0.13
         and before), then this filter is applied twice, once forward, and
         once backward.
+
+        .. versionadded:: 0.13
+
+    fir_window : str
+        The window to use in FIR design, can be "hamming" (default in
+        0.14), "hann" (default in 0.13), or "blackman".
+
+        .. versionadded:: 0.13
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1452,7 +1519,7 @@ def notch_filter(x, Fs, freqs, filter_length='', notch_widths=None,
                  for freq, nw in zip(freqs, notch_widths)]
         xf = band_stop_filter(x, Fs, lows, highs, filter_length, tb_2, tb_2,
                               method, iir_params, picks, n_jobs, copy,
-                              phase=phase)
+                              phase=phase, fir_window=fir_window)
     elif method == 'spectrum_fit':
         xf = _mt_spectrum_proc(x, Fs, freqs, notch_widths, mt_bandwidth,
                                p_value, picks, n_jobs, copy)
@@ -1619,7 +1686,7 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
     axis : int
         Axis along which to resample (default is the last axis).
     window : string or tuple
-        See scipy.signal.resample for description.
+        See :func:`scipy.signal.resample` for description.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
@@ -1829,18 +1896,28 @@ def detrend(x, order=1, axis=-1):
 
 def _triage_filter_params(x, sfreq, l_freq, h_freq,
                           l_trans_bandwidth, h_trans_bandwidth,
-                          filter_length, method, phase, bands='scalar',
-                          reverse=False):
+                          filter_length, method, phase, fir_window,
+                          bands='scalar', reverse=False):
     """Helper to validate and automate filter parameter selection"""
     dep = list()
     if not isinstance(phase, string_types) or phase not in \
             ('linear', 'zero', 'zero-double', ''):
         raise ValueError('phase must be "linear", "zero", or "zero-double", '
-                         'got "%s"' % phase)
-    if phase == '' and method == 'fir':
-        dep += ['phase in 0.13 is "zero-double" but will change to "zero" in '
-                '0.14']
+                         'got "%s"' % (phase,))
+    if not isinstance(fir_window, string_types) or fir_window not in \
+            ('hann', 'hamming', 'blackman', ''):
+        raise ValueError('fir_window must be "hamming", "hann", or "blackman",'
+                         'got "%s"' % (fir_window,))
+    if phase == '':
+        if method == 'fir':
+            dep += ['phase in 0.13 is "zero-double" but will change to '
+                    '"zero" in 0.14']
         phase = 'zero-double'
+    if fir_window == '':
+        if method == 'fir':
+            dep += ['fir_window in 0.13 is "hann" but will change to '
+                    '"hamming" in 0.14']
+        fir_window = 'hann'
 
     def float_array(c):
         return np.array(c, float).ravel()
@@ -1927,8 +2004,9 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
             filter_length = '10s'
         if filter_length == 'auto':
             filter_length = max(int(round(
-                7 * sfreq / float(min(h_trans_bandwidth or np.inf,
-                                      l_trans_bandwidth or np.inf)))), 1)
+                _length_factors[fir_window] * sfreq /
+                float(min(h_trans_bandwidth or np.inf,
+                          l_trans_bandwidth or np.inf)))), 1)
             logger.info('Filter length of %s samples (%0.3f sec) selected'
                         % (filter_length, filter_length / sfreq))
         else:
@@ -1977,7 +2055,8 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
     if len(dep) > 0:
         warn(('Multiple deprecated filter parameters were used:\n'
               if len(dep) > 1 else '') + '\n'.join(dep), DeprecationWarning)
-    return x, sfreq, l_freq, h_freq, l_stop, h_stop, filter_length, phase
+    return (x, sfreq, l_freq, h_freq, l_stop, h_stop, filter_length, phase,
+            fir_window)
 
 
 class FilterMixin(object):
