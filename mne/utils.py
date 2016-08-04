@@ -891,7 +891,7 @@ def copy_function_doc_to_method_doc(source):
     Notes
     -----
     The parsing performed is very basic and will break easily on docstrings
-    that are not formatted exactly accoring to the basic MNE structure. Always
+    that are not formatted exactly according to the basic MNE structure. Always
     inspect the resulting docstring when using this decorator.
     """
     def wrapper(func):

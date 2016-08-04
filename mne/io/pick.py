@@ -188,7 +188,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     ----------
     info : dict
         The measurement info.
-    meg : bool or string
+    meg : bool | str
         If True include all MEG channels. If False include None
         If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
         only magnetometers, all gradiometers, or a specific type of
@@ -234,7 +234,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
         List of channels to exclude. If 'bads' (default), exclude channels
-        in info['bads'].
+        in ``info['bads']``.
     selection : list of string
         Restrict sensor channels (MEG, EEG) to this list of channel names.
 

@@ -32,7 +32,7 @@ from .epochs import Epochs
 from .event import make_fixed_length_events
 from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_version, _time_mask, warn,
-                    copy_doc, copy_function_doc_to_method_doc)
+                    copy_function_doc_to_method_doc)
 from .fixes import in1d
 from . import viz
 
@@ -1909,9 +1909,6 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
-    copy : bool
-        If False, values in data will be modified in-place during
-        rank estimation (saves memory).
 
     Returns
     -------
@@ -1935,9 +1932,38 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
     return out
 
 
-@copy_doc(_estimate_rank_meeg_signals)
 def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
                             return_singular=False):
+    """Estimate rank of M/EEG covariance data, given the covariance
+
+    Parameters
+    ----------
+    data : np.ndarray of float, shape (n_channels, n_channels)
+        The M/EEG covariance.
+    info : Info
+        The measurment info.
+    scalings : dict | 'norm' | np.ndarray | None
+        The rescaling method to be applied. If dict, it will override the
+        following default dict:
+
+            dict(mag=1e12, grad=1e11, eeg=1e5)
+
+        If 'norm' data will be scaled by channel-wise norms. If array,
+        pre-specified norms will be used. If None, no scaling will be applied.
+    tol : float | str
+        Tolerance. See ``estimate_rank``.
+    return_singular : bool
+        If True, also return the singular values that were used
+        to determine the rank.
+
+    Returns
+    -------
+    rank : int
+        Estimated rank of the data.
+    s : array
+        If return_singular is True, the singular values that were
+        thresholded to determine the rank are also returned.
+    """
     picks_list = _picks_by_type(info)
     scalings = _handle_default('scalings_cov_rank', scalings)
     _apply_scaling_cov(data, picks_list, scalings)

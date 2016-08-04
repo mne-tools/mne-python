@@ -1349,7 +1349,7 @@ class ICA(ContainsMixin):
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
                         psd_args=None, figsize=None, show=True):
-        return plot_ica_properties(inst, self, picks=picks, axes=axes,
+        return plot_ica_properties(self, inst, picks=picks, axes=axes,
                                    dB=dB, plot_std=plot_std,
                                    topomap_args=topomap_args,
                                    image_args=image_args, psd_args=psd_args,
@@ -1359,7 +1359,7 @@ class ICA(ContainsMixin):
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, title=None, show=True, block=False):
         return plot_ica_sources(self, inst=inst, picks=picks, exclude=exclude,
-                                title=title, start=start, stop=stop, show=show,
+                                start=start, stop=stop, title=title, show=show,
                                 block=block)
 
     @copy_function_doc_to_method_doc(plot_ica_scores)

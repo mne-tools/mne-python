@@ -761,40 +761,40 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self.info['ch_names']
 
     @copy_function_doc_to_method_doc(plot_epochs)
-    def plot(self, picks=None, scalings=None, show=True,
-             block=False, n_epochs=20,
-             n_channels=20, title=None):
+    def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
+             title=None, show=True, block=False):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, show=show, block=block)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
-    def plot_psd(self, fmin=0, fmax=np.inf, proj=False, bandwidth=None,
-                 adaptive=False, low_bias=True, normalization='length',
-                 picks=None, ax=None, color='black', area_mode='std',
-                 area_alpha=0.33, dB=True, n_jobs=1, verbose=None, show=True):
-        return plot_epochs_psd(self, fmin=fmin, fmax=fmax, proj=proj,
-                               bandwidth=bandwidth, adaptive=adaptive,
-                               low_bias=low_bias, normalization=normalization,
-                               picks=picks, ax=ax, color=color,
-                               area_mode=area_mode, area_alpha=area_alpha,
-                               dB=dB, n_jobs=n_jobs, verbose=None, show=show)
+    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
+                 bandwidth=None, adaptive=False, low_bias=True,
+                 normalization='length', picks=None, ax=None, color='black',
+                 area_mode='std', area_alpha=0.33, dB=True, n_jobs=1,
+                 show=True, verbose=None):
+        return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
+                               tmax=tmax, proj=proj, bandwidth=bandwidth,
+                               adaptive=adaptive, low_bias=low_bias,
+                               normalization=normalization, picks=picks, ax=ax,
+                               color=color, area_mode=area_mode,
+                               area_alpha=area_alpha, dB=dB, n_jobs=n_jobs,
+                               show=show, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
-    def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, proj=False,
-                         bandwidth=None, adaptive=False, low_bias=True,
-                         normalization='length', ch_type=None,
+    def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, tmin=None,
+                         tmax=None, proj=False, bandwidth=None, adaptive=False,
+                         low_bias=True, normalization='length', ch_type=None,
                          layout=None, cmap='RdBu_r', agg_fun=None, dB=True,
                          n_jobs=1, normalize=False, cbar_fmt='%0.3f',
                          outlines='head', axes=None, show=True, verbose=None):
         return plot_epochs_psd_topomap(
-            self, bands=bands, vmin=vmin, vmax=vmax, proj=proj,
-            bandwidth=bandwidth, adaptive=adaptive,
-            low_bias=low_bias, normalization=normalization,
-            ch_type=ch_type, layout=layout, cmap=cmap,
-            agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
-            cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show,
-            verbose=None)
+            self, bands=bands, vmin=vmin, vmax=vmax, tmin=tmin, tmax=tmax,
+            proj=proj, bandwidth=bandwidth, adaptive=adaptive,
+            low_bias=low_bias, normalization=normalization, ch_type=ch_type,
+            layout=layout, cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
+            normalize=normalize, cbar_fmt=cbar_fmt, outlines=outlines,
+            axes=axes, show=show, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
@@ -896,11 +896,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot_image(self, picks=None, sigma=0., vmin=None,
                    vmax=None, colorbar=True, order=None, show=True,
                    units=None, scalings=None, cmap='RdBu_r',
-                   fig=None, overlay_times=None):
+                   fig=None, axes=None, overlay_times=None):
         return plot_epochs_image(self, picks=picks, sigma=sigma, vmin=vmin,
                                  vmax=vmax, colorbar=colorbar, order=order,
                                  show=show, units=units, scalings=scalings,
-                                 cmap=cmap, fig=fig,
+                                 cmap=cmap, fig=fig, axes=axes,
                                  overlay_times=overlay_times)
 
     @verbose

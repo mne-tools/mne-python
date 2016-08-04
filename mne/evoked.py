@@ -303,6 +303,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                   proj=False, vline=[0.0], fig_facecolor='k',
                   fig_background=None, axis_facecolor='k', font_color='w',
                   merge_grads=False, show=True):
+        """
+
+        Notes
+        -----
+        .. versionadded:: 0.10.0
+        """
         return plot_evoked_topo(self, layout=layout, layout_scale=layout_scale,
                                 color=color, border=border, ylim=ylim,
                                 scalings=scalings, title=title, proj=proj,

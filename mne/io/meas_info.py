@@ -1570,7 +1570,8 @@ def _force_update_info(info_base, info_target):
 def anonymize_info(info):
     """Anonymize measurement information in place.
 
-    Reset 'subject_info', 'meas_date', 'file_id', and 'meas_id' keys.
+    Reset 'subject_info', 'meas_date', 'file_id', and 'meas_id' keys if they
+    exist in ``info``.
 
     Parameters
     ----------
