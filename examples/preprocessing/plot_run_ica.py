@@ -60,10 +60,10 @@ ica.plot_properties(epochs, picks=ecg_inds)
 # Mark EOG components for removal and compare evoked response before/after:
 
 ica.exclude = ecg_inds
-ica.plot_overlay(epochs)
+ica.plot_overlay(epochs.average())
 
 ###############################################################################
 # Although the epochs evoked response does not change much, we can see the
 # effects of component removal clearly on `ecg_epochs`:
 
-ica.plot_overlay(ecg_epochs)
+ica.plot_overlay(ecg_epochs.average())
