@@ -10,7 +10,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
-from mne.decoding.csp import CSP
+from mne.decoding.csp import CSP, _ajd_pham
 from mne.utils import requires_sklearn, slow_test
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -152,3 +152,24 @@ def test_csp_pipeline():
     pipe = Pipeline([("CSP", csp), ("SVC", svc)])
     pipe.set_params(CSP__reg=0.2)
     assert_true(pipe.get_params()["CSP__reg"] == 0.2)
+
+
+def test_ajd():
+    """Test if Approximate joint diagonalization implementation obtains same
+    results as the Matlab implementation by Pham Dinh-Tuan.
+    """
+    # Generate a set of cavariances matrices for test purpose
+    n_times, n_channels = 10, 3
+    seed = np.random.RandomState(0)
+    diags = 2.0 + 0.1 * seed.randn(n_times, n_channels)
+    A = 2 * seed.rand(n_channels, n_channels) - 1
+    A /= np.atleast_2d(np.sqrt(np.sum(A ** 2, 1))).T
+    covmats = np.empty((n_times, n_channels, n_channels))
+    for i in range(n_times):
+        covmats[i] = np.dot(np.dot(A, np.diag(diags[i])), A.T)
+    V, D = _ajd_pham(covmats)
+    # Results obtained with original matlab implementation
+    V_matlab = [[-3.507280775058041, -5.498189967306344, 7.720624541198574],
+                [0.694689013234610, 0.775690358505945, -1.162043086446043],
+                [-0.592603135588066, -0.598996925696260, 1.009550086271192]]
+    assert_array_almost_equal(V, V_matlab)
