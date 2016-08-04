@@ -266,7 +266,8 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         Sampling frequency of the data.
     method : 'multitaper' | 'morlet', defaults to 'morlet'
         The time-frequency method. 'morlet' convolves a Morlet wavelet.
-        'multitaper' convolves DPSS tapers.
+        'multitaper' uses Morlet wavelets windowed with multiple DPSS
+        multitapers.
     n_cycles : float | array of float, defaults to 7.0
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.

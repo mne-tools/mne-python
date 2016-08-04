@@ -15,19 +15,17 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    frequencies : array-like of floats, shape (n_freqs)
+    frequencies : array-like of floats, shape (n_freqs,)
         The frequencies.
     sfreq : float | int, defaults to 1.0
         Sampling frequency of the data.
     method : 'multitaper' | 'morlet', defaults to 'morlet'
         The time-frequency method. 'morlet' convolves a Morlet wavelet.
-        'multitaper' convolves DPSS tapers.
+        'multitaper' uses Morlet wavelets windowed with multiple DPSS
+        multitapers.
     n_cycles : float | array of float, defaults to 7.0
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.
-    zero_mean : bool | None, defaults to None
-        None means True for method='multitaper' and False for method='morlet'.
-        If True, make sure the wavelets have a mean of zero.
     time_bandwidth : float, defaults to None
         If None and method=multitaper, will be set to 4.0 (3 tapers).
         Time x (Full) Bandwidth product. Only applies if
@@ -57,23 +55,22 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
 
     See Also
     --------
-    ``mne.time_frequency.single_trial_power``
-    ``mne.time_frequency.tfr_morlet``
-    ``mne.time_frequency.tfr_multitaper``
+    mne.time_frequency.single_trial_power
+    mne.time_frequency.tfr_morlet
+    mne.time_frequency.tfr_multitaper
     """
 
     def __init__(self, frequencies, sfreq=1.0, method='morlet', n_cycles=7.0,
-                 zero_mean=None, time_bandwidth=None, use_fft=True, decim=1,
-                 output='complex', n_jobs=1, verbose=None):
+                 time_bandwidth=None, use_fft=True, decim=1, output='complex',
+                 n_jobs=1, verbose=None):
         """Init TimeFrequency transformer."""
-        frequencies, sfreq, zero_mean, n_cycles, time_bandwidth, decim = \
-            _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
+        frequencies, sfreq, _, n_cycles, time_bandwidth, decim = \
+            _check_tfr_param(frequencies, sfreq, method, True, n_cycles,
                              time_bandwidth, use_fft, decim, output)
         self.frequencies = frequencies
         self.sfreq = sfreq
         self.method = method
         self.n_cycles = n_cycles
-        self.zero_mean = zero_mean
         self.time_bandwidth = time_bandwidth
         self.use_fft = use_fft
         self.decim = decim
@@ -109,9 +106,9 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        X : None
-            The target data.
-        y : None
+        X : array, shape (n_samples, n_channels, n_times)
+            The training data.
+        y : array | None
             The target values.
 
         Returns
@@ -147,7 +144,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
 
         # Compute time-frequency
         Xt = _compute_tfr(X, self.frequencies, self.sfreq, self.method,
-                          self.n_cycles, self.zero_mean, self.time_bandwidth,
+                          self.n_cycles, True, self.time_bandwidth,
                           self.use_fft, self.decim, self.output, self.n_jobs,
                           self.verbose)
 
