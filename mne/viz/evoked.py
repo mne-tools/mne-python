@@ -1289,7 +1289,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         interval is drawn around the individual time series. This value
         determines the CI width. E.g., if this value is .95 (the default),
         the 95% parametric confidence interval is drawn.
-        If None, no shaded error band is plotted.
+        If None, no shaded confidence band is plotted.
     truncate_yaxis : bool
         If True, the left y axis is truncated to reduce visual clutter.
     invert_y : bool
@@ -1385,9 +1385,10 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
             raise ValueError("evokeds must be an `mne.Evoked` "
                              "or of a collection of `mne.Evoked`s")
 
-        if ci and picks is not None:
+        if ci is not None and picks is not None:
             if not isinstance(ci, np.float):
-                raise TypeError("`ci` must be float")
+                msg = '`ci` must be float, got {0} instead.'
+                raise TypeError(msg.format(type(ci)))
             # calculate the CI
             sem_array = {}
             for condition in conditions:
@@ -1408,7 +1409,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
             evokeds[cond] = combine_evoked(evokeds[cond], weights='equal')
 
         if picks is None:
-            warn("CI not drawn if plotting GFP.")
+            warn("Confidence Interval not drawn if plotting GFP.")
 
     else:
         ci = False
