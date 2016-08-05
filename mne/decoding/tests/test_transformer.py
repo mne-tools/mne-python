@@ -235,16 +235,16 @@ def test_temporal_filterer():
 
     # Add tests for different combinations of l_freq and h_freq
     filt = TemporalFilter(l_freq=5, h_freq=15, sfreq=100,
-                          filter_length='auto', l_trans_bandwidth='auto',
-                          h_trans_bandwidth='auto')
+                          filter_length='auto', l_trans_bandwidth=None,
+                          h_trans_bandwidth=None)
     with warnings.catch_warnings(record=True):  # stop freq attenuation warning
         result = filt.fit_transform(X)
         assert_true(X.shape == result.shape)
         assert_array_equal(filt.fit(X).transform(X), result)
 
     filt = TemporalFilter(l_freq=None, h_freq=15, sfreq=100,
-                          filter_length='auto', l_trans_bandwidth='auto',
-                          h_trans_bandwidth='auto')
+                          filter_length='auto', l_trans_bandwidth=None,
+                          h_trans_bandwidth=None)
     with warnings.catch_warnings(record=True):  # stop freq attenuation warning
         X = filt.fit_transform(X)
 
@@ -253,8 +253,8 @@ def test_temporal_filterer():
         assert_raises(ValueError, filt.fit_transform, X)
 
     filt = TemporalFilter(l_freq=5, h_freq=None, sfreq=100,
-                          filter_length='auto', l_trans_bandwidth='auto',
-                          h_trans_bandwidth='auto')
+                          filter_length='auto', l_trans_bandwidth=None,
+                          h_trans_bandwidth=None)
     with warnings.catch_warnings(record=True):  # stop freq attenuation warning
         result = filt.fit_transform(X)
 
