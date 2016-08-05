@@ -107,9 +107,6 @@ class CSP(TransformerMixin, BaseEstimator):
             The data on which to estimate the CSP.
         y : array, shape (n_epochs,)
             The class for each epoch.
-        epochs_data : None | ndarray, shape (n_epochs, n_channels, n_times)
-            The data on which to estimate the CSP. Overwrite X if not None.
-            Will be deprecated in mne 0.14.
 
         Returns
         -------
@@ -208,8 +205,6 @@ class CSP(TransformerMixin, BaseEstimator):
         ----------
         X : array, shape (n_epochs, n_channels, n_times)
             The data.
-        epochs_data : None | ndarray, shape (n_epochs, n_channels, n_times)
-            The data. Overwrite X if not None. Will be deprecated in mne 0.14.
 
         Returns
         -------

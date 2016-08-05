@@ -57,6 +57,8 @@ _docstring_ignores = [
     'mne.io.write',  # always ignore these
     'mne.fixes._in1d',  # fix function
     'mne.epochs.average_movements',  # deprecated pos param
+    'mne.decoding.csp.CSP.fit',
+    'mne.decoding.csp.CSP.transform'
 ]
 
 _tab_ignores = [
