@@ -14,6 +14,7 @@ from sklearn.cross_validation import cross_val_score
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import label_binarize
+from sklearn.preprocessing import StandardScaler
 
 from mne import io, pick_types, read_events, Epochs
 from mne.datasets import sample
@@ -45,6 +46,7 @@ y = label_binarize(epochs.events[:, 2], classes=[1, 3]).ravel()
 
 clf = make_pipeline(XdawnTransformer(n_components=3),
                     Vectorizer(),
+                    StandardScaler(),
                     LogisticRegression())
 score = cross_val_score(clf, X, y, cv=5)
 print(score)
