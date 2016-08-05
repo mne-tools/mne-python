@@ -113,6 +113,7 @@ def test_render_report():
         warnings.simplefilter('always')
         report.parse_folder(data_path=tempdir, pattern=pattern)
     assert_true(len(w) >= 1)
+    assert_true(repr(report))
 
     fnames = glob.glob(op.join(tempdir, '*.raw')) + \
         glob.glob(op.join(tempdir, '*.raw'))
@@ -171,6 +172,7 @@ def test_render_add_sections():
 
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions='random image', scale=1.2)
+    assert_true(repr(report))
 
 
 @slow_test
@@ -191,6 +193,7 @@ def test_render_mri():
         report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*',
                             n_jobs=2)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
+    assert_true(repr(report))
 
 
 @testing.requires_testing_data
@@ -224,6 +227,7 @@ def test_add_htmls_to_section():
     idx = report._sectionlabels.index('report_' + section)
     html_compare = report.html[idx]
     assert_true(html in html_compare)
+    assert_true(repr(report))
 
 
 def test_add_slider_to_section():
