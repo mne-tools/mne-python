@@ -1,21 +1,57 @@
+import os.path as op
+import warnings
+
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_equal, assert_true, assert_raises
-import warnings
 from scipy.signal import resample as sp_resample, butter
 
+from mne import create_info
+from mne.io import RawArray, read_raw_fif
 from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
                         band_stop_filter, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
-                        _overlap_add_filter, _smart_pad,
+                        _overlap_add_filter, _smart_pad, design_mne_c_filter,
                         estimate_ringing_samples, filter_data)
 
 from mne.utils import (sum_squared, run_tests_if_main, slow_test,
-                       catch_logging, requires_version)
+                       catch_logging, requires_version, _TempDir,
+                       requires_mne, run_subprocess)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 rng = np.random.RandomState(0)
+
+
+@requires_mne
+def test_mne_c_design():
+    """Test MNE-C filter design"""
+    tempdir = _TempDir()
+    temp_fname = op.join(tempdir, 'test_raw.fif')
+    out_fname = op.join(tempdir, 'test_c_raw.fif')
+    x = np.zeros((1, 10001))
+    x[0, 5000] = 1.
+    time_sl = slice(5000 - 4096, 5000 + 4097)
+    sfreq = 1000.
+    RawArray(x, create_info(1, sfreq, 'eeg')).save(temp_fname)
+
+    tols = dict(rtol=1e-4, atol=1e-4)
+    cmd = ('mne_process_raw', '--projoff', '--raw', temp_fname,
+           '--save', out_fname)
+    run_subprocess(cmd)
+    h = design_mne_c_filter(sfreq, None, 40)
+    h_c = read_raw_fif(out_fname)[0][0][0][time_sl]
+    assert_allclose(h, h_c, **tols)
+
+    run_subprocess(cmd + ('--highpass', '5', '--highpassw', '2.5'))
+    h = design_mne_c_filter(sfreq, 5, 40, 2.5)
+    h_c = read_raw_fif(out_fname)[0][0][0][time_sl]
+    assert_allclose(h, h_c, **tols)
+
+    run_subprocess(cmd + ('--lowpass', '1000', '--highpass', '10'))
+    h = design_mne_c_filter(sfreq, 10, None, verbose=True)
+    h_c = read_raw_fif(out_fname)[0][0][0][time_sl]
+    assert_allclose(h, h_c, **tols)
 
 
 @requires_version('scipy', '0.16')

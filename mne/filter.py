@@ -3,7 +3,7 @@
 from copy import deepcopy
 
 import numpy as np
-from scipy.fftpack import fft, ifftshift, fftfreq
+from scipy.fftpack import fft, ifftshift, fftfreq, ifft
 
 from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
                    setup_cuda_fft_resample, fft_resample, _smart_pad)
@@ -2135,3 +2135,81 @@ class FilterMixin(object):
         data[...] = savgol_filter(data, axis=axis, polyorder=5,
                                   window_length=window_length)
         return inst
+
+
+@verbose
+def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
+                        l_trans_bandwidth=None, h_trans_bandwidth=5.,
+                        verbose=None):
+    """Create a FIR filter like that used by MNE-C
+
+    Parameters
+    ----------
+    sfreq : float
+        The sample frequency.
+    l_freq : float | None
+        The low filter frequency in Hz, default None.
+        Can be None to avoid high-passing.
+    h_freq : float
+        The high filter frequency in Hz, default 40.
+        Can be None to avoid low-passing.
+    l_trans_bandwidth : float | None
+        Low transition bandwidthin Hz. Can be None (default) to use 3 samples.
+    h_trans_bandwidth : float
+        High transition bandwidth in Hz.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to self.verbose.
+
+    Returns
+    -------
+    h : ndarray, shape (8193,)
+        The linear-phase (symmetric) FIR filter coefficients.
+
+    Notes
+    -----
+    This function is provided mostly for reference purposes.
+
+    MNE-C uses a frequency-domain filter design technique by creating a
+    linear-phase filter of length 8193. In the frequency domain, the
+    4197 frequencies are directly constructed, with zeroes in the stop-band
+    and ones in the pass-band, with squared cosine ramps in between.
+    """
+    n_freqs = (4096 + 2 * 2048) // 2 + 1
+    freq_resp = np.ones(n_freqs)
+    l_freq = 0 if l_freq is None else float(l_freq)
+    if l_trans_bandwidth is None:
+        l_width = 3
+    else:
+        l_width = (int(((n_freqs - 1) * l_trans_bandwidth) /
+                       (0.5 * sfreq)) + 1) // 2
+    l_start = int(((n_freqs - 1) * l_freq) / (0.5 * sfreq))
+    h_freq = sfreq / 2. if h_freq is None else float(h_freq)
+    h_width = (int(((n_freqs - 1) * h_trans_bandwidth) /
+                   (0.5 * sfreq)) + 1) // 2
+    h_start = int(((n_freqs - 1) * h_freq) / (0.5 * sfreq))
+    logger.info('filter : %7.3f ... %6.1f Hz   bins : %d ... %d of %d '
+                'hpw : %d lpw : %d' % (l_freq, h_freq, l_start, h_start,
+                                       n_freqs, l_width, h_width))
+    if l_freq > 0:
+        start = l_start - l_width + 1
+        stop = start + 2 * l_width - 1
+        if start < 0 or stop >= n_freqs:
+            raise RuntimeError('l_freq too low or l_trans_bandwidth too large')
+        freq_resp[:start] = 0.
+        k = np.arange(-l_width + 1, l_width) / float(l_width) + 3.
+        freq_resp[start:stop] = np.cos(np.pi / 4. * k) ** 2
+
+    if h_freq < sfreq / 2.:
+        start = h_start - h_width + 1
+        stop = start + 2 * h_width - 1
+        if start < 0 or stop >= n_freqs:
+            raise RuntimeError('h_freq too high or h_trans_bandwidth too '
+                               'large')
+        k = np.arange(-h_width + 1, h_width) / float(h_width) + 1.
+        freq_resp[start:stop] *= np.cos(np.pi / 4. * k) ** 2
+        freq_resp[stop:] = 0.0
+    # Get the time-domain version of this signal
+    h = ifft(np.concatenate((freq_resp, freq_resp[::-1][:-1]))).real
+    h = np.roll(h, n_freqs - 1)  # center the impulse like a linear-phase filt
+    return h

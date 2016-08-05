@@ -9,7 +9,8 @@ Background information on filtering
 Here we give some background information on filtering in general,
 and how it is done in MNE-Python in particular.
 Recommended reading for practical applications of digital
-filter design can be found in Parks & Burrus [1]_, and for filtering in an
+filter design can be found in Parks & Burrus [1]_ and
+Ifeachor and Jervis [2]_, and for filtering in an
 M/EEG context we recommend reading Widmann *et al.* 2015 [7]_.
 To see how to use the default filters in MNE-Python on actual data, see
 the :ref:`tut_artifacts_filter` tutorial.
@@ -166,15 +167,23 @@ def box_off(ax):
 def plot_ideal(freq, gain, ax):
     freq = np.maximum(freq, xlim[0])
     xs, ys = list(), list()
+    my_freq, my_gain = list(), list()
     for ii in range(len(freq)):
         xs.append(freq[ii])
         ys.append(ylim[0])
         if ii < len(freq) - 1 and gain[ii] != gain[ii + 1]:
             xs += [freq[ii], freq[ii + 1]]
             ys += [ylim[1]] * 2
-    gain = 10 * np.log10(np.maximum(gain, 10 ** (ylim[0] / 10.)))
+            my_freq += np.linspace(freq[ii], freq[ii + 1], 20,
+                                   endpoint=False).tolist()
+            my_gain += np.linspace(gain[ii], gain[ii + 1], 20,
+                                   endpoint=False).tolist()
+        else:
+            my_freq.append(freq[ii])
+            my_gain.append(gain[ii])
+    my_gain = 10 * np.log10(np.maximum(my_gain, 10 ** (ylim[0] / 10.)))
     ax.fill_between(xs, ylim[0], ys, color='r', alpha=0.1)
-    ax.semilogx(freq, gain, 'r--', alpha=0.5, linewidth=4, zorder=3)
+    ax.semilogx(my_freq, my_gain, 'r--', alpha=0.5, linewidth=4, zorder=3)
     xticks = [1, 2, 4, 10, 20, 40, 100, 200, 400]
     ax.set(xlim=xlim, ylim=ylim, xticks=xticks, xlabel='Frequency (Hz)',
            ylabel='Amplitude (dB)')
@@ -262,14 +271,22 @@ plot_filter(h, 'Sinc (10.0 sec)', freq, gain)
 # Fortunately, there are multiple established methods to design FIR filters
 # based on desired response characteristics. These include:
 #
-#     1. The Remez_ algorithm (`scipy remez`_, `MATLAB firpm`_)
-#     2. Windowed FIR design (`scipy firwin2`_, `MATLAB fir2`_)
-#     3. Least squares designs (`MATLAB firls`_; coming to scipy 0.18)
+#     1. The Remez_ algorithm (:func:`scipy.signal.remez`, `MATLAB firpm`_)
+#     2. Windowed FIR design (:func:`scipy.signal.firwin2`, `MATLAB fir2`_)
+#     3. Least squares designs (:func:`scipy.signal.firls`, `MATLAB firls`_)
+#     4. Frequency-domain design (construct filter in Fourier
+#        domain and use an :func:`IFFT <scipy.fftpack.ifft>` to invert it)
 #
 # .. note:: Remez and least squares designs have advantages when there are
 #           "do not care" regions in our frequency response. However, we want
-#           well controlled responses in all frequency regions, so here we
-#           will use and explore only windowed FIR design.
+#           well controlled responses in all frequency regions.
+#           Frequency-domain construction is good when an arbitrary response
+#           is desired, but generally less clean (due to sampling issues) than
+#           a windowed approach for more straightfroward filter applications.
+#           Since our filters (low-pass, high-pass, band-pass, band-stop)
+#           are fairly simple and we require precisel control of all frequency
+#           regions, here we will use and explore primarily windowed FIR
+#           design.
 #
 # If we relax our frequency-domain filter requirements a little bit, we can
 # use these functions to construct a lowpass filter that instead has a
@@ -371,9 +388,10 @@ plot_filter(h, 'MNE-Python 0.14 default', freq, gain)
 
 ###############################################################################
 # This is actually set to become the default type of filter used in MNE-Python
-# in 0.14 (see :ref:`tut_filtering_in_python`). Let's also filter it with the
-# MNE-Python 0.13 default, which is a long-duration, steep cutoff FIR
-# that gets applied twice:
+# in 0.14 (see :ref:`tut_filtering_in_python`).
+#
+# Let's also filter with the MNE-Python 0.13 default, which is a
+# long-duration, steep cutoff FIR that gets applied twice:
 
 transition_band = 0.5  # Hz
 f_s = f_p + transition_band
@@ -387,7 +405,22 @@ x_steep = np.convolve(np.convolve(h, x)[::-1], h)[::-1][len(h) - 1:-len(h) - 1]
 plot_filter(h, 'MNE-Python 0.13 default', freq, gain)
 
 ###############################################################################
-# It has excellent frequency attenuation, but this comes at a cost of potential
+# Finally, Let's also filter it with the
+# MNE-C default, which is a long-duration steep-slope FIR filter designed
+# using frequency-domain techniques:
+
+h = mne.filter.design_mne_c_filter(sfreq, l_freq=None, h_freq=f_p + 2.5)
+x_mne_c = np.convolve(h, x)[len(h) // 2:]
+
+transition_band = 5  # Hz (default in MNE-C)
+f_s = f_p + transition_band
+freq = [0., f_p, f_s, sfreq / 2.]
+gain = [1., 1., 0., 0.]
+plot_filter(h, 'MNE-C default', freq, gain)
+
+###############################################################################
+# Both the MNE-Python 0.13 and MNE-C filhters have excellent frequency
+# attenuation, but it comes at a cost of potential
 # ringing (long-lasting ripples) in the time domain. Ringing can occur with
 # steep filters, especially on signals with frequency content around the
 # transition band. Our Morlet wavelet signal has power in our transition band,
@@ -410,14 +443,16 @@ def plot_signal(x, offset):
     axs[1].plot(freqs, 20 * np.log10(np.abs(X)))
     axs[1].set(xlim=xlim)
 
-yticks = np.arange(4) / -30.
-yticklabels = ['Original', 'Noisy', 'FIR-shallow (0.14)', 'FIR-steep (0.13)']
+yticks = np.arange(5) / -30.
+yticklabels = ['Original', 'Noisy', 'FIR-shallow (0.14)', 'FIR-steep (0.13)',
+               'FIR-steep (MNE-C)']
 plot_signal(x_orig, offset=yticks[0])
 plot_signal(x, offset=yticks[1])
 plot_signal(x_shallow, offset=yticks[2])
 plot_signal(x_steep, offset=yticks[3])
+plot_signal(x_mne_c, offset=yticks[4])
 axs[0].set(xlim=tlim, title='FIR, Lowpass=%d Hz' % f_p, xticks=tticks,
-           ylim=[-0.125, 0.025], yticks=yticks, yticklabels=yticklabels,)
+           ylim=[-0.150, 0.025], yticks=yticks, yticklabels=yticklabels,)
 for text in axs[0].get_yticklabels():
     text.set(rotation=45, size=8)
 axs[1].set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)',
@@ -726,10 +761,14 @@ baseline_plot(x)
 # We thus recommend carefully applying baseline correction and/or high-pass
 # values based on the characteristics of the data to be analyzed.
 #
+#
+# Filtering defaults
+# ==================
+#
 # .. _tut_filtering_in_python:
 #
-# Filtering defaults in MNE-Python
-# ================================
+# Defaults in MNE-Python
+# ----------------------
 #
 # Most often, filtering in MNE-Python is done at the :class:`mne.io.Raw` level,
 # and thus :func:`mne.io.Raw.filter` is used. This function under the hood
@@ -807,6 +846,41 @@ baseline_plot(x)
 # MNE-Python filtering functions with real data, consult the preprocessing
 # tutorial on :ref:`tut_artifacts_filter`.
 #
+# Defaults in MNE-C
+# -----------------
+# MNE-C by default uses:
+#
+#    1. 5 Hz transition band for low-pass filters.
+#    2. 3-sample transition band for high-pass filters.
+#    3. Filter length of 8197 samples.
+#
+# The filter is designed in the frequency domain, creating a linear-phase
+# filter such that the delay is compensated for as is done with the MNE-Python
+# ``phase='zero'`` filtering option.
+#
+# Squared-cosine ramps are used in the transition regions. Because these
+# are used in place of more gradual (e.g., linear) transitions,
+# a given transition width will result in more temporal ringing but also more
+# rapid attenuation than the same transition width in windowed FIR designs.
+#
+# The default filter length will generally have excellent attenuation
+# but long ringing for the sample rates typically encountered in M-EEG data
+# (e.g. 500-2000 Hz).
+#
+# Defaults in other software
+# --------------------------
+# A good but possibly outdated comparison of filtering in various software
+# packages is available in [7]_. Briefly:
+#
+# * EEGLAB
+#     MNE-Python in 0.14 defaults to behavior very similar to that of EEGLAB,
+#     see the `EEGLAB filtering FAQ`_ for more information.
+# * Fieldrip
+#     By default FieldTrip applies a forward-backward Butterworth IIR filter
+#     of order 4 (band-pass and band-stop filters) or 2 (for low-pass and
+#     high-pass filters). See e.g. `FieldTrip band-pass documentation`_
+#     for more information.
+#
 # Summary
 # =======
 #
@@ -866,9 +940,9 @@ baseline_plot(x)
 # .. _moving average: https://en.wikipedia.org/wiki/Moving_average
 # .. _autoregression: https://en.wikipedia.org/wiki/Autoregressive_model
 # .. _Remez: https://en.wikipedia.org/wiki/Remez_algorithm
-# .. _scipy remez: http://scipy.github.io/devdocs/generated/scipy.signal.remez.html  # noqa
 # .. _matlab firpm: http://www.mathworks.com/help/signal/ref/firpm.html
-# .. _scipy firwin2: http://scipy.github.io/devdocs/generated/scipy.signal.firwin2.html  # noqa
 # .. _matlab fir2: http://www.mathworks.com/help/signal/ref/fir2.html
 # .. _matlab firls: http://www.mathworks.com/help/signal/ref/firls.html
 # .. _Butterworth filter: https://en.wikipedia.org/wiki/Butterworth_filter
+# .. _eeglab filtering faq: https://sccn.ucsd.edu/wiki/Firfilt_FAQ
+# .. _fieldtrip band-pass documentation: http://www.fieldtriptoolbox.org/reference/ft_preproc_bandpassfilter  # noqa
