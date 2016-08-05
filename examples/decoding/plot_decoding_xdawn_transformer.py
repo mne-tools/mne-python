@@ -15,7 +15,7 @@ import numpy as np
 
 from sklearn.cross_validation import cross_val_score, ShuffleSplit  # noqa
 from sklearn.pipeline import make_pipeline
-from sklearn.svm import SVC  # noqa
+from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import label_binarize
 from sklearn.preprocessing import StandardScaler
 
@@ -36,10 +36,10 @@ event_id = dict(aud_l=1, vis_l=3)
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(2, None, method='iir')
+raw.filter(2., None, method='iir')
 events = read_events(event_fname)
 
-picks = pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=False,
+picks = pick_types(raw.info, meg='mag', eeg=False, stim=False, eog=False,
                    exclude='bads')
 
 epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
@@ -51,7 +51,7 @@ y = label_binarize(epochs.events[:, 2], classes=[1, 3]).ravel()
 clf = make_pipeline(XdawnTransformer(n_components=2),
                     Vectorizer(),
                     StandardScaler(),
-                    SVC(C=1, kernel='linear'))
+                    LogisticRegression())
 
 # Define a monte-carlo cross-validation generator (reduce variance):
 cv = ShuffleSplit(len(y), 10, test_size=0.2, random_state=42)
