@@ -16,6 +16,7 @@ To see how to use the default filters in MNE-Python on actual data, see
 the :ref:`tut_artifacts_filter` tutorial.
 
 .. contents::
+    :local:
 
 Problem statement
 =================
