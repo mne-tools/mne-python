@@ -879,8 +879,10 @@ baseline_plot(x)
 # * Fieldrip
 #     By default FieldTrip applies a forward-backward Butterworth IIR filter
 #     of order 4 (band-pass and band-stop filters) or 2 (for low-pass and
-#     high-pass filters). See e.g. `FieldTrip band-pass documentation`_
-#     for more information.
+#     high-pass filters). Similar filters can be achieved in MNE-Python when
+#     filtering with :meth:`raw.filter(..., method='iir') <mne.io.Raw.filter>`
+#     (see also :func:`mne.filter.construct_iir_filter` for options).
+#     For more inforamtion, see e.g. `FieldTrip band-pass documentation`_.
 #
 # Summary
 # =======
