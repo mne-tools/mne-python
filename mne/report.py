@@ -179,7 +179,7 @@ def _get_fname(fname):
     if '-#-' in fname:
         fname = fname.split('-#-')[0]
     else:
-        fname = op.split(fname)[1]
+        fname = op.basename(fname)
     fname = ' ... %s' % fname
     return fname
 

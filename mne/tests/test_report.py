@@ -79,6 +79,7 @@ def test_render_report():
         warnings.simplefilter('always')
         report.parse_folder(data_path=tempdir, on_error='raise')
     assert_true(len(w) >= 1)
+    assert_true(repr(report))
 
     # Check correct paths and filenames
     fnames = glob.glob(op.join(tempdir, '*.fif'))
@@ -89,6 +90,7 @@ def test_render_report():
 
     assert_equal(len(report.fnames), len(fnames))
     assert_equal(len(report.html), len(report.fnames))
+    assert_equal(len(report.fnames), len(report))
 
     # Check saving functionality
     report.data_path = tempdir
