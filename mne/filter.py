@@ -165,6 +165,9 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
     logger.debug('Smart-padding with:  %s samples on each edge' % n_edge)
     n_x = x.shape[1] + 2 * n_edge
 
+    if phase == 'zero-double':
+        h = np.convolve(h, h[::-1])
+
     # Determine FFT length to use
     min_fft = 2 * len(h) - 1
     if n_fft is None:
@@ -184,13 +187,12 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
         else:
             # Use only a single block
             n_fft = next_fast_len(min_fft)
+    logger.debug('FFT block length:   %s' % n_fft)
     if n_fft < min_fft:
         raise ValueError('n_fft is too short, has to be at least '
-                         '2 * len(h) - 1, got %s' % n_fft)
+                         '2 * len(h) - 1 (%s), got %s' % (min_fft, n_fft))
 
     # Filter in frequency domain
-    if phase == 'zero-double':
-        h = np.convolve(h, h[::-1])
     h_fft = fft(np.concatenate([h, np.zeros(n_fft - len(h), dtype=h.dtype)]))
 
     # Figure out if we should use CUDA

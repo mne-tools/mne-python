@@ -126,7 +126,10 @@ def test_1d_filter():
                     for n_fft in (None, 32, 128, 129, 1023, 1024, 1025, 2048):
                         # need to use .copy() b/c signal gets modified inplace
                         x_copy = x[np.newaxis, :].copy()
-                        if n_fft is not None and n_fft < 2 * n_filter - 1:
+                        min_fft = 2 * n_filter - 1
+                        if phase == 'zero-double':
+                            min_fft = 2 * min_fft - 1
+                        if n_fft is not None and n_fft < min_fft:
                             assert_raises(ValueError, _overlap_add_filter,
                                           x_copy, h, n_fft, phase=phase)
                         else:
