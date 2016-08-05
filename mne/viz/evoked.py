@@ -1217,8 +1217,8 @@ def _ci(arr, ci):
 
 def _setup_styles(conditions, style_dict, style, default):
     """Aux function for plot_compare_evokeds to set linestyles and colors"""
-    condition_warning = "Condition {} could not be mapped to a " + style
-    style_warning = ". Using the default of {}".format(default)
+    condition_warning = "Condition {0} could not be mapped to a " + style
+    style_warning = ". Using the default of {0}".format(default)
     for condition in conditions:
         if condition not in style_dict:
             if "/" not in condition:
