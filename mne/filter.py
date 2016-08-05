@@ -1,6 +1,7 @@
 """IIR and FIR filtering functions"""
 
 from copy import deepcopy
+import math
 
 import numpy as np
 from scipy.fftpack import fft, ifftshift, fftfreq, ifft
@@ -102,7 +103,7 @@ def next_fast_len(target):
             quotient = -(-target // p35)
 
             # Quickly find next power of 2 >= quotient
-            p2 = 2**((quotient - 1).bit_length())
+            p2 = 2 ** int(math.log(quotient - 1, 2))
 
             N = p2 * p35
             if N == target:
