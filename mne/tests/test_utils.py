@@ -107,6 +107,7 @@ def test_object_size():
 
 def test_get_inst_data():
     from mne.epochs import _segment_raw
+    from mne.time_frequency import tfr_morlet
 
     raw = read_raw_fif(fname_raw)
     # chns = raw.ch_names[:5]
@@ -118,6 +119,13 @@ def test_get_inst_data():
 
     evoked = epochs.average()
     assert_equal(_get_inst_data(evoked), evoked.data)
+
+    evoked.crop(tmax=0.5)
+    picks = list(range(2))
+    freqs = np.array([15., 25.])
+    n_cycles = 3
+    tfr = tfr_morlet(evoked, freqs, n_cycles, return_itc=False, picks=picks)
+    assert_equal(_get_inst_data(tfr), tfr.data)
 
 
 def test_misc():

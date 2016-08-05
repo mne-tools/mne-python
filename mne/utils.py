@@ -518,12 +518,13 @@ def _get_inst_data(inst):
     from .io.base import _BaseRaw
     from .epochs import _BaseEpochs
     from . import Evoked
+    from .time_frequency.tfr import _BaseTFR
 
     if isinstance(inst, (_BaseRaw, _BaseEpochs)):
         if not inst.preload:
             inst.load_data()
         return inst._data
-    elif isinstance(inst, Evoked):
+    elif isinstance(inst, (Evoked, _BaseTFR)):
         return inst.data
 
 
