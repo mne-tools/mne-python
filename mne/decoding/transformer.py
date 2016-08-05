@@ -722,8 +722,8 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
 
 class TemporalFilter(TransformerMixin):
-    """Estimator to filter data array with atleast 2 dimensions. Could be
-    applied on epochs, evoked data.
+    """Estimator to filter data array along the last dimension, having at
+    least 2 dimensions. Can be applied on epochs, evoked data.
     This is compatible with scikit-learn pipeline and therefore useful for
     chaining MNE processing steps.
 
@@ -794,8 +794,8 @@ class TemporalFilter(TransformerMixin):
     Vectorizer
     """
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
-                 filter_length='auto', l_trans_bandwidth='auto',
-                 h_trans_bandwidth='auto', n_jobs=1, method='fir',
+                 filter_length='auto', l_trans_bandwidth=None,
+                 h_trans_bandwidth=None, n_jobs=1, method='fir',
                  iir_params=None, verbose=None):
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -819,24 +819,17 @@ class TemporalFilter(TransformerMixin):
             raise ValueError('n_jobs must be int or "cuda", got %s instead.'
                              % type(self.n_jobs))
 
-        if self.l_freq == 0:
-            self.l_freq = None
-        if self.h_freq is not None and self.h_freq > (self.sfreq / 2.):
-            self.h_freq = None
-        if self.l_freq is not None and not isinstance(self.l_freq, float):
-            self.l_freq = float(self.l_freq)
-        if self.h_freq is not None and not isinstance(self.h_freq, float):
-            self.h_freq = float(self.h_freq)
-
     def fit(self, X, y=None):
         """Does nothing. For scikit-learn compatibility purposes.
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_channels, n_times)
-            The data.
-        y : array, shape (n_epochs,) | None
-            The label for each epoch.
+        X : np.ndarray
+            The data to be filtered over the last dimension. Should be of
+            of at least 2 dimensions.
+        y : None | array, shape (n_samples,)
+            The label for each sample.
+            If None not used. Defaults to None.
 
         Returns
         -------
@@ -854,11 +847,9 @@ class TemporalFilter(TransformerMixin):
 
         Parameters
         ----------
-        X : array-like
-            The data to be filtered. Can be, for example a list, or an array
-            of at least 2d. The first dimension must be of length n_samples,
-            where samples are the independent samples used by the filter
-            (e.g. n_epochs for epoched data).
+        X : np.ndarray
+            The data to be filtered over the last dimension. Should be of
+            of at least 2 dimensions.
         y : None | array, shape (n_samples,)
             The label for each sample.
             If None not used. Defaults to None.
