@@ -35,11 +35,7 @@ def test_timefrequency():
     # 2-D X
     Xt = tf.transform(X[:, 0, :])
     assert_array_equal(Xt.shape, [n_epochs, n_freqs, n_times])
-    # n-D X
-    X = np.random.rand(n_epochs, n_chans, 4, n_times)
-    Xt = tf.transform(X)
-    assert_array_equal(Xt.shape, [n_epochs, n_chans, 4, n_freqs, n_times])
-    # n-D with decim
+    # 3-D with decim
     tf = TimeFrequency(frequencies, sfreq=100, decim=2)
     Xt = tf.transform(X)
-    assert_array_equal(Xt.shape, [n_epochs, n_chans, 4, n_freqs, n_times // 2])
+    assert_array_equal(Xt.shape, [n_epochs, n_chans, n_freqs, n_times // 2])

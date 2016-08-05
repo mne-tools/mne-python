@@ -76,7 +76,8 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self.decim = decim
         # Check that output is not an average metric (e.g. ITC)
         if output not in ['complex', 'power', 'phase']:
-            raise ValueError("output must be 'complex', 'power', 'phase'.")
+            raise ValueError("output must be 'complex', 'power', 'phase'. "
+                             "Got %s instead." % output)
         self.output = output
         self.n_jobs = n_jobs
         self.verbose = verbose
@@ -89,7 +90,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         ----------
         X : array, shape (n_samples, n_channels, n_times)
             The training data samples. The channel dimension can be zero- or
-            n-dimensional.
+            1-dimensional.
         y : None
             For scikit-learn compatibility purposes.
 
@@ -97,7 +98,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         -------
         Xt : array, shape (n_samples, n_channels, n_frequencies, n_times)
             The time-frequency transform of the data, where n_channels can be
-            zero- or n-dimensional.
+            zero- or 1-dimensional.
         """
         return self.fit(X, y).transform(X)
 
@@ -125,22 +126,19 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         ----------
         X : array, shape (n_samples, n_channels, n_times)
             The training data samples. The channel dimension can be zero- or
-            n-dimensional.
+            1-dimensional.
 
         Returns
         -------
         Xt : array, shape (n_samples, n_channels, n_frequencies, n_times)
             The time-frequency transform of the data, where n_channels can be
-            zero- or n-dimensional.
+            zero- or 1-dimensional.
 
         """
         # Ensure 3-dimensional X
-        n_samples, n_times = len(X), X.shape[-1]
         shape = X.shape[1:-1]
         if not shape:
             X = X[:, np.newaxis, :]
-        elif len(shape) > 1:
-            X = X.reshape(n_samples, -1, n_times)
 
         # Compute time-frequency
         Xt = _compute_tfr(X, self.frequencies, self.sfreq, self.method,
@@ -151,8 +149,5 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         # Back to original shape
         if not shape:
             Xt = Xt[:, 0, :]
-        elif len(shape) > 1:
-            # n_time must be -1 because of decim parameter
-            shape = np.r_[n_samples, shape, len(self.frequencies), -1]
-            Xt = Xt.reshape(shape)
+
         return Xt
