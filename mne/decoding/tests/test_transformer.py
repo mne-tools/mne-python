@@ -234,7 +234,7 @@ def test_temporal_filterer():
     X = np.random.rand(10, 5, 2)
 
     # Test init test
-    values = (('10hz', None, 100., 'auto'), (5., '10hz', 100., 'auto'), 
+    values = (('10hz', None, 100., 'auto'), (5., '10hz', 100., 'auto'),
               (10., 20., 5., 'auto'), (None, None, 100., '5hz'))
     for low, high, sf, ltrans in values:
         assert_raises(ValueError, TemporalFilter, low, high, sf, ltrans)
@@ -248,10 +248,11 @@ def test_temporal_filterer():
         assert_true(X.shape == Xt.shape)
 
     # Test fit and transform numpy type check
-    assert_raises(ValueError, filt.transform, [1, 2])
+    with warnings.catch_warnings(record=True):
+        assert_raises(TypeError, filt.transform, [1, 2])
 
     # Test with 2 dimensional data array
-    X = np.random.rand(10 ,5)
+    X = np.random.rand(10, 5)
     with warnings.catch_warnings(record=True):
         filt = TemporalFilter(l_freq=5., h_freq=15., sfreq=100.)
         assert_equal(filt.fit_transform(X).shape, X.shape)
