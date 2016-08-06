@@ -847,6 +847,11 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         the head circle. If dict, can have entries 'center' (tuple) and
         'scale' (tuple) for what the center and scale of the head should be
         relative to the electrode locations.
+    data : Raw | Epochs | None
+        To be able to see component properties after clikcing on component
+        topomap you need to pass relevant data - instances of Raw or Epochs
+        (for example the data that ICA was trained on). This takes effect
+        only when running matplotlib in interactive mode.
 
     Returns
     -------
@@ -889,7 +894,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         else:
             cmap = (cmap, True)
     ic_data = np.dot(ica.mixing_matrix_[:, picks].T,
-                  ica.pca_components_[:ica.n_components_])
+                     ica.pca_components_[:ica.n_components_])
 
     if ica.info is None:
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
@@ -942,7 +947,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
             label = event.inaxes.get_label()
             if 'IC #' in label:
                 ic = int(label[4:])
-                ic_fig = ica.plot_properties(data, picks=ic, show=True)
+                ica.plot_properties(data, picks=ic, show=True)
         fig.canvas.mpl_connect('button_press_event', onclick)
 
     plt_show(show)

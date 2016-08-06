@@ -1342,14 +1342,15 @@ class ICA(ContainsMixin):
     def plot_components(self, picks=None, ch_type=None, res=64, layout=None,
                         vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=False, title=None, show=True, outlines='head',
-                        contours=6, image_interp='bilinear', head_pos=None):
+                        contours=6, image_interp='bilinear', head_pos=None,
+                        data=None):
         return plot_ica_components(self, picks=picks, ch_type=ch_type,
                                    res=res, layout=layout, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
                                    colorbar=colorbar, title=title, show=show,
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp,
-                                   head_pos=head_pos)
+                                   head_pos=head_pos, data=data)
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
