@@ -55,6 +55,10 @@ Changelog
 
     - Added :class:`mne.time_frequency.EpochsTFR` and average parameter in :func:`mne.time_frequency.tfr_morlet` and :func:`mne.time_frequency.tfr_multitaper` to compute time frequency transforms on single trial epochs without averaging, by `Jean-Remi King`_ and `Alex Gramfort`_
 
+    - Added :class:`mne.decoding.UnsupervisedSpatialFilter` providing interface for scikit-learn decomposition algorithms to be used with MNE data, by `Jean-Remi King`_ and `Asish Panda`_
+
+    - Added support for multiclass decoding in :class:`mne.decoding.CSP`, by `Jean-Remi King`_ and `Alexandre Barachant`_
+
 
 BUG
 ~~~
@@ -142,7 +146,7 @@ API
 
     - :class:`mne.decoding.EpochsVectorizer` has been deprecated in favor of :class:`mne.decoding.Vectorizer` by `Asish Panda`_
 
-    - Added :class:`mne.decoding.UnsupervisedSpatialFilter` providing interface for scikit-learn decomposition algorithms to be used with MNE data, by `Jean-Remi King`_ and `Asish Panda`_
+    - The `epochs_data` parameter has been deprecated in :class:`mne.decoding.CSP`, in favour of the ``X`` parameter to comply to scikit-learn API, by `Jean-Remi King`_
 
     - Deprecated :func:`mne.time_frequency.cwt_morlet` and :func:`mne.time_frequency.single_trial_power` in favour of :func:`mne.time_frequency.tfr_morlet` with parameter average=False, by `Jean-Remi King`_ and `Alex Gramfort`_
 
