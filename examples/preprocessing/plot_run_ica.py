@@ -7,8 +7,6 @@ Compute ICA components on epochs
 ICA is fit to MEG raw data.
 We assume that the non-stationary EOG artifacts have already been removed.
 The sources matching the ECG are automatically found and displayed.
-Subsequently, artefact detection and rejection quality are assessed.
-Finally, the impact on the evoked ERF is visualized.
 
 Note that this example does quite a bit of processing, so even on a
 fast machine it can take about a minute to complete.
@@ -26,9 +24,12 @@ print(__doc__)
 
 ###############################################################################
 # Read and preprocess the data. Preprocessing consists of:
-# * meg channel selection
-# * 1 - 30 Hz band-pass IIR filter
-# * epoching -0.2 to 0.5 seconds with respect to events
+#
+# - meg channel selection
+#
+# - 1 - 30 Hz band-pass IIR filter
+#
+# - epoching -0.2 to 0.5 seconds with respect to events
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
@@ -55,15 +56,3 @@ ica.plot_components(ecg_inds)
 ###############################################################################
 # Plot properties of ECG components:
 ica.plot_properties(epochs, picks=ecg_inds)
-
-###############################################################################
-# Mark EOG components for removal and compare evoked response before/after:
-
-ica.exclude = ecg_inds
-ica.plot_overlay(epochs.average())
-
-###############################################################################
-# Although the epochs evoked response does not change much, we can see the
-# effects of component removal clearly on `ecg_epochs`:
-
-ica.plot_overlay(ecg_epochs.average())
