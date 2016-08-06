@@ -606,7 +606,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
                 h12 = tmp1 + tmp2
                 h21 = np.conj((tmp1 - tmp2) / tmp)
 
-                decr = decr + n_epochs * (g12 * np.conj(h12) + g21 * h21) / 2.0
+                decr += n_epochs * (g12 * np.conj(h12) + g21 * h21) / 2.0
 
                 tmp = 1 + 1.j * 0.5 * np.imag(h12 * h21)
                 tmp = np.real(tmp + np.sqrt(tmp ** 2 - h12 * h21))
