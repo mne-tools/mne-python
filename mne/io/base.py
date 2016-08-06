@@ -711,20 +711,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # set the data
         self._data[sel, start:stop] = value
 
-    def anonymize(self):
-        """Anonymize data.
-
-        This function will remove 'subject_info', 'meas_date', 'file_id',
-        'meas_id' if they exist in ``raw.info``.
-
-        Returns
-        -------
-        raw : instance of Raw
-            The raw object. Operates in place.
-        """
-        anonymize_info(self.info)
-        return self
-
     @verbose
     def apply_function(self, fun, picks, dtype, n_jobs, *args, **kwargs):
         """ Apply a function to a subset of channels.
