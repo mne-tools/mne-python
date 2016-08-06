@@ -17,7 +17,7 @@ import numpy as np
 from .constants import FIFF
 from .pick import pick_types, channel_type, pick_channels, pick_info
 from .pick import _pick_data_channels, _pick_data_or_ica
-from .meas_info import write_meas_info, anonymize_info
+from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin)
