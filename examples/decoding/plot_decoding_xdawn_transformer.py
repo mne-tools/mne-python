@@ -12,6 +12,7 @@ Here the classifier is applied to features extracted on Xdawn filtered signals.
 #
 # License: BSD (3-clause)
 import numpy as np
+import matplotlib.pyplot as plt
 
 from sklearn.cross_validation import cross_val_score, ShuffleSplit  # noqa
 from sklearn.pipeline import make_pipeline
@@ -24,8 +25,6 @@ from mne.viz import plot_topomap
 from mne.datasets import sample
 from mne.decoding import Vectorizer
 from mne.preprocessing import XdawnTransformer
-
-import matplotlib.pyplot as plt
 
 data_path = sample.data_path()
 
