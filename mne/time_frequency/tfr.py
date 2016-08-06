@@ -378,20 +378,23 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
     """Aux. function to _compute_tfr to check the params validity."""
     # Check frequencies
     if not isinstance(frequencies, (list, np.ndarray)):
-        raise ValueError('frequencies must be an array-like.')
+        raise ValueError('frequencies must be an array-like, got %s '
+                         'instead.' % type(frequencies))
     frequencies = np.asarray(frequencies, dtype=float)
     if frequencies.ndim != 1:
-        raise ValueError('frequencies must be of shape n_freqs.')
+        raise ValueError('frequencies must be of shape (n_freqs,), got %i '
+                         'instead.' % frequencies.shape)
 
     # Check sfreq
     if not isinstance(sfreq, (float, int)):
-        raise ValueError('sfreq must be a float or an int.')
+        raise ValueError('sfreq must be a float or an int, got %s '
+                         'instead.' % type(sfreq))
     sfreq = float(sfreq)
 
     # Default zero_mean = True if multitaper else False
     zero_mean = method == 'multitaper' if zero_mean is None else zero_mean
     if not isinstance(zero_mean, bool):
-        raise ValueError('zero_mean should be of type bool. Got %s.'
+        raise ValueError('zero_mean should be of type bool, got %s. instead'
                          % type(zero_mean))
     frequencies = np.asarray(frequencies)
 
@@ -407,7 +410,8 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
         n_cycles = np.array(n_cycles)
         if len(n_cycles) != len(frequencies):
             raise ValueError('n_cycles must be a float or an array of length '
-                             'n_frequencies.')
+                             '%i frequencies, got %i cycles instead.' %
+                             (len(frequencies), len(n_cycles)))
     else:
         raise ValueError('n_cycles must be a float or an array, got %s '
                          'instead.' % type(n_cycles))
@@ -435,10 +439,11 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
                      'avg_power_itc', 'avg_power', 'itc')
     if output not in allowed_ouput:
         raise ValueError("Unknown output type. Allowed are %s but "
-                         "got %s" % (allowed_ouput, output))
+                         "got %s." % (allowed_ouput, output))
 
     if method not in ('multitaper', 'morlet'):
-        raise ValueError('method must be "morlet" or "multitaper"')
+        raise ValueError('method must be "morlet" or "multitaper", got %s '
+                         'instead.' % type(method))
 
     return frequencies, sfreq, zero_mean, n_cycles, time_bandwidth, decim
 

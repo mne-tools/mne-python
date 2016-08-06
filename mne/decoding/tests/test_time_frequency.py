@@ -6,8 +6,8 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 from nose.tools import assert_raises
-from ...utils import requires_sklearn
-from ..time_frequency import TimeFrequency
+from mne.utils import requires_sklearn
+from mne.decoding.time_frequency import TimeFrequency
 
 
 @requires_sklearn

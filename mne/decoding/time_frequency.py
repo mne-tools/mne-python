@@ -55,7 +55,6 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
 
     See Also
     --------
-    mne.time_frequency.single_trial_power
     mne.time_frequency.tfr_morlet
     mne.time_frequency.tfr_multitaper
     """
