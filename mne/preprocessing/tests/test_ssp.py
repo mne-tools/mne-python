@@ -29,7 +29,8 @@ def test_compute_proj_ecg():
                                          average=average, avg_ref=True,
                                          no_proj=True, l_freq=None,
                                          h_freq=None, reject=None,
-                                         tmax=dur_use, qrs_threshold=0.5)
+                                         tmax=dur_use, qrs_threshold=0.5,
+                                         filter_length=6000)
         assert_true(len(projs) == 7)
         # heart rate at least 0.5 Hz, but less than 3 Hz
         assert_true(events.shape[0] > 0.5 * dur_use and
@@ -69,7 +70,8 @@ def test_compute_proj_eog():
                                          bads=['MEG 2443'], average=average,
                                          avg_ref=True, no_proj=False,
                                          l_freq=None, h_freq=None,
-                                         reject=None, tmax=dur_use)
+                                         reject=None, tmax=dur_use,
+                                         filter_length=6000)
         assert_true(len(projs) == (7 + n_projs_init))
         assert_true(np.abs(events.shape[0] -
                     np.sum(np.less(eog_times, dur_use))) <= 1)
@@ -107,13 +109,13 @@ def test_compute_proj_parallel():
                                 bads=['MEG 2443'], average=False,
                                 avg_ref=True, no_proj=False, n_jobs=1,
                                 l_freq=None, h_freq=None, reject=None,
-                                tmax=dur_use)
+                                tmax=dur_use, filter_length=6000)
     raw_2 = raw_0.copy()
     projs_2, _ = compute_proj_eog(raw_2, n_mag=2, n_grad=2, n_eeg=2,
                                   bads=['MEG 2443'], average=False,
                                   avg_ref=True, no_proj=False, n_jobs=2,
                                   l_freq=None, h_freq=None, reject=None,
-                                  tmax=dur_use)
+                                  tmax=dur_use, filter_length=6000)
     projs = activate_proj(projs)
     projs_2 = activate_proj(projs_2)
     projs, _, _ = make_projector(projs, raw_2.info['ch_names'],

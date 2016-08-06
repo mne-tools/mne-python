@@ -764,7 +764,7 @@ def test_filter():
     trans = 2.0
     filter_params = dict(picks=picks, filter_length='auto',
                          h_trans_bandwidth=trans, l_trans_bandwidth=trans,
-                         phase='zero')
+                         phase='zero', fir_window='hamming')
     raw_lp = raw.copy().filter(None, 8.0, **filter_params)
     raw_hp = raw.copy().filter(16.0, None, **filter_params)
     raw_bp = raw.copy().filter(8.0 + trans, 16.0 - trans, **filter_params)
@@ -842,7 +842,7 @@ def test_filter():
         assert_true(raw.info['lowpass'] is None)
         assert_true(raw.info['highpass'] is None)
         kwargs = dict(l_trans_bandwidth=20, h_trans_bandwidth=20,
-                      filter_length='auto', phase='zero')
+                      filter_length='auto', phase='zero', fir_window='hann')
         raw_filt = raw.copy().filter(l_freq, h_freq, picks=np.arange(1),
                                      **kwargs)
         assert_true(raw.info['lowpass'] is None)
@@ -875,7 +875,7 @@ def test_filter_picks():
         raw_ = raw.copy().pick_types(**picks)
         raw_.filter(10, 30, l_trans_bandwidth='auto',
                     h_trans_bandwidth='auto', filter_length='auto',
-                    phase='zero')
+                    phase='zero', fir_window='hamming')
 
     # -- Error if no data channel
     for ch_type in ('misc', 'stim'):
@@ -1057,7 +1057,7 @@ def test_hilbert():
     raw_filt = raw.copy()
     raw_filt.filter(10, 20, picks=picks, l_trans_bandwidth='auto',
                     h_trans_bandwidth='auto', filter_length='auto',
-                    phase='zero')
+                    phase='zero', fir_window='blackman')
     raw_filt_2 = raw_filt.copy()
 
     raw2 = raw.copy()

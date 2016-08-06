@@ -40,7 +40,7 @@ def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
     # them is a nice deprecation sanity check.
     #           filter_length='10s',
     #           l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-    #           phase='zero-double')  # use the old way
+    #           phase='zero-double', fir_window='hann')  # use the old way
     X = raw[picks, :][0][:, ::20]
 
     # Subtract the mean
