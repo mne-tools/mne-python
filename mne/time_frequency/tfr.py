@@ -13,7 +13,7 @@ from math import sqrt
 
 import numpy as np
 from scipy import linalg
-from scipy.fftpack import fftn, ifftn
+from scipy.fftpack import fft, ifft
 
 from ..fixes import partial
 from ..baseline import rescale
@@ -214,18 +214,18 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
             raise ValueError('Wavelet is too long for such a short signal. '
                              'Reduce the number of cycles.')
         if use_fft:
-            fft_Ws[i] = fftn(W, [fsize])
+            fft_Ws[i] = fft(W, fsize)
 
     # Make generator looping across signals
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
     for x in X:
         if use_fft:
-            fft_x = fftn(x, [fsize])
+            fft_x = fft(x, fsize)
 
         # Loop across wavelets
         for ii, W in enumerate(Ws):
             if use_fft:
-                ret = ifftn(fft_x * fft_Ws[ii])[:n_times + W.size - 1]
+                ret = ifft(fft_x * fft_Ws[ii])[:n_times + W.size - 1]
             else:
                 ret = np.convolve(x, W, mode=mode)
 
