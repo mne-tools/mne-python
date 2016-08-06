@@ -396,7 +396,7 @@ def test_arithmetic():
     # combine_evoked([ev1, ev2]) should be the same as ev1 + ev2:
     # data should be added according to their `nave` weights
     # nave = ev1.nave + ev2.nave
-    with warnings.catch_warnings(record=True):  # deprceation no weights
+    with warnings.catch_warnings(record=True):  # deprecation no weights
         ev = combine_evoked([ev1, ev2])
     assert_equal(ev.nave, ev1.nave + ev2.nave)
     assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))

@@ -935,14 +935,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         --------
         mne.combine_evoked
         """
-        this_evoked = deepcopy(evoked)
-        this_evoked.data *= -1.
-        out = combine_evoked([self, this_evoked], weights='nave')
-        if self.comment is None or this_evoked.comment is None:
+        out = combine_evoked([self, -evoked], weights='nave')
+        if self.comment is None or evoked.comment is None:
             warn('evoked.comment expects a string but is None')
             out.comment = 'unknown'
         else:
-            out.comment = self.comment + " - " + this_evoked.comment
+            out.comment = self.comment + " - " + evoked.comment
         return out
 
     def get_peak(self, ch_type=None, tmin=None, tmax=None, mode='abs',
