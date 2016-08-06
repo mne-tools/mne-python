@@ -7,6 +7,7 @@ import os.path as op
 import warnings
 
 from numpy.testing import assert_raises, assert_equal
+from nose.tools import assert_true
 
 from mne import io, read_events, Epochs, read_cov
 from mne import pick_types
@@ -56,6 +57,8 @@ def test_plot_ica_components():
     """Test plotting of ICA solutions
     """
     import matplotlib.pyplot as plt
+    from mne.viz.utils import _fake_click
+
     raw = _get_raw()
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
@@ -67,6 +70,27 @@ def test_plot_ica_components():
         for components in [0, [0], [0, 1], [0, 1] * 2, None]:
             ica.plot_components(components, image_interp='bilinear', res=16,
                                 colorbar=True)
+
+        # test interactive mode (passing 'data' arg)
+        plt.close('all')
+        ica.plot_components([0, 1], image_interp='bilinear', res=16, data=raw)
+
+        fig = plt.gcf()
+        ax = [a for a in fig.get_children() if isinstance(a, plt.Axes)]
+        lbl = ax[1].get_label()
+        _fake_click(fig, ax[1], (0., 0.), xform='data')
+
+        c_fig = plt.gcf()
+        ax = [a for a in c_fig.get_children() if isinstance(a, plt.Axes)]
+        labels = [a.get_label() for a in ax]
+
+        for l in ['topomap', 'image', 'erp', 'spectrum', 'variance']:
+            assert_true(l in labels)
+
+        topomap_ax = ax[labels.index('topomap')]
+        title = topomap_ax.get_title()
+        assert_true(lbl == title)
+
     ica.info = None
     assert_raises(ValueError, ica.plot_components, 1)
     assert_raises(RuntimeError, ica.plot_components, 1, ch_type='mag')
