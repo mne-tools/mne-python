@@ -798,15 +798,10 @@ class TemporalFilter(TransformerMixin):
                  filter_length='auto', l_trans_bandwidth='auto',
                  h_trans_bandwidth='auto', n_jobs=1, method='fir',
                  iir_params=None, verbose=None):
-        self.l_freq = l_freq
-        self.h_freq = h_freq
-        self.filter_length = filter_length
-        self.l_trans_bandwidth = l_trans_bandwidth
-        self.h_trans_bandwidth = h_trans_bandwidth
         self.n_jobs = n_jobs
         self.method = method
         self.iir_params = iir_params
-        self.sfreq = sfreq
+        self.verbose = verbose
 
         (_, self.sfreq, self.l_freq, self.h_freq, self.l_trans_bandwidth,
          self.h_trans_bandwidth, self.filter_length, _) = \
@@ -867,5 +862,6 @@ class TemporalFilter(TransformerMixin):
                         l_trans_bandwidth=self.l_trans_bandwidth,
                         h_trans_bandwidth=self.h_trans_bandwidth,
                         n_jobs=self.n_jobs, method=self.method,
-                        iir_params=self.iir_params, copy=False, verbose=False)
+                        iir_params=self.iir_params, copy=False,
+                        verbose=self.verbose)
         return X.reshape(shape)
