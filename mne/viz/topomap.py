@@ -773,7 +773,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                         sensors=True, colorbar=False, title=None,
                         show=True, outlines='head', contours=6,
-                        image_interp='bilinear', head_pos=None):
+                        image_interp='bilinear', head_pos=None,
+                        data=None):
     """Project unmixing matrix on interpolated sensor topogrpahy.
 
     Parameters
@@ -852,6 +853,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     fig : instance of matplotlib.pyplot.Figure or list
         The figure object(s).
     """
+    from ..io import _BaseRaw
+    from ..epochs import _BaseEpochs
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid import make_axes_locatable
     from ..channels import _get_ch_type
@@ -885,7 +888,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
             cmap = (cmap, False)
         else:
             cmap = (cmap, True)
-    data = np.dot(ica.mixing_matrix_[:, picks].T,
+    ic_data = np.dot(ica.mixing_matrix_[:, picks].T,
                   ica.pca_components_[:ica.n_components_])
 
     if ica.info is None:
@@ -900,25 +903,26 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     else:
         image_mask = None
 
-    data = np.atleast_2d(data)
-    data = data[:, data_picks]
+    ic_data = np.atleast_2d(ic_data)
+    ic_data = ic_data[:, data_picks]
 
     # prepare data for iteration
-    fig, axes = _prepare_trellis(len(data), max_col=5)
+    fig, axes = _prepare_trellis(len(ic_data), max_col=5)
     if title is None:
         title = 'ICA components'
     fig.suptitle(title)
 
     if merge_grads:
         from ..channels.layout import _merge_grad_data
-    for ii, data_, ax in zip(picks, data, axes):
+    for ii, ic_data_, ax in zip(picks, ic_data, axes):
         ax.set_title('IC #%03d' % ii, fontsize=12)
-        data_ = _merge_grad_data(data_) if merge_grads else data_
-        vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
-        im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
+        ic_data_ = _merge_grad_data(ic_data_) if merge_grads else ic_data_
+        vmin_, vmax_ = _setup_vmin_vmax(ic_data_, vmin, vmax)
+        im = plot_topomap(ic_data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
                           res=res, axes=ax, cmap=cmap[0], outlines=outlines,
                           image_mask=image_mask, contours=contours,
                           image_interp=image_interp, show=False)[0]
+        im.axes.set_label('IC #%03d' % ii)
         if colorbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -932,6 +936,15 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.95)
     fig.canvas.draw()
+    if data is not None and isinstance(data, (_BaseRaw, _BaseEpochs)):
+        def onclick(event, ica=ica, data=data):
+            # check which component to plot
+            label = event.inaxes.get_label()
+            if 'IC #' in label:
+                ic = int(label[4:])
+                ic_fig = ica.plot_properties(data, picks=ic, show=True)
+        fig.canvas.mpl_connect('button_press_event', onclick)
+
     plt_show(show)
     return fig
 
