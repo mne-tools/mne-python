@@ -152,13 +152,14 @@ print(epochs)
 
 left, right = epochs["left"].average(), epochs["right"].average()
 
-(left - right).plot_joint()  # create and plot difference ERP
+# create and plot difference ERP
+mne.combine_evoked([left, -right], weights='equal').plot_joint()
 
 ###############################################################################
-# Note that by default, this is a trial-weighted average. If you have
-# imbalanced trial numbers, consider either equalizing the number of events per
-# condition (using ``Epochs.equalize_event_counts``), or the ``combine_evoked``
-# function.
+# This is an equal-weighting difference. If you have imbalanced trial numbers,
+# you could also consider either equalizing the number of events per
+# condition (using
+# :meth:``epochs.equalize_epochs_counts <mne.Epochs.equalize_event_counts`).
 # As an example, first, we create individual ERPs for each condition.
 
 aud_l = epochs["auditory", "left"].average()
@@ -167,12 +168,17 @@ vis_l = epochs["visual", "left"].average()
 vis_r = epochs["visual", "right"].average()
 
 all_evokeds = [aud_l, aud_r, vis_l, vis_r]
+print(all_evokeds)
 
-# This could have been much simplified with a list comprehension:
-# all_evokeds = [epochs[cond] for cond in event_id]
+###############################################################################
+# This can be simplified with a Python list comprehension:
+all_evokeds = [epochs[cond].average() for cond in sorted(event_id.keys())]
+print(all_evokeds)
 
-# Then, we construct and plot an unweighted average of left vs. right trials.
-mne.combine_evoked(all_evokeds, weights=(1, -1, 1, -1)).plot_joint()
+# Then, we construct and plot an unweighted average of left vs. right trials
+# this way, too:
+mne.combine_evoked(all_evokeds,
+                   weights=(0.25, -0.25, 0.25, -0.25)).plot_joint()
 
 ###############################################################################
 # Often, it makes sense to store Evoked objects in a dictionary or a list -

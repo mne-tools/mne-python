@@ -59,10 +59,12 @@ def nottest(f):
     return f
 
 
+# # # WARNING # # #
 # This list must also be updated in doc/_templates/class.rst if it is
 # changed here!
 _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
-                        '__call__')
+                        '__call__', '__add__', '__sub__', '__mul__', '__div__',
+                        '__neg__', '__hash__')
 
 ###############################################################################
 # RANDOM UTILITIES
@@ -1744,6 +1746,13 @@ class SizeMixin(object):
         return size
 
     def __hash__(self):
+        """Hash the object
+
+        Returns
+        -------
+        hash : int
+            The hash
+        """
         from .evoked import Evoked
         from .epochs import _BaseEpochs
         from .io.base import _BaseRaw
@@ -2206,8 +2215,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     from .evoked import Evoked
     from .time_frequency import AverageTFR
     from .channels.channels import equalize_channels
-    if not any([(all(isinstance(inst, t) for inst in all_inst)
-                for t in (Evoked, AverageTFR))]):
+    if not all(isinstance(inst, (Evoked, AverageTFR)) for inst in all_inst):
         raise ValueError("Not all input elements are Evoked or AverageTFR")
 
     # Copy channels to leave the original evoked datasets intact.
@@ -2220,7 +2228,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
                         else inst for inst in all_inst]
         equalize_channels(all_inst)  # apply equalize_channels
         from .evoked import combine_evoked as combine
-    elif isinstance(all_inst[0], AverageTFR):
+    else:  # isinstance(all_inst[0], AverageTFR):
         from .time_frequency.tfr import combine_tfr as combine
 
     if drop_bads:

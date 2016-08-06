@@ -8,19 +8,6 @@
 Pitfalls
 ########
 
-Evoked Arithmetic
-=================
-
-Two evoked objects can be contrasted using::
-
-	>>> evoked = evoked_cond1 - evoked_cond2
-
-Note, however that the number of trials used to obtain the averages for
-``evoked_cond1`` and ``evoked_cond2`` are taken into account when computing
-``evoked``. That is, what you get is a weighted average, not a simple
-element-by-element subtraction. To do a uniform (not weighted) average, use
-the function :func:`mne.combine_evoked`.
-
 Float64 vs float32
 ==================
 

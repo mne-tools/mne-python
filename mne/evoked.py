@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -15,8 +16,8 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
-from .utils import check_fname, logger, verbose, _time_mask, warn, sizeof_fmt
-from .utils import SizeMixin
+from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
+                    deprecated, SizeMixin)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import (_plot_evoked_white, plot_evoked_joint,
@@ -890,6 +891,23 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         evoked = deepcopy(self)
         return evoked
 
+    def __neg__(self):
+        """Negate channel responses
+
+        Returns
+        -------
+        evoked_neg : instance of Evoked
+            The Evoked instance with channel data negated and '-'
+            prepended to the comment.
+        """
+        out = self.copy()
+        out.data *= -1
+        out.comment = '-' + (out.comment or 'unknown')
+        return out
+
+    @deprecated('ev1 + ev2 weighted summation has been deprecated and will be '
+                'removed in 0.14, use combine_evoked([ev1, ev2],'
+                'weights="nave") instead')
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs
 
@@ -900,10 +918,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         --------
         mne.combine_evoked
         """
-        out = combine_evoked([self, evoked])
+        out = combine_evoked([self, evoked], weights='nave')
         out.comment = self.comment + " + " + evoked.comment
         return out
 
+    @deprecated('ev1 - ev2 weighted subtraction has been deprecated and will '
+                'be removed in 0.14, use combine_evoked([ev1, -ev2], '
+                'weights="nave") instead')
     def __sub__(self, evoked):
         """Subtract evoked taking into account number of epochs
 
@@ -914,14 +935,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         --------
         mne.combine_evoked
         """
-        this_evoked = deepcopy(evoked)
-        this_evoked.data *= -1.
-        out = combine_evoked([self, this_evoked])
-        if self.comment is None or this_evoked.comment is None:
+        out = combine_evoked([self, -evoked], weights='nave')
+        if self.comment is None or evoked.comment is None:
             warn('evoked.comment expects a string but is None')
             out.comment = 'unknown'
         else:
-            out.comment = self.comment + " - " + this_evoked.comment
+            out.comment = self.comment + " - " + evoked.comment
         return out
 
     def get_peak(self, ch_type=None, tmin=None, tmax=None, mode='abs',
@@ -1185,8 +1204,8 @@ def grand_average(all_evoked, interpolate_bads=True):
     return grand_average
 
 
-def combine_evoked(all_evoked, weights='nave'):
-    """Merge evoked data by weighted addition
+def combine_evoked(all_evoked, weights=None):
+    """Merge evoked data by weighted addition or subtraction
 
     Data should have the same channels and the same time instants.
     Subtraction can be performed by passing negative weights (e.g., [1, -1]).
@@ -1209,6 +1228,11 @@ def combine_evoked(all_evoked, weights='nave'):
     -----
     .. versionadded:: 0.9.0
     """
+    if weights is None:
+        weights = 'nave'
+        warn('In 0.13 the default is weights="nave", but in 0.14 the default '
+             'will be removed and it will have to be explicitly set',
+             DeprecationWarning)
     evoked = all_evoked[0].copy()
     if isinstance(weights, string_types):
         if weights not in ('nave', 'equal'):
@@ -1238,8 +1262,24 @@ def combine_evoked(all_evoked, weights='nave'):
     evoked.info['bads'] = bads
 
     evoked.data = sum(w * e.data for w, e in zip(weights, all_evoked))
-    evoked.nave = max(int(1. / sum(w ** 2 / e.nave
-                                   for w, e in zip(weights, all_evoked))), 1)
+    # We should set nave based on how variances change when summing Gaussian
+    # random variables. From:
+    #
+    #    https://en.wikipedia.org/wiki/Weighted_arithmetic_mean
+    #
+    # We know that the variance of a weighted sample mean is:
+    #
+    #    σ^2 = w_1^2 σ_1^2 + w_2^2 σ_2^2 + ... + w_n^2 σ_n^2
+    #
+    # We estimate the variance of each evoked instance as 1 / nave to get:
+    #
+    #    σ^2 = w_1^2 / nave_1 + w_2^2 / nave_2 + ... + w_n^2 / nave_n
+    #
+    # And our resulting nave is the reciprocal of this:
+    evoked.nave = max(int(round(
+        1. / sum(w ** 2 / e.nave for w, e in zip(weights, all_evoked)))), 1)
+    evoked.comment = ' + '.join('%0.3f * %s' % (w, e.comment or 'unknown')
+                                for w, e in zip(weights, all_evoked))
     return evoked
 
 
