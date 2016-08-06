@@ -723,9 +723,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
 class TemporalFilter(TransformerMixin):
     """Estimator to filter data array along the last dimension, having at
-    least 2 dimensions. Can be applied on epochs, evoked data.
-    This is compatible with scikit-learn pipeline and therefore useful for
-    chaining MNE processing steps.
+    least 2 dimensions.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
     filter to the channels.
@@ -738,8 +736,7 @@ class TemporalFilter(TransformerMixin):
         - l_freq is not None, h_freq is None: low-pass filter
         - l_freq is None, h_freq is not None: high-pass filter
 
-    If n_jobs > 1, more memory is required as "len(picks) * n_times"
-    additional time points need to be temporarily stored in memory.
+    See ``mne.filter.filter_data``.
 
     Parameters
     ----------
@@ -749,9 +746,9 @@ class TemporalFilter(TransformerMixin):
         High cut-off frequency in Hz. If None the data are only
         high-passed.
         channels will be filtered.
-    sfreq : float, Default: 1.0
+    sfreq : float, defaults to 1.0
         Sampling frequency in Hz.
-    filter_length : str | int
+    filter_length : str | int, defaults to 'auto'
         Length of the FIR filter to use (if applicable):
             * int: specified length in samples.
             * 'auto' (default in 0.14): the filter length is chosen based
@@ -762,29 +759,29 @@ class TemporalFilter(TransformerMixin):
               converted to that number of samples if ``phase="zero"``, or
               the shortest power-of-two length at least that duration for
               ``phase="zero-double"``.
-    l_trans_bandwidth : float | str
+    l_trans_bandwidth : float | str, defaults to 'auto'
         Width of the transition band at the low cut-off frequency in Hz
         (high pass or cutoff 1 in bandpass). Can be "auto"
         (default in 0.14) to use a multiple of ``l_freq``::
             min(max(l_freq * 0.25, 2), l_freq)
         Only used for ``method='fir'``.
-    h_trans_bandwidth : float | str
+    h_trans_bandwidth : float | str, defaults to 'auto'
         Width of the transition band at the high cut-off frequency in Hz
         (low pass or cutoff 2 in bandpass). Can be "auto"
         (default in 0.14) to use a multiple of ``h_freq``::
             min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
         Only used for ``method='fir'``.
-    n_jobs : int | str
+    n_jobs : int | str, defaults to 1
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly, CUDA is initialized, and method='fft'.
-    method : str
+    method : str, defaults to 'fir'
         'fir' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
-    iir_params : dict | None
+    iir_params : dict | None, defaults to None
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    verbose : bool, str, int, or None
+    verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
 
@@ -792,10 +789,14 @@ class TemporalFilter(TransformerMixin):
     --------
     FilterEstimator
     Vectorizer
+    mne.filter.band_pass_filter
+    mne.filter.band_stop_filter
+    mne.filter.low_pass_filter
+    mne.filter.high_pass_filter
     """
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
-                 filter_length='auto', l_trans_bandwidth=None,
-                 h_trans_bandwidth=None, n_jobs=1, method='fir',
+                 filter_length='auto', l_trans_bandwidth='auto',
+                 h_trans_bandwidth='auto', n_jobs=1, method='fir',
                  iir_params=None, verbose=None):
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -807,11 +808,9 @@ class TemporalFilter(TransformerMixin):
         self.iir_params = iir_params
         self.sfreq = sfreq
 
-        dummy_array = [1, 2]
-
         (_, self.sfreq, self.l_freq, self.h_freq, self.l_trans_bandwidth,
          self.h_trans_bandwidth, self.filter_length, _) = \
-            _triage_filter_params(dummy_array, sfreq, l_freq, h_freq,
+            _triage_filter_params([1, 2], sfreq, l_freq, h_freq,
                                   l_trans_bandwidth, h_trans_bandwidth,
                                   filter_length, method, phase='zero')
 
@@ -824,9 +823,9 @@ class TemporalFilter(TransformerMixin):
 
         Parameters
         ----------
-        X : np.ndarray
-            The data to be filtered over the last dimension. Should be of
-            of at least 2 dimensions.
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data to be filtered over the last dimension. The channels
+            dimension can be zerio when passing a 2D array.
         y : None | array, shape (n_samples,)
             The label for each sample.
             If None not used. Defaults to None.
@@ -836,10 +835,6 @@ class TemporalFilter(TransformerMixin):
         self : instance of Filterer
             Returns the modified instance.
         """
-        if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)."
-                             % type(X))
-
         return self
 
     def transform(self, X, y=None):
@@ -847,9 +842,9 @@ class TemporalFilter(TransformerMixin):
 
         Parameters
         ----------
-        X : np.ndarray
-            The data to be filtered over the last dimension. Should be of
-            of at least 2 dimensions.
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data to be filtered over the last dimension. The channels
+            dimension can be zero when passing a 2D array.
         y : None | array, shape (n_samples,)
             The label for each sample.
             If None not used. Defaults to None.
@@ -859,11 +854,12 @@ class TemporalFilter(TransformerMixin):
         X : array, shape is same as used in input.
             The data after filtering.
         """
-        if not isinstance(X, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(X))
-
+        X = np.asarray(X)
         X = np.atleast_2d(X)
+
+        if X.ndim > 3:
+            raise ValueError("Array must be of at max 3 dimensions")
+
         shape = X.shape
         X = X.reshape(-1, shape[-1])
         X = filter_data(X, self.sfreq, self.l_freq, self.h_freq,

@@ -233,43 +233,25 @@ def test_temporal_filterer():
     """Test methods of TemporalFilter."""
     X = np.random.rand(10, 5, 2)
 
+    # Test init test
+    values = (('10hz', None, 100., 'auto'), (5., '10hz', 100., 'auto'), 
+              (10., 20., 5., 'auto'), (None, None, 100., '5hz'))
+    for low, high, sf, ltrans in values:
+        assert_raises(ValueError, TemporalFilter, low, high, sf, ltrans)
+
     # Add tests for different combinations of l_freq and h_freq
-    filt = TemporalFilter(l_freq=5, h_freq=15, sfreq=100,
-                          filter_length='auto', l_trans_bandwidth=None,
-                          h_trans_bandwidth=None)
-    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
-        result = filt.fit_transform(X)
-        assert_true(X.shape == result.shape)
-        assert_array_equal(filt.fit(X).transform(X), result)
-
-    filt = TemporalFilter(l_freq=None, h_freq=15, sfreq=100,
-                          filter_length='auto', l_trans_bandwidth=None,
-                          h_trans_bandwidth=None)
-    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
-        X = filt.fit_transform(X)
-
-    filt = TemporalFilter(l_freq=1, h_freq=1, sfreq=100)
-    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
-        assert_raises(ValueError, filt.fit_transform, X)
-
-    filt = TemporalFilter(l_freq=5, h_freq=None, sfreq=100,
-                          filter_length='auto', l_trans_bandwidth=None,
-                          h_trans_bandwidth=None)
-    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
-        result = filt.fit_transform(X)
+    for low, high in ((5., 15.), (None, 15.), (5., None)):
+        with warnings.catch_warnings(record=True):
+            filt = TemporalFilter(low, high, sfreq=100.)
+            Xt = filt.fit_transform(X)
+            assert_array_equal(filt.fit_transform(X), Xt)
+        assert_true(X.shape == Xt.shape)
 
     # Test fit and transform numpy type check
-    assert_raises(ValueError, filt.fit, filt)
-    assert_raises(ValueError, filt.transform, filt)
+    assert_raises(ValueError, filt.transform, [1, 2])
 
-    # Test init test
-    assert_raises(ValueError, TemporalFilter, "10 Hz")
-    assert_raises(ValueError, TemporalFilter, 10, h_freq='5hz')
-    assert_raises(ValueError, TemporalFilter, 10, l_trans_bandwidth='10s')
-
-    # Test with different dimensions
-    filt = TemporalFilter(l_freq=5, h_freq=15, sfreq=100)
-    X = np.random.rand(16, 5, 2, 2)
-    assert_equal(filt.fit_transform(X).shape, X.shape)
-    X = np.random.rand(5, 6)
-    assert_equal(filt.fit_transform(X).shape, X.shape)
+    # Test with 2 dimensional data array
+    X = np.random.rand(10 ,5)
+    with warnings.catch_warnings(record=True):
+        filt = TemporalFilter(l_freq=5., h_freq=15., sfreq=100.)
+        assert_equal(filt.fit_transform(X).shape, X.shape)
