@@ -714,16 +714,14 @@ def test_copy_function_doc_to_method_doc():
         """
     )
 
-    assert_equal(A.method_f2.__doc__, "Docstring for f2")
-
     assert_equal(
-        A.method_f3.__doc__,
-        """Docstring for f3
+        A.method_f2.__doc__,
+        """Docstring for f2
 
         Returns
         -------
         nothing.
-        """
+        method_f3 own docstring"""
     )
 
     assert_equal(A.method_f3.__doc__, 'Docstring for f3\n\n        ')
