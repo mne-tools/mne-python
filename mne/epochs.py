@@ -2881,7 +2881,7 @@ def _concatenate_epochs(epochs_list, with_data=True):
     selection = out.selection
     for ii, epochs in enumerate(epochs_list[1:]):
         _compare_epochs_infos(epochs.info, info, ii)
-        if not np.array_equal(epochs.times, epochs_list[0].times):
+        if not np.allclose(epochs.times, epochs_list[0].times):
             raise ValueError('Epochs must have same times')
 
         if epochs.baseline != baseline:
