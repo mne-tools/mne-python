@@ -390,13 +390,13 @@ def test_ica_additional():
         d1 = ica_raw._data[0].copy()
         ica_raw.filter(4, 20, l_trans_bandwidth='auto',
                        h_trans_bandwidth='auto', filter_length='auto',
-                       phase='zero')
+                       phase='zero', fir_window='hamming')
         assert_equal(ica_raw.info['lowpass'], 20.)
         assert_equal(ica_raw.info['highpass'], 4.)
         assert_true((d1 != ica_raw._data[0]).any())
         d1 = ica_raw._data[0].copy()
         ica_raw.notch_filter([10], filter_length='auto', trans_bandwidth=10,
-                             phase='zero')
+                             phase='zero', fir_window='hamming')
         assert_true((d1 != ica_raw._data[0]).any())
 
         ica.n_pca_components = 2

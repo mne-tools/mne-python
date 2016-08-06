@@ -103,7 +103,8 @@ def next_fast_len(target):
             quotient = -(-target // p35)
 
             # Quickly find next power of 2 >= quotient
-            p2 = 2 ** int(math.log(quotient - 1, 2))
+            # can't use this b/c of 2.6 (quotient - 1).bit_length()
+            p2 = 2 ** (int(math.log(quotient - 1, 2)) + 1)
 
             N = p2 * p35
             if N == target:
