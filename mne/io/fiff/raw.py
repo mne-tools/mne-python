@@ -24,7 +24,6 @@ from ..utils import _mult_cal_one
 from ...annotations import Annotations, _combine_annotations
 from ...externals.six import string_types
 from ...utils import check_fname, logger, verbose, warn
-from ...channels import fix_mag_coil_types
 
 
 class Raw(_BaseRaw):
@@ -433,7 +432,7 @@ class Raw(_BaseRaw):
                     break
 
     def fix_mag_coil_types(self):
-        """Fix magnetometer coil types
+        """Fix Elekta magnetometer coil types
 
         Returns
         -------
@@ -460,6 +459,7 @@ class Raw(_BaseRaw):
                   current estimates computed by the MNE software is very small.
                   Therefore the use of mne_fix_mag_coil_types is not mandatory.
         """
+        from ...channels import fix_mag_coil_types
         fix_mag_coil_types(self.info)
         return self
 
