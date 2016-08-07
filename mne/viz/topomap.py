@@ -894,7 +894,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         else:
             cmap = (cmap, True)
     data = np.dot(ica.mixing_matrix_[:, picks].T,
-                     ica.pca_components_[:ica.n_components_])
+                  ica.pca_components_[:ica.n_components_])
 
     if ica.info is None:
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
