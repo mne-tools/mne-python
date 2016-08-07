@@ -1633,7 +1633,7 @@ def _find_sources(sources, target, score_func):
 def _ica_explained_variance(ica, inst, normalize=False):
     """Checks variance accounted for by each component in supplied data.
 
-    parameters
+    Parameters
     ----------
     ica : ICA
         Instance of `mne.preprocessing.ICA`.
@@ -1642,7 +1642,7 @@ def _ica_explained_variance(ica, inst, normalize=False):
     normalize : bool
         Whether to normalize the variance.
 
-    returns
+    Returns
     -------
     var : array
         Variance explained by each component.
