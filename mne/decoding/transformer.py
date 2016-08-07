@@ -781,6 +781,9 @@ class TemporalFilter(TransformerMixin):
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
+    fir_window : str, defaults to 'hamming'
+        The window to use in FIR design, can be "hamming", "hann",
+        or "blackman".
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
@@ -797,17 +800,18 @@ class TemporalFilter(TransformerMixin):
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
                  filter_length='auto', l_trans_bandwidth='auto',
                  h_trans_bandwidth='auto', n_jobs=1, method='fir',
-                 iir_params=None, verbose=None):
+                 iir_params=None, fir_window='hamming', verbose=None):
         self.n_jobs = n_jobs
         self.method = method
         self.iir_params = iir_params
         self.verbose = verbose
 
         (_, self.sfreq, self.l_freq, self.h_freq, self.l_trans_bandwidth,
-         self.h_trans_bandwidth, self.filter_length, _) = \
+         self.h_trans_bandwidth, self.filter_length, _, self.fir_window) = \
             _triage_filter_params([1, 2], sfreq, l_freq, h_freq,
                                   l_trans_bandwidth, h_trans_bandwidth,
-                                  filter_length, method, phase='zero')
+                                  filter_length, method, phase='zero',
+                                  fir_window=fir_window)
 
         if not isinstance(self.n_jobs, int) and self.n_jobs == 'cuda':
             raise ValueError('n_jobs must be int or "cuda", got %s instead.'
@@ -863,5 +867,6 @@ class TemporalFilter(TransformerMixin):
                         h_trans_bandwidth=self.h_trans_bandwidth,
                         n_jobs=self.n_jobs, method=self.method,
                         iir_params=self.iir_params, copy=False,
+                        fir_window=self.fir_window,
                         verbose=self.verbose)
         return X.reshape(shape)
