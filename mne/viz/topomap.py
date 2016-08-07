@@ -774,7 +774,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         sensors=True, colorbar=False, title=None,
                         show=True, outlines='head', contours=6,
                         image_interp='bilinear', head_pos=None,
-                        data=None):
+                        inst=None):
     """Project unmixing matrix on interpolated sensor topogrpahy.
 
     Parameters
@@ -847,7 +847,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         the head circle. If dict, can have entries 'center' (tuple) and
         'scale' (tuple) for what the center and scale of the head should be
         relative to the electrode locations.
-    data : Raw | Epochs | None
+    inst : Raw | Epochs | None
         To be able to see component properties after clikcing on component
         topomap you need to pass relevant data - instances of Raw or Epochs
         (for example the data that ICA was trained on). This takes effect
@@ -893,7 +893,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
             cmap = (cmap, False)
         else:
             cmap = (cmap, True)
-    ic_data = np.dot(ica.mixing_matrix_[:, picks].T,
+    data = np.dot(ica.mixing_matrix_[:, picks].T,
                      ica.pca_components_[:ica.n_components_])
 
     if ica.info is None:
@@ -908,22 +908,22 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     else:
         image_mask = None
 
-    ic_data = np.atleast_2d(ic_data)
-    ic_data = ic_data[:, data_picks]
+    data = np.atleast_2d(data)
+    data = data[:, data_picks]
 
     # prepare data for iteration
-    fig, axes = _prepare_trellis(len(ic_data), max_col=5)
+    fig, axes = _prepare_trellis(len(data), max_col=5)
     if title is None:
         title = 'ICA components'
     fig.suptitle(title)
 
     if merge_grads:
         from ..channels.layout import _merge_grad_data
-    for ii, ic_data_, ax in zip(picks, ic_data, axes):
+    for ii, data_, ax in zip(picks, data, axes):
         ax.set_title('IC #%03d' % ii, fontsize=12)
-        ic_data_ = _merge_grad_data(ic_data_) if merge_grads else ic_data_
-        vmin_, vmax_ = _setup_vmin_vmax(ic_data_, vmin, vmax)
-        im = plot_topomap(ic_data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
+        data_ = _merge_grad_data(data_) if merge_grads else data_
+        vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
+        im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
                           res=res, axes=ax, cmap=cmap[0], outlines=outlines,
                           image_mask=image_mask, contours=contours,
                           image_interp=image_interp, show=False)[0]
@@ -941,13 +941,13 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.95)
     fig.canvas.draw()
-    if data is not None and isinstance(data, (_BaseRaw, _BaseEpochs)):
-        def onclick(event, ica=ica, data=data):
+    if isinstance(inst, (_BaseRaw, _BaseEpochs)):
+        def onclick(event, ica=ica, inst=inst):
             # check which component to plot
             label = event.inaxes.get_label()
             if 'IC #' in label:
                 ic = int(label[4:])
-                ica.plot_properties(data, picks=ic, show=True)
+                ica.plot_properties(inst, picks=ic, show=True)
         fig.canvas.mpl_connect('button_press_event', onclick)
 
     plt_show(show)

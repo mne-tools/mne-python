@@ -71,9 +71,9 @@ def test_plot_ica_components():
             ica.plot_components(components, image_interp='bilinear', res=16,
                                 colorbar=True)
 
-        # test interactive mode (passing 'data' arg)
+        # test interactive mode (passing 'inst' arg)
         plt.close('all')
-        ica.plot_components([0, 1], image_interp='bilinear', res=16, data=raw)
+        ica.plot_components([0, 1], image_interp='bilinear', res=16, inst=raw)
 
         fig = plt.gcf()
         ax = [a for a in fig.get_children() if isinstance(a, plt.Axes)]
