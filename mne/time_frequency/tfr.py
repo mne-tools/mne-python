@@ -383,7 +383,7 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
     frequencies = np.asarray(frequencies, dtype=float)
     if frequencies.ndim != 1:
         raise ValueError('frequencies must be of shape (n_freqs,), got %s '
-                         'instead.' % frequencies.shape)
+                         'instead.' % np.array(frequencies.shape))
 
     # Check sfreq
     if not isinstance(sfreq, (float, int)):
