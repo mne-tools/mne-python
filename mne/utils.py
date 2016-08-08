@@ -877,7 +877,11 @@ def copy_function_doc_to_method_doc(source):
     >>> class A:
     ...     @copy_function_doc_to_method_doc(plot_function)
     ...     def plot(self, a, b):
-    ...         '''.. versionadded:: 0.13.0'''
+    ...         '''
+    ...         Notes
+    ...         -----
+    ...         .. versionadded:: 0.13.0
+    ...         '''
     ...         plot_function(self, a, b)
     >>> print(A.plot.__doc__)
     Docstring for plotting function.
@@ -888,7 +892,11 @@ def copy_function_doc_to_method_doc(source):
             Some parameter
         b : int
             Some parameter
-        .. versionadded:: 0.13.0
+    <BLANKLINE>
+            Notes
+            -----
+            .. versionadded:: 0.13.0
+    <BLANKLINE>
 
     Notes
     -----
