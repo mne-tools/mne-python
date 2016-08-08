@@ -11,6 +11,8 @@ from mne import read_evokeds
 from mne.datasets import testing
 from mne.externals.six.moves import StringIO
 from mne.io import show_fiff, read_raw_fif
+from mne.epochs import _segment_raw
+from mne.time_frequency import tfr_morlet
 from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
                        sum_squared, estimate_rank,
@@ -106,12 +108,8 @@ def test_object_size():
 
 
 def test_get_inst_data():
-    from mne.epochs import _segment_raw
-    from mne.time_frequency import tfr_morlet
-
+    """Test _get_inst_data"""
     raw = read_raw_fif(fname_raw)
-    # chns = raw.ch_names[:5]
-    # raw.pick_channels(chns)
     assert_equal(_get_inst_data(raw), raw._data)
 
     epochs = _segment_raw(raw, 2.5)
@@ -126,6 +124,8 @@ def test_get_inst_data():
     n_cycles = 3
     tfr = tfr_morlet(evoked, freqs, n_cycles, return_itc=False, picks=picks)
     assert_equal(_get_inst_data(tfr), tfr.data)
+
+    assert_raises(TypeError, _get_inst_data, 'foo')
 
 
 def test_misc():

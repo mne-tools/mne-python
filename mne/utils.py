@@ -526,6 +526,10 @@ def _get_inst_data(inst):
         return inst._data
     elif isinstance(inst, (Evoked, _BaseTFR)):
         return inst.data
+    else:
+        raise TypeError('The argument must be an instance of Raw, Epochs, '
+                        'Evoked, EpochsTFR or AverageTFR, got {}.'.format(
+                        type(inst)))
 
 
 class _FormatDict(dict):
