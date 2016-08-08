@@ -13,6 +13,22 @@ from .externals.six import string_types
 class Annotations(object):
     """Annotation object for annotating segments of raw data.
 
+    Annotations are added to instance of :class:`mne.io.Raw` as an attribute
+    named ``annotations``. See the example below. To reject bad epochs using
+    annotations, use annotation description starting with 'bad' keyword. The
+    epochs with overlapping bad segments are then rejected automatically by
+    default.
+
+    To remove epochs with blinks you can do::
+        >>> eog_events = mne.preprocessing.find_eog_events(raw)  # doctest: +SKIP
+        >>> n_blinks = len(eog_events)  # doctest: +SKIP
+        >>> onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25  # doctest: +SKIP
+        >>> duration = np.repeat(0.5, n_blinks)  # doctest: +SKIP
+        >>> description = ['bad blink'] * n_blinks  # doctest: +SKIP
+        >>> annotations = mne.Annotations(onset, duration, description)  # doctest: +SKIP
+        >>> raw.annotations = annotations  # doctest: +SKIP
+        >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax)  # doctest: +SKIP
+
     Parameters
     ----------
     onset : array of float, shape (n_annotations,)
@@ -21,7 +37,8 @@ class Annotations(object):
         Durations of the annotations in seconds.
     description : array of str, shape (n_annotations,) | str
         Array of strings containing description for each annotation. If a
-        string, all the annotations are given the same description.
+        string, all the annotations are given the same description. To reject
+        epochs, use description starting with keyword 'bad'. See example above.
     orig_time : float | int | instance of datetime | array of int | None
         A POSIX Timestamp, datetime or an array containing the timestamp as the
         first element and microseconds as the second element. Determines the
@@ -35,7 +52,7 @@ class Annotations(object):
     -----
     Annotations are synced to sample 0. ``raw.first_samp`` is taken
     into account in the same way as with events.
-    """
+    """  # noqa
 
     def __init__(self, onset, duration, description, orig_time=None):
 
