@@ -848,7 +848,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         'scale' (tuple) for what the center and scale of the head should be
         relative to the electrode locations.
     inst : Raw | Epochs | None
-        To be able to see component properties after clikcing on component
+        To be able to see component properties after clicking on component
         topomap you need to pass relevant data - instances of Raw or Epochs
         (for example the data that ICA was trained on). This takes effect
         only when running matplotlib in interactive mode.
