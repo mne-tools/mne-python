@@ -528,8 +528,8 @@ def _get_inst_data(inst):
         return inst.data
     else:
         raise TypeError('The argument must be an instance of Raw, Epochs, '
-                        'Evoked, EpochsTFR or AverageTFR, got {}.'.format(
-                        type(inst)))
+                        'Evoked, EpochsTFR or AverageTFR, got {0}.'.format(
+                            type(inst)))
 
 
 class _FormatDict(dict):
