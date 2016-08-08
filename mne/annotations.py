@@ -20,14 +20,14 @@ class Annotations(object):
     default.
 
     To remove epochs with blinks you can do::
-        >>> eog_events = mne.preprocessing.find_eog_events(raw)
-        >>> n_blinks = len(eog_events)
-        >>> onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25
-        >>> duration = np.repeat(0.5, n_blinks)
-        >>> description = ['bad blink'] * n_blinks
-        >>> annotations = mne.Annotations(onset, duration, description)
-        >>> raw.annotations = annotations
-        >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax)
+        >>> eog_events = mne.preprocessing.find_eog_events(raw)  # doctest: +SKIP
+        >>> n_blinks = len(eog_events)  # doctest: +SKIP
+        >>> onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25  # doctest: +SKIP
+        >>> duration = np.repeat(0.5, n_blinks)  # doctest: +SKIP
+        >>> description = ['bad blink'] * n_blinks  # doctest: +SKIP
+        >>> annotations = mne.Annotations(onset, duration, description)  # doctest: +SKIP
+        >>> raw.annotations = annotations  # doctest: +SKIP
+        >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax)  # doctest: +SKIP
 
     Parameters
     ----------
