@@ -19,11 +19,9 @@ class SearchLight(BaseEstimator, TransformerMixin):
     ----------
     base_estimator : object
         The base estimator to iteratively fit on a subset of the dataset.
-    scoring : str, callable, defaults to None
+    scoring : callable, defaults to None
         Score function (or loss function) with signature
-        score_func(y, y_pred, **kwargs). See
-        http://scikit-learn.org/stable/modules/model_evaluation.html#common-cases-predefined-values
-        for list of possible string values.
+        score_func(y, y_pred, **kwargs).
     n_jobs : int, optional (default=1)
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
