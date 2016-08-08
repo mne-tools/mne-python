@@ -33,7 +33,7 @@ def test_morlet():
 
 
 def test_time_frequency():
-    """Test the to-be-deprecated time frequency transform (PSD and ITC)"""
+    """Test the to-be-deprecated time-frequency transform (PSD and ITC)"""
     # Set parameters
     event_id = 1
     tmin = -0.2
