@@ -110,17 +110,19 @@ def test_object_size():
 def test_get_inst_data():
     """Test _get_inst_data"""
     raw = read_raw_fif(fname_raw)
+    raw.crop(tmax=1.)
     assert_equal(_get_inst_data(raw), raw._data)
+    raw.pick_channels(raw.ch_names[:2])
 
-    epochs = _segment_raw(raw, 2.5)
+    epochs = _segment_raw(raw, 0.5)
     assert_equal(_get_inst_data(epochs), epochs._data)
 
     evoked = epochs.average()
     assert_equal(_get_inst_data(evoked), evoked.data)
 
-    evoked.crop(tmax=0.5)
+    evoked.crop(tmax=0.1)
     picks = list(range(2))
-    freqs = np.array([15., 25.])
+    freqs = np.array([50., 55.])
     n_cycles = 3
     tfr = tfr_morlet(evoked, freqs, n_cycles, return_itc=False, picks=picks)
     assert_equal(_get_inst_data(tfr), tfr.data)
