@@ -379,7 +379,7 @@ class SetChannelsMixin(object):
         kind : str
             Whether to plot the sensors as 3d, topomap or as an interactive
             sensor selection dialog. Available options 'topomap', '3d',
-            'select'.  If 'select', a set of channels can be selected
+            'select'. If 'select', a set of channels can be selected
             interactively by using lasso selector or clicking while holding
             control key. The selected channels are returned along with the
             figure instance. Defaults to 'topomap'.
