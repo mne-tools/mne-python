@@ -187,6 +187,7 @@ def _read_events_fif(fid, tree):
     event_list = event_list.reshape(len(event_list) // 3, 3)
     return event_list, mappings
 
+
 def read_events(filename, include=None, exclude=None, mask=None,
                 mask_type=None):
     """Reads events from fif or text file
@@ -275,9 +276,6 @@ def read_events(filename, include=None, exclude=None, mask=None,
         if masked_len < unmasked_len:
             warn('{0} of {1} events masked'.format(unmasked_len - masked_len,
                                                    unmasked_len))
-    else:
-        warn("The default setting for the argument 'mask_type' will change "
-             "from None to 'and' in v0.14.", DeprecationWarning)
     return event_list
 
 
@@ -491,6 +489,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 
     return events
 
+
 @verbose
 def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
@@ -536,7 +535,7 @@ def find_events(raw, stim_channel=None, output='onset',
 
         .. versionadded:: 0.12
 
-    mask_type: 'and' | 'not_and' | None
+    mask_type: 'and' | 'not_and'
         The type of operation between the mask and the trigger.
         Choose 'and' for MNE-C masking behavior.
 
@@ -670,6 +669,7 @@ def _mask_trigs(events, mask, mask_type):
         if mask_type is None:
             warn("The default setting will change from 'not_and' "
                  "to 'and' in v0.14.", DeprecationWarning)
+            mask_type = 'not_and'
         if mask_type == 'not_and':
             mask = np.bitwise_not(mask)
         elif mask_type != 'and':

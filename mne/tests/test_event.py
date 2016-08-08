@@ -119,7 +119,7 @@ def test_io_events():
     assert_array_almost_equal(events, events2)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        events2 = read_events(fname_txt_mpr)
+        events2 = read_events(fname_txt_mpr, mask=0, mask_type='not_and')
         assert_true(sum('first row of' in str(ww.message) for ww in w) == 1)
     assert_array_almost_equal(events, events2)
 
