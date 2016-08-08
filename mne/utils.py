@@ -862,6 +862,7 @@ def copy_function_doc_to_method_doc(source):
     --------
     >>> def plot_function(object, a, b):
     ...     '''Docstring for plotting function.
+    ...
     ...     Parameters
     ...     ----------
     ...     object : instance of object
@@ -880,6 +881,7 @@ def copy_function_doc_to_method_doc(source):
     ...         plot_function(self, a, b)
     >>> print(A.plot.__doc__)
     Docstring for plotting function.
+    <BLANKLINE>
         Parameters
         ----------
         a : int
@@ -891,8 +893,8 @@ def copy_function_doc_to_method_doc(source):
     Notes
     -----
     The parsing performed is very basic and will break easily on docstrings
-    that are not formatted exactly according to the basic MNE structure. Always
-    inspect the resulting docstring when using this decorator.
+    that are not formatted exactly according to the ``numpydoc`` standard.
+    Always inspect the resulting docstring when using this decorator.
     """
     def wrapper(func):
         doc = source.__doc__.split('\n')
