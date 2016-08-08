@@ -209,14 +209,14 @@ for ii, start in enumerate(intervals):
         icas_from_other_data.append(this_ica)
 
 ###############################################################################
-# Remember, don't do this at home! Start by reading in a collections of ICA
+# Remember, don't do this at home! Start by reading in a collection of ICA
 # solutions instead. Something like:
 #
 # ``icas = [mne.preprocessing.read_ica(fname) for fname in ica_fnames]``
 print(icas_from_other_data)
 
 ###############################################################################
-# We use our oriinal ICA as reference.
+# We use our original ICA as reference.
 reference_ica = ica
 
 ###############################################################################
