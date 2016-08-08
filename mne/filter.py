@@ -132,8 +132,8 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
 
     Parameters
     ----------
-    x : 2d array
-        Signal to filter.
+    x : array, shape (n_signals, n_times)
+        Signals to filter.
     h : 1d array
         Filter impulse response (FIR filter coefficients). Must be odd length
         if phase == 'linear'.
@@ -145,19 +145,18 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
         uncompensated. If 'zero-double', the filter is applied in the
         forward and reverse directions.
     picks : array-like of int | None
-        Indices to filter. If None all indices will be filtered.
+        Indices of channels to filter. If None all channels will be
+        filtered. Only supported for 2D (n_channels, n_times) and 3D
+        (n_epochs, n_channels, n_times) data.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
 
     Returns
     -------
-    xf : 2d array
+    xf : array, shape (n_signals, n_times)
         x filtered.
     """
-    if picks is None:
-        picks = np.arange(x.shape[0])
-
     # Extend the signal by mirroring the edges to reduce transient filter
     # response
     _check_zero_phase_length(len(h), phase)
@@ -283,12 +282,16 @@ def _prep_for_filtering(x, copy, picks=None):
     elif len(orig_shape) > 3:
         raise ValueError('picks argument is not supported for data with more'
                          ' than three dimensions')
+    picks = np.array(picks, int).ravel()
+    if not all(0 <= pick < x.shape[0] for pick in picks) or \
+            len(set(picks)) != len(picks):
+        raise ValueError('bad argument for "picks": %s' % (picks,))
 
     return x, orig_shape, picks
 
 
-def _filter(x, Fs, freq, gain, filter_length, picks=None, n_jobs=1,
-            copy=True, phase='zero', fir_window='hamming'):
+def _fir_filter(x, Fs, freq, gain, filter_length, picks=None, n_jobs=1,
+                copy=True, phase='zero', fir_window='hamming'):
     """Filter signal using gain control points in the frequency domain.
 
     The filter impulse response is constructed from a Hann window (window
@@ -310,7 +313,9 @@ def _filter(x, Fs, freq, gain, filter_length, picks=None, n_jobs=1,
     filter_length : int
         Length of the filter to use. Must be odd length if phase == "zero".
     picks : array-like of int | None
-        Indices to filter. If None all indices will be filtered.
+        Indices of channels to filter. If None all channels will be
+        filtered. Only supported for 2D (n_channels, n_times) and 3D
+        (n_epochs, n_channels, n_times) data.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
@@ -698,7 +703,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
     Parameters
     ----------
-    data : ndarray, shape (n_channels, n_times)
+    data : ndarray, shape (..., n_times)
         The data to filter.
     sfreq : float
         The sample frequency in Hz.
@@ -709,7 +714,9 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
         high-passed.
     picks : array-like of int | None
         Indices of channels to filter. If None all channels will be
-        filtered.
+        filtered. Currently this is only supported for
+        2D (n_channels, n_times) and 3D (n_epochs, n_channels, n_times)
+        arrays.
     filter_length : str | int
         Length of the FIR filter to use (if applicable):
 
@@ -773,7 +780,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
     Returns
     -------
-    data : ndarray, shape (n_channels, n_times)
+    data : ndarray, shape (..., n_times)
         The filtered data.
 
     See Also
@@ -792,8 +799,8 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     For more information, see the tutorials :ref:`tut_background_filtering`
     and :ref:`tut_artifacts_filter`.
     """
-    if not isinstance(data, np.ndarray) or data.ndim != 2:
-        raise ValueError('data must be an array with two dimensions')
+    if not isinstance(data, np.ndarray):
+        raise ValueError('data must be an array')
     sfreq = float(sfreq)
     if sfreq < 0:
         raise ValueError('sfreq must be positive')
@@ -807,23 +814,19 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
         if l_freq == 0:
             l_freq = None
     if l_freq is None and h_freq is not None:
-        logger.info('Low-pass filtering at %0.2g Hz' % h_freq)
-        low_pass_filter(data, sfreq, h_freq,
-                        filter_length=filter_length,
-                        trans_bandwidth=h_trans_bandwidth, method=method,
-                        iir_params=iir_params, picks=picks, n_jobs=n_jobs,
-                        copy=copy, phase=phase, fir_window=fir_window)
+        data = low_pass_filter(
+            data, sfreq, h_freq, filter_length=filter_length,
+            trans_bandwidth=h_trans_bandwidth, method=method,
+            iir_params=iir_params, picks=picks, n_jobs=n_jobs,
+            copy=copy, phase=phase, fir_window=fir_window)
     if l_freq is not None and h_freq is None:
-        logger.info('High-pass filtering at %0.2g Hz' % l_freq)
-        high_pass_filter(
+        data = high_pass_filter(
             data, sfreq, l_freq, filter_length=filter_length,
             trans_bandwidth=l_trans_bandwidth, method=method,
             iir_params=iir_params, picks=picks, n_jobs=n_jobs, copy=copy,
             phase=phase, fir_window=fir_window)
     if l_freq is not None and h_freq is not None:
         if l_freq < h_freq:
-            logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
-                        % (l_freq, h_freq))
             data = band_pass_filter(
                 data, sfreq, l_freq, h_freq,
                 filter_length=filter_length,
@@ -899,7 +902,9 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
     picks : array-like of int | None
-        Indices to filter. If None all indices will be filtered.
+        Indices of channels to filter. If None all channels will be
+        filtered. Only supported for 2D (n_channels, n_times) and 3D
+        (n_epochs, n_channels, n_times) data.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly, CUDA is initialized, and method='fir'.
@@ -959,6 +964,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
 
     """
     iir_params, method = _check_method(method, iir_params, [])
+    logger.info('Band-pass filtering from %0.2g - %0.2g Hz' % (Fp1, Fp2))
     x, Fs, Fp1, Fp2, Fs1, Fs2, filter_length, phase, fir_window = \
         _triage_filter_params(
             x, Fs, Fp1, Fp2, l_trans_bandwidth, h_trans_bandwidth,
@@ -972,8 +978,8 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
         if Fs2 != Fs / 2:
             freq += [Fs / 2.]
             gain += [0.]
-        xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy,
-                     phase, fir_window)
+        xf = _fir_filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy,
+                         phase, fir_window)
     else:
         iir_params = construct_iir_filter(iir_params, [Fp1, Fp2],
                                           [Fs1, Fs2], Fs, 'bandpass')
@@ -1037,7 +1043,9 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
     picks : array-like of int | None
-        Indices to filter. If None all indices will be filtered.
+        Indices of channels to filter. If None all channels will be
+        filtered. Only supported for 2D (n_channels, n_times) and 3D
+        (n_epochs, n_channels, n_times) data.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly, CUDA is initialized, and method='fir'.
@@ -1121,8 +1129,8 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='',
             gain = np.r_[gain, [1.]]
         if np.any(np.abs(np.diff(gain, 2)) > 1):
             raise ValueError('Stop bands are not sufficiently separated.')
-        xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy,
-                     phase, fir_window)
+        xf = _fir_filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy,
+                         phase, fir_window)
     else:
         for fp_1, fp_2, fs_1, fs_2 in zip(Fp1, Fp2, Fs1, Fs2):
             iir_params_new = construct_iir_filter(iir_params, [fp_1, fp_2],
@@ -1177,7 +1185,9 @@ def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
     picks : array-like of int | None
-        Indices to filter. If None all indices will be filtered.
+        Indices of channels to filter. If None all channels will be
+        filtered. Only supported for 2D (n_channels, n_times) and 3D
+        (n_epochs, n_channels, n_times) data.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly, CUDA is initialized, and method='fir'.
@@ -1233,6 +1243,7 @@ def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
     Where ``Fstop = Fp + trans_bandwidth``.
     """
     iir_params, method = _check_method(method, iir_params, [])
+    logger.info('Low-pass filtering at %0.2g Hz' % (Fp,))
     x, Fs, _, Fp, _, Fstop, filter_length, phase, fir_window = \
         _triage_filter_params(
             x, Fs, None, Fp, None, trans_bandwidth, filter_length, method,
@@ -1243,8 +1254,8 @@ def low_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
         if Fstop != Fs / 2.:
             freq += [Fs / 2.]
             gain += [0]
-        xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy,
-                     phase, fir_window)
+        xf = _fir_filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy,
+                         phase, fir_window)
     else:
         iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'low')
         xf = _filtfilt(x, iir_params, picks, n_jobs, copy)
@@ -1297,7 +1308,9 @@ def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
     picks : array-like of int | None
-        Indices to filter. If None all indices will be filtered.
+        Indices of channels to filter. If None all channels will be
+        filtered. Only supported for 2D (n_channels, n_times) and 3D
+        (n_epochs, n_channels, n_times) data.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly, CUDA is initialized, and method='fir'.
@@ -1353,6 +1366,7 @@ def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
     Where ``Fstop = Fp - trans_bandwidth``.
     """
     iir_params, method = _check_method(method, iir_params, [])
+    logger.info('High-pass filtering at %0.2g Hz' % (Fp,))
     x, Fs, Fp, _, Fstop, _, filter_length, phase, fir_window = \
         _triage_filter_params(
             x, Fs, Fp, None, trans_bandwidth, None, filter_length, method,
@@ -1363,8 +1377,8 @@ def high_pass_filter(x, Fs, Fp, filter_length='', trans_bandwidth=None,
         if Fstop != 0:
             freq = [0] + freq
             gain = [0] + gain
-        xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy,
-                     phase, fir_window)
+        xf = _fir_filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy,
+                         phase, fir_window)
     else:
         iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'high')
         xf = _filtfilt(x, iir_params, picks, n_jobs, copy)
@@ -1429,7 +1443,9 @@ def notch_filter(x, Fs, freqs, filter_length='', notch_widths=None,
         freqs=None. Note that this will be Bonferroni corrected for the
         number of frequencies, so large p-values may be justified.
     picks : array-like of int | None
-        Indices to filter. If None all indices will be filtered.
+        Indices of channels to filter. If None all channels will be
+        filtered. Only supported for 2D (n_channels, n_times) and 3D
+        (n_epochs, n_channels, n_times) data.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly, CUDA is initialized, and method='fir'.
@@ -1806,8 +1822,7 @@ def _resample_stim_channels(stim_data, up, down):
 
     Parameters
     ----------
-    stim_data : 1D array, shape (n_samples,) |
-                2D array, shape (n_stim_channels, n_samples)
+    stim_data : array, shape (n_samples,) or (n_stim_channels, n_samples)
         Stim channels to resample.
     up : float
         Factor to upsample by.
@@ -1816,8 +1831,8 @@ def _resample_stim_channels(stim_data, up, down):
 
     Returns
     -------
-    stim_resampled : 2D array, shape (n_stim_channels, n_samples_resampled)
-        The resampled stim channels
+    stim_resampled : array, shape (n_stim_channels, n_samples_resampled)
+        The resampled stim channels.
 
     Note
     ----
