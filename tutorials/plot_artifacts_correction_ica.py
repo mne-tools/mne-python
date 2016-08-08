@@ -90,6 +90,15 @@ ica.plot_properties(raw, picks=0, psd_args={'fmax': 35.})
 # we can also take a look at multiple different components at once:
 ica.plot_properties(raw, picks=[1, 2], psd_args={'fmax': 35.})
 
+###############################################################################
+# Instead of opening individual fiures with component properties, we can
+# also pass an instance of Raw or Epochs in ``inst`` arument to
+# ``ica.plot_components``. This would allow us to open component properties
+# interactively by clickin individual component topomaps. In the notebook it
+# woks only when running matplotlib in interactive mode (``%matplotlib``).
+
+# uncomment the code below to test the inteactive mode of plot_components:
+# ica.plot_components(picks=range(10), inst=raw)
 
 ###############################################################################
 # Advanced artifact detection
