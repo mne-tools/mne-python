@@ -52,7 +52,7 @@ class Annotations(object):
     -----
     Annotations are synced to sample 0. ``raw.first_samp`` is taken
     into account in the same way as with events.
-    """
+    """  # noqa
 
     def __init__(self, onset, duration, description, orig_time=None):
 
