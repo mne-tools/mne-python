@@ -1014,7 +1014,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     res : int
         The resolution of the topomap image (n pixels along each side).
     size : float
-        Side length per topomap in inches.
+        Side length per topomap in inches (only applies when plotting multiple
+        topomaps at a time).
     cbar_fmt : str
         String format for colorbar values.
     show_names : bool | callable
@@ -1736,9 +1737,7 @@ def plot_layout(layout, show=True):
 
     Notes
     -----
-
     .. versionadded:: 0.12.0
-
     """
     import matplotlib.pyplot as plt
     fig = plt.figure()

@@ -31,8 +31,10 @@ from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms, check_version, _time_mask, warn)
+                    _compute_row_norms, check_version, _time_mask, warn,
+                    copy_function_doc_to_method_doc)
 from .fixes import in1d
+from . import viz
 
 from .externals.six.moves import zip
 from .externals.six import string_types
@@ -218,38 +220,11 @@ class Covariance(dict):
         return self
 
     @verbose
+    @copy_function_doc_to_method_doc(viz.misc.plot_cov)
     def plot(self, info, exclude=[], colorbar=True, proj=False, show_svd=True,
              show=True, verbose=None):
-        """Plot Covariance data.
-
-        Parameters
-        ----------
-        info: dict
-            Measurement info.
-        exclude : list of string | str
-            List of channels to exclude. If empty do not exclude any channel.
-            If 'bads', exclude info['bads'].
-        colorbar : bool
-            Show colorbar or not.
-        proj : bool
-            Apply projections or not.
-        show_svd : bool
-            Plot also singular values of the noise covariance for each sensor
-            type. We show square roots ie. standard deviations.
-        show : bool
-            Call pyplot.show() as the end or not.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Returns
-        -------
-        fig_cov : instance of matplotlib.pyplot.Figure
-            The covariance plot.
-        fig_svd : instance of matplotlib.pyplot.Figure | None
-            The SVD spectra plot of the covariance.
-        """
-        from .viz.misc import plot_cov
-        return plot_cov(self, info, exclude, colorbar, proj, show_svd, show)
+        return viz.misc.plot_cov(self, info, exclude, colorbar, proj, show_svd,
+                                 show, verbose)
 
 
 ###############################################################################
@@ -1934,9 +1909,6 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
-    copy : bool
-        If False, values in data will be modified in-place during
-        rank estimation (saves memory).
 
     Returns
     -------
@@ -1962,7 +1934,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
 
 def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
                             return_singular=False):
-    """Estimate rank for M/EEG data.
+    """Estimate rank of M/EEG covariance data, given the covariance
 
     Parameters
     ----------

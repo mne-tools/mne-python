@@ -40,10 +40,10 @@ from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif, make_fixed_length_events
 from .fixes import in1d, _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
-                  plot_epochs_image, plot_topo_image_epochs)
+                  plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, warn, _check_copy_dep,
-                    sizeof_fmt, SizeMixin)
+                    sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc)
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
 
@@ -760,297 +760,48 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Channel names"""
         return self.info['ch_names']
 
-    def plot(self, picks=None, scalings=None, show=True,
-             block=False, n_epochs=20,
-             n_channels=20, title=None):
-        """Visualize epochs.
-
-        Bad epochs can be marked with a left click on top of the epoch. Bad
-        channels can be selected by clicking the channel name on the left side
-        of the main axes. Calling this function drops all the selected bad
-        epochs as well as bad epochs marked beforehand with rejection
-        parameters.
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            Channels to be included. If None only good data channels are used.
-            Defaults to None
-        scalings : dict | None
-            Scaling factors for the traces. If any fields in scalings are
-            'auto', the scaling factor is set to match the 99.5th percentile of
-            a subset of the corresponding data. If scalings == 'auto', all
-            scalings fields are set to 'auto'. If any fields are 'auto' and
-            data is not preloaded, a subset of epochs up to 100mb will be
-            loaded. If None, defaults to::
-
-                dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
-                     emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1,
-                     chpi=1e-4)
-
-        show : bool
-            Whether to show the figure or not.
-        block : bool
-            Whether to halt program execution until the figure is closed.
-            Useful for rejecting bad trials on the fly by clicking on a
-            sub plot.
-        n_epochs : int
-            The number of epochs per view.
-        n_channels : int
-            The number of channels per view on mne_browse_epochs. If trellis is
-            True, this parameter has no effect. Defaults to 20.
-        title : str | None
-            The title of the window. If None, epochs name will be displayed.
-            If trellis is True, this parameter has no effect.
-            Defaults to None.
-
-        Returns
-        -------
-        fig : Instance of matplotlib.figure.Figure
-            The figure.
-
-        Notes
-        -----
-        The arrow keys (up/down/left/right) can
-        be used to navigate between channels and epochs and the scaling can be
-        adjusted with - and + (or =) keys, but this depends on the backend
-        matplotlib is configured to use (e.g., mpl.use(``TkAgg``) should work).
-        Full screen mode can be toggled with f11 key. The amount of epochs
-        and channels per view can be adjusted with home/end and
-        page down/page up keys. Butterfly plot can be toggled with ``b`` key.
-        Right mouse click adds a vertical line to the plot.
-
-        .. versionadded:: 0.10.0
-        """
+    @copy_function_doc_to_method_doc(plot_epochs)
+    def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
+             title=None, show=True, block=False):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, show=show, block=block)
 
-    def plot_psd(self, fmin=0, fmax=np.inf, proj=False, bandwidth=None,
-                 adaptive=False, low_bias=True, normalization='length',
-                 picks=None, ax=None, color='black', area_mode='std',
-                 area_alpha=0.33, dB=True, n_jobs=1, verbose=None, show=True):
-        """Plot the power spectral density across epochs
+    @copy_function_doc_to_method_doc(plot_epochs_psd)
+    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
+                 bandwidth=None, adaptive=False, low_bias=True,
+                 normalization='length', picks=None, ax=None, color='black',
+                 area_mode='std', area_alpha=0.33, dB=True, n_jobs=1,
+                 show=True, verbose=None):
+        return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
+                               tmax=tmax, proj=proj, bandwidth=bandwidth,
+                               adaptive=adaptive, low_bias=low_bias,
+                               normalization=normalization, picks=picks, ax=ax,
+                               color=color, area_mode=area_mode,
+                               area_alpha=area_alpha, dB=dB, n_jobs=n_jobs,
+                               show=show, verbose=verbose)
 
-        Parameters
-        ----------
-        fmin : float
-            Start frequency to consider.
-        fmax : float
-            End frequency to consider.
-        proj : bool
-            Apply projection.
-        bandwidth : float
-            The bandwidth of the multi taper windowing function in Hz.
-            The default value is a window half-bandwidth of 4.
-        adaptive : bool
-            Use adaptive weights to combine the tapered spectra into PSD
-            (slow, use n_jobs >> 1 to speed up computation).
-        low_bias : bool
-            Only use tapers with more than 90% spectral concentration within
-            bandwidth.
-        normalization : str
-            Either "full" or "length" (default). If "full", the PSD will
-            be normalized by the sampling rate as well as the length of
-            the signal (as in nitime).
-        picks : array-like of int | None
-            List of channels to use.
-        ax : instance of matplotlib Axes | None
-            Axes to plot into. If None, axes will be created.
-        color : str | tuple
-            A matplotlib-compatible color to use.
-        area_mode : str | None
-            Mode for plotting area. If 'std', the mean +/- 1 STD (across
-            channels) will be plotted. If 'range', the min and max (across
-            channels) will be plotted. Bad channels will be excluded from
-            these calculations. If None, no area will be plotted.
-        area_alpha : float
-            Alpha for the area.
-        dB : bool
-            If True, transform data to decibels.
-        n_jobs : int
-            Number of jobs to run in parallel.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-        show : bool
-            Show figure if True.
-
-        Returns
-        -------
-        fig : instance of matplotlib figure
-            Figure distributing one image per channel across sensor topography.
-        """
-        return plot_epochs_psd(self, fmin=fmin, fmax=fmax, proj=proj,
-                               bandwidth=bandwidth, adaptive=adaptive,
-                               low_bias=low_bias, normalization=normalization,
-                               picks=picks, ax=ax, color=color,
-                               area_mode=area_mode, area_alpha=area_alpha,
-                               dB=dB, n_jobs=n_jobs, verbose=None, show=show)
-
-    def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, proj=False,
-                         bandwidth=None, adaptive=False, low_bias=True,
-                         normalization='length', ch_type=None,
+    @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
+    def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, tmin=None,
+                         tmax=None, proj=False, bandwidth=None, adaptive=False,
+                         low_bias=True, normalization='length', ch_type=None,
                          layout=None, cmap='RdBu_r', agg_fun=None, dB=True,
                          n_jobs=1, normalize=False, cbar_fmt='%0.3f',
                          outlines='head', axes=None, show=True, verbose=None):
-        """Plot the topomap of the power spectral density across epochs
-
-        Parameters
-        ----------
-        bands : list of tuple | None
-            The lower and upper frequency and the name for that band. If None,
-            (default) expands to:
-
-            bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
-                     (12, 30, 'Beta'), (30, 45, 'Gamma')]
-
-        vmin : float | callable | None
-            The value specifying the lower bound of the color range.
-            If None, and vmax is None, -vmax is used. Else np.min(data).
-            If callable, the output equals vmin(data).
-        vmax : float | callable | None
-            The value specifying the upper bound of the color range.
-            If None, the maximum absolute value is used. If callable, the
-            output equals vmax(data). Defaults to None.
-        proj : bool
-            Apply projection.
-        bandwidth : float
-            The bandwidth of the multi taper windowing function in Hz.
-            The default value is a window half-bandwidth of 4 Hz.
-        adaptive : bool
-            Use adaptive weights to combine the tapered spectra into PSD
-            (slow, use n_jobs >> 1 to speed up computation).
-        low_bias : bool
-            Only use tapers with more than 90% spectral concentration within
-            bandwidth.
-        normalization : str
-            Either "full" or "length" (default). If "full", the PSD will
-            be normalized by the sampling rate as well as the length of
-            the signal (as in nitime).
-        ch_type : {None, 'mag', 'grad', 'planar1', 'planar2', 'eeg'}
-            The channel type to plot. For 'grad', the gradiometers are
-            collected in
-            pairs and the RMS for each pair is plotted. If None, defaults to
-            'mag' if MEG data are present and to 'eeg' if only EEG data are
-            present.
-        layout : None | Layout
-            Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If possible, the correct layout
-            file is inferred from the data; if no appropriate layout file was
-            found, the layout is automatically generated from the sensor
-            locations.
-        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-            Colormap to use. If tuple, the first value indicates the colormap
-            to use and the second value is a boolean defining interactivity. In
-            interactive mode the colors are adjustable by clicking and dragging
-            the colorbar with left and right mouse button. Left mouse button
-            moves the scale up and down and right mouse button adjusts the
-            range. Hitting space bar resets the range. Up and down arrows can
-            be used to change the colormap. If None (default), 'Reds' is used
-            for all positive data, otherwise defaults to 'RdBu_r'. If
-            'interactive', translates to (None, True).
-        agg_fun : callable
-            The function used to aggregate over frequencies.
-            Defaults to np.sum. if normalize is True, else np.mean.
-        dB : bool
-            If True, transform data to decibels (with ``10 * np.log10(data)``)
-            following the application of `agg_fun`. Only valid if normalize
-            is False.
-        n_jobs : int
-            Number of jobs to run in parallel.
-        normalize : bool
-            If True, each band will be divided by the total power. Defaults to
-            False.
-        cbar_fmt : str
-            The colorbar format. Defaults to '%0.3f'.
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will
-            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos'
-            will serve as image mask, and the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside
-            the outline. Alternatively, a matplotlib patch object can be passed
-            for advanced masking options, either directly or as a function that
-            returns patches (required for multi-axis plots). If None, nothing
-            will be drawn. Defaults to 'head'.
-        axes : list of axes | None
-            List of axes to plot consecutive topographies to. If None the axes
-            will be created automatically. Defaults to None.
-        show : bool
-            Show figure if True.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Returns
-        -------
-        fig : instance of matplotlib figure
-            Figure distributing one image per channel across sensor topography.
-        """
         return plot_epochs_psd_topomap(
-            self, bands=bands, vmin=vmin, vmax=vmax, proj=proj,
-            bandwidth=bandwidth, adaptive=adaptive,
-            low_bias=low_bias, normalization=normalization,
-            ch_type=ch_type, layout=layout, cmap=cmap,
-            agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
-            cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show,
-            verbose=None)
+            self, bands=bands, vmin=vmin, vmax=vmax, tmin=tmin, tmax=tmax,
+            proj=proj, bandwidth=bandwidth, adaptive=adaptive,
+            low_bias=low_bias, normalization=normalization, ch_type=ch_type,
+            layout=layout, cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
+            normalize=normalize, cbar_fmt=cbar_fmt, outlines=outlines,
+            axes=axes, show=show, verbose=verbose)
 
+    @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
                         colorbar=True, order=None, cmap='RdBu_r',
                         layout_scale=.95, title=None, scalings=None,
                         border='none', fig_facecolor='k', fig_background=None,
                         font_color='w', show=True):
-        """Plot Event Related Potential / Fields image on topographies
-
-        Parameters
-        ----------
-        layout: instance of Layout
-            System specific sensor positions.
-        sigma : float
-            The standard deviation of the Gaussian smoothing to apply along the
-            epoch axis to apply in the image. If 0., no smoothing is applied.
-        vmin : float
-            The min value in the image. The unit is uV for EEG channels,
-            fT for magnetometers and fT/cm for gradiometers.
-        vmax : float
-            The max value in the image. The unit is uV for EEG channels,
-            fT for magnetometers and fT/cm for gradiometers.
-        colorbar : bool
-            Display or not a colorbar.
-        order : None | array of int | callable
-            If not None, order is used to reorder the epochs on the y-axis
-            of the image. If it's an array of int it should be of length
-            the number of good epochs. If it's a callable the arguments
-            passed are the times vector and the data as 2d array
-            (data.shape[1] == len(times)).
-        cmap : instance of matplotlib.pyplot.colormap
-            Colors to be mapped to the values.
-        layout_scale: float
-            scaling factor for adjusting the relative size of the layout
-            on the canvas.
-        title : str
-            Title of the figure.
-        scalings : dict | None
-            The scalings of the channel types to be applied for plotting. If
-            None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
-        border : str
-            matplotlib borders style to be used for each sensor plot.
-        fig_facecolor : str | obj
-            The figure face color. Defaults to black.
-        fig_background : None | array
-            A background image for the figure. This must be a valid input to
-            `matplotlib.pyplot.imshow`. Defaults to None.
-        font_color : str | obj
-            The color of tick labels in the colorbar. Defaults to white.
-        show : bool
-            Show figure if True.
-
-        Returns
-        -------
-        fig : instance of matplotlib figure
-            Figure distributing one image per channel across sensor topography.
-        """
         return plot_topo_image_epochs(
             self, layout=layout, sigma=sigma, vmin=vmin, vmax=vmax,
             colorbar=colorbar, order=order, cmap=cmap,
@@ -1129,113 +880,27 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         return _drop_log_stats(self.drop_log, ignore)
 
+    @copy_function_doc_to_method_doc(plot_drop_log)
     def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown',
                       color=(0.9, 0.9, 0.9), width=0.8, ignore=('IGNORED',),
                       show=True):
-        """Show the channel stats based on a drop_log from Epochs
-
-        Parameters
-        ----------
-        threshold : float
-            The percentage threshold to use to decide whether or not to
-            plot. Default is zero (always plot).
-        n_max_plot : int
-            Maximum number of channels to show stats for.
-        subject : str
-            The subject name to use in the title of the plot.
-        color : tuple | str
-            Color to use for the bars.
-        width : float
-            Width of the bars.
-        ignore : list
-            The drop reasons to ignore.
-        show : bool
-            Show figure if True.
-
-        Returns
-        -------
-        perc : float
-            Total percentage of epochs dropped.
-        fig : Instance of matplotlib.figure.Figure
-            The figure.
-        """
         if not self._bad_dropped:
             raise ValueError("You cannot use plot_drop_log since bad "
                              "epochs have not yet been dropped. "
                              "Use epochs.drop_bad().")
-
-        from .viz import plot_drop_log
         return plot_drop_log(self.drop_log, threshold, n_max_plot, subject,
                              color=color, width=width, ignore=ignore,
                              show=show)
 
+    @copy_function_doc_to_method_doc(plot_epochs_image)
     def plot_image(self, picks=None, sigma=0., vmin=None,
                    vmax=None, colorbar=True, order=None, show=True,
                    units=None, scalings=None, cmap='RdBu_r',
-                   fig=None, overlay_times=None):
-        """Plot Event Related Potential / Fields image
-
-        Parameters
-        ----------
-        picks : int | array-like of int | None
-            The indices of the channels to consider. If None, the first
-            five good channels are plotted.
-        sigma : float
-            The standard deviation of the Gaussian smoothing to apply along
-            the epoch axis to apply in the image. If 0., no smoothing is
-            applied.
-        vmin : float
-            The min value in the image. The unit is uV for EEG channels,
-            fT for magnetometers and fT/cm for gradiometers.
-        vmax : float
-            The max value in the image. The unit is uV for EEG channels,
-            fT for magnetometers and fT/cm for gradiometers.
-        colorbar : bool
-            Display or not a colorbar.
-        order : None | array of int | callable
-            If not None, order is used to reorder the epochs on the y-axis
-            of the image. If it's an array of int it should be of length
-            the number of good epochs. If it's a callable the arguments
-            passed are the times vector and the data as 2d array
-            (data.shape[1] == len(times).
-        show : bool
-            Show figure if True.
-        units : dict | None
-            The units of the channel types used for axes lables. If None,
-            defaults to `units=dict(eeg='uV', grad='fT/cm', mag='fT')`.
-        scalings : dict | None
-            The scalings of the channel types to be applied for plotting.
-            If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
-            eog=1e6)`.
-        cmap : matplotlib colormap | (colormap, bool) | 'interactive'
-            Colormap. If tuple, the first value indicates the colormap to use
-            and the second value is a boolean defining interactivity. In
-            interactive mode the colors are adjustable by clicking and dragging
-            the colorbar with left and right mouse button. Left mouse button
-            moves the scale up and down and right mouse button adjusts the
-            range. Hitting space bar resets the scale. Up and down arrows can
-            be used to change the colormap. If 'interactive', translates to
-            ('RdBu_r', True). Defaults to 'RdBu_r'.
-        fig : matplotlib figure | None
-            Figure instance to draw the image to. Figure must contain two
-            axes for drawing the single trials and evoked responses. If
-            None a new figure is created. Defaults to None.
-        overlay_times : array-like, shape (n_epochs,) | None
-            If not None the parameter is interpreted as time instants in
-            seconds and is added to the image. It is typically useful to
-            display reaction times. Note that it is defined with respect
-            to the order of epochs such that overlay_times[0] corresponds
-            to epochs[0].
-
-        Returns
-        -------
-        figs : list of matplotlib figures
-            One figure per channel displayed.
-        """
+                   fig=None, axes=None, overlay_times=None):
         return plot_epochs_image(self, picks=picks, sigma=sigma, vmin=vmin,
                                  vmax=vmax, colorbar=colorbar, order=order,
                                  show=show, units=units, scalings=scalings,
-                                 cmap=cmap, fig=fig,
+                                 cmap=cmap, fig=fig, axes=axes,
                                  overlay_times=overlay_times)
 
     @verbose

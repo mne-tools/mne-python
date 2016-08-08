@@ -17,7 +17,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
-                    deprecated, SizeMixin)
+                    deprecated, SizeMixin, copy_function_doc_to_method_doc)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import (_plot_evoked_white, plot_evoked_joint,
@@ -187,6 +187,16 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
+
+        Returns
+        -------
+        evoked : instance of Evoked
+            The cropped Evoked object.
+
+        Notes
+        -----
+        Unlike Python slices, MNE time intervals include both their end points;
+        crop(tmin, tmax) returns the interval tmin <= t <= tmax.
         """
         mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
         self.times = self.times[mask]
@@ -266,94 +276,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.times = np.arange(self.first, self.last + 1,
                                dtype=np.float) / sfreq
 
+    @copy_function_doc_to_method_doc(plot_evoked)
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
              spatial_colors=False, zorder='unsorted', selectable=True):
-        """Plot evoked data using butterfly plots
-
-        Left click to a line shows the channel name. Selecting an area by
-        clicking and holding left mouse button plots a topographic map of the
-        painted area.
-
-        Note: If bad channels are not excluded they are shown in red.
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            The indices of channels to plot. If None show all.
-        exclude : list of str | 'bads'
-            Channels names to exclude from being shown. If 'bads', the
-            bad channels are excluded.
-        unit : bool
-            Scale plot with channel (SI) unit.
-        show : bool
-            Call pyplot.show() at the end or not.
-        ylim : dict | None
-            ylim for plots (after scaling has been applied). The value
-            determines the upper and lower subplot limits. e.g.
-            ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad. If None,
-            the ylim parameter for each channel is determined by the maximum
-            absolute peak.
-        xlim : 'tight' | tuple | None
-            xlim for plots.
-        proj : bool | 'interactive'
-            If true SSP projections are applied before display. If
-            'interactive', a check box for reversible selection of SSP
-            projection vectors will be shown.
-        hline : list of floats | None
-            The values at which show an horizontal line.
-        units : dict | None
-            The units of the channel types used for axes lables. If None,
-            defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
-        scalings : dict | None
-            The scalings of the channel types to be applied for plotting.
-            If None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
-        titles : dict | None
-            The titles associated with the channels. If None, defaults to
-            `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
-        axes : instance of Axes | list | None
-            The axes to plot to. If list, the list must be a list of Axes of
-            the same length as the number of channel types. If instance of
-            Axes, there must be only one channel type plotted.
-        gfp : bool | 'only'
-            Plot GFP in green if True or "only". If "only", then the individual
-            channel traces will not be shown.
-        window_title : str | None
-            The title to put at the top of the figure window.
-        spatial_colors : bool
-            If True, the lines are color coded by mapping physical sensor
-            coordinates into color values. Spatially similar channels will have
-            similar colors. Bad channels will be dotted. If False, the good
-            channels are plotted black and bad channels red. Defaults to False.
-        zorder : str | callable
-            Which channels to put in the front or back. Only matters if
-            `spatial_colors` is used.
-            If str, must be `std` or `unsorted` (defaults to `unsorted`). If
-            `std`, data with the lowest standard deviation (weakest effects)
-            will be put in front so that they are not obscured by those with
-            stronger effects. If `unsorted`, channels are z-sorted as in the
-            evoked instance.
-            If callable, must take one argument: a numpy array of the same
-            dimensionality as the evoked raw data; and return a list of
-            unique integers corresponding to the number of channels.
-
-            .. versionadded:: 0.13.0
-
-        selectable : bool
-            Whether to use interactive features. If True (default), it is
-            possible to paint an area to draw topomaps. When False, the
-            interactive features are disabled. Disabling interactive features
-            reduces memory consumption and is useful when using ``axes``
-            parameter to draw multiaxes figures.
-
-            .. versionadded:: 0.13.0
-
-        Returns
-        -------
-        fig : instance of matplotlib.figure.Figure
-            Figure containing the butterfly plots.
-        """
         return plot_evoked(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
@@ -361,124 +288,22 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             window_title=window_title, spatial_colors=spatial_colors,
             zorder=zorder, selectable=selectable)
 
+    @copy_function_doc_to_method_doc(plot_evoked_image)
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
                    clim=None, xlim='tight', proj=False, units=None,
                    scalings=None, titles=None, axes=None, cmap='RdBu_r'):
-        """Plot evoked data as images
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            The indices of channels to plot. If None show all.
-        exclude : list of str | 'bads'
-            Channels names to exclude from being shown. If 'bads', the
-            bad channels are excluded.
-        unit : bool
-            Scale plot with channel (SI) unit.
-        show : bool
-            Call pyplot.show() at the end or not.
-        clim : dict
-            clim for images. e.g. clim = dict(eeg=[-200e-6, 200e6])
-            Valid keys are eeg, mag, grad
-        xlim : 'tight' | tuple | None
-            xlim for plots.
-        proj : bool | 'interactive'
-            If true SSP projections are applied before display. If
-            'interactive', a check box for reversible selection of SSP
-            projection vectors will be shown.
-        units : dict | None
-            The units of the channel types used for axes lables. If None,
-            defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
-        scalings : dict | None
-            The scalings of the channel types to be applied for plotting.
-            If None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
-        titles : dict | None
-            The titles associated with the channels. If None, defaults to
-            `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
-        axes : instance of Axes | list | None
-            The axes to plot to. If list, the list must be a list of Axes of
-            the same length as the number of channel types. If instance of
-            Axes, there must be only one channel type plotted.
-        cmap : matplotlib colormap | (colormap, bool) | 'interactive'
-            Colormap. If tuple, the first value indicates the colormap to use
-            and the second value is a boolean defining interactivity. In
-            interactive mode the colors are adjustable by clicking and dragging
-            the colorbar with left and right mouse button. Left mouse button
-            moves the scale up and down and right mouse button adjusts the
-            range. Hitting space bar resets the scale. Up and down arrows can
-            be used to change the colormap. If 'interactive', translates to
-            ('RdBu_r', True). Defaults to 'RdBu_r'.
-
-        Returns
-        -------
-        fig : instance of matplotlib.figure.Figure
-            Figure containing the images.
-        """
         return plot_evoked_image(self, picks=picks, exclude=exclude, unit=unit,
                                  show=show, clim=clim, proj=proj, xlim=xlim,
                                  units=units, scalings=scalings,
                                  titles=titles, axes=axes, cmap=cmap)
 
+    @copy_function_doc_to_method_doc(plot_evoked_topo)
     def plot_topo(self, layout=None, layout_scale=0.945, color=None,
                   border='none', ylim=None, scalings=None, title=None,
                   proj=False, vline=[0.0], fig_facecolor='k',
                   fig_background=None, axis_facecolor='k', font_color='w',
                   merge_grads=False, show=True):
-        """Plot 2D topography of evoked responses.
-
-        Clicking on the plot of an individual sensor opens a new figure showing
-        the evoked response for the selected sensor.
-
-        Parameters
-        ----------
-        layout : instance of Layout | None
-            Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If possible, the correct layout is
-            inferred from the data.
-        layout_scale: float
-            Scaling factor for adjusting the relative size of the layout
-            on the canvas
-        color : list of color objects | color object | None
-            Everything matplotlib accepts to specify colors. If not list-like,
-            the color specified will be repeated. If None, colors are
-            automatically drawn.
-        border : str
-            matplotlib borders style to be used for each sensor plot.
-        ylim : dict | None
-            ylim for plots. The value determines the upper and lower subplot
-            limits. e.g. ylim = dict(eeg=[-20, 20]). Valid keys are eeg,
-            mag, grad, misc. If None, the ylim parameter for each channel is
-            determined by the maximum absolute peak.
-        scalings : dict | None
-            The scalings of the channel types to be applied for plotting. If
-            None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
-        title : str
-            Title of the figure.
-        proj : bool | 'interactive'
-            If true SSP projections are applied before display. If
-            'interactive', a check box for reversible selection of SSP
-            projection vectors will be shown.
-        vline : list of floats | None
-            The values at which to show a vertical line.
-        fig_facecolor : str | obj
-            The figure face color. Defaults to black.
-        fig_background : None | numpy ndarray
-            A background image for the figure. This must work with a call to
-            plt.imshow. Defaults to None.
-        axis_facecolor : str | obj
-            The face color to be used for each sensor plot. Defaults to black.
-        font_color : str | obj
-            The color of text in the colorbar and title. Defaults to white.
-        merge_grads : bool
-            Whether to use RMS value of gradiometer pairs. Only works for
-            Neuromag data. Defaults to False.
-        show : bool
-            Show figure if True.
-
-        Returns
-        -------
-        fig : Instance of matplotlib.figure.Figure
-            Images of evoked responses at sensor locations
+        """
 
         Notes
         -----
@@ -493,6 +318,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                 font_color=font_color, merge_grads=merge_grads,
                                 show=show)
 
+    @copy_function_doc_to_method_doc(plot_evoked_topomap)
     def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
                      vmax=None, cmap=None, sensors=True, colorbar=True,
                      scale=None, scale_time=1e3, unit=None, res=64, size=1,
@@ -501,134 +327,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      mask_params=None, outlines='head', contours=6,
                      image_interp='bilinear', average=None, head_pos=None,
                      axes=None):
-        """Plot topographic maps of specific time points
-
-        Parameters
-        ----------
-        times : float | array of floats | "auto" | "peaks".
-            The time point(s) to plot. If "auto", the number of ``axes``
-            determines the amount of time point(s). If ``axes`` is also None,
-            10 topographies will be shown with a regular time spacing between
-            the first and last time instant. If "peaks", finds time points
-            automatically by checking for local maxima in Global Field Power.
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-            The channel type to plot. For 'grad', the gradiometers are collec-
-            ted in pairs and the RMS for each pair is plotted.
-            If None, then first available channel type from order given
-            above is used. Defaults to None.
-        layout : None | Layout
-            Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If possible, the correct
-            layout file is inferred from the data; if no appropriate layout
-            file was found, the layout is automatically generated from the
-            sensor locations.
-        vmin : float | callable
-            The value specfying the lower bound of the color range.
-            If None, and vmax is None, -vmax is used. Else np.min(data).
-            If callable, the output equals vmin(data).
-        vmax : float | callable
-            The value specfying the upper bound of the color range.
-            If None, the maximum absolute value is used. If vmin is None,
-            but vmax is not, defaults to np.max(data).
-            If callable, the output equals vmax(data).
-        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-            Colormap to use. If tuple, the first value indicates the colormap
-            to use and the second value is a boolean defining interactivity. In
-            interactive mode the colors are adjustable by clicking and dragging
-            the colorbar with left and right mouse button. Left mouse button
-            moves the scale up and down and right mouse button adjusts the
-            range. Hitting space bar resets the range. Up and down arrows can
-            be used to change the colormap. If None (default), 'Reds' is used
-            for all positive data, otherwise defaults to 'RdBu_r'. If
-            'interactive', translates to (None, True).
-
-            .. warning::  Interactive mode works smoothly only for a small
-                amount of topomaps.
-
-        sensors : bool | str
-            Add markers for sensor locations to the plot. Accepts matplotlib
-            plot format string (e.g., 'r+' for red plusses). If True, a circle
-            will be used (via .add_artist). Defaults to True.
-        colorbar : bool
-            Plot a colorbar.
-        scale : dict | float | None
-            Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
-            for grad and 1e15 for mag.
-        scale_time : float | None
-            Scale the time labels. Defaults to 1e3 (ms).
-        unit : dict | str | None
-            The unit of the channel type used for colorbar label. If
-            scale is None the unit is automatically determined.
-        res : int
-            The resolution of the topomap image (n pixels along each side).
-        size : scalar
-            Side length of the topomaps in inches (only applies when plotting
-            multiple topomaps at a time).
-        cbar_fmt : str
-            String format for colorbar values.
-        time_format : str
-            String format for topomap values. Defaults to ``"%01d ms"``.
-        proj : bool | 'interactive'
-            If true SSP projections are applied before display. If
-            'interactive', a check box for reversible selection of SSP
-            projection vectors will be shown.
-        show : bool
-            Call pyplot.show() at the end.
-        show_names : bool | callable
-            If True, show channel names on top of the map. If a callable is
-            passed, channel names will be formatted using the callable; e.g.,
-            to delete the prefix 'MEG ' from all channel names, pass the
-            function
-            lambda x: x.replace('MEG ', ''). If `mask` is not None, only
-            significant sensors will be shown.
-        title : str | None
-            Title. If None (default), no title is displayed.
-        mask : ndarray of bool, shape (n_channels, n_times) | None
-            The channels to be marked as significant at a given time point.
-            Indices set to `True` will be considered. Defaults to None.
-        mask_params : dict | None
-            Additional plotting parameters for plotting significant sensors.
-            Default (None) equals:
-            ``dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-            linewidth=0, markersize=4)``.
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will
-            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos'
-            will serve as image mask, and the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside
-            the outline. Alternatively, a matplotlib patch object can be passed
-            for advanced masking options, either directly or as a function that
-            returns patches (required for multi-axis plots). If None, nothing
-            will be drawn. Defaults to 'head'.
-        contours : int | False | None
-            The number of contour lines to draw. If 0, no contours will be
-            drawn.
-        image_interp : str
-            The image interpolation to be used. All matplotlib options are
-            accepted.
-        average : float | None
-            The time window around a given time to be used for averaging
-            (seconds). For example, 0.01 would translate into window that
-            starts 5 ms before and ends 5 ms after a given time point.
-            Defaults to None, which means no averaging.
-        head_pos : dict | None
-            If None (default), the sensors are positioned such that they span
-            the head circle. If dict, can have entries 'center' (tuple) and
-            'scale' (tuple) for what the center and scale of the head should be
-            relative to the electrode locations.
-        axes : instance of Axes | list | None
-            The axes to plot to. If list, the list must be a list of Axes of
-            the same length as ``times`` (unless ``times`` is None). If
-            instance of Axes, ``times`` must be a float or a list of one float.
-            Defaults to None.
-
-        Returns
-        -------
-        fig : instance of matplotlib.figure.Figure
-            Images of evoked responses at sensor locations
-        """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin, vmax=vmax,
                                    cmap=cmap, sensors=sensors,
@@ -642,27 +340,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                    image_interp=image_interp, average=average,
                                    head_pos=head_pos, axes=axes)
 
+    @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):
-        """Plot MEG/EEG fields on head surface and helmet in 3D
-
-        Parameters
-        ----------
-        surf_maps : list
-            The surface mapping information obtained with make_field_map.
-        time : float | None
-            The time point at which the field map shall be displayed. If None,
-            the average peak latency (across sensor types) is used.
-        time_label : str
-            How to print info about the time instant visualized.
-        n_jobs : int
-            Number of jobs to run in parallel.
-
-        Returns
-        -------
-        fig : instance of mlab.Figure
-            The mayavi figure.
-        """
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs)
 
@@ -706,53 +386,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
                                   rank=None, show=show)
 
+    @copy_function_doc_to_method_doc(plot_evoked_joint)
     def plot_joint(self, times="peaks", title='', picks=None,
                    exclude='bads', show=True, ts_args=None,
                    topomap_args=None):
-        """Plot evoked data as butterfly plots and add topomaps for selected
-        time points.
-
-        Parameters
-        ----------
-        times : float | array of floats | "auto" | "peaks"
-            The time point(s) to plot. If "auto", 5 evenly spaced topographies
-            between the first and last time instant will be shown. If "peaks",
-            finds time points automatically by checking for 3 local
-            maxima in Global Field Power. Defaults to "peaks".
-        title : str
-            The title. If ``None``, suppress printing channel type. Defaults to
-            an empty string.
-        picks : array-like of int | None
-            The indices of channels to plot. If ``None``, show all. Defaults
-            to None.
-        exclude : list of str | 'bads'
-            Channels names to exclude from being shown. If 'bads', the
-            bad channels are excluded. Defaults to 'bads'.
-        show : bool
-            Show figure if True. Defaults to True.
-        ts_args : None | dict
-            A dict of `kwargs` that are forwarded to `evoked.plot` to
-            style the butterfly plot. `axes` and `show` are ignored.
-            If `spatial_colors` is not in this dict, `spatial_colors=True`,
-            and (if it is not in the dict) `zorder='std'` will be passed.
-            Beyond that, if `None`, no customizable arguments will be passed.
-        topomap_args : None | dict
-            A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
-            to style the topomaps. `axes` and `show` are ignored. If `times`
-            is not in this dict, automatic peak detection is used. Beyond
-            that, if `None`, no customizable arguments will be passed.
-
-        Returns
-        -------
-        fig : instance of matplotlib.figure.Figure | list
-            The figure object containing the plot. If `evoked` has multiple
-            channel types, a list of figures, one for each channel type, is
-            returned.
-
-        Notes
-        -----
-        .. versionadded:: 0.12.0
-        """
         return plot_evoked_joint(self, times=times, title=title, picks=picks,
                                  exclude=exclude, show=show, ts_args=ts_args,
                                  topomap_args=topomap_args)
@@ -847,6 +484,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             a power-of-two size (can be much faster).
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
+
+        Returns
+        -------
+        evoked : instance of mne.Evoked
+            The resampled evoked object.
         """
         sfreq = float(sfreq)
         o_sfreq = self.info['sfreq']
@@ -857,6 +499,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                       self.times[0])
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
+        return self
 
     def detrend(self, order=1, picks=None):
         """Detrend data
@@ -874,7 +517,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Returns
         -------
         evoked : instance of Evoked
-            The evoked instance.
+            The detrended evoked object.
         """
         if picks is None:
             picks = _pick_data_channels(self.info)

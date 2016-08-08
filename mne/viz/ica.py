@@ -29,7 +29,7 @@ from ..time_frequency.psd import psd_multitaper
 
 
 def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
-                     stop=None, show=True, title=None, block=False):
+                     stop=None, title=None, show=True, block=False):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -56,10 +56,10 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     stop : int
         X-axis stop index. If None, next 20 are shown, in case of evoked to the
         end.
-    show : bool
-        Show figure if True.
     title : str | None
         The figure title. If None a default is provided.
+    show : bool
+        Show figure if True.
     block : bool
         Whether to halt program execution until the figure is closed.
         Useful for interactive selection of components in raw and epoch
@@ -123,7 +123,7 @@ def _create_properties_layout(figsize=None):
     return fig, ax
 
 
-def plot_ica_properties(inst, ica, picks=None, axes=None, dB=True,
+def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
                         psd_args=None, figsize=None, show=True):
     """Display component properties: topography, epochs image, ERP/ERF,
@@ -131,10 +131,10 @@ def plot_ica_properties(inst, ica, picks=None, axes=None, dB=True,
 
     Parameters
     ----------
-    inst: instance of Epochs or Raw
-        The data to use in plotting properties.
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
+    inst: instance of Epochs or Raw
+        The data to use in plotting properties.
     picks : int | array-like of int | None
         The components to be displayed. If None, plot will show the first
         five sources. If more than one components were chosen in the picks,

@@ -14,7 +14,7 @@ from scipy import sparse
 
 from ..externals.six import string_types
 
-from ..utils import verbose, logger, warn
+from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
 from ..io.compensator import get_current_comp
 from ..io.meas_info import anonymize_info
 from ..io.pick import (channel_type, pick_info, pick_types,
@@ -389,8 +389,8 @@ class SetChannelsMixin(object):
             eeg, seeg and ecog channels are plotted. If None (default), then
             channels are chosen in the order given above.
         title : str | None
-            Title for the figure. If None (default), equals to
-            ``'Sensor positions (%s)' % ch_type``.
+            Title for the figure. If None (default), equals to ``'Sensor
+            positions (%s)' % ch_type``.
         show_names : bool
             Whether to display all channel names. Defaults to False.
         ch_groups : 'position' | array of shape (ch_groups, picks) | None
@@ -434,27 +434,15 @@ class SetChannelsMixin(object):
         :func:`mne.viz.plot_trans`.
 
         .. versionadded:: 0.12.0
-
         """
         from ..viz.utils import plot_sensors
         return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
                             show_names=show_names, ch_groups=ch_groups,
                             axes=axes, block=block, show=show)
 
+    @copy_function_doc_to_method_doc(anonymize_info)
     def anonymize(self):
-        """Anonymize measurement information in place by removing
-        'subject_info', 'meas_date', 'file_id', 'meas_id' if they exist in
-        ``info``.
-
-        Returns
-        -------
-        self : instance of Raw | Epochs | Evoked
-            The data container.
-
-        Notes
-        -----
-        Operates in place.
-
+        """
         .. versionadded:: 0.13.0
         """
         anonymize_info(self.info)
@@ -467,8 +455,8 @@ class UpdateChannelsMixin(object):
     def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
-                   seeg=False, bio=False, ecog=False, include=[],
-                   exclude='bads', selection=None):
+                   seeg=False, dipole=False, gof=False, bio=False, ecog=False,
+                   include=[], exclude='bads', selection=None):
         """Pick some channels by type and names
 
         Parameters
@@ -506,6 +494,10 @@ class UpdateChannelsMixin(object):
             System status channel information (on Triux systems only).
         seeg : bool
             Stereotactic EEG channels.
+        dipole : bool
+            Dipole time course channels.
+        gof : bool
+            Dipole goodness of fit channels.
         bio : bool
             Bio channels.
         ecog : bool
@@ -531,8 +523,8 @@ class UpdateChannelsMixin(object):
         idx = pick_types(
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
-            ias=ias, syst=syst, seeg=seeg, bio=bio, ecog=ecog, include=include,
-            exclude=exclude, selection=selection)
+            ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
+            ecog=ecog, include=include, exclude=exclude, selection=selection)
         self._pick_drop_channels(idx)
         return self
 

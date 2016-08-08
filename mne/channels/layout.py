@@ -101,9 +101,7 @@ class Layout(object):
 
         Notes
         -----
-
         .. versionadded:: 0.12.0
-
         """
         from ..viz.topomap import plot_layout
         return plot_layout(self, show=show)
