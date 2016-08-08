@@ -19,6 +19,11 @@ class SearchLight(BaseEstimator, TransformerMixin):
     ----------
     base_estimator : object
         The base estimator to iteratively fit on a subset of the dataset.
+    scoring : str, callable, defaults to None
+        Score function (or loss function) with signature
+        score_func(y, y_pred, **kwargs). See
+        http://scikit-learn.org/stable/modules/model_evaluation.html#common-cases-predefined-values
+        for list of possible string values.
     n_jobs : int, optional (default=1)
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
@@ -30,10 +35,16 @@ class SearchLight(BaseEstimator, TransformerMixin):
             repr_str += ', fitted with %i estimators' % len(self.estimators_)
         return repr_str + '>'
 
-    def __init__(self, base_estimator, n_jobs=1):
+    def __init__(self, base_estimator, scoring=None, n_jobs=1):
         _check_estimator(base_estimator)
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
+
+        if not (scoring is None or hasattr(scoring, '__call__')):
+            raise ValueError("scoring must be None or a callable type")
+
+        self.scoring = scoring
+
         if not isinstance(self.n_jobs, int):
             raise ValueError('n_jobs must be int, got %s' % n_jobs)
 
@@ -226,13 +237,15 @@ class SearchLight(BaseEstimator, TransformerMixin):
         if X.shape[-1] != len(self.estimators_):
             raise ValueError('The number of estimators does not match '
                              'X.shape[-1]')
+        if self.scoring is not None:
+            X = self.predict(X)
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(_sl_score, self.n_jobs)
         n_jobs = min(n_jobs, X.shape[-1])
         X_splits = np.array_split(X, n_jobs, axis=-1)
         est_splits = np.array_split(self.estimators_, n_jobs)
-        score = parallel(p_func(est, x, y)
+        score = parallel(p_func(est, self.scoring, X, y)
                          for (est, x) in zip(est_splits, X_splits))
 
         if n_jobs > 1:
@@ -316,7 +329,7 @@ def _sl_init_pred(y_pred, X):
     return y_pred
 
 
-def _sl_score(estimators, X, y):
+def _sl_score(estimators, scoring, X, y):
     """Aux. function to score SearchLight in parallel.
 
     Predict and score each slice of data.
@@ -338,7 +351,10 @@ def _sl_score(estimators, X, y):
     """
     n_iter = X.shape[-1]
     for ii, est in enumerate(estimators):
-        _score = est.score(X[..., ii], y)
+        if scoring is not None:
+            _score = scoring(X[..., ii], y)
+        else:
+            _score = est.score(X[..., ii], y)
         # Initialize array of scores on the first score iteration
         if ii == 0:
             if isinstance(_score, np.ndarray):
