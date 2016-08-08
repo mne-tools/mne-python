@@ -442,7 +442,9 @@ class SetChannelsMixin(object):
 
     @copy_function_doc_to_method_doc(anonymize_info)
     def anonymize(self):
-        """.. versionadded:: 0.13.0"""
+        """
+        .. versionadded:: 0.13.0
+        """
         anonymize_info(self.info)
         return self
 
