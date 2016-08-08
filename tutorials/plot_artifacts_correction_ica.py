@@ -76,7 +76,7 @@ ica.plot_components()  # can you spot some potential bad guys?
 # Component properties
 # --------------------
 #
-# Let's take a closer at properties of first three independent components
+# Let's take a closer look at properties of first three independent components.
 
 # first, component 0:
 ica.plot_properties(raw, picks=0)
@@ -94,7 +94,7 @@ ica.plot_properties(raw, picks=[1, 2], psd_args={'fmax': 35.})
 # Instead of opening individual fiures with component properties, we can
 # also pass an instance of Raw or Epochs in ``inst`` arument to
 # ``ica.plot_components``. This would allow us to open component properties
-# interactively by clickin individual component topomaps. In the notebook it
+# interactively by clicking individual component topomaps. In the notebook it
 # woks only when running matplotlib in interactive mode (``%matplotlib``).
 
 # uncomment the code below to test the inteactive mode of plot_components:
@@ -140,8 +140,8 @@ print(ica.labels_)
 # by artifact detection functions. You can also manually edit them to annotate
 # components.
 #
-# Now let's see how we would modify our signals if we would remove this
-# component from the data
+# Now let's see how we would modify our signals if we removed this component
+# from the data
 ica.plot_overlay(eog_average, exclude=eog_inds, show=False)
 # red -> before, black -> after. Yes! We remove quite a lot!
 
@@ -168,11 +168,13 @@ ica.plot_properties(ecg_epochs, picks=ecg_inds, psd_args={'fmax': 35.})
 # What if we don't have an EOG channel?
 # -------------------------------------
 #
+# We could either:
 # 1) make a bipolar reference from frontal EEG sensors and use as virtual EOG
 # channel. This can be tricky though as you can only hope that the frontal
 # EEG channels only reflect EOG and not brain dynamics in the prefrontal
 # cortex.
-# 2) Go for a semi-automated approach, using template matching.
+# 2) go for a semi-automated approach, using template matching.
+#
 # In MNE-Python option 2 is easily achievable and it might be better,
 # so let's have a look at it.
 
@@ -184,11 +186,15 @@ from mne.preprocessing.ica import corrmap  # noqa
 # from each solution with a template. The procedure is therefore
 # semi-automatic. Corrmap hence takes at least a list of ICA solutions and a
 # template, that can be an index or an array. As we don't have different
-# subjects or runs available today, here we will fit ICA models to different
-# parts of the recording and then use as a user-defined template the ICA
-# that we just fitted for detecting corresponding components in the three "new"
-# ICAs. The following block of code addresses this point and should not be
-# copied, ok?
+# subjects or runs available today, here we will simulate ICA solutions from
+# different subjects by fitting ICA models to different parts of the same
+# recording. Then we will use one of the components form our original ICA
+# as a template in order to detect sufficiently similar components in the three
+# simulated ICAs.
+# The following block of code simulates having ICA solutions from different
+# runs/subjects so it should not be used in real analysis - use independent
+# data sets instead.
+
 # We'll start by simulating a group of subjects or runs from a subject
 start, stop = [0, len(raw.times) - 1]
 intervals = np.linspace(start, stop, 4, dtype=int)
@@ -203,32 +209,32 @@ for ii, start in enumerate(intervals):
         icas_from_other_data.append(this_ica)
 
 ###############################################################################
-# Do not copy this at home! You start by reading in a collections of ICA
-# solutions, something like
+# Remember, don't do this at home! Start by reading in a collections of ICA
+# solutions instead. Something like:
 #
 # ``icas = [mne.preprocessing.read_ica(fname) for fname in ica_fnames]``
 print(icas_from_other_data)
 
 ###############################################################################
-# use our previous ICA as reference.
+# We use our oriinal ICA as reference.
 reference_ica = ica
 
 ###############################################################################
-# Investigate our reference ICA, here we use the previous fit from above.
+# Investigate our reference ICA:
 reference_ica.plot_components()
 
 ###############################################################################
 # Which one is the bad EOG component?
-# Here we rely on our previous detection algorithm. You will need to decide
-# yourself in that situation where no other detection is available.
+# Here we rely on our previous detection algorithm. You would need to decide
+# yourself if no automatic detection was available.
 reference_ica.plot_sources(eog_average, exclude=eog_inds)
 
 ###############################################################################
 # Indeed it looks like an EOG, also in the average time course.
 #
-# We construct a list so that our reference run is the first element. Then we
+# We construct a list where our reference run is the first element. Then we
 # can detect similar components from the other runs using corrmap. So
-# our template shall be a tuple like (reference_run_index, component_index):
+# our template must be a tuple like (reference_run_index, component_index):
 icas = [reference_ica] + icas_from_other_data
 template = (0, eog_inds[0])
 
@@ -238,10 +244,10 @@ fig_template, fig_detected = corrmap(icas, template=template, label="blinks",
                                      show=True, threshold=.8, ch_type='mag')
 
 ###############################################################################
-# Nice, we have found similar ICs from the other runs!
+# Nice, we have found similar ICs from the other (simulated) runs!
 # This is even nicer if we have 20 or 100 ICA solutions in a list.
 #
-# You can also use SSP for correcting for artifacts. It is a bit simpler,
-# faster but is less precise than ICA. And it requires that you
-# know the event timing of your artifact.
+# You can also use SSP to correct for artifacts. It is a bit simpler and
+# faster but also less precise than ICA and requires that you know the event
+# timing of your artifact.
 # See :ref:`tut_artifacts_correct_ssp`.
