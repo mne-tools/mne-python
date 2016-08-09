@@ -1235,8 +1235,9 @@ def test_detrend():
         # There are non-M/EEG channels that should not be equal:
         assert_true(not np.allclose(a, b))
 
-    assert_raises(ValueError, Epochs, raw, events[:4], event_id, tmin, tmax,
-                  detrend=2)
+    for value in ['foo', 2, False, True]:
+        assert_raises(ValueError, Epochs, raw, events[:4], event_id,
+                      tmin, tmax, detrend=value)
 
 
 def test_bootstrap():

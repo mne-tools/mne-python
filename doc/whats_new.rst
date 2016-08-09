@@ -91,6 +91,8 @@ BUG
 
     - Fixed the import of EDF files with encoding characters in :func:`mne.io.read_raw_edf` by `Guillaume Dumas`_
 
+    - Fixed :class:`mne.Epochs` to ensure that detrend parameter is not a boolean by `Jean-Remi King`_
+
 API
 ~~~
 
