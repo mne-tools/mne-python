@@ -551,13 +551,13 @@ def filter_chpi(raw, include_line=True, verbose=None):
     t_window = 0.2
     t_step = 0.01
     n_step = int(np.ceil(t_step * raw.info['sfreq']))
-    hpi = _setup_chpi_fits(raw.info, t_window, t_window, exclude=(),
+    hpi = _setup_chpi_fits(raw.info, t_window, t_window, exclude='bads',
                            add_hpi_stim_pick=False, remove_aliased=True,
                            verbose=False)[0]
     fit_idxs = np.arange(0, len(raw.times) + hpi['n_window'] // 2, n_step)
     n_freqs = len(hpi['freqs'])
     n_remove = 2 * n_freqs
-    meg_picks = hpi['picks']
+    meg_picks = pick_types(raw.info, meg=True, exclude=())  # filter all chs
     n_times = len(raw.times)
 
     msg = 'Removing %s cHPI' % n_freqs

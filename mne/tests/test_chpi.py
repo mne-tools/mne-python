@@ -149,6 +149,7 @@ def test_calculate_chpi_positions():
 def test_chpi_subtraction():
     """Test subtraction of cHPI signals"""
     raw = Raw(chpi_fif_fname, allow_maxshield='yes', preload=True)
+    raw.info['bads'] = ['MEG0111']
     with catch_logging() as log:
         filter_chpi(raw, include_line=False, verbose=True)
     assert_true('5 cHPI' in log.getvalue())

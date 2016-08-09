@@ -398,16 +398,29 @@ def test_filter_auto():
     x = np.ones(N)
     t = np.arange(N) / sfreq
     x += np.sin(2 * np.pi * sine_freq * t)
+    x_orig = x.copy()
     x_filt = low_pass_filter(x, sfreq, lp, 'auto', 'auto', phase='zero',
                              fir_window='hamming')
+    assert_array_equal(x, x_orig)
     # the firwin2 function gets us this close
     assert_allclose(x, x_filt, rtol=1e-4, atol=1e-4)
+    assert_array_equal(x_filt, low_pass_filter(
+        x, sfreq, lp, 'auto', 'auto', phase='zero', fir_window='hamming'))
+    assert_array_equal(x, x_orig)
+    assert_array_equal(x_filt, filter_data(
+        x, sfreq, None, lp, h_trans_bandwidth='auto', phase='zero',
+        fir_window='hamming', filter_length='auto'))
+    assert_array_equal(x, x_orig)
+    assert_array_equal(x_filt, filter_data(
+        x, sfreq, None, lp, h_trans_bandwidth='auto', phase='zero',
+        fir_window='hamming', filter_length='auto', copy=False))
+    assert_array_equal(x, x_filt)
 
     # degenerate conditions
-    assert_raises(ValueError, filter_data, x, sfreq, 1, 10)  # not 2D
-    assert_raises(ValueError, filter_data, x[np.newaxis], -sfreq, 1, 10)
-    assert_raises(ValueError, filter_data, x[np.newaxis], sfreq, 1,
-                  sfreq * 0.75)
+    assert_raises(ValueError, filter_data, x, -sfreq, 1, 10)
+    assert_raises(ValueError, filter_data, x, sfreq, 1, sfreq * 0.75)
+    assert_raises(TypeError, filter_data, x.astype(np.float32), sfreq, None,
+                  10, filter_length='auto', h_trans_bandwidth='auto')
 
 
 def test_cuda():
