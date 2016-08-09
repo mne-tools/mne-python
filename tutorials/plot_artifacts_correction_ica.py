@@ -91,11 +91,11 @@ ica.plot_properties(raw, picks=0, psd_args={'fmax': 35.})
 ica.plot_properties(raw, picks=[1, 2], psd_args={'fmax': 35.})
 
 ###############################################################################
-# Instead of opening individual fiures with component properties, we can
+# Instead of opening individual figures with component properties, we can
 # also pass an instance of Raw or Epochs in ``inst`` arument to
 # ``ica.plot_components``. This would allow us to open component properties
-# interactively by clicking individual component topomaps. In the notebook it
-# woks only when running matplotlib in interactive mode (``%matplotlib``).
+# interactively by clicking on individual component topomaps. In the notebook
+# this woks only when running matplotlib in interactive mode (``%matplotlib``).
 
 # uncomment the code below to test the inteactive mode of plot_components:
 # ica.plot_components(picks=range(10), inst=raw)
@@ -169,13 +169,15 @@ ica.plot_properties(ecg_epochs, picks=ecg_inds, psd_args={'fmax': 35.})
 # -------------------------------------
 #
 # We could either:
+#
 # 1) make a bipolar reference from frontal EEG sensors and use as virtual EOG
 # channel. This can be tricky though as you can only hope that the frontal
 # EEG channels only reflect EOG and not brain dynamics in the prefrontal
 # cortex.
+#
 # 2) go for a semi-automated approach, using template matching.
 #
-# In MNE-Python option 2 is easily achievable and it might be better,
+# In MNE-Python option 2 is easily achievable and it might give better results,
 # so let's have a look at it.
 
 from mne.preprocessing.ica import corrmap  # noqa
@@ -184,13 +186,15 @@ from mne.preprocessing.ica import corrmap  # noqa
 # The idea behind corrmap is that artefact patterns are similar across subjects
 # and can thus be identified by correlating the different patterns resulting
 # from each solution with a template. The procedure is therefore
-# semi-automatic. Corrmap hence takes at least a list of ICA solutions and a
-# template, that can be an index or an array. As we don't have different
-# subjects or runs available today, here we will simulate ICA solutions from
-# different subjects by fitting ICA models to different parts of the same
-# recording. Then we will use one of the components form our original ICA
-# as a template in order to detect sufficiently similar components in the three
-# simulated ICAs.
+# semi-automatic. :func:`mne.preprocessing.ica.corrmap` hence takes a list of
+# ICA solutions and a template, that can be an index or an array.
+#
+# As we don't have different subjects or runs available today, here we will
+# simulate ICA solutions from different subjects by fitting ICA models to
+# different parts of the same recording. Then we will use one of the components
+# from our original ICA as a template in order to detect sufficiently similar
+# components in the simulated ICAs.
+#
 # The following block of code simulates having ICA solutions from different
 # runs/subjects so it should not be used in real analysis - use independent
 # data sets instead.
@@ -233,8 +237,9 @@ reference_ica.plot_sources(eog_average, exclude=eog_inds)
 # Indeed it looks like an EOG, also in the average time course.
 #
 # We construct a list where our reference run is the first element. Then we
-# can detect similar components from the other runs using corrmap. So
-# our template must be a tuple like (reference_run_index, component_index):
+# can detect similar components from the other runs using
+# :func:`mne.preprocessing.ica.corrmap`. So our template must be a tuple like
+# (reference_run_index, component_index):
 icas = [reference_ica] + icas_from_other_data
 template = (0, eog_inds[0])
 
