@@ -200,6 +200,7 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
     n_jobs, cuda_dict, h_fft = setup_cuda_fft_multiply_repeated(n_jobs, h_fft)
 
     # Process each row separately
+    picks = np.arange(len(x)) if picks is None else picks
     if n_jobs == 1:
         for p in picks:
             x[p] = _1d_overlap_filter(x[p], h_fft, len(h), n_edge, phase,
