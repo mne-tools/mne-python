@@ -210,7 +210,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
         the exclude parameter is ignored.
     mask : int | None
         The value of the digital mask to apply to the stim channel values.
-        The default value is None. If None, trigger masking is skipped.
+        If None (default), no masking is performed.
     mask_type: 'and' | 'not_and'
         The type of operation between the mask and the trigger.
         Choose 'and' for MNE-C masking behavior.
@@ -231,9 +231,8 @@ def read_events(filename, include=None, exclude=None, mask=None,
     This function will discard the offset line (i.e., first line with zero
     event number) if it is present in a text file.
 
-    Working with downsampled data: Events that were computed before the data
-    was decimated are no longer valid. Please recompute your events after
-    decimation.
+    For more information on ``mask`` and ``mask_type``, see
+    :func:`mne.find_events`.
     """
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
                                      '-eve.lst', '-eve.txt'))
@@ -523,9 +522,9 @@ def find_events(raw, stim_channel=None, output='onset',
     shortest_event : int
         Minimum number of samples an event must last (default is 2). If the
         duration is less than this an exception will be raised.
-    mask : int
+    mask : int | None
         The value of the digital mask to apply to the stim channel values.
-        The default value is None. If None, trigger masking is skipped.
+        If None (default), no masking is performed.
     uint_cast : bool
         If True (default False), do a cast to ``uint16`` on the channel
         data. This can be used to fix a bug with STI101 and STI014 in
@@ -554,9 +553,24 @@ def find_events(raw, stim_channel=None, output='onset',
         the second column contains the value of the stim channel after the
         event offset.
 
+    See Also
+    --------
+    find_stim_steps : Find all the steps in the stim channel.
+    read_events : Read events from disk.
+    write_events : Write events to disk.
+
+    Notes
+    -----
+    .. warning:: If you are working with downsampled data, events computed
+                 before decimation are no longer valid. Please recompute
+                 your events after decimation, but note this reduces the
+                 precision of event timing.
+
     Examples
     --------
-    Consider data with a stim channel that looks like: [0, 32, 32, 33, 32, 0]
+    Consider data with a stim channel that looks like::
+
+        [0, 32, 32, 33, 32, 0]
 
     By default, find_events returns all samples at which the value of the
     stim channel increases::
@@ -624,9 +638,6 @@ def find_events(raw, stim_channel=None, output='onset',
          ----------------
               2 '0000010'
 
-    See Also
-    --------
-    find_stim_steps : Find all the steps in the stim channel.
     """
     min_samples = min_duration * raw.info['sfreq']
 
