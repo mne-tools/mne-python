@@ -5,8 +5,9 @@
 #
 # License: BSD (3-clause)
 import numpy as np
-from scipy import sparse
+from scipy.sparse import spmatrix, csr_matrix
 from ..utils import warn
+from ..decoding.mixin import TransformerMixin
 
 
 class FeatureDelayer(object):
@@ -14,18 +15,24 @@ class FeatureDelayer(object):
 
     Parameters
     ----------
-    delays: array of floats, shape (n_delays,)
+    delays: array of floats, shape (ix_delayays,)
         The time (in seconds) of each delay for specifying
-        pre-defined delays. Negative means timepoints in the past,
-        positive means timepoints in the future.
+        pre-defined delays. Negative means time points in the past,
+        positive means time points in the future. Default is no delays.
     sfreq: float
         The sampling frequency of the series. Defaults to 1.0
+
+    Attributes
+    ----------
+    ``names_`` : ndarray, shape (n_features * ix_delayays, 2)
+        If fit, a collection of `(feature_name, delay)` pairs
+        corresponding to columns of the output of `transform`.
     """
-    def __init__(self, delays=None, sfreq=1.):
-        delays, sfreq = _check_delayer_params(
+    def __init__(self, delays=0., sfreq=1.):
+        delays, _, sfreq = _check_delayer_params(
             delays, sfreq)
         self.delays = delays
-        self.sfreq = float(sfreq)
+        self.sfreq = sfreq
 
     def fit(self, X, y=None):
         """Does nothing, only used for sklearn compatibility.
@@ -33,7 +40,9 @@ class FeatureDelayer(object):
         Parameters
         ----------
         X : array
+            Training data.
         y : array
+            Target values.
 
         Returns
         -------
@@ -51,36 +60,137 @@ class FeatureDelayer(object):
 
         Returns
         -------
-        X_delayed : array, shape (n_times, n_feature * n_delays)
-            The delayed featuers of X.
+        X_delayed : array, shape (n_times, n_features * ix_delayays)
+            The delayed features of X.
         """
-        X_delayed, names = delay_timeseries(X, delays=self.delays,
-                                            sfreq=self.sfreq)
-        self.delays_ = names
+        X_delayed = delay_time_series(X, delays=self.delays,
+                                      sfreq=self.sfreq)
         return X_delayed
 
     def fit_transform(self, X, y=None):
+        """Create a time-lagged representation of X.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_times, n_features)
+            The input data to be time-lagged and returned.
+
+        Returns
+        -------
+        X_delayed : array, shape (n_times, n_features * ix_delayays)
+            The delayed features of X.
+        """
+        return self.transform(X)
+
+
+class DelaysVectorizer(TransformerMixin):
+    """Transforms delays data to fit into a scikit-learn pipeline.
+
+    Parameters
+    ----------
+    sfreq : int
+        The sampling frequency for the features. Used for calculating times.
+
+    Attributes
+    ----------
+    n_delays : int
+        The number of delays.
+    n_times : int
+        The number of samples.
+    n_features : int
+        The number of features.
+    """
+    def __init__(self, sfreq=1.):
+        self.sfreq = float(sfreq)
+
+    def fit(self, X=None, y=None):
         """Does nothing, only used for sklearn compatibility.
 
         Parameters
         ----------
         X : array
+            Training data.
         y : array
+            Target values.
 
         Returns
         -------
-        self
+        self : instance of DelaysVectorizer
+            returns self
         """
-        return self.transform(X)
+        return self
+
+    def transform(self, delayed, y=None):
+        """Combine a delayed data array into a 2D array suitable for sklearn.
+
+        Parameters
+        ----------
+        delayed : array, shape (n_samples, n_features, n_delays)
+            The data to concatenate channels.
+        y : array, shape (n_delays,)
+            The amount (in samples) of each delay.
+
+        Returns
+        -------
+        X : array, shape (n_samples, n_features * n_delays)
+            The data concatenated over delays.
+        """
+        if not isinstance(delayed, np.ndarray):
+            raise ValueError("delayed should be of type ndarray (got %s)."
+                             % type(delayed))
+        if delayed.ndim != 3:
+            raise ValueError("delayed must be shape (n_samples, n_features, "
+                             "n_delays)")
+
+        n_samples, n_features, n_delays = delayed.shape
+        X = delayed.reshape(n_samples, n_features * n_delays)
+
+        # save attributes for inverse_transform
+        self.n_samples_ = n_samples
+        self.n_features_ = n_features
+        self.n_delays_ = n_delays
+        if y is not None:
+            y = np.asarray(y)
+            if y.ndim != 1:
+                raise ValueError('y must be shape (n_delays,)')
+            if y.shape[0] != delayed.shape[-1]:
+                raise ValueError('Mismatch in length between delay values and '
+                                 'last dimension of delayed.'' and delays')
+            self.delays_ = y / self.sfreq
+        return X
+
+    def inverse_transform(self, X, y=None):
+        """For each sample, reshape a feature vector into the original data shape.
+
+        This can also be used to reshape coefficient vectors into
+        shape (n_features, n_delays).
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_features * n_delays)
+            The feature vector concatenated over delays
+        y : None
+            Not used. Only for sklearn compatibility.
+
+        Returns
+        -------
+        delayed : array, shape (n_samples, n_features, n_delays)
+            The original data
+        """
+        if not isinstance(X, np.ndarray):
+            raise ValueError("X should be of type ndarray (got %s)."
+                             % type(X))
+
+        return X.reshape(-1, self.n_features_, self.n_delays_)
 
 
 class EventsBinarizer(object):
-    """Create a continuous-representation of event onsets.
+    """Create a continuous representation of event onsets.
 
     Parameters
     ----------
     n_times : int
-        The total number of times in the output array.
+        The total number of time samples in the output array.
     sfreq : float
         The sampling frequency used to convert times to sample indices.
         Defaults to 1.0
@@ -89,9 +199,14 @@ class EventsBinarizer(object):
         matrix. Defaults to False.
     """
     def __init__(self, n_times, sfreq=1., sparse=False):
+        if not isinstance(n_times, int):
+            raise ValueError('n_times must be an integer')
+        if not isinstance(sfreq, (int, float)):
+            raise ValueError('sfreq must be an integer or float')
+        if not isinstance(sparse, bool):
+            raise ValueError('sparse must be of type bool')
         self.n_times = n_times
         self.sfreq = sfreq
-        self.feature_type = 'event_id'
         self.sparse = sparse
 
     def fit(self, X=None, y=None):
@@ -100,7 +215,9 @@ class EventsBinarizer(object):
         Parameters
         ----------
         X : array
+            Training data.
         y : array
+            Target values.
 
         Returns
         -------
@@ -108,191 +225,147 @@ class EventsBinarizer(object):
         """
         return self
 
-    def transform(self, event_ixs, event_ids=None, event_dict=None,
-                  covariates=None, covariate_names=None):
+    def transform(self, X):
         """Binarize events and return as continuous data.
 
         Parameters
         ----------
-        event_ixs : array, shape (n_events)
+        X : array, shape (n_events,)
             The event indices or onsets in seconds. `If self.sfreq == 1`,
             then these are assumed to be indices. If `self.sfreq != 1`, these
             should be onsets in seconds and will be multiplied by `sfreq`.
-        event_ids : array-like, shape (n_events) | None
-            The event ID for each event. If None, all events are assumed to be
-            of same type.
-        event_dict : dict
-            A dictionary of (event_id: event_id_name) pairs. Defines a string
-            name for each event type.
-        covariates : array, shape (n_events, n_covariates) | None
-            Optional covariates (e.g., continuous values) for each event.
-        covariate_names : array, shape (n_covariates,) | None
-            Optional covariate names.
 
         Returns
         -------
-        events_continuous : array, shape (n_times, n_unique_events)
-            A binary array with one column for each unique event type. 1s
-            in the array correspond to event onsets for that row.
+        events_continuous : array, shape (n_times,)
+            A binary array with 1s in the array corresponding to event onsets.
         """
-        if event_ixs.ndim > 1:
-            raise ValueError("events must be shape (n_events,),"
-                             " found shape %s" % str(event_ixs.shape))
-        event_ids = np.ones_like(event_ixs) if event_ids is None else event_ids
-        unique_event_types = np.unique(event_ids)
-        covs, cov_names = _check_covariates(event_ixs, covariates,
-                                            covariate_names)
-        n_covs = covs.shape[-1]
 
-        # Create names for event types
-        if event_dict is None:
-            event_dict = dict(('event_%s' % ii, ii)
-                              for ii in unique_event_types)
-        ev_dict_rev = dict((value, key) for key, value in event_dict.items())
-
-        # Turn event_ixs from seconds to indices in case sfreq != 1
-        event_ixs = (event_ixs * self.sfreq).astype(int)
-
-        # Iterate through event types and create columns of event onsets.
-        events_continuous = np.zeros([self.n_times,
-                                      len(unique_event_types) + n_covs])
-        event_names = []
-        for ii, ev_type in enumerate(unique_event_types):
-            msk_events = event_ids == ev_type
-            i_ev = event_ixs[msk_events]
-            events_continuous[i_ev, ii] = 1
-
-            # Handle event names
-            event_names.append(ev_dict_rev[ev_type])
-        if n_covs > 0:
-            for iev, icov in zip(event_ixs, covs):
-                events_continuous[iev, -n_covs:] = icov
-            event_names = event_names + cov_names
-            events_continuous = sparse.csr_matrix(events_continuous)
-
-        self.names_ = event_names
-        self.unique_event_types_ = unique_event_types
+        events_continuous = binarize_events(X, self.n_times, sfreq=self.sfreq,
+                                            sparse=self.sparse)
         return events_continuous
 
-    def fit_transform(self, event_ixs, event_ids=None, event_dict=None,
-                      covariates=None, covariate_names=None):
+    def fit_transform(self, X):
         """Does nothing, only used for sklearn compatibility.
 
         Parameters
         ----------
         X : array
+            Training data.
         y : array
+            Target values.
 
         Returns
         -------
         self
         """
-        out = self.transform(
-            event_ixs, event_ids=event_ids, event_dict=event_dict,
-            covariates=covariates, covariate_names=covariate_names)
+        out = self.transform(X)
         return out
 
 
-def delay_timeseries(ts, delays, sfreq=1.):
-    """Return a time-lagged input timeseries.
+def binarize_events(events, n_times, sfreq=1., sparse=False):
+    """Turn event times into a continuous array of events.
 
     Parameters
     ----------
-    ts: array, shape (n_times, n_feats)
-        The timeseries to delay
-    delays: array of floats, shape (n_delays) |
-            list of arrays, len == n_feats
-        The time (in seconds) of each delay for specifying
-        pre-defined delays. Negative means timepoints in the past,
-        positive means timepoints in the future. If a list, then
-        one may supply a different number of delays per feature.
-    sfreq: int
-        The sampling frequency of the series
+    events : array, shape (n_events,)
+        The event indices or onsets in seconds. `If self.sfreq == 1`,
+        then these are assumed to be indices. If `self.sfreq != 1`, these
+        should be onsets in seconds and will be multiplied by `sfreq`.
+    n_times : int
+        The total number of time samples in the output array.
+    sfreq : float
+        The sampling frequency used to convert times to sample indices.
+        Defaults to 1.0.
+    sparse : bool
+        Whether to output continuous events as a dense array or a sparse
+        matrix. Defaults to False.
 
     Returns
     -------
-    delayed: array, shape(n_times, n_feats * n_delays)
-        The delayed matrix
+    events_continuous : array, shape (n_times,)
+        A binary array with 1s in the array corresponding to event onsets.
     """
-    delays, sfreq = _check_delayer_params(delays, sfreq)
-    if not isinstance(delays[0], (list, np.ndarray)):
-        delays = [delays] * ts.shape[1]
+    events = np.asarray(events)
+    if events.ndim > 1:
+        raise ValueError("events must be shape (n_events,),"
+                         " found shape %s" % str(events.shape))
 
-    delays = [np.asarray(ii) for ii in delays]
-    if len(delays) != ts.shape[1]:
-        raise ValueError('Supply either 1 set of delays, or 1 per feature')
+    # Turn event_ixs from seconds to indices in case sfreq != 1
+    events = (events * sfreq).astype(int)
+    if events.max() > n_times:
+        raise ValueError('Event index exceeds n_times')
 
-    n_times, n_feats = ts.shape
-    delays_ixs = [np.round(ii * sfreq).astype(int) for ii in delays]
+    # Iterate through event types and create columns of event onsets.
+    events_continuous = np.zeros(n_times)
+    events_continuous[events] = 1
+
+    if sparse is True:
+        events_continuous = csr_matrix(events_continuous)
+    return events_continuous
+
+
+def delay_time_series(X, delays, sfreq=1.):
+    """Return a time-lagged input time series.
+
+    Parameters
+    ----------
+    X: array, shape (n_times, n_features)
+        The time series to delay.
+    delays: array of floats, shape (n_delays,)
+        The time (in seconds) of each delay for specifying
+        pre-defined delays. Negative means time points in the past,
+        positive means time points in the future.
+    sfreq: int | float
+        The sampling frequency of the series. Defaults to 1.0.
+
+    Returns
+    -------
+    delayed: array, shape(n_times, n_features * ix_delayays)
+        The delayed matrix.
+    """
+
+    delays, delays_ixs, sfreq = _check_delayer_params(delays, sfreq)
+    n_times, n_features = X.shape
 
     # Convert ts to dense if it is sparse
-    if isinstance(ts, sparse.spmatrix):
-        is_sparse = True
-        sp_type = type(ts)
-        ts = ts.toarray()
-    else:
-        is_sparse = False
+    if isinstance(X, spmatrix):
+        # XXX : Implement sparse outputs (maybe only w/ vectorization)
+        X = X.toarray()
 
+    # XXX : add Vectorize=True parameter to switch on/off 2D output
     # Iterate through indices and append
-    delayed = []
-    delayed_names = []
-    for ii, (delay_rw, delay_data) in enumerate(zip(delays_ixs, ts.T)):
-        # Remove duplicated ixs
-        if np.unique(delay_rw).shape[0] != delay_rw.shape[0]:
-            warn('Converting delays to indices resulted in duplicates.')
-        for delay_ix in delay_rw:
-            # Zeros to append to either the beginning or end.
-            zeros = np.zeros(np.abs(delay_ix))
-            if delay_ix > 0:
-                # Delay is in the future, so push data backward
-                rolled = np.hstack([delay_data[delay_ix:], zeros])
-            elif delay_ix < 0:
-                # Delay is in the past, so push data forward
-                rolled = np.hstack([zeros, delay_data[:delay_ix]])
-            else:
-                # If delay_ix is 0, just pass rolled
-                rolled = delay_data.copy()
-            delayed.append(rolled)
-            delayed_names.append((ii, delay_ix / float(sfreq)))
-    delayed = np.array(delayed).T
-    delayed_names = np.array(delayed_names)
+    delayed = np.zeros(X.shape + (len(delays),))
+    for ii, ix_delay in enumerate(delays_ixs):
+        # Create zeros to populate w/ delays
+        if ix_delay <= 0:
+            i_slice = slice(-ix_delay, None)
+        else:
+            i_slice = slice(None, -ix_delay)
+        delayed[i_slice, :, ii] = np.roll(X, -ix_delay, axis=0)[i_slice]
 
-    if is_sparse is True:
-        delayed = sp_type(delayed)
-    return delayed, delayed_names
-
-
-def _check_covariates(events, covariates, covariate_names):
-    """Make sure covariates are same length as events, return empty list if None.
-    """
-    if covariates is None:
-        # Just return an empty array
-        covariates = np.array([[]])
-        covariate_names = np.array([])
-    else:
-        # Check that shape and length is correct
-        covariates = np.asarray(covariates)
-        if covariates.ndim > 2:
-            raise ValueError('Covariates must be 1 or 2D')
-        elif covariates.ndim == 1:
-            covariates = covariates[:, np.newaxis]
-        if covariates.shape[0] != events.shape[0]:
-            raise ValueError('Covariates must have same 1st dim as events')
-
-        if covariate_names is None:
-            covariate_names = ['cov_%s' % ii
-                               for ii in range(covariates.shape[1])]
-        if len(covariate_names) != covariates.shape[1]:
-            raise ValueError('n_covariate_names / n_covariates mismatch.')
-    return covariates, covariate_names
+    return delayed
 
 
 def _check_delayer_params(delays, sfreq):
     """Check delayer input parameters.
-
-    XXX for use w/ future time window support.
     """
-    # Check if we need to create delays ourselves
     if not isinstance(sfreq, (int, float)):
         raise ValueError('`sfreq` must be an integer or float')
-    return delays, sfreq
+    sfreq = float(sfreq)
+
+    # XXX for use w/ future time window support.
+    # Convert delays to a list of arrays
+    delays = np.atleast_1d(delays)
+    if delays.ndim != 1:
+        raise ValueError('Delays must be shape (n_delays,)')
+
+    # Remove duplicated ixs
+    if delays.dtype not in [int, float]:
+        raise ValueError('`delays` must be of type integer or float.')
+
+    delays_ixs = (delays * sfreq).astype(int)
+    if np.unique(delays_ixs).shape[0] != delays_ixs.shape[0]:
+        warn('Converting delays to indices resulted in duplicates.')
+
+    return delays, delays_ixs, sfreq

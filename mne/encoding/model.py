@@ -16,30 +16,30 @@ class SampleMasker(object):
     ----------
     estimator : instance of sklearn-style estimator
         The estimator to be called after samples are removed.
-    mask_val : float, int, nan | callable.
+    mask_val : float, int, nan | callable | None
         The value that will be removed from the dataset. If a callable,
         it should return a boolean mask of length n_samples that takes
         X an array of shape (n_samples, n_features) as input.
-    ixs : array, shape (n_samples,)
+    samples_train : array, shape (n_samples,) | None
         An optional array of indices for manually specifying which samples
         to keep during training. Defaults to None.
-    ixs_pred : array, shape (n_samples,) | None
+    samples_pred : array, shape (n_samples,) | None
         An optional array of indices for manually specifying which samples
         to keep during prediction. Defaults to None.
     mask_condition : 'all', 'any'
         Whether only 1 `mask_val` will trigger removal of a row, or if
-        all values of the row must be `mask_val` for removal.
+        all values per row must be `mask_val` for removal. Defaults to 'all'.
     """
-    def __init__(self, estimator, mask_val=None, ixs=None, ixs_pred=None,
-                 mask_condition='all'):
-        if all(ii is not None for ii in [mask_val, ixs]):
-            raise ValueError('Supply one of mask_val | ixs, or both')
-        if ixs is not None:
-            ixs = np.asarray(ixs).astype(int)
-        self.ixs = ixs
-        if ixs_pred is not None:
-            ixs_pred = np.asarray(ixs_pred).astype(int)
-        self.ixs_pred = ixs_pred
+    def __init__(self, estimator, mask_val=None, samples_train=None,
+                 samples_pred=None, mask_condition='all'):
+        if all(ii is not None for ii in [mask_val, samples_train]):
+            raise ValueError('Supply one of mask_val | samples_train, or both')
+        if samples_train is not None:
+            samples_train = np.asarray(samples_train).astype(int)
+        self.samples_train = samples_train
+        if samples_pred is not None:
+            samples_pred = np.asarray(samples_pred).astype(int)
+        self.samples_pred = samples_pred
 
         self.mask_val = mask_val
         if mask_condition not in ['all', 'any']:
@@ -53,26 +53,31 @@ class SampleMasker(object):
         Parameters
         ----------
         X : array, shape (n_samples, n_features)
-            The input array for the model. Rows will be removed.
+            The input array for the model. Samples (rows) will be
+            removed prior to fit according to `mask_val` and `samples_train`.
         y : array, shape (n_samples, n_targets)
-            The output array for the model. Rows will be removed.
+            The output array for the model. Samples (rows) will be
+            removed prior to fit according to `mask_val` and `samples_train`.
         """
-        X, y = self.mask_data(X, y, ixs=self.ixs)
+        X, y = self._mask_data(X, y, ixs=self.samples_train)
         self.est.fit(X, y)
         return self
 
     def predict(self, X):
-        """Call self.est.predict.
+        """Call the estimator within `self`.
+
+        This will call `self.est.predict`.
 
         Parameters
         ----------
         X : array, shape (n_samples, n_features)
-            The input array for the model. Rows will NOT be removed.
+            The input array for the model. Samples (rows) will be
+            removed prior to fit according to `samples_pred`.
         """
-        X = self.mask_data(X, ixs=self.ixs_pred)
+        X = self._mask_data(X, ixs=self.samples_pred)
         return self.est.predict(X)
 
-    def mask_data(self, X, y=None, ixs=None):
+    def _mask_data(self, X, y=None, ixs=None):
         """Remove datapoints according to indices or masked values.
 
         Parameters
@@ -112,7 +117,8 @@ class SampleMasker(object):
                 # If a callable, pass X as an input, assume bool output
                 mask = self.mask_val(X)
                 if mask.ndim > 1:
-                    raise ValueError('Output mask must be shape (n_samples,)')
+                    raise ValueError('Output mask must be of shape'
+                                     ' (n_samples,)')
             else:
                 if self.mask_val is np.nan:
                     mask = ~np.isnan(X)
@@ -131,9 +137,9 @@ class SampleMasker(object):
             self.mask = ~mask
             mask_ixs = np.where(self.mask)[0]
             mask_ixs = np.asarray(mask_ixs).squeeze()  # In case its a matrix
-            X = X[mask_ixs, :]
+            X = X[mask_ixs]
             if y is not None:
-                y = y[mask_ixs, :]
+                y = y[mask_ixs]
         else:
             self.mask = np.ones(X.shape[0], dtype=bool)
         # Return masked values
@@ -146,13 +152,17 @@ class SampleMasker(object):
 
         Returns
         -------
-        data : array, shape (n_features, n_ixs)
+        data : array, shape (n_masked_samples, n_features)
             A subset of rows from the input array.
         """
-        return self.mask_data(X, y)
+        return self._mask_data(X, y)
+
+    @property
+    def _final_estimator(self):
+        return _get_final_est(self)
 
 
-def get_final_est(est):
+def _get_final_est(est):
     """Return the final component of a sklearn estimator/pipeline.
 
     Parameters
@@ -196,6 +206,7 @@ def get_coefs(est, coef_name='coef_'):
     coefs : array, shape (n_targets, n_coefs)
         The output coefficients.
     """
+    est = _get_final_est(est)
     if not hasattr(est, coef_name):
         raise ValueError('Estimator either is not fit or does not use'
                          ' coefficient name: %s' % coef_name)
@@ -204,6 +215,7 @@ def get_coefs(est, coef_name='coef_'):
 
 
 def _check_estimator(est):
+    from ..decoding.base import _check_estimator as _dec_check_estimator
     """Ensure the estimator will work for regression data."""
     from sklearn.linear_model import Ridge
     from sklearn.pipeline import Pipeline
@@ -211,18 +223,14 @@ def _check_estimator(est):
     # Define string-based solvers
     _ridge_solvers = ['auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag']
 
-    if est is None:
-        est = Ridge(alpha=0)
-    elif isinstance(est, string_types):
-        if est not in _ridge_solvers:
-            raise ValueError("No such solver: {0}\nAllowed solvers are:"
-                             " {1}".format(est, _ridge_solvers))
+    est = 'auto' if est is None else est
+    if est in _ridge_solvers:
         est = Ridge(alpha=0, solver=est, fit_intercept=False)
-
-    reqd_attributes = ['fit', 'predict']
-    for attr in reqd_attributes:
-        if not hasattr(est, attr):
-            raise ValueError('Estimator does not have a %s method' % attr)
+    elif isinstance(est, string_types):
+        raise ValueError("estimator must be a scikit-learn estimator or one of"
+                         " {}".format(_ridge_solvers))
+    else:
+        _dec_check_estimator(est)
 
     # Make sure we have a pipeline
     if not isinstance(est, Pipeline):

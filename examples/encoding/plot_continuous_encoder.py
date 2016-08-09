@@ -30,7 +30,8 @@ import matplotlib.pyplot as plt
 import mne
 import numpy as np
 from mne.datasets import sample
-from mne.encoding import SampleMasker, get_coefs, get_final_est, FeatureDelayer
+from mne.encoding import (SampleMasker, FeatureDelayer,
+                          DelaysVectorizer, get_coefs)
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
@@ -46,9 +47,9 @@ ix_seed = mne.pick_channels(raw.ch_names, [seed_channel])[0]
 ix_targets = np.setdiff1d(range(len(raw.ch_names)), [ix_seed])
 
 # Set up encoding model variables
-X = raw[:][0][ix_targets]
+X = raw[:][0][ix_targets].T  # estimators expect shape (n_samples, n_features)
 y = raw[:][0][ix_seed]
-n_targets, n_times = X.shape
+n_times, n_targets = X.shape
 
 ###############################################################################
 # Fit the model / Make predictions
@@ -66,22 +67,23 @@ info_new['sfreq'] = 1. / delay_step
 # This is the final estimator that will be called after masking data
 estimator = make_pipeline(StandardScaler(), Ridge(alpha=1.))
 # This allows us to use a subset of indices for training / prediction
-masker = SampleMasker(estimator, ixs=ix_train, ixs_pred=ix_test)
+masker = SampleMasker(estimator, samples_train=ix_train, samples_pred=ix_test)
 # Finally, place a delayer first so that samples are delayed before being split
-pipeline = make_pipeline(delayer, masker)
+pipeline = make_pipeline(delayer, DelaysVectorizer(), masker)
 
 # Fit / predict with the model
-pipeline.fit(X.T, y)  # estimators expect data of shape (n_samples, n_features)
-y_pred = pipeline.predict(X.T)
+pipeline.fit(X, y)
+y_pred = pipeline.predict(X)
 
 ###############################################################################
 # Plot raw data
 fig, (ax_raw, ax_pred) = plt.subplots(2, 1, figsize=(8, 8))
 plt_times = raw.times[:200]
-for idata, alpha, lw, color in zip([X, y], [.2, .8], [1, 3], ['k', 'r']):
-    ax_raw.plot(plt_times, idata[..., :200].T, color=color, alpha=alpha, lw=lw)
+plt_data = [(X, .2, 1, 'k'), (y, .8, 3, 'r')]
+for idata, alpha, lw, color in plt_data:
+    ax_raw.plot(plt_times, idata[:200], color=color, alpha=alpha, lw=lw)
 ax_raw.set_title('Continuous training data')
-ax_raw.set_xlim([0, plt_times[-1]])
+# ax_raw.set_xlim([0, plt_times[-1]])
 ax_raw.legend([ax_raw.lines[0], ax_raw.lines[-1]], ['Inputs', 'Seed'])
 ax_raw.set_xlabel('Time (s)')
 ax_raw.set_ylabel('Amplitude (mV)')
@@ -101,11 +103,9 @@ ax_pred.set_xlim([0, time_test[-1]])
 plt.tight_layout()
 
 ###############################################################################
-# Pull the coefficients for plotting
-coefs = get_coefs(get_final_est(pipeline))[0]
-coefs_delayed = coefs.reshape([-1, np.unique(delayer.delays_[:, 1]).shape[0]])
+# Pull and reshape the coefficients for plotting
+coefs = get_coefs(pipeline)[0]
+vectorizer = pipeline.named_steps['delaysvectorizer']
+coefs_delayed = vectorizer.inverse_transform(coefs)[0]
 coefs_evoked = mne.EvokedArray(coefs_delayed, info_new, tmin=-.1)
-fig = coefs_evoked.plot_joint(show=False,
-                              title='Coefficients over time delays')
-
-plt.show()
+fig = coefs_evoked.plot_joint(title='Coefficients over time delays')
