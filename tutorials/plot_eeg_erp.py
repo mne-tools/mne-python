@@ -159,7 +159,7 @@ mne.combine_evoked([left, -right], weights='equal').plot_joint()
 # This is an equal-weighting difference. If you have imbalanced trial numbers,
 # you could also consider either equalizing the number of events per
 # condition (using
-# :meth:``epochs.equalize_epochs_counts <mne.Epochs.equalize_event_counts`).
+# :meth:`epochs.equalize_epochs_counts <mne.Epochs.equalize_event_counts`).
 # As an example, first, we create individual ERPs for each condition.
 
 aud_l = epochs["auditory", "left"].average()

@@ -459,8 +459,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         specified if elp is defined.
     unit : 'auto' | 'm' | 'cm' | 'mm'
         Unit of the digitizer files (hsp and elp). If not 'm', coordinates will
-        be rescaled to 'm'. Default is 'auto', which assumes 'm' for *.hsp and
-        *.elp files and 'mm' for *.txt files, corresponding to the known
+        be rescaled to 'm'. Default is 'auto', which assumes 'm' for \*.hsp and
+        \*.elp files and 'mm' for \*.txt files, corresponding to the known
         Polhemus export formats.
     fif : str | None
         FIF file from which to read digitization locations.
