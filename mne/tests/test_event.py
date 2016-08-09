@@ -119,7 +119,7 @@ def test_io_events():
     assert_array_almost_equal(events, events2)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        events2 = read_events(fname_txt_mpr)
+        events2 = read_events(fname_txt_mpr, mask=0, mask_type='not_and')
         assert_true(sum('first row of' in str(ww.message) for ww in w) == 1)
     assert_array_almost_equal(events, events2)
 
@@ -203,6 +203,8 @@ def test_find_events():
     # 1 == '0b1', 2 == '0b10', 3 == '0b11', 4 == '0b100'
 
     assert_raises(TypeError, find_events, raw, mask="0")
+    assert_raises(ValueError, find_events, raw, mask=0, mask_type='blah')
+    # testing mask_type. default = 'not_and'
     assert_array_equal(find_events(raw, shortest_event=1, mask=1),
                        [[2, 0, 2], [4, 2, 4]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=2),
@@ -211,6 +213,19 @@ def test_find_events():
                        [[4, 0, 4]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=4),
                        [[1, 0, 1], [2, 1, 2], [3, 2, 3]])
+    # testing with mask_type = 'and'
+    assert_array_equal(find_events(raw, shortest_event=1, mask=1,
+                       mask_type='and'),
+                       [[1, 0, 1], [3, 0, 1]])
+    assert_array_equal(find_events(raw, shortest_event=1, mask=2,
+                       mask_type='and'),
+                       [[2, 0, 2]])
+    assert_array_equal(find_events(raw, shortest_event=1, mask=3,
+                       mask_type='and'),
+                       [[1, 0, 1], [2, 1, 2], [3, 2, 3]])
+    assert_array_equal(find_events(raw, shortest_event=1, mask=4,
+                       mask_type='and'),
+                       [[4, 0, 4]])
 
     # test empty events channel
     raw._data[stim_channel_idx, :] = 0
