@@ -49,9 +49,9 @@ dependencies:
     - echo $CIRCLE_BRANCH
     - which python;
     - which pip;
+    - pip install --upgrade pyface;
     - git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
     - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
-    - cd /home/ubuntu && git clone https://github.com/enthought/pyface.git && cd pyface && python setup.py develop;
     - pip install sphinx_bootstrap_theme PySurfer nilearn neo numpydoc;
 
   override:

@@ -39,7 +39,7 @@ Changelog
 
     - Add support for the University of Maryland KIT system by `Christian Brodbeck`_
 
-    - Add support for *.elp and *.hsp files to the KIT2FIFF converter and :func:`mne.channels.read_dig_montage` by `Teon Brooks`_ and `Christian Brodbeck`_
+    - Add support for \*.elp and \*.hsp files to the KIT2FIFF converter and :func:`mne.channels.read_dig_montage` by `Teon Brooks`_ and `Christian Brodbeck`_
 
     - Add approximation of size of :class:`io.Raw`, :class:`Epochs`, and :class:`Evoked` in :func:`repr` by `Eric Larson`_
 

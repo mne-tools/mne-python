@@ -178,7 +178,9 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice`, returns tfr[..., decim].
-        .. note: Decimation may create aliasing artifacts.
+
+        .. note:: Decimation may create aliasing artifacts.
+
     use_fft : bool, defaults to True
         Use the FFT for convolutions or not.
 
@@ -286,9 +288,11 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice`, returns tfr[..., decim].
-        .. note:
+
+        .. note::
             Decimation may create aliasing artifacts, yet decimation
             is done after the convolutions.
+
     output : str, defaults to 'complex'
 
         * 'complex' : single trial complex.
@@ -562,7 +566,9 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice`, returns tfr[..., decim].
+
         .. note: Decimation may create aliasing artifacts.
+
         Defaults to 1.
 
     Returns
@@ -610,7 +616,9 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice`, returns tfr[..., decim].
-        .. note: Decimation may create aliasing artifacts.
+
+        .. note:: Decimation may create aliasing artifacts.
+
         Defaults to 1.
 
     Returns
@@ -681,7 +689,9 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice`, returns tfr[..., decim].
-        .. note: Decimation may create aliasing artifacts.
+
+        .. note:: Decimation may create aliasing artifacts.
+
         Defaults to 1.
     n_jobs : int
         The number of epochs to process at the same time
@@ -799,7 +809,9 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice`, returns tfr[..., decim].
-        .. note: Decimation may create aliasing artifacts.
+
+        .. note:: Decimation may create aliasing artifacts.
+
     n_jobs : int, defaults to 1
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None
@@ -865,7 +877,9 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice`, returns tfr[..., decim].
-        .. note: Decimation may create aliasing artifacts.
+
+        .. note:: Decimation may create aliasing artifacts.
+
     n_jobs : int,  defaults to 1
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None
