@@ -19,9 +19,6 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             verbose=None):
     """Run (extended) Infomax ICA decomposition on raw data.
 
-    Based on the publications of Bell & Sejnowski, 1995 (Infomax)
-    and Lee, Girolami & Sejnowski, 1999 (extended Infomax).
-
     Parameters
     ----------
     data : np.ndarray, shape (n_samples, n_features)
@@ -31,11 +28,11 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         Defaults to None, which means the identity matrix is used.
     l_rate : float
         This quantity indicates the relative size of the change in weights.
-        Note: Smaller learning rates will slow down the ICA procedure.
+        .. note:: Smaller learning rates will slow down the ICA procedure.
         Defaults to 0.01 / log(n_features ** 2).
     block : int
         The block size of randomly chosen data segments.
-        Defaults to floor(sqrt(n_times / 3)).
+        Defaults to floor(sqrt(n_times / 3.)).
     w_change : float
         The change at which to stop iteration. Defaults to 1e-12.
     anneal_deg : float
@@ -94,6 +91,15 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     -------
     unmixing_matrix : np.ndarray, shape (n_features, n_features)
         The linear unmixing operator.
+
+    References
+    ----------
+    [1] A. J. Bell, T. J. Sejnowski. An information-maximization approach to
+        blind separation and bind deconvolution. Neural Computation, 7(6),
+        1129-1159, 1995.
+    [2] T. W. Lee, M. Girolami, T. J. Sejnowski. Independent component analysis
+        using an extended infomax algorithm for mixed subgaussian and
+        supergaussian sources. Neural Computation, 11(2), 417-441, 1999.
     """
     from scipy.stats import kurtosis
     rng = check_random_state(random_state)
