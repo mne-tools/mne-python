@@ -170,12 +170,11 @@ ica.plot_properties(ecg_epochs, picks=ecg_inds, psd_args={'fmax': 35.})
 #
 # We could either:
 #
-# 1) make a bipolar reference from frontal EEG sensors and use as virtual EOG
-# channel. This can be tricky though as you can only hope that the frontal
-# EEG channels only reflect EOG and not brain dynamics in the prefrontal
-# cortex.
-#
-# 2) go for a semi-automated approach, using template matching.
+# 1. make a bipolar reference from frontal EEG sensors and use as virtual EOG
+#    channel. This can be tricky though as you can only hope that the frontal
+#    EEG channels only reflect EOG and not brain dynamics in the prefrontal
+#    cortex.
+# 2. go for a semi-automated approach, using template matching.
 #
 # In MNE-Python option 2 is easily achievable and it might give better results,
 # so let's have a look at it.
