@@ -2309,17 +2309,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         to True.
     show : bool
         Show figures if True.
-    layout : None | Layout | list of Layout
-        Layout instance specifying sensor positions (does not need to be
-        specified for Neuromag data). Or a list of Layout if projections
-        are from different sensor types.
-    cmap : None | matplotlib colormap
-        Colormap for the plot. If ``None``, defaults to 'Reds_r' for norm data,
-        otherwise to 'RdBu_r'.
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in
@@ -2329,10 +2320,19 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         outline. Moreover, a matplotlib patch object can be passed for
         advanced masking options, either directly or as a function that returns
         patches (required for multi-axis plots).
+    layout : None | Layout | list of Layout
+        Layout instance specifying sensor positions (does not need to be
+        specified for Neuromag data). Or a list of Layout if projections
+        are from different sensor types.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses). If True, a circle will be
+        used (via .add_artist). Defaults to True.
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    cmap : None | matplotlib colormap
+        Colormap for the plot. If ``None``, defaults to 'Reds_r' for norm data,
+        otherwise to 'RdBu_r'.
 
     Returns
     -------
