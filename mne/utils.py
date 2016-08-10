@@ -512,6 +512,26 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
     return data, drop_inds
 
 
+def _get_inst_data(inst):
+    """get data from MNE object instance like Raw, Epochs or Evoked.
+    Returns a view, not a copy!"""
+    from .io.base import _BaseRaw
+    from .epochs import _BaseEpochs
+    from . import Evoked
+    from .time_frequency.tfr import _BaseTFR
+
+    if isinstance(inst, (_BaseRaw, _BaseEpochs)):
+        if not inst.preload:
+            inst.load_data()
+        return inst._data
+    elif isinstance(inst, (Evoked, _BaseTFR)):
+        return inst.data
+    else:
+        raise TypeError('The argument must be an instance of Raw, Epochs, '
+                        'Evoked, EpochsTFR or AverageTFR, got {0}.'.format(
+                            type(inst)))
+
+
 class _FormatDict(dict):
     """Helper for pformat()"""
     def __missing__(self, key):
