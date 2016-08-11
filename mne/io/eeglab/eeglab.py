@@ -107,7 +107,7 @@ def _get_info(eeg, montage, eog=()):
 
 def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
                     event_id_func='strip_to_integer', preload=False,
-                    verbose=None):
+                    verbose=None, uint16_codec=None):
     """Read an EEGLAB .set file
 
     Parameters
@@ -149,8 +149,10 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
         on the hard drive (slower, requires less memory). Note that
         preload=False will be effective only if the data is stored in a
         separate binary file.
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
+    uint16_codec : str | None
+        Codec to use for uint16 char arrays (defaults to system default codec).
 
     Returns
     -------
@@ -167,11 +169,11 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
     """
     return RawEEGLAB(input_fname=input_fname, montage=montage, preload=preload,
                      eog=eog, event_id=event_id, event_id_func=event_id_func,
-                     verbose=verbose)
+                     verbose=verbose, uint16_codec=uint16_codec)
 
 
 def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
-                       eog=(), verbose=None):
+                       eog=(), verbose=None, uint16_codec=None):
     """Reader function for EEGLAB epochs files
 
     Parameters
@@ -204,8 +206,10 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
+    uint16_codec : str | None
+        Codec to use for uint16 char arrays (defaults to system default codec).
 
     Returns
     -------
@@ -222,7 +226,8 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     mne.Epochs : Documentation of attribute and methods.
     """
     epochs = EpochsEEGLAB(input_fname=input_fname, events=events, eog=eog,
-                          event_id=event_id, montage=montage, verbose=verbose)
+                          event_id=event_id, montage=montage, verbose=verbose,
+                          uint16_codec=uint16_codec)
     return epochs
 
 
@@ -266,8 +271,10 @@ class RawEEGLAB(_BaseRaw):
         amount of memory). If preload is a string, preload is the file name of
         a memory-mapped file which is used to store the data on the hard
         drive (slower, requires less memory).
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
+    uint16_codec : str | None
+        mne.io.read_raw_eeglab(os.path.join(data_dir, set_fls[1]))
 
     Returns
     -------
@@ -285,14 +292,14 @@ class RawEEGLAB(_BaseRaw):
     @verbose
     def __init__(self, input_fname, montage, eog=(), event_id=None,
                  event_id_func='strip_to_integer', preload=False,
-                 verbose=None):
+                 verbose=None, uint16_codec=None):
         """Read EEGLAB .set file.
         """
         from scipy import io
         basedir = op.dirname(input_fname)
         _check_mat_struct(input_fname)
         eeg = io.loadmat(input_fname, struct_as_record=False,
-                         squeeze_me=True)['EEG']
+                         squeeze_me=True, uint16_codec=uint16_codec)['EEG']
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
                             ' files. Please use `mne.io.read_epochs_eeglab` if'
@@ -417,8 +424,10 @@ class EpochsEEGLAB(_BaseEpochs):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
+    uint16_codec : str | None
+        Codec to use for uint16 char arrays (defaults to system default codec).
 
     Notes
     -----
@@ -431,11 +440,12 @@ class EpochsEEGLAB(_BaseEpochs):
     @verbose
     def __init__(self, input_fname, events=None, event_id=None, tmin=0,
                  baseline=None,  reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, montage=None, eog=(), verbose=None):
+                 reject_tmax=None, montage=None, eog=(), verbose=None,
+                 uint16_codec=None):
         from scipy import io
         _check_mat_struct(input_fname)
         eeg = io.loadmat(input_fname, struct_as_record=False,
-                         squeeze_me=True)['EEG']
+                         squeeze_me=True, uint16_codec=uint16_codec)['EEG']
 
         if not ((events is None and event_id is None) or
                 (events is not None and event_id is not None)):
