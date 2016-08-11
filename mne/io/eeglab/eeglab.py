@@ -456,6 +456,7 @@ class EpochsEEGLAB(_BaseEpochs):
             # first extract the events and construct an event_id dict
             event_name, event_latencies, unique_ev = list(), list(), list()
             ev_idx = 0
+            warn_multiple_events = False
             for ep in eeg.epoch:
                 if not isinstance(ep.eventtype, string_types):
                     event_type = '/'.join(ep.eventtype.tolist())
@@ -463,8 +464,7 @@ class EpochsEEGLAB(_BaseEpochs):
                     # store latency of only first event
                     event_latencies.append(eeg.event[ev_idx].latency)
                     ev_idx += len(ep.eventtype)
-                    warn('An epoch has multiple events. Only the latency of '
-                         'the first event will be retained.')
+                    warn_multiple_events = True
                 else:
                     event_type = ep.eventtype
                     event_name.append(ep.eventtype)
@@ -477,6 +477,12 @@ class EpochsEEGLAB(_BaseEpochs):
                 # invent event dict but use id > 0 so you know its a trigger
                 event_id = dict((ev, idx + 1) for idx, ev
                                 in enumerate(unique_ev))
+
+            # warn about multiple events in epoch if necessary
+            if warn_multiple_events:
+                warn('At least one epoch has multiple events. Only the latency'
+                     ' of the first event will be retained.')
+
             # now fill up the event array
             events = np.zeros((eeg.trials, 3), dtype=int)
             for idx in range(0, eeg.trials):
