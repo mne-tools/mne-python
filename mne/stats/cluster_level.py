@@ -1520,6 +1520,9 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
     Returns
     -------
     out : instance of SourceEstimate
+        A summary of the clusters. The first time point in this SourceEstimate
+        object is the summation of all the clusters. Subsequent time points
+        contain each individual cluster.
     """
     if vertices is None:
         vertices = [np.arange(10242), np.arange(10242)]
