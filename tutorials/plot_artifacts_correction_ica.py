@@ -185,7 +185,7 @@ from mne.preprocessing.ica import corrmap  # noqa
 # The idea behind corrmap is that artefact patterns are similar across subjects
 # and can thus be identified by correlating the different patterns resulting
 # from each solution with a template. The procedure is therefore
-# semi-automatic. :func:`mne.preprocessing.ica.corrmap` hence takes a list of
+# semi-automatic. :func:`mne.preprocessing.corrmap` hence takes a list of
 # ICA solutions and a template, that can be an index or an array.
 #
 # As we don't have different subjects or runs available today, here we will
@@ -237,7 +237,7 @@ reference_ica.plot_sources(eog_average, exclude=eog_inds)
 #
 # We construct a list where our reference run is the first element. Then we
 # can detect similar components from the other runs using
-# :func:`mne.preprocessing.ica.corrmap`. So our template must be a tuple like
+# :func:`mne.preprocessing.corrmap`. So our template must be a tuple like
 # (reference_run_index, component_index):
 icas = [reference_ica] + icas_from_other_data
 template = (0, eog_inds[0])

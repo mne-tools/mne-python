@@ -57,7 +57,6 @@ def test_plot_ica_components():
     """Test plotting of ICA solutions
     """
     import matplotlib.pyplot as plt
-    from mne.viz.utils import _fake_click
 
     raw = _get_raw()
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
