@@ -7,15 +7,14 @@
 import numpy as np
 from scipy.sparse import spmatrix, csr_matrix
 from ..utils import warn
-from ..decoding.mixin import TransformerMixin
 
 
 class FeatureDelayer(object):
-    """Creates delayed versions of an input stimulus.
+    """Creates delayed versions of a time series.
 
     Parameters
     ----------
-    delays: array of floats, shape (ix_delayays,)
+    delays: array of floats, shape (n_delays,)
         The time (in seconds) of each delay for specifying
         pre-defined delays. Negative means time points in the past,
         positive means time points in the future. Default is no delays.
@@ -24,7 +23,7 @@ class FeatureDelayer(object):
 
     Attributes
     ----------
-    ``names_`` : ndarray, shape (n_features * ix_delayays, 2)
+    ``names_`` : ndarray, shape (n_features * n_delays, 2)
         If fit, a collection of `(feature_name, delay)` pairs
         corresponding to columns of the output of `transform`.
     """
@@ -50,7 +49,7 @@ class FeatureDelayer(object):
         """
         return self
 
-    def transform(self, X=None, y=None):
+    def transform(self, X, y=None):
         """Create a time-lagged representation of X.
 
         Parameters
@@ -60,7 +59,7 @@ class FeatureDelayer(object):
 
         Returns
         -------
-        X_delayed : array, shape (n_times, n_features * ix_delayays)
+        X_delayed : array, shape (n_times, n_features * n_delays)
             The delayed features of X.
         """
         X_delayed = delay_time_series(X, delays=self.delays,
@@ -77,111 +76,10 @@ class FeatureDelayer(object):
 
         Returns
         -------
-        X_delayed : array, shape (n_times, n_features * ix_delayays)
+        X_delayed : array, shape (n_times, n_features * n_delays)
             The delayed features of X.
         """
         return self.transform(X)
-
-
-class DelaysVectorizer(TransformerMixin):
-    """Transforms delays data to fit into a scikit-learn pipeline.
-
-    Parameters
-    ----------
-    sfreq : int
-        The sampling frequency for the features. Used for calculating times.
-
-    Attributes
-    ----------
-    n_delays : int
-        The number of delays.
-    n_times : int
-        The number of samples.
-    n_features : int
-        The number of features.
-    """
-    def __init__(self, sfreq=1.):
-        self.sfreq = float(sfreq)
-
-    def fit(self, X=None, y=None):
-        """Does nothing, only used for sklearn compatibility.
-
-        Parameters
-        ----------
-        X : array
-            Training data.
-        y : array
-            Target values.
-
-        Returns
-        -------
-        self : instance of DelaysVectorizer
-            returns self
-        """
-        return self
-
-    def transform(self, delayed, y=None):
-        """Combine a delayed data array into a 2D array suitable for sklearn.
-
-        Parameters
-        ----------
-        delayed : array, shape (n_samples, n_features, n_delays)
-            The data to concatenate channels.
-        y : array, shape (n_delays,)
-            The amount (in samples) of each delay.
-
-        Returns
-        -------
-        X : array, shape (n_samples, n_features * n_delays)
-            The data concatenated over delays.
-        """
-        if not isinstance(delayed, np.ndarray):
-            raise ValueError("delayed should be of type ndarray (got %s)."
-                             % type(delayed))
-        if delayed.ndim != 3:
-            raise ValueError("delayed must be shape (n_samples, n_features, "
-                             "n_delays)")
-
-        n_samples, n_features, n_delays = delayed.shape
-        X = delayed.reshape(n_samples, n_features * n_delays)
-
-        # save attributes for inverse_transform
-        self.n_samples_ = n_samples
-        self.n_features_ = n_features
-        self.n_delays_ = n_delays
-        if y is not None:
-            y = np.asarray(y)
-            if y.ndim != 1:
-                raise ValueError('y must be shape (n_delays,)')
-            if y.shape[0] != delayed.shape[-1]:
-                raise ValueError('Mismatch in length between delay values and '
-                                 'last dimension of delayed.'' and delays')
-            self.delays_ = y / self.sfreq
-        return X
-
-    def inverse_transform(self, X, y=None):
-        """For each sample, reshape a feature vector into the original data shape.
-
-        This can also be used to reshape coefficient vectors into
-        shape (n_features, n_delays).
-
-        Parameters
-        ----------
-        X : array, shape (n_samples, n_features * n_delays)
-            The feature vector concatenated over delays
-        y : None
-            Not used. Only for sklearn compatibility.
-
-        Returns
-        -------
-        delayed : array, shape (n_samples, n_features, n_delays)
-            The original data
-        """
-        if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)."
-                             % type(X))
-
-        return X.reshape(-1, self.n_features_, self.n_delays_)
 
 
 class EventsBinarizer(object):
@@ -199,14 +97,14 @@ class EventsBinarizer(object):
         matrix. Defaults to False.
     """
     def __init__(self, n_times, sfreq=1., sparse=False):
-        if not isinstance(n_times, int):
+        if not isinstance(n_times, (int, float, np.int_)):
             raise ValueError('n_times must be an integer')
-        if not isinstance(sfreq, (int, float)):
-            raise ValueError('sfreq must be an integer or float')
+        if not isinstance(sfreq, (int, float, np.int_)):
+            raise ValueError('sfreq must be a float')
         if not isinstance(sparse, bool):
             raise ValueError('sparse must be of type bool')
-        self.n_times = n_times
-        self.sfreq = sfreq
+        self.n_times = int(n_times)
+        self.sfreq = float(sfreq)
         self.sparse = sparse
 
     def fit(self, X=None, y=None):
@@ -225,7 +123,7 @@ class EventsBinarizer(object):
         """
         return self
 
-    def transform(self, X):
+    def transform(self, X, y=None):
         """Binarize events and return as continuous data.
 
         Parameters
@@ -245,7 +143,7 @@ class EventsBinarizer(object):
                                             sparse=self.sparse)
         return events_continuous
 
-    def fit_transform(self, X):
+    def fit_transform(self, X, y=None):
         """Does nothing, only used for sklearn compatibility.
 
         Parameters
@@ -321,7 +219,7 @@ def delay_time_series(X, delays, sfreq=1.):
 
     Returns
     -------
-    delayed: array, shape(n_times, n_features * ix_delayays)
+    delayed: array, shape(n_times, n_features * n_delays)
         The delayed matrix.
     """
 
@@ -350,7 +248,7 @@ def delay_time_series(X, delays, sfreq=1.):
 def _check_delayer_params(delays, sfreq):
     """Check delayer input parameters.
     """
-    if not isinstance(sfreq, (int, float)):
+    if not isinstance(sfreq, (int, float, np.int_)):
         raise ValueError('`sfreq` must be an integer or float')
     sfreq = float(sfreq)
 

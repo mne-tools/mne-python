@@ -67,6 +67,13 @@ Changelog
 
     - Added interactivity to :func:`mne.preprocessing.ICA.plot_components` - passing an instance of :class:`io.Raw` or :class:`Epochs` in ``inst`` argument allows to open component properties by clicking on component topomaps, by `Mikołaj Magnuski`_
 
+    - Added `encoding` module for classes and transformers to fit encoding models, by `Chris Holdgraf`_
+
+    - Added :class:`mne.encoding.FeatureDelayer` and :func:`delay_time_series` to create delayed features for encoding models, by `Chris Holdgraf`_
+
+    - Added :class:`mne.encoding.EventsBinarizer` and :func:`binarize_events` to create continuous binary features from event onset indices, by `Chris Holdgraf`_
+
+    - Added :class:`mne.encoding.SubsetEstimator` to allow fitting models on a subset of timepoints inside of a sklearn estimator chain, by `Chris Holdgraf`_
 
 BUG
 ~~~

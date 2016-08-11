@@ -30,8 +30,8 @@ import matplotlib.pyplot as plt
 import mne
 import numpy as np
 from mne.datasets import sample
-from mne.encoding import (SampleMasker, FeatureDelayer,
-                          DelaysVectorizer, get_coefs)
+from mne.encoding import SubsetEstimator, FeatureDelayer, get_coefs
+from mne.decoding import Vectorizer
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
@@ -47,7 +47,9 @@ ix_seed = mne.pick_channels(raw.ch_names, [seed_channel])[0]
 ix_targets = np.setdiff1d(range(len(raw.ch_names)), [ix_seed])
 
 # Set up encoding model variables
+# Multiple continuous electrode values as input
 X = raw[:][0][ix_targets].T  # estimators expect shape (n_samples, n_features)
+# Single continuous electrode values as output
 y = raw[:][0][ix_seed]
 n_times, n_targets = X.shape
 
@@ -59,17 +61,18 @@ ix_test = np.arange(n_times // 2, n_times)
 
 # This creates time-lagged versions of the data (in seconds)
 delay_step = .01  # Time between delays (in seconds)
-delayer = FeatureDelayer(sfreq=raw.info['sfreq'],
-                         delays=np.arange(-.1, .1, delay_step))
+delayer = FeatureDelayer(delays=np.arange(-.1, .1, delay_step),
+                         sfreq=raw.info['sfreq'])
 info_new = raw.copy().drop_channels([seed_channel]).info.copy()
 info_new['sfreq'] = 1. / delay_step
 
 # This is the final estimator that will be called after masking data
 estimator = make_pipeline(StandardScaler(), Ridge(alpha=1.))
 # This allows us to use a subset of indices for training / prediction
-masker = SampleMasker(estimator, samples_train=ix_train, samples_pred=ix_test)
+masker = SubsetEstimator(estimator, samples_train=ix_train,
+                         samples_pred=ix_test)
 # Finally, place a delayer first so that samples are delayed before being split
-pipeline = make_pipeline(delayer, DelaysVectorizer(), masker)
+pipeline = make_pipeline(delayer, Vectorizer(), masker)
 
 # Fit / predict with the model
 pipeline.fit(X, y)
@@ -104,8 +107,8 @@ plt.tight_layout()
 
 ###############################################################################
 # Pull and reshape the coefficients for plotting
-coefs = get_coefs(pipeline)[0]
-vectorizer = pipeline.named_steps['delaysvectorizer']
-coefs_delayed = vectorizer.inverse_transform(coefs)[0]
+coefs = get_coefs(pipeline)
+vectorizer = pipeline.named_steps['vectorizer']
+coefs_delayed = vectorizer.inverse_transform(coefs[np.newaxis, :])[0]
 coefs_evoked = mne.EvokedArray(coefs_delayed, info_new, tmin=-.1)
 fig = coefs_evoked.plot_joint(title='Coefficients over time delays')
