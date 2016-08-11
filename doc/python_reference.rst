@@ -136,9 +136,11 @@ Functions:
 File I/O
 ========
 
+Functions:
+
 .. currentmodule:: mne
 
-Functions:
+:py:mod:`mne.io`:
 
 .. autosummary::
    :toctree: generated
@@ -184,6 +186,15 @@ Functions:
    write_surface
    write_trans
 
+.. currentmodule:: mne.io
+
+:py:mod:`mne.io`:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+    read_info
 
 Creating data objects from arrays
 =================================
