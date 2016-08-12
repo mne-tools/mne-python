@@ -112,6 +112,11 @@ class ProjMixin(object):
             # Don't set as active, since we haven't applied it
             eeg_proj = make_eeg_average_ref_proj(self.info, activate=False)
             self.add_proj(eeg_proj)
+        elif self.info.get('custom_ref_applied', False):
+            raise RuntimeError('Cannot add an average EEG reference '
+                               'projection since a custom reference has been '
+                               'applied to the data earlier.')
+
         return self
 
     def apply_proj(self):
@@ -696,12 +701,17 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
     return eeg_proj
 
 
-def _has_eeg_average_ref_proj(projs):
-    """Determine if a list of projectors has an average EEG ref"""
+def _has_eeg_average_ref_proj(projs, check_active=False):
+    """Determine if a list of projectors has an average EEG ref
+
+    Optionally, set check_active=True to additionally check if the CAR
+    has already been applied.
+    """
     for proj in projs:
         if (proj['desc'] == 'Average EEG reference' or
                 proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF):
-            return True
+            if not check_active or proj['active']:
+                return True
     return False
 
 

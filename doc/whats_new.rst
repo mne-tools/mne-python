@@ -15,7 +15,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - Adds automatic determiniation of FIR filter parameters ``filter_length``, ``l_trans_bandwidth``, and ``h_trans_bandwidth`` and adds ``phase`` argument in e.g. in :meth:`mne.io.Raw.filter` by `Eric Larson`_
+    - Adds automatic determination of FIR filter parameters ``filter_length``, ``l_trans_bandwidth``, and ``h_trans_bandwidth`` and adds ``phase`` argument in e.g. in :meth:`mne.io.Raw.filter` by `Eric Larson`_
 
     - Adds faster ``n_fft='auto'`` option to :meth:`mne.io.Raw.apply_hilbert` by `Eric Larson`_
 
@@ -63,6 +63,7 @@ Changelog
 
     - Components obtained from :class:`mne.preprocessing.ICA` are now sorted by explained variance, by `Mikołaj Magnuski`_
 
+    - Added obtain digitized location of EEG Reference channel when creating it as a new data channel using :func:`mne.io.add_reference_channels` by `Chris Bailey`_
 
 BUG
 ~~~
