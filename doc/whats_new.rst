@@ -96,6 +96,8 @@ BUG
 
     - Fixed :class:`mne.Epochs` to ensure that detrend parameter is not a boolean by `Jean-Remi King`_
 
+    - Fixed bug with :func:`mne.realtime.FieldTripClient.get_data_as_epoch` when ``picks=None`` which crashed the function by `Mainak Jas`_
+
 API
 ~~~
 
