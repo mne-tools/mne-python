@@ -63,7 +63,7 @@ Changelog
 
     - Components obtained from :class:`mne.preprocessing.ICA` are now sorted by explained variance, by `Mikołaj Magnuski`_
 
-    - Added obtain digitized location of EEG Reference channel when creating it as a new data channel using :func:`mne.io.add_reference_channels` by `Chris Bailey`_
+    - Adding an EEG reference channel using :func:`mne.io.add_reference_channels` will now use its digitized location from the FIFF file, if present, by `Chris Bailey`_
 
 BUG
 ~~~
