@@ -152,7 +152,11 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
     verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
     uint16_codec : str | None
-        Codec to use for uint16 char arrays (defaults to system default codec).
+        If your *.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
 
     Returns
     -------
@@ -209,7 +213,11 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
     uint16_codec : str | None
-        Codec to use for uint16 char arrays (defaults to system default codec).
+        If your *.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
 
     Returns
     -------
@@ -274,7 +282,11 @@ class RawEEGLAB(_BaseRaw):
     verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
     uint16_codec : str | None
-        mne.io.read_raw_eeglab(os.path.join(data_dir, set_fls[1]))
+        If your *.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
 
     Returns
     -------
@@ -427,7 +439,11 @@ class EpochsEEGLAB(_BaseEpochs):
     verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
     uint16_codec : str | None
-        Codec to use for uint16 char arrays (defaults to system default codec).
+        If your *.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
 
     Notes
     -----
