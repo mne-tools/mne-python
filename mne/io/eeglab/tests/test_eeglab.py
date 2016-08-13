@@ -126,6 +126,6 @@ def test_io_set():
         warnings.simplefilter('always')
         assert_raises(NotImplementedError, read_epochs_eeglab,
                       bad_epochs_fname)
-    assert_equal(len(w), 3)
+    assert_equal(len(w), 1)
 
 run_tests_if_main()
