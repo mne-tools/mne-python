@@ -877,7 +877,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                                       colorbar=colorbar, title=title,
                                       show=show, outlines=outlines,
                                       contours=contours,
-                                      image_interp=image_interp)
+                                      image_interp=image_interp,
+                                      head_pos=head_pos, inst=inst)
             figs.append(fig)
         return figs
     elif np.isscalar(picks):
