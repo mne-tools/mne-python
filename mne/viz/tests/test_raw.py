@@ -2,6 +2,7 @@
 #
 # License: Simplified BSD
 
+import numpy as np
 import os.path as op
 import warnings
 
@@ -121,6 +122,12 @@ def test_plot_raw():
                             kind='release')
 
             plt.close('all')
+        # test if meas_date has only one element
+        raw.info['meas_date'] = np.array([raw.info['meas_date'][0]],
+                                         dtype=np.int32)
+        raw.annotations = Annotations([1 + raw.first_samp / raw.info['sfreq']],
+                                      [5], ['bad'])
+        raw.plot()
 
 
 @requires_version('scipy', '0.10')
