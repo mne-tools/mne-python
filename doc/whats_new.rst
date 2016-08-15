@@ -168,6 +168,9 @@ API
 
     - Extended Infomax is now the new default in :func:`mne.preprocessing.infomax` (``extended=True``), by `Clemens Brunner`_
 
+    - :func:`mne.io.read_raw_eeglab` and :func:`mne.io.read_epochs_eeglab` now take additional argument ``uint16_codec`` that allows to define the encoding of character arrays in set file. This helps in rare cases when reading a set file fails with ``TypeError: buffer is too small for requested array``. By `Mikołaj Magnuski`_
+
+
 .. _changes_0_12:
 
 Version 0.12
