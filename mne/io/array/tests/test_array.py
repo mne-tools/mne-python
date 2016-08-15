@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
@@ -8,10 +6,12 @@ import os.path as op
 import warnings
 import matplotlib
 
+import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from nose.tools import assert_equal, assert_raises, assert_true
+
 from mne import find_events, Epochs, pick_types
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.meas_info import create_info, _kind_dict
@@ -32,7 +32,7 @@ def test_array_raw():
     """
     import matplotlib.pyplot as plt
     # creating
-    raw = Raw(fif_fname).crop(2, 5, copy=False)
+    raw = read_raw_fif(fif_fname).crop(2, 5)
     data, times = raw[:, :]
     sfreq = raw.info['sfreq']
     ch_names = [(ch[4:] if 'STI' not in ch else ch)
@@ -67,17 +67,20 @@ def test_array_raw():
     assert_equal(len(picks), 4)
     raw_lp = raw2.copy()
     raw_lp.filter(None, 4.0, h_trans_bandwidth=4.,
-                  filter_length='auto', picks=picks, n_jobs=2, phase='zero')
+                  filter_length='auto', picks=picks, n_jobs=2, phase='zero',
+                  fir_window='hamming')
     raw_hp = raw2.copy()
     raw_hp.filter(16.0, None, l_trans_bandwidth=4.,
-                  filter_length='auto', picks=picks, n_jobs=2, phase='zero')
+                  filter_length='auto', picks=picks, n_jobs=2, phase='zero',
+                  fir_window='hamming')
     raw_bp = raw2.copy()
     raw_bp.filter(8.0, 12.0, l_trans_bandwidth=4.,
                   h_trans_bandwidth=4., filter_length='auto', picks=picks,
-                  phase='zero')
+                  phase='zero', fir_window='hamming')
     raw_bs = raw2.copy()
     raw_bs.filter(16.0, 4.0, l_trans_bandwidth=4., h_trans_bandwidth=4.,
-                  filter_length='auto', picks=picks, n_jobs=2, phase='zero')
+                  filter_length='auto', picks=picks, n_jobs=2, phase='zero',
+                  fir_window='hamming')
     data, _ = raw2[picks, :]
     lp_data, _ = raw_lp[picks, :]
     hp_data, _ = raw_hp[picks, :]
@@ -103,5 +106,11 @@ def test_array_raw():
     evoked.plot()
     assert_equal(evoked.nave, len(events) - 1)
     plt.close('all')
+
+    # complex data
+    rng = np.random.RandomState(0)
+    data = rng.randn(1, 100) + 1j * rng.randn(1, 100)
+    raw = RawArray(data, create_info(1, 1000., 'eeg'))
+    assert_allclose(raw._data, data)
 
 run_tests_if_main()
