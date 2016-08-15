@@ -7,6 +7,7 @@ import shutil
 
 import warnings
 from nose.tools import assert_raises, assert_equal
+import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
@@ -114,6 +115,21 @@ def test_io_set():
     event_id = {eeg.event[0].type: 1}
     read_raw_eeglab(input_fname=one_event_fname, montage=montage,
                     event_id=event_id, preload=True)
+
+    # test reading file with one channel
+    one_chan_fname = op.join(temp_dir, 'test_one_channel.set')
+    io.savemat(one_chan_fname, {'EEG':
+               {'trials': eeg.trials, 'srate': eeg.srate,
+                'nbchan': 1, 'data': np.random.random((1, 3)),
+                'epoch': eeg.epoch, 'event': eeg.epoch,
+                'chanlocs': {'labels': 'E1', 'Y': -6.6069,
+                             'X': 6.3023, 'Z': -2.9423},
+                'times': eeg.times[:3], 'pnts': 3}})
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        read_raw_eeglab(input_fname=one_chan_fname, preload=True)
+    # one warning for 'no events fond'
+    assert_equal(len(w), 1)
 
     # test if .dat file raises an error
     eeg = io.loadmat(epochs_fname, struct_as_record=False,
