@@ -64,6 +64,11 @@ def test_io_set():
         raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                     phase='zero')  # test that preloading works
 
+    # test that using uin16_codec does not break stuff
+    raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                           event_id=event_id, preload=False,
+                           uint16_codec='ascii')
+
     # test old EEGLAB version event import
     eeg = io.loadmat(raw_fname, struct_as_record=False,
                      squeeze_me=True)['EEG']
