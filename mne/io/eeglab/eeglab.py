@@ -64,6 +64,9 @@ def _get_info(eeg, montage, eog=()):
 
     # add the ch_names and info['chs'][idx]['loc']
     path = None
+    if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
+            eeg.chanlocs = [eeg.chanlocs]
+
     if len(eeg.chanlocs) > 0:
         ch_names, pos = list(), list()
         kind = 'user_defined'
@@ -348,7 +351,10 @@ class RawEEGLAB(_BaseRaw):
                      'the .set file')
             # can't be done in standard way with preload=True because of
             # different reading path (.set file)
-            n_chan, n_times = eeg.data.shape
+            if eeg.nbchan == 1 and len(eeg.data.shape) == 1:
+                n_chan, n_times = [1, eeg.data.shape[0]]
+            else:
+                n_chan, n_times = eeg.data.shape
             data = np.empty((n_chan + 1, n_times), dtype=np.double)
             data[:-1] = eeg.data
             data *= CAL
@@ -533,6 +539,9 @@ class EpochsEEGLAB(_BaseEpochs):
                                     order="F")
         else:
             data = eeg.data
+
+        if eeg.nbchan == 1 and len(data.shape) == 2:
+            data = data[np.newaxis, :]
         data = data.transpose((2, 0, 1)).astype('double')
         data *= CAL
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
