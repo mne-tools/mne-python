@@ -65,6 +65,9 @@ Changelog
 
     - Adding an EEG reference channel using :func:`mne.io.add_reference_channels` will now use its digitized location from the FIFF file, if present, by `Chris Bailey`_
 
+    - Added interactivity to :func:`mne.preprocessing.ICA.plot_components` - passing an instance of :class:`io.Raw` or :class:`Epochs` in ``inst`` argument allows to open component properties by clicking on component topomaps, by `Mikołaj Magnuski`_
+
+
 BUG
 ~~~
 

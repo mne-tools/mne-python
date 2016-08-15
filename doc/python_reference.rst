@@ -439,6 +439,7 @@ Functions:
    maxwell_filter
    read_ica
    run_ica
+   corrmap
 
 EEG referencing:
 
