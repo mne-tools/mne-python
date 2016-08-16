@@ -206,6 +206,16 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         ch_names_ = []
         pos = []
         with open(fname) as fid:
+            # Default units are meters
+            scale_factor = 1.
+            for line in fid:
+                if 'UnitPosition' in line:
+                    units = line.split()[1]
+                    if units == 'm':
+                        break
+                    elif units == 'mm':
+                        scale_factor = 1./1000.
+                        break
             for line in fid:
                 if 'Positions\n' in line:
                     break
@@ -218,7 +228,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                 if not line or not set(line) - set([' ']):
                     break
                 ch_names_.append(line.strip(' ').strip('\n'))
-        pos = np.array(pos)
+        pos = np.array(pos) * scale_factor
     elif ext == '.txt':
         # easycap
         try:  # newer version
