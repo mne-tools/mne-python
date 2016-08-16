@@ -214,7 +214,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                     if units == 'm':
                         break
                     elif units == 'mm':
-                        scale_factor = 1./1000.
+                        scale_factor = 1. / 1000.
                         break
             for line in fid:
                 if 'Positions\n' in line:
