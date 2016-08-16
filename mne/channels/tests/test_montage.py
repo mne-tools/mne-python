@@ -90,8 +90,9 @@ def test_montage():
         if kind.endswith('elc'):
             # Make sure points are reasonable distance from geometric centroid
             centroid = np.sum(montage.pos, axis=0) / montage.pos.shape[0]
-            distance_from_centroid = np.apply_along_axis(np.linalg.norm, 1,
-                                                         montage.pos - centroid)
+            distance_from_centroid = np.apply_along_axis(
+                np.linalg.norm, 1,
+                montage.pos - centroid)
             assert_array_less(distance_from_centroid, 0.2)
             assert_array_less(0.01, distance_from_centroid)
 
