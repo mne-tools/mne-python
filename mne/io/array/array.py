@@ -55,7 +55,7 @@ class RawArray(_BaseRaw):
             info['buffer_size_sec'] = 1.  # reasonable default
         super(RawArray, self).__init__(info, data,
                                        first_samps=(int(first_samp),),
-                                       verbose=verbose)
+                                       dtype=dtype, verbose=verbose)
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     self.first_samp, self.last_samp,
                     float(self.first_samp) / info['sfreq'],
