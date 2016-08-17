@@ -207,15 +207,13 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = []
         with open(fname) as fid:
             # Default units are meters
-            scale_factor = 1.
             for line in fid:
                 if 'UnitPosition' in line:
                     units = line.split()[1]
-                    if units == 'm':
-                        break
-                    elif units == 'mm':
-                        scale_factor = 1. / 1000.
-                        break
+                    scale_factor=dict(m=1., mm=1e-3)[units]
+                    break
+                elif 'Positions\n' in line:
+                    raise RuntimeError('Could not detect units in file %s' % fname)
             for line in fid:
                 if 'Positions\n' in line:
                     break
