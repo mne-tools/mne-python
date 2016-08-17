@@ -112,16 +112,17 @@ Functions:
   :toctree: generated/
   :template: function.rst
 
+  read_raw_brainvision
   read_raw_bti
   read_raw_cnt
   read_raw_ctf
+  read_raw_eeglab
   read_raw_edf
+  read_raw_egi
+  read_raw_eximia
+  read_raw_fif
   read_raw_kit
   read_raw_nicolet
-  read_raw_eeglab
-  read_raw_brainvision
-  read_raw_egi
-  read_raw_fif
 
 .. currentmodule:: mne.io.kit
 
