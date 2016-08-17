@@ -750,6 +750,11 @@ def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
         raise ValueError('Head position time points must be greater than '
                          'first sample offset, but found %0.4f < %0.4f'
                          % (t[0], t_off))
+    max_dist = np.linalg.norm(pos[:, 4:7], axis=1).max()
+    if max_dist > 1.:
+        warn('Found a distance greater than 1 m (%0.3g m) from the device '
+             'origin, positions may be invalid and Maxwell filtering could '
+             'fail' % (max_dist,))
     dev_head_ts = np.zeros((len(t), 4, 4))
     dev_head_ts[:, 3, 3] = 1.
     dev_head_ts[:, :3, 3] = pos[:, 4:7]
