@@ -186,7 +186,15 @@ def test_movement_compensation():
     head_pos_bad = head_pos.copy()
     head_pos_bad[0, 0] = raw.first_samp / raw.info['sfreq'] - 1e-2
     assert_raises(ValueError, maxwell_filter, raw, head_pos=head_pos_bad)
+
+    head_pos_bad = head_pos.copy()
+    head_pos_bad[0, 4] = 1.  # off by more than 1 m
+    with warnings.catch_warnings(record=True) as w:
+        maxwell_filter(raw, head_pos=head_pos_bad, bad_condition='ignore')
+    assert_true(any('greater than 1 m' in str(ww.message) for ww in w))
+
     # make sure numerical error doesn't screw it up, though
+    head_pos_bad = head_pos.copy()
     head_pos_bad[0, 0] = raw.first_samp / raw.info['sfreq'] - 5e-4
     raw_sss_tweak = maxwell_filter(raw, head_pos=head_pos_bad,
                                    origin=mf_head_origin)
