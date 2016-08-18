@@ -722,8 +722,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
 
 class TemporalFilter(TransformerMixin):
-    """Estimator to filter data array along the last dimension, having at
-    least 2 dimensions.
+    """Estimator to filter data array along the last dimension.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
     filter to the channels.
@@ -822,12 +821,12 @@ class TemporalFilter(TransformerMixin):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_channels, n_times)
+        X : array, shape (n_epochs, n_channels, n_times) or
+            or shape (n_channels, n_times)
             The data to be filtered over the last dimension. The channels
             dimension can be zerio when passing a 2D array.
-        y : None | array, shape (n_samples,)
-            The label for each sample.
-            If None not used. Defaults to None.
+        y : None
+            Not used, for scikit-learn compatibility issues.
 
         Returns
         -------
@@ -836,28 +835,26 @@ class TemporalFilter(TransformerMixin):
         """
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X):
         """Filters data along the last dimension.
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_channels, n_times)
+        X : array, shape (n_epochs, n_channels, n_times) or
+            shape (n_channels, n_times)
             The data to be filtered over the last dimension. The channels
             dimension can be zero when passing a 2D array.
-        y : None | array, shape (n_samples,)
-            The label for each sample.
-            If None not used. Defaults to None.
 
         Returns
         -------
         X : array, shape is same as used in input.
             The data after filtering.
         """
-        X = np.asarray(X)
         X = np.atleast_2d(X)
 
         if X.ndim > 3:
-            raise ValueError("Array must be of at max 3 dimensions")
+            raise ValueError("Array must be of at max 3 dimensions instead "
+                             "got %s dimensional matrix" % (X.ndim))
 
         shape = X.shape
         X = X.reshape(-1, shape[-1])

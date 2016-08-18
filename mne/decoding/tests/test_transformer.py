@@ -231,7 +231,7 @@ def test_unsupervised_spatial_filter():
 
 def test_temporal_filterer():
     """Test methods of TemporalFilter."""
-    X = np.random.rand(10, 5, 2)
+    X = np.random.rand(5, 5, 1200)
 
     # Test init test
     values = (('10hz', None, 100., 'auto'), (5., '10hz', 100., 'auto'),
