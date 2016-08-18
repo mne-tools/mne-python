@@ -212,9 +212,8 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                     units = line.split()[1]
                     scale_factor = dict(m=1., mm=1e-3)[units]
                     break
-                elif 'Positions\n' in line:
-                    raise RuntimeError(
-                        'Could not detect units in file %s' % fname)
+            else:
+                raise RuntimeError('Could not detect units in file %s' % fname)
             for line in fid:
                 if 'Positions\n' in line:
                     break
