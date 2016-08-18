@@ -9,7 +9,8 @@ from nose.tools import assert_equal, assert_true, assert_raises
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_almost_equal,
-                           assert_allclose, assert_array_almost_equal)
+                           assert_allclose, assert_array_almost_equal,
+                           assert_array_less)
 from mne.tests.common import assert_dig_allclose
 from mne.channels.montage import read_montage, _set_montage, read_dig_montage
 from mne.utils import _TempDir, run_tests_if_main
@@ -51,6 +52,10 @@ def test_montage():
         'NumberPositions=    68\nPositions\n-86.0761 -19.9897 -47.9860\n'
         '85.7939 -20.0093 -48.0310\n0.0083 86.8110 -39.9830\n'
         'Labels\nLPA\nRPA\nNz\n',
+        '# ASA electrode file\nReferenceLabel  avg\nUnitPosition    m\n'
+        'NumberPositions=    68\nPositions\n-.0860761 -.0199897 -.0479860\n'
+        '.0857939 -.0200093 -.0480310\n.0000083 .00868110 -.0399830\n'
+        'Labels\nLPA\nRPA\nNz\n',
         'Site  Theta  Phi\nFp1  -92    -72\nFp2   92     72\n'
         'very_very_very_long_name   -60    -51\n',
         '346\n'
@@ -59,8 +64,8 @@ def test_montage():
         'EEG	      F4	   62.01	  50.103	      85\n',
         'eeg Fp1 -95.0 -31.0 -3.0\neeg AF7 -81 -59 -3\neeg AF3 -87 -41 28\n'
     ]
-    kinds = ['test.sfp', 'test.csd', 'test.elc', 'test.txt', 'test.elp',
-             'test.hpts']
+    kinds = ['test.sfp', 'test.csd', 'test_mm.elc', 'test_m.elc', 'test.txt',
+             'test.elp', 'test.hpts']
     for kind, text in zip(kinds, input_str):
         fname = op.join(tempdir, kind)
         with open(fname, 'w') as fid:
@@ -82,6 +87,15 @@ def test_montage():
                 table = np.loadtxt(fname, skiprows=2, dtype=dtype)
             pos2 = np.c_[table['x'], table['y'], table['z']]
             assert_array_almost_equal(pos2, montage.pos, 4)
+        if kind.endswith('elc'):
+            # Make sure points are reasonable distance from geometric centroid
+            centroid = np.sum(montage.pos, axis=0) / montage.pos.shape[0]
+            distance_from_centroid = np.apply_along_axis(
+                np.linalg.norm, 1,
+                montage.pos - centroid)
+            assert_array_less(distance_from_centroid, 0.2)
+            assert_array_less(0.01, distance_from_centroid)
+
     # test transform
     input_str = """
     eeg Fp1 -95.0 -31.0 -3.0
