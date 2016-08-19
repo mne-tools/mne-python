@@ -128,6 +128,7 @@ def test_plot_raw():
         raw.annotations = Annotations([1 + raw.first_samp / raw.info['sfreq']],
                                       [5], ['bad'])
         raw.plot()
+        plt.close('all')
 
 
 @requires_version('scipy', '0.10')
