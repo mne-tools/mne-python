@@ -23,6 +23,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     ----------
     data : np.ndarray, shape (n_samples, n_features)
         The data to unmix.
+        .. note:: The data should be whitened prior to performing Infomax ICA.
     weights : np.ndarray, shape (n_features, n_features)
         The initialized unmixing matrix.
         Defaults to None, which means the identity matrix is used.
