@@ -25,7 +25,7 @@ print(evoked)
 # You can read only one of the categories by passing the argument ``condition``
 # to :func:`mne.read_evokeds`.
 # The read evoked objects can be stored in a dict for easier access.
-conditions = ["Left Auditory", "Right Auditory", "Left Visual", "Right Visual"]
+conditions = ["Left Auditory", "Right Auditory", "Left visual", "Right visual"]
 evoked = dict()
 for condition in conditions:
     evoked[condition] =  mne.read_evokeds(fname, baseline=(None, 0),
@@ -54,7 +54,7 @@ fig.tight_layout()
 # Using ``spatial_colors=True``, the individual channel lines are color coded
 # to show the sensor positions - specifically, the x, y, and z locations of
 # the sensors are transformed into R, G and B values.
-picks = mne.pick_types(evoked["Left Visual"].info,
+picks = mne.pick_types(evoked["Left visual"].info,
                        meg=True, eeg=False, eog=False)
 evoked["Left Auditory"].plot(spatial_colors=True, gfp=True, picks=picks)
 
@@ -88,7 +88,7 @@ evoked["Right Auditory"].plot_topomap(times='peaks', ch_type='mag')
 fig, ax = plt.subplots(1, 5)
 for ii, (condition, axis) in enumerate(zip(conditions, ax)):
     evoked[condition].plot_topomap(times=0.1, axes=axis,
-                                   show=(condition=="Right Visual"))
+                                   show=(condition=="Right visual"))
 
 ###############################################################################
 # Notice that we created five axes, but had only four categories. The fifth
@@ -133,7 +133,7 @@ title = 'MNE sample data (condition : %s)'
 evoked[condition].plot_topo(title=title % condition)
 colors = 'yellow', 'green', 'red', 'blue'
 mne.viz.plot_evoked_topo(evoked, color=colors,
-                         title=title % 'Left/Right Auditory/Visual')
+                         title=title % 'Left/Right Auditory/visual')
 
 ###############################################################################
 # Visualizing field lines in 3D
