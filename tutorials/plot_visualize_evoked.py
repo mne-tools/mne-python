@@ -28,7 +28,7 @@ print(evoked)
 conditions = ["Left Auditory", "Right Auditory", "Left visual", "Right visual"]
 evoked = dict()
 for condition in conditions:
-    evoked[condition] =  mne.read_evokeds(fname, baseline=(None, 0),
+    evoked[condition] = mne.read_evokeds(fname, baseline=(None, 0),
                                           proj=True, condition=condition)
 
 ###############################################################################
@@ -87,8 +87,8 @@ evoked["Right Auditory"].plot_topomap(times='peaks', ch_type='mag')
 # with the `show` parameter.
 fig, ax = plt.subplots(1, 5)
 for ii, (condition, axis) in enumerate(zip(conditions, ax)):
-    evoked[condition].plot_topomap(times=0.1, axes=axis,
-                                   show=(condition=="Right visual"))
+    evoked[condition].plot_topomap(times=0.1, axes=axis, show=False)
+plt.show()
 
 ###############################################################################
 # Notice that we created five axes, but had only four categories. The fifth
@@ -115,7 +115,7 @@ ts_args = dict(gfp=True)
 topomap_args = dict(sensors=False)
 condition = "Right Auditory"
 evoked[condition].plot_joint(title=condition, times=[.07, .105],
-                        ts_args=ts_args, topomap_args=topomap_args)
+                             ts_args=ts_args, topomap_args=topomap_args)
 
 ###############################################################################
 # We can also plot the activations as images. The time runs along the x-axis
@@ -132,7 +132,7 @@ evoked[condition].plot_image(picks=picks)
 title = 'MNE sample data (condition : %s)'
 evoked[condition].plot_topo(title=title % condition)
 colors = 'yellow', 'green', 'red', 'blue'
-mne.viz.plot_evoked_topo(evoked, color=colors,
+mne.viz.plot_evoked_topo(list(evoked.values()), color=colors,
                          title=title % 'Left/Right Auditory/visual')
 
 ###############################################################################
@@ -150,8 +150,8 @@ mne.viz.plot_evoked_topo(evoked, color=colors,
 subjects_dir = data_path + '/subjects'
 trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 
-maps = mne.make_field_map(evoked["Left Auditory"], trans=trans_fname,
-                          subject='sample', subjects_dir=subjects_dir, n_jobs=1)
+maps = mne.make_field_map(evoked["Left Auditory"], trans=trans_fname, n_jobs=1
+                          subject='sample', subjects_dir=subjects_dir)
 
 # explore several points in time
 field_map = evoked["Left Auditory"].plot_field(maps, time=.1)
