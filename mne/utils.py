@@ -1140,7 +1140,7 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
 
     Parameters
     ----------
-    command : list of str
+    command : list of str | str
         Command to run as subprocess (see subprocess.Popen documentation).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -1174,12 +1174,19 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
              'starting with a tilde ("~") character. Such paths are not '
              'interpreted correctly from within Python. It is recommended '
              'that you use "$HOME" instead of "~".')
-
-    logger.info("Running subprocess: %s" % ' '.join(command))
+    if isinstance(command, string_types):
+        command_str = command
+    else:
+        command_str = ' '.join(command)
+    logger.info("Running subprocess: %s" % command_str)
     try:
         p = subprocess.Popen(command, *args, **kwargs)
     except Exception:
-        logger.error('Command not found: %s' % (command[0],))
+        if isinstance(command, string_types):
+            command_name = command.split()[0]
+        else:
+            command_name = command[0]
+        logger.error('Command not found: %s' % command_name)
         raise
     stdout_, stderr = p.communicate()
     stdout_ = '' if stdout_ is None else stdout_.decode('utf-8')

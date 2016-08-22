@@ -12,7 +12,7 @@ try:
     from mayavi.core.ui.mayavi_scene import MayaviScene
     from mayavi.tools.mlab_scene_model import MlabSceneModel
     import numpy as np
-    from pyface.api import confirm, FileDialog, OK, YES
+    from pyface.api import confirm, error, FileDialog, OK, YES
     from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                             cached_property, DelegatesTo, Event, Instance,
                             Property, Array, Bool, Button, Enum)
@@ -25,13 +25,14 @@ except Exception:
     cached_property = on_trait_change = MayaviScene = MlabSceneModel = \
         Array = Bool = Button = DelegatesTo = Enum = Event = Instance = \
         Property = View = Item = HGroup = VGroup = SceneEditor = \
-        NoButtons = trait_wraith
+        NoButtons = error = trait_wraith
 
-from ..coreg import fid_fname, head_bem_fname, _find_fiducials_files
+from ..coreg import (fid_fname, head_bem_fname, _find_fiducials_files,
+                     _find_high_res_head)
 from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
-from ._file_traits import (BemSource, fid_wildcard, FiducialsSource,
+from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel)
 from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
                       headview_borders)
@@ -54,7 +55,7 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         Right peri-auricular point coordinates.
     """
     subject_source = Instance(MRISubjectSource, ())
-    bem = Instance(BemSource, ())
+    bem = Instance(SurfaceSource, ())
     fid = Instance(FiducialsSource, ())
 
     fid_file = DelegatesTo('fid', 'file')
@@ -63,6 +64,7 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     subjects_dir = DelegatesTo('subject_source')
     subject = DelegatesTo('subject_source')
     subject_has_bem = DelegatesTo('subject_source')
+    use_high_res_head = DelegatesTo('subject_source')
     points = DelegatesTo('bem')
     norms = DelegatesTo('bem')
     tris = DelegatesTo('bem')
@@ -159,16 +161,27 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 
     # if subject changed because of a change of subjects_dir this was not
     # triggered
-    @on_trait_change('subjects_dir,subject')
+    @on_trait_change('subjects_dir,subject,use_high_res_head')
     def _subject_changed(self):
         subject = self.subject
         subjects_dir = self.subjects_dir
         if not subjects_dir or not subject:
             return
 
-        # update bem head
-        path = head_bem_fname.format(subjects_dir=subjects_dir,
-                                     subject=subject)
+        path = None
+        if self.use_high_res_head:
+            path = _find_high_res_head(subjects_dir=subjects_dir,
+                                       subject=subject)
+            if not path:
+                error(None, "No high resolution head model was found for "
+                      "subject {0}, using standard head instead. In order to "
+                      "generate a high resolution head model, run:\n\n"
+                      "    $ mne make_scalp_surfaces -s {0}"
+                      "\n\n".format(subject), "No High Resolution Head")
+
+        if not path:
+            path = head_bem_fname.format(subjects_dir=subjects_dir,
+                                         subject=subject)
         self.bem.file = path
 
         # find fiducials file

@@ -48,6 +48,8 @@ def test_coreg_model():
     model = CoregModel()
     assert_raises(RuntimeError, model.save_trans, 'blah.fif')
 
+    model.mri.use_high_res_head = False
+
     model.mri.subjects_dir = subjects_dir
     model.mri.subject = 'sample'
 
@@ -148,13 +150,14 @@ def test_coreg_model():
 @requires_mne
 @requires_freesurfer
 def test_coreg_model_with_fsaverage():
-    """Test CoregModel"""
+    """Test CoregModel with the fsaverage brain data"""
     tempdir = _TempDir()
     from mne.gui._coreg_gui import CoregModel
 
     mne.create_default_subject(subjects_dir=tempdir)
 
     model = CoregModel()
+    model.mri.use_high_res_head = False
     model.mri.subjects_dir = tempdir
     model.mri.subject = 'fsaverage'
     assert_true(model.mri.fid_ok)

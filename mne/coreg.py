@@ -39,6 +39,9 @@ head_bem_fname = pformat(bem_fname, name='head')
 fid_fname = pformat(bem_fname, name='fiducials')
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
+_high_res_head_fnames = (os.path.join(bem_dirname, '{subject}-head-dense.fif'),
+                         os.path.join(surf_dirname, 'lh.seghead'),
+                         os.path.join(surf_dirname, 'lh.smseghead'))
 
 
 def _make_writable(fname):
@@ -52,6 +55,13 @@ def _make_writable_recursive(path):
     for root, dirs, files in os.walk(path, topdown=False):
         for f in dirs + files:
             _make_writable(os.path.join(root, f))
+
+
+def _find_high_res_head(subject, subjects_dir):
+    for fname in _high_res_head_fnames:
+        path = fname.format(subjects_dir=subjects_dir, subject=subject)
+        if os.path.exists(path):
+            return path
 
 
 def create_default_subject(mne_root=None, fs_home=None, update=False,
@@ -719,12 +729,30 @@ def _is_mri_subject(subject, subjects_dir=None):
         Whether ``subject`` is an mri subject.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
     fname = head_bem_fname.format(subjects_dir=subjects_dir, subject=subject)
-    if not os.path.exists(fname):
-        return False
+    return os.path.exists(fname)
 
-    return True
+
+def _is_scaled_mri_subject(subject, subjects_dir=None):
+    """Check whether a directory in subjects_dir is a scaled mri subject
+
+    Parameters
+    ----------
+    subject : str
+        Name of the potential subject/directory.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
+
+    Returns
+    -------
+    is_scaled_mri_subject : bool
+        Whether ``subject`` is a scaled mri subject.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    if not _is_mri_subject(subject, subjects_dir):
+        return False
+    fname = os.path.join(subjects_dir, subject, 'MRI scaling parameters.cfg')
+    return os.path.exists(fname)
 
 
 def _mri_subject_has_bem(subject, subjects_dir=None):

@@ -24,10 +24,10 @@ fid_path = os.path.join(fiff_data_dir, 'fsaverage-fiducials.fif')
 @testing.requires_testing_data
 @requires_traits
 def test_bem_source():
-    """Test BemSource"""
-    from mne.gui._file_traits import BemSource
+    """Test SurfaceSource"""
+    from mne.gui._file_traits import SurfaceSource
 
-    bem = BemSource()
+    bem = SurfaceSource()
     assert_equal(bem.points.shape, (0, 3))
     assert_equal(bem.tris.shape, (0, 3))
 
