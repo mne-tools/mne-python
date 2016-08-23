@@ -22,7 +22,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     Parameters
     ----------
     data : np.ndarray, shape (n_samples, n_features)
-        The data to unmix.
+        The whitened data to unmix.
     weights : np.ndarray, shape (n_features, n_features)
         The initialized unmixing matrix.
         Defaults to None, which means the identity matrix is used.
