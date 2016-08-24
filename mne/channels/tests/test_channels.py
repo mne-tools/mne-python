@@ -6,9 +6,11 @@
 import os.path as op
 
 from copy import deepcopy
+from functools import partial
 import warnings
 
 import numpy as np
+from scipy.io import savemat
 from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
 
@@ -16,7 +18,6 @@ from mne.channels import rename_channels, read_ch_connectivity
 from mne.channels.channels import _ch_neighbor_connectivity
 from mne.io import read_info, Raw
 from mne.io.constants import FIFF
-from mne.fixes import partial, savemat
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, pick_channels
 

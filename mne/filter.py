@@ -2066,9 +2066,9 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
         raise ValueError('filter_length must be positive, got %s'
                          % (filter_length,))
     if filter_length > len_x:
-        dep += ['filter_length (%s) is longer than the signal (%s), '
-                'distortion is likely. Reduce filter length or filter a '
-                'longer signal.' % (filter_length, len_x)]
+        warn('filter_length (%s) is longer than the signal (%s), '
+             'distortion is likely. Reduce filter length or filter a '
+             'longer signal.' % (filter_length, len_x))
     logger.debug('Using filter length: %s' % filter_length)
     if len(dep) > 0:
         warn(('Multiple deprecated filter parameters were used:\n'

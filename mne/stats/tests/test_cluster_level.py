@@ -1,11 +1,13 @@
+from functools import partial
 import os
+import warnings
+
 import numpy as np
+from scipy import sparse, linalg, stats
 from numpy.testing import (assert_equal, assert_array_equal,
                            assert_array_almost_equal)
 from nose.tools import assert_true, assert_raises
-from scipy import sparse, linalg, stats
-from mne.fixes import partial
-import warnings
+
 from mne.parallel import _force_serial
 from mne.stats.cluster_level import (permutation_cluster_test,
                                      permutation_cluster_1samp_test,

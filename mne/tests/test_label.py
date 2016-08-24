@@ -18,7 +18,7 @@ from mne import (read_label, stc_to_label, read_source_estimate,
 from mne.label import Label, _blend_colors, label_sign_flip
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
                        run_tests_if_main, slow_test)
-from mne.fixes import digitize, in1d, assert_is, assert_is_not
+from mne.fixes import assert_is, assert_is_not
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
@@ -263,21 +263,21 @@ def test_label_in_src():
 
     # construct label from source space vertices
     vert_in_src = np.intersect1d(label.vertices, src[0]['vertno'], True)
-    where = in1d(label.vertices, vert_in_src)
+    where = np.in1d(label.vertices, vert_in_src)
     pos_in_src = label.pos[where]
     values_in_src = label.values[where]
     label_src = Label(vert_in_src, pos_in_src, values_in_src,
                       hemi='lh').fill(src)
 
     # check label vertices
-    vertices_status = in1d(src[0]['nearest'], label.vertices)
+    vertices_status = np.in1d(src[0]['nearest'], label.vertices)
     vertices_in = np.nonzero(vertices_status)[0]
     vertices_out = np.nonzero(np.logical_not(vertices_status))[0]
     assert_array_equal(label_src.vertices, vertices_in)
-    assert_array_equal(in1d(vertices_out, label_src.vertices), False)
+    assert_array_equal(np.in1d(vertices_out, label_src.vertices), False)
 
     # check values
-    value_idx = digitize(src[0]['nearest'][vertices_in], vert_in_src, True)
+    value_idx = np.digitize(src[0]['nearest'][vertices_in], vert_in_src, True)
     assert_array_equal(label_src.values, values_in_src[value_idx])
 
     # test exception
@@ -568,7 +568,7 @@ def test_write_labels_to_annot():
     label0 = labels_lh[0]
     label1 = labels_reloaded[-1]
     assert_equal(label1.name, "unknown-lh")
-    assert_true(np.all(in1d(label0.vertices, label1.vertices)))
+    assert_true(np.all(np.in1d(label0.vertices, label1.vertices)))
 
     # unnamed labels
     labels4 = labels[:]
@@ -710,7 +710,7 @@ def test_morph():
         label.values.fill(1)
         label = label.morph(None, 'fsaverage', 5, grade, subjects_dir, 1)
         label = label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2)
-        assert_true(np.mean(in1d(label_orig.vertices, label.vertices)) == 1.0)
+        assert_true(np.in1d(label_orig.vertices, label.vertices).all())
         assert_true(len(label.vertices) < 3 * len(label_orig.vertices))
         vals.append(label.vertices)
     assert_array_equal(vals[0], vals[1])
@@ -743,7 +743,7 @@ def test_grow_labels():
     for label, seed, hemi, sh, name in zip(labels, seeds, tgt_hemis,
                                            should_be_in, tgt_names):
         assert_true(np.any(label.vertices == seed))
-        assert_true(np.all(in1d(sh, label.vertices)))
+        assert_true(np.all(np.in1d(sh, label.vertices)))
         assert_equal(label.hemi, hemi)
         assert_equal(label.name, name)
 

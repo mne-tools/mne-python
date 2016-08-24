@@ -1,3 +1,4 @@
+from functools import partial
 from os import path as op
 
 import numpy as np
@@ -17,7 +18,6 @@ from mne.forward._field_interpolation import _setup_dots
 from mne.surface import get_meg_helmet_surf, get_head_surf
 from mne.datasets import testing
 from mne import read_evokeds, pick_types
-from mne.fixes import partial
 from mne.externals.six.moves import zip
 from mne.utils import run_tests_if_main, slow_test
 
