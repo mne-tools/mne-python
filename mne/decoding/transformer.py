@@ -821,10 +821,9 @@ class TemporalFilter(TransformerMixin):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_channels, n_times) or
-            or shape (n_channels, n_times)
+        X : array, shape (n_epochs, n_channels, n_times) or or shape (n_channels, n_times) # noqa
             The data to be filtered over the last dimension. The channels
-            dimension can be zerio when passing a 2D array.
+            dimension can be zero when passing a 2D array.
         y : None
             Not used, for scikit-learn compatibility issues.
 
@@ -840,8 +839,7 @@ class TemporalFilter(TransformerMixin):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_channels, n_times) or
-            shape (n_channels, n_times)
+        X : array, shape (n_epochs, n_channels, n_times) or shape (n_channels, n_times) # noqa
             The data to be filtered over the last dimension. The channels
             dimension can be zero when passing a 2D array.
 
