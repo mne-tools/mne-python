@@ -17,7 +17,6 @@ from os import path as op
 import tempfile
 
 from ..externals.six import string_types
-from ..fixes import sparse_block_diag
 from ..io import RawArray, Info
 from ..io.constants import FIFF
 from ..io.open import fiff_open
@@ -621,7 +620,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
 
             if fwd['sol_grad'] is not None:
-                x = sparse_block_diag([fix_rot] * 3)
+                x = sparse.block_diag([fix_rot] * 3)
                 fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
                 fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
             logger.info('    [done]')
@@ -664,7 +663,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         fwd['sol']['data'] = fwd['_orig_sol'] * surf_rot
         fwd['sol']['ncol'] = 3 * fwd['nsource']
         if fwd['sol_grad'] is not None:
-            x = sparse_block_diag([surf_rot] * 3)
+            x = sparse.block_diag([surf_rot] * 3)
             fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
             fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
         logger.info('[done]')
@@ -774,7 +773,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         inv_rot = _inv_block_diag(fwd['source_nn'].T, 3)
         sol = sol * inv_rot
         if sol_grad is not None:
-            sol_grad = sol_grad * sparse_block_diag([inv_rot] * 3)  # dot prod
+            sol_grad = sol_grad * sparse.block_diag([inv_rot] * 3)  # dot prod
 
     #
     # MEG forward solution

@@ -4,12 +4,13 @@
 #
 # License: BSD (3-clause)
 
+from collections import Counter
+
 import numpy as np
 
 from .mixin import TransformerMixin, EstimatorMixin
 from .base import _set_cv
 from ..utils import logger, verbose
-from ..fixes import Counter
 from ..parallel import parallel_func
 from .. import pick_types, pick_info
 

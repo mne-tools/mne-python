@@ -27,8 +27,7 @@ from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, _BaseEpochs, average_movements)
 from mne.utils import (_TempDir, requires_pandas, slow_test,
-                       clean_warning_registry, run_tests_if_main,
-                       requires_version)
+                       run_tests_if_main, requires_version)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, Raw
@@ -70,8 +69,6 @@ def _get_data(preload=False):
 
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
-
-clean_warning_registry()  # really clean warning stack
 
 
 @slow_test

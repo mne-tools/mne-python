@@ -62,17 +62,16 @@ Dependencies
 
 The minimum required dependencies to run the software are:
 
-  - Python >= 2.6
-  - NumPy >= 1.6
-  - SciPy >= 0.7.2
-  - matplotlib >= 0.98.4
+  - Python >= 2.7
+  - NumPy >= 1.8
+  - SciPy >= 0.12
+  - matplotlib >= 1.3
 
 For full functionality, some functions require:
 
-  - scikit-learn >= 0.15
-  - nose >= 0.10
-  - nibabel >= 2.0.0
-  - pandas >= 0.7.3
+  - scikit-learn >= 0.18
+  - nibabel >= 2.1.0
+  - pandas >= 0.12
 
 To use NVIDIA CUDA for resampling and FFT FIR filtering, you will also need
 to install the NVIDIA CUDA SDK, pycuda, and scikits.cuda. See the

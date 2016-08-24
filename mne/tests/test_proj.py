@@ -19,8 +19,7 @@ from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne import read_events, Epochs, sensitivity_map, read_source_estimate
 from mne.tests.common import assert_naming
-from mne.utils import (_TempDir, run_tests_if_main, clean_warning_registry,
-                       slow_test)
+from mne.utils import _TempDir, run_tests_if_main, slow_test
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -186,7 +185,6 @@ def test_compute_proj_epochs():
     assert_allclose(proj, proj_par, rtol=1e-8, atol=1e-16)
 
     # test warnings on bad filenames
-    clean_warning_registry()
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         proj_badname = op.join(tempdir, 'test-bad-name.fif.gz')

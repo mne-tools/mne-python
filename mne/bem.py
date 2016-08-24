@@ -5,16 +5,16 @@
 #
 # License: BSD (3-clause)
 
-import sys
+from functools import partial
+import glob
 import os
 import os.path as op
 import shutil
-import glob
+import sys
 
 import numpy as np
 from scipy import linalg
 
-from .fixes import partial
 from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
 from .transforms import _ensure_trans, apply_trans
 from .io import Info

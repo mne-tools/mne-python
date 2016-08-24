@@ -3,7 +3,6 @@ import os.path as op
 import shutil
 import glob
 import warnings
-import sys
 
 import numpy as np
 from scipy import sparse
@@ -397,9 +396,7 @@ def test_read_labels_from_annot():
     for label in labels_lh:
         assert_true(label.name.endswith('-lh'))
         assert_true(label.hemi == 'lh')
-        # XXX fails on 2.6 for some reason...
-        if sys.version_info[:2] > (2, 6):
-            assert_is_not(label.color, None)
+        assert_is_not(label.color, None)
 
     # read labels using annot_fname
     annot_fname = op.join(subjects_dir, 'sample', 'label', 'rh.aparc.annot')

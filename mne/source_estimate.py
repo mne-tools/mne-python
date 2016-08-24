@@ -12,7 +12,7 @@ import warnings
 
 import numpy as np
 from scipy import linalg, sparse
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
 from .filter import resample
 from .evoked import _get_peak
@@ -24,7 +24,6 @@ from .source_space import (_ensure_src, _get_morph_src_reordering,
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc)
 from .viz import plot_source_estimates
-from .fixes import in1d, sparse_block_diag
 from .io.base import ToDataFrameMixin, TimeMixin
 
 from .externals.six import string_types
@@ -1069,7 +1068,7 @@ class SourceEstimate(_BaseSourceEstimate):
             stc_vertices = self.vertices[1]
 
         # find index of the Label's vertices
-        idx = np.nonzero(in1d(stc_vertices, label.vertices))[0]
+        idx = np.nonzero(np.in1d(stc_vertices, label.vertices))[0]
 
         # find output vertices
         vertices = stc_vertices[idx]
@@ -2328,7 +2327,7 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         connectivity = spatio_temporal_tris_connectivity(tris, n_times)
 
         # deal with source space only using a subset of vertices
-        masks = [in1d(u, s['vertno']) for s, u in zip(src, used_verts)]
+        masks = [np.in1d(u, s['vertno']) for s, u in zip(src, used_verts)]
         if sum(u.size for u in used_verts) != connectivity.shape[0] / n_times:
             raise ValueError('Used vertices do not match connectivity shape')
         if [np.sum(m) for m in masks] != [len(s['vertno']) for s in src]:

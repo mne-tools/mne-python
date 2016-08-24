@@ -18,7 +18,6 @@ from ..epochs import _BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..utils import logger, _reject_data_segments, warn
 from ..io.pick import pick_types, pick_info
-from ..fixes import in1d
 
 
 def linear_regression(inst, design_matrix, names=None):
@@ -342,7 +341,7 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
             ids = ([event_id[cond]]
                    if isinstance(event_id[cond], int)
                    else event_id[cond])
-            onsets = -(events[in1d(events[:, 2], ids), 0] + tmin_)
+            onsets = -(events[np.in1d(events[:, 2], ids), 0] + tmin_)
             values = np.ones((len(onsets), n_lags))
 
         else:  # for predictors from covariates, e.g. continuous ones

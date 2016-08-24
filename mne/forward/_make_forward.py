@@ -26,7 +26,6 @@ from ..externals.six import string_types
 from .forward import (Forward, write_forward_solution, _merge_meg_eeg_fwds,
                       convert_forward_solution)
 from ._compute_forward import _compute_forwards
-from ..fixes import in1d
 
 
 _accuracy_dict = dict(normal=FIFF.FWD_COIL_ACCURACY_NORMAL,
@@ -718,7 +717,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     data = np.zeros((len(amplitude), len(timepoints)))  # (n_d, n_t)
     row = 0
     for tpind, tp in enumerate(timepoints):
-        amp = amplitude[in1d(times, tp)]
+        amp = amplitude[np.in1d(times, tp)]
         data[row:row + len(amp), tpind] = amp
         row += len(amp)
 

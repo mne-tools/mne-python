@@ -33,7 +33,6 @@ from .event import make_fixed_length_events
 from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_version, _time_mask, warn,
                     copy_function_doc_to_method_doc)
-from .fixes import in1d
 from . import viz
 
 from .externals.six.moves import zip
@@ -432,7 +431,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     if picks is None:
         # Need to include all channels e.g. if eog rejection is to be used
         picks = np.arange(raw.info['nchan'])
-        pick_mask = in1d(
+        pick_mask = np.in1d(
             picks, _pick_data_channels(raw.info, with_ref_meg=False))
     else:
         pick_mask = slice(None)

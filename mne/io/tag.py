@@ -4,13 +4,13 @@
 # License: BSD (3-clause)
 
 import gzip
+from functools import partial
 import os
 import struct
 
 import numpy as np
 
 from .constants import FIFF
-from ..fixes import partial
 from ..externals.six import text_type
 from ..externals.jdcal import jd2jcal
 

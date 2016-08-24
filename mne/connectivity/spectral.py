@@ -2,14 +2,14 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types
+from functools import partial
 from inspect import getmembers
 
 import numpy as np
 from scipy.fftpack import fftfreq
 
 from .utils import check_indices
-from ..fixes import tril_indices, partial, _get_args
+from ..fixes import _get_args
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
 from ..epochs import _BaseEpochs
@@ -18,6 +18,7 @@ from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
 from ..utils import logger, verbose, _time_mask, warn
+from ..externals.six import string_types
 
 ########################################################################
 # Various connectivity estimators
@@ -789,7 +790,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
             if indices is None:
                 # only compute r for lower-triangular region
-                indices_use = tril_indices(n_signals, -1)
+                indices_use = np.tril_indices(n_signals, -1)
             else:
                 indices_use = check_indices(indices)
 

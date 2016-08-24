@@ -38,7 +38,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif, make_fixed_length_events
-from .fixes import in1d, _get_args
+from .fixes import _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
@@ -200,7 +200,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                         pass
 
             values = list(self.event_id.values())
-            selected = in1d(events[:, 2], values)
+            selected = np.in1d(events[:, 2], values)
             if selection is None:
                 self.selection = np.where(selected)[0]
             else:
@@ -1891,8 +1891,8 @@ class EpochsArray(_BaseEpochs):
                                           flat=flat, reject_tmin=reject_tmin,
                                           reject_tmax=reject_tmax, decim=1,
                                           add_eeg_ref=False, proj=proj)
-        if len(events) != in1d(self.events[:, 2],
-                               list(self.event_id.values())).sum():
+        if len(events) != np.in1d(self.events[:, 2],
+                                  list(self.event_id.values())).sum():
             raise ValueError('The events must only contain event numbers from '
                              'event_id')
         for ii, e in enumerate(self._data):

@@ -26,7 +26,6 @@ from ..io import show_fiff, Info
 from ..io.pick import channel_type, channel_indices_by_type, pick_channels
 from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
-from ..fixes import _get_argrelmax
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
 
@@ -1034,7 +1033,7 @@ def _find_peaks(evoked, npeaks):
     """Helper function for finding peaks from evoked data
     Returns ``npeaks`` biggest peaks as a list of time points.
     """
-    argrelmax = _get_argrelmax()
+    from scipy.signal import argrelmax
     gfp = evoked.data.std(axis=0)
     order = len(evoked.times) // 30
     if order < 1:

@@ -3,11 +3,14 @@
 #
 # License: BSD (3-clause)
 
-import numpy as np
+from copy import deepcopy
+from functools import partial
+from gzip import GzipFile
 import os
 import os.path as op
+
+import numpy as np
 from scipy import sparse, linalg
-from copy import deepcopy
 
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
@@ -27,7 +30,6 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
                     check_version, _get_call_line, warn)
-from .fixes import in1d, partial, gzip_open, meshgrid
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
@@ -1643,9 +1645,9 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     ncol = ns[1]
     nplane = nrow * ncol
     # x varies fastest, then y, then z (can use unravel to do this)
-    rr = meshgrid(np.arange(minn[2], maxn[2] + 1),
-                  np.arange(minn[1], maxn[1] + 1),
-                  np.arange(minn[0], maxn[0] + 1), indexing='ij')
+    rr = np.meshgrid(np.arange(minn[2], maxn[2] + 1),
+                     np.arange(minn[1], maxn[1] + 1),
+                     np.arange(minn[0], maxn[0] + 1), indexing='ij')
     x, y, z = rr[2].ravel(), rr[1].ravel(), rr[0].ravel()
     rr = np.array([x * grid, y * grid, z * grid]).T
     sp = dict(np=npts, nn=np.zeros((npts, 3)), rr=rr,
@@ -1803,7 +1805,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     old_shape = neigh.shape
     neigh = neigh.ravel()
     checks = np.where(neigh >= 0)[0]
-    removes = np.logical_not(in1d(checks, vertno))
+    removes = np.logical_not(np.in1d(checks, vertno))
     neigh[checks[removes]] = -1
     neigh.shape = old_shape
     neigh = neigh.T
@@ -1843,7 +1845,7 @@ def _get_mgz_header(fname):
                   ('delta', '>f4', (3,)), ('Mdc', '>f4', (3, 3)),
                   ('Pxyz_c', '>f4', (3,))]
     header_dtype = np.dtype(header_dtd)
-    with gzip_open(fname, 'rb') as fid:
+    with GzipFile(fname, 'rb') as fid:
         hdr_str = fid.read(header_dtype.itemsize)
     header = np.ndarray(shape=(), dtype=header_dtype,
                         buffer=hdr_str)
@@ -2496,11 +2498,11 @@ def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
         # some are omitted during fwd calc), so we must do some indexing magic:
 
         # From all vertices, a subset could be chosen by fwd calc:
-        used_vertices = in1d(full_mapping, vertices[ii])
+        used_vertices = np.in1d(full_mapping, vertices[ii])
         from_vertices.append(src_from[ii]['vertno'][used_vertices])
         remaining_mapping = full_mapping[used_vertices]
         if not np.array_equal(np.sort(remaining_mapping), vertices[ii]) or \
-                not in1d(vertices[ii], full_mapping).all():
+                not np.in1d(vertices[ii], full_mapping).all():
             raise RuntimeError('Could not map vertices, perhaps the wrong '
                                'subject "%s" was provided?' % subject_from)
 
