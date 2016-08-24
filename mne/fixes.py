@@ -282,15 +282,6 @@ def get_sosfiltfilt():
 ###############################################################################
 # Misc utilities
 
-def normalize_colors(vmin, vmax, clip=False):
-    """Helper to handle matplotlib API"""
-    import matplotlib.pyplot as plt
-    try:
-        return plt.Normalize(vmin, vmax, clip=clip)
-    except AttributeError:
-        return plt.normalize(vmin, vmax, clip=clip)
-
-
 def assert_true(expr, msg='False is not True'):
     """Fake assert_true without message"""
     if not expr:

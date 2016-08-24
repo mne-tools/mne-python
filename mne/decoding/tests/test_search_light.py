@@ -6,7 +6,7 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
-from ...utils import requires_sklearn
+from ...utils import requires_sklearn_0_15
 from ..search_light import SearchLight, GeneralizationLight
 from .. import Vectorizer
 
@@ -22,8 +22,9 @@ def make_data():
     return X, y
 
 
-@requires_sklearn
+@requires_sklearn_0_15
 def test_searchlight():
+    """Test SearchLight"""
     from sklearn.linear_model import Ridge, LogisticRegression
     from sklearn.pipeline import make_pipeline
     X, y = make_data()
@@ -89,8 +90,9 @@ def test_searchlight():
     assert_array_equal(y_preds[0], y_preds[1])
 
 
-@requires_sklearn
+@requires_sklearn_0_15
 def test_generalizationlight():
+    """Test GeneralizationLight"""
     from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LogisticRegression
     X, y = make_data()

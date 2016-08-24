@@ -116,3 +116,5 @@ doctest:
 
 view:
 	@python -c "import webbrowser; webbrowser.open_new_tab('file://$(PWD)/_build/html/index.html')"
+
+show: view

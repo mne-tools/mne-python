@@ -32,8 +32,7 @@ subjects_dir = op.join(data_path, 'subjects')
 
 
 def test_legendre_val():
-    """Test Legendre polynomial (derivative) equivalence
-    """
+    """Test Legendre polynomial (derivative) equivalence"""
     rng = np.random.RandomState(0)
     # check table equiv
     xs = np.linspace(-1., 1., 1000)
@@ -83,8 +82,7 @@ def test_legendre_val():
 
 
 def test_legendre_table():
-    """Test Legendre table calculation
-    """
+    """Test Legendre table calculation"""
     # double-check our table generation
     n = 10
     for ch_type in ['eeg', 'meg']:
@@ -98,8 +96,7 @@ def test_legendre_table():
 
 @testing.requires_testing_data
 def test_make_field_map_eeg():
-    """Test interpolation of EEG field onto head
-    """
+    """Test interpolation of EEG field onto head"""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory')
     evoked.info['bads'] = ['MEG 2443', 'EEG 053']  # add some bads
     surf = get_head_surf('sample', subjects_dir=subjects_dir)
@@ -124,8 +121,7 @@ def test_make_field_map_eeg():
 @testing.requires_testing_data
 @slow_test
 def test_make_field_map_meg():
-    """Test interpolation of MEG field onto helmet | head
-    """
+    """Test interpolation of MEG field onto helmet | head"""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory')
     info = evoked.info
     surf = get_meg_helmet_surf(info)

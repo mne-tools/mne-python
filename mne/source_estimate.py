@@ -742,8 +742,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         ----------
         func : callable
             The transform to be applied, including parameters (see, e.g.,
-            `mne.fixes.partial`). The first parameter of the function is the
-            input data. The first return value is the transformed data,
+            :func:`functools.partial`). The first parameter of the function is
+            the input data. The first return value is the transformed data,
             remaining outputs are ignored. The first dimension of the
             transformed data has to be the same as the first dimension of the
             input data.
@@ -818,8 +818,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         ----------
         func : callable
             The transform to be applied, including parameters (see, e.g.,
-            mne.fixes.partial). The first parameter of the function is the
-            input data. The first two dimensions of the transformed data
+            :func:`functools.partial`). The first parameter of the function is
+            the input data. The first two dimensions of the transformed data
             should be (i) vertices and (ii) time.  Transforms which yield 3D
             output (e.g. time-frequency transforms) are valid, so long as the
             first two dimensions are vertices and time.  In this case, the
