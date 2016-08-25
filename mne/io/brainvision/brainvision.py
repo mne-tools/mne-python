@@ -4,6 +4,8 @@
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
+#          Phillip Alday <phillip.alday@unisa.edu.au>
 #
 # License: BSD (3-clause)
 
