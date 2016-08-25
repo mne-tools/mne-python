@@ -446,7 +446,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             else:
                 info['highpass'] = float(highpass[0])
         else:
-            info['highpass'] = np.min(np.array(highpass, dtype=np.float))
+            info['highpass'] = np.max(np.array(highpass, dtype=np.float))
             warn('Channels contain different highpass filters. Highest filter '
                  'setting will be stored.')
         if len(lowpass) == 0:
