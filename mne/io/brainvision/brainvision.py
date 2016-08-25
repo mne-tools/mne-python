@@ -410,14 +410,14 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     if 'S o f t w a r e  F i l t e r s' in settings:
         idx = settings.index('S o f t w a r e  F i l t e r s')
-        hp_col, lp_col = 1, 2
         for idx, setting in enumerate(settings[idx + 1:],idx+1):
             if re.match('#\s+Low Cutoff', setting):
+                hp_col, lp_col, notch_col = 1, 2
+                warn('Online software filtered detected. Using software '
+                     'filter settings and ignoring hardware values')
                 break
             else:
-                idx = None
-        warn('Online software filtered detected. Using software filter '
-             'settings and ignoring hardware values')
+                idx = idx_amp
 
     if idx:
         lowpass = []
