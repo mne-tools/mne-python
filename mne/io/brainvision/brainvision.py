@@ -418,7 +418,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         for idx, setting in enumerate(settings[idx + 1:], idx + 1):
             if re.match('#\s+Low Cutoff', setting):
                 hp_col, lp_col  = 1, 2
-                warn('Online software filtered detected. Using software '
+                warn('Online software filter detected. Using software '
                      'filter settings and ignoring hardware values')
                 break
             else:
