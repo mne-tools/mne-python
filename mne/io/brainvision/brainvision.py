@@ -422,6 +422,15 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     if idx:
         lowpass = []
         highpass = []
+
+        # extract filter units and convert s to Hz if necessary
+        # this cannot be done as post-processing as the inverse t-f
+        # relationship means that the min/max comparisons don't make sense
+        # unless we know the units
+        header = re.split('\s\s+', settings[idx])
+        hp_s = '[s]' in header[hp_col]
+        lp_s = '[s]' in header[lp_col]
+
         for i, ch in enumerate(ch_names[:-1], 1):
             line = re.split('\s\s+',settings[idx + i])
             # double check alignment with channel by using the hw settings
@@ -445,6 +454,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 info['highpass'] = 0.
             else:
                 info['highpass'] = float(highpass[0])
+                if hp_s:
+                    info['highpass'] = 1. / info['highpass']
         else:
             info['highpass'] = np.max(np.array(highpass, dtype=np.float))
             warn('Channels contain different highpass filters. Highest filter '
@@ -456,17 +467,12 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 pass  # Placeholder for future use. Lowpass set in _empty_info
             else:
                 info['lowpass'] = float(lowpass[0])
+                if lp_s:
+                    info['lowpass'] = 1. / info['lowpass']
         else:
             info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
             warn('Channels contain different lowpass filters. Lowest filter '
                  'setting will be stored.')
-
-        # Post process highpass and lowpass to take into account units
-        header = re.split('\s\s+', settings[idx])
-        if '[s]' in header[hp_col] and (info['highpass'] > 0):
-            info['highpass'] = 1. / info['highpass']
-        if '[s]' in header[lp_col]:
-            info['lowpass'] = 1. / info['lowpass']
 
     # locate EEG and marker files
     path = os.path.dirname(vhdr_fname)
