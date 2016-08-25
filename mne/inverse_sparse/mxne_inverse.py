@@ -7,7 +7,7 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg, signal
 
-from ..source_estimate import SourceEstimate
+from ..source_estimate import SourceEstimate, VolSourceEstimate, _make_stc
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
 from ..minimum_norm.inverse import _check_reference
 from ..forward import compute_orient_prior, is_fixed_orient, _to_fixed_ori
@@ -23,7 +23,7 @@ from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver,
 @verbose
 def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     mask = None
-    if isinstance(weights, SourceEstimate):
+    if isinstance(weights, (SourceEstimate, VolSourceEstimate)):
         # weights = np.sqrt(np.sum(weights.data ** 2, axis=1))
         weights = np.max(np.abs(weights.data), axis=1)
     weights_max = np.max(weights)
@@ -92,6 +92,17 @@ def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
         raise ValueError('Depth parameter must be positive (got %s).'
                          % depth)
 
+    if len(forward['src']) == 1:
+        loose = 1.0
+        logger.info('Volume source space: setting loose = 1.')
+        if isinstance(weights, SourceEstimate):
+            raise ValueError('Weights must not be a cortically constrained '
+                             'source estimate.')
+    else:
+        if isinstance(weights, VolSourceEstimate):
+            raise ValueError('Weights must not be a volume-based '
+                             'source estimate.')
+
     gain, gain_info, whitener, source_weighting, mask = \
         _prepare_gain_column(forward, info, noise_cov, pca, depth,
                              loose, weights, weights_min)
@@ -151,12 +162,15 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 
     src = forward['src']
 
-    n_lh_points = len(src[0]['vertno'])
-    lh_vertno = src[0]['vertno'][active_idx[active_idx < n_lh_points]]
-    rh_vertno = src[1]['vertno'][active_idx[active_idx >= n_lh_points] -
-                                 n_lh_points]
-    vertices = [lh_vertno, rh_vertno]
-    stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
+    if len(src) == 2:
+        n_lh_points = len(src[0]['vertno'])
+        lh_vertno = src[0]['vertno'][active_idx[active_idx < n_lh_points]]
+        rh_vertno = src[1]['vertno'][active_idx[active_idx >= n_lh_points] -
+                                    n_lh_points]
+        vertices = [lh_vertno, rh_vertno]
+    else:
+        vertices = src[0]['vertno'][active_idx]
+    stc = _make_stc(X, vertices, tmin=tmin, tstep=tstep)
     return stc
 
 
