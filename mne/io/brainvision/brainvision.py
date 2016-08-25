@@ -45,7 +45,7 @@ class RawBrainVision(_BaseRaw):
         misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1. For microvolts, the scale factor would be 1e-6. This is
+        factor is 1e-6, which corresponds to microvolts.
         used when the header file does not specify the scale factor.
     preload : bool
         If True, all data are loaded at initialization.
@@ -72,7 +72,7 @@ class RawBrainVision(_BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
-                 scale=1., preload=False, response_trig_shift=0,
+                 scale=1e-6, preload=False, response_trig_shift=0,
                  event_id=None, verbose=None):
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
@@ -270,7 +270,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1.. For microvolts, the scale factor would be 1e-6. This is
+        factor is 1e-6, which corresponds to microvolts.
         used when the header file does not specify the scale factor.
     montage : str | True | None | instance of Montage
         Path or instance of montage containing electrode positions.
@@ -548,7 +548,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1. For microvolts, the scale factor would be 1e-6. This is
+        factor is 1e-6, which corresponds to microvolts.
         used when the header file does not specify the scale factor.
     preload : bool
         If True, all data are loaded at initialization.
