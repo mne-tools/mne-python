@@ -447,7 +447,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             lowpass.append(line[lp_col])
         if len(highpass) == 0:
             pass
-        elif all(highpass):
+        elif all(_ == highpass[0] for _ in highpass):
             if highpass[0] in ('NaN','Off'):
                 pass  # Placeholder for future use. Highpass set in _empty_info
             elif highpass[0] == 'DC':
@@ -457,12 +457,16 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 if hp_s:
                     info['highpass'] = 1. / info['highpass']
         else:
-            info['highpass'] = np.max(np.array(highpass, dtype=np.float))
+            if hp_s:
+                info['highpass'] = np.min(np.array(highpass, dtype=np.float))
+                info['highpass'] = 1. / info['highpass']
+            else:
+                info['highpass'] = np.max(np.array(highpass, dtype=np.float))
             warn('Channels contain different highpass filters. Highest filter '
                  'setting will be stored.')
         if len(lowpass) == 0:
             pass
-        elif all(lowpass):
+        elif all(_ == lowpass[0] for _ in lowpass):
             if lowpass[0] in ('NaN','Off'):
                 pass  # Placeholder for future use. Lowpass set in _empty_info
             else:
