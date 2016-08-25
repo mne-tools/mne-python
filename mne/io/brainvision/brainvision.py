@@ -435,8 +435,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                  'setting will be stored.')
 
         # Post process highpass and lowpass to take into account units
-        header = settings[idx].split('  ')
-        header = [h for h in header if len(h)]
+        header = re.split('\s\s+', settings[idx])
         if '[s]' in header[4] and (info['highpass'] > 0):
             info['highpass'] = 1. / info['highpass']
         if '[s]' in header[5]:
