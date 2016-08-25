@@ -415,7 +415,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     if 'S o f t w a r e  F i l t e r s' in settings:
         idx = settings.index('S o f t w a r e  F i l t e r s')
-        for idx, setting in enumerate(settings[idx + 1:],idx+1):
+        for idx, setting in enumerate(settings[idx + 1:], idx + 1):
             if re.match('#\s+Low Cutoff', setting):
                 hp_col, lp_col  = 1, 2
                 warn('Online software filtered detected. Using software '
@@ -437,7 +437,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         lp_s = '[s]' in header[lp_col]
 
         for i, ch in enumerate(ch_names[:-1], 1):
-            line = re.split('\s\s+',settings[idx + i])
+            line = re.split('\s\s+', settings[idx + i])
             # double check alignment with channel by using the hw settings
             # the actual divider is multiple spaces -- for newer BV
             # files, the unit is specified for every channel separated
@@ -446,14 +446,14 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             if idx == idx_amp:
                 line_amp = line
             else:
-                line_amp = re.split('\s\s+',settings[idx_amp + i])
+                line_amp = re.split('\s\s+', settings[idx_amp + i])
             assert ch in line_amp
             highpass.append(line[hp_col])
             lowpass.append(line[lp_col])
         if len(highpass) == 0:
             pass
         elif all(_ == highpass[0] for _ in highpass):
-            if highpass[0] in ('NaN','Off'):
+            if highpass[0] in ('NaN', 'Off'):
                 pass  # Placeholder for future use. Highpass set in _empty_info
             elif highpass[0] == 'DC':
                 info['highpass'] = 0.
@@ -472,7 +472,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         if len(lowpass) == 0:
             pass
         elif all(_ == lowpass[0] for _ in lowpass):
-            if lowpass[0] in ('NaN','Off'):
+            if lowpass[0] in ('NaN', 'Off'):
                 pass  # Placeholder for future use. Lowpass set in _empty_info
             else:
                 info['lowpass'] = float(lowpass[0])
