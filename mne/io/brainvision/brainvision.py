@@ -392,23 +392,43 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     # set to zero.
     settings = settings.splitlines()
     idx = None
+
     if 'Channels' in settings:
         idx = settings.index('Channels')
         settings = settings[idx + 1:]
+        hp_col, lp_col = 5, 6
         for idx, setting in enumerate(settings):
             if re.match('#\s+Name', setting):
                 break
             else:
                 idx = None
 
+    # If software filters are active, then they override the hardware setup
+    # But we still want to be able to double check the channel names
+    # for alignment purposes, we keep track of the hardware setting idx
+    idx_amp = idx
+
+    if 'S o f t w a r e  F i l t e r s' in settings:
+        idx = settings.index('S o f t w a r e  F i l t e r s')
+        hp_col, lp_col = 1, 2
+        for idx, setting in enumerate(settings[idx + 1:],idx+1):
+            if re.match('#\s+Low Cutoff', setting):
+                break
+            else:
+                idx = None
+        warn('Online software filtered detected. Using software filter '
+             'settings and ignoring hardware values')
+
     if idx:
         lowpass = []
         highpass = []
         for i, ch in enumerate(ch_names[:-1], 1):
             line = settings[idx + i].split()
-            assert ch in line
-            highpass.append(line[5])
-            lowpass.append(line[6])
+            # double check alignment with channel by using the hw settings
+            line_amp = line if idx == idx_amp else settings[idx_amp + i].split()
+            assert ch in line_amp
+            highpass.append(line[hp_col])
+            lowpass.append(line[lp_col])
         if len(highpass) == 0:
             pass
         elif all(highpass):
@@ -436,9 +456,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
         # Post process highpass and lowpass to take into account units
         header = re.split('\s\s+', settings[idx])
-        if '[s]' in header[4] and (info['highpass'] > 0):
+        if '[s]' in header[hp_col] and (info['highpass'] > 0):
             info['highpass'] = 1. / info['highpass']
-        if '[s]' in header[5]:
+        if '[s]' in header[lp_col]:
             info['lowpass'] = 1. / info['lowpass']
 
     # locate EEG and marker files
