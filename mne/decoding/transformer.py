@@ -744,7 +744,6 @@ class TemporalFilter(TransformerMixin):
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
-        channels will be filtered.
     sfreq : float, defaults to 1.0
         Sampling frequency in Hz.
     filter_length : str | int, defaults to 'auto'

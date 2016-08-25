@@ -229,7 +229,7 @@ def test_unsupervised_spatial_filter():
     assert_raises(ValueError, UnsupervisedSpatialFilter, PCA(4), 2)
 
 
-def test_temporal_filterer():
+def test_temporal_filter():
     """Test methods of TemporalFilter."""
     X = np.random.rand(5, 5, 1200)
 
@@ -252,7 +252,7 @@ def test_temporal_filterer():
         assert_raises(TypeError, filt.transform, [1, 2])
 
     # Test with 2 dimensional data array
-    X = np.random.rand(10, 5)
+    X = np.random.rand(100, 500)
     with warnings.catch_warnings(record=True):
-        filt = TemporalFilter(l_freq=5., h_freq=15., sfreq=100.)
+        filt = TemporalFilter(l_freq=10., h_freq=15., sfreq=100.)
         assert_equal(filt.fit_transform(X).shape, X.shape)
