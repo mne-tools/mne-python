@@ -302,7 +302,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         try:
             header = header.decode('utf-8').strip()
         except UnicodeDecodeError:
-            settings = settings.decode('ISO-8859-1')
+            header = header.decode('ISO-8859-1')
         _check_hdr_version(header)
 
         settings = f.read()
