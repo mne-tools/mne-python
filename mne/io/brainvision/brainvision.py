@@ -396,7 +396,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     if 'Channels' in settings:
         idx = settings.index('Channels')
         settings = settings[idx + 1:]
-        hp_col, lp_col = 5, 6
+        hp_col, lp_col = 4, 5
         for idx, setting in enumerate(settings):
             if re.match('#\s+Name', setting):
                 break
@@ -423,9 +423,16 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         lowpass = []
         highpass = []
         for i, ch in enumerate(ch_names[:-1], 1):
-            line = settings[idx + i].split()
+            line = re.split('\s\s+',settings[idx + i])
             # double check alignment with channel by using the hw settings
-            line_amp = line if idx == idx_amp else settings[idx_amp + i].split()
+            # the actual divider is multiple spaces -- for newer BV
+            # files, the unit is specified for every channel separated
+            # by a single space, while for older files, the unit is
+            # specified in the column headers
+            if idx == idx_amp:
+                line_amp = line
+            else:
+                line_amp = re.split('\s\s+',settings[idx_amp + i])
             assert ch in line_amp
             highpass.append(line[hp_col])
             lowpass.append(line[lp_col])
