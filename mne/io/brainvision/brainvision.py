@@ -348,8 +348,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0]) - 1
         props = props.split(',')
+        # default to microvolts because that's what the older brainvision
+        # standard explicitly assumed; the unit is only allowed to be
+        # something else if explicitly stated (cf. EEGLAB export below)
         if len(props) < 4:
-            props += ('V',)
+            props += (u'µV',)
         name, _, resolution, unit = props[:4]
         ch_dict[chan] = name
         ch_names[n] = name
