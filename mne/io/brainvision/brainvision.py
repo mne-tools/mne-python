@@ -452,7 +452,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             lowpass.append(line[lp_col])
         if len(highpass) == 0:
             pass
-        elif all(_ == highpass[0] for _ in highpass):
+        elif len(set(highpass)) == 1:
             if highpass[0] in ('NaN', 'Off'):
                 pass  # Placeholder for future use. Highpass set in _empty_info
             elif highpass[0] == 'DC':
@@ -471,7 +471,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                  'setting will be stored.')
         if len(lowpass) == 0:
             pass
-        elif all(_ == lowpass[0] for _ in lowpass):
+        elif len(set(lowpass)) == 1:
             if lowpass[0] in ('NaN', 'Off'):
                 pass  # Placeholder for future use. Lowpass set in _empty_info
             else:
