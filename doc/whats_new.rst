@@ -67,8 +67,6 @@ Changelog
 
     - Added interactivity to :func:`mne.preprocessing.ICA.plot_components` - passing an instance of :class:`io.Raw` or :class:`Epochs` in ``inst`` argument allows to open component properties by clicking on component topomaps, by `Mikołaj Magnuski`_
 
-    - Default to µV  (`scale=1e-6`) for BrainVision reader :func:`mne.io.read_raw_brainvision`, which was the implicit default in older BrainVision files, by `Phillip Alday`_
-
 BUG
 ~~~
 
