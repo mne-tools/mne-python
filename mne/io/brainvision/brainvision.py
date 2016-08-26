@@ -46,9 +46,8 @@ class RawBrainVision(_BaseRaw):
         in the vhdr file. If 'auto', units in vhdr file are used for inferring
         misc channels. Default is ``'auto'``.
     scale : float
-        The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1e-6, which corresponds to microvolts.
-        used when the header file does not specify the scale factor.
+        The scaling factor for EEG data. Unless specified otherwise by
+        header file, units are in microvolts. Default scale factor is 1.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
@@ -74,7 +73,7 @@ class RawBrainVision(_BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
-                 scale=1e-6, preload=False, response_trig_shift=0,
+                 scale=1., preload=False, response_trig_shift=0,
                  event_id=None, verbose=None):
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
@@ -271,9 +270,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         in the vhdr file. If 'auto', units in vhdr file are used for inferring
         misc channels. Default is ``'auto'``.
     scale : float
-        The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1e-6, which corresponds to microvolts.
-        used when the header file does not specify the scale factor.
+        The scaling factor for EEG data. Unless specified otherwise by
+        header file, units are in microvolts. Default scale factor is 1.
     montage : str | True | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
@@ -557,9 +555,8 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         in the vhdr file. If 'auto', units in vhdr file are used for inferring
         misc channels. Default is ``'auto'``.
     scale : float
-        The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1e-6, which corresponds to microvolts.
-        used when the header file does not specify the scale factor.
+        The scaling factor for EEG data. Unless specified otherwise by
+        header file, units are in microvolts. Default scale factor is 1.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
