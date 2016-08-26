@@ -37,7 +37,7 @@ providing comprehensive tools and workflows for
 MNE includes a comprehensive Python_ package supplemented by tools compiled
 from C code for the LINUX and Mac OSX operating systems, as well as a MATLAB toolbox.
 
-**From raw data to source estimates in about 30 lines of code** (:ref:`try it yourself! <getting_started>`):
+**From raw data to source estimates in about 30 lines of code** (Try it :ref:`by installing it <getting_started>` or `in an experimental online demo <http://mybinder.org/repo/mne-tools/mne-binder/notebooks/plot_introduction.ipynb>`_!):
 
 .. code:: python
 
