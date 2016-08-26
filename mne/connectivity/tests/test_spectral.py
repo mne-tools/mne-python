@@ -1,11 +1,9 @@
-import os
+import warnings
+
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
-from nose.plugins.skip import SkipTest
-import warnings
 
-from mne.fixes import tril_indices
 from mne.connectivity import spectral_connectivity
 from mne.connectivity.spectral import _CohEst
 
@@ -13,6 +11,10 @@ from mne import SourceEstimate
 from mne.utils import run_tests_if_main, slow_test
 from mne.filter import band_pass_filter
 
+trans_bandwidth = 2.5
+filt_kwargs = dict(filter_length='auto', fir_window='hamming', phase='zero',
+                   l_trans_bandwidth=trans_bandwidth,
+                   h_trans_bandwidth=trans_bandwidth)
 warnings.simplefilter('always')
 
 
@@ -35,10 +37,6 @@ def _stc_gen(data, sfreq, tmin, combo=False):
 @slow_test
 def test_spectral_connectivity():
     """Test frequency-domain connectivity methods"""
-    # XXX For some reason on 14 Oct 2015 Travis started timing out on this
-    # test, so for a quick workaround we will skip it:
-    if os.getenv('TRAVIS', 'false') == 'true':
-        raise SkipTest('Travis is broken')
     # Use a case known to have no spurious correlations (it would bad if
     # nosetests could randomly fail):
     np.random.seed(0)
@@ -55,10 +53,9 @@ def test_spectral_connectivity():
     # simulate connectivity from 5Hz..15Hz
     fstart, fend = 5.0, 15.0
     for i in range(n_epochs):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always')
-            data[i, 1, :] = band_pass_filter(data[i, 0, :],
-                                             sfreq, fstart, fend)
+        data[i, 1, :] = band_pass_filter(data[i, 0, :],
+                                         sfreq, fstart, fend,
+                                         **filt_kwargs)
         # add some noise, so the spectrum is not exactly zero
         data[i, 1, :] += 1e-2 * np.random.randn(n_times)
 
@@ -117,31 +114,40 @@ def test_spectral_connectivity():
                 if mode == 'multitaper':
                     upper_t = 0.95
                     lower_t = 0.5
-                else:
+                elif mode == 'fourier':
                     # other estimates have higher variance
                     upper_t = 0.8
                     lower_t = 0.75
+                else:  # cwt_morlet
+                    upper_t = 0.64
+                    lower_t = 0.63
 
                 # test the simulated signal
                 if method == 'coh':
-                    idx = np.searchsorted(freqs, (fstart + 1, fend - 1))
+                    idx = np.searchsorted(freqs, (fstart + trans_bandwidth,
+                                                  fend - trans_bandwidth))
                     # we see something for zero-lag
-                    assert_true(np.all(con[1, 0, idx[0]:idx[1]] > upper_t))
+                    assert_true(np.all(con[1, 0, idx[0]:idx[1]] > upper_t),
+                                con[1, 0, idx[0]:idx[1]].min())
 
                     if mode != 'cwt_morlet':
-                        idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
+                        idx = np.searchsorted(freqs,
+                                              (fstart - trans_bandwidth * 2,
+                                               fend + trans_bandwidth * 2))
                         assert_true(np.all(con[1, 0, :idx[0]] < lower_t))
-                        assert_true(np.all(con[1, 0, idx[1]:] < lower_t))
+                        assert_true(np.all(con[1, 0, idx[1]:] < lower_t),
+                                    con[1, 0, idx[1:]].max())
                 elif method == 'cohy':
                     idx = np.searchsorted(freqs, (fstart + 1, fend - 1))
                     # imaginary coh will be zero
-                    assert_true(np.all(np.imag(con[1, 0, idx[0]:idx[1]]) <
-                                lower_t))
+                    check = np.imag(con[1, 0, idx[0]:idx[1]])
+                    assert_true(np.all(check < lower_t), check.max())
                     # we see something for zero-lag
                     assert_true(np.all(np.abs(con[1, 0, idx[0]:idx[1]]) >
                                 upper_t))
 
-                    idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
+                    idx = np.searchsorted(freqs, (fstart - trans_bandwidth * 2,
+                                                  fend + trans_bandwidth * 2))
                     if mode != 'cwt_morlet':
                         assert_true(np.all(np.abs(con[1, 0, :idx[0]]) <
                                     lower_t))
@@ -153,10 +159,11 @@ def test_spectral_connectivity():
                     assert_true(np.all(con[1, 0, idx[0]:idx[1]] < lower_t))
                     idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
                     assert_true(np.all(con[1, 0, :idx[0]] < lower_t))
-                    assert_true(np.all(con[1, 0, idx[1]:] < lower_t))
+                    assert_true(np.all(con[1, 0, idx[1]:] < lower_t),
+                                con[1, 0, idx[1]:].max())
 
                 # compute same connections using indices and 2 jobs
-                indices = tril_indices(n_signals, -1)
+                indices = np.tril_indices(n_signals, -1)
 
                 if not isinstance(method, list):
                     test_methods = (method, _CohEst)

@@ -9,6 +9,7 @@
 #
 # License: Simplified BSD
 
+from collections import Counter
 from functools import partial
 import copy
 
@@ -17,7 +18,6 @@ import numpy as np
 from ..utils import verbose, get_config, set_config, logger, warn
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
-from ..fixes import Counter, _in1d
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
@@ -600,7 +600,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         idxs = pick_types(params['info'], meg=t, ref_meg=False, exclude=[])
         if len(idxs) < 1:
             continue
-        mask = _in1d(idxs, picks, assume_unique=True)
+        mask = np.in1d(idxs, picks, assume_unique=True)
         inds.append(idxs[mask])
         types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
@@ -612,7 +612,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         idxs = pick_types(params['info'], **pick_kwargs)
         if len(idxs) < 1:
             continue
-        mask = _in1d(idxs, picks, assume_unique=True)
+        mask = np.in1d(idxs, picks, assume_unique=True)
         inds.append(idxs[mask])
         types += [ch_type] * len(inds[-1])
         pick_kwargs[ch_type] = False

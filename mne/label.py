@@ -14,7 +14,6 @@ import re
 import numpy as np
 from scipy import linalg, sparse
 
-from .fixes import digitize, in1d
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
                     _check_copy_dep)
 from .source_estimate import (morph_data, SourceEstimate, _center_of_mass,
@@ -361,7 +360,7 @@ class Label(object):
             raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         if self.hemi == other.hemi:
-            keep = in1d(self.vertices, other.vertices, True, invert=True)
+            keep = np.in1d(self.vertices, other.vertices, True, invert=True)
         else:
             keep = np.arange(len(self.vertices))
 
@@ -422,7 +421,7 @@ class Label(object):
         elif self.hemi == 'rh':
             hemi_src = src[1]
 
-        if not np.all(in1d(self.vertices, hemi_src['vertno'])):
+        if not np.all(np.in1d(self.vertices, hemi_src['vertno'])):
             msg = "Source space does not contain all of the label's vertices"
             raise ValueError(msg)
 
@@ -436,11 +435,11 @@ class Label(object):
             nearest = hemi_src['nearest']
 
         # find new vertices
-        include = in1d(nearest, self.vertices, False)
+        include = np.in1d(nearest, self.vertices, False)
         vertices = np.nonzero(include)[0]
 
         # values
-        nearest_in_label = digitize(nearest[vertices], self.vertices, True)
+        nearest_in_label = np.digitize(nearest[vertices], self.vertices, True)
         values = self.values[nearest_in_label]
         # pos
         pos = hemi_src['rr'][vertices]
@@ -658,7 +657,7 @@ class Label(object):
         if vertices is None:
             vertices = np.arange(10242)
 
-        label_verts = vertices[in1d(vertices, self.vertices)]
+        label_verts = vertices[np.in1d(vertices, self.vertices)]
         return label_verts
 
     def get_tris(self, tris, vertices=None):
@@ -679,7 +678,7 @@ class Label(object):
             The subset of tris used by the label
         """
         vertices_ = self.get_vertices_used(vertices)
-        selection = np.all(in1d(tris, vertices_).reshape(tris.shape),
+        selection = np.all(np.in1d(tris, vertices_).reshape(tris.shape),
                            axis=1)
         label_tris = tris[selection]
         if len(np.unique(label_tris)) < len(vertices_):
@@ -1058,7 +1057,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     for div, name, color in zip(label_divs, names, colors):
         # Get indices of dipoles within this division of the label
         verts = np.array(sorted(list(div)))
-        vert_indices = in1d(verts_arr, verts, assume_unique=True)
+        vert_indices = np.in1d(verts_arr, verts, assume_unique=True)
 
         # Set label attributes
         pos = label_to_split.pos[vert_indices]

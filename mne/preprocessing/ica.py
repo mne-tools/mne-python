@@ -208,9 +208,9 @@ class ICA(ContainsMixin):
         again. To dump this 'artifact memory' say: ica.exclude = []
     info : None | instance of Info
         The measurement info copied from the object fitted.
-    `n_samples_` : int
+    ``n_samples_`` : int
         the number of samples used on fit.
-    `labels_` : dict
+    ``labels_`` : dict
         A dictionary of independent component indices, grouped by types of
         independent components. This attribute is set by some of the artifact
         detection functions.
@@ -2303,7 +2303,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         repeats), not overwritten. If None, a dry run is performed and
         the supplied ICs are not changed.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
-            The channel type to plot. Defaults to 'eeg'.
+        The channel type to plot. Defaults to 'eeg'.
     plot : bool
         Should constructed template and selected maps be plotted? Defaults
         to True.

@@ -4,17 +4,17 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types
-import numpy as np
 import os.path as op
 from io import BytesIO
+from gzip import GzipFile
+
+import numpy as np
 
 from .tag import read_tag_info, read_tag, read_big, Tag
 from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
 from ..utils import logger, verbose
-from ..externals import six
-from ..fixes import gzip_open
+from ..externals.six import string_types, iteritems
 
 
 def _fiff_get_fid(fname):
@@ -22,7 +22,7 @@ def _fiff_get_fid(fname):
     if isinstance(fname, string_types):
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Using gzip')
-            fid = gzip_open(fname, "rb")  # Open in binary mode
+            fid = GzipFile(fname, "rb")  # Open in binary mode
         else:
             logger.debug('Using normal I/O')
             fid = open(fname, "rb")  # Open in binary mode
@@ -193,7 +193,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
 def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
     """Helper to find matching values"""
     value = int(value)
-    vals = [k for k, v in six.iteritems(FIFF)
+    vals = [k for k, v in iteritems(FIFF)
             if v == value and any(fmt in k for fmt in fmts) and
             not any(exc in k for exc in exclude)]
     if len(vals) == 0:

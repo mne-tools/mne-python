@@ -118,6 +118,8 @@ API
 
           5. Previously, if the filter was as long or longer than the signal of interest, direct FFT-based computations were used. Now a single code path (overlap-add filtering) is used for all FIR filters. This could cause minor changes in how short signals are filtered.
 
+    - Support for Python 2.6 has been dropped, and the minimum supported dependencies are NumPy_ 1.8, SciPy_ 0.12, and Matplotlib_ 1.3 by `Eric Larson`_
+
     - When CTF gradient compensation is applied to raw data, it is no longer reverted on save of :meth:`mne.io.Raw.save` by `Eric Larson`_
 
     - Adds :func:`mne.time_frequency.csd_epochs` to replace :func:`mne.time_frequency.csd_compute_epochs` for naming consistency. :func:`mne.time_frequency.csd_compute_epochs` is now deprecated and will be removed in mne 0.14, by `Nick Foti`_

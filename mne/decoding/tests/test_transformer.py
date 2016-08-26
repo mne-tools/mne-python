@@ -15,7 +15,7 @@ from mne import io, read_events, Epochs, pick_types
 from mne.decoding import Scaler, FilterEstimator
 from mne.decoding import (PSDEstimator, EpochsVectorizer, Vectorizer,
                           UnsupervisedSpatialFilter)
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn_0_15
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -29,8 +29,7 @@ event_name = op.join(data_dir, 'test-eve.fif')
 
 
 def test_scaler():
-    """Test methods of Scaler
-    """
+    """Test methods of Scaler"""
     raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
@@ -62,8 +61,7 @@ def test_scaler():
 
 
 def test_filterestimator():
-    """Test methods of FilterEstimator
-    """
+    """Test methods of FilterEstimator"""
     raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
@@ -196,7 +194,7 @@ def test_vectorizer():
                   np.random.rand(102, 12, 12))
 
 
-@requires_sklearn
+@requires_sklearn_0_15
 def test_unsupervised_spatial_filter():
     from sklearn.decomposition import PCA
     from sklearn.kernel_ridge import KernelRidge

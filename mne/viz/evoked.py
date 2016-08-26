@@ -11,6 +11,8 @@ from __future__ import print_function
 #
 # License: Simplified BSD
 
+from functools import partial
+
 import numpy as np
 
 from ..io.pick import (channel_type, pick_types, _picks_by_type,
@@ -20,7 +22,6 @@ from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar)
 from ..utils import logger, _clean_names, warn
-from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,

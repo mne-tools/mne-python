@@ -5,7 +5,7 @@ from __future__ import print_function
 
 import os
 import os.path as op
-from functools import reduce
+from functools import reduce, partial
 import warnings
 
 import numpy as np
@@ -25,7 +25,6 @@ from mne import pick_types
 from mne.utils import run_tests_if_main
 from mne.transforms import Transform, combine_transforms, invert_transform
 from mne.externals import six
-from mne.fixes import partial
 
 warnings.simplefilter('always')
 

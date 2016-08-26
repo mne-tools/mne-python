@@ -16,7 +16,6 @@ import numpy as np
 
 from ..io.constants import Bunch
 from ..io.pick import channel_type, pick_types
-from ..fixes import normalize_colors
 from ..utils import _clean_names, warn
 from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
@@ -163,8 +162,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
 
     fig = plt.figure()
     if colorbar:
-        norm = normalize_colors(vmin=vmin, vmax=vmax)
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
         ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg=fig_facecolor)
         cb = fig.colorbar(sm, ax=ax)

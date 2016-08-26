@@ -4,6 +4,7 @@
 # License: Simplified BSD
 
 from copy import deepcopy
+from functools import partial
 import re
 
 import numpy as np
@@ -31,7 +32,6 @@ from .bem import _bem_find_surface, _bem_explain_surface
 from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
-from .fixes import partial
 from .utils import logger, verbose, _time_mask, warn, _check_fname, check_fname
 
 

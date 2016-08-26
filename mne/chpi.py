@@ -2,6 +2,8 @@
 #
 # License: BSD (3-clause)
 
+from functools import partial
+
 import numpy as np
 from scipy import linalg, fftpack
 
@@ -14,11 +16,11 @@ from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
 from .utils import (verbose, logger, check_version, use_log_level,
                     _check_fname, warn)
-from .fixes import partial
 
 # Eventually we should add:
 #   hpicons
 #   high-passing of data during fits
+#   parsing cHPI coil information from acq pars, then to PSD if necessary
 
 
 # ############################################################################

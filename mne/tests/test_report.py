@@ -2,12 +2,13 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
-import sys
+
+import glob
 import os
 import os.path as op
-import glob
-import warnings
 import shutil
+import sys
+import warnings
 
 from nose.tools import assert_true, assert_equal, assert_raises
 from nose.plugins.skip import SkipTest

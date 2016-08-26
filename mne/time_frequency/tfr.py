@@ -10,13 +10,13 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 # License : BSD (3-clause)
 
 from copy import deepcopy
+from functools import partial
 from math import sqrt
 
 import numpy as np
 from scipy import linalg
 from scipy.fftpack import fft, ifft
 
-from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, check_fname, deprecated,

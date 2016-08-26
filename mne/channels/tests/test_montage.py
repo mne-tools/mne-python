@@ -59,9 +59,9 @@ def test_montage():
         'Site  Theta  Phi\nFp1  -92    -72\nFp2   92     72\n'
         'very_very_very_long_name   -60    -51\n',
         '346\n'
-        'EEG	      F3	 -62.027	 -50.053	      85\n'
-        'EEG	      Fz	  45.608	      90	      85\n'
-        'EEG	      F4	   62.01	  50.103	      85\n',
+        'EEG\t      F3\t -62.027\t -50.053\t      85\n'
+        'EEG\t      Fz\t  45.608\t      90\t      85\n'
+        'EEG\t      F4\t   62.01\t  50.103\t      85\n',
         'eeg Fp1 -95.0 -31.0 -3.0\neeg AF7 -81 -59 -3\neeg AF3 -87 -41 28\n'
     ]
     kinds = ['test.sfp', 'test.csd', 'test_mm.elc', 'test_m.elc', 'test.txt',

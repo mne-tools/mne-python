@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from copy import deepcopy
+from functools import partial
+
 import numpy as np
 from scipy import linalg
-from copy import deepcopy
 
 from ..bem import _check_origin
 from ..io.constants import FIFF
@@ -17,7 +19,6 @@ from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose
-from ..fixes import partial
 
 
 def _is_axial_coil(coil):

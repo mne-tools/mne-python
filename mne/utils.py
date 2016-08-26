@@ -9,6 +9,8 @@ from __future__ import print_function
 import atexit
 from distutils.version import LooseVersion
 from functools import wraps
+import ftplib
+from functools import partial
 import hashlib
 import inspect
 import json
@@ -25,7 +27,6 @@ import sys
 import tempfile
 import time
 import warnings
-import ftplib
 
 import numpy as np
 from scipy import linalg, sparse
@@ -34,7 +35,7 @@ from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
 
-from .fixes import _get_args, partial
+from .fixes import _get_args
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
@@ -2110,24 +2111,6 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
         cleaned.append(name)
 
     return cleaned
-
-
-def clean_warning_registry():
-    """Safe way to reset warnings """
-    warnings.resetwarnings()
-    reg = "__warningregistry__"
-    bad_names = ['MovedModule']  # this is in six.py, and causes bad things
-    for mod in list(sys.modules.values()):
-        if mod.__class__.__name__ not in bad_names and hasattr(mod, reg):
-            getattr(mod, reg).clear()
-    # hack to deal with old scipy/numpy in tests
-    if os.getenv('TRAVIS') == 'true' and sys.version.startswith('2.6'):
-        warnings.simplefilter('default')
-        try:
-            np.rank([])
-        except Exception:
-            pass
-        warnings.simplefilter('always')
 
 
 def _check_type_picks(picks):

@@ -8,7 +8,7 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_equal, assert_raises
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import requires_sklearn, check_version
+from mne.utils import requires_sklearn_0_15, check_version
 from mne.decoding import compute_ems, EMS
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -21,7 +21,7 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
 
-@requires_sklearn
+@requires_sklearn_0_15
 def test_ems():
     """Test event-matched spatial filters"""
     raw = io.read_raw_fif(raw_fname, preload=False)

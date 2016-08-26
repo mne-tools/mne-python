@@ -55,14 +55,11 @@ def get_name(func):
 # functions to ignore args / docstring of
 _docstring_ignores = [
     'mne.io.write',  # always ignore these
-    'mne.fixes._in1d',  # fix function
-    'mne.epochs.average_movements',  # deprecated pos param
-    'mne.decoding.csp.CSP.fit',
-    'mne.decoding.csp.CSP.transform'
+    'mne.decoding.csp.CSP.fit',  # deprecated epochs_data
+    'mne.decoding.csp.CSP.transform'  # deprecated epochs_data
 ]
 
 _tab_ignores = [
-    'mne.channels.tests.test_montage',  # demo data has a tab
 ]
 
 

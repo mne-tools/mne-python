@@ -155,7 +155,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
     verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
     uint16_codec : str | None
-        If your *.set file contains non-ascii characters, sometimes reading
+        If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and
@@ -216,7 +216,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
     uint16_codec : str | None
-        If your *.set file contains non-ascii characters, sometimes reading
+        If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and
@@ -285,7 +285,7 @@ class RawEEGLAB(_BaseRaw):
     verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
     uint16_codec : str | None
-        If your *.set file contains non-ascii characters, sometimes reading
+        If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and
@@ -445,7 +445,7 @@ class EpochsEEGLAB(_BaseEpochs):
     verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
     uint16_codec : str | None
-        If your *.set file contains non-ascii characters, sometimes reading
+        If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and

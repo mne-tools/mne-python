@@ -15,7 +15,6 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
-from .fixes import in1d
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     deprecated, SizeMixin, copy_function_doc_to_method_doc)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
@@ -1006,9 +1005,8 @@ def _read_evoked(fname, condition=None, kind='average'):
                                  '"standard_error"')
 
             comments, aspect_kinds, t = _get_entries(fid, evoked_node)
-            goods = np.logical_and(in1d(comments, [condition]),
-                                   in1d(aspect_kinds,
-                                        [_aspect_dict[kind]]))
+            goods = (np.in1d(comments, [condition]) &
+                     np.in1d(aspect_kinds, [_aspect_dict[kind]]))
             found_cond = np.where(goods)[0]
             if len(found_cond) != 1:
                 raise ValueError('condition "%s" (%s) not found, out of '

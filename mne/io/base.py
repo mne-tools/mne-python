@@ -30,7 +30,6 @@ from .write import (start_file, end_file, start_block, end_block,
 
 from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _resample_stim_channels)
-from ..fixes import in1d
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, _check_copy_dep,
@@ -50,7 +49,7 @@ class ToDataFrameMixin(object):
         if picks is None:
             picks = list(range(self.info['nchan']))
         else:
-            if not in1d(picks, np.arange(len(picks_check))).all():
+            if not np.in1d(picks, np.arange(len(picks_check))).all():
                 raise ValueError('At least one picked channel is not present '
                                  'in this object instance.')
         return picks
@@ -989,7 +988,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                    'your Raw object. Please contact the '
                                    'MNE-Python developers.')
         elif h_freq is not None or l_freq is not None:
-            if in1d(data_picks, picks).all():
+            if np.in1d(data_picks, picks).all():
                 update_info = True
             else:
                 logger.info('Filtering a subset of channels. The highpass and '
