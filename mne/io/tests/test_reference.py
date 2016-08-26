@@ -258,11 +258,8 @@ def test_add_reference():
     ref_data, _ = raw[ref_idx]
     assert_array_equal(ref_data, 0)
 
-    raw = Raw(fif_fname, preload=True)
-    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
-
     # add reference channel to Raw when no digitization points exist
-    raw = Raw(fif_fname, preload=True)
+    raw = Raw(fif_fname).crop(0, 1).load_data()
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     del raw.info['dig']
 
