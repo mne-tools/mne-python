@@ -302,14 +302,14 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         try:
             header = header.decode('utf-8').strip()
         except UnicodeDecodeError:
-            header = header.decode('ISO-8859-1')
+            header = header.decode('latin-1')
         _check_hdr_version(header)
 
         settings = f.read()
         try:
             settings = settings.decode('utf-8')
         except UnicodeDecodeError:
-            settings = settings.decode('ISO-8859-1')
+            settings = settings.decode('latin-1')
 
     if settings.find('[Comment]') != -1:
         params, settings = settings.split('[Comment]')
