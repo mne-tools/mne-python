@@ -187,7 +187,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
     nchan = len(inst.info['ch_names'])
 
     # only do this if we actually have digitisation points
-    if 'dig' in inst.info and inst.info['dig'] is not None:
+    if inst.info.get('dig', None) is not None:
         # "zeroth" EEG electrode dig points is reference
         ref_dig_loc = [dl for dl in inst.info['dig'] if (
                        dl['kind'] == FIFF.FIFFV_POINT_EEG and
