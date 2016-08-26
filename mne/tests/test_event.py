@@ -14,6 +14,7 @@ from mne.io import read_raw_fif
 from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
 from mne.event import define_target_events, merge_events, Elekta_averager
+from mne.datasets import testing
 
 warnings.simplefilter('always')
 
@@ -25,8 +26,9 @@ fname_txt = op.join(base_dir, 'test-eve.eve')
 fname_txt_1 = op.join(base_dir, 'test-eve-1.eve')
 
 # for testing Elekta averager
-fname_raw_elekta = op.join(base_dir, 'trigtest_3ch_raw.fif')
-fname_ave_elekta = op.join(base_dir, 'test_elekta_ave.fif')
+elekta_base_dir = op.join(testing.data_path(download=False), 'misc')
+fname_raw_elekta = op.join(elekta_base_dir, 'test_elekta_3ch_raw.fif')
+fname_ave_elekta = op.join(elekta_base_dir, 'test_elekta-ave.fif')
 
 # using mne_process_raw --raw test_raw.fif --eventsout test-mpr-eve.eve:
 fname_txt_mpr = op.join(base_dir, 'test-mpr-eve.eve')
