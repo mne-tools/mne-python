@@ -299,16 +299,24 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
         header = f.readline()
-        try:
-            header = header.decode('utf-8').strip()
-        except UnicodeDecodeError:
-            header = header.decode('latin-1')
+        codepage = 'utf-8'
+        # we don't actually need to decode the header line
+        # the characters in it all belong to ASCII and are thus the
+        # same in Latin-1 and UTF-8
+        header = header.strip()
         _check_hdr_version(header)
 
         settings = f.read()
         try:
-            settings = settings.decode('utf-8')
+            # if there is an explicit code-page set, use it
+            cp_setting = re.search('Codepage=(.+)',settings,re.IGNORECASE & re.MULTILINE)
+            if cp_setting:
+                codepage = cp_setting.group(1).strip()
+            settings = settings.decode(codepage)
         except UnicodeDecodeError:
+            # if UTF-8 (new standard) or explicit codepage setting fails,
+            # fallback to Latin-1, which is Windows default and implicit
+            # standard in older recordings
             settings = settings.decode('latin-1')
 
     if settings.find('[Comment]') != -1:
