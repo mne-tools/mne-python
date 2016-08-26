@@ -266,10 +266,8 @@ def test_add_reference():
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     del raw.info['dig']
 
-    with warnings.catch_warnings(record=True) as w:
-        raw_ref = add_reference_channels(raw, 'Ref', copy=True)
+    raw_ref = add_reference_channels(raw, 'Ref', copy=True)
 
-    assert_true('No digitization found' in str(ww.message) for ww in w)
     assert_equal(raw_ref._data.shape[0], raw._data.shape[0] + 1)
     assert_array_equal(raw._data[picks_eeg, :], raw_ref._data[picks_eeg, :])
     _check_channel_names(raw_ref, 'Ref')

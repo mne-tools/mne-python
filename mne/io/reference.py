@@ -205,9 +205,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
     else:
         # we should actually be able to do this from the montage, but
         # it looks like the montage isn't stored, so we can't extract
-        # this information. The user will just have to call set_montag()
-        warn('No digitization found, location of new reference channel '
-             'set to zero')
+        # this information. The user will just have to call set_montage()
         # by setting this to zero, we fall back to the old behavior
         # when missing digitisation
         ref_dig_array = np.zeros(12)
