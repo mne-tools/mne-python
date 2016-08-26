@@ -67,6 +67,7 @@ Changelog
 
     - Added interactivity to :func:`mne.preprocessing.ICA.plot_components` - passing an instance of :class:`io.Raw` or :class:`Epochs` in ``inst`` argument allows to open component properties by clicking on component topomaps, by `Mikołaj Magnuski`_
 
+    - Default to µV  (`scale=1e-6`) for BrainVision reader :func:`mne.io.read_raw_brainvision`, which was the implicit default in older BrainVision files, by `Phillip Alday`_
 
 BUG
 ~~~
@@ -102,6 +103,14 @@ BUG
     - Fixed bug with :func:`mne.realtime.FieldTripClient.get_data_as_epoch` when ``picks=None`` which crashed the function by `Mainak Jas`_
 
     - Fixed reading of units in ``.elc`` montage files (from ``UnitsPosition`` field) so that :class:`mne.channels.Montage` objects are now returned with the ``pos`` attribute correctly in meters, by `Chris Mullins`_
+
+    - Fixed reading of BrainVision files by `Phillip Alday`_:
+
+        - Greater support for BVA files, especially older ones: alternate text coding schemes with fallback to Latin-1 as well as units in column headers
+
+        - Use online software filter information when present
+
+        - Fix comparisons of filter settings for determining "strictest" filter
 
 API
 ~~~
@@ -1731,3 +1740,5 @@ of commits):
 .. _Guillaume Dumas: http://www.extrospection.eu
 
 .. _Chris Mullins: http://crmullins.com
+
+.. _Phillip Alday: http://palday.bitbucket.org
