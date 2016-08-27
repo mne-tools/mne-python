@@ -1227,7 +1227,7 @@ def _setup_styles(conditions, style_dict, style, default):
     return style_dict
 
 
-def plot_compare_evokeds(evokeds, picks=None, conditions=None,
+def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
                          colors=None, linestyles=['-'], styles=None,
                          vlines=[0], ci=0.95, truncate_yaxis=True, ymin=None,
                          ymax=None, invert_y=False, ax=None, title=None,
@@ -1333,7 +1333,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None,
     tmin, tmax = times[0], times[-1]
 
     # deal with picks: infer indices and names
-    if picks is None:
+    if picks == 'gfp':
         if ymin is None:
             ymin = 0
         ch_type = channel_type(example.info, 0)
@@ -1342,22 +1342,21 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None,
         if isinstance(picks, int):
             ch_names = [example.ch_names[picks]]
             picks = [picks]
-        elif isinstance(picks, string_types):
-            ch_names = [picks]
-            picks = [example.ch_names.index(picks)]
+#        elif isinstance(picks, string_types):
+#            ch_names = [picks]
+#            picks = [example.ch_names.index(picks)]
         elif isinstance(picks[0], int):
             ch_names = [example.ch_names[pick] for pick in picks]
-        elif isinstance(picks[0], string_types):
-            ch_names = picks[:]
-            picks = [example.ch_names.index(pick) for pick in picks]
+#        elif isinstance(picks[0], string_types):
+#            ch_names = picks[:]
+#            picks = [example.ch_names.index(pick) for pick in picks]
         else:
             raise ValueError("`picks` must be int, a list of int, "
-                             "str, a list of str, or None, not " +
-                             str(type(picks)))
+                             "or `gfp`, not " + str(type(picks)))
         ch_type = channel_type(example.info, picks[0])
     scaling = _handle_default("scalings")[ch_type]
 
-    if ch_type == 'grad' and picks is not None:
+    if ch_type == 'grad' and picks is not 'gfp':
         from ..channels.layout import _merge_grad_data, _pair_grad_sensors
         picked_chans = []
         pairpicks = _pair_grad_sensors(example.info, topomap_coords=False)
@@ -1378,7 +1377,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None,
             raise ValueError("evokeds must be an `mne.Evoked` "
                              "or of a collection of `mne.Evoked`s")
 
-        if ci is not None and picks is not None:
+        if ci is not None and picks is not 'gfp':
             if not isinstance(ci, np.float):
                 msg = '`ci` must be float, got {0} instead.'
                 raise TypeError(msg.format(type(ci)))
@@ -1387,7 +1386,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None,
             for condition in conditions:
                 # this will fail if evokeds do not have the same structure
                 # (e.g. channel count)
-                if ch_type == 'grad' and picks is not None:
+                if ch_type == 'grad' and picks is not 'gfp':
                     data = np.asarray([
                         _merge_grad_data(
                             evoked_.data[pairpicks, :]).mean(0)[picks, :]
@@ -1401,7 +1400,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None,
         evokeds = dict((cond, combine_evoked(evokeds[cond], weights='equal'))
                        for cond in conditions)
 
-        if picks is None:
+        if picks == 'gfp':
             warn("Confidence Interval not drawn if plotting GFP.")
 
     else:
@@ -1417,18 +1416,18 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None,
     # style the individual condition time series
 
     # first, color
-    if (not isinstance(colors, string_types) and not isinstance(colors, dict)
-        and len(colors) > 1):  # is color a list?
+    if (colors is not None and not isinstance(colors, string_types)
+        and not isinstance(colors, dict) and len(colors) > 1):  # is color a list?
         colors = dict((condition, color) for condition, color
                       in zip(conditions, colors))
 
     if not isinstance(colors, dict):
-        if len(colors) > len(conditions):
-            msg = ("You are trying to plot more than 10 conditions. We provide"
-                   "only 10 default colors. Please supply colors manually."
-            raise ValueError(msg)
         colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
                    '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
+        if len(conditions) > len(colors_):
+            msg = ("Trying to plot more than {0} conditions. We provide"
+                   "only {0} default colors. Please supply colors manually.")
+            raise ValueError(msg.format(len(colors_)))
         colors = dict((condition, color) for condition, color
                       in zip(conditions, colors_))
     else:
@@ -1453,7 +1452,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None,
     # the actual plot
     any_negative, any_positive = False, False
     for condition in conditions:
-        if picks is not None:
+        if picks is not 'gfp':
             if ch_type == 'grad':
                 d = ((_merge_grad_data(evokeds[condition]
                       .data[pairpicks, :][picks, :])).T * scaling).mean(-1)
@@ -1461,7 +1460,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None,
                 d = ((evokeds[condition].data[picks, :]).T * scaling).mean(-1)
         else:
             d = ((evokeds[condition].data).T * scaling).std(-1)
-        if ci and picks is not None:
+        if ci and picks is not 'gfp':
             sem_ = sem_array[condition]
             ax.fill_between(times, sem_[0].flatten() * scaling,
                             sem_[1].flatten() * scaling,
