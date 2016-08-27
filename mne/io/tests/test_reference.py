@@ -258,8 +258,22 @@ def test_add_reference():
     ref_data, _ = raw[ref_idx]
     assert_array_equal(ref_data, 0)
 
-    raw = Raw(fif_fname, preload=True)
+    # add reference channel to Raw when no digitization points exist
+    raw = Raw(fif_fname).crop(0, 1).load_data()
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    del raw.info['dig']
+
+    raw_ref = add_reference_channels(raw, 'Ref', copy=True)
+
+    assert_equal(raw_ref._data.shape[0], raw._data.shape[0] + 1)
+    assert_array_equal(raw._data[picks_eeg, :], raw_ref._data[picks_eeg, :])
+    _check_channel_names(raw_ref, 'Ref')
+
+    orig_nchan = raw.info['nchan']
+    raw = add_reference_channels(raw, 'Ref', copy=False)
+    assert_array_equal(raw._data, raw_ref._data)
+    assert_equal(raw.info['nchan'], orig_nchan + 1)
+    _check_channel_names(raw, 'Ref')
 
     # Test adding an existing channel as reference channel
     assert_raises(ValueError, add_reference_channels, raw,
