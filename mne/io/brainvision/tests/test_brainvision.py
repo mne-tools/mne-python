@@ -38,8 +38,7 @@ warnings.simplefilter('always')
 
 
 def test_brainvision_data_filters():
-    """Test reading raw Brain Vision files
-    """
+    """Test reading raw Brain Vision files"""
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_highpass_path,
@@ -50,8 +49,7 @@ def test_brainvision_data_filters():
     assert_equal(raw.info['lowpass'], 250.)
 
 def test_brainvision_data_software_filters_latin1_global_units():
-    """Test reading raw Brain Vision files
-    """
+    """Test reading raw Brain Vision files"""
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_old_path,
@@ -63,8 +61,7 @@ def test_brainvision_data_software_filters_latin1_global_units():
 
 
 def test_brainvision_data():
-    """Test reading raw Brain Vision files
-    """
+    """Test reading raw Brain Vision files"""
     assert_raises(IOError, read_raw_brainvision, vmrk_path)
     assert_raises(ValueError, read_raw_brainvision, vhdr_path, montage,
                   preload=True, scale="foo")
