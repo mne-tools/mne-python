@@ -1208,11 +1208,7 @@ def _ci(arr, ci):
     Aux function for plot_compare_evokeds."""
     from scipy import stats
     mean, sigma = arr.mean(0), stats.sem(arr, 0)
-    # This is highly convoluted to support 17th century Scipy
-    # XXX Fix when Python 2.6 support is dropped!
-    return np.asarray([stats.t.interval(ci, arr.shape[0],
-                       loc=mean_, scale=sigma_)
-                       for mean_, sigma_ in zip(mean, sigma)]).T
+    return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])
 
 
 def _setup_styles(conditions, style_dict, style, default):
@@ -1231,13 +1227,12 @@ def _setup_styles(conditions, style_dict, style, default):
     return style_dict
 
 
-def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
+def plot_compare_evokeds(evokeds, picks=None, conditions=None,
                          colors=None, linestyles=['-'], styles=None,
                          vlines=[0], ci=0.95, truncate_yaxis=True, ymin=None,
                          ymax=None, invert_y=False, ax=None, title=None,
                          show=True):
-    """ Plot, for multiple conditions, individual evoked time courses of one
-    sensor or of the mean of multiple sensors
+    """Plot evoked time courses for one or multiple channels and conditions
 
     This function is useful for comparing ER[P/F]s at a specific location. It
     plots Evoked data or, if supplied with a list/dict of lists of evoked
@@ -1254,22 +1249,19 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         series and the parametric confidence interval is plotted as a shaded
         area. All instances must have the same shape - channel numbers, time
         points etc.
-    picks : int | list of int | str | list of str | None
-        The indices (int) or names (str) of the sensors to average and plot.
+    picks : int | list of int | str
+        If int or list of int, the indices of the sensors to average and plot.
         Must all be of the same channel type.
         If the selected channels are gradiometers, the corresponding pairs
         will be selected.
-        If None, the global field power is plotted instead.
-    conditions : list of str | None
-        If evokeds is a single instance or a list (but not a dictionary),
-        this argument can be used to set legend labels.
+        If str, must be 'gfp', and the global field power is plotted.
     colors : list | dict | None
         If a list, will be sequentially used for line colors.
         If a dict, can map evoked keys or HED-like tags to conditions. For
         example, if `evokeds` is a dict with the keys "Aud/L", "Aud/R",
         "Vis/L", "Vis/R", `colors` can be dict(Aud='r', Vis='b') to map both
         Aud/L and Aud/R to the color red.
-        If None (default), a sequence of desaturated colors is used.
+        If None (default), a sequence of 10 desaturated colors is used.
     linestyles : list | dict
         If a list, will be sequentially used for evoked plot linestyles.
         If a dict, can map the `evoked` keys or HED-like tags to conditions.
@@ -1282,7 +1274,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         parameters will be passed to the line plot call of the corresponding
         condition, overriding defaults.
     vlines : list
-        A list of integers corresponding to the positions, in milliseconds,
+        A list of integers corresponding to the positions, in seconds,
         at which to plot dashed vertical lines.
     ci : float | None
         If not None and `evokeds` is a [list/dict] of lists, a confidence
@@ -1291,10 +1283,11 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         the 95% parametric confidence interval is drawn.
         If None, no shaded confidence band is plotted.
     truncate_yaxis : bool
-        If True, the left y axis is truncated to reduce visual clutter.
+        If True, the left y axis is truncated to half the max value and
+        rounded to .25 to reduce visual clutter.
     invert_y : bool
-        Should negative values be plotted up (as is sometimes done for ERPs
-        out of tradition)? Defaults to False.
+        Controls wheter negative values are plotted up (as is sometimes done
+        for ERPs out of tradition). Defaults to False.
     ax : None | `matplotlib.pyplot.axes` instance
         What axes to plot to. If None, a new axes is created.
     ymin, ymax : float | None
@@ -1303,14 +1296,14 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         If str, will be plotted as figure title. If None, the channel
         names will be shown.
     show : bool
-        Show the figure?
+        If True, show the figure.
 
     Returns
     -------
     fig : Figure
-        The figure on which the plot is drawn.
+        The figure in which the plot is drawn.
     """
-    from ..evoked import Evoked
+    from ..evoked import Evoked, combine_evoked
     import matplotlib.pyplot as plt
 
     # set up labels and instances
@@ -1405,8 +1398,8 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                 sem_array[condition] = _ci(data, ci)
 
         # get the grand mean
-        for cond in conditions:
-            evokeds[cond] = combine_evoked(evokeds[cond], weights='equal')
+        evokeds = dict((cond, combine_evoked(evokeds[cond], weights='equal'))
+                       for cond in conditions)
 
         if picks is None:
             warn("Confidence Interval not drawn if plotting GFP.")
@@ -1422,7 +1415,18 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         fig = ax.figure
 
     # style the individual condition time series
+
+    # first, color
+    if (not isinstance(colors, string_types) and not isinstance(colors, dict)
+        and len(colors) > 1):  # is color a list?
+        colors = dict((condition, color) for condition, color
+                      in zip(conditions, colors))
+
     if not isinstance(colors, dict):
+        if len(colors) > len(conditions):
+            msg = ("You are trying to plot more than 10 conditions. We provide"
+                   "only 10 default colors. Please supply colors manually."
+            raise ValueError(msg)
         colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
                    '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
         colors = dict((condition, color) for condition, color
@@ -1430,12 +1434,14 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
     else:
         colors = _setup_styles(conditions, colors, "color", "grey")
 
+    # second, linestyles
     if not isinstance(linestyles, dict):
         linestyles = dict((condition, linestyle) for condition, linestyle in
                           zip(conditions, ['-'] * len(conditions)))
     else:
         linestyles = _setup_styles(conditions, linestyles, "linestyle", "-")
 
+    # third, put it all together
     if styles is None:
         styles = dict()
     for condition, color, linestyle in zip(conditions, colors, linestyles):
@@ -1483,7 +1489,7 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         abs_lims = (orig_ymax if orig_ymax > np.abs(orig_ymin)
                     else np.abs(orig_ymin))
         ymin_, ymax_ = (-(abs_lims // fraction), abs_lims // fraction)
-        # custom ymin/ymax must overwrite everything
+        # user supplied ymin and ymax overwrite everything
         if ymin is not None and ymin > ymin_:
             ymin_ = ymin
         if ymax is not None and ymax < ymax_:
@@ -1492,10 +1498,15 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
                        ymax_ if any_positive else 0))
         ymin_bound, ymax_bound = (-(abs_lims // fraction),
                                   abs_lims // fraction)
+        # user supplied ymin and ymax overwrite everything
         if ymin is not None and ymin > ymin_bound:
             ymin_bound = ymin
         if ymax is not None and ymax < ymax_bound:
             ymax_bound = ymax
+        if ymin is None:  # round to .25
+            ymin_bound = round(ymin_bound / 0.25) * 0.25
+        if ymin is None:
+            ymax_bound = round(ymax_bound / 0.25) * 0.25
         ax.spines['left'].set_bounds(ymin_bound, ymax_bound)
     else:
         ymax_bound = ax.get_ylim()[-1]
@@ -1516,9 +1527,8 @@ def plot_compare_evokeds(evokeds, picks=None, conditions=None, ch_names=None,
         upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]
     else:
         upper_v, lower_v = ax.get_ylim()[0], ymax_bound
-    for x in vlines:
-        ax.vlines(x, upper_v, lower_v,
-                  linestyles='--', colors='k', linewidth=1.)
+    ax.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
+              linewidth=1.)
 
     # set x label
     ax.set_xlabel('Time (s)')
