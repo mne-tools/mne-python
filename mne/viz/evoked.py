@@ -1229,7 +1229,7 @@ def _setup_styles(conditions, style_dict, style, default):
 
 def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
                          colors=None, linestyles=['-'], styles=None,
-                         vlines=[0], ci=0.95, truncate_yaxis=True, ymin=None,
+                         vlines=[0.], ci=0.95, truncate_yaxis=True, ymin=None,
                          ymax=None, invert_y=False, ax=None, title=None,
                          show=True):
     """Plot evoked time courses for one or multiple channels and conditions
@@ -1550,7 +1550,10 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
                      else (ax.get_yticks()[-1] / 2 / y_range))
     ax.yaxis.set_label_coords(-0.05, 1 - ylabel_height
                               if invert_y else ylabel_height)
-    x_extrema = [t for t in ax.get_xticks() if tmax >= t >= tmin]
+    xticks = sorted(list(set([x for x in ax.get_xticks()] + vlines)))
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticks)
+    x_extrema = [t for t in xticks if tmax >= t >= tmin]
     ax.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
     ax.spines["left"].set_zorder(20)
 
