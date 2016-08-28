@@ -1548,7 +1548,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
 
     ax.set_title(", ".join(ch_names[:33]) if title is None else title)
     if len(ch_names) > 33:  # noqa
-        warn("More than 33 channels, truncating title ...")  #noqa
+        warn("More than 33 channels, truncating title ...")  # noqa
 
     # style the spines/axes
     ax.spines["top"].set_position('zero')

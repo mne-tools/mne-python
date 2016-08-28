@@ -146,7 +146,7 @@ def test_plot_evoked():
         plot_compare_evokeds(contrast, colors=colors, picks=[0, 2],
                              vlines=[.01, -.04], invert_y=True,
                              truncate_yaxis=False, ymax=10, ymin=10,
-                             styles={"red/stim":{"linewidth":1}})
+                             styles={"red/stim": {"linewidth": 1}})
         assert_raises(ValueError, plot_compare_evokeds,
                       contrast, picks=[0, 3])  # bad picks: multiple types
         assert_raises(ValueError, plot_compare_evokeds,
