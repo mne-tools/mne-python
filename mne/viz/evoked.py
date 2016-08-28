@@ -1377,14 +1377,13 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
         from ..channels.layout import _merge_grad_data, _pair_grad_sensors
         picked_chans = []
         pairpicks = _pair_grad_sensors(example.info, topomap_coords=False)
-        warn_pairs = False
-        for pick in picks:
-            picked_chans.append(pairpicks.index(pick))
-            picked_chans.append(pairpicks.index(pick - 1)
-                                if pick % 2 else pairpicks.index(pick + 1))
+        for ii in np.arange(0, len(pairpicks), 2):
+            first, second = pairpicks[ii], pairpicks[ii + 1]
+            if first in picks or second in picks:
+                picked_chans.append(first)
+                picked_chans.append(second)
         picks = list(sorted(set(picked_chans)))
-        ch_names = [example.ch_names[pick] for pick in
-                    [pairpicks[p_] for p_ in picks]]
+        ch_names = [example.ch_names[pick] for pick in picks]
         if ymin is None:  # 'grad' is plotted as all-positive
             ymin = 0
 
@@ -1407,7 +1406,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
                 if ch_type == 'grad' and picks is not 'gfp':
                     data = np.asarray([
                         _merge_grad_data(
-                            evoked_.data[pairpicks, :]).mean(0)[picks, :]
+                            evoked_.data[picks, :]).mean(0)
                         for evoked_ in evokeds[condition]])
                 else:
                     data = np.asarray([evoked_.data[picks, :].mean(0)
@@ -1496,7 +1495,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
         if picks is not 'gfp':
             if ch_type == 'grad':
                 d = ((_merge_grad_data(evokeds[condition]
-                      .data[pairpicks, :][picks, :])).T * scaling).mean(-1)
+                      .data[picks, :])).T * scaling).mean(-1)
             else:
                 d = ((evokeds[condition].data[picks, :]).T * scaling).mean(-1)
         else:

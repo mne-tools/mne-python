@@ -132,6 +132,8 @@ def test_plot_evoked():
 
         # plot_compare_evokeds: test condition contrast, CI, color assignment
         plot_compare_evokeds(evoked.copy().pick_types(meg='mag'))
+        evoked.rename_channels({'MEG 2142': "MEG 1642"})
+        plot_compare_evokeds(evoked, picks=3)  # test picking & plotting grads
 
         colors = dict(red='r', blue='b')
         red, blue = evoked.copy(), evoked.copy()
@@ -141,11 +143,14 @@ def test_plot_evoked():
         contrast["red/stim"] = list((evoked.copy(), red))
         contrast["blue/stim"] = list((evoked.copy(), blue))
         plot_compare_evokeds(contrast, colors=colors, picks=[0, 2],
-                             vlines=[.01, -.04])
+                             vlines=[.01, -.04], invert_y=True,
+                             truncate_yaxis=False)
         assert_raises(ValueError, plot_compare_evokeds,
                       contrast, picks=[0, 3])  # bad picks: multiple types
         assert_raises(ValueError, plot_compare_evokeds,
                       contrast, colors=dict(fake=1))  # 'fake' not in conds
+        assert_raises(ValueError, plot_compare_evokeds,
+                      contrast, styles=dict(fake=1))  # 'fake' not in conds
 
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()
