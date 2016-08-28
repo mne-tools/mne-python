@@ -133,14 +133,14 @@ def test_plot_evoked():
         # plot_compare_evokeds: test condition contrast, CI, color assignment
         plot_compare_evokeds(evoked.copy().pick_types(meg='mag'))
         evoked.rename_channels({'MEG 2142': "MEG 1642"})
-        # test picking & plotting grads
-        plot_compare_evokeds(evoked, picks=3)
-
         colors = dict(red='r', blue='b')
         linestyles = dict(red='--', blue='-')
         red, blue = evoked.copy(), evoked.copy()
         red.data *= 1.1
         blue.data *= 0.9
+        plot_compare_evokeds([red, blue], picks=3)  # list of evokeds
+        plot_compare_evokeds([[red, evoked], [blue, evoked]])  # list of lists
+        # test picking & plotting grads
         contrast = dict()
         contrast["red/stim"] = list((evoked.copy(), red))
         contrast["blue/stim"] = list((evoked.copy(), blue))
@@ -152,11 +152,14 @@ def test_plot_evoked():
         assert_raises(ValueError, plot_compare_evokeds,
                       contrast, picks=[0, 3])  # bad picks: multiple types
         assert_raises(ValueError, plot_compare_evokeds,
+                      contrast, picks='str')  # bad picks: not int or 'gfp'
+        assert_raises(ValueError, plot_compare_evokeds,
                       evoked, colors=dict(fake=1))  # 'fake' not in conds
         assert_raises(ValueError, plot_compare_evokeds,
                       evoked, styles=dict(fake=1))  # 'fake' not in conds
         assert_raises(ValueError, plot_compare_evokeds,
                       evoked, ci='fake')  # ci must be float or None
+        assert_raises(ValueError, plot_compare_evokeds, dict(1=1))
         contrast["red/stim"] = red
         contrast["blue/stim"] = blue
         plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'], ymax=0)
