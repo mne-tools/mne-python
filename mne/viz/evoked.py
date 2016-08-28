@@ -1234,11 +1234,10 @@ def _setup_styles(conditions, style_dict, style, default):
     return style_dict
 
 
-def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
-                         colors=None, linestyles=['-'], styles=None,
-                         vlines=[0.], ci=0.95, truncate_yaxis=True, ymin=None,
-                         ymax=None, invert_y=False, ax=None, title=None,
-                         show=True):
+def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
+                         styles=None, vlines=[0.], ci=0.95,
+                         truncate_yaxis=True, ymin=None, ymax=None,
+                         invert_y=False, ax=None, title=None, show=True):
     """Plot evoked time courses for one or multiple channels and conditions
 
     This function is useful for comparing ER[P/F]s at a specific location. It
@@ -1319,23 +1318,17 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
     from ..evoked import Evoked
 
     # set up labels and instances
-    if isinstance(conditions, string_types):
-        conditions = [conditions]
-
     if isinstance(evokeds, Evoked):
-        if conditions is None:
-            conditions = ['Evoked']  # empty title
+        conditions = ['Evoked']  # empty title
         evokeds = dict(Evoked=evokeds)
 
-    if isinstance(evokeds, dict):
-        conditions = sorted(list(evokeds.keys()))
-    elif conditions is None:
-        evokeds = dict((str(ii + 1), evoked)
-                       for ii, evoked in enumerate(evokeds))
-        conditions = sorted(list(evokeds.keys()))
-    else:  # if conditions is not None and evokeds a list
-        evokeds = dict((cond, evoked_) for cond, evoked_ in
-                       zip(conditions, evokeds))
+    else:
+        if isinstance(evokeds, dict):
+            conditions = sorted(list(evokeds.keys()))
+        else:
+            evokeds = dict((str(ii + 1), evoked)
+                           for ii, evoked in enumerate(evokeds))
+            conditions = sorted(list(evokeds.keys()))
 
     # get and set a few limits and variables (times, channels, units)
     example = (evokeds[conditions[0]]
