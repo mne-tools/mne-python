@@ -307,7 +307,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         settings = f.read()
         try:
             # if there is an explicit code-page set, use it
-            cp_setting = re.search('Codepage=(.+)',settings,re.IGNORECASE & re.MULTILINE)
+            cp_setting = re.search('Codepage=(.+)', settings,
+                                   re.IGNORECASE & re.MULTILINE)
             if cp_setting:
                 codepage = cp_setting.group(1).strip()
             settings = settings.decode(codepage)
