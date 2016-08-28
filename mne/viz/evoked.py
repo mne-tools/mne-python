@@ -1348,29 +1348,23 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
     if picks == 'gfp':
         if ymin is None:
             ymin = 0
-        gfp_picks = pick_types(example, eeg=True, meg=True, seeg=True,
+        gfp_picks = pick_types(example.info, eeg=True, meg=True, seeg=True,
                                ecog=True)
         ch_types = list(set([channel_type(example.info, pick)
                              for pick in gfp_picks]))
         if len(ch_types) > 1:
-            warn("Plotting GFP with more than one channel type. This "
-                 "can be uninterpretable, as channels have different units.")
+            raise ValueError("Can't plot GFP with multiple channel types.")
+        ch_type = ch_types[0]
         ch_names = ['Global Field Power']
     else:
         if isinstance(picks, int):
-            ch_names = [example.ch_names[picks]]
             picks = [picks]
-#        elif isinstance(picks, string_types):
-#            ch_names = [picks]
-#            picks = [example.ch_names.index(picks)]
         elif isinstance(picks[0], int):
-            ch_names = [example.ch_names[pick] for pick in picks]
-#        elif isinstance(picks[0], string_types):
-#            ch_names = picks[:]
-#            picks = [example.ch_names.index(pick) for pick in picks]
+            pass
         else:
             raise ValueError("`picks` must be int, a list of int, "
                              "or `gfp`, not " + str(type(picks)))
+        ch_names = [example.ch_names[pick] for pick in picks]
         ch_type = channel_type(example.info, picks[0])
         ch_types = list(set(channel_type(example.info, pick_)
                         for pick_ in picks))
@@ -1383,6 +1377,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
         from ..channels.layout import _merge_grad_data, _pair_grad_sensors
         picked_chans = []
         pairpicks = _pair_grad_sensors(example.info, topomap_coords=False)
+        warn_pairs = False
         for pick in picks:
             picked_chans.append(pairpicks.index(pick))
             picked_chans.append(pairpicks.index(pick - 1)
@@ -1506,7 +1501,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
                 d = ((evokeds[condition].data[picks, :]).T * scaling).mean(-1)
         else:
             d = ((evokeds[condition].data[gfp_picks, :]).T * scaling).std(-1)
-        ax.plot(times, d, zorder=10, label=condition, **styles[condition])
+        ax.plot(times, d, zorder=1000, label=condition, **styles[condition])
         if any(d > 0):
             any_positive = True
         if any(d < 0):
@@ -1516,7 +1511,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
         if ci and picks is not 'gfp':
             sem_ = sem_array[condition]
             ax.fill_between(times, sem_[0].flatten() * scaling,
-                            sem_[1].flatten() * scaling,
+                            sem_[1].flatten() * scaling, zorder=100,
                             color=styles[condition]['c'], alpha=.333)
 
     # truncate the y axis ... yes, it's that complicated
@@ -1549,17 +1544,21 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
             ymin_bound = ymin
         if ymax is not None and ymax < ymax_bound:
             ymax_bound = ymax
+        precision = 0.25
         if ymin is None:  # round to .25
-            ymin_bound = round(ymin_bound / 0.25) * 0.25
+            ymin_bound = round(ymin_bound / precision) * precision
         if ymin is None:
-            ymax_bound = round(ymax_bound / 0.25) * 0.25
+            ymax_bound = round(ymax_bound / precision) * precision
         ax.spines['left'].set_bounds(ymin_bound, ymax_bound)
     else:
         ymax_bound = ax.get_ylim()[-1]
     y_range = -np.subtract(*ax.get_ylim())
 
+    ax.set_title(", ".join(ch_names[:33]) if title is None else title)
+    if len(ch_names) > 33:  # noqa
+        warn("More than 33 channels, truncating title ...")
+
     # style the spines/axes
-    ax.set_title(", ".join(ch_names) if title is None else title)
     ax.spines["top"].set_position('zero')
     ax.spines["top"].set_smart_bounds(True)
 

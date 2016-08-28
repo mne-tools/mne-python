@@ -130,10 +130,9 @@ def test_plot_evoked():
         evoked.plot_white(cov)
         evoked.plot_white([cov, cov])
 
-        # plot_compare_evokeds single plot
-        plot_compare_evokeds(evoked)
+        # plot_compare_evokeds: test condition contrast, CI, color assignment
+        plot_compare_evokeds(evoked.copy().pick_types(meg='mag'))
 
-        # test condition contrast, CI, color assignment
         colors = dict(red='r', blue='b')
         red, blue = evoked.copy(), evoked.copy()
         red.data *= 1.1
@@ -141,10 +140,10 @@ def test_plot_evoked():
         contrast = dict()
         contrast["red/stim"] = list((evoked.copy(), red))
         contrast["blue/stim"] = list((evoked.copy(), blue))
-        plot_compare_evokeds(contrast, colors=colors, picks=[0, 2])
-        plot_compare_evokeds(contrast, picks='gfp', vlines=[.01, -.04])
+        plot_compare_evokeds(contrast, colors=colors, picks=[0, 2],
+                             vlines=[.01, -.04])
         assert_raises(ValueError, plot_compare_evokeds,
-                      contrast, picks=[0, 1])  # bad picks: multiple types
+                      contrast, picks=[0, 3])  # bad picks: multiple types
         assert_raises(ValueError, plot_compare_evokeds,
                       contrast, colors=dict(fake=1))  # 'fake' not in conds
 
