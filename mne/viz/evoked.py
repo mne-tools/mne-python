@@ -8,6 +8,7 @@ from __future__ import print_function
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Cathy Nangini <cnangini@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: Simplified BSD
 
@@ -1209,10 +1210,13 @@ def _ci(arr, ci):
     from scipy import stats
     mean, sigma = arr.mean(0), stats.sem(arr, 0)
     # This is highly convoluted to support 17th century Scipy
-    # XXX Fix when Scipy 0.12 support is dropped!
+    # XXX Fix when Python 2.6 support is dropped!
+    # then it becomes just:
+    # return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])
     return np.asarray([stats.t.interval(ci, arr.shape[0],
                        loc=mean_, scale=sigma_)
                        for mean_, sigma_ in zip(mean, sigma)]).T
+
 
 def _setup_styles(conditions, style_dict, style, default):
     """Aux function for plot_compare_evokeds to set linestyles and colors"""
@@ -1276,6 +1280,10 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
         be a dict of legal inputs to `matplotlib.pyplot.plot`. These
         parameters will be passed to the line plot call of the corresponding
         condition, overriding defaults.
+        E.g., if evokeds is a dict with the keys "Aud/L", "Aud/R",
+        "Vis/L", "Vis/R", `styles` can be `{"Aud/L":{"linewidth":1}}` to set
+        the linewidth for "Aud/L" to 1. Note that HED ('/'-separated) tags are
+        not supported for now.
     vlines : list
         A list of integers corresponding to the positions, in seconds,
         at which to plot dashed vertical lines.
@@ -1424,7 +1432,28 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
 
     # style the individual condition time series
 
-    # first, color
+    # first, check if input is valid
+    tags = set([tag for cond in conditions for tag in cond.split("/")])
+    msg = ("Can't map between conditions and the provided {0}. Make sure "
+           "you have provided keys in the format of '/'-separated tags, "
+           "and that these correspond to '/'-separated tags for the condition "
+           "names (e.g., conditions like 'Visual/Right', and styles like "
+           "`colors=dict(Visual='red'))`. The offending tag was '{1}'.")
+    for name_, item in zip(("colors", "linestyles"),
+                           (colors, linestyles)):
+        if isinstance(item, dict):
+            for key in item:
+                for tag in key.split("/"):
+                    if tag not in tags:
+                        raise ValueError(msg.format(name_, tag))
+    if isinstance(styles, dict):
+        for style_ in styles:
+            if style_ not in conditions:
+                raise ValueError("Could not map between `styles` and "
+                                 "conditions. Condition " + style_ +
+                                 " was not found in the supplied data.")
+
+    # second, color
     # check: is color a list?
     if (colors is not None and not isinstance(colors, string_types) and
             not isinstance(colors, dict) and len(colors) > 1):
@@ -1443,14 +1472,14 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
     else:
         colors = _setup_styles(conditions, colors, "color", "grey")
 
-    # second, linestyles
+    # third, linestyles
     if not isinstance(linestyles, dict):
         linestyles = dict((condition, linestyle) for condition, linestyle in
                           zip(conditions, ['-'] * len(conditions)))
     else:
         linestyles = _setup_styles(conditions, linestyles, "linestyle", "-")
 
-    # third, put it all together
+    # fourth, put it all together
     if styles is None:
         styles = dict()
     for condition, color, linestyle in zip(conditions, colors, linestyles):

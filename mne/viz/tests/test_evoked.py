@@ -4,6 +4,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Cathy Nangini <cnangini@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: Simplified BSD
 
@@ -143,7 +144,9 @@ def test_plot_evoked():
         plot_compare_evokeds(contrast, colors=colors, picks=[0, 2])
         plot_compare_evokeds(contrast, picks='gfp', vlines=[.01, -.04])
         assert_raises(ValueError, plot_compare_evokeds,
-                      contrast, picks=[0, 1])
+                      contrast, picks=[0, 1])  # bad picks: multiple types
+        assert_raises(ValueError, plot_compare_evokeds,
+                      contrast, colors=dict(fake=1))  # 'fake' not in conds
 
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()
