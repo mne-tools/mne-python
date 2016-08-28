@@ -1208,8 +1208,11 @@ def _ci(arr, ci):
     Aux function for plot_compare_evokeds."""
     from scipy import stats
     mean, sigma = arr.mean(0), stats.sem(arr, 0)
-    return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])
-
+    # This is highly convoluted to support 17th century Scipy
+    # XXX Fix when Scipy 0.12 support is dropped!
+    return np.asarray([stats.t.interval(ci, arr.shape[0],
+                       loc=mean_, scale=sigma_)
+                       for mean_, sigma_ in zip(mean, sigma)]).T
 
 def _setup_styles(conditions, style_dict, style, default):
     """Aux function for plot_compare_evokeds to set linestyles and colors"""
