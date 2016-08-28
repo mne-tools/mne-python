@@ -1481,7 +1481,6 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
                             sem_[1].flatten() * scaling,
                             color=styles[condition]['c'], alpha=.333)
 
-
     # truncate the y axis ... yes, it's that complicated
     orig_ymin, orig_ymax = ax.get_ylim()[0], ax.get_ylim()[-1]
     if not any_positive:

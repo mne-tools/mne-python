@@ -145,7 +145,6 @@ def test_plot_evoked():
         assert_raises(ValueError, plot_compare_evokeds,
                       contrast, picks=[0, 1])
 
-
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()
         evoked_sss.info['proc_history'] = [dict(max_info=None)]
