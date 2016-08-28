@@ -1303,7 +1303,6 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
     fig : Figure
         The figure in which the plot is drawn.
     """
-    from ..evoked import Evoked, combine_evoked
     import matplotlib.pyplot as plt
 
     # set up labels and instances
@@ -1416,8 +1415,9 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
     # style the individual condition time series
 
     # first, color
-    if (colors is not None and not isinstance(colors, string_types)
-        and not isinstance(colors, dict) and len(colors) > 1):  # is color a list?
+    # check: is color a list?
+    if (colors is not None and not isinstance(colors, string_types) and
+            not isinstance(colors, dict) and len(colors) > 1):
         colors = dict((condition, color) for condition, color
                       in zip(conditions, colors))
 
