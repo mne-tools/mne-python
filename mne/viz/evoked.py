@@ -1354,6 +1354,11 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
             raise ValueError("`picks` must be int, a list of int, "
                              "or `gfp`, not " + str(type(picks)))
         ch_type = channel_type(example.info, picks[0])
+        ch_types = list(set(channel_type(example.info, pick_)
+                        for pick_ in picks))
+        if len(ch_types) > 1:
+            raise ValueError("More than 1 channel type specified by `picks`.")
+
     scaling = _handle_default("scalings")[ch_type]
 
     if ch_type == 'grad' and picks is not 'gfp':  # deal with grad pairs

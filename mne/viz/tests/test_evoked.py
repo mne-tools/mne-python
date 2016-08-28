@@ -140,8 +140,11 @@ def test_plot_evoked():
         contrast = dict()
         contrast["red/stim"] = list((evoked.copy(), red))
         contrast["blue/stim"] = list((evoked.copy(), blue))
-        plot_compare_evokeds(contrast, colors=colors, picks=[0, 1])
+        plot_compare_evokeds(contrast, colors=colors, picks=[0, 2])
         plot_compare_evokeds(contrast, picks='gfp', vlines=[.01, .1])
+        assert_raises(ValueError, plot_compare_evokeds,
+                      contrast, picks=[0, 1])
+
 
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()
