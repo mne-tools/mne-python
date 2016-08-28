@@ -1304,6 +1304,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
         The figure in which the plot is drawn.
     """
     import matplotlib.pyplot as plt
+    from ..evoked import Evoked
 
     # set up labels and instances
     if isinstance(conditions, string_types):
@@ -1320,7 +1321,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
         evokeds = dict((str(ii + 1), evoked)
                        for ii, evoked in enumerate(evokeds))
         conditions = sorted(list(evokeds.keys()))
-    else:  # if conditions is not none and evokeds a list
+    else:  # if conditions is not None and evokeds a list
         evokeds = dict((cond, evoked_) for cond, evoked_ in
                        zip(conditions, evokeds))
 
@@ -1336,7 +1337,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
         if ymin is None:
             ymin = 0
         ch_type = channel_type(example.info, 0)
-        ch_names = ['GFP']
+        ch_names = ['Global Field Power']
     else:
         if isinstance(picks, int):
             ch_names = [example.ch_names[picks]]
@@ -1355,7 +1356,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
         ch_type = channel_type(example.info, picks[0])
     scaling = _handle_default("scalings")[ch_type]
 
-    if ch_type == 'grad' and picks is not 'gfp':
+    if ch_type == 'grad' and picks is not 'gfp':  # deal with grad pairs
         from ..channels.layout import _merge_grad_data, _pair_grad_sensors
         picked_chans = []
         pairpicks = _pair_grad_sensors(example.info, topomap_coords=False)
@@ -1400,10 +1401,11 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
                        for cond in conditions)
 
         if picks == 'gfp':
-            warn("Confidence Interval not drawn if plotting GFP.")
-
+            warn("Confidence Interval not drawn when plotting GFP.")
     else:
         ci = False
+    # we not have dicts for data ('evokeds' - grand averaged Evoked's)
+    # and the CI ('sem_array') with cond name labels
 
     # let's plot!
     if ax is None:
@@ -1421,7 +1423,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
         colors = dict((condition, color) for condition, color
                       in zip(conditions, colors))
 
-    if not isinstance(colors, dict):
+    if not isinstance(colors, dict):  # default colors
         colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
                    '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
         if len(conditions) > len(colors_):
@@ -1452,6 +1454,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
     # the actual plot
     any_negative, any_positive = False, False
     for condition in conditions:
+        # plot the actual data ('d') as a line
         if picks is not 'gfp':
             if ch_type == 'grad':
                 d = ((_merge_grad_data(evokeds[condition]
@@ -1460,17 +1463,19 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
                 d = ((evokeds[condition].data[picks, :]).T * scaling).mean(-1)
         else:
             d = ((evokeds[condition].data).T * scaling).std(-1)
+        ax.plot(times, d, zorder=10, label=condition, **styles[condition])
+        if any(d > 0):
+            any_positive = True
+        if any(d < 0):
+            any_negative = True
+
+        # plot the confidence interval (standard error of the mean/'sem_')
         if ci and picks is not 'gfp':
             sem_ = sem_array[condition]
             ax.fill_between(times, sem_[0].flatten() * scaling,
                             sem_[1].flatten() * scaling,
                             color=styles[condition]['c'], alpha=.333)
 
-        ax.plot(times, d, zorder=10, label=condition, **styles[condition])
-        if any(d > 0):
-            any_positive = True
-        if any(d < 0):
-            any_negative = True
 
     # truncate the y axis ... yes, it's that complicated
     orig_ymin, orig_ymax = ax.get_ylim()[0], ax.get_ylim()[-1]
