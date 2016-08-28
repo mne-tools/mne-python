@@ -1210,7 +1210,7 @@ def _ci(arr, ci):
     from scipy import stats
     mean, sigma = arr.mean(0), stats.sem(arr, 0)
     # This is highly convoluted to support 17th century Scipy
-    # XXX Fix when Python 2.6 support is dropped!
+    # XXX Fix when Scipy 0.12 support is dropped!
     # then it becomes just:
     # return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])
     return np.asarray([stats.t.interval(ci, arr.shape[0],
@@ -1261,7 +1261,8 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
         Must all be of the same channel type.
         If the selected channels are gradiometers, the corresponding pairs
         will be selected.
-        If str, must be 'gfp', and the global field power is plotted.
+        If str, must be 'gfp', and the global field power for all data channels
+        is plotted.
     colors : list | dict | None
         If a list, will be sequentially used for line colors.
         If a dict, can map evoked keys or HED-like tags to conditions. For
@@ -1347,7 +1348,13 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
     if picks == 'gfp':
         if ymin is None:
             ymin = 0
-        ch_type = channel_type(example.info, 0)
+        gfp_picks = pick_types(example, eeg=True, meg=True, seeg=True,
+                               ecog=True)
+        ch_types = list(set([channel_type(example.info, pick)
+                             for pick in gfp_picks]))
+        if len(ch_types) > 1:
+            warn("Plotting GFP with more than one channel type. This "
+                 "can be uninterpretable, as channels have different units.")
         ch_names = ['Global Field Power']
     else:
         if isinstance(picks, int):
@@ -1368,7 +1375,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
         ch_types = list(set(channel_type(example.info, pick_)
                         for pick_ in picks))
         if len(ch_types) > 1:
-            raise ValueError("More than 1 channel type specified by `picks`.")
+            raise ValueError("More than 1 channel type selected by `picks`.")
 
     scaling = _handle_default("scalings")[ch_type]
 
@@ -1431,7 +1438,6 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
         fig = ax.figure
 
     # style the individual condition time series
-
     # first, check if input is valid
     tags = set([tag for cond in conditions for tag in cond.split("/")])
     msg = ("Can't map between conditions and the provided {0}. Make sure "
@@ -1499,7 +1505,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', conditions=None,
             else:
                 d = ((evokeds[condition].data[picks, :]).T * scaling).mean(-1)
         else:
-            d = ((evokeds[condition].data).T * scaling).std(-1)
+            d = ((evokeds[condition].data[gfp_picks, :]).T * scaling).std(-1)
         ax.plot(times, d, zorder=10, label=condition, **styles[condition])
         if any(d > 0):
             any_positive = True
