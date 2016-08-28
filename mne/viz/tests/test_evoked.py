@@ -159,7 +159,7 @@ def test_plot_evoked():
                       evoked, styles=dict(fake=1))  # 'fake' not in conds
         assert_raises(ValueError, plot_compare_evokeds,
                       evoked, ci='fake')  # ci must be float or None
-        assert_raises(ValueError, plot_compare_evokeds, dict(1=1))
+        assert_raises(ValueError, plot_compare_evokeds, dict(key=1))
         contrast["red/stim"] = red
         contrast["blue/stim"] = blue
         plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'], ymax=0)
