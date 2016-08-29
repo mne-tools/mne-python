@@ -1548,7 +1548,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         orig_ymin = 0
 
     axes.set_ylim(orig_ymin if ymin is None else ymin,
-                orig_ymax if ymax is None else ymax)
+                  orig_ymax if ymax is None else ymax)
 
     fraction = 2 if axes.get_ylim()[0] >= 0 else 3
 
@@ -1562,7 +1562,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         if ymax is not None and ymax < ymax_:
             ymax_ = ymax
         axes.set_yticks((ymin_ if any_negative else 0,
-                       ymax_ if any_positive else 0))
+                         ymax_ if any_positive else 0))
         ymin_bound, ymax_bound = (-(abs_lims // fraction),
                                   abs_lims // fraction)
         # user supplied ymin and ymax overwrite everything
