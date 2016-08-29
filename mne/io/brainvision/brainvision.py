@@ -323,16 +323,18 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         # extract the first section to resemble a cfg
         header = f.readline()
         codepage = 'utf-8'
-        # we don't actually need to decode the header line
+        # we don't actually need to know the coding for the header line.
         # the characters in it all belong to ASCII and are thus the
         # same in Latin-1 and UTF-8
-        header = header.strip()
+        header = header.decode('ascii','ignore').strip()
         _check_hdr_version(header)
 
         settings = f.read()
         try:
-            # if there is an explicit code-page set, use it
-            cp_setting = re.search('Codepage=(.+)', settings,
+            # if there is an explicit codepage set, use it
+            # we pretend like it's ascii when searching for the codepage
+            cp_setting = re.search('Codepage=(.+)',
+                                   settings.decode('ascii','ignore'),
                                    re.IGNORECASE & re.MULTILINE)
             if cp_setting:
                 codepage = cp_setting.group(1).strip()
