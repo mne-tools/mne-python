@@ -1637,8 +1637,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     axes.set_xlim(tmin, tmax)
 
     if len(conditions) > 1:
-        plt.legend(loc='best', ncol=1 + (len(conditions) // 5),
-                   frameon=True, prop=dict(size=10))
+        plt.legend(loc='best', ncol=1 + (len(conditions) // 5), frameon=True)
 
     plt_show(show)
     return fig
