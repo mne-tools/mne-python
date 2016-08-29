@@ -1321,7 +1321,6 @@ def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
     if isinstance(evokeds, Evoked):
         conditions = ['Evoked']  # empty title
         evokeds = dict(Evoked=evokeds)
-
     else:
         if isinstance(evokeds, dict):
             conditions = sorted(list(evokeds.keys()))
@@ -1381,16 +1380,16 @@ def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
             ymin = 0
 
     # deal with dict/list of lists, and calculate the CI
+    if not isinstance(ci, np.float):
+        msg = '`ci` must be float, got {0} instead.'
+        raise TypeError(msg.format(type(ci)))
+
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
         from ..evoked import combine_evoked
         if not isinstance(evokeds[conditions[0]][0], Evoked):
             raise ValueError("evokeds must be an `mne.Evoked` "
                              "or of a collection of `mne.Evoked`s")
-
         if ci is not None and picks is not 'gfp':
-            if not isinstance(ci, np.float):
-                msg = '`ci` must be float, got {0} instead.'
-                raise TypeError(msg.format(type(ci)))
             # calculate the CI
             sem_array = {}
             for condition in conditions:
