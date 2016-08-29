@@ -165,13 +165,38 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         event_id = dict()
     # read vmrk file
     with open(fname, 'rb') as fid:
-        txt = fid.read().decode('utf-8')
+        txt = fid.read()
 
-    header = txt.split('\n')[0].strip()
+    # we don't actually need to know the coding for the header line.
+    # the characters in it all belong to ASCII and are thus the
+    # same in Latin-1 and UTF-8
+    header = txt.decode('ascii','ignore').split('\n')[0].strip()
     _check_mrk_version(header)
     if (response_trig_shift is not None and
             not isinstance(response_trig_shift, int)):
         raise TypeError("response_trig_shift must be an integer or None")
+
+    # although the markers themselves are guaranteed to be ASCII (they
+    # consist of numbers and a few reserved words), we should still
+    # decode the file properly here because other (currently unused)
+    # blocks, such as that the filename are specifying are not
+    # guaranteed to be ASCII.
+
+    codepage = 'utf-8'
+    try:
+        # if there is an explicit codepage set, use it
+        # we pretend like it's ascii when searching for the codepage
+        cp_setting = re.search('Codepage=(.+)',
+                               txt.decode('ascii','ignore'),
+                               re.IGNORECASE & re.MULTILINE)
+        if cp_setting:
+            codepage = cp_setting.group(1).strip()
+        txt = txt.decode(codepage)
+    except UnicodeDecodeError:
+        # if UTF-8 (new standard) or explicit codepage setting fails,
+        # fallback to Latin-1, which is Windows default and implicit
+        # standard in older recordings
+        txt = txt.decode('latin-1')
 
     # extract Marker Infos block
     m = re.search("\[Marker Infos\]", txt)
