@@ -1244,11 +1244,10 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
         ymin_ = ymin
     if ymax is not None and ymax < ymax_:
         ymax_ = ymax
-    axes.set_yticks((ymin_ if any_negative else 0,
-                     ymax_ if any_positive else 0))
-    ymin_bound, ymax_bound = (-(abs_lims // fraction),
-                              abs_lims // fraction)
-    # user supplied ymin and ymax overwrite everything
+    yticks = (ymin_ if any_negative else 0, ymax_ if any_positive else 0)
+    axes.set_yticks(yticks)
+    ymin_bound, ymax_bound = (-(abs_lims // fraction), abs_lims // fraction)
+    # user supplied ymin and ymax still overwrite everything
     if ymin is not None and ymin > ymin_bound:
         ymin_bound = ymin
     if ymax is not None and ymax < ymax_bound:
@@ -1393,7 +1392,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         ch_names = ['Global Field Power']
     else:
         if not isinstance(picks[0], int):
-            msg = "`picks` must be int or a list of int, not {0}."
+            msg = "'picks' must be int or a list of int, not {0}."
             raise ValueError(msg.format(type(picks)))
         ch_names = [example.ch_names[pick] for pick in picks]
     ch_types = list(set(channel_type(example.info, pick_)
@@ -1421,8 +1420,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         return figs
     else:
         ch_type = ch_types[0]
-        ymin = ylim.get(ch_type, [None, None])[0]
-        ymax = ylim.get(ch_type, [None, None])[1]
+        ymin, ymax = ylim.get(ch_type, [None, None])
 
     scaling = _handle_default("scalings")[ch_type]
 
@@ -1443,7 +1441,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     # deal with dict/list of lists and the CI
     if not isinstance(ci, np.float):
-        msg = '`ci` must be float, got {0} instead.'
+        msg = '"ci" must be float, got {0} instead.'
         raise TypeError(msg.format(type(ci)))
 
     # if we have a dict/list of lists, we compute the grand average and the CI
@@ -1490,9 +1488,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
            "you have provided keys in the format of '/'-separated tags, "
            "and that these correspond to '/'-separated tags for the condition "
            "names (e.g., conditions like 'Visual/Right', and styles like "
-           "`colors=dict(Visual='red'))`. The offending tag was '{1}'.")
-    for name_, item in zip(("colors", "linestyles"),
-                           (colors, linestyles)):
+           "'colors=dict(Visual='red'))'. The offending tag was '{1}'.")
+    for name_, item in zip(("colors", "linestyles"), (colors, linestyles)):
         if isinstance(item, dict):
             for key in item:
                 for tag in key.split("/"):
@@ -1501,7 +1498,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if isinstance(styles, dict):
         for style_ in styles:
             if style_ not in conditions:
-                raise ValueError("Could not map between `styles` and "
+                raise ValueError("Could not map between 'styles' and "
                                  "conditions. Condition " + style_ +
                                  " was not found in the supplied data.")
 
