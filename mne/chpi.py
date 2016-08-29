@@ -121,7 +121,8 @@ def head_pos_to_trans_rot_t(quats):
 # ############################################################################
 # Estimate positions from data
 
-def _get_hpi_info(info):
+@verbose
+def _get_hpi_info(info, adjust=False, verbose=None):
     """Helper to get HPI information from raw"""
     if len(info['hpi_meas']) == 0 or \
             ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
@@ -134,7 +135,6 @@ def _get_hpi_info(info):
                       if d['kind'] == FIFF.FIFFV_POINT_HPI],
                      key=lambda x: x['ident'])  # ascending (dig) order
     pos_order = hpi_result['order'] - 1  # zero-based indexing, dig->info
-    # hpi_result['dig_points'] are in FIFFV_COORD_UNKNOWN coords...?
 
     # this shouldn't happen, eventually we could add the transforms
     # necessary to put it in head coords
@@ -147,10 +147,47 @@ def _get_hpi_info(info):
                  % (len(hpi_result['used']),
                     ' '.join(str(h) for h in hpi_result['used'])))
     hpi_rrs = np.array([d['r'] for d in hpi_dig])[pos_order]
-    # errors = 1000 * np.sqrt((hpi_rrs - hpi_rrs_fit) ** 2).sum(axis=1)
-    # logger.debug('HPIFIT errors:  %s'
-    #              % ', '.join('%0.1f' % e for e in errors))
-    hpi_freqs = np.array([float(x['coil_freq']) for x in hpi_coils])
+
+    # Fitting errors
+    hpi_rrs_fit = sorted([d for d in info['hpi_results'][-1]['dig_points']],
+                         key=lambda x: x['ident'])
+    hpi_rrs_fit = np.array([d['r'] for d in hpi_rrs_fit])
+    # hpi_result['dig_points'] are in FIFFV_COORD_UNKNOWN coords, but this
+    # is probably a misnomer because it should be FIFFV_COORD_DEVICE for this
+    # to work
+    assert hpi_result['coord_trans']['to'] == FIFF.FIFFV_COORD_HEAD
+    hpi_rrs_fit = apply_trans(hpi_result['coord_trans']['trans'], hpi_rrs_fit)
+    if 'moments' in hpi_result:
+        logger.debug('Hpi coil moments (%d %d):'
+                     % hpi_result['moments'].shape[::-1])
+        for moment in hpi_result['moments']:
+            logger.debug("%g %g %g" % tuple(moment))
+    errors = np.sqrt(((hpi_rrs - hpi_rrs_fit) ** 2).sum(axis=1))
+    logger.debug('HPIFIT errors:  %s mm.'
+                 % ', '.join('%0.1f' % (1000. * e) for e in errors))
+    if errors.sum() < len(errors) * hpi_result['dist_limit']:
+        logger.info('HPI consistency of isotrak and hpifit is OK.')
+    elif not adjust and (len(hpi_result['used']) == len(hpi_coils)):
+        warn('HPI consistency of isotrak and hpifit is poor.')
+    else:
+        # adjust HPI coil locations using the hpifit transformation
+        for hi, (r_dig, r_fit) in enumerate(zip(hpi_rrs, hpi_rrs_fit)):
+            # transform to head frame
+            d = 1000 * np.sqrt(((r_dig - r_fit) ** 2).sum())
+            if not adjust:
+                warn('Discrepancy of HPI coil %d isotrak and hpifit is %.1f '
+                     'mm!' % (hi + 1, d))
+            elif hi + 1 not in hpi_result['used']:
+                if hpi_result['goodness'][hi] >= hpi_result['good_limit']:
+                    logger.info('Note: HPI coil %d isotrak is adjusted by '
+                                '%.1f mm!' % (hi + 1, d))
+                    hpi_rrs[hi] = r_fit
+                else:
+                    warn('Discrepancy of HPI coil %d isotrak and hpifit of '
+                         '%.1f mm was not adjusted!' % (hi + 1, d))
+    logger.debug('HP fitting limits: err = %.1f mm, gval = %.3f.'
+                 % (1000 * hpi_result['dist_limit'], hpi_result['good_limit']))
+
     # how cHPI active is indicated in the FIF file
     hpi_sub = info['hpi_subsystem']
     if 'event_channel' in hpi_sub:
@@ -162,6 +199,9 @@ def _get_hpi_info(info):
     # not all HPI coils will actually be used
     hpi_on = np.array([hpi_on[hc['number'] - 1] for hc in hpi_coils])
     assert len(hpi_coils) == len(hpi_on)
+
+    # get frequencies
+    hpi_freqs = np.array([float(x['coil_freq']) for x in hpi_coils])
     logger.info('Using %s HPI coils: %s Hz'
                 % (len(hpi_freqs), ' '.join(str(int(s)) for s in hpi_freqs)))
     return hpi_freqs, hpi_rrs, hpi_pick, hpi_on, pos_order
@@ -472,10 +512,9 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                     % ((use_mask.sum(), n_freqs) + vs))
         # resulting errors in head coil positions
         est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
-        errs = 1000. * np.sqrt(np.sum((hpi['coil_head_rrs'] -
-                                       est_coil_head_rrs) ** 2,
-                                      axis=1))
-        e = 0.  # XXX eventually calculate this -- cumulative error of fit?
+        errs = 1000. * np.sqrt(((hpi['coil_head_rrs'] -
+                                 est_coil_head_rrs) ** 2).sum(axis=-1))
+        e = errs.mean() / 1000.  # mm -> m
         d = 100 * np.sqrt(np.sum(last['quat'][3:] - this_quat[3:]) ** 2)  # cm
         r = _angle_between_quats(last['quat'][:3], this_quat[:3]) / dt
         v = d / dt  # cm/sec
