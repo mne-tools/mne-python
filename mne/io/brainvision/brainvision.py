@@ -170,7 +170,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     # we don't actually need to know the coding for the header line.
     # the characters in it all belong to ASCII and are thus the
     # same in Latin-1 and UTF-8
-    header = txt.decode('ascii','ignore').split('\n')[0].strip()
+    header = txt.decode('ascii', 'ignore').split('\n')[0].strip()
     _check_mrk_version(header)
     if (response_trig_shift is not None and
             not isinstance(response_trig_shift, int)):
@@ -187,7 +187,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         # if there is an explicit codepage set, use it
         # we pretend like it's ascii when searching for the codepage
         cp_setting = re.search('Codepage=(.+)',
-                               txt.decode('ascii','ignore'),
+                               txt.decode('ascii', 'ignore'),
                                re.IGNORECASE & re.MULTILINE)
         if cp_setting:
             codepage = cp_setting.group(1).strip()
@@ -326,7 +326,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         # we don't actually need to know the coding for the header line.
         # the characters in it all belong to ASCII and are thus the
         # same in Latin-1 and UTF-8
-        header = header.decode('ascii','ignore').strip()
+        header = header.decode('ascii', 'ignore').strip()
         _check_hdr_version(header)
 
         settings = f.read()
@@ -334,7 +334,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             # if there is an explicit codepage set, use it
             # we pretend like it's ascii when searching for the codepage
             cp_setting = re.search('Codepage=(.+)',
-                                   settings.decode('ascii','ignore'),
+                                   settings.decode('ascii', 'ignore'),
                                    re.IGNORECASE & re.MULTILINE)
             if cp_setting:
                 codepage = cp_setting.group(1).strip()
