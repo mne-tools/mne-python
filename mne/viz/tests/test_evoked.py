@@ -148,7 +148,7 @@ def test_plot_evoked():
         # test a bunch of params at once
         plot_compare_evokeds(contrast, colors=colors, linestyles=linestyles,
                              picks=[0, 2], vlines=[.01, -.04], invert_y=True,
-                             truncate_yaxis=False, ymax=10, ymin=-10,
+                             truncate_yaxis=False, ylim=dict(mag=(-10, 10)),
                              styles={"red/stim": {"linewidth": 1}})
         assert_raises(ValueError, plot_compare_evokeds,
                       contrast, picks='str')  # bad picks: not int
@@ -162,7 +162,8 @@ def test_plot_evoked():
                       picks=3)  # evoked must contain Evokeds
         contrast["red/stim"] = red
         contrast["blue/stim"] = blue
-        plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'], ymin=1)
+        plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
+                             ylim=dict(mag=(1, 10)))
 
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()

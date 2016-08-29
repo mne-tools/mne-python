@@ -1236,8 +1236,8 @@ def _setup_styles(conditions, style_dict, style, default):
 
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          linestyles=['-'], styles=None, vlines=[0.], ci=0.95,
-                         truncate_yaxis=True, ymin=None, ymax=None,
-                         invert_y=False, ax=None, title=None, show=True):
+                         truncate_yaxis=True, ylim=dict(), invert_y=False,
+                         ax=None, title=None, show=True):
     """Plot evoked time courses for one or multiple channels and conditions
 
     This function is useful for comparing ER[P/F]s at a specific location. It
@@ -1302,6 +1302,11 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     truncate_yaxis : bool
         If True, the left y axis is truncated to half the max value and
         rounded to .25 to reduce visual clutter. Defaults to True.
+    ylim : dict | None
+        ylim for plots (after scaling has been applied). e.g.
+        ylim = dict(eeg=[-20, 20])
+        Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
+        for each channel equals the pyplot default.
     invert_y : bool
         If True, negative values are plotted up (as is sometimes done
         for ERPs out of tradition). Defaults to False.
@@ -1309,8 +1314,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         What axes to plot to. If None, a new axes is created.
         When plotting multiple channel types, can also be a list of axes, one
         per channel type.
-    ymin, ymax : float | None
-        If not `None`, can be used to manually scale the y axis.
     title : None | str
         If str, will be plotted as figure title. If None, the channel
         names will be shown.
@@ -1355,8 +1358,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     # deal with picks: infer indices and names
     if gfp is True:
-        if ymin is None:
-            ymin = 0
         ch_names = ['Global Field Power']
     else:
         if not isinstance(picks[0], int):
@@ -1385,11 +1386,15 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                 plot_compare_evokeds(
                     evokeds, picks=picks_, gfp=gfp, colors=colors,
                     linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
-                    truncate_yaxis=truncate_yaxis, ymin=ymin, ymax=ymax,
+                    truncate_yaxis=truncate_yaxis, ylim=ylim,
                     invert_y=invert_y, ax=ax_, title=title_, show=show))
         return figs
     else:
         ch_type = ch_types[0]
+        ymin = ylim.get(ch_type, [None, None])[0]
+        ymax = ylim.get(ch_type, [None, None])[1]
+        if gfp is True and ymin is None:
+            ymin = 0
 
     scaling = _handle_default("scalings")[ch_type]
 
@@ -1478,7 +1483,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         colors = dict((condition, color) for condition, color
                       in zip(conditions, colors))
 
-    if not isinstance(colors, dict):  # default colors
+    if not isinstance(colors, dict):  # default colors from M Waskom's Seaborn
         # XXX should put a good list of default colors into defaults.py
         colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
                    '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
@@ -1542,7 +1547,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     fraction = 2 if ax.get_ylim()[0] >= 0 else 3
 
-    if truncate_yaxis and not (ymin > 0):
+    if truncate_yaxis and ymin is not None and not (ymin > 0):
         abs_lims = (orig_ymax if orig_ymax > np.abs(orig_ymin)
                     else np.abs(orig_ymin))
         ymin_, ymax_ = (-(abs_lims // fraction), abs_lims // fraction)
@@ -1567,7 +1572,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             ymax_bound = round(ymax_bound / precision) * precision
         ax.spines['left'].set_bounds(ymin_bound, ymax_bound)
     else:
-        if ymin > 0:
+        if ymin is not None and ymin > 0:
             warn("ymin is positive, not truncating yaxis")
         ymax_bound = ax.get_ylim()[-1]
     y_range = -np.subtract(*ax.get_ylim())
