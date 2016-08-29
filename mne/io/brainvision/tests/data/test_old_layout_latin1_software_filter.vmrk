@@ -1,0 +1,14 @@
+Brain Vision Data Exchange Marker File, Version 1.0
+; Data created from the EEGLAB software and modified by hand
+; The channel numbers are related to the channels in the exported file.
+
+[Common Infos]
+DataFile=test_old_layout_latin1_software_filter.eeg
+
+[Marker Infos]
+; Each entry: Mk<Marker number>=<Type>,<Description>,<Position in data points>,
+; <Size in data points>, <Channel number (0 = marker is related to all channels)>,
+; <Date (YYYYMMDDhhmmssuuuuuu)>
+; Fields are delimited by commas, some fields might be omitted (empty).
+; Commas in type or description text are coded as "".
+Mk1=New Segment,,1,1,0,20070716122240937454

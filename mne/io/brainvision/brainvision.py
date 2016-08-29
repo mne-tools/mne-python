@@ -4,6 +4,8 @@
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
+#          Phillip Alday <phillip.alday@unisa.edu.au>
 #
 # License: BSD (3-clause)
 
@@ -44,9 +46,8 @@ class RawBrainVision(_BaseRaw):
         in the vhdr file. If 'auto', units in vhdr file are used for inferring
         misc channels. Default is ``'auto'``.
     scale : float
-        The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1. For microvolts, the scale factor would be 1e-6. This is
-        used when the header file does not specify the scale factor.
+        The scaling factor for EEG data. Unless specified otherwise by
+        header file, units are in microvolts. Default scale factor is 1.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
@@ -164,13 +165,38 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         event_id = dict()
     # read vmrk file
     with open(fname, 'rb') as fid:
-        txt = fid.read().decode('utf-8')
+        txt = fid.read()
 
-    header = txt.split('\n')[0].strip()
+    # we don't actually need to know the coding for the header line.
+    # the characters in it all belong to ASCII and are thus the
+    # same in Latin-1 and UTF-8
+    header = txt.decode('ascii', 'ignore').split('\n')[0].strip()
     _check_mrk_version(header)
     if (response_trig_shift is not None and
             not isinstance(response_trig_shift, int)):
         raise TypeError("response_trig_shift must be an integer or None")
+
+    # although the markers themselves are guaranteed to be ASCII (they
+    # consist of numbers and a few reserved words), we should still
+    # decode the file properly here because other (currently unused)
+    # blocks, such as that the filename are specifying are not
+    # guaranteed to be ASCII.
+
+    codepage = 'utf-8'
+    try:
+        # if there is an explicit codepage set, use it
+        # we pretend like it's ascii when searching for the codepage
+        cp_setting = re.search('Codepage=(.+)',
+                               txt.decode('ascii', 'ignore'),
+                               re.IGNORECASE & re.MULTILINE)
+        if cp_setting:
+            codepage = cp_setting.group(1).strip()
+        txt = txt.decode(codepage)
+    except UnicodeDecodeError:
+        # if UTF-8 (new standard) or explicit codepage setting fails,
+        # fallback to Latin-1, which is Windows default and implicit
+        # standard in older recordings
+        txt = txt.decode('latin-1')
 
     # extract Marker Infos block
     m = re.search("\[Marker Infos\]", txt)
@@ -269,9 +295,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         in the vhdr file. If 'auto', units in vhdr file are used for inferring
         misc channels. Default is ``'auto'``.
     scale : float
-        The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1.. For microvolts, the scale factor would be 1e-6. This is
-        used when the header file does not specify the scale factor.
+        The scaling factor for EEG data. Unless specified otherwise by
+        header file, units are in microvolts. Default scale factor is 1.
     montage : str | True | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
@@ -296,9 +321,29 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                       "not the '%s' file." % ext)
     with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
-        header = f.readline().decode('utf-8').strip()
+        header = f.readline()
+        codepage = 'utf-8'
+        # we don't actually need to know the coding for the header line.
+        # the characters in it all belong to ASCII and are thus the
+        # same in Latin-1 and UTF-8
+        header = header.decode('ascii', 'ignore').strip()
         _check_hdr_version(header)
-        settings = f.read().decode('utf-8')
+
+        settings = f.read()
+        try:
+            # if there is an explicit codepage set, use it
+            # we pretend like it's ascii when searching for the codepage
+            cp_setting = re.search('Codepage=(.+)',
+                                   settings.decode('ascii', 'ignore'),
+                                   re.IGNORECASE & re.MULTILINE)
+            if cp_setting:
+                codepage = cp_setting.group(1).strip()
+            settings = settings.decode(codepage)
+        except UnicodeDecodeError:
+            # if UTF-8 (new standard) or explicit codepage setting fails,
+            # fallback to Latin-1, which is Windows default and implicit
+            # standard in older recordings
+            settings = settings.decode('latin-1')
 
     if settings.find('[Comment]') != -1:
         params, settings = settings.split('[Comment]')
@@ -339,8 +384,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0]) - 1
         props = props.split(',')
+        # default to microvolts because that's what the older brainvision
+        # standard explicitly assumed; the unit is only allowed to be
+        # something else if explicitly stated (cf. EEGLAB export below)
         if len(props) < 4:
-            props += ('V',)
+            props += (u'µV',)
         name, _, resolution, unit = props[:4]
         ch_dict[chan] = name
         ch_names[n] = name
@@ -383,55 +431,91 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     # set to zero.
     settings = settings.splitlines()
     idx = None
+
     if 'Channels' in settings:
         idx = settings.index('Channels')
         settings = settings[idx + 1:]
+        hp_col, lp_col = 4, 5
         for idx, setting in enumerate(settings):
             if re.match('#\s+Name', setting):
                 break
             else:
                 idx = None
 
+    # If software filters are active, then they override the hardware setup
+    # But we still want to be able to double check the channel names
+    # for alignment purposes, we keep track of the hardware setting idx
+    idx_amp = idx
+
+    if 'S o f t w a r e  F i l t e r s' in settings:
+        idx = settings.index('S o f t w a r e  F i l t e r s')
+        for idx, setting in enumerate(settings[idx + 1:], idx + 1):
+            if re.match('#\s+Low Cutoff', setting):
+                hp_col, lp_col = 1, 2
+                warn('Online software filter detected. Using software '
+                     'filter settings and ignoring hardware values')
+                break
+            else:
+                idx = idx_amp
+
     if idx:
         lowpass = []
         highpass = []
+
+        # extract filter units and convert s to Hz if necessary
+        # this cannot be done as post-processing as the inverse t-f
+        # relationship means that the min/max comparisons don't make sense
+        # unless we know the units
+        header = re.split('\s\s+', settings[idx])
+        hp_s = '[s]' in header[hp_col]
+        lp_s = '[s]' in header[lp_col]
+
         for i, ch in enumerate(ch_names[:-1], 1):
-            line = settings[idx + i].split()
-            assert ch in line
-            highpass.append(line[5])
-            lowpass.append(line[6])
+            line = re.split('\s\s+', settings[idx + i])
+            # double check alignment with channel by using the hw settings
+            # the actual divider is multiple spaces -- for newer BV
+            # files, the unit is specified for every channel separated
+            # by a single space, while for older files, the unit is
+            # specified in the column headers
+            if idx == idx_amp:
+                line_amp = line
+            else:
+                line_amp = re.split('\s\s+', settings[idx_amp + i])
+            assert ch in line_amp
+            highpass.append(line[hp_col])
+            lowpass.append(line[lp_col])
         if len(highpass) == 0:
             pass
-        elif all(highpass):
-            if highpass[0] == 'NaN':
+        elif len(set(highpass)) == 1:
+            if highpass[0] in ('NaN', 'Off'):
                 pass  # Placeholder for future use. Highpass set in _empty_info
             elif highpass[0] == 'DC':
                 info['highpass'] = 0.
             else:
                 info['highpass'] = float(highpass[0])
+                if hp_s:
+                    info['highpass'] = 1. / info['highpass']
         else:
-            info['highpass'] = np.min(np.array(highpass, dtype=np.float))
+            if hp_s:
+                info['highpass'] = np.min(np.array(highpass, dtype=np.float))
+                info['highpass'] = 1. / info['highpass']
+            else:
+                info['highpass'] = np.max(np.array(highpass, dtype=np.float))
             warn('Channels contain different highpass filters. Highest filter '
                  'setting will be stored.')
         if len(lowpass) == 0:
             pass
-        elif all(lowpass):
-            if lowpass[0] == 'NaN':
+        elif len(set(lowpass)) == 1:
+            if lowpass[0] in ('NaN', 'Off'):
                 pass  # Placeholder for future use. Lowpass set in _empty_info
             else:
                 info['lowpass'] = float(lowpass[0])
+                if lp_s:
+                    info['lowpass'] = 1. / info['lowpass']
         else:
             info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
             warn('Channels contain different lowpass filters. Lowest filter '
                  'setting will be stored.')
-
-        # Post process highpass and lowpass to take into account units
-        header = settings[idx].split('  ')
-        header = [h for h in header if len(h)]
-        if '[s]' in header[4] and (info['highpass'] > 0):
-            info['highpass'] = 1. / info['highpass']
-        if '[s]' in header[5]:
-            info['lowpass'] = 1. / info['lowpass']
 
     # locate EEG and marker files
     path = os.path.dirname(vhdr_fname)
@@ -499,9 +583,8 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         in the vhdr file. If 'auto', units in vhdr file are used for inferring
         misc channels. Default is ``'auto'``.
     scale : float
-        The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1. For microvolts, the scale factor would be 1e-6. This is
-        used when the header file does not specify the scale factor.
+        The scaling factor for EEG data. Unless specified otherwise by
+        header file, units are in microvolts. Default scale factor is 1.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
