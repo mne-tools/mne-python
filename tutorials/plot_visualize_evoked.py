@@ -136,9 +136,9 @@ print(evoked_dict)
 
 colors = dict(Left="Crimson", Right="CornFlowerBlue")
 linestyles = dict(Auditory='-', visual='--')
-picks = evoked_dict["Left/Auditory"].ch_names.index('MEG 1811')
+pick = evoked_dict["Left/Auditory"].ch_names.index('MEG 1811')
 
-mne.viz.plot_compare_evokeds(evoked_dict, picks=picks,
+mne.viz.plot_compare_evokeds(evoked_dict, picks=pick,
                              colors=colors, linestyles=linestyles)
 
 ###############################################################################
