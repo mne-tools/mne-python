@@ -18,6 +18,10 @@ skip_files = (
     'test_edf_stim_channel.txt',
     'FieldTrip.py',
     'license.txt',
+    # part of testing compatibility with older BV formats is testing
+    # the line endings and coding schemes used there
+    'test_old_layout_latin1_software_filter.vhdr',
+    'test_old_layout_latin1_software_filter.vmrk'
 )
 
 
