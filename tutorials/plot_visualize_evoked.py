@@ -117,14 +117,14 @@ evoked_r_aud.plot_joint(title='right auditory', times=[.07, .105],
 ###############################################################################
 # Sometimes, you may want to compare two conditions at a selection of sensors,
 # or e.g. for the Global Field Power. For this, you can use the function
-# `mne.viz.evoked.plot_compare_evokeds`. The easiest way is to create a
-# Python dictionary, where the keys are condition names and the values are
-# `mne.Evoked` objects (if you provide lists of `mne.Evoked` objects, such as
+# `mne.viz.plot_compare_evokeds`. The easiest way is to create a  Python
+# dictionary, where the keys are condition names and the values are
+# `mne.Evoked` objects. If you provide lists of `mne.Evoked` objects, such as
 # those for multiple subjects, the grand average is plotted, along with a
 # confidence interval band - this can be used to contrast conditions for
-# a whole experiment).
+# a whole experiment.
 # First, we load in the evoked objects into a dictionary, setting the keys to
-# '/'-separated tags. Then, we plot with `mne.viz.evoked.plot_compare_evokeds`.
+# '/'-separated tags. Then, we plot with `mne.viz.plot_compare_evokeds`.
 # The plot is styled with dictionary arguments, again using "/"-separated tags.
 # We plot a MEG channel with a strong auditory response.
 conditions = ["Left Auditory", "Right Auditory", "Left visual", "Right visual"]

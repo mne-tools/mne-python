@@ -1325,8 +1325,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     Returns
     -------
-    fig : Figure
-        The figure in which the plot is drawn.
+    fig : Figure | list of Figures
+        The figure(s) in which the plot is drawn.
     """
     import matplotlib.pyplot as plt
     from ..evoked import Evoked
@@ -1348,8 +1348,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                if isinstance(evokeds[conditions[0]], Evoked)
                else evokeds[conditions[0]][0])
     if not isinstance(example, Evoked):
-            raise ValueError("evokeds must be an `mne.Evoked` "
-                             "or of a collection of `mne.Evoked`s")
+        raise ValueError("evokeds must be an instance of mne.Evoked "
+                         "or a collection of mne.Evoked's")
     times = example.times
     tmin, tmax = times[0], times[-1]
 
