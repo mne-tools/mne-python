@@ -35,6 +35,7 @@ sss_hpisubt_fname = op.join(data_path, 'SSS', 'test_move_anon_hpisubt_raw.fif')
 warnings.simplefilter('always')
 
 
+@testing.requires_testing_data
 def test_chpi_adjust():
     """Test cHPI logging and adjustment"""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
@@ -95,8 +96,7 @@ def test_read_write_head_pos():
 
 @testing.requires_testing_data
 def test_hpi_info():
-    """Test getting HPI info
-    """
+    """Test getting HPI info"""
     tempdir = _TempDir()
     temp_name = op.join(tempdir, 'temp_raw.fif')
     for fname in (chpi_fif_fname, sss_fif_fname):
@@ -145,8 +145,7 @@ def _compare_positions(a, b, max_dist=0.003, max_angle=5.):
 @requires_version('scipy', '0.11')
 @requires_version('numpy', '1.7')
 def test_calculate_chpi_positions():
-    """Test calculation of cHPI positions
-    """
+    """Test calculation of cHPI positions"""
     trans, rot, t = head_pos_to_trans_rot_t(read_head_pos(pos_fname))
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
     t -= raw.first_samp / raw.info['sfreq']
