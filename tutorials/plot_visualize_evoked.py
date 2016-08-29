@@ -133,9 +133,12 @@ for condition in conditions:
     evoked_dict[condition.replace(" ", "/")] = mne.read_evokeds(
         fname, baseline=(None, 0), proj=True, condition=condition)
 print(evoked_dict)
+
 colors = dict(Left="Crimson", Right="CornFlowerBlue")
 linestyles = dict(Auditory='-', visual='--')
-mne.viz.plot_compare_evokeds(evoked_dict, picks=200,
+picks = evoked_dict["Left/Auditory"].ch_names.index('MEG 1811')
+
+mne.viz.plot_compare_evokeds(evoked_dict, picks=picks,
                              colors=colors, linestyles=linestyles)
 
 ###############################################################################

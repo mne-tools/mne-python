@@ -1329,7 +1329,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         The figure(s) in which the plot is drawn.
     """
     import matplotlib.pyplot as plt
-    from ..evoked import Evoked
+    from ..evoked import Evoked, combine_evoked
 
     # set up labels and instances
     if isinstance(evokeds, Evoked):
@@ -1422,7 +1422,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     # if we have a dict/list of lists, we compute the grand average and the CI
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
-        from ..evoked import combine_evoked
         if ci is not None and gfp is not True:
             # calculate the CI
             sem_array = {}
@@ -1447,6 +1446,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             warn("Confidence Interval not drawn when plotting GFP.")
     else:
         ci = False
+        combine_evoked(list(evokeds.values()))  # check if they are compatible
     # we now have dicts for data ('evokeds' - grand averaged Evoked's)
     # and the CI ('sem_array') with cond name labels
 
