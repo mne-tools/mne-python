@@ -8,7 +8,6 @@ from __future__ import print_function
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Cathy Nangini <cnangini@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: Simplified BSD
 
@@ -1234,6 +1233,35 @@ def _setup_styles(conditions, style_dict, style, default):
     return style_dict
 
 
+def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
+                    any_positive, any_negative):
+    """Aux function for truncating the y axis in plot_compare_evokeds"""
+    abs_lims = (orig_ymax if orig_ymax > np.abs(orig_ymin)
+                else np.abs(orig_ymin))
+    ymin_, ymax_ = (-(abs_lims // fraction), abs_lims // fraction)
+    # user supplied ymin and ymax overwrite everything
+    if ymin is not None and ymin > ymin_:
+        ymin_ = ymin
+    if ymax is not None and ymax < ymax_:
+        ymax_ = ymax
+    axes.set_yticks((ymin_ if any_negative else 0,
+                     ymax_ if any_positive else 0))
+    ymin_bound, ymax_bound = (-(abs_lims // fraction),
+                              abs_lims // fraction)
+    # user supplied ymin and ymax overwrite everything
+    if ymin is not None and ymin > ymin_bound:
+        ymin_bound = ymin
+    if ymax is not None and ymax < ymax_bound:
+        ymax_bound = ymax
+    precision = 0.25  # round to .25
+    if ymin is None:
+        ymin_bound = round(ymin_bound / precision) * precision
+    if ymin is None:
+        ymax_bound = round(ymax_bound / precision) * precision
+    axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
+    return ymin_bound, ymax_bound
+
+
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          linestyles=['-'], styles=None, vlines=[0.], ci=0.95,
                          truncate_yaxis=True, ylim=dict(), invert_y=False,
@@ -1371,10 +1399,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     ch_types = list(set(channel_type(example.info, pick_)
                     for pick_ in picks))
     # XXX: could possibly be refactored; plot_joint is doing a similar thing
-    data_types = ['eeg', 'grad', 'mag', 'seeg', 'ecog']
-    if any([type_ not in data_types for type_ in ch_types]):
+    if any([type_ not in _DATA_CH_TYPES_SPLIT for type_ in ch_types]):
         raise ValueError("Non-data channel picked.")
-
     if len(ch_types) > 1:
         warn("Multiple channel types selected, returning one figure per type.")
         if axes is not None and len(axes) != len(ch_types):
@@ -1540,7 +1566,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                               sem_[1].flatten() * scaling, zorder=100,
                               color=styles[condition]['c'], alpha=.333)
 
-    # truncate the y axis ... yes, it's that complicated
+    # truncate the y axis
     orig_ymin, orig_ymax = axes.get_ylim()[0], axes.get_ylim()[-1]
     if not any_positive:
         orig_ymax = 0
@@ -1553,29 +1579,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     fraction = 2 if axes.get_ylim()[0] >= 0 else 3
 
     if truncate_yaxis and ymin is not None and not (ymin > 0):
-        abs_lims = (orig_ymax if orig_ymax > np.abs(orig_ymin)
-                    else np.abs(orig_ymin))
-        ymin_, ymax_ = (-(abs_lims // fraction), abs_lims // fraction)
-        # user supplied ymin and ymax overwrite everything
-        if ymin is not None and ymin > ymin_:
-            ymin_ = ymin
-        if ymax is not None and ymax < ymax_:
-            ymax_ = ymax
-        axes.set_yticks((ymin_ if any_negative else 0,
-                         ymax_ if any_positive else 0))
-        ymin_bound, ymax_bound = (-(abs_lims // fraction),
-                                  abs_lims // fraction)
-        # user supplied ymin and ymax overwrite everything
-        if ymin is not None and ymin > ymin_bound:
-            ymin_bound = ymin
-        if ymax is not None and ymax < ymax_bound:
-            ymax_bound = ymax
-        precision = 0.25  # round to .25
-        if ymin is None:
-            ymin_bound = round(ymin_bound / precision) * precision
-        if ymin is None:
-            ymax_bound = round(ymax_bound / precision) * precision
-        axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
+        ymin_bound, ymax_bound = _truncate_yaxis(
+            axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
+            any_positive, any_negative)
     else:
         if ymin is not None and ymin > 0:
             warn("ymin is positive, not truncating yaxis")
