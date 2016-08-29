@@ -162,7 +162,7 @@ def test_plot_evoked():
                       picks=3)  # evoked must contain Evokeds
         contrast["red/stim"] = red
         contrast["blue/stim"] = blue
-        plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'], ymax=0)
+        plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'], ymin=1)
 
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()

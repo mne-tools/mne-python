@@ -75,7 +75,7 @@ def _butterfly_on_button_press(event, params):
 def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
     """Function for drawing topomaps from the selected area."""
     import matplotlib.pyplot as plt
-    ch_types = [type for type in ch_types if type in ('eeg', 'grad', 'mag')]
+    ch_types = [type_ for type_ in ch_types if type_ in ('eeg', 'grad', 'mag')]
     if ('grad' in ch_types and
             len(_pair_grad_sensors(evoked.info, topomap_coords=False,
                                    raise_error=False)) < 2):
@@ -1360,14 +1360,14 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         ch_names = ['Global Field Power']
     else:
         if not isinstance(picks[0], int):
-            raise ValueError("`picks` must be int or a list of int, "
-                             "not " + str(type(picks)))
+            msg = "`picks` must be int or a list of int, not {0}."
+            raise ValueError(msg.format(type(picks)))
         ch_names = [example.ch_names[pick] for pick in picks]
     ch_types = list(set(channel_type(example.info, pick_)
                     for pick_ in picks))
     # XXX: could possibly be refactored; plot_joint is doing a similar thing
     data_types = ['eeg', 'grad', 'mag', 'seeg', 'ecog']
-    if any([type not in data_types for type in ch_types]):
+    if any([type_ not in data_types for type_ in ch_types]):
         raise ValueError("Non-data channel picked.")
 
     if len(ch_types) > 1:
@@ -1384,10 +1384,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             figs.append(
                 plot_compare_evokeds(
                     evokeds, picks=picks_, gfp=gfp, colors=colors,
-                         linestyles=linestyles, styles=styles, vlines=vlines,
-                         ci=ci, truncate_yaxis=truncate_yaxis, ymin=ymin,
-                         ymax=ymax, invert_y=invert_y, ax=ax_, title=title_,
-                         show=show))
+                    linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
+                    truncate_yaxis=truncate_yaxis, ymin=ymin, ymax=ymax,
+                    invert_y=invert_y, ax=ax_, title=title_, show=show))
         return figs
     else:
         ch_type = ch_types[0]
@@ -1408,11 +1407,12 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         if ymin is None:  # 'grad' is plotted as all-positive
             ymin = 0
 
-    # deal with dict/list of lists, and calculate the CI
+    # deal with dict/list of lists and the CI
     if not isinstance(ci, np.float):
         msg = '`ci` must be float, got {0} instead.'
         raise TypeError(msg.format(type(ci)))
 
+    # if we have a dict/list of lists, we compute the grand average and the CI
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
         from ..evoked import combine_evoked
         if ci is not None and gfp is not True:
@@ -1479,6 +1479,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                       in zip(conditions, colors))
 
     if not isinstance(colors, dict):  # default colors
+        # XXX should put a good list of default colors into defaults.py
         colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
                    '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
         if len(conditions) > len(colors_):
@@ -1541,7 +1542,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     fraction = 2 if ax.get_ylim()[0] >= 0 else 3
 
-    if truncate_yaxis:
+    if truncate_yaxis and not (ymin > 0):
         abs_lims = (orig_ymax if orig_ymax > np.abs(orig_ymin)
                     else np.abs(orig_ymin))
         ymin_, ymax_ = (-(abs_lims // fraction), abs_lims // fraction)
@@ -1566,6 +1567,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             ymax_bound = round(ymax_bound / precision) * precision
         ax.spines['left'].set_bounds(ymin_bound, ymax_bound)
     else:
+        if ymin > 0:
+            warn("ymin is positive, not truncating yaxis")
         ymax_bound = ax.get_ylim()[-1]
     y_range = -np.subtract(*ax.get_ylim())
 
