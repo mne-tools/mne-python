@@ -1262,25 +1262,28 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         will be selected.
         If multiple channel types are selected, one figure will be returned for
         each channel type.
-        If an empty list, 'gfp' will be set to True.
+        If an empty list, `gfp` will be set to True, and the Global Field
+        Power plotted.
     gfp : bool
         If True, the channel type wise GFP is plotted.
-        Note that if picks is an empty list (default), this is set to True.
+        If `picks` is an empty list (default), this is set to True.
     colors : list | dict | None
         If a list, will be sequentially used for line colors.
         If a dict, can map evoked keys or '/'-separated (HED) tags to
         conditions.
         For example, if `evokeds` is a dict with the keys "Aud/L", "Aud/R",
-        "Vis/L", "Vis/R", `colors` can be dict(Aud='r', Vis='b') to map both
-        Aud/L and Aud/R to the color red.
-        If None (default), a sequence of 10 desaturated colors is used.
+        "Vis/L", "Vis/R", `colors` can be `dict(Aud='r', Vis='b')` to map both
+        Aud/L and Aud/R to the color red and both Visual conditions to blue.
+        If None (default), a sequence of desaturated colors is used.
     linestyles : list | dict
-        If a list, will be sequentially used for evoked plot linestyles.
+        If a list, will be sequentially and repeatedly used for evoked plot
+        linestyles.
         If a dict, can map the `evoked` keys or '/'-separated (HED) tags to
         conditions.
         For example, if evokeds is a dict with the keys "Aud/L", "Aud/R",
-        "Vis/L", "Vis/R", `linestyles` can be dict(L='--', R='-') to map both
-        Aud/L and Vis/L to dashed lines.
+        "Vis/L", "Vis/R", `linestyles` can be `dict(L='--', R='-')` to map both
+        Aud/L and Vis/L to dashed lines and both Right-side conditions to
+        straight lines.
     styles : dict | None
         If a dict, keys must map to evoked keys or conditions, and values must
         be a dict of legal inputs to `matplotlib.pyplot.plot`. These
@@ -1289,8 +1292,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         E.g., if evokeds is a dict with the keys "Aud/L", "Aud/R",
         "Vis/L", "Vis/R", `styles` can be `{"Aud/L":{"linewidth":1}}` to set
         the linewidth for "Aud/L" to 1. Note that HED ('/'-separated) tags are
-        not supported for now.
-    vlines : list
+        not supported.
+    vlines : list of int
         A list of integers corresponding to the positions, in seconds,
         at which to plot dashed vertical lines.
     ci : float | None
@@ -1353,6 +1356,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if isinstance(picks, int):
         picks = [picks]
     elif len(picks) == 0:
+        warn("No picks, plotting the GFP ...")
         gfp = True
         picks = _pick_data_channels(example.info)
 
@@ -1393,8 +1397,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         ch_type = ch_types[0]
         ymin = ylim.get(ch_type, [None, None])[0]
         ymax = ylim.get(ch_type, [None, None])[1]
-        if gfp is True and ymin is None:
-            ymin = 0
 
     scaling = _handle_default("scalings")[ch_type]
 
@@ -1409,8 +1411,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                 picked_chans.append(second)
         picks = list(sorted(set(picked_chans)))
         ch_names = [example.ch_names[pick] for pick in picks]
-        if ymin is None:  # 'grad' is plotted as all-positive
-            ymin = 0
+
+    if ymin is None and (gfp is True or ch_type == 'grad'):
+        ymin = 0  # 'grad' and GFP are plotted as all-positive
 
     # deal with dict/list of lists and the CI
     if not isinstance(ci, np.float):
@@ -1444,7 +1447,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             warn("Confidence Interval not drawn when plotting GFP.")
     else:
         ci = False
-    # we not have dicts for data ('evokeds' - grand averaged Evoked's)
+    # we now have dicts for data ('evokeds' - grand averaged Evoked's)
     # and the CI ('sem_array') with cond name labels
 
     # let's plot!
@@ -1511,6 +1514,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         styles[condition]['c'] = styles[condition].get('c', colors[condition])
         styles[condition]['linestyle'] = styles[condition].get(
             'linestyle', linestyles[condition])
+    # We now have a 'styles' dict with one entry per condition, specifying at
+    # least color and linestyles.
 
     # the actual plot
     any_negative, any_positive = False, False
@@ -1565,8 +1570,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             ymin_bound = ymin
         if ymax is not None and ymax < ymax_bound:
             ymax_bound = ymax
-        precision = 0.25
-        if ymin is None:  # round to .25
+        precision = 0.25  # round to .25
+        if ymin is None:
             ymin_bound = round(ymin_bound / precision) * precision
         if ymin is None:
             ymax_bound = round(ymax_bound / precision) * precision
@@ -1598,7 +1603,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     else:
         upper_v, lower_v = ax.get_ylim()[0], ymax_bound
     ax.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
-              linewidth=1.)
+              linewidth=1., zorder=10)
 
     # set x label
     ax.set_xlabel('Time (s)')
@@ -1616,7 +1621,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     ax.set_xticklabels(xticks)
     x_extrema = [t for t in xticks if tmax >= t >= tmin]
     ax.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
-    ax.spines["left"].set_zorder(20)
+    ax.spines["left"].set_zorder(1)
 
     # finishing touches
     if invert_y:
