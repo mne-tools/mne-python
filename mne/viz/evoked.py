@@ -1333,6 +1333,9 @@ def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
     example = (evokeds[conditions[0]]
                if isinstance(evokeds[conditions[0]], Evoked)
                else evokeds[conditions[0]][0])
+    if not isinstance(example, Evoked):
+            raise ValueError("evokeds must be an `mne.Evoked` "
+                             "or of a collection of `mne.Evoked`s")
     times = example.times
     tmin, tmax = times[0], times[-1]
 
@@ -1386,9 +1389,6 @@ def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
 
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
         from ..evoked import combine_evoked
-        if not isinstance(evokeds[conditions[0]][0], Evoked):
-            raise ValueError("evokeds must be an `mne.Evoked` "
-                             "or of a collection of `mne.Evoked`s")
         if ci is not None and picks is not 'gfp':
             # calculate the CI
             sem_array = {}
