@@ -444,7 +444,7 @@ Functions:
 
 EEG referencing:
 
-.. currentmodule:: mne.io
+.. currentmodule:: mne
 
 .. autosummary::
    :toctree: generated/

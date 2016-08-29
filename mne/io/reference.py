@@ -242,11 +242,12 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
     ref_channels : list of str | None
-        The names of the channels to use to construct the reference. If None is
-        specified here, an average reference will be applied in the form of an
-        SSP projector. If an empty list is specified, the data is assumed to
-        already have a proper reference and MNE will not attempt any
-        re-referencing of the data. Defaults to an average reference (None).
+        The names of the channels to use to construct the reference. If
+        None (default), an average reference will be added as an SSP
+        projector but not immediately applied to the data. If an empty list
+        is specified, the data is assumed to already have a proper reference
+        and MNE will not attempt any re-referencing of the data. Defaults
+        to an average reference (None).
     copy : bool
         Specifies whether the data will be copied (True) or modified in place
         (False). Defaults to True.
@@ -254,9 +255,12 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
     Returns
     -------
     inst : instance of Raw | Epochs | Evoked
-        Data with EEG channels re-referenced.
+        Data with EEG channels re-referenced. For ``ref_channels=None``,
+        an average projector will be added instead of directly subtarcting
+        data.
     ref_data : array
-        Array of reference data subtracted from EEG channels.
+        Array of reference data subtracted from EEG channels. This will
+        be None for an average reference.
 
     Notes
     -----

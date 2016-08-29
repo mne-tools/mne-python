@@ -329,13 +329,11 @@ def warn(message, category=RuntimeWarning):
     """
     import mne
     root_dir = op.dirname(mne.__file__)
-    stacklevel = 1
     frame = None
     stack = inspect.stack()
     last_fname = ''
     for fi, frame in enumerate(stack):
-        fname = frame[1]
-        del frame
+        fname, lineno = frame[1:3]
         if fname == '<string>' and last_fname == 'utils.py':  # in verbose dec
             last_fname = fname
             continue
@@ -344,12 +342,14 @@ def warn(message, category=RuntimeWarning):
         if not (fname.startswith(root_dir) or
                 ('unittest' in fname and 'case' in fname)) or \
                 op.basename(op.dirname(fname)) == 'tests':
-            stacklevel = fi + 1
             break
         last_fname = op.basename(fname)
-    del stack
     if logger.level <= logging.WARN:
-        warnings.warn(message, category, stacklevel=stacklevel)
+        # We need to use this instead of warn(message, category, stacklevel)
+        # because we move out of the MNE stack, so warnings won't properly
+        # recognize the module name (and our warnings.simplefilter will fail)
+        warnings.warn_explicit(message, category, fname, lineno,
+                               'mne', globals().get('__warningregistry__', {}))
     logger.warning(message)
 
 
