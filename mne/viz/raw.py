@@ -27,7 +27,6 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group)
 from ..defaults import _handle_default
-from ..annotations import _onset_to_seconds
 
 
 def _plot_update_raw_proj(params, bools):
@@ -331,14 +330,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                 segment_colors[key] = plt.cm.summer(color_vals[idx])
         params['segment_colors'] = segment_colors
         for idx, onset in enumerate(raw.annotations.onset[ann_order]):
-            annot_start = _onset_to_seconds(raw, onset)
-            annot_end = annot_start + raw.annotations.duration[ann_order][idx]
-            segments.append([annot_start, annot_end])
+            annot_end = onset + raw.annotations.duration[ann_order][idx]
+            segments.append([onset, annot_end])
             ylim = params['ax_hscroll'].get_ylim()
             dscr = descriptions[idx]
-            params['ax_hscroll'].fill_betweenx(ylim, annot_start, annot_end,
-                                               alpha=0.3,
-                                               color=segment_colors[dscr])
+            params['ax_hscroll'].fill_betweenx(
+                ylim, onset, annot_end, alpha=0.3, color=segment_colors[dscr])
         params['segments'] = np.array(segments)
         params['annot_description'] = descriptions
 
