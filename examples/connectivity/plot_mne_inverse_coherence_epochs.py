@@ -36,7 +36,7 @@ method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
 label_lh = mne.read_label(fname_label_lh)
-raw = mne.io.read_raw_fif(fname_raw)
+raw = mne.io.read_raw_fif(fname_raw, add_eeg_ref=False)
 events = mne.read_events(fname_event)
 
 # Add a bad channel
@@ -48,8 +48,8 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=dict(mag=4e-12, grad=4000e-13,
-                                                    eog=150e-6))
+                    add_eeg_ref=False, baseline=(None, 0),
+                    reject=dict(mag=4e-12, grad=4000e-13, eog=150e-6))
 
 # First, we find the most active vertex in the left auditory cortex, which
 # we will later use as seed for the connectivity computation
