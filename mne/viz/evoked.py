@@ -1390,6 +1390,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     # deal with picks: infer indices and names
     if gfp is True:
         ch_names = ['Global Field Power']
+        if len(picks) < 2:
+            raise ValueError("A GFP with less than 2 channels doesn't work, "
+                             "please pick more channels.")
     else:
         if not isinstance(picks[0], int):
             msg = "'picks' must be int or a list of int, not {0}."
@@ -1606,7 +1609,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     else:
         upper_v, lower_v = axes.get_ylim()[0], ymax_bound
     axes.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
-                linewidth=1., zorder=10)
+                linewidth=1., zorder=1)
 
     # set x label
     axes.set_xlabel('Time (s)')
@@ -1624,7 +1627,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     axes.set_xticklabels(xticks)
     x_extrema = [t for t in xticks if tmax >= t >= tmin]
     axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
-    axes.spines["left"].set_zorder(1)
+    axes.spines["left"].set_zorder(0)
 
     # finishing touches
     if invert_y:

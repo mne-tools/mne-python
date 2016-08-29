@@ -157,10 +157,14 @@ def test_plot_evoked():
                       colors=dict(fake=1))  # 'fake' not in conds
         assert_raises(ValueError, plot_compare_evokeds, evoked, picks=3,
                       styles=dict(fake=1))  # 'fake' not in conds
-        assert_raises(TypeError, plot_compare_evokeds, evoked, picks=3,
-                      ci='fake')  # ci must be float or None
         assert_raises(ValueError, plot_compare_evokeds, [[1, 2], [3, 4]],
                       picks=3)  # evoked must contain Evokeds
+        assert_raises(ValueError, plot_compare_evokeds, evoked, picks=3,
+                      styles=dict(err=1))  # bad styles dict
+        assert_raises(ValueError, plot_compare_evokeds, evoked, picks=3,
+                      gfp=True)  # no single-channel GFP
+        assert_raises(TypeError, plot_compare_evokeds, evoked, picks=3,
+                      ci='fake')  # ci must be float or None
         contrast["red/stim"] = red
         contrast["blue/stim"] = blue
         plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
