@@ -1234,8 +1234,8 @@ def _setup_styles(conditions, style_dict, style, default):
     return style_dict
 
 
-def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
-                         styles=None, vlines=[0.], ci=0.95,
+def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
+                         linestyles=['-'], styles=None, vlines=[0.], ci=0.95,
                          truncate_yaxis=True, ymin=None, ymax=None,
                          invert_y=False, ax=None, title=None, show=True):
     """Plot evoked time courses for one or multiple channels and conditions
@@ -1255,23 +1255,29 @@ def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
         series and the parametric confidence interval is plotted as a shaded
         area. All instances must have the same shape - channel numbers, time
         points etc.
-    picks : int | list of int | str
+    picks : int | list of int
         If int or list of int, the indices of the sensors to average and plot.
         Must all be of the same channel type.
         If the selected channels are gradiometers, the corresponding pairs
         will be selected.
-        If str, must be 'gfp', and the global field power for all data channels
-        is plotted.
+        If multiple channel types are selected, one figure will be returned for
+        each channel type.
+        If an empty list, 'gfp' will be set to True.
+    gfp : bool
+        If True, the channel type wise GFP is plotted.
+        Note that if picks is an empty list (default), this is set to True.
     colors : list | dict | None
         If a list, will be sequentially used for line colors.
-        If a dict, can map evoked keys or HED-like tags to conditions. For
-        example, if `evokeds` is a dict with the keys "Aud/L", "Aud/R",
+        If a dict, can map evoked keys or '/'-separated (HED) tags to
+        conditions.
+        For example, if `evokeds` is a dict with the keys "Aud/L", "Aud/R",
         "Vis/L", "Vis/R", `colors` can be dict(Aud='r', Vis='b') to map both
         Aud/L and Aud/R to the color red.
         If None (default), a sequence of 10 desaturated colors is used.
     linestyles : list | dict
         If a list, will be sequentially used for evoked plot linestyles.
-        If a dict, can map the `evoked` keys or HED-like tags to conditions.
+        If a dict, can map the `evoked` keys or '/'-separated (HED) tags to
+        conditions.
         For example, if evokeds is a dict with the keys "Aud/L", "Aud/R",
         "Vis/L", "Vis/R", `linestyles` can be dict(L='--', R='-') to map both
         Aud/L and Vis/L to dashed lines.
@@ -1295,12 +1301,14 @@ def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
         If None, no shaded confidence band is plotted.
     truncate_yaxis : bool
         If True, the left y axis is truncated to half the max value and
-        rounded to .25 to reduce visual clutter.
+        rounded to .25 to reduce visual clutter. Defaults to True.
     invert_y : bool
-        Controls wheter negative values are plotted up (as is sometimes done
+        If True, negative values are plotted up (as is sometimes done
         for ERPs out of tradition). Defaults to False.
-    ax : None | `matplotlib.pyplot.axes` instance
+    ax : None | `matplotlib.pyplot.axes` instance | list of `axes`
         What axes to plot to. If None, a new axes is created.
+        When plotting multiple channel types, can also be a list of axes, one
+        per channel type.
     ymin, ymax : float | None
         If not `None`, can be used to manually scale the y axis.
     title : None | str
@@ -1339,36 +1347,54 @@ def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
     times = example.times
     tmin, tmax = times[0], times[-1]
 
+    if isinstance(picks, int):
+        picks = [picks]
+    elif len(picks) == 0:
+        gfp = True
+        picks = _pick_data_channels(example.info)
+
     # deal with picks: infer indices and names
-    if picks == 'gfp':
+    if gfp is True:
         if ymin is None:
             ymin = 0
-        gfp_picks = pick_types(example.info, eeg=True, meg=True, seeg=True,
-                               ecog=True)
-        ch_types = list(set([channel_type(example.info, pick)
-                             for pick in gfp_picks]))
-        if len(ch_types) > 1:
-            raise ValueError("Can't plot GFP with multiple channel types.")
-        ch_type = ch_types[0]
         ch_names = ['Global Field Power']
     else:
-        if isinstance(picks, int):
-            picks = [picks]
-        elif isinstance(picks[0], int):
-            pass
-        else:
-            raise ValueError("`picks` must be int, a list of int, "
-                             "or `gfp`, not " + str(type(picks)))
+        if not isinstance(picks[0], int):
+            raise ValueError("`picks` must be int or a list of int, "
+                             "not " + str(type(picks)))
         ch_names = [example.ch_names[pick] for pick in picks]
-        ch_type = channel_type(example.info, picks[0])
-        ch_types = list(set(channel_type(example.info, pick_)
-                        for pick_ in picks))
-        if len(ch_types) > 1:
-            raise ValueError("More than 1 channel type selected by `picks`.")
+    ch_types = list(set(channel_type(example.info, pick_)
+                    for pick_ in picks))
+    # XXX: could possibly be refactored; plot_joint is doing a similar thing
+    data_types = ['eeg', 'grad', 'mag', 'seeg', 'ecog']
+    if any([type not in data_types for type in ch_types]):
+        raise ValueError("Non-data channel picked.")
+
+    if len(ch_types) > 1:
+        warn("Multiple channel types selected, returning one figure per type.")
+        if ax is not None and len(ax) != len(ch_types):
+            msg = "Please provide one axis per channel type ({0} required)."
+            raise ValueError(msg.format(len(ch_types)))
+        figs = list()
+        for ii, t in enumerate(ch_types):
+            picks_ = [idx for idx in picks
+                      if channel_type(example.info, idx) == t]
+            title_ = "GFP, " + t if not title and gfp is True else title
+            ax_ = ax[ii] if ax is not None else None
+            figs.append(
+                plot_compare_evokeds(
+                    evokeds, picks=picks_, gfp=gfp, colors=colors,
+                         linestyles=linestyles, styles=styles, vlines=vlines,
+                         ci=ci, truncate_yaxis=truncate_yaxis, ymin=ymin,
+                         ymax=ymax, invert_y=invert_y, ax=ax_, title=title_,
+                         show=show))
+        return figs
+    else:
+        ch_type = ch_types[0]
 
     scaling = _handle_default("scalings")[ch_type]
 
-    if ch_type == 'grad' and picks is not 'gfp':  # deal with grad pairs
+    if ch_type == 'grad' and gfp is not True:  # deal with grad pairs
         from ..channels.layout import _merge_grad_data, _pair_grad_sensors
         picked_chans = []
         pairpicks = _pair_grad_sensors(example.info, topomap_coords=False)
@@ -1389,13 +1415,13 @@ def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
 
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
         from ..evoked import combine_evoked
-        if ci is not None and picks is not 'gfp':
+        if ci is not None and gfp is not True:
             # calculate the CI
             sem_array = {}
             for condition in conditions:
                 # this will fail if evokeds do not have the same structure
                 # (e.g. channel count)
-                if ch_type == 'grad' and picks is not 'gfp':
+                if ch_type == 'grad' and gfp is not True:
                     data = np.asarray([
                         _merge_grad_data(
                             evoked_.data[picks, :]).mean(0)
@@ -1409,7 +1435,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
         evokeds = dict((cond, combine_evoked(evokeds[cond], weights='equal'))
                        for cond in conditions)
 
-        if picks == 'gfp':
+        if gfp is True and ci is not None:
             warn("Confidence Interval not drawn when plotting GFP.")
     else:
         ci = False
@@ -1484,14 +1510,12 @@ def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
     any_negative, any_positive = False, False
     for condition in conditions:
         # plot the actual data ('d') as a line
-        if picks is not 'gfp':
-            if ch_type == 'grad':
-                d = ((_merge_grad_data(evokeds[condition]
-                      .data[picks, :])).T * scaling).mean(-1)
-            else:
-                d = ((evokeds[condition].data[picks, :]).T * scaling).mean(-1)
+        if ch_type == 'grad' and gfp is False:
+            d = ((_merge_grad_data(evokeds[condition]
+                 .data[picks, :])).T * scaling).mean(-1)
         else:
-            d = ((evokeds[condition].data[gfp_picks, :]).T * scaling).std(-1)
+            func = np.std if gfp is True else np.mean
+            d = func((evokeds[condition].data[picks, :].T * scaling), -1)
         ax.plot(times, d, zorder=1000, label=condition, **styles[condition])
         if any(d > 0):
             any_positive = True
@@ -1499,7 +1523,7 @@ def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
             any_negative = True
 
         # plot the confidence interval (standard error of the mean/'sem_')
-        if ci and picks is not 'gfp':
+        if ci and gfp is not True:
             sem_ = sem_array[condition]
             ax.fill_between(times, sem_[0].flatten() * scaling,
                             sem_[1].flatten() * scaling, zorder=100,
@@ -1545,9 +1569,11 @@ def plot_compare_evokeds(evokeds, picks='gfp', colors=None, linestyles=['-'],
         ymax_bound = ax.get_ylim()[-1]
     y_range = -np.subtract(*ax.get_ylim())
 
-    ax.set_title(", ".join(ch_names[:33]) if title is None else title)
-    if len(ch_names) > 33:  # noqa
-        warn("More than 33 channels, truncating title ...")  # noqa
+    title = ", ".join(ch_names[:6]) if title is None else title
+    if len(ch_names) > 6 and gfp is False:
+        warn("More than 6 channels, truncating title ...")
+        title += ", ..."
+    ax.set_title(title)
 
     # style the spines/axes
     ax.spines["top"].set_position('zero')

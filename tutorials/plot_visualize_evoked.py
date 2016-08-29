@@ -135,8 +135,8 @@ for condition in conditions:
 print(evoked_dict)
 colors = dict(Left="Crimson", Right="CornFlowerBlue")
 linestyles = dict(Auditory='-', visual='--')
-mne.viz.evoked.plot_compare_evokeds(evoked_dict, picks=200,
-                                    colors=colors, linestyles=linestyles)
+mne.viz.plot_compare_evokeds(evoked_dict, picks=200,
+                             colors=colors, linestyles=linestyles)
 
 ###############################################################################
 # We can also plot the activations as images. The time runs along the x-axis
