@@ -133,6 +133,7 @@ def test_plot_evoked():
         # plot_compare_evokeds: test condition contrast, CI, color assignment
         plot_compare_evokeds(evoked.copy().pick_types(meg='mag'))
         evoked.rename_channels({'MEG 2142': "MEG 1642"})
+        assert len(plot_compare_evokeds(evoked)) == 2
         colors = dict(red='r', blue='b')
         linestyles = dict(red='--', blue='-')
         red, blue = evoked.copy(), evoked.copy()
