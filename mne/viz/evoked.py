@@ -1237,7 +1237,7 @@ def _setup_styles(conditions, style_dict, style, default):
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          linestyles=['-'], styles=None, vlines=[0.], ci=0.95,
                          truncate_yaxis=True, ylim=dict(), invert_y=False,
-                         ax=None, title=None, show=True):
+                         axes=None, title=None, show=True):
     """Plot evoked time courses for one or multiple channels and conditions
 
     This function is useful for comparing ER[P/F]s at a specific location. It
@@ -1313,7 +1313,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     invert_y : bool
         If True, negative values are plotted up (as is sometimes done
         for ERPs out of tradition). Defaults to False.
-    ax : None | `matplotlib.pyplot.axes` instance | list of `axes`
+    axes : None | `matplotlib.pyplot.axes` instance | list of `axes`
         What axes to plot to. If None, a new axes is created.
         When plotting multiple channel types, can also be a list of axes, one
         per channel type.
@@ -1377,7 +1377,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     if len(ch_types) > 1:
         warn("Multiple channel types selected, returning one figure per type.")
-        if ax is not None and len(ax) != len(ch_types):
+        if axes is not None and len(axes) != len(ch_types):
             msg = "Please provide one axis per channel type ({0} required)."
             raise ValueError(msg.format(len(ch_types)))
         figs = list()
@@ -1385,13 +1385,13 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             picks_ = [idx for idx in picks
                       if channel_type(example.info, idx) == t]
             title_ = "GFP, " + t if not title and gfp is True else title
-            ax_ = ax[ii] if ax is not None else None
+            ax_ = axes[ii] if axes is not None else None
             figs.append(
                 plot_compare_evokeds(
                     evokeds, picks=picks_, gfp=gfp, colors=colors,
                     linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
                     truncate_yaxis=truncate_yaxis, ylim=ylim,
-                    invert_y=invert_y, ax=ax_, title=title_, show=show))
+                    invert_y=invert_y, axes=ax_, title=title_, show=show))
         return figs
     else:
         ch_type = ch_types[0]
@@ -1451,11 +1451,11 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     # and the CI ('sem_array') with cond name labels
 
     # let's plot!
-    if ax is None:
-        fig, ax = plt.subplots(1, 1)
+    if axes is None:
+        fig, axes = plt.subplots(1, 1)
         fig.set_size_inches(8, 6)
     else:
-        fig = ax.figure
+        fig = axes.figure
 
     # style the individual condition time series
     # first, check if input is valid
@@ -1527,7 +1527,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         else:
             func = np.std if gfp is True else np.mean
             d = func((evokeds[condition].data[picks, :].T * scaling), -1)
-        ax.plot(times, d, zorder=1000, label=condition, **styles[condition])
+        axes.plot(times, d, zorder=1000, label=condition, **styles[condition])
         if any(d > 0):
             any_positive = True
         if any(d < 0):
@@ -1536,21 +1536,21 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         # plot the confidence interval (standard error of the mean/'sem_')
         if ci and gfp is not True:
             sem_ = sem_array[condition]
-            ax.fill_between(times, sem_[0].flatten() * scaling,
-                            sem_[1].flatten() * scaling, zorder=100,
-                            color=styles[condition]['c'], alpha=.333)
+            axes.fill_between(times, sem_[0].flatten() * scaling,
+                              sem_[1].flatten() * scaling, zorder=100,
+                              color=styles[condition]['c'], alpha=.333)
 
     # truncate the y axis ... yes, it's that complicated
-    orig_ymin, orig_ymax = ax.get_ylim()[0], ax.get_ylim()[-1]
+    orig_ymin, orig_ymax = axes.get_ylim()[0], axes.get_ylim()[-1]
     if not any_positive:
         orig_ymax = 0
     if not any_negative:
         orig_ymin = 0
 
-    ax.set_ylim(orig_ymin if ymin is None else ymin,
+    axes.set_ylim(orig_ymin if ymin is None else ymin,
                 orig_ymax if ymax is None else ymax)
 
-    fraction = 2 if ax.get_ylim()[0] >= 0 else 3
+    fraction = 2 if axes.get_ylim()[0] >= 0 else 3
 
     if truncate_yaxis and ymin is not None and not (ymin > 0):
         abs_lims = (orig_ymax if orig_ymax > np.abs(orig_ymin)
@@ -1561,7 +1561,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             ymin_ = ymin
         if ymax is not None and ymax < ymax_:
             ymax_ = ymax
-        ax.set_yticks((ymin_ if any_negative else 0,
+        axes.set_yticks((ymin_ if any_negative else 0,
                        ymax_ if any_positive else 0))
         ymin_bound, ymax_bound = (-(abs_lims // fraction),
                                   abs_lims // fraction)
@@ -1575,60 +1575,60 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             ymin_bound = round(ymin_bound / precision) * precision
         if ymin is None:
             ymax_bound = round(ymax_bound / precision) * precision
-        ax.spines['left'].set_bounds(ymin_bound, ymax_bound)
+        axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
     else:
         if ymin is not None and ymin > 0:
             warn("ymin is positive, not truncating yaxis")
-        ymax_bound = ax.get_ylim()[-1]
-    y_range = -np.subtract(*ax.get_ylim())
+        ymax_bound = axes.get_ylim()[-1]
+    y_range = -np.subtract(*axes.get_ylim())
 
     title = ", ".join(ch_names[:6]) if title is None else title
     if len(ch_names) > 6 and gfp is False:
         warn("More than 6 channels, truncating title ...")
         title += ", ..."
-    ax.set_title(title)
+    axes.set_title(title)
 
     # style the spines/axes
-    ax.spines["top"].set_position('zero')
-    ax.spines["top"].set_smart_bounds(True)
+    axes.spines["top"].set_position('zero')
+    axes.spines["top"].set_smart_bounds(True)
 
-    ax.tick_params(direction='out')
-    ax.tick_params(right="off")
+    axes.tick_params(direction='out')
+    axes.tick_params(right="off")
 
-    current_ymin = ax.get_ylim()[0]
+    current_ymin = axes.get_ylim()[0]
 
     # plot v lines
     if invert_y is True and current_ymin < 0:
-        upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]
+        upper_v, lower_v = -ymax_bound, axes.get_ylim()[-1]
     else:
-        upper_v, lower_v = ax.get_ylim()[0], ymax_bound
-    ax.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
-              linewidth=1., zorder=10)
+        upper_v, lower_v = axes.get_ylim()[0], ymax_bound
+    axes.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
+                linewidth=1., zorder=10)
 
     # set x label
-    ax.set_xlabel('Time (s)')
-    ax.xaxis.get_label().set_verticalalignment('center')
+    axes.set_xlabel('Time (s)')
+    axes.xaxis.get_label().set_verticalalignment('center')
 
     # set y label and ylabel position
-    ax.set_ylabel(_handle_default("units")[ch_type], rotation=0)
+    axes.set_ylabel(_handle_default("units")[ch_type], rotation=0)
     ylabel_height = (-(current_ymin / y_range)
                      if 0 > current_ymin  # ... if we have negative values
-                     else (ax.get_yticks()[-1] / 2 / y_range))
-    ax.yaxis.set_label_coords(-0.05, 1 - ylabel_height
-                              if invert_y else ylabel_height)
-    xticks = sorted(list(set([x for x in ax.get_xticks()] + vlines)))
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xticks)
+                     else (axes.get_yticks()[-1] / 2 / y_range))
+    axes.yaxis.set_label_coords(-0.05, 1 - ylabel_height
+                                if invert_y else ylabel_height)
+    xticks = sorted(list(set([x for x in axes.get_xticks()] + vlines)))
+    axes.set_xticks(xticks)
+    axes.set_xticklabels(xticks)
     x_extrema = [t for t in xticks if tmax >= t >= tmin]
-    ax.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
-    ax.spines["left"].set_zorder(1)
+    axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    axes.spines["left"].set_zorder(1)
 
     # finishing touches
     if invert_y:
-        ax.invert_yaxis()
-    ax.patch.set_alpha(0)
-    ax.spines['right'].set_color('none')
-    ax.set_xlim(tmin, tmax)
+        axes.invert_yaxis()
+    axes.patch.set_alpha(0)
+    axes.spines['right'].set_color('none')
+    axes.set_xlim(tmin, tmax)
 
     if len(conditions) > 1:
         plt.legend(loc='best', ncol=1 + (len(conditions) // 5),
