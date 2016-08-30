@@ -13,7 +13,7 @@ from .misc import (plot_cov, plot_bem, plot_events, plot_source_spectrogram,
                    _get_presser, plot_dipole_amplitudes)
 from .evoked import (plot_evoked, plot_evoked_image, plot_evoked_white,
                      plot_snr_estimate, plot_evoked_topo,
-                     plot_evoked_joint)
+                     plot_evoked_joint, plot_compare_evokeds)
 from .circle import plot_connectivity_circle, circular_layout
 from .epochs import (plot_drop_log, plot_epochs, plot_epochs_psd,
                      plot_epochs_image)

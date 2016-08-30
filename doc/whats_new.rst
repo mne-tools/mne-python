@@ -67,6 +67,8 @@ Changelog
 
     - Added interactivity to :func:`mne.preprocessing.ICA.plot_components` - passing an instance of :class:`io.Raw` or :class:`Epochs` in ``inst`` argument allows to open component properties by clicking on component topomaps, by `Mikołaj Magnuski`_
 
+    - Adds new function :func:`mne.viz.plot_compare_evokeds` to show multiple evoked time courses at a single location, or the mean over a ROI, or the GFP, automatically averaging and calculating a CI if multiple subjects are given, by `Jona Sassenhagen`_
+
 BUG
 ~~~
 
