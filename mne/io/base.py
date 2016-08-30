@@ -585,6 +585,36 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _raw_lengths(self):
         return [l - f + 1 for f, l in zip(self._first_samps, self._last_samps)]
 
+    @property
+    def annotations(self):
+        return self._annotations
+
+    @annotations.setter
+    def annotations(self, value):
+        if value is not None:
+            omit_ind = list()
+            for ind, onset in enumerate(value.onset):
+                if onset > self.times[-1]:
+                    warn('Omitting annotation outside data.')
+                    omit_ind.append(ind)
+                elif onset < self.times[0]:
+                    if onset + value.duration[ind] < self.times[0]:
+                        warn('Omitting annotation outside data.')
+                        omit_ind.append(ind)
+                    else:
+                        warn('Annotation starting outside the data range. '
+                             'Limiting to the start of data.')
+                        value.duration[ind] = value.duration[ind] + onset
+                        value.onset[ind] = self.times[0]
+                elif onset + value.duration[ind] > self.times[-1]:
+                    warn('Annotation expanding outside the data range. '
+                         'Limiting to the end of data.')
+                    value.duration[ind] = self.times[-1] - onset
+            value.onset = np.delete(value.onset, omit_ind)
+            value.duration = np.delete(value.duration, omit_ind)
+            value.description = np.delete(value.description, omit_ind)
+        self._annotations = value
+
     def __del__(self):
         # remove file for memmap
         if hasattr(self, '_data') and hasattr(self._data, 'filename'):
@@ -1332,6 +1362,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # slice and copy to avoid the reference to large array
             raw._data = raw._data[:, smin:smax + 1].copy()
         raw._update_times()
+        annotations = raw.annotations
+        annotations.onset -= tmin
+        raw.annotations = annotations
         return raw
 
     @verbose
@@ -1719,18 +1752,19 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self.preload = True
 
         # now combine information from each raw file to construct new self
+        annotations = self.annotations
         for r in raws:
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
-            self.annotations = _combine_annotations((self.annotations,
-                                                     r.annotations),
-                                                    self._last_samps,
-                                                    self._first_samps,
-                                                    self.info['sfreq'])
+            annotations = _combine_annotations((annotations, r.annotations),
+                                               self._last_samps,
+                                               self._first_samps,
+                                               self.info['sfreq'])
 
         self._update_times()
+        self.annotations = annotations
 
         if not (len(self._first_samps) == len(self._last_samps) ==
                 len(self._raw_extras) == len(self._filenames)):

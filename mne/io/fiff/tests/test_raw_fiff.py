@@ -1169,7 +1169,7 @@ def test_save():
     assert_raises(IOError, raw.save, fif_fname)
 
     # test abspath support and annotations
-    annot = Annotations([10], [10], ['test'], raw.info['meas_date'])
+    annot = Annotations([10], [5], ['test'], raw.info['meas_date'])
     raw.annotations = annot
     new_fname = op.join(op.abspath(op.curdir), 'break-raw.fif')
     raw.save(op.join(tempdir, new_fname), overwrite=True)
@@ -1181,14 +1181,15 @@ def test_save():
     assert_equal(annot.orig_time, new_raw.annotations.orig_time)
 
     # test that annotations are in sync after cropping and concatenating
-    annot = Annotations([2.5], [2], ['test'])
+    annot = Annotations([5., 11., 15.], [2., 1., 1.], ['test', 'test', 'test'])
+    raw.annotations = annot
     r1 = raw.copy().crop(2.5, 7.5)
-    r1.annotations = annot
     r2 = raw.copy().crop(12.5, 17.5)
-    r2.annotations = annot
-    raw = concatenate_raws([r1, r2])
+    r3 = raw.copy().crop(10., 12.)
+    raw = concatenate_raws([r1, r2, r3])
     onsets = raw.annotations.onset
-    assert_array_almost_equal([2.5, 7.5], onsets, decimal=2)
+    # 2*5s clips combined with annotation at 2.5s of each clip + 2s clip at 1s
+    assert_array_almost_equal([2.5, 7.5, 11.], onsets, decimal=2)
 
     # make sure we can overwrite the file we loaded when preload=True
     new_raw = Raw(op.join(tempdir, new_fname), preload=True)
