@@ -89,7 +89,7 @@ is best supported across systems::
 First, load the mne package:
 
 .. note:: In IPython, you can press **shift-enter** with a given cell
-          selected to execute it and advance to the next cell):
+          selected to execute it and advance to the next cell:
 """
 
 import mne
