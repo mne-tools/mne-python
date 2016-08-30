@@ -971,13 +971,13 @@ class Elekta_category(object):
 
 
 class ElektaAverager(object):
-    """ Represents averager settings of Elekta TRIUX/Vectorview systems.
-    """
+    """ Handles events and averaging categories for Elekta TRIUX/Vectorview
+    systems."""
 
     # DACQ variable names always start with one of these
     acq_var_magic = ['ERF', 'DEF', 'ACQ', 'TCP']
 
-    # these are averager related DACQ variable names (without preceding 'ERF')
+    # averager related DACQ variable names (without preceding 'ERF')
     vars = ['magMax', 'magMin', 'magNoise', 'magSlope', 'magSpike', 'megMax',
             'megMin', 'megNoise', 'megSlope', 'megSpike', 'eegMax', 'eegMin',
             'eegNoise', 'eegSlope', 'eegSpike', 'eogMax', 'ecgMax', 'ncateg',
@@ -1057,11 +1057,13 @@ class ElektaAverager(object):
                 # corresponding dict key, e.g. 'newbits'
                 dict_key = var.lower()
                 val = self.acq_dict[acq_key]
+                # convert numeric values
                 if dict_key in ['newbits', 'oldbits', 'newmask', 'oldmask']:
                     val = int(val)
                 elif dict_key in ['delay']:
                     val = float(val)
                 evdi[dict_key] = val
+                evdi['in_use'] = False
             # events are keyed by number starting from 1
             key = int(evnum)
             evdi['index'] = key
@@ -1080,7 +1082,8 @@ class ElektaAverager(object):
                 class_key = var.lower()
                 val = self.acq_dict[acq_key]
                 catdi[class_key] = val
-            if int(catdi['state']) == 1 or all_categories:  # category enabled
+            # create only categories that are enabled
+            if int(catdi['state']) == 1 or all_categories:
                 # show online?
                 catdi['display'] = True if catdi['display'] == '1' else False
                 # enabled?
@@ -1120,9 +1123,11 @@ class ElektaAverager(object):
         for n, ev in self._events.iteritems():
             if ev['in_use']:
                 pre_ok = (
-                    np.bitwise_and(ev['oldmask'], mne_events[:, 1]) == ev['oldbits'])
+                    np.bitwise_and(ev['oldmask'],
+                                   mne_events[:, 1]) == ev['oldbits'])
                 post_ok = (
-                    np.bitwise_and(ev['newbits'], mne_events[:, 2]) == ev['newbits'])
+                    np.bitwise_and(ev['newbits'],
+                                   mne_events[:, 2]) == ev['newbits'])
                 ok_ind = np.where(pre_ok & post_ok)
                 events_[ok_ind, 2] |= 1 << (n - 1)
         return events_
@@ -1132,7 +1137,6 @@ class ElektaAverager(object):
         DACQ averaging category cat. """
         cat_ev = cat['event']
         cat_reqev = cat['reqevent']
-        
         events = self._events_mne_to_dacq(mne_events)
         times = events[:, 0]
         # indices of times where ref. event occurs
@@ -1158,7 +1162,7 @@ class ElektaAverager(object):
             refEvents_inds = refEvents_inds[np.where(req_acc)]
             refEvents_t = times[refEvents_inds]
         # adjust for trigger-stimulus delay by delaying the ref. event
-        refEvents_t += int(np.round(self._events[cat_ev].delay * sfreq))
+        refEvents_t += int(np.round(self._events[cat_ev]['delay'] * sfreq))
         return refEvents_t
 
     @property
@@ -1175,8 +1179,8 @@ class ElektaAverager(object):
         return sorted(self._events_in_use,
                       key=lambda ev: ev['index'])
 
-    def _get_epochs(self, raw, category, picks=None, reject=None,
-                    baseline=(None, 0), stim_channel=None, mask=0):
+    def get_epochs(self, raw, category, picks=None, reject=None,
+                   baseline=(None, 0), stim_channel=None, mask=0):
         """ Get mne.Epochs instance corresponding to the given category. """
         from .epochs import Epochs
         mne_events = find_events(raw, stim_channel=stim_channel,
@@ -1190,7 +1194,7 @@ class ElektaAverager(object):
                       np.ones(cat_t.shape)].astype(np.uint32)
         id = {category['comment']: 1}
         return Epochs(raw, catev, event_id=id, reject=reject,
-                      tmin=category.start, tmax=category.end,
+                      tmin=category['start'], tmax=category['end'],
                       baseline=baseline, detrend=None, picks=picks,
                       preload=True, verbose=False)
 

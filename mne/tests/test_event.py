@@ -425,9 +425,9 @@ def test_elekta_averager():
     for cat in eav.categories:
         # XXX datasets match only when baseline is applied to both,
         # not sure where relative dc shift comes from
-        eps = cat.epochs(raw, baseline=(-.05, 0))
+        eps = eav._get_epochs(raw, cat, baseline=(-.05, 0))
         ev = eps.average()
-        ev_ref = read_evokeds(fname_ave_elekta, cat.comment,
+        ev_ref = read_evokeds(fname_ave_elekta, cat['comment'],
                               baseline=(-.05, 0), proj=False)
         ev_mag = ev.copy()
         ev_mag.pick_channels(['MEG0111'])
