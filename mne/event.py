@@ -888,88 +888,6 @@ def concatenate_events(events, first_samps, last_samps):
     return events_out
 
 
-class Elekta_event(object):
-    """ Represents a trigger event in Elekta/Neuromag system.  """
-    # original DACQ variable names
-    vars = ['Name', 'Channel', 'NewBits', 'OldBits', 'NewMask',
-            'OldMask', 'Delay', 'Comment']
-
-    def __init__(self, name, channel, newbits, oldbits, newmask,
-                 oldmask, delay, comment):
-        self.name = name  # short name for the event
-        self.channel = channel  # stimulus channel, e.g. STI101
-        self.newbits = int(newbits)  # state after trigger transition
-        self.oldbits = int(oldbits)  # state before trigger transition
-        self.newmask = int(newmask)  # bitmask for post-transition state
-        self.oldmask = int(oldmask)  # bitmask for pre-transition state
-        self.delay = float(delay)  # delay to stimulus (s)
-        self.comment = comment  # verbose comment for the event
-        # non-DACQ vars
-        self.index = None  # index of event in DACQ list
-        self.in_use = False  # whether event is referred to by a category
-
-    def __repr__(self):
-        s = '<Elekta_event | '
-        s += 'index: %d ' % self.index
-        s += 'name: "%s", ' % self.name
-        s += 'comment: "%s", ' % self.comment
-        s += 'pre-state: %d, ' % self.oldbits
-        s += 'pre-mask: %d, ' % self.oldmask
-        s += 'post-state: %d, ' % self.newbits
-        s += 'post-mask: %d, ' % self.newmask
-        s += 'delay: %.3f (s)>' % self.delay
-        return s
-
-
-class Elekta_category(object):
-    """ Represents an averaging category in Elekta/Neuromag system. """
-
-    # original DACQ variable names
-    vars = ['Comment', 'Display', 'Start', 'State', 'End', 'Event',
-            'Nave', 'ReqEvent', 'ReqWhen', 'ReqWithin',  'SubAve']
-
-    def __init__(self, comment, display, start, state, end, event, nave,
-                 reqevent, reqwhen, reqwithin, subave):
-        self.comment = comment
-        self.display = True if display == u'1' else False  # show online
-        self.state = True if state == u'1' else False  # enabled or not
-        self.start = float(start)  # epoch start
-        self.end = float(end)  # epoch end
-        self.nave = int(nave)  # desired n of averages
-        self.event = int(event)  # the reference event (index to event list)
-        self.reqevent = int(reqevent)  # required event (index to event list)
-        self.reqwhen = int(reqwhen)  # 1=before, 2=after ref. event
-        # time window before or after ref. event (s)
-        self.reqwithin = float(reqwithin)
-        self.subave = int(subave)  # subaverage size
-        # non-DACQ vars
-        # list of t=0 times (in samples) for corresponding epochs
-        self.times = None
-        # index of category in DACQ list
-        self.index = None
-
-    def __repr__(self):
-        s = '<Elekta_category | '
-        s += '"%s", ' % self.comment
-        s += 'ref. event: %d, ' % self.event
-        if self.reqevent:
-            s += 'req. event: %d ' % self.reqevent
-            s += 'within: %.3f (s) ' % self.reqwithin
-            s += 'before ' if self.reqwhen == 1 else 'after '
-            s += 'ref. event, '
-        s += 'start: %.3f (s), ' % self.start
-        s += 'end: %.3f (s)>' % self.end
-        return s
-
-    def epochs(self, raw, picks=None, reject=None,
-               baseline=(None, 0), stim_channel=None, mask=0):
-        """ Get mne.Epochs instance corresponding to the category. """
-        return self._parent._get_epochs(raw, self, picks=picks,
-                                        reject=reject, baseline=baseline,
-                                        stim_channel=stim_channel,
-                                        mask=mask)
-
-
 class ElektaAverager(object):
     """ Handles events and averaging categories for Elekta TRIUX/Vectorview
     systems."""
@@ -1149,8 +1067,8 @@ class ElektaAverager(object):
             reqEvents_t = times[reqEvents_inds]
             # relative (to refevent) time window (in samples) where req. event
             # must occur (e.g. [0 200])
-            win = np.round(np.array(
-                sorted([0, (-1)**(cat['reqwhen']) * cat['reqwithin']])) * sfreq)
+            twin = [0, (-1)**(cat['reqwhen']) * cat['reqwithin']]
+            win = np.round(np.array(sorted(twin)) * sfreq)  # to samples
             refEvents_wins = refEvents_t[:, None] + win
             req_acc = np.zeros(refEvents_inds.shape, dtype=bool)
             for t in reqEvents_t:
