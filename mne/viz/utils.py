@@ -66,7 +66,7 @@ def plt_show(show=True, **kwargs):
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
-    """ Adjust subplot parameters to give specified padding.
+    """Adjust subplot parameters to give specified padding.
 
     Note. For plotting please use this function instead of plt.tight_layout
 
@@ -99,8 +99,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
 
 
 def _check_delayed_ssp(container):
-    """ Aux function to be used for interactive SSP selection
-    """
+    """Aux function to be used for interactive SSP selection"""
     if container.proj is True or\
        all(p['active'] for p in container.info['projs']):
         raise RuntimeError('Projs are already applied. Please initialize'
@@ -110,7 +109,7 @@ def _check_delayed_ssp(container):
 
 
 def _validate_if_list_of_axes(axes, obligatory_len=None):
-    """ Helper function that validates whether input is a list/array of axes"""
+    """Helper function that validates whether input is a list/array of axes"""
     import matplotlib as mpl
     if obligatory_len is not None and not isinstance(obligatory_len, int):
         raise ValueError('obligatory_len must be None or int, got %d',
@@ -351,8 +350,7 @@ def _get_help_text(params):
 
 
 def _prepare_trellis(n_cells, max_col):
-    """Aux function
-    """
+    """Aux function"""
     import matplotlib.pyplot as plt
     if n_cells == 1:
         nrow = ncol = 1
@@ -409,7 +407,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
 
 def _layout_figure(params):
-    """Function for setting figure layout. Shared with raw and epoch plots"""
+    """Function for setting figure layout. Shared with raw and epoch plots."""
     size = params['fig'].get_size_inches() * params['fig'].dpi
     scroll_width = 25
     hscroll_dist = 25
@@ -513,7 +511,7 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
 
 
 def figure_nobar(*args, **kwargs):
-    """Make matplotlib figure with no toolbar"""
+    """Make matplotlib figure with no toolbar."""
     from matplotlib import rcParams, pyplot as plt
     old_val = rcParams['toolbar']
     try:
@@ -531,14 +529,14 @@ def figure_nobar(*args, **kwargs):
 
 
 def _helper_raw_resize(event, params):
-    """Helper for resizing"""
+    """Helper for resizing."""
     size = ','.join([str(s) for s in params['fig'].get_size_inches()])
     set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
     _layout_figure(params)
 
 
 def _plot_raw_onscroll(event, params, len_channels=None):
-    """Interpret scroll events"""
+    """Interpret scroll events."""
     if 'fig_selection' in params:
         _change_channel_group(event.step, params)
         return
@@ -564,7 +562,7 @@ def _channels_changed(params, len_channels):
 
 
 def _plot_raw_time(value, params):
-    """Deal with changed time value"""
+    """Deal with changed time value."""
     info = params['info']
     max_times = params['n_times'] / float(info['sfreq']) - params['duration']
     if value > max_times:
@@ -650,7 +648,7 @@ def _handle_change_selection(event, params):
 
 
 def _plot_raw_onkey(event, params):
-    """Interpret key presses"""
+    """Interpret key presses."""
     import matplotlib.pyplot as plt
     if event.key == 'escape':
         plt.close(params['fig'])
@@ -719,7 +717,7 @@ def _plot_raw_onkey(event, params):
 
 
 def _mouse_click(event, params):
-    """Vertical select callback"""
+    """Vertical select callback."""
     if event.button != 1:
         return
     if event.inaxes is None:
@@ -751,7 +749,7 @@ def _mouse_click(event, params):
 
 
 def _handle_topomap_bads(ch_name, params):
-    """Helper for coloring channels in selection topomap when selecting bads"""
+    """Helper for coloring channels in selection topomap when selecting bads."""
     for type in ('mag', 'grad', 'eeg', 'seeg'):
         if type in params['types']:
             types = np.where(np.array(params['types']) == type)[0]
@@ -827,7 +825,7 @@ def _select_bads(event, params, bads):
 
 
 def _onclick_help(event, params):
-    """Function for drawing help window"""
+    """Function for drawing help window."""
     import matplotlib.pyplot as plt
     text, text2 = _get_help_text(params)
 
@@ -1049,7 +1047,7 @@ def _find_peaks(evoked, npeaks):
 
 
 def _process_times(inst, times, n_peaks=None, few=False):
-    """Helper to return a list of times for topomaps"""
+    """Helper to return a list of times for topomaps."""
     if isinstance(times, string_types):
         if times == "peaks":
             if n_peaks is None:
