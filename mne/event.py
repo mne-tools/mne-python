@@ -984,6 +984,14 @@ class ElektaAverager(object):
             'nevent', 'stimSource', 'triggerMap', 'update', 'version',
             'artefIgnore', 'averUpdate']
 
+    # event-related variables
+    event_vars = ['Name', 'Channel', 'NewBits', 'OldBits', 'NewMask',
+                  'OldMask', 'Delay', 'Comment']
+
+    # category-related variables
+    cat_vars = ['Comment', 'Display', 'Start', 'State', 'End', 'Event',
+                'Nave', 'ReqEvent', 'ReqWhen', 'ReqWithin',  'SubAve']
+
     def __init__(self, acq_pars):
         """ acq_pars is usually obtained as data.info['acq_pars'], where data
         can be instance of Raw, Epochs or Evoked. """
@@ -1036,19 +1044,26 @@ class ElektaAverager(object):
         return self._categories[items]
 
     def _events_from_acq_pars(self):
-        """ Collects DACQ defined events into a dict. """
+        """ Collects DACQ defined events into a dict, keyed by number
+        starting from 1. Each event is itself a dict containing the event
+        definitions. """
         events = {}
         # evnum = '01', '02' etc.
         for evnum in [str(x).zfill(2) for x in range(1, self.ncateg + 1)]:
             evdi = {}
-            for var in Elekta_event.vars:
+            for var in self.event_vars:
                 # name of DACQ variable, e.g. 'ERFeventNewBits01'
                 acq_key = 'ERFevent' + var + evnum
-                # corresponding instance variable, e.g. 'newbits'
-                class_key = var.lower()
-                evdi[class_key] = self.acq_dict[acq_key]
+                # corresponding dict key, e.g. 'newbits'
+                dict_key = var.lower()
+                val = self.acq_dict[acq_key]
+                if dict_key in ['newbits', 'oldbits', 'newmask', 'oldmask']:
+                    val = int(val)
+                elif dict_key in ['delay']:
+                    val = float(val)
+                evdi[dict_key] = val
             # events are keyed by number starting from 1
-            events[int(evnum)] = Elekta_event(**evdi)
+            events[int(evnum)] = evdi
             events[int(evnum)].index = int(evnum)
         return events
 
@@ -1057,7 +1072,7 @@ class ElektaAverager(object):
         cats = {}
         for catnum in [str(x).zfill(2) for x in range(1, self.nevent + 1)]:
             catdi = {}
-            for var in Elekta_category.vars:
+            for var in self.cat_vars:
                 acq_key = 'ERFcat' + var + catnum
                 class_key = var.lower()
                 catdi[class_key] = self.acq_dict[acq_key]
