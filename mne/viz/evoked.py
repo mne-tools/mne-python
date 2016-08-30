@@ -1360,15 +1360,11 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     # set up labels and instances
     if isinstance(evokeds, Evoked):
-        conditions = ['Evoked']  # empty title
-        evokeds = dict(Evoked=evokeds)
-    else:
-        if isinstance(evokeds, dict):
-            conditions = sorted(list(evokeds.keys()))
-        else:
-            evokeds = dict((str(ii + 1), evoked)
-                           for ii, evoked in enumerate(evokeds))
-            conditions = sorted(list(evokeds.keys()))
+        evokeds = dict(Evoked=evokeds)  # title becomes 'Evoked'
+    elif not isinstance(evokeds, dict):
+        evokeds = dict((str(ii + 1), evoked)
+                        for ii, evoked in enumerate(evokeds))
+    conditions = sorted(list(evokeds.keys()))
 
     # get and set a few limits and variables (times, channels, units)
     example = (evokeds[conditions[0]]
