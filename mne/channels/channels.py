@@ -559,7 +559,7 @@ class UpdateChannelsMixin(object):
 
         Parameters
         ----------
-        ch_names : str | list
+        ch_names : str | list
             Name of the channel to remove, or the list of channels to
             remove.
 
