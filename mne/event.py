@@ -970,19 +970,19 @@ class Elekta_category(object):
                                         mask=mask)
 
 
-class Elekta_averager(object):
+class ElektaAverager(object):
     """ Represents averager settings of Elekta TRIUX/Vectorview systems.
     """
 
-    # these are DACQ averager related variable names without preceding 'ERF'
+    # DACQ variable names always start with one of these
+    acq_var_magic = ['ERF', 'DEF', 'ACQ', 'TCP']
+
+    # these are averager related DACQ variable names (without preceding 'ERF')
     vars = ['magMax', 'magMin', 'magNoise', 'magSlope', 'magSpike', 'megMax',
             'megMin', 'megNoise', 'megSlope', 'megSpike', 'eegMax', 'eegMin',
             'eegNoise', 'eegSlope', 'eegSpike', 'eogMax', 'ecgMax', 'ncateg',
             'nevent', 'stimSource', 'triggerMap', 'update', 'version',
             'artefIgnore', 'averUpdate']
-
-    # DACQ variable names start with one of these
-    acq_var_magic = ['ERF', 'DEF', 'ACQ', 'TCP']
 
     def __init__(self, acq_pars):
         """ acq_pars is usually obtained as data.info['acq_pars'], where data
@@ -994,7 +994,7 @@ class Elekta_averager(object):
             raise ValueError('The file may be from DACQ <3.4 which is '
                              'not supported yet')
         # sets instance variables (lowercase versions of DACQ variable names)
-        for var in Elekta_averager.vars:
+        for var in ElektaAverager.vars:
             val = self.acq_dict['ERF' + var]
             if var[:3] in ['mag', 'meg', 'eeg', 'eog', 'ecg']:
                 val = float(val)
@@ -1002,7 +1002,7 @@ class Elekta_averager(object):
                 val = int(val)
             setattr(self, var.lower(), val)
         self.stimsource = (
-            u'Internal' if self.stimsource == u'1' else u'External')
+            'Internal' if self.stimsource == '1' else 'External')
         # collect all events and categories as instance dicts
         self._events = self._events_from_acq_pars()
         self._categories = self._categories_from_acq_pars()
@@ -1016,9 +1016,13 @@ class Elekta_averager(object):
             [cat for cat in self._categories.values() if cat.state])
         self._events_in_use = (
             [ev for ev in self._events.values() if ev.in_use])
+        # make a mne rejection dict based on the averager parameters
+        self.reject = {'grad': self.megmax, 'mag': self.magmax,
+                       'eeg': self.eegmax, 'eog': self.eogmax,
+                       'ecg': self.ecgmax}
 
     def __repr__(self):
-        s = '<Elekta_averager | '
+        s = '<ElektaAverager | '
         s += 'categories: %d ' % self.ncateg
         cats_in_use = len(self._categories_in_use)
         s += '(%d in use), ' % cats_in_use
@@ -1130,12 +1134,6 @@ class Elekta_averager(object):
         return sorted(self._events_in_use,
                       key=lambda ev: ev.index)
 
-    def get_mne_rejection_dict(self):
-        """ Makes a mne rejection dict based on the averager parameters. Result
-        can be used e.g. with mne.Epochs. """
-        return {'grad': self.megmax, 'mag': self.magmax, 'eeg': self.eegmax,
-                'eog': self.eogmax, 'ecg': self.ecgmax}
-
     def _get_epochs(self, raw, category, picks=None, reject=None,
                     baseline=(None, 0), stim_channel=None, mask=0):
         """ Get mne.Epochs instance corresponding to the given category. """
@@ -1165,7 +1163,7 @@ def _acqpars_dict(acq_pars):
 def _acqpars_gen(acq_pars):
     """ Yields key/value pairs from a string of acquisition parameters. """
     for line in acq_pars.split():
-        if any([line.startswith(x) for x in Elekta_averager.acq_var_magic]):
+        if any([line.startswith(x) for x in ElektaAverager.acq_var_magic]):
             key = line
             val = ''
         else:

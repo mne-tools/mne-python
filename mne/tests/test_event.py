@@ -9,11 +9,11 @@ import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, pick_events, find_stim_steps, pick_channels,
-                 read_evokeds)
+                 read_evokeds, io)
 from mne.io import read_raw_fif
 from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
-from mne.event import define_target_events, merge_events, Elekta_averager
+from mne.event import define_target_events, merge_events, ElektaAverager
 from mne.datasets import testing
 
 warnings.simplefilter('always')
@@ -420,8 +420,8 @@ def test_define_events():
 
 def test_elekta_averager():
     """Test averaging according to Elekta DACQ parameters"""
-    raw = read_raw_fif(fname_raw_elekta)
-    eav = Elekta_averager(raw.info['acq_pars'])
+    raw = io.read_raw_fif(fname_raw_elekta, preload=True)
+    eav = ElektaAverager(raw.info['acq_pars'])
     for cat in eav.categories:
         # XXX datasets match only when baseline is applied to both,
         # not sure where relative dc shift comes from
