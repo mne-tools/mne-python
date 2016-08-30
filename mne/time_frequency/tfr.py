@@ -1030,7 +1030,7 @@ class AverageTFR(_BaseTFR):
         self.method = method
 
     @verbose
-    def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
+    def plot(self, picks, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=False, colorbar=True, show=True,
              title=None, axes=None, layout=None, verbose=None):
@@ -1038,8 +1038,8 @@ class AverageTFR(_BaseTFR):
 
         Parameters
         ----------
-        picks : array-like of int | None
-            The indices of the channels to plot.
+        picks : array-like of int
+            The indices of the channels to plot, one figure per channel.
         baseline : None (default) or tuple of length 2
             The time interval to apply baseline correction.
             If None do not apply it. If baseline is (a, b)

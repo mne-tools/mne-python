@@ -43,19 +43,20 @@ For further reading:
   .. raw:: html
 
     <h2>Introduction to MNE and Python</h2>
- 
+
   .. toctree::
     :maxdepth: 1
 
     auto_tutorials/plot_python_intro.rst
     tutorials/seven_stories_about_mne.rst
+    auto_tutorials/plot_introduction.rst
 
 .. container:: span box
 
   .. raw:: html
 
     <h2>Background information</h2>
- 
+
   .. toctree::
     :maxdepth: 1
 
