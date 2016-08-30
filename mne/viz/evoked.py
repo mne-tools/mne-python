@@ -1219,8 +1219,22 @@ def _ci(arr, ci):
 
 def _setup_styles(conditions, style_dict, style, default):
     """Aux function for plot_compare_evokeds to set linestyles and colors"""
+
+    # check user-supplied style to condition matching
+    tags = set([tag for cond in conditions for tag in cond.split("/")])
+    msg = ("Can't map between conditions and the provided {0}. Make sure "
+           "you have provided keys in the format of '/'-separated tags, "
+           "and that these correspond to '/'-separated tags for the condition "
+           "names (e.g., conditions like 'Visual/Right', and styles like "
+           "'colors=dict(Visual='red'))'. The offending tag was '{1}'.")
+    for key in style_dict:
+        for tag in key.split("/"):
+            if tag not in tags:
+                raise ValueError(msg.format(style, tag))
+
+    # check condition to style matching, and fill in defaults
     condition_warning = "Condition {0} could not be mapped to a " + style
-    style_warning = ". Using the default of {0}".format(default)
+    style_warning = ". Using the default of {0}.".format(default)
     for condition in conditions:
         if condition not in style_dict:
             if "/" not in condition:
@@ -1230,6 +1244,7 @@ def _setup_styles(conditions, style_dict, style, default):
                 if style_ in condition.split("/"):
                     style_dict[condition] = style_dict[style_]
                     break
+
     return style_dict
 
 
@@ -1401,9 +1416,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         raise ValueError("Non-data channel picked.")
     if len(ch_types) > 1:
         warn("Multiple channel types selected, returning one figure per type.")
-        if axes is not None and len(axes) != len(ch_types):
-            msg = "Please provide one axis per channel type ({0} required)."
-            raise ValueError(msg.format(len(ch_types)))
+        if axes is not None:
+            from .utils import _validate_if_list_of_axes
+            _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
         figs = list()
         for ii, t in enumerate(ch_types):
             picks_ = [idx for idx in picks
@@ -1481,19 +1496,12 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         fig = axes.figure
 
     # style the individual condition time series
+    # Styles (especially color and linestyle) are pulled from a dict 'styles'.
+    # This dict has one entry per condition. Its color and linestyle entries
+    # are pulled from the 'colors' and 'linestyles' dicts via '/'-tag matching
+    # unless they are overwritten by entries from a user-provided 'styles'.
+
     # first, check if input is valid
-    tags = set([tag for cond in conditions for tag in cond.split("/")])
-    msg = ("Can't map between conditions and the provided {0}. Make sure "
-           "you have provided keys in the format of '/'-separated tags, "
-           "and that these correspond to '/'-separated tags for the condition "
-           "names (e.g., conditions like 'Visual/Right', and styles like "
-           "'colors=dict(Visual='red'))'. The offending tag was '{1}'.")
-    for name_, item in zip(("colors", "linestyles"), (colors, linestyles)):
-        if isinstance(item, dict):
-            for key in item:
-                for tag in key.split("/"):
-                    if tag not in tags:
-                        raise ValueError(msg.format(name_, tag))
     if isinstance(styles, dict):
         for style_ in styles:
             if style_ not in conditions:
