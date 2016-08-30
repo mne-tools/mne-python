@@ -14,7 +14,7 @@ from numpy.testing import (assert_array_equal, assert_equal,
 from mne import io, read_events, Epochs, pick_types
 from mne.decoding import Scaler, FilterEstimator
 from mne.decoding import (PSDEstimator, EpochsVectorizer, Vectorizer,
-                          UnsupervisedSpatialFilter)
+                          UnsupervisedSpatialFilter, TemporalFilter)
 from mne.utils import requires_sklearn_0_15
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
