@@ -35,7 +35,7 @@ COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
 
 
 def _setup_vmin_vmax(data, vmin, vmax, norm=False):
-    """Aux function to handle vmin and vmax parameters"""
+    """Aux function to handle vmin and vmax parameters."""
     if vmax is None and vmin is None:
         vmax = np.abs(data).max()
         if norm:
@@ -58,7 +58,7 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
 
 
 def plt_show(show=True, **kwargs):
-    """Helper to show a figure while suppressing warnings"""
+    """Helper to show a figure while suppressing warnings."""
     import matplotlib
     import matplotlib.pyplot as plt
     if show and matplotlib.get_backend() != 'agg':
@@ -99,7 +99,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
 
 
 def _check_delayed_ssp(container):
-    """Aux function to be used for interactive SSP selection"""
+    """Aux function to be used for interactive SSP selection."""
     if container.proj is True or\
        all(p['active'] for p in container.info['projs']):
         raise RuntimeError('Projs are already applied. Please initialize'
@@ -109,7 +109,7 @@ def _check_delayed_ssp(container):
 
 
 def _validate_if_list_of_axes(axes, obligatory_len=None):
-    """Helper function that validates whether input is a list/array of axes"""
+    """Helper function that validates whether input is a list/array of axes."""
     import matplotlib as mpl
     if obligatory_len is not None and not isinstance(obligatory_len, int):
         raise ValueError('obligatory_len must be None or int, got %d',
@@ -135,7 +135,7 @@ def _validate_if_list_of_axes(axes, obligatory_len=None):
 
 
 def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
-    """Return a colormap similar to that used by mne_analyze
+    """Return a colormap similar to that used by mne_analyze.
 
     Parameters
     ----------
@@ -223,7 +223,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 
 
 def _toggle_options(event, params):
-    """Toggle options (projectors) dialog"""
+    """Toggle options (projectors) dialog."""
     import matplotlib.pyplot as plt
     if len(params['projs']) > 0:
         if params['fig_proj'] is None:
@@ -236,7 +236,7 @@ def _toggle_options(event, params):
 
 
 def _toggle_proj(event, params):
-    """Operation to perform when proj boxes clicked"""
+    """Operation to perform when proj boxes clicked."""
     # read options if possible
     if 'proj_checks' in params:
         bools = [x[0].get_visible() for x in params['proj_checks'].lines]
@@ -350,7 +350,7 @@ def _get_help_text(params):
 
 
 def _prepare_trellis(n_cells, max_col):
-    """Aux function"""
+    """Aux function."""
     import matplotlib.pyplot as plt
     if n_cells == 1:
         nrow = ncol = 1
@@ -370,7 +370,7 @@ def _prepare_trellis(n_cells, max_col):
 
 
 def _draw_proj_checkbox(event, params, draw_current_state=True):
-    """Toggle options (projectors) dialog"""
+    """Toggle options (projectors) dialog."""
     from matplotlib import widgets
     projs = params['projs']
     # turn on options dialog
@@ -463,7 +463,7 @@ def _layout_figure(params):
 @verbose
 def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
                  read_limit=np.inf, max_str=30, verbose=None):
-    """Compare the contents of two fiff files using diff and show_fiff
+    """Compare the contents of two fiff files using diff and show_fiff.
 
     Parameters
     ----------
@@ -1028,7 +1028,7 @@ def add_background_image(fig, im, set_ratios=None):
 
 
 def _find_peaks(evoked, npeaks):
-    """Helper function for finding peaks from evoked data
+    """Helper function for finding peaks from evoked data.
     Returns ``npeaks`` biggest peaks as a list of time points.
     """
     from scipy.signal import argrelmax
