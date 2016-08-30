@@ -329,6 +329,7 @@ Functions:
    plot_evoked_joint
    plot_evoked_field
    plot_evoked_white
+   plot_compare_evokeds
    plot_ica_sources
    plot_ica_components
    plot_ica_properties
