@@ -1376,9 +1376,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # slice and copy to avoid the reference to large array
             raw._data = raw._data[:, smin:smax + 1].copy()
         raw._update_times()
-        annotations = raw.annotations
-        annotations.onset -= tmin
-        raw.annotations = annotations
+        if raw.annotations is not None:
+            annotations = raw.annotations
+            annotations.onset -= tmin
+            raw.annotations = annotations
         return raw
 
     @verbose
