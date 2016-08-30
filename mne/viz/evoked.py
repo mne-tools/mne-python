@@ -16,8 +16,7 @@ from functools import partial
 import numpy as np
 
 from ..io.pick import (channel_type, pick_types, _picks_by_type,
-                       _pick_data_channels, _DATA_CH_TYPES_SPLIT
-)
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
@@ -1378,7 +1377,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         evokeds = dict(Evoked=evokeds)  # title becomes 'Evoked'
     elif not isinstance(evokeds, dict):
         evokeds = dict((str(ii + 1), evoked)
-                        for ii, evoked in enumerate(evokeds))
+                       for ii, evoked in enumerate(evokeds))
     conditions = sorted(list(evokeds.keys()))
 
     # get and set a few limits and variables (times, channels, units)
