@@ -126,8 +126,8 @@ def _onset_to_seconds(raw, onset):
     if raw.annotations.orig_time is None:
         orig_time = meas_date
     else:
-        orig_time = raw.annotations.orig_time
+        orig_time = (raw.annotations.orig_time -
+                     raw.first_samp / raw.info['sfreq'])
 
-    annot_start = (orig_time - meas_date + onset -
-                   raw.first_samp / raw.info['sfreq'])
+    annot_start = orig_time - meas_date + onset
     return annot_start

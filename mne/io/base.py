@@ -591,21 +591,34 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @annotations.setter
     def annotations(self, value):
+        """Setter for annotations. Checks if they are inside the data range."""
         if value is not None:
+            meas_date = self.info['meas_date']
+            if meas_date is None:
+                meas_date = 0
+            elif not np.isscalar(meas_date):
+                if len(meas_date) > 1:
+                    meas_date[1] /= 1e6
+                    meas_date = meas_date.sum()
+            if value.orig_time is not None:
+                offset = value.orig_time - meas_date
+            else:
+                offset = 0
             omit_ind = list()
             for ind, onset in enumerate(value.onset):
+                onset += offset
                 if onset > self.times[-1]:
-                    warn('Omitting annotation outside data.')
+                    warn('Omitting annotation outside data range.')
                     omit_ind.append(ind)
                 elif onset < self.times[0]:
                     if onset + value.duration[ind] < self.times[0]:
-                        warn('Omitting annotation outside data.')
+                        warn('Omitting annotation outside data range.')
                         omit_ind.append(ind)
                     else:
                         warn('Annotation starting outside the data range. '
                              'Limiting to the start of data.')
                         value.duration[ind] = value.duration[ind] + onset
-                        value.onset[ind] = self.times[0]
+                        value.onset[ind] = self.times[0] - offset
                 elif onset + value.duration[ind] > self.times[-1]:
                     warn('Annotation expanding outside the data range. '
                          'Limiting to the end of data.')
@@ -613,6 +626,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             value.onset = np.delete(value.onset, omit_ind)
             value.duration = np.delete(value.duration, omit_ind)
             value.description = np.delete(value.description, omit_ind)
+
         self._annotations = value
 
     def __del__(self):

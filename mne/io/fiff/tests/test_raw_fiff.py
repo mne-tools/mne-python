@@ -1181,15 +1181,23 @@ def test_save():
     assert_equal(annot.orig_time, new_raw.annotations.orig_time)
 
     # test that annotations are in sync after cropping and concatenating
-    annot = Annotations([5., 11., 15.], [2., 1., 1.], ['test', 'test', 'test'])
+    annot = Annotations([5., 11., 15.], [2., 1., 3.], ['test', 'test', 'test'])
     raw.annotations = annot
     r1 = raw.copy().crop(2.5, 7.5)
     r2 = raw.copy().crop(12.5, 17.5)
     r3 = raw.copy().crop(10., 12.)
-    raw = concatenate_raws([r1, r2, r3])
+    raw = concatenate_raws([r1, r2, r3])  # segments reordered
     onsets = raw.annotations.onset
-    # 2*5s clips combined with annotation at 2.5s of each clip + 2s clip at 1s
+    durations = raw.annotations.duration
+    # 2*5s clips combined with annotations at 2.5s + 2s clip, annotation at 1s
     assert_array_almost_equal([2.5, 7.5, 11.], onsets, decimal=2)
+    assert_array_almost_equal([2., 2.5, 1.], durations, decimal=2)
+
+    # test annotation clipping
+    annot = Annotations([0., raw.times[-1]], [2., 2.], 'test',
+                        raw.info['meas_date'] - 1.)
+    raw.annotations = annot
+    assert_array_almost_equal(raw.annotations.duration, [1., 1.])
 
     # make sure we can overwrite the file we loaded when preload=True
     new_raw = Raw(op.join(tempdir, new_fname), preload=True)
