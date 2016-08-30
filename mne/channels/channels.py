@@ -587,7 +587,7 @@ class UpdateChannelsMixin(object):
         missing = [ch_name for ch_name in ch_names
                    if ch_name not in self.ch_names]
         if len(missing) > 0:
-            msg = "Channel(s) {0} not found, cannot drop."
+            msg = "Channel(s) {0} not found, nothing dropped."
             raise ValueError(msg.format(", ".join(missing)))
 
         bad_idx = [self.ch_names.index(ch_name) for ch_name in ch_names
