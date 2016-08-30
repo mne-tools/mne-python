@@ -1439,7 +1439,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     if ch_type == 'grad' and gfp is not True:  # deal with grad pairs
         from ..channels.layout import _merge_grad_data, _pair_grad_sensors
-        picked_chans = []
+        picked_chans = list()
         pairpicks = _pair_grad_sensors(example.info, topomap_coords=False)
         for ii in np.arange(0, len(pairpicks), 2):
             first, second = pairpicks[ii], pairpicks[ii + 1]
@@ -1461,7 +1461,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
         if ci is not None and gfp is not True:
             # calculate the CI
-            sem_array = {}
+            sem_array = dict()
             for condition in conditions:
                 # this will fail if evokeds do not have the same structure
                 # (e.g. channel count)
