@@ -578,11 +578,11 @@ class UpdateChannelsMixin(object):
         msg = ("'ch_names' should be a list of strings (the name[s] of the "
                "channel to be dropped), not a {0}.")
         if isinstance(ch_names, string_types):
-            raise TypeError(msg.format("string"))
+            raise ValueError(msg.format("string"))
         else:
             if not all([isinstance(ch_name, string_types)
                         for ch_name in ch_names]):
-                raise TypeError(msg.format(type(ch_names[0])))
+                raise ValueError(msg.format(type(ch_names[0])))
 
         missing = [ch_name for ch_name in ch_names
                    if ch_name not in self.ch_names]

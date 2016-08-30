@@ -351,9 +351,8 @@ def test_drop_channels_mixin():
     assert_equal(ch_names, evoked.ch_names)
     assert_equal(len(ch_names), len(evoked.data))
 
-    assert_raises(TypeError, evoked.drop_channels, [1, 2])
-    assert_raises(TypeError, evoked.drop_channels, "fake")
-    assert_raises(ValueError, evoked.drop_channels, ["fake"])
+    for ch_names in ([1, 2], "fake", ["fake"]):
+        assert_raises(ValueError, evoked.drop_channels, ch_names)
 
 
 def test_pick_channels_mixin():
