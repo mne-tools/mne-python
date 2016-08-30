@@ -351,7 +351,10 @@ def test_drop_channels_mixin():
     assert_equal(ch_names, evoked.ch_names)
     assert_equal(len(ch_names), len(evoked.data))
 
+    assert_raises(TypeError, evoked.drop_channels, [1, 2])
+    assert_raises(TypeError, evoked.drop_channels, "fake")
     assert_raises(ValueError, evoked.drop_channels, ["fake"])
+
 
 def test_pick_channels_mixin():
     """Test channel-picking functionality"""
