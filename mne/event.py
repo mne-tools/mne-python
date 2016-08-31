@@ -917,9 +917,9 @@ class ElektaAverager(object):
             raise ValueError('No acquisition parameters')
         self.acq_dict = _acqpars_dict(acq_pars)
         if 'ERFversion' not in self.acq_dict:
-            raise ValueError('The file may be from DACQ <3.4 which is '
-                             'not supported yet')
-        # sets instance variables (lowercase versions of DACQ variable names)
+            raise ValueError('Cannot parse version. The file may be from'
+                             'DACQ <3.4 which is not supported yet')
+        # set instance variables
         for var in ElektaAverager.vars:
             val = self.acq_dict['ERF' + var]
             if var[:3] in ['mag', 'meg', 'eeg', 'eog', 'ecg']:
@@ -929,10 +929,10 @@ class ElektaAverager(object):
             setattr(self, var.lower(), val)
         self.stimsource = (
             'Internal' if self.stimsource == '1' else 'External')
-        # collect all events and categories as instance dicts
+        # collect all events and categories
         self._events = self._events_from_acq_pars()
         self._categories = self._categories_from_acq_pars()
-        # collect events and categories that are used by this setup
+        # collect events and categories that are actually used by the setup
         for cat in self._categories.values():
             if cat['event']:
                 self._events[cat['event']]['in_use'] = True
@@ -962,39 +962,38 @@ class ElektaAverager(object):
         return self._categories[items]
 
     def _events_from_acq_pars(self):
-        """ Collects DACQ defined events into a dict, keyed by number
-        starting from 1. Each event is itself a dict containing the event
-        definitions. """
+        """ Collect DACQ defined events into a dict. Events are keyed by number
+        starting from 1 (DACQ index of event). Each event is itself represented
+        by a dict containing the event definitions. """
         events = {}
-        # evnum = '01', '02' etc.
-        for evnum in [str(x).zfill(2) for x in range(1, self.ncateg + 1)]:
+        for evnum in range(1, self.ncateg + 1):
+            evnum_s = str(evnum).zfill(2)  # '01', '02' etc.
             evdi = {}
             for var in self.event_vars:
                 # name of DACQ variable, e.g. 'ERFeventNewBits01'
-                acq_key = 'ERFevent' + var + evnum
+                acq_key = 'ERFevent' + var + evnum_s
                 # corresponding dict key, e.g. 'newbits'
                 dict_key = var.lower()
                 val = self.acq_dict[acq_key]
-                # convert numeric values
+                # type convert numeric values
                 if dict_key in ['newbits', 'oldbits', 'newmask', 'oldmask']:
                     val = int(val)
                 elif dict_key in ['delay']:
                     val = float(val)
                 evdi[dict_key] = val
-                evdi['in_use'] = False
-            # events are keyed by number starting from 1
-            key = int(evnum)
-            evdi['index'] = key
-            events[key] = evdi
+                evdi['in_use'] = False  # __init__() will set this
+            evdi['index'] = evnum
+            events[evnum] = evdi
         return events
 
     def _categories_from_acq_pars(self, all_categories=False):
         """ Collects DACQ averaging categories into a dict. Categories
-        are keyed by the comment defined in DACQ setup. Each category is
+        are keyed by the comment defined in DACQ. Each category is represented
         a dict containing the category definitions. """
         cats = {}
         for catnum in [str(x).zfill(2) for x in range(1, self.nevent + 1)]:
             catdi = {}
+            # read category variables
             for var in self.cat_vars:
                 acq_key = 'ERFcat' + var + catnum
                 class_key = var.lower()
