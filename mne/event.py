@@ -986,44 +986,30 @@ class ElektaAverager(object):
             events[evnum] = evdi
         return events
 
-    def _categories_from_acq_pars(self, all_categories=False):
+    def _categories_from_acq_pars(self):
         """ Collects DACQ averaging categories into a dict. Categories
         are keyed by the comment defined in DACQ. Each category is represented
         a dict containing the category definitions. """
         cats = {}
         for catnum in [str(x).zfill(2) for x in range(1, self.nevent + 1)]:
             catdi = {}
-            # read category variables
+            # read all category variables
             for var in self.cat_vars:
                 acq_key = 'ERFcat' + var + catnum
                 class_key = var.lower()
                 val = self.acq_dict[acq_key]
                 catdi[class_key] = val
-            # create only categories that are enabled
-            if int(catdi['state']) == 1 or all_categories:
-                # show online?
-                catdi['display'] = True if catdi['display'] == '1' else False
-                # enabled?
-                catdi['state'] = True if catdi['state'] == '1' else False
-                catdi['start'] = float(catdi['start'])  # epoch start
-                catdi['end'] = float(catdi['end'])  # epoch end
-                catdi['nave'] = int(catdi['nave'])  # desired n of averages
-                # the reference event (index to event list)
-                catdi['event'] = int(catdi['event'])
-                # required event (index to event list)
-                catdi['reqevent'] = int(catdi['reqevent'])
-                # 1=before, 2=after ref. event
-                catdi['reqwhen'] = int(catdi['reqwhen'])
-                # time window before or after ref. event (s)
-                catdi['reqwithin'] = float(catdi['reqwithin'])
-                catdi['subave'] = int(catdi['subave'])  # subaverage size
-                # non-DACQ vars
-                # list of t=0 times (in samples) for corresponding epochs
-                catdi['times'] = None
-                # index of category in DACQ list
-                catdi['index'] = int(catnum)
-                catdi['parent'] = self  # owning ElektaAverager instance
-                cats[catdi['comment']] = catdi
+            # some type conversions
+            catdi['display'] = True if catdi['display'] == '1' else False
+            catdi['state'] = True if catdi['state'] == '1' else False
+            for key in ['start', 'end', 'reqwithin']:
+                catdi[key] = float(catdi[key])
+            for key in ['nave', 'event', 'reqevent', 'reqwhen', 'subave']:
+                catdi[key] = int(catdi[key])
+            # some convenient extra (non-DACQ) vars
+            catdi['index'] = int(catnum)  # index of category in DACQ list
+            catdi['parent'] = self  # owning class instance
+            cats[catdi['comment']] = catdi
         return cats
 
     def _events_mne_to_dacq(self, mne_events):
@@ -1035,8 +1021,7 @@ class ElektaAverager(object):
         e.g. [t1, 0, 5] means that events 1 and 3 occurred at time t1,
         as 2**(1 - 1) + 2**(3 - 1) = 5. """
         events_ = mne_events.copy()
-        events_[:, 1] = 0
-        events_[:, 2] = 0
+        events_[:, 1:3] = 0
         for n, ev in self._events.iteritems():
             if ev['in_use']:
                 pre_ok = (
@@ -1064,8 +1049,8 @@ class ElektaAverager(object):
             reqEvents_inds = np.where(events[:, 2] & (
                 1 << cat_reqev - 1))[0]
             reqEvents_t = times[reqEvents_inds]
-            # relative (to refevent) time window (in samples) where req. event
-            # must occur (e.g. [0 200])
+            # relative (to refevent) time window where req. event
+            # must occur (e.g. [0 .2])
             twin = [0, (-1)**(cat['reqwhen']) * cat['reqwithin']]
             win = np.round(np.array(sorted(twin)) * sfreq)  # to samples
             refEvents_wins = refEvents_t[:, None] + win
