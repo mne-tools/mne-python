@@ -5,6 +5,8 @@
 Basic MEG and EEG data processing
 =================================
 
+.. image:: http://mne-tools.github.io/stable/_static/mne_logo.png
+
 MNE-Python reimplements most of MNE-C's (the original MNE command line utils)
 functionality and offers transparent scripting.
 On top of that it extends MNE-C's functionality considerably
@@ -79,12 +81,15 @@ From raw data to evoked data
 
 .. _ipython: http://ipython.scipy.org/
 
-Now, launch `ipython`_ (Advanced Python shell) using the QT backend which best
-supported across systems::
+Now, launch `ipython`_ (Advanced Python shell) using the QT backend, which
+is best supported across systems::
 
   $ ipython --matplotlib=qt
 
 First, load the mne package:
+
+.. note:: In IPython, you can press **shift-enter** with a given cell
+          selected to execute it and advance to the next cell:
 """
 
 import mne
@@ -324,7 +329,7 @@ freqs = np.arange(7, 30, 3)  # frequencies of interest
 from mne.time_frequency import tfr_morlet  # noqa
 power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                         return_itc=True, decim=3, n_jobs=1)
-# power.plot()
+power.plot([power.ch_names.index('MEG 1332')])
 
 ##############################################################################
 # Inverse modeling: MNE and dSPM on evoked and raw data
