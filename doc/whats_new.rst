@@ -216,6 +216,8 @@ Changelog
 
     - Added :attr:`mne.io.Raw.acqparser` convenience attribute for :class:`mne.AcqParserFIF` by `Eric Larson`_
 
+    - Added example of Representational Similarity Analysis, by `Jean-Remi King`_
+
 BUG
 ~~~
 
