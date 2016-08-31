@@ -226,10 +226,10 @@ def _get_ecg_channel_index(ch_name, inst):
 
 
 @verbose
-def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
-                      tmin=-0.5, tmax=0.5, l_freq=8, h_freq=16, reject=None,
-                      flat=None, baseline=None, preload=True,
-                      keep_ecg=False, verbose=None):
+def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
+                      tmax=0.5, l_freq=8, h_freq=16, reject=None, flat=None,
+                      baseline=None, preload=True, keep_ecg=False,
+                      verbose=None):
     """Conveniently generate epochs around ECG artifact events
 
 
@@ -239,13 +239,15 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
         The raw data
     ch_name : None | str
         The name of the channel to use for ECG peak detection.
-        If None (default), a synthetic ECG channel is created from
+        If None (default), ECG channel is used if present. If None and no
+        ECG channel is present, a synthetic ECG channel is created from
         cross channel average. Synthetic channel can only be created from
         'meg' channels.
     event_id : int
         The index to assign to found events
     picks : array-like of int | None (default)
-        Indices of channels to include (if None, all channels are used).
+        Indices of channels to include (if None, all good MEG and EEG channels
+        are used to create the epochs).
     tmin : float
         Start time before event.
     tmax : float
@@ -291,16 +293,13 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
     ecg_epochs : instance of Epochs
         Data epoched around ECG r-peaks.
     """
-    not_has_ecg = 'ecg' not in raw and ch_name is None
-    if not_has_ecg:
-        ecg, times = _make_ecg(raw, None, None, verbose)
+    has_ecg = 'ecg' in raw or ch_name is not None
 
     events, _, _, ecg = find_ecg_events(
         raw, ch_name=ch_name, event_id=event_id, l_freq=l_freq, h_freq=h_freq,
-        return_ecg=True,
-        verbose=verbose)
+        return_ecg=True, verbose=verbose)
 
-    if not_has_ecg:
+    if not has_ecg:
         ecg_raw = RawArray(
             ecg[None],
             create_info(ch_names=['ECG-SYN'],
@@ -314,20 +313,21 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
     if picks is None and not keep_ecg:
         picks = pick_types(raw.info, meg=True, eeg=True, ecg=False,
                            ref_meg=False)
-    elif picks is None and keep_ecg and not_has_ecg:
+    elif picks is None and keep_ecg and not has_ecg:
         picks = pick_types(raw.info, meg=True, eeg=True, ecg=True,
                            ref_meg=False)
-    elif keep_ecg and not_has_ecg:
+    elif keep_ecg and not has_ecg:
         picks_extra = pick_types(raw.info, meg=False, eeg=False, ecg=True,
                                  ref_meg=False)
         picks = np.concatenate([picks, picks_extra])
 
     # create epochs around ECG events and baseline (important)
     ecg_epochs = Epochs(raw, events=events, event_id=event_id,
-                        tmin=tmin, tmax=tmax, proj=False,
+                        tmin=tmin, tmax=tmax, proj=False, flat=flat,
                         picks=picks, reject=reject, baseline=baseline,
                         verbose=verbose, preload=preload)
-    if ecg is not None:
+
+    if not has_ecg:
         raw.drop_channels(['ECG-SYN'])
 
     return ecg_epochs
