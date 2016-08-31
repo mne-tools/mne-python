@@ -1169,7 +1169,9 @@ def test_save():
     assert_raises(IOError, raw.save, fif_fname)
 
     # test abspath support and annotations
-    annot = Annotations([10], [5], ['test'], raw.info['meas_date'])
+    sfreq = raw.info['sfreq']
+    annot = Annotations([10], [5], ['test'],
+                        raw.info['meas_date'] + raw.first_samp / sfreq)
     raw.annotations = annot
     new_fname = op.join(op.abspath(op.curdir), 'break-raw.fif')
     raw.save(op.join(tempdir, new_fname), overwrite=True)
@@ -1195,9 +1197,9 @@ def test_save():
 
     # test annotation clipping
     annot = Annotations([0., raw.times[-1]], [2., 2.], 'test',
-                        raw.info['meas_date'] - 1.)
+                        raw.info['meas_date'] + raw.first_samp / sfreq - 1.)
     raw.annotations = annot
-    assert_array_almost_equal(raw.annotations.duration, [1., 1.])
+    assert_array_almost_equal(raw.annotations.duration, [1., 1.], decimal=3)
 
     # make sure we can overwrite the file we loaded when preload=True
     new_raw = Raw(op.join(tempdir, new_fname), preload=True)

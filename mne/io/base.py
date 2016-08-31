@@ -598,10 +598,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 meas_date = 0
             elif not np.isscalar(meas_date):
                 if len(meas_date) > 1:
-                    meas_date[1] /= 1e6
-                    meas_date = meas_date.sum()
+                    microsec = meas_date[1] / 1000000.
+                    meas_date = meas_date[0] + microsec
             if value.orig_time is not None:
-                offset = value.orig_time - meas_date
+                offset = (value.orig_time - meas_date -
+                          self.first_samp / self.info['sfreq'])
             else:
                 offset = 0
             omit_ind = list()
