@@ -166,8 +166,7 @@ def test_average_movements():
 
 
 def test_reject():
-    """Test epochs rejection
-    """
+    """Test epochs rejection"""
     raw, events, picks = _get_data()
     # cull the list just to contain the relevant event
     events = events[events[:, 2] == event_id, :]
@@ -259,8 +258,8 @@ def test_reject():
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
             # rejection on annotations
-            raw.annotations = Annotations([events[0][0] / raw.info['sfreq']],
-                                          [1], ['BAD'])
+            raw.annotations = Annotations([(events[0][0] - raw.first_samp) /
+                                           raw.info['sfreq']], [1], ['BAD'])
             epochs = Epochs(raw, events, event_id, tmin, tmax, picks=[0],
                             reject=None, preload=preload)
             epochs.drop_bad()
