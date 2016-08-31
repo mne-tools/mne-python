@@ -185,6 +185,7 @@ API
 
     - Added :class:`mne.decoding.TemporalFilter` to filter data in scikit-learn pipelines, by `Asish Panda`_
 
+    - :func:`mne.preprocessing.create_ecg_epochs` now includes all the channels when ``picks=None`` by `Jaakko Leppakangas`_
 
 .. _changes_0_12:
 
