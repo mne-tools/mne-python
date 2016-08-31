@@ -421,7 +421,7 @@ def test_define_events():
 def test_elekta_averager():
     """Test averaging according to Elekta DACQ parameters"""
     raw = io.read_raw_fif(fname_raw_elekta, preload=True)
-    eav = ElektaAverager(raw.info['acq_pars'])
+    eav = ElektaAverager(raw.info)
     for cat in eav.categories:
         # XXX datasets match only when baseline is applied to both,
         # not sure where relative dc shift comes from

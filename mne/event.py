@@ -910,9 +910,10 @@ class ElektaAverager(object):
     cat_vars = ['Comment', 'Display', 'Start', 'State', 'End', 'Event',
                 'Nave', 'ReqEvent', 'ReqWhen', 'ReqWithin',  'SubAve']
 
-    def __init__(self, acq_pars):
-        """ acq_pars is usually obtained as data.info['acq_pars'], where data
+    def __init__(self, info):
+        """ info is usually obtained as data.info, where data
         can be instance of Raw, Epochs or Evoked. """
+        acq_pars = info['acq_pars']
         if not acq_pars:
             raise ValueError('No acquisition parameters')
         self.acq_dict = _acqpars_dict(acq_pars)
