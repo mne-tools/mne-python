@@ -246,8 +246,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     event_id : int
         The index to assign to found events
     picks : array-like of int | None (default)
-        Indices of channels to include (if None, all good MEG and EEG channels
-        are used to create the epochs).
+        Indices of channels to include. If None, all channels are used.
     tmin : float
         Start time before event.
     tmax : float
@@ -310,17 +309,8 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                 ecg_raw.info[k] = v
         raw.add_channels([ecg_raw])
 
-    if picks is None and not keep_ecg:
-        picks = pick_types(raw.info, meg=True, eeg=True, ecg=False,
-                           ref_meg=False)
-    elif picks is None and keep_ecg and not has_ecg:
-        picks = pick_types(raw.info, meg=True, eeg=True, ecg=True,
-                           ref_meg=False)
-    elif keep_ecg and not has_ecg:
-        picks_extra = pick_types(raw.info, meg=False, eeg=False, ecg=True,
-                                 ref_meg=False)
-        picks = np.concatenate([picks, picks_extra])
-
+    if keep_ecg:
+        picks = np.append(picks, raw.ch_names.index('ECG-SYN'))
     # create epochs around ECG events and baseline (important)
     ecg_epochs = Epochs(raw, events=events, event_id=event_id,
                         tmin=tmin, tmax=tmax, proj=False, flat=flat,
