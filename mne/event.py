@@ -977,7 +977,11 @@ class ElektaAverager(object):
         s += 'events: %d ' % self.nevent
         evs_in_use = len(self._events_in_use)
         s += '(%d in use), ' % evs_in_use
-        s += 'stim source: %s>' % self.stimsource
+        s += 'stim source: %s' % self.stimsource
+        s += '\nCategories:\n'
+        for cat in self.categories:
+            s += '%d: "%s"\n' % (cat['index'], cat['comment'])
+        s += '>'
         return s
 
     def __getitem__(self, items):
@@ -1093,7 +1097,7 @@ class ElektaAverager(object):
 
     @property
     def categories(self):
-        """ Return list of averaging categories in DACQ defined order. Only 
+        """ Return list of averaging categories in DACQ defined order. Only
         returns categories marked active in DACQ. """
         cats = sorted(self._categories_in_use.values(),
                       key=lambda cat: cat['index'])
@@ -1101,7 +1105,7 @@ class ElektaAverager(object):
 
     @property
     def events(self):
-        """ Lists events in DACQ defined order. Only returns events
+        """ Return events in DACQ defined order. Only returns events
         that are in use (referred to by a category). """
         evs = sorted(self._events_in_use.values(),
                      key=lambda ev: ev['index'])
