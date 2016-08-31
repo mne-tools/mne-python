@@ -1022,7 +1022,7 @@ class ElektaAverager(object):
         mne_events is typically given by mne.find_events (use consecutive=True
         to get all transitions). Output consists of rows in the form
         [t, 0, event_codes] where t is time in samples and event_codes is all
-        events compatible with the transition, bitwise ORed together:
+        DACQ events compatible with the transition, bitwise ORed together:
         e.g. [t1, 0, 5] means that events 1 and 3 occurred at time t1,
         as 2**(1 - 1) + 2**(3 - 1) = 5. """
         events_ = mne_events.copy()
@@ -1044,7 +1044,9 @@ class ElektaAverager(object):
         DACQ averaging category cat. """
         cat_ev = cat['event']
         cat_reqev = cat['reqevent']
+        # first convert mne events to dacq event list
         events = self._events_mne_to_dacq(mne_events)
+        # next, take req. events and delays into account
         times = events[:, 0]
         # indices of times where ref. event occurs
         refEvents_inds = np.where(events[:, 2] & (1 << cat_ev - 1))[0]
