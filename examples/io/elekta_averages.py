@@ -27,11 +27,10 @@ eav = ElektaAverager(raw.info)
 # check out which averaging categories were defined in DACQ
 print eav.categories
 
-""" Extract epochs corresponding to a category. Copy supported rejection
+""" Extract epochs corresponding to a category. Copy rejection
 limits from DACQ settings. """
-cat = eav['Event 1 followed by 2 within 1100 ms']
-rej = eav.reject
-eps = eav.get_epochs(raw, cat, reject=rej)
+eps = eav.get_epochs(raw, 'Event 1 followed by 2 within 1100 ms',
+                     reject=True, flat=True)
 
 """ Read all categories, extract corresponding epochs, average, add
 comments from to the DACQ categories and save to new
@@ -43,5 +42,5 @@ for cat in eav.categories:
     evoked.comment = cat['comment']
     evokeds.append(evoked)
 
-fn_out = 'eav_evokeds.fif'
+fn_out = 'elekta_evokeds-ave.fif'
 mne.write_evokeds(fn_out, evokeds)
