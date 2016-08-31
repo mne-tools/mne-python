@@ -2021,10 +2021,11 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                         'change to "auto" in 0.14']
             filter_length = '10s'
         if filter_length == 'auto':
+            h_check = h_trans_bandwidth if h_freq is not None else np.inf
+            l_check = l_trans_bandwidth if l_freq is not None else np.inf
             filter_length = max(int(round(
                 _length_factors[fir_window] * sfreq /
-                float(min(h_trans_bandwidth or np.inf,
-                          l_trans_bandwidth or np.inf)))), 1)
+                float(min(h_check, l_check)))), 1)
             logger.info('Filter length of %s samples (%0.3f sec) selected'
                         % (filter_length, filter_length / sfreq))
         else:

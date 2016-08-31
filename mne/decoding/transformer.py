@@ -11,7 +11,7 @@ from .base import BaseEstimator
 
 from .. import pick_types
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
-                      band_stop_filter)
+                      band_stop_filter, filter_data, _triage_filter_params)
 from ..time_frequency.psd import _psd_multitaper
 from ..externals import six
 from ..utils import _check_type_picks, deprecated
@@ -497,6 +497,10 @@ class FilterEstimator(TransformerMixin):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
+
+    See Also
+    --------
+    TemporalFilter
     """
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='',
                  l_trans_bandwidth=None, h_trans_bandwidth=None, n_jobs=1,
@@ -715,3 +719,155 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         X = self.estimator.transform(X)
         X = np.reshape(X.T, [-1, n_epochs, n_times]).transpose([1, 0, 2])
         return X
+
+
+class TemporalFilter(TransformerMixin):
+    """Estimator to filter data array along the last dimension.
+
+    Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
+    filter to the channels.
+
+    l_freq and h_freq are the frequencies below which and above which,
+    respectively, to filter out of the data. Thus the uses are:
+
+        - l_freq < h_freq: band-pass filter
+        - l_freq > h_freq: band-stop filter
+        - l_freq is not None, h_freq is None: low-pass filter
+        - l_freq is None, h_freq is not None: high-pass filter
+
+    See ``mne.filter.filter_data``.
+
+    Parameters
+    ----------
+    l_freq : float | None
+        Low cut-off frequency in Hz. If None the data are only low-passed.
+    h_freq : float | None
+        High cut-off frequency in Hz. If None the data are only
+        high-passed.
+    sfreq : float, defaults to 1.0
+        Sampling frequency in Hz.
+    filter_length : str | int, defaults to 'auto'
+        Length of the FIR filter to use (if applicable):
+            * int: specified length in samples.
+            * 'auto' (default in 0.14): the filter length is chosen based
+              on the size of the transition regions (7 times the reciprocal
+              of the shortest transition band).
+            * str: (default in 0.13 is "10s") a human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
+    l_trans_bandwidth : float | str, defaults to 'auto'
+        Width of the transition band at the low cut-off frequency in Hz
+        (high pass or cutoff 1 in bandpass). Can be "auto"
+        (default in 0.14) to use a multiple of ``l_freq``::
+            min(max(l_freq * 0.25, 2), l_freq)
+        Only used for ``method='fir'``.
+    h_trans_bandwidth : float | str, defaults to 'auto'
+        Width of the transition band at the high cut-off frequency in Hz
+        (low pass or cutoff 2 in bandpass). Can be "auto"
+        (default in 0.14) to use a multiple of ``h_freq``::
+            min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+        Only used for ``method='fir'``.
+    n_jobs : int | str, defaults to 1
+        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+        is installed properly, CUDA is initialized, and method='fft'.
+    method : str, defaults to 'fir'
+        'fir' will use overlap-add FIR filtering, 'iir' will use IIR
+        forward-backward filtering (via filtfilt).
+    iir_params : dict | None, defaults to None
+        Dictionary of parameters to use for IIR filtering.
+        See mne.filter.construct_iir_filter for details. If iir_params
+        is None and method="iir", 4th order Butterworth will be used.
+    fir_window : str, defaults to 'hamming'
+        The window to use in FIR design, can be "hamming", "hann",
+        or "blackman".
+    verbose : bool, str, int, or None, defaults to None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to self.verbose.
+
+    See Also
+    --------
+    FilterEstimator
+    Vectorizer
+    mne.filter.band_pass_filter
+    mne.filter.band_stop_filter
+    mne.filter.low_pass_filter
+    mne.filter.high_pass_filter
+    """
+    def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
+                 filter_length='auto', l_trans_bandwidth='auto',
+                 h_trans_bandwidth='auto', n_jobs=1, method='fir',
+                 iir_params=None, fir_window='hamming', verbose=None):
+        self.l_freq = l_freq
+        self.h_freq = h_freq
+        self.sfreq = sfreq
+        self.filter_length = filter_length
+        self.l_trans_bandwidth = l_trans_bandwidth
+        self.h_trans_bandwidth = h_trans_bandwidth
+        self.n_jobs = n_jobs
+        self.method = method
+        self.iir_params = iir_params
+        self.fir_window = fir_window
+        self.verbose = verbose
+
+        if not isinstance(self.n_jobs, int) and self.n_jobs == 'cuda':
+            raise ValueError('n_jobs must be int or "cuda", got %s instead.'
+                             % type(self.n_jobs))
+
+    def fit(self, X, y=None):
+        """Does nothing. For scikit-learn compatibility purposes.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times) or or shape (n_channels, n_times) # noqa
+            The data to be filtered over the last dimension. The channels
+            dimension can be zero when passing a 2D array.
+        y : None
+            Not used, for scikit-learn compatibility issues.
+
+        Returns
+        -------
+        self : instance of Filterer
+            Returns the modified instance.
+        """
+        return self
+
+    def transform(self, X):
+        """Filters data along the last dimension.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times) or shape (n_channels, n_times) # noqa
+            The data to be filtered over the last dimension. The channels
+            dimension can be zero when passing a 2D array.
+
+        Returns
+        -------
+        X : array, shape is same as used in input.
+            The data after filtering.
+        """
+        X = np.atleast_2d(X)
+
+        if X.ndim > 3:
+            raise ValueError("Array must be of at max 3 dimensions instead "
+                             "got %s dimensional matrix" % (X.ndim))
+
+        shape = X.shape
+        X = X.reshape(-1, shape[-1])
+        (X, self.sfreq, self.l_freq, self.h_freq, self.l_trans_bandwidth,
+         self.h_trans_bandwidth, self.filter_length, _, self.fir_window) = \
+            _triage_filter_params(X, self.sfreq, self.l_freq, self.h_freq,
+                                  self.l_trans_bandwidth,
+                                  self.h_trans_bandwidth, self.filter_length,
+                                  self.method, phase='zero',
+                                  fir_window=self.fir_window)
+        X = filter_data(X, self.sfreq, self.l_freq, self.h_freq,
+                        filter_length=self.filter_length,
+                        l_trans_bandwidth=self.l_trans_bandwidth,
+                        h_trans_bandwidth=self.h_trans_bandwidth,
+                        n_jobs=self.n_jobs, method=self.method,
+                        iir_params=self.iir_params, copy=False,
+                        fir_window=self.fir_window,
+                        verbose=self.verbose)
+        return X.reshape(shape)

@@ -14,7 +14,7 @@ from numpy.testing import (assert_array_equal, assert_equal,
 from mne import io, read_events, Epochs, pick_types
 from mne.decoding import Scaler, FilterEstimator
 from mne.decoding import (PSDEstimator, EpochsVectorizer, Vectorizer,
-                          UnsupervisedSpatialFilter)
+                          UnsupervisedSpatialFilter, TemporalFilter)
 from mne.utils import requires_sklearn_0_15
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -227,3 +227,32 @@ def test_unsupervised_spatial_filter():
     usf = UnsupervisedSpatialFilter(PCA(4), average=True)
     usf.fit_transform(X)
     assert_raises(ValueError, UnsupervisedSpatialFilter, PCA(4), 2)
+
+
+def test_temporal_filter():
+    """Test methods of TemporalFilter."""
+    X = np.random.rand(5, 5, 1200)
+
+    # Test init test
+    values = (('10hz', None, 100., 'auto'), (5., '10hz', 100., 'auto'),
+              (10., 20., 5., 'auto'), (None, None, 100., '5hz'))
+    for low, high, sf, ltrans in values:
+        filt = TemporalFilter(low, high, sf, ltrans)
+        assert_raises(ValueError, filt.fit_transform, X)
+
+    # Add tests for different combinations of l_freq and h_freq
+    for low, high in ((5., 15.), (None, 15.), (5., None)):
+        filt = TemporalFilter(low, high, sfreq=100.)
+        Xt = filt.fit_transform(X)
+        assert_array_equal(filt.fit_transform(X), Xt)
+        assert_true(X.shape == Xt.shape)
+
+    # Test fit and transform numpy type check
+    with warnings.catch_warnings(record=True):
+        assert_raises(TypeError, filt.transform, [1, 2])
+
+    # Test with 2 dimensional data array
+    X = np.random.rand(101, 500)
+    filt = TemporalFilter(l_freq=25., h_freq=50., sfreq=1000.,
+                          filter_length=150)
+    assert_equal(filt.fit_transform(X).shape, X.shape)
