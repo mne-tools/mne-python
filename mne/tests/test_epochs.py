@@ -1785,7 +1785,7 @@ def test_pick_channels_mixin():
                     baseline=(None, 0), preload=True)
     ch_names = epochs.ch_names[:3]
     epochs.preload = False
-    assert_raises(RuntimeError, epochs.drop_channels, ['foo'])
+    assert_raises(RuntimeError, epochs.drop_channels, [ch_names[0]])
     epochs.preload = True
     ch_names_orig = epochs.ch_names
     dummy = epochs.copy().pick_channels(ch_names)

@@ -560,7 +560,7 @@ class UpdateChannelsMixin(object):
         Parameters
         ----------
         ch_names : list
-            The list of channels to remove.
+            List of the names of the channels to remove.
 
         Returns
         -------
@@ -575,10 +575,26 @@ class UpdateChannelsMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        bad_idx = [self.ch_names.index(c) for c in ch_names
-                   if c in self.ch_names]
+        msg = ("'ch_names' should be a list of strings (the name[s] of the "
+               "channel to be dropped), not a {0}.")
+        if isinstance(ch_names, string_types):
+            raise ValueError(msg.format("string"))
+        else:
+            if not all([isinstance(ch_name, string_types)
+                        for ch_name in ch_names]):
+                raise ValueError(msg.format(type(ch_names[0])))
+
+        missing = [ch_name for ch_name in ch_names
+                   if ch_name not in self.ch_names]
+        if len(missing) > 0:
+            msg = "Channel(s) {0} not found, nothing dropped."
+            raise ValueError(msg.format(", ".join(missing)))
+
+        bad_idx = [self.ch_names.index(ch_name) for ch_name in ch_names
+                   if ch_name in self.ch_names]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         self._pick_drop_channels(idx)
+
         return self
 
     def _pick_drop_channels(self, idx):

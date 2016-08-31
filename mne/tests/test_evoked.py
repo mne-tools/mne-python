@@ -344,10 +344,15 @@ def test_drop_channels_mixin():
     assert_equal(ch_names, dummy.ch_names)
     assert_equal(ch_names_orig, evoked.ch_names)
     assert_equal(len(ch_names_orig), len(evoked.data))
+    dummy2 = evoked.copy().drop_channels([drop_ch[0]])
+    assert_equal(dummy2.ch_names, ch_names_orig[1:])
 
     evoked.drop_channels(drop_ch)
     assert_equal(ch_names, evoked.ch_names)
     assert_equal(len(ch_names), len(evoked.data))
+
+    for ch_names in ([1, 2], "fake", ["fake"]):
+        assert_raises(ValueError, evoked.drop_channels, ch_names)
 
 
 def test_pick_channels_mixin():
