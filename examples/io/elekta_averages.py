@@ -3,8 +3,8 @@
 Getting averaging info from fiff
 ================================
 
-Get averaging information from a fiff file (for Vectorview/TRIUX systems)
-and extract epochs accordingly.
+Get averaging information defined in Elekta Vectorview/TRIUX DACQ (data
+acquisition). Extract and extract epochs accordingly.
 """
 # Author: Jussi Nurminen (jnu@iki.fi)
 #
@@ -19,21 +19,22 @@ from mne.event import ElektaAverager
 elekta_base_dir = os.path.join(testing.data_path(), 'misc')
 fname_raw_elekta = os.path.join(elekta_base_dir, 'test_elekta_3ch_raw.fif')
 
-
 print(__doc__)
 
 raw = mne.io.read_raw_fif(fname_raw_elekta)
-
 eav = ElektaAverager(raw.info)
 
 # check out which averaging categories were defined in DACQ
 print eav.categories
 
-# extract epochs corresponding to a category
+""" Extract epochs corresponding to a category. Copy supported rejection
+limits from DACQ settings. """
 cat = eav['Event 1 followed by 2 within 1100 ms']
-eps = eav.get_epochs(raw, cat)
+rej = eav.reject
+eps = eav.get_epochs(raw, cat, reject=rej)
 
-""" Read all categories, extract corresponding epochs, average and save to new
+""" Read all categories, extract corresponding epochs, average, add
+comments from to the DACQ categories and save to new
  fiff file. """
 evokeds = []
 for cat in eav.categories:
@@ -44,4 +45,3 @@ for cat in eav.categories:
 
 fn_out = 'eav_evokeds.fif'
 mne.write_evokeds(fn_out, evokeds)
-

@@ -892,9 +892,6 @@ class ElektaAverager(object):
     """ Handles events and averaging categories for Elekta TRIUX/Vectorview
     systems."""
 
-    # DACQ variable names always start with one of these
-    acq_var_magic = ['ERF', 'DEF', 'ACQ', 'TCP']
-
     # averager related DACQ variable names (without preceding 'ERF')
     vars = ['magMax', 'magMin', 'magNoise', 'magSlope', 'magSpike', 'megMax',
             'megMin', 'megNoise', 'megSlope', 'megSpike', 'eegMax', 'eegMin',
@@ -948,6 +945,7 @@ class ElektaAverager(object):
         self.reject = {'grad': self.megmax, 'mag': self.magmax,
                        'eeg': self.eegmax, 'eog': self.eogmax,
                        'ecg': self.ecgmax}
+        self.reject = {k: float(v) for k, v in self.reject.iteritems() if float(v) > 0}
 
     def __repr__(self):
         s = '<ElektaAverager | '
@@ -1090,12 +1088,13 @@ class ElektaAverager(object):
         return [event['comment'] for event in self.events]
 
     def get_epochs(self, raw, category, picks=None, reject=None,
-                   baseline=(None, 0), stim_channel=None, mask=0):
+                   baseline=(None, 0), stim_channel=None, mask=0,
+                   mask_type=None):
         """ Get mne.Epochs instance corresponding to the given category. """
         from .epochs import Epochs
         mne_events = find_events(raw, stim_channel=stim_channel,
-                                 mask=mask, output='step', consecutive=True,
-                                 verbose=False)
+                                 mask=mask, mask_type=mask_type, output='step', 
+                                 consecutive=True, verbose=False)
         sfreq = raw.info['sfreq']
         # create array of category reference times (t0),
         # and corresponding (fake) event_id for mne.Epochs
@@ -1116,9 +1115,12 @@ def _acqpars_dict(acq_pars):
 
 
 def _acqpars_gen(acq_pars):
-    """ Yields key/value pairs from a string of acquisition parameters. """
+    """ Yields key/value pairs from a string containing Elekta Vectorview/TRIUX
+    acquisition parameters (usually info['acq_pars']) """
+    # DACQ variable names always start with one of these
+    acq_var_magic = ['ERF', 'DEF', 'ACQ', 'TCP']
     for line in acq_pars.split():
-        if any([line.startswith(x) for x in ElektaAverager.acq_var_magic]):
+        if any([line.startswith(x) for x in acq_var_magic]):
             key = line
             val = ''
         else:
