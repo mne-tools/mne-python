@@ -889,8 +889,27 @@ def concatenate_events(events, first_samps, last_samps):
 
 
 class ElektaAverager(object):
-    """ Handles events and averaging categories for Elekta TRIUX/Vectorview
-    systems."""
+    """Handles events and averaging categories defined in DACQ
+    (data acquisition) software of Elekta TRIUX/Vectorview systems.
+
+    Parameters
+    ----------
+    info : Info
+        An instance of Info where the DACQ parameters will be taken from.
+
+    Attributes
+    ----------
+    categories : list
+        List of averaging categories marked active in DACQ.
+    events : list
+        List of events that are in use (referenced by some averaging category).
+    reject : dict
+        Rejection criteria from DACQ that can be used with mne.Epochs.
+        Note that mne does not support all DACQ rejection criteria
+        (e.g. spike, slope)
+    flat : dict
+        Flatness criteria from DACQ that can be used with mne.Epochs.
+    """
 
     # averager related DACQ variable names (without preceding 'ERF')
     vars = ['magMax', 'magMin', 'magNoise', 'magSlope', 'magSpike', 'megMax',
@@ -908,8 +927,6 @@ class ElektaAverager(object):
                 'Nave', 'ReqEvent', 'ReqWhen', 'ReqWithin',  'SubAve']
 
     def __init__(self, info):
-        """ info is usually obtained as data.info, where data
-        can be instance of Raw, Epochs or Evoked. """
         acq_pars = info['acq_pars']
         if not acq_pars:
             raise ValueError('No acquisition parameters')
@@ -1076,8 +1093,8 @@ class ElektaAverager(object):
 
     @property
     def categories(self):
-        """ Return list of category names in DACQ defined order. Only returns
-        categories marked active in DACQ. """
+        """ Return list of averaging categories in DACQ defined order. Only 
+        returns categories marked active in DACQ. """
         cats = sorted(self._categories_in_use.values(),
                       key=lambda cat: cat['index'])
         return cats

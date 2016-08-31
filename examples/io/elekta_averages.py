@@ -4,7 +4,7 @@ Getting averaging info from fiff
 ================================
 
 Get averaging information defined in Elekta Vectorview/TRIUX DACQ (data
-acquisition). Extract and extract epochs accordingly.
+acquisition). Extract and average epochs accordingly.
 """
 # Author: Jussi Nurminen (jnu@iki.fi)
 #
