@@ -45,7 +45,7 @@ def test_find_ecg():
     assert_true(len(picks) == 1)
 
     ecg_epochs = create_ecg_epochs(raw, ch_name='MEG 2641')
-    assert 'MEG 2641' in ecg_epochs.ch_names
+    assert_true('MEG 2641' in ecg_epochs.ch_names)
 
     # test with user provided ecg channel
     raw.info['projs'] = list()
