@@ -933,16 +933,17 @@ class ElektaAverager(object):
         # collect all events and categories
         self._events = self._events_from_acq_pars()
         self._categories = self._categories_from_acq_pars()
-        # collect events and categories that are actually used by the setup
+        # mark events that are used by some category
         for cat in self._categories.values():
             if cat['event']:
                 self._events[cat['event']]['in_use'] = True
             if cat['reqevent']:
                 self._events[cat['reqevent']]['in_use'] = True
+        # collect categories and events that are actually in use
         self._categories_in_use = (
-            [cat for cat in self._categories.values() if cat['state']])
+            {k: v for k, v in self._categories.iteritems() if v['state']})
         self._events_in_use = (
-            [ev for ev in self._events.values() if ev['in_use']])
+            {k: v for k, v in self._events.iteritems() if v['in_use']})
         # make a mne rejection dict based on the averager parameters
         self.reject = {'grad': self.megmax, 'mag': self.magmax,
                        'eeg': self.eegmax, 'eog': self.eogmax,
@@ -1070,17 +1071,23 @@ class ElektaAverager(object):
 
     @property
     def categories(self):
-        """ Return list of categories in DACQ defined order. Only returns
+        """ Return list of category names in DACQ defined order. Only returns
         categories marked active in DACQ. """
-        return sorted(self._categories_in_use,
+        cats = sorted(self._categories_in_use.values(),
                       key=lambda cat: cat['index'])
+        return cats
 
     @property
     def events(self):
-        """ Return list of events in DACQ order. Only returns events that
-        are referred to by a DACQ category. """
-        return sorted(self._events_in_use,
-                      key=lambda ev: ev['index'])
+        """ Lists events in DACQ defined order. Only returns events
+        that are in use (referred to by a category). """
+        evs = sorted(self._events_in_use.values(),
+                     key=lambda ev: ev['index'])
+        return evs
+
+    @property
+    def event_names(self):
+        return [event['comment'] for event in self.events]
 
     def get_epochs(self, raw, category, picks=None, reject=None,
                    baseline=(None, 0), stim_channel=None, mask=0):
