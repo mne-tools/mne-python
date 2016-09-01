@@ -119,7 +119,7 @@ def _onset_to_seconds(raw, onset):
         meas_date = 0
     elif not np.isscalar(meas_date):
         if len(meas_date) > 1:
-            meas_date = float(meas_date[0]) + meas_date[1] / 1000000.
+            meas_date = meas_date[0] + meas_date[1] / 1000000.
         else:
             meas_date = meas_date[0]
     if raw.annotations.orig_time is None:

@@ -112,7 +112,7 @@ BUG
 
         - Fix comparisons of filter settings for determining "strictest" filter
 
-    - Fixes to plotting and timing of :class:`mne.Annotations <annotations>` and restricted addition of annotations outside data range to prevent problems with cropping and concatenating data by `Jaakko Leppakangas`_
+    - Fixed plotting and timing of :class:`Annotations` and restricted addition of annotations outside data range to prevent problems with cropping and concatenating data by `Jaakko Leppakangas`_
 
 API
 ~~~
