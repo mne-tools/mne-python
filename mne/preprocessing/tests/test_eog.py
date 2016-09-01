@@ -1,7 +1,7 @@
 import os.path as op
 from nose.tools import assert_true
 
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne.preprocessing.eog import find_eog_events
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -11,8 +11,8 @@ proj_fname = op.join(data_path, 'test-proj.fif')
 
 
 def test_find_eog():
-    """Test find EOG peaks"""
-    raw = Raw(raw_fname)
+    """Test find EOG peaks."""
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
     events = find_eog_events(raw)
     n_events = len(events)
     assert_true(n_events == 4)

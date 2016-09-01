@@ -80,7 +80,7 @@ class Raw(_BaseRaw):
     def __init__(self, fname, allow_maxshield=False, preload=False,
                  proj=None, compensation=None, add_eeg_ref=None,
                  fnames=None, verbose=None):
-        if proj is None:
+        if not proj:
             proj = False
         else:
             warn('The proj parameter has been dprecated and will be removed '

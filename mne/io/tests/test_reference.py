@@ -19,7 +19,7 @@ from mne.io import (set_eeg_reference, set_bipolar_reference,
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
-from mne.io import Raw
+from mne.io import read_raw_fif
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -30,8 +30,7 @@ ave_fname = op.join(data_dir, 'sample_audvis_trunc-ave.fif')
 
 
 def _test_reference(raw, reref, ref_data, ref_from):
-    """Helper function to test whether a reference has been correctly
-    applied."""
+    """Test whether a reference has been correctly applied."""
     # Separate EEG channels from other channel types
     picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     picks_other = pick_types(raw.info, meg=True, eeg=False, eog=True,
@@ -72,8 +71,8 @@ def _test_reference(raw, reref, ref_data, ref_from):
 
 @testing.requires_testing_data
 def test_apply_reference():
-    """Test base function for rereferencing"""
-    raw = Raw(fif_fname, preload=True)
+    """Test base function for rereferencing."""
+    raw = read_raw_fif(fif_fname, preload=True, add_eeg_ref=False)
 
     # Rereference raw data by creating a copy of original data
     reref, ref_data = _apply_reference(
@@ -93,11 +92,11 @@ def test_apply_reference():
     assert_true(raw is reref)
 
     # Test re-referencing Epochs object
-    raw = Raw(fif_fname, preload=False, add_eeg_ref=False)
+    raw = read_raw_fif(fif_fname, preload=False, add_eeg_ref=False)
     events = read_events(eve_fname)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
-                    picks=picks_eeg, preload=True)
+                    picks=picks_eeg, preload=True, add_eeg_ref=False)
     reref, ref_data = _apply_reference(
         epochs.copy(), ref_from=['EEG 001', 'EEG 002'])
     assert_true(reref.info['custom_ref_applied'])
@@ -111,14 +110,14 @@ def test_apply_reference():
     _test_reference(evoked, reref, ref_data, ['EEG 001', 'EEG 002'])
 
     # Test invalid input
-    raw_np = Raw(fif_fname, preload=False)
+    raw_np = read_raw_fif(fif_fname, preload=False, add_eeg_ref=False)
     assert_raises(RuntimeError, _apply_reference, raw_np, ['EEG 001'])
 
 
 @testing.requires_testing_data
 def test_set_eeg_reference():
-    """Test rereference eeg data"""
-    raw = Raw(fif_fname, preload=True)
+    """Test rereference eeg data."""
+    raw = read_raw_fif(fif_fname, preload=True, add_eeg_ref=False)
     raw.info['projs'] = []
 
     # Test setting an average reference
@@ -145,8 +144,8 @@ def test_set_eeg_reference():
 
 @testing.requires_testing_data
 def test_set_bipolar_reference():
-    """Test bipolar referencing"""
-    raw = Raw(fif_fname, preload=True)
+    """Test bipolar referencing."""
+    raw = read_raw_fif(fif_fname, preload=True, add_eeg_ref=False)
     reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002', 'bipolar',
                                   {'kind': FIFF.FIFFV_EOG_CH,
                                    'extra': 'some extra value'})
@@ -218,6 +217,7 @@ def test_set_bipolar_reference():
 
 
 def _check_channel_names(inst, ref_names):
+    """Check channel names."""
     if isinstance(ref_names, str):
         ref_names = [ref_names]
 
@@ -232,7 +232,8 @@ def _check_channel_names(inst, ref_names):
 
 @testing.requires_testing_data
 def test_add_reference():
-    raw = Raw(fif_fname, preload=True)
+    """Test adding a reference."""
+    raw = read_raw_fif(fif_fname, preload=True, add_eeg_ref=False)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     # check if channel already exists
     assert_raises(ValueError, add_reference_channels,
@@ -259,7 +260,7 @@ def test_add_reference():
     assert_array_equal(ref_data, 0)
 
     # add reference channel to Raw when no digitization points exist
-    raw = Raw(fif_fname).crop(0, 1).load_data()
+    raw = read_raw_fif(fif_fname, add_eeg_ref=False).crop(0, 1).load_data()
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     del raw.info['dig']
 
@@ -294,17 +295,18 @@ def test_add_reference():
     assert_array_equal(ref_data, 0)
 
     # add reference channel to epochs
-    raw = Raw(fif_fname, preload=True)
+    raw = read_raw_fif(fif_fname, preload=True, add_eeg_ref=False)
     events = read_events(eve_fname)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
-                    picks=picks_eeg, preload=True)
+                    picks=picks_eeg, preload=True, add_eeg_ref=False)
     # default: proj=True, after which adding a Ref channel is prohibited
     assert_raises(RuntimeError, add_reference_channels, epochs, 'Ref')
 
     # create epochs in delayed mode, allowing removal of CAR when re-reffing
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
-                    picks=picks_eeg, preload=True, proj='delayed')
+                    picks=picks_eeg, preload=True, proj='delayed',
+                    add_eeg_ref=False)
     epochs_ref = add_reference_channels(epochs, 'Ref', copy=True)
     # CAR after custom reference is an Error
     assert_raises(RuntimeError, epochs_ref.add_eeg_average_proj)
@@ -319,13 +321,15 @@ def test_add_reference():
                        epochs_ref.get_data()[:, picks_eeg, :])
 
     # add two reference channels to epochs
-    raw = Raw(fif_fname, preload=True)
+    raw = read_raw_fif(fif_fname, preload=True, add_eeg_ref=False)
     events = read_events(eve_fname)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     # create epochs in delayed mode, allowing removal of CAR when re-reffing
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
-                    picks=picks_eeg, preload=True, proj='delayed')
-    epochs_ref = add_reference_channels(epochs, ['M1', 'M2'], copy=True)
+                    picks=picks_eeg, preload=True, proj='delayed',
+                    add_eeg_ref=False)
+    with warnings.catch_warnings(record=True):  # multiple set zero
+        epochs_ref = add_reference_channels(epochs, ['M1', 'M2'], copy=True)
     assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 2)
     _check_channel_names(epochs_ref, ['M1', 'M2'])
     ref_idx = epochs_ref.ch_names.index('M1')
@@ -339,12 +343,13 @@ def test_add_reference():
                        epochs_ref.get_data()[:, picks_eeg, :])
 
     # add reference channel to evoked
-    raw = Raw(fif_fname, preload=True)
+    raw = read_raw_fif(fif_fname, preload=True, add_eeg_ref=False)
     events = read_events(eve_fname)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     # create epochs in delayed mode, allowing removal of CAR when re-reffing
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
-                    picks=picks_eeg, preload=True, proj='delayed')
+                    picks=picks_eeg, preload=True, proj='delayed',
+                    add_eeg_ref=False)
     evoked = epochs.average()
     evoked_ref = add_reference_channels(evoked, 'Ref', copy=True)
     assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 1)
@@ -357,14 +362,16 @@ def test_add_reference():
                        evoked_ref.data[picks_eeg, :])
 
     # add two reference channels to evoked
-    raw = Raw(fif_fname, preload=True)
+    raw = read_raw_fif(fif_fname, preload=True, add_eeg_ref=False)
     events = read_events(eve_fname)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     # create epochs in delayed mode, allowing removal of CAR when re-reffing
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
-                    picks=picks_eeg, preload=True, proj='delayed')
+                    picks=picks_eeg, preload=True, proj='delayed',
+                    add_eeg_ref=False)
     evoked = epochs.average()
-    evoked_ref = add_reference_channels(evoked, ['M1', 'M2'], copy=True)
+    with warnings.catch_warnings(record=True):  # multiple set zero
+        evoked_ref = add_reference_channels(evoked, ['M1', 'M2'], copy=True)
     assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 2)
     _check_channel_names(evoked_ref, ['M1', 'M2'])
     ref_idx = evoked_ref.ch_names.index('M1')
@@ -376,6 +383,6 @@ def test_add_reference():
                        evoked_ref.data[picks_eeg, :])
 
     # Test invalid inputs
-    raw_np = Raw(fif_fname, preload=False)
+    raw_np = read_raw_fif(fif_fname, preload=False, add_eeg_ref=False)
     assert_raises(RuntimeError, add_reference_channels, raw_np, ['Ref'])
     assert_raises(ValueError, add_reference_channels, raw, 1)

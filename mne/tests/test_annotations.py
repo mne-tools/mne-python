@@ -11,7 +11,7 @@ import numpy as np
 
 from mne import create_info
 from mne.utils import run_tests_if_main
-from mne.io import Raw, RawArray, concatenate_raws
+from mne.io import read_raw_fif, RawArray, concatenate_raws
 from mne.annotations import Annotations
 from mne.datasets import testing
 
@@ -22,7 +22,7 @@ fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 @testing.requires_testing_data
 def test_annotations():
     """Test annotation class."""
-    raw = Raw(fif_fname)
+    raw = read_raw_fif(fif_fname, add_eeg_ref=False)
     onset = np.array(range(10))
     duration = np.ones(10)
     description = np.repeat('test', 10)

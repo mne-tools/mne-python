@@ -4,7 +4,8 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
 import mne
-from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
+from mne import Epochs, read_events, pick_types, create_info, EpochsArray
+from mne.io import read_raw_fif
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
                        grand_average)
 from mne.time_frequency import single_trial_power
@@ -24,7 +25,7 @@ event_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 
 
 def test_morlet():
-    """Test morlet with and without zero mean"""
+    """Test morlet with and without zero mean."""
     Wz = morlet(1000, [10], 2., zero_mean=True)
     W = morlet(1000, [10], 2., zero_mean=False)
 
@@ -33,14 +34,14 @@ def test_morlet():
 
 
 def test_time_frequency():
-    """Test the to-be-deprecated time-frequency transform (PSD and ITC)"""
+    """Test the to-be-deprecated time-frequency transform (PSD and ITC)."""
     # Set parameters
     event_id = 1
     tmin = -0.2
     tmax = 0.498  # Allows exhaustive decimation testing
 
     # Setup for reading the raw data
-    raw = io.read_raw_fif(raw_fname)
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
     events = read_events(event_fname)
 
     include = []
@@ -52,13 +53,13 @@ def test_time_frequency():
 
     picks = picks[:2]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0))
+                    baseline=(None, 0), add_eeg_ref=False)
     data = epochs.get_data()
     times = epochs.times
     nave = len(data)
 
     epochs_nopicks = Epochs(raw, events, event_id, tmin, tmax,
-                            baseline=(None, 0))
+                            baseline=(None, 0), add_eeg_ref=False)
 
     freqs = np.arange(6, 20, 5)  # define frequencies of interest
     n_cycles = freqs / 4.
@@ -220,7 +221,7 @@ def test_time_frequency():
 
 
 def test_dpsswavelet():
-    """Test DPSS tapers"""
+    """Test DPSS tapers."""
     freqs = np.arange(5, 25, 3)
     Ws = _make_dpss(1000, freqs=freqs, n_cycles=freqs / 2., time_bandwidth=4.0,
                     zero_mean=True)
@@ -235,7 +236,7 @@ def test_dpsswavelet():
 
 @slow_test
 def test_tfr_multitaper():
-    """Test tfr_multitaper"""
+    """Test tfr_multitaper."""
     sfreq = 200.0
     ch_names = ['SIM0001', 'SIM0002']
     ch_types = ['grad', 'grad']
@@ -319,7 +320,7 @@ def test_tfr_multitaper():
 
 
 def test_crop():
-    """Test TFR cropping"""
+    """Test TFR cropping."""
     data = np.zeros((3, 2, 3))
     times = np.array([.1, .2, .3])
     freqs = np.array([.10, .20])
@@ -334,7 +335,7 @@ def test_crop():
 
 @requires_h5py
 def test_io():
-    """Test TFR IO capacities"""
+    """Test TFR IO capacities."""
 
     tempdir = _TempDir()
     fname = op.join(tempdir, 'test-tfr.h5')
@@ -425,8 +426,7 @@ def test_plot():
 
 
 def test_add_channels():
-    """Test tfr splitting / re-appending channel types
-    """
+    """Test tfr splitting / re-appending channel types."""
     data = np.zeros((6, 2, 3))
     times = np.array([.1, .2, .3])
     freqs = np.array([.10, .20])
@@ -461,14 +461,14 @@ def test_add_channels():
 
 
 def test_compute_tfr():
-    """Test _compute_tfr function"""
+    """Test _compute_tfr function."""
     # Set parameters
     event_id = 1
     tmin = -0.2
     tmax = 0.498  # Allows exhaustive decimation testing
 
     # Setup for reading the raw data
-    raw = io.read_raw_fif(raw_fname)
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
     events = read_events(event_fname)
 
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more

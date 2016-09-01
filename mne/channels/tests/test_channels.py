@@ -16,7 +16,7 @@ from nose.tools import assert_raises, assert_true, assert_equal
 
 from mne.channels import rename_channels, read_ch_connectivity
 from mne.channels.channels import _ch_neighbor_connectivity
-from mne.io import read_info, Raw
+from mne.io import read_info, read_raw_fif
 from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, pick_channels
@@ -28,8 +28,7 @@ warnings.simplefilter('always')
 
 
 def test_rename_channels():
-    """Test rename channels
-    """
+    """Test rename channels"""
     info = read_info(raw_fname)
     # Error Tests
     # Test channel name exists in ch_names
@@ -65,9 +64,8 @@ def test_rename_channels():
 
 
 def test_set_channel_types():
-    """Test set_channel_types
-    """
-    raw = Raw(raw_fname)
+    """Test set_channel_types"""
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
     # Error Tests
     # Test channel name exists in ch_names
     mapping = {'EEG 160': 'EEG060'}
@@ -80,7 +78,7 @@ def test_set_channel_types():
                'EOG 061': 'seeg', 'MEG 2441': 'eeg', 'MEG 2443': 'eeg'}
     assert_raises(RuntimeError, raw.set_channel_types, mapping)
     # Test type change
-    raw2 = Raw(raw_fname, add_eeg_ref=False)
+    raw2 = read_raw_fif(raw_fname, add_eeg_ref=False)
     raw2.info['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
     with warnings.catch_warnings(record=True):  # MEG channel change
         assert_raises(RuntimeError, raw2.set_channel_types, mapping)  # has prj
@@ -119,7 +117,7 @@ def test_set_channel_types():
 
 
 def test_read_ch_connectivity():
-    "Test reading channel connectivity templates"
+    """Test reading channel connectivity templates"""
     tempdir = _TempDir()
     a = partial(np.array, dtype='<U7')
     # no pep8
@@ -160,9 +158,8 @@ def test_read_ch_connectivity():
 
 
 def test_get_set_sensor_positions():
-    """Test get/set functions for sensor positions
-    """
-    raw1 = Raw(raw_fname)
+    """Test get/set functions for sensor positions"""
+    raw1 = read_raw_fif(raw_fname, add_eeg_ref=False)
     picks = pick_types(raw1.info, meg=False, eeg=True)
     pos = np.array([ch['loc'][:3] for ch in raw1.info['chs']])[picks]
     raw_pos = raw1._get_channel_positions(picks=picks)
@@ -170,7 +167,7 @@ def test_get_set_sensor_positions():
 
     ch_name = raw1.info['ch_names'][13]
     assert_raises(ValueError, raw1._set_channel_positions, [1, 2], ['name'])
-    raw2 = Raw(raw_fname)
+    raw2 = read_raw_fif(raw_fname, add_eeg_ref=False)
     raw2.info['chs'][13]['loc'][:3] = np.array([1, 2, 3])
     raw1._set_channel_positions([[1, 2, 3]], [ch_name])
     assert_array_equal(raw1.info['chs'][13]['loc'],

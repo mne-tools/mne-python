@@ -7,7 +7,7 @@ from numpy.testing import assert_almost_equal
 from scipy.linalg import svd, pinv
 import scipy.io as sio
 
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne import pick_types
 from mne.preprocessing.infomax_ import infomax
 from mne.utils import random_permutation, slow_test
@@ -17,11 +17,12 @@ base_dir = op.join(op.dirname(__file__), 'data')
 
 
 def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
+    """Generate data."""
 
     data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
     raw_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 
-    raw = Raw(raw_fname, preload=True)
+    raw = read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
 
     if ch_type == 'eeg':
         picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')

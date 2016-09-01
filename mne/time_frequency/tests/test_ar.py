@@ -15,8 +15,7 @@ raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
 @requires_patsy
 @requires_statsmodels
 def test_yule_walker():
-    """Test Yule-Walker against statsmodels
-    """
+    """Test Yule-Walker against statsmodels."""
     from statsmodels.regression.linear_model import yule_walker as sm_yw
     d = np.random.randn(100)
     sm_rho, sm_sigma = sm_yw(d, order=2)
@@ -26,9 +25,8 @@ def test_yule_walker():
 
 
 def test_ar_raw():
-    """Test fitting AR model on raw data
-    """
-    raw = io.read_raw_fif(raw_fname)
+    """Test fitting AR model on raw data."""
+    raw = io.read_raw_fif(raw_fname, add_eeg_ref=False)
     # pick MEG gradiometers
     picks = pick_types(raw.info, meg='grad', exclude='bads')
     picks = picks[:2]

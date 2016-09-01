@@ -17,7 +17,7 @@ from mne import pick_types, Epochs, find_events, read_events
 from mne.transforms import apply_trans
 from mne.tests.common import assert_dig_allclose
 from mne.utils import run_tests_if_main
-from mne.io import Raw, read_raw_kit, read_epochs_kit
+from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
 from mne.io.kit.constants import KIT, KIT_CONSTANTS, KIT_NY, KIT_UMD_2014
 from mne.io.tests.test_raw import _test_raw_reader
@@ -39,8 +39,7 @@ hsp_path = op.join(data_dir, 'test.hsp')
 
 
 def test_data():
-    """Test reading raw kit files
-    """
+    """Test reading raw kit files."""
     assert_raises(TypeError, read_raw_kit, epochs_path)
     assert_raises(TypeError, read_epochs_kit, sqd_path)
     assert_raises(ValueError, read_raw_kit, sqd_path, mrk_path, elp_txt_path)
@@ -72,7 +71,7 @@ def test_data():
     # Binary file only stores the sensor channels
     py_picks = pick_types(raw_py.info, exclude='bads')
     raw_bin = op.join(data_dir, 'test_bin_raw.fif')
-    raw_bin = Raw(raw_bin, preload=True)
+    raw_bin = read_raw_fif(raw_bin, preload=True, add_eeg_ref=False)
     bin_picks = pick_types(raw_bin.info, stim=True, exclude='bads')
     data_bin, _ = raw_bin[bin_picks]
     data_py, _ = raw_py[py_picks]
@@ -97,11 +96,11 @@ def test_data():
 
 
 def test_epochs():
-    """Test reading epoched SQD file
-    """
+    """Test reading epoched SQD file."""
     raw = read_raw_kit(sqd_path, stim=None)
     events = read_events(events_path)
-    raw_epochs = Epochs(raw, events, None, tmin=0, tmax=.099, baseline=None)
+    raw_epochs = Epochs(raw, events, None, tmin=0, tmax=.099, baseline=None,
+                        add_eeg_ref=False)
     data1 = raw_epochs.get_data()
     epochs = read_epochs_kit(epochs_path, events_path)
     data11 = epochs.get_data()
@@ -109,8 +108,7 @@ def test_epochs():
 
 
 def test_raw_events():
-    """Test creating stim channel from raw SQD file
-    """
+    """Test creating stim channel from raw SQD file."""
     def evts(a, b, c, d, e, f=None):
         out = [[269, a, b], [281, b, c], [1552, c, d], [1564, d, e]]
         if f is not None:
@@ -135,11 +133,11 @@ def test_raw_events():
 
 
 def test_ch_loc():
-    """Test raw kit loc
-    """
+    """Test raw kit loc."""
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp_txt_path,
                           stim='<')
-    raw_bin = Raw(op.join(data_dir, 'test_bin_raw.fif'))
+    raw_bin = read_raw_fif(op.join(data_dir, 'test_bin_raw.fif'),
+                           add_eeg_ref=False)
 
     ch_py = raw_py._raw_extras[0]['sensor_locs'][:, :5]
     # ch locs stored as m, not mm
@@ -164,8 +162,7 @@ def test_ch_loc():
 
 
 def test_hsp_elp():
-    """Test KIT usage of *.elp and *.hsp files against *.txt files
-    """
+    """Test KIT usage of *.elp and *.hsp files against *.txt files."""
     raw_txt = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp_txt_path)
     raw_elp = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
 
