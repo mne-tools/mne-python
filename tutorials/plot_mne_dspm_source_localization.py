@@ -121,7 +121,8 @@ brain.show_view('lateral')
 
 fs_vertices = [np.arange(10242)] * 2
 morph_mat = mne.compute_morph_matrix('sample', 'fsaverage', stc.vertices,
-                                     fs_vertices, smooth=None)
+                                     fs_vertices, smooth=None,
+                                     subjects_dir=subjects_dir)
 stc_fsaverage = stc.morph_precomputed('fsaverage', fs_vertices, morph_mat)
 brain_fsaverage = stc_fsaverage.plot(surface='inflated', hemi='rh',
                                      subjects_dir=subjects_dir,
