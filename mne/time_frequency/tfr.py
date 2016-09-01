@@ -1530,8 +1530,8 @@ class EpochsTFR(_BaseTFR):
     .. versionadded:: 0.13.0
     """
     @verbose
-    def __init__(self, info, data, times, freqs, comment=None,
-                 method=None, verbose=None):
+    def __init__(self, info, data, times, freqs, events=None, event_id=None,
+                 comment=None, method=None, verbose=None):
         self.info = info
         if data.ndim != 4:
             raise ValueError('data should be 4d. Got %d.' % data.ndim)
