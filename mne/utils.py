@@ -1993,9 +1993,8 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     """Helper to determine the appropriate stim_channel
 
     First, 'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2', etc.
-    are read. If these are not found, it will fall back to 'STI101' or
-    'STI 014' if present, then fall back to the first channel of type
-    'stim', if present.
+    are read. If these are not found, it will fall back to 'STI 014' if
+    present, then fall back to the first channel of type 'stim', if present.
 
     Parameters
     ----------
@@ -2029,6 +2028,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
         return stim_channel
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     if 'STI101' in info['ch_names']:  # newer Elekta systems
         return ['STI101']
 
@@ -2038,6 +2038,9 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
         return ['STI101']
     if 'STI 014' in info['ch_names']:  # for older systems
 >>>>>>> try STI101 first, then STI 014
+=======
+    if 'STI 014' in info['ch_names']:
+>>>>>>> Revert "try STI101 first, then STI 014"
         return ['STI 014']
 
     from .io.pick import pick_types

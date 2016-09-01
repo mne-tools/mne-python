@@ -506,8 +506,8 @@ def find_events(raw, stim_channel=None, output='onset',
         affected by the trigger. If None, the config variables
         'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
         etc. are read. If these are not found, it will fall back to
-        'STI101' or 'STI 014' if present, then fall back to the first channel
-        of type 'stim', if present.
+        'STI 014' if present, then fall back to the first channel of type
+        'stim', if present.
     output : 'onset' | 'offset' | 'step'
         Whether to report when events start, when events end, or both.
     consecutive : bool | 'increasing'
@@ -1168,8 +1168,8 @@ class ElektaAverager(object):
             affected by the trigger. If None, the config variables
             'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
             etc. are read. If these are not found, it will fall back to
-            'STI101' or 'STI 014' if present, then fall back to the first
-            channel of type 'stim', if present.
+            'STI 014' if present, then fall back to the first channel of type
+            'stim', if present.
         mask : int | None
             The value of the digital mask to apply to the stim channel values.
             If None (default), no masking is performed.
