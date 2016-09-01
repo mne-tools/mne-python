@@ -319,7 +319,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     ecg_epochs = Epochs(raw, events=events, event_id=event_id,
                         tmin=tmin, tmax=tmax, proj=False, flat=flat,
                         picks=picks, reject=reject, baseline=baseline,
-                        verbose=verbose, preload=preload)
+                        verbose=verbose, preload=preload, add_eeg_ref=False)
 
     if not has_ecg:
         raw.drop_channels(['ECG-SYN'])

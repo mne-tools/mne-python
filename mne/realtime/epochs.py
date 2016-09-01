@@ -12,7 +12,7 @@ import numpy as np
 
 from .. import pick_channels
 from ..utils import logger, verbose
-from ..epochs import _BaseEpochs
+from ..epochs import _BaseEpochs, _dep_eeg_ref
 from ..event import _find_events
 
 
@@ -100,7 +100,9 @@ class RtEpochs(_BaseEpochs):
         (will yield equivalent results but be slower).
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
-        already exists).
+        already exists). The default value of True in 0.13 will change to
+        False in 0.14, and the parameter will be removed in 0.15. Use
+        :func:`mne.set_eeg_reference` instead.
     isi_max : float
         The maximmum time in seconds between epochs. If no epoch
         arrives in the next isi_max seconds the RtEpochs stops.
@@ -135,7 +137,8 @@ class RtEpochs(_BaseEpochs):
                  sleep_time=0.1, baseline=(None, 0), picks=None,
                  name='Unknown', reject=None, flat=None, proj=True,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
-                 add_eeg_ref=True, isi_max=2., find_events=None, verbose=None):
+                 add_eeg_ref=None, isi_max=2., find_events=None, verbose=None):
+        add_eeg_ref = _dep_eeg_ref(add_eeg_ref)
 
         info = client.get_measurement_info()
 

@@ -9,7 +9,7 @@ from numpy.testing import assert_allclose, assert_equal
 
 from mne import Epochs, read_evokeds, pick_types
 from mne.io.compensator import make_compensator, get_current_comp
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne.utils import _TempDir, requires_mne, run_subprocess
 
 base_dir = op.join(op.dirname(__file__), 'data')
@@ -17,9 +17,9 @@ ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 
 
 def test_compensation():
-    """Test compensation"""
+    """Test compensation."""
     tempdir = _TempDir()
-    raw = Raw(ctf_comp_fname, compensation=None)
+    raw = read_raw_fif(ctf_comp_fname, compensation=None, add_eeg_ref=False)
     assert_equal(get_current_comp(raw.info), 3)
     comp1 = make_compensator(raw.info, 3, 1, exclude_comp_chs=False)
     assert_true(comp1.shape == (340, 340))
@@ -40,11 +40,12 @@ def test_compensation():
             assert_allclose(np.dot(comp2, comp1), desired, atol=1e-12)
 
     # make sure that changing the comp doesn't modify the original data
-    raw2 = Raw(ctf_comp_fname).apply_gradient_compensation(2)
+    raw2 = read_raw_fif(ctf_comp_fname, add_eeg_ref=False)
+    raw2.apply_gradient_compensation(2)
     assert_equal(get_current_comp(raw2.info), 2)
     fname = op.join(tempdir, 'ctf-raw.fif')
     raw2.save(fname)
-    raw2 = Raw(fname)
+    raw2 = read_raw_fif(fname, add_eeg_ref=False)
     assert_equal(raw2.compensation_grade, 2)
     raw2.apply_gradient_compensation(3)
     assert_equal(raw2.compensation_grade, 3)
@@ -58,11 +59,11 @@ def test_compensation():
 
 @requires_mne
 def test_compensation_mne():
-    """Test comensation by comparing with MNE"""
+    """Test comensation by comparing with MNE."""
     tempdir = _TempDir()
 
     def make_evoked(fname, comp):
-        raw = Raw(fname)
+        raw = read_raw_fif(fname, add_eeg_ref=False)
         if comp is not None:
             raw.apply_gradient_compensation(comp)
         picks = pick_types(raw.info, meg=True, ref_meg=True)

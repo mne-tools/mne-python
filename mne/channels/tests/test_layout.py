@@ -22,7 +22,7 @@ from mne.channels.layout import (_box_size, _auto_topomap_coords,
                                  generate_2d_layout)
 from mne.utils import run_tests_if_main
 from mne import pick_types, pick_info
-from mne.io import Raw, read_raw_kit, _empty_info
+from mne.io import read_raw_kit, _empty_info, read_info
 from mne.io.constants import FIFF
 from mne.bem import fit_sphere_to_headshape
 from mne.utils import _TempDir
@@ -85,7 +85,7 @@ def test_io_layout_lay():
 
 def test_auto_topomap_coords():
     """Test mapping of coordinates in 3D space to 2D"""
-    info = Raw(fif_fname).info.copy()
+    info = read_info(fif_fname)
     picks = pick_types(info, meg=False, eeg=True, eog=False, stim=False)
 
     # Remove extra digitization point, so EEG digitization points match up
@@ -145,7 +145,7 @@ def test_make_eeg_layout():
     tmp_name = 'foo'
     lout_name = 'test_raw'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
-    info = Raw(fif_fname).info
+    info = read_info(fif_fname)
     info['bads'].append(info['ch_names'][360])
     layout = make_eeg_layout(info, exclude=[])
     assert_array_equal(len(layout.names), len([ch for ch in info['ch_names']
@@ -193,7 +193,7 @@ def test_find_layout():
     import matplotlib.pyplot as plt
     assert_raises(ValueError, find_layout, _get_test_info(), ch_type='meep')
 
-    sample_info = Raw(fif_fname).info
+    sample_info = read_info(fif_fname)
     grads = pick_types(sample_info, meg='grad')
     sample_info2 = pick_info(sample_info, grads)
 
@@ -247,11 +247,11 @@ def test_find_layout():
     assert_equal(lout.kind, 'EEG')
     # no common layout, 'meg' option not supported
 
-    lout = find_layout(Raw(fname_ctf_raw).info)
+    lout = find_layout(read_info(fname_ctf_raw))
     assert_equal(lout.kind, 'CTF-275')
 
     fname_bti_raw = op.join(bti_dir, 'exported4D_linux_raw.fif')
-    lout = find_layout(Raw(fname_bti_raw).info)
+    lout = find_layout(read_info(fname_bti_raw))
     assert_equal(lout.kind, 'magnesWH3600')
 
     raw_kit = read_raw_kit(fname_kit_157)

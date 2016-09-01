@@ -2,7 +2,7 @@ import os.path as op
 
 from nose.tools import assert_true, assert_equal
 
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne import pick_types
 from mne.preprocessing.ecg import find_ecg_events, create_ecg_epochs
 from mne.utils import run_tests_if_main
@@ -14,8 +14,8 @@ proj_fname = op.join(data_path, 'test-proj.fif')
 
 
 def test_find_ecg():
-    """Test find ECG peaks"""
-    raw = Raw(raw_fname)
+    """Test find ECG peaks."""
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
 
     # once with mag-trick
     # once with characteristic channel

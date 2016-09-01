@@ -29,15 +29,15 @@ event_name = op.join(data_dir, 'test-eve.fif')
 
 
 def test_scaler():
-    """Test methods of Scaler"""
-    raw = io.read_raw_fif(raw_fname, preload=False)
+    """Test methods of Scaler."""
+    raw = io.read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     picks = picks[1:13:3]
 
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+                    baseline=(None, 0), preload=True, add_eeg_ref=False)
     epochs_data = epochs.get_data()
     scaler = Scaler(epochs.info)
     y = epochs.events[:, -1]
@@ -61,14 +61,14 @@ def test_scaler():
 
 
 def test_filterestimator():
-    """Test methods of FilterEstimator"""
-    raw = io.read_raw_fif(raw_fname, preload=False)
+    """Test methods of FilterEstimator."""
+    raw = io.read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+                    baseline=(None, 0), preload=True, add_eeg_ref=False)
     epochs_data = epochs.get_data()
 
     # Add tests for different combinations of l_freq and h_freq
@@ -105,15 +105,14 @@ def test_filterestimator():
 
 
 def test_psdestimator():
-    """Test methods of PSDEstimator
-    """
-    raw = io.read_raw_fif(raw_fname, preload=False)
+    """Test methods of PSDEstimator."""
+    raw = io.read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+                    baseline=(None, 0), preload=True, add_eeg_ref=False)
     epochs_data = epochs.get_data()
     psd = PSDEstimator(2 * np.pi, 0, np.inf)
     y = epochs.events[:, -1]
@@ -128,16 +127,15 @@ def test_psdestimator():
 
 
 def test_epochs_vectorizer():
-    """Test methods of EpochsVectorizer
-    """
-    raw = io.read_raw_fif(raw_fname, preload=False)
+    """Test methods of EpochsVectorizer."""
+    raw = io.read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     picks = picks[1:13:3]
     with warnings.catch_warnings(record=True):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), preload=True)
+                        baseline=(None, 0), preload=True, add_eeg_ref=False)
     epochs_data = epochs.get_data()
     vector = EpochsVectorizer(epochs.info)
     y = epochs.events[:, -1]
@@ -196,15 +194,17 @@ def test_vectorizer():
 
 @requires_sklearn_0_15
 def test_unsupervised_spatial_filter():
+    """Test unsupervised spatial filter."""
     from sklearn.decomposition import PCA
     from sklearn.kernel_ridge import KernelRidge
-    raw = io.read_raw_fif(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, baseline=None, verbose=False)
+                    preload=True, baseline=None, verbose=False,
+                    add_eeg_ref=False)
 
     # Test estimator
     assert_raises(ValueError, UnsupervisedSpatialFilter, KernelRidge(2))

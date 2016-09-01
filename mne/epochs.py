@@ -1608,15 +1608,15 @@ def _dep_eeg_ref(add_eeg_ref, current_default=True):
     if current_default is True:
         if add_eeg_ref is None:
             add_eeg_ref = True
-            warn('add_eeg_ref will default to True in 0.13 and False in 0.14, '
-                 'and will be removed in 0.15. We recommend to use '
-                 'add_eeg_ref=False and mne.set_eeg_reference() instead.',
+            warn('add_eeg_ref defaults to True in 0.13, will default to '
+                 'False in 0.14, and will be removed in 0.15. We recommend '
+                 'to use add_eeg_ref=False and set_eeg_reference() instead.',
                  DeprecationWarning)
     # current_default is False
     elif add_eeg_ref is None:
         add_eeg_ref = False
     else:
-        warn('add_eeg_ref will be removed in 0.14, use mne.set_eeg_reference()'
+        warn('add_eeg_ref will be removed in 0.14, use set_eeg_reference()'
              ' instead', DeprecationWarning)
     return add_eeg_ref
 
