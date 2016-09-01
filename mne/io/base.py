@@ -627,8 +627,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     else:
                         warn('Annotation starting outside the data range. '
                              'Limiting to the start of data.')
-                        annotations.duration[ind] = (annotations.duration[ind]
-                                                     + onset)
+                        duration = annotations.duration[ind] + onset
+                        annotations.duration[ind] = duration
                         annotations.onset[ind] = self.times[0] - offset
                 elif onset + annotations.duration[ind] > self.times[-1]:
                     warn('Annotation expanding outside the data range. '
