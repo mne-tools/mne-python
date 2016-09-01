@@ -912,16 +912,16 @@ class ElektaAverager(object):
     """
 
     # averager related DACQ variable names (without preceding 'ERF')
-    dacq_vars = ('magMax', 'magMin', 'magNoise', 'magSlope', 'magSpike', 'megMax',
+    _dacq_vars = ('magMax', 'magMin', 'magNoise', 'magSlope', 'magSpike', 'megMax',
             'megMin', 'megNoise', 'megSlope', 'megSpike', 'eegMax', 'eegMin',
             'eegNoise', 'eegSlope', 'eegSpike', 'eogMax', 'ecgMax', 'ncateg',
             'nevent', 'stimSource', 'triggerMap', 'update', 'version',
             'artefIgnore', 'averUpdate')
 
-    event_vars = ('Name', 'Channel', 'NewBits', 'OldBits', 'NewMask',
+    _event_vars = ('Name', 'Channel', 'NewBits', 'OldBits', 'NewMask',
                   'OldMask', 'Delay', 'Comment')
 
-    cat_vars = ('Comment', 'Display', 'Start', 'State', 'End', 'Event',
+    _cat_vars = ('Comment', 'Display', 'Start', 'State', 'End', 'Event',
                 'Nave', 'ReqEvent', 'ReqWhen', 'ReqWithin',  'SubAve')
 
     def __init__(self, info):
@@ -933,7 +933,7 @@ class ElektaAverager(object):
             raise ValueError('Cannot parse version. The file may be from '
                              'DACQ <3.4 which is not supported yet')
         # set instance variables
-        for var in ElektaAverager.dacq_vars:
+        for var in ElektaAverager._dacq_vars:
             val = self.acq_dict['ERF' + var]
             if var[:3] in ['mag', 'meg', 'eeg', 'eog', 'ecg']:
                 val = float(val)
@@ -993,7 +993,7 @@ class ElektaAverager(object):
         for evnum in range(1, self.ncateg + 1):
             evnum_s = str(evnum).zfill(2)  # '01', '02' etc.
             evdi = dict()
-            for var in self.event_vars:
+            for var in self._event_vars:
                 # name of DACQ variable, e.g. 'ERFeventNewBits01'
                 acq_key = 'ERFevent' + var + evnum_s
                 # corresponding dict key, e.g. 'newbits'
@@ -1018,7 +1018,7 @@ class ElektaAverager(object):
         for catnum in [str(x).zfill(2) for x in range(1, self.nevent + 1)]:
             catdi = dict()
             # read all category variables
-            for var in self.cat_vars:
+            for var in self._cat_vars:
                 acq_key = 'ERFcat' + var + catnum
                 class_key = var.lower()
                 val = self.acq_dict[acq_key]
