@@ -715,7 +715,7 @@ def baseline_plot(x):
             ax.plot(t, x, color='0.5')
             ax.plot(t, x_hp, color='k', linestyle='--')
             if ri == 0:
-                ax.set(title=('' if ci == 0 else 'No ') +
+                ax.set(title=('No ' if ci == 0 else '') +
                        'Baseline Correction')
             box_off(ax)
             ax.set(xticks=tticks, ylim=ylim, xlim=xlim, xlabel=xlabel)

@@ -970,6 +970,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         mne.io.Raw.notch_filter
         mne.io.Raw.resample
         mne.filter.filter_data
+        mne.filter.construct_iir_filter
 
         Notes
         -----
