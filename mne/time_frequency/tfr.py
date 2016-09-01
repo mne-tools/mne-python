@@ -971,9 +971,16 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             If None no baseline correction is applied.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        inst : instance of AverageTFR
+            The modified instance.        
+
         """  # noqa
         self.data = rescale(self.data, self.times, baseline, mode,
                             copy=False)
+        return self
 
 
 class AverageTFR(_BaseTFR):
