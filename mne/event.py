@@ -912,19 +912,17 @@ class ElektaAverager(object):
     """
 
     # averager related DACQ variable names (without preceding 'ERF')
-    vars = ['magMax', 'magMin', 'magNoise', 'magSlope', 'magSpike', 'megMax',
+    dacq_vars = ('magMax', 'magMin', 'magNoise', 'magSlope', 'magSpike', 'megMax',
             'megMin', 'megNoise', 'megSlope', 'megSpike', 'eegMax', 'eegMin',
             'eegNoise', 'eegSlope', 'eegSpike', 'eogMax', 'ecgMax', 'ncateg',
             'nevent', 'stimSource', 'triggerMap', 'update', 'version',
-            'artefIgnore', 'averUpdate']
+            'artefIgnore', 'averUpdate')
 
-    # event-related variables
-    event_vars = ['Name', 'Channel', 'NewBits', 'OldBits', 'NewMask',
-                  'OldMask', 'Delay', 'Comment']
+    event_vars = ('Name', 'Channel', 'NewBits', 'OldBits', 'NewMask',
+                  'OldMask', 'Delay', 'Comment')
 
-    # category-related variables
-    cat_vars = ['Comment', 'Display', 'Start', 'State', 'End', 'Event',
-                'Nave', 'ReqEvent', 'ReqWhen', 'ReqWithin',  'SubAve']
+    cat_vars = ('Comment', 'Display', 'Start', 'State', 'End', 'Event',
+                'Nave', 'ReqEvent', 'ReqWhen', 'ReqWithin',  'SubAve')
 
     def __init__(self, info):
         acq_pars = info['acq_pars']
@@ -932,10 +930,10 @@ class ElektaAverager(object):
             raise ValueError('No acquisition parameters')
         self.acq_dict = _acqpars_dict(acq_pars)
         if 'ERFversion' not in self.acq_dict:
-            raise ValueError('Cannot parse version. The file may be from'
+            raise ValueError('Cannot parse version. The file may be from '
                              'DACQ <3.4 which is not supported yet')
         # set instance variables
-        for var in ElektaAverager.vars:
+        for var in ElektaAverager.dacq_vars:
             val = self.acq_dict['ERF' + var]
             if var[:3] in ['mag', 'meg', 'eeg', 'eog', 'ecg']:
                 val = float(val)
@@ -947,7 +945,7 @@ class ElektaAverager(object):
         # collect all events and categories
         self._events = self._events_from_acq_pars()
         self._categories = self._categories_from_acq_pars()
-        # mark events that are used by some category
+        # mark events that are used by a category
         for cat in self._categories.values():
             if cat['event']:
                 self._events[cat['event']]['in_use'] = True
@@ -991,10 +989,10 @@ class ElektaAverager(object):
         """ Collect DACQ defined events into a dict. Events are keyed by number
         starting from 1 (DACQ index of event). Each event is itself represented
         by a dict containing the event definitions. """
-        events = {}
+        events = dict()
         for evnum in range(1, self.ncateg + 1):
             evnum_s = str(evnum).zfill(2)  # '01', '02' etc.
-            evdi = {}
+            evdi = dict()
             for var in self.event_vars:
                 # name of DACQ variable, e.g. 'ERFeventNewBits01'
                 acq_key = 'ERFevent' + var + evnum_s
@@ -1016,9 +1014,9 @@ class ElektaAverager(object):
         """ Collects DACQ averaging categories into a dict. Categories
         are keyed by the comment defined in DACQ. Each category is represented
         a dict containing the category definitions. """
-        cats = {}
+        cats = dict()
         for catnum in [str(x).zfill(2) for x in range(1, self.nevent + 1)]:
-            catdi = {}
+            catdi = dict()
             # read all category variables
             for var in self.cat_vars:
                 acq_key = 'ERFcat' + var + catnum
@@ -1026,8 +1024,8 @@ class ElektaAverager(object):
                 val = self.acq_dict[acq_key]
                 catdi[class_key] = val
             # some type conversions
-            catdi['display'] = True if catdi['display'] == '1' else False
-            catdi['state'] = True if catdi['state'] == '1' else False
+            catdi['display'] = (catdi['display'] == '1')
+            catdi['state'] = (catdi['state'] == '1')
             for key in ['start', 'end', 'reqwithin']:
                 catdi[key] = float(catdi[key])
             for key in ['nave', 'event', 'reqevent', 'reqwhen', 'subave']:
@@ -1126,22 +1124,19 @@ class ElektaAverager(object):
         raw : Raw object
             An instance of Raw.
         category : string | dict
-            The category to use. Can be a name (e.g. 'my_category) or
-            category dict  (e.g. eav['my_category'], where eav is an instance
+            The category to use. Can be a name (e.g. 'my_category') or
+            category dict (e.g. eav['my_category'], where eav is an instance
             of ElektaAverager).
         picks : array-like of int | None (default)
             Indices of channels to include (if None, all channels are used).
         reject : True | dict | None
             Rejection parameters based on peak-to-peak amplitude.
             Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-            If reject is None then no rejection is done. Example::
-
+            If reject is None then no rejection is done. Example:
                 reject = dict(grad=4000e-13, # T / m (gradiometers)
                               mag=4e-12, # T (magnetometers)
                               eeg=40e-6, # V (EEG channels)
-                              eog=250e-6 # V (EOG channels)
-                              )
-
+                              eog=250e-6 # V (EOG channels))
             If True, use the rejection limits defined in DACQ.
             Note that all DACQ rejection criteria are not supported by mne.
         flat : True | dict | None
@@ -1192,21 +1187,19 @@ class ElektaAverager(object):
         from .epochs import Epochs
         if isinstance(category, str):
             category = self[category]
-        if reject is True:
-            reject = self.reject
-        if flat is True:
-            flat = self.flat
+        reject = self.reject if reject is True else reject
+        flat = self.flat if flat is True else flat
         mne_events = find_events(raw, stim_channel=stim_channel,
                                  mask=mask, mask_type=mask_type, output='step',
                                  uint_cast=uint_cast, consecutive=True,
                                  verbose=False)
         sfreq = raw.info['sfreq']
-        # create array of category reference times (t0),
+        # create array of category reference times (t0)
         # and corresponding (fake) event_id for mne.Epochs
         cat_t = self._mne_events_to_category_t0(category, mne_events, sfreq)
         catev = np.c_[cat_t, np.zeros(cat_t.shape),
                       np.ones(cat_t.shape)].astype(np.uint32)
-        id = {category['comment']: 1}
+        id = {category['comment'] : 1}
         return Epochs(raw, catev, event_id=id, reject=reject, flat=flat,
                       tmin=category['start'], tmax=category['end'],
                       baseline=baseline, detrend=detrend, picks=picks,

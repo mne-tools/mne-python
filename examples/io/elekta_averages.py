@@ -24,9 +24,6 @@ print(__doc__)
 raw = mne.io.read_raw_fif(fname_raw_elekta)
 eav = ElektaAverager(raw.info)
 
-# check out which averaging categories were defined in DACQ
-print eav.categories
-
 """ Extract epochs corresponding to a category. Copy rejection
 limits from DACQ settings. """
 eps = eav.get_epochs(raw, 'Event 1 followed by 2 within 1100 ms',
@@ -42,5 +39,5 @@ for cat in eav.categories:
     evoked.comment = cat['comment']
     evokeds.append(evoked)
 
-fn_out = 'elekta_evokeds-ave.fif'
-mne.write_evokeds(fn_out, evokeds)
+fname_out = 'elekta_evokeds-ave.fif'
+mne.write_evokeds(fname_out, evokeds)
