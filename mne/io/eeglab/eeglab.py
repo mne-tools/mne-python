@@ -578,6 +578,10 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
              "discontinuities. Be cautious of filtering and epoching around "
              "these events.")
 
+    if len(types) < 1:  # if there are 0 events, we can exit here
+        logger.info('No events found, returning empty stim channel ...')
+        return np.zeros((0, 3))
+
     not_in_event_id = set(x for x in types if x not in event_id)
     not_purely_numeric = set(x for x in not_in_event_id if not x.isdigit())
     no_numbers = set([x for x in not_purely_numeric
@@ -606,16 +610,16 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
         except (ValueError, TypeError):  # if event_id_func fails
             pass  # We're already raising warnings above, so we just drop
 
-    if len(events) < len(types):
-        warn("Some event codes could not be mapped to integers. Use the "
-             "`event_id` parameter to map such events to integers manually.")
-    if len(events) < 1 and len(types) > 0:
+    if len(events) < 1:
         # warn if events exist, but none found
         warn("No events could be converted, consider adding an `event_id`."
              " As is, the trigger channel will consist entirely of zeros.")
         return np.zeros((0, 3))
-    else:
-        return np.asarray(events)
+    elif len(events) < len(types):
+        warn("Some event codes could not be mapped to integers. Use the "
+             "`event_id` parameter to map such events to integers manually.")
+
+    return np.asarray(events)
 
 
 def _strip_to_integer(trigger):
