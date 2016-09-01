@@ -1197,10 +1197,10 @@ class ElektaAverager(object):
         # create array of category reference times (t0)
         # and corresponding (fake) event_id for mne.Epochs
         cat_t = self._mne_events_to_category_t0(category, mne_events, sfreq)
-        catev = np.c_[cat_t, np.zeros(cat_t.shape),
+        cat_ev = np.c_[cat_t, np.zeros(cat_t.shape),
                       np.ones(cat_t.shape)].astype(np.uint32)
         id = {category['comment'] : 1}
-        return Epochs(raw, catev, event_id=id, reject=reject, flat=flat,
+        return Epochs(raw, cat_ev, event_id=id, reject=reject, flat=flat,
                       tmin=category['start'], tmax=category['end'],
                       baseline=baseline, detrend=detrend, picks=picks,
                       preload=True, verbose=False)
