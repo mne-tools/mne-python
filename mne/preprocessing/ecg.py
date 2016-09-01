@@ -310,7 +310,11 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         raw.add_channels([ecg_raw])
 
     if keep_ecg:
-        picks = np.append(picks, raw.ch_names.index('ECG-SYN'))
+        if has_ecg:
+            raise ValueError('keep_ecg can be True only if the ECG channel is '
+                             'created synthetically.')
+        else:
+            picks = np.append(picks, raw.ch_names.index('ECG-SYN'))
     # create epochs around ECG events and baseline (important)
     ecg_epochs = Epochs(raw, events=events, event_id=event_id,
                         tmin=tmin, tmax=tmax, proj=False, flat=flat,
