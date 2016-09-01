@@ -609,9 +609,10 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
     if len(events) < len(types):
         warn("Some event codes could not be mapped to integers. Use the "
              "`event_id` parameter to map such events to integers manually.")
-    if len(events) < 1:
-        warn("No events found, consider adding an `event_id`. As is, the "
-             "trigger channel will consist entirely of zeros.")
+    if len(events) < 1 and len(types) > 0:
+        # warn if events exist, but none found
+        warn("No events could be converted, consider adding an `event_id`."
+             " As is, the trigger channel will consist entirely of zeros.")
         return np.zeros((0, 3))
     else:
         return np.asarray(events)
