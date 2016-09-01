@@ -40,7 +40,7 @@ from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
-from ..annotations import _combine_annotations, _onset_to_seconds
+from ..annotations import Annotations, _combine_annotations, _onset_to_seconds
 
 
 class ToDataFrameMixin(object):
@@ -587,48 +587,59 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @property
     def annotations(self):
+        """Annotations for marking segments of data."""
         return self._annotations
 
     @annotations.setter
-    def annotations(self, value):
-        """Setter for annotations. Checks if they are inside the data range."""
-        if value is not None:
+    def annotations(self, annotations):
+        """Setter for annotations. Checks if they are inside the data range.
+
+        Parameters
+        ----------
+        annotations : Instance of mne.Annotations
+            Annotations to set.
+        """
+        if annotations is not None:
+            if not isinstance(annotations, Annotations):
+                raise ValueError('Annotations must be an instance of '
+                                 'mne.Annotations. Got %s.' % annotations)
             meas_date = self.info['meas_date']
             if meas_date is None:
                 meas_date = 0
             elif not np.isscalar(meas_date):
                 if len(meas_date) > 1:
-                    microsec = meas_date[1] / 1000000.
-                    meas_date = meas_date[0] + microsec
-            if value.orig_time is not None:
-                offset = (value.orig_time - meas_date -
+                    meas_date = meas_date[0] + meas_date[1] / 1000000.
+            if annotations.orig_time is not None:
+                offset = (annotations.orig_time - meas_date -
                           self.first_samp / self.info['sfreq'])
             else:
                 offset = 0
             omit_ind = list()
-            for ind, onset in enumerate(value.onset):
+            for ind, onset in enumerate(annotations.onset):
                 onset += offset
                 if onset > self.times[-1]:
                     warn('Omitting annotation outside data range.')
                     omit_ind.append(ind)
                 elif onset < self.times[0]:
-                    if onset + value.duration[ind] < self.times[0]:
+                    if onset + annotations.duration[ind] < self.times[0]:
                         warn('Omitting annotation outside data range.')
                         omit_ind.append(ind)
                     else:
                         warn('Annotation starting outside the data range. '
                              'Limiting to the start of data.')
-                        value.duration[ind] = value.duration[ind] + onset
-                        value.onset[ind] = self.times[0] - offset
-                elif onset + value.duration[ind] > self.times[-1]:
+                        annotations.duration[ind] = (annotations.duration[ind]
+                                                     + onset)
+                        annotations.onset[ind] = self.times[0] - offset
+                elif onset + annotations.duration[ind] > self.times[-1]:
                     warn('Annotation expanding outside the data range. '
                          'Limiting to the end of data.')
-                    value.duration[ind] = self.times[-1] - onset
-            value.onset = np.delete(value.onset, omit_ind)
-            value.duration = np.delete(value.duration, omit_ind)
-            value.description = np.delete(value.description, omit_ind)
+                    annotations.duration[ind] = self.times[-1] - onset
+            annotations.onset = np.delete(annotations.onset, omit_ind)
+            annotations.duration = np.delete(annotations.duration, omit_ind)
+            annotations.description = np.delete(annotations.description,
+                                                omit_ind)
 
-        self._annotations = value
+        self._annotations = annotations
 
     def __del__(self):
         # remove file for memmap
