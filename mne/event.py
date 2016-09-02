@@ -952,11 +952,6 @@ class ElektaAverager(object):
                 self._events[cat['event']]['in_use'] = True
             if cat['reqevent']:
                 self._events[cat['reqevent']]['in_use'] = True
-        # collect categories and events that are actually in use
-        self._categories_in_use = (
-            {k: v for k, v in self._categories.iteritems() if v['state']})
-        self._events_in_use = (
-            {k: v for k, v in self._events.iteritems() if v['in_use']})
         # make mne rejection dicts based on the averager parameters
         self.reject = {'grad': self.megmax, 'mag': self.magmax,
                        'eeg': self.eegmax, 'eog': self.eogmax,
@@ -1108,6 +1103,16 @@ class ElektaAverager(object):
         evs = sorted(self._events_in_use.values(),
                      key=lambda ev: ev['index'])
         return evs
+
+    @property
+    def _categories_in_use(self):
+        return (
+            {k: v for k, v in self._categories.iteritems() if v['state']})
+
+    @property
+    def _events_in_use(self):
+        return (
+            {k: v for k, v in self._events.iteritems() if v['in_use']})
 
     def get_epochs(self, raw, category, picks=None, reject=None, flat=None,
                    baseline=(None, 0), detrend=None, stim_channel=None,
