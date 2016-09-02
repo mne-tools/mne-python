@@ -1033,7 +1033,6 @@ class ElektaAverager(object):
                 catdi[key] = int(catdi[key])
             # some convenient extra (non-DACQ) vars
             catdi['index'] = int(catnum)  # index of category in DACQ list
-            catdi['parent'] = self  # owning class instance
             cats[catdi['comment']] = catdi
         return cats
 
