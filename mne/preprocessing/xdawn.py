@@ -72,8 +72,8 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq, solver='pinv'):
     if isinstance(solver, string_types):
         if solver == "pinv":
             from ..stats.regression import _pinv_solver as solver
-        elif solver == 'cholesky':
-            from ..stats.regression import _cho_solver as solver
+        elif solver == 'cholesky':  # noqa
+            from ..stats.regression import _cho_solver as solver  # noqa
 
     n_epochs, n_channels, n_times = epochs_data.shape
     tmax = tmin + n_times / float(sfreq)

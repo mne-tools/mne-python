@@ -247,8 +247,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
     if isinstance(solver, string_types):
         if solver == 'cholesky':
             solver = _cho_solver
-        elif solver == "pinv":
-            solver = _pinv_solver
+        elif solver == "pinv":  # noqa
+            solver = _pinv_solver  # noqa
         else:
             raise ValueError("No such solver: {0}".format(solver))
 
@@ -288,7 +288,7 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1, sfreq=None):
         data, times = raw[:]
         events[:, 0] -= raw.first_samp
         data = data[picks, ::decim]
-    else:
+    else:  # if we are dealing with an array
         if sfreq is None:
             warn("If 'raw' is an array, sfreq should be specified.")
         data = raw[:, ::decim]

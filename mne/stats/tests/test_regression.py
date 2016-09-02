@@ -99,6 +99,7 @@ def test_continuous_regression_no_overlap():
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                         baseline=None, reject=None)
 
+    tmax = dict(audio_l=tmax, audio_r=tmax)
     revokeds = linear_regression_raw(raw, events, event_id,
                                      tmin=tmin, tmax=tmax,
                                      reject=None)
