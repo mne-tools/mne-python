@@ -232,7 +232,6 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                       verbose=None):
     """Conveniently generate epochs around ECG artifact events
 
-
     Parameters
     ----------
     raw : instance of Raw
@@ -271,19 +270,20 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
-    baseline : tuple or list of length 2, or None
+    baseline : tuple | list of length 2 | None
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used
         and if b is None then b is set to the end of the interval.
-        If baseline is equal ot (None, None) all the time
+        If baseline is equal to (None, None) all the time
         interval is used. If None, no correction is applied.
     preload : bool
         Preload epochs or not.
     keep_ecg : bool
-        When ECG is synthetically created (after picking),
-        should it be added to the epochs? Defaults to False.
+        When ECG is synthetically created (after picking), should it be added
+        to the epochs? Must be False when synthetic channel is not used.
+        Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
