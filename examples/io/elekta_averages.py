@@ -41,3 +41,5 @@ for cat in eav.categories:
 
 fname_out = 'elekta_evokeds-ave.fif'
 mne.write_evokeds(fname_out, evokeds)
+
+""" Modify averaging settings """

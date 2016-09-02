@@ -1110,10 +1110,6 @@ class ElektaAverager(object):
                      key=lambda ev: ev['index'])
         return evs
 
-    @property
-    def event_names(self):
-        return [event['comment'] for event in self.events]
-
     def get_epochs(self, raw, category, picks=None, reject=None, flat=None,
                    baseline=(None, 0), detrend=None, stim_channel=None,
                    mask=None, uint_cast=None, mask_type=None):
