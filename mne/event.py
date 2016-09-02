@@ -912,17 +912,18 @@ class ElektaAverager(object):
     """
 
     # averager related DACQ variable names (without preceding 'ERF')
-    _dacq_vars = ('magMax', 'magMin', 'magNoise', 'magSlope', 'magSpike', 'megMax',
-            'megMin', 'megNoise', 'megSlope', 'megSpike', 'eegMax', 'eegMin',
-            'eegNoise', 'eegSlope', 'eegSpike', 'eogMax', 'ecgMax', 'ncateg',
-            'nevent', 'stimSource', 'triggerMap', 'update', 'version',
-            'artefIgnore', 'averUpdate')
+    _dacq_vars = ('magMax', 'magMin', 'magNoise', 'magSlope', 'magSpike',
+                  'megMax', 'megMin', 'megNoise', 'megSlope', 'megSpike',
+                  'eegMax', 'eegMin', 'eegNoise', 'eegSlope', 'eegSpike',
+                  'eogMax', 'ecgMax', 'ncateg', 'nevent', 'stimSource',
+                  'triggerMap', 'update', 'version', 'artefIgnore',
+                  'averUpdate')
 
     _event_vars = ('Name', 'Channel', 'NewBits', 'OldBits', 'NewMask',
-                  'OldMask', 'Delay', 'Comment')
+                   'OldMask', 'Delay', 'Comment')
 
     _cat_vars = ('Comment', 'Display', 'Start', 'State', 'End', 'Event',
-                'Nave', 'ReqEvent', 'ReqWhen', 'ReqWithin',  'SubAve')
+                 'Nave', 'ReqEvent', 'ReqWhen', 'ReqWithin',  'SubAve')
 
     def __init__(self, info):
         acq_pars = info['acq_pars']
@@ -1198,8 +1199,8 @@ class ElektaAverager(object):
         # and corresponding (fake) event_id for mne.Epochs
         cat_t = self._mne_events_to_category_t0(category, mne_events, sfreq)
         cat_ev = np.c_[cat_t, np.zeros(cat_t.shape),
-                      np.ones(cat_t.shape)].astype(np.uint32)
-        id = {category['comment'] : 1}
+                       np.ones(cat_t.shape)].astype(np.uint32)
+        id = {category['comment']: 1}
         return Epochs(raw, cat_ev, event_id=id, reject=reject, flat=flat,
                       tmin=category['start'], tmax=category['end'],
                       baseline=baseline, detrend=detrend, picks=picks,
