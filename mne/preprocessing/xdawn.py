@@ -18,6 +18,7 @@ from ..utils import logger
 from ..externals.six import iteritems, itervalues, string_types
 from ..stats.regression import _prepare_rerp_data, _prepare_rerp_preds
 
+
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
     """Reconstruct pseudo continuous signal from epochs."""
     n_epochs, n_channels, n_times = epochs.shape
