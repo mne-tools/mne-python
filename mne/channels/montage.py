@@ -132,9 +132,10 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     Parameters
     ----------
     kind : str
-        The name of the montage file (e.g. kind='easycap-M10' for
-        'easycap-M10.txt'). Files with extensions '.elc', '.txt', '.csd',
-        '.elp', '.hpts', '.sfp' or '.loc' ('.locs' and '.eloc') are supported.
+        The name of the montage file without the file extension (e.g.
+        kind='easycap-M10' for 'easycap-M10.txt'). Files with extensions
+        '.elc', '.txt', '.csd', '.elp', '.hpts', '.sfp' or '.loc' ('.locs' and
+        '.eloc') are supported.
     ch_names : list of str | None
         If not all electrodes defined in the montage are present in the EEG
         data, use this parameter to select subset of electrode positions to
@@ -189,7 +190,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     if ext == '.sfp':
         # EGI geodesic
         with open(fname, 'r') as f:
-            lines = f.read().replace('\t', ' ').split("\n")
+            lines = f.read().replace('\t', ' ').splitlines()
 
         ch_names_, pos = [], []
         for ii, line in enumerate(lines):
