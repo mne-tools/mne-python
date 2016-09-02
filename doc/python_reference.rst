@@ -535,6 +535,14 @@ Events
    combine_event_ids
    equalize_epoch_counts
 
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   ElektaAverager
+
 Sensor Space Data
 =================
 
