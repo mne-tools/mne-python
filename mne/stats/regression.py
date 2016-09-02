@@ -152,7 +152,7 @@ def _fit_lm(data, design_matrix, names):
     return beta, stderr, t_val, p_val, mlog10_p_val
 
 
-def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
+def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
                           covariates=None, reject=None, flat=None, tstep=1.,
                           decim=1, picks=None, solver='cholesky'):
     """Estimate regression-based evoked potentials/fields by linear modeling.
@@ -245,11 +245,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     """
     if isinstance(solver, string_types):
         if solver == 'cholesky':
-            def solver(X, y):
-                a = (X.T * X).toarray()  # dot product of sparse matrices
-                return linalg.solve(a, X.T * y.T, sym_pos=True,
-                                    overwrite_a=True, overwrite_b=True).T
-
+            solver = _solver
         else:
             raise ValueError("No such solver: {0}".format(solver))
 
@@ -274,23 +270,31 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     return evokeds
 
 
-def _prepare_rerp_data(raw, events, picks=None, decim=1):
+
+def _prepare_rerp_data(raw, events, picks=None, decim=1, sfreq=None):
     """Prepare events and data, primarily for `linear_regression_raw`."""
-    if picks is None:
-        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
-    info = pick_info(raw.info, picks)
+
     decim = int(decim)
-    info["sfreq"] /= decim
-    data, times = raw[:]
-    data = data[picks, ::decim]
+    events = events.copy()
+    events[:, 0] //= decim
+
+    if hasattr(raw, "info"):
+        if picks is None:
+            picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
+        info = pick_info(raw.info, picks)
+        info["sfreq"] /= decim
+        data, times = raw[:]
+        events[:, 0] -= raw.first_samp
+        data = data[picks, ::decim]
+    else:
+        data = raw[:, ::decim]
+        info = dict(sfreq=sfreq)
+
     if len(set(events[:, 0])) < len(events[:, 0]):
         raise ValueError("`events` contains duplicate time points. Make "
                          "sure all entries in the first column of `events` "
                          "are unique.")
 
-    events = events.copy()
-    events[:, 0] -= raw.first_samp
-    events[:, 0] //= decim
     if len(set(events[:, 0])) < len(events[:, 0]):
         raise ValueError("After decimating, `events` contains duplicate time "
                          "points. This means some events are too closely "
@@ -302,7 +306,7 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1):
 
 
 def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
-                        tmax=1, covariates=None):
+                        tmax=1, covariates=None, pad=1):
     """Build predictor matrix and metadata (e.g. condition time windows)."""
     conds = list(event_id)
     if covariates is not None:
@@ -316,9 +320,9 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
                       for cond in conds)
     if isinstance(tmax, (float, int)):
         tmax_s = dict(
-            (cond, int((tmax * sfreq) + 1.)) for cond in conds)
+            (cond, int((tmax * sfreq) + pad)) for cond in conds)
     else:
-        tmax_s = dict((cond, int((tmax.get(cond, 1.) * sfreq) + 1))
+        tmax_s = dict((cond, int((tmax.get(cond, 1.) * sfreq) + pad))
                       for cond in conds)
 
     # Construct predictor matrix
@@ -357,7 +361,8 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
     return sparse.hstack(xs), conds, cond_length, tmin_s, tmax_s
 
 
-def _clean_rerp_input(X, data, reject, flat, decim, info, tstep):
+def _clean_rerp_input(X, data, reject=None, flat=None, decim=None,
+                      info=None, tstep=None):
     """Remove empty and contaminated points from data & predictor matrices."""
     # find only those positions where at least one predictor isn't 0
     has_val = np.unique(X.nonzero()[0])
@@ -387,3 +392,9 @@ def _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info):
             kind='average')  # nave and kind are technically incorrect
         cumul += tmax_ - tmin_
     return evokeds
+
+
+def _solver(X, y):
+	a = (X.T * X).toarray()  # dot product of sparse matrices
+	return linalg.solve(a, X.T * y.T, sym_pos=True,
+						overwrite_a=True, overwrite_b=True).T

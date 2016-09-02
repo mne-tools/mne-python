@@ -136,6 +136,9 @@ def test_xdawn_regularization():
     modified_event = events[sel[0]]
     modified_event[0] += 1
     epochs.events[sel[1]] = modified_event
+    sel = np.where(events[:, 2] == 2)[0][:2]
+    epochs.events[sel[1], 0] = events[sel[1], 0] + 1
+    epochs.events[sel[1], 2] = events[sel[1], 2]
     # Fit and check that overlap was found and applied
     xd = Xdawn(n_components=2, correct_overlap='auto', reg='oas')
     xd.fit(epochs)

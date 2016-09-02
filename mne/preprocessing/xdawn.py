@@ -16,7 +16,7 @@ from ..io import _BaseRaw
 from ..io.pick import _pick_data_channels
 from ..utils import logger
 from ..externals.six import iteritems, itervalues
-
+from ..stats.regression import _prepare_rerp_data, _prepare_rerp_preds, _solver
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
     """Reconstruct pseudo continuous signal from epochs."""
@@ -73,30 +73,24 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
 
     # Compute the independent evoked responses per condition, while correcting
     # for event overlaps.
-    n_min, n_max = int(tmin * sfreq), int(tmax * sfreq)
-    window = n_max - n_min
-    n_samples = raw.shape[1]
-    toeplitz = list()
+
+    # prepare data and events
+    data, info, events = _prepare_rerp_data(raw, events)
+
+    # build predictors
     classes = np.unique(events[:, 2])
-    for ii, this_class in enumerate(classes):
-        # select events by type
-        sel = events[:, 2] == this_class
+    event_id = dict((str(id), id) for id in classes)
 
-        # build toeplitz matrix
-        trig = np.zeros((n_samples, 1))
-        ix_trig = (events[sel, 0]) + n_min
-        trig[ix_trig] = 1
-        toeplitz.append(linalg.toeplitz(trig[0:window], trig))
-
-    # Concatenate toeplitz
-    toeplitz = np.array(toeplitz)
-    X = np.concatenate(toeplitz)
+    X = _prepare_rerp_preds(n_samples=data.shape[1], sfreq=sfreq,
+                            events=events, event_id=event_id, tmin=tmin,
+                            tmax=tmax, pad=0)[0]
 
     # least square estimation
-    predictor = np.dot(linalg.pinv(np.dot(X, X.T)), X)
-    evokeds = np.dot(predictor, raw.T)
-    evokeds = np.transpose(np.vsplit(evokeds, len(classes)), (0, 2, 1))
-    return evokeds, toeplitz
+    coefs = _solver(X, data)
+
+    # shape data correctly (split by class)
+    evokeds = np.asarray(np.hsplit(coefs, len(classes)))
+    return evokeds, np.vsplit(X.toarray().T, len(classes))
 
 
 def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
