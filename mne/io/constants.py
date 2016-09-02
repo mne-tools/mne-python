@@ -500,7 +500,7 @@ FIFF.FIFF_MNE_EXTERNAL_LITTLE_ENDIAN = 3553     # Reference to an external binar
 # 3560... Miscellaneous
 #
 FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE       = 3560     # Is this projection item active?
-FIFF.FIFF_MNE_EVENT_LIST             = 3561     # An event list (for STI 014)
+FIFF.FIFF_MNE_EVENT_LIST             = 3561     # An event list (for STI101 / STI 014)
 FIFF.FIFF_MNE_HEMI                   = 3562     # Hemisphere association for general purposes
 FIFF.FIFF_MNE_DATA_SKIP_NOP          = 3563     # A data skip turned off in the raw data
 FIFF.FIFF_MNE_ORIG_CH_INFO           = 3564     # Channel information before any changes
