@@ -387,7 +387,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
         affected by the trigger. If None, the config variables
         'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
         etc. are read. If these are not found, it will default to
-        'STI 014'.
+        'STI101' or 'STI 014', whichever is present.
 
     Returns
     -------
@@ -505,8 +505,8 @@ def find_events(raw, stim_channel=None, output='onset',
         affected by the trigger. If None, the config variables
         'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
         etc. are read. If these are not found, it will fall back to
-        'STI 014' if present, then fall back to the first channel of type
-        'stim', if present.
+        'STI101' or 'STI 014' if present, then fall back to the first channel
+        of type 'stim', if present.
     output : 'onset' | 'offset' | 'step'
         Whether to report when events start, when events end, or both.
     consecutive : bool | 'increasing'
