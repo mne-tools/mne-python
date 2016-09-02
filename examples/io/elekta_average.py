@@ -46,8 +46,11 @@ mne.write_evokeds(fname_out, evokeds)
 corresponding epochs. """
 newcat = eav.categories[0].copy()
 newcat['comment'] = 'New category'
-newcat['event'] = 1
-newcat['start'] = -.1
-newcat['end'] = .5
+newcat['event'] = 1  # reference event
+newcat['start'] = -.1  # epoch start rel. to ref. event (in seconds)
+newcat['end'] = .5  # epoch end
+newcat['reqevent'] = 2  # additional required event; 0 if none
+newcat['reqwithin'] = 1.5  # req. event required within 1.5 sec of ref. event
+newcat['reqwhen'] = 1  # required before (1) or after (2) ref. event
 
 eps = eav.get_epochs(raw, newcat)
