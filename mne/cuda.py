@@ -94,8 +94,9 @@ def init_cuda(ignore_config=False):
     # Make sure we can use 64-bit FFTs
     try:
         cudafft.Plan(16, np.float64, np.complex128)  # will get auto-GC'ed
-    except:
-        warn('Device does not support 64-bit FFTs, CUDA not enabled')
+    except Exception as exp:
+        warn('Device does not appear to support 64-bit FFTs, CUDA not '
+             'enabled:\n%s' % exp)
         return
     _cuda_capable = True
     # Figure out limit for CUDA FFT calculations
