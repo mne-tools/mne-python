@@ -98,9 +98,9 @@ def test_time_frequency():
     print(itc)  # test repr
     print(itc.ch_names)  # test property
     itc += power  # test add
-    itc -= power  # test add
+    itc -= power  # test sub
 
-    power.apply_baseline(baseline=(-0.1, 0), mode='logratio')
+    power = power.apply_baseline(baseline=(-0.1, 0), mode='logratio')
 
     assert_true('meg' in power)
     assert_true('grad' in power)
