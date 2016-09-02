@@ -228,7 +228,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
         matrix b; or a string. If str, must be ``'cholesky'``, in which case
-        the solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``.
+        the solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``, or
+        ``'pinv'``, in which a solver based on a pseudo-inverse is used.
 
     Returns
     -------
@@ -245,7 +246,9 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
     """
     if isinstance(solver, string_types):
         if solver == 'cholesky':
-            solver = _solver
+            solver = _cho_solver
+        elif solver == "pinv":
+            solver = _pinv_solver
         else:
             raise ValueError("No such solver: {0}".format(solver))
 
@@ -273,7 +276,6 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
 
 def _prepare_rerp_data(raw, events, picks=None, decim=1, sfreq=None):
     """Prepare events and data, primarily for `linear_regression_raw`."""
-
     decim = int(decim)
     events = events.copy()
     events[:, 0] //= decim
@@ -287,6 +289,8 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1, sfreq=None):
         events[:, 0] -= raw.first_samp
         data = data[picks, ::decim]
     else:
+        if sfreq is None:
+            warn("If 'raw' is an array, sfreq should be specified.")
         data = raw[:, ::decim]
         info = dict(sfreq=sfreq)
 
@@ -394,7 +398,13 @@ def _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info):
     return evokeds
 
 
-def _solver(X, y):
-	a = (X.T * X).toarray()  # dot product of sparse matrices
-	return linalg.solve(a, X.T * y.T, sym_pos=True,
-						overwrite_a=True, overwrite_b=True).T
+def _cho_solver(X, y):
+    a = (X.T * X).toarray()  # dot product of sparse matrices
+    return linalg.solve(a, X.T * y.T, sym_pos=True,
+                        overwrite_a=True, overwrite_b=True).T
+
+
+def _pinv_solver(X, y):
+    from ..utils import _get_fast_dot
+    fast_dot = _get_fast_dot()
+    return fast_dot(linalg.pinv(X.T.dot(X).todense()), X.T.dot(y.T)).T

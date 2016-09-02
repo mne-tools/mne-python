@@ -15,8 +15,8 @@ from ..epochs import _BaseEpochs, EpochsArray
 from ..io import _BaseRaw
 from ..io.pick import _pick_data_channels
 from ..utils import logger
-from ..externals.six import iteritems, itervalues
-from ..stats.regression import _prepare_rerp_data, _prepare_rerp_preds, _solver
+from ..externals.six import iteritems, itervalues, string_types
+from ..stats.regression import _prepare_rerp_data, _prepare_rerp_preds
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
     """Reconstruct pseudo continuous signal from epochs."""
@@ -38,7 +38,7 @@ def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
     return raw
 
 
-def _least_square_evoked(epochs_data, events, tmin, sfreq):
+def _least_square_evoked(epochs_data, events, tmin, sfreq, solver='pinv'):
     """Least square estimation of evoked response from epochs data.
 
     Parameters
@@ -53,6 +53,12 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
         Start time before event.
     sfreq : float
         Sampling frequency.
+    solver : str | function
+        Either a function which takes as its inputs the sparse predictor
+        matrix X and the observation matrix Y, and returns the coefficient
+        matrix b; or a string. If str, must be ``'cholesky'``, in which case
+        the solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``, or
+        ``'pinv'``, in which a solver based on a pseudo-inverse is used.
 
     Returns
     -------
@@ -61,6 +67,13 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
     toeplitz : array, shape (n_class * n_components, n_channels)
         An concatenated array of toeplitz matrix for each event type.
     """
+
+    if isinstance(solver, string_types):
+        if solver == "pinv":
+            from ..stats.regression import _pinv_solver as solver
+        elif solver == 'cholesky':
+            from ..stats.regression import _cho_solver as solver
+
     n_epochs, n_channels, n_times = epochs_data.shape
     tmax = tmin + n_times / float(sfreq)
 
@@ -75,7 +88,7 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
     # for event overlaps.
 
     # prepare data and events
-    data, info, events = _prepare_rerp_data(raw, events)
+    data, info, events = _prepare_rerp_data(raw, events, sfreq=sfreq)
 
     # build predictors
     classes = np.unique(events[:, 2])
@@ -86,11 +99,11 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
                             tmax=tmax, pad=0)[0]
 
     # least square estimation
-    coefs = _solver(X, data)
+    coefs = solver(X, data)
 
-    # shape data correctly (split by class)
-    evokeds = np.asarray(np.hsplit(coefs, len(classes)))
-    return evokeds, np.vsplit(X.toarray().T, len(classes))
+    # shape data correctly (split by class) and return
+    evoked_data = np.asarray(np.hsplit(coefs, len(classes)))
+    return evoked_data, np.vsplit(X.toarray().T, len(classes))
 
 
 def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
