@@ -21,29 +21,33 @@ fname_raw_elekta = os.path.join(elekta_base_dir, 'test_elekta_3ch_raw.fif')
 
 print(__doc__)
 
+# read raw file and create averager instance
 raw = mne.io.read_raw_fif(fname_raw_elekta)
 eav = ElektaAverager(raw.info)
 
-""" Extract epochs corresponding to a category. Copy rejection
-limits from DACQ settings. """
-eps = eav.get_epochs(raw, 'Event 1 followed by 2 within 1100 ms',
-                     reject=True, flat=True)
+# check DACQ defined averaging categories
+print(eav)
 
-""" Read all categories, extract corresponding epochs, average, add
-comments from to the DACQ categories and save to new
- fiff file. """
+# extract epochs corresponding to a category
+(cat_ev, cat_id, tmin, tmax) = eav.get_category_t0(raw, 'Test event 3')
+eps = mne.Epochs(raw, cat_ev, cat_id, tmin=tmin, tmax=tmax)
+
+# get epochs corresponding to each category, average and save all averages
+# into a new evoked fiff file
 evokeds = []
 for cat in eav.categories:
-    eps = eav.get_epochs(raw, cat)
+    (cat_ev, cat_id, tmin, tmax) = eav.get_category_t0(raw, cat)
+    # copy (supported) rejection parameters from DACQ settings
+    eps = mne.Epochs(raw, cat_ev, cat_id, tmin=tmin, tmax=tmax,
+                     reject=eav.reject, flat=eav.flat)
     evoked = eps.average()
     evoked.comment = cat['comment']
     evokeds.append(evoked)
-
 fname_out = 'elekta_evokeds-ave.fif'
 mne.write_evokeds(fname_out, evokeds)
 
-""" Make a new category using an existing one as a template and extract
-corresponding epochs. """
+# make a new category using existing one as a template and extract
+# corresponding epochs
 newcat = eav.categories[0].copy()
 newcat['comment'] = 'New category'
 newcat['event'] = 1  # reference event
@@ -52,5 +56,5 @@ newcat['end'] = .5  # epoch end
 newcat['reqevent'] = 2  # additional required event; 0 if none
 newcat['reqwithin'] = 1.5  # req. event required within 1.5 sec of ref. event
 newcat['reqwhen'] = 1  # required before (1) or after (2) ref. event
-
-eps = eav.get_epochs(raw, newcat)
+(cat_ev, cat_id, tmin, tmax) = eav.get_category_t0(raw, newcat)
+eps = mne.Epochs(raw, cat_ev, cat_id, tmin=tmin, tmax=tmax)

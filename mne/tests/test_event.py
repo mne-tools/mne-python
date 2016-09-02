@@ -8,8 +8,8 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
-                 find_events, pick_events, find_stim_steps, pick_channels,
-                 read_evokeds, io)
+                 find_events, pick_events, find_stim_steps, io, pick_channels,
+                 read_evokeds, io, Epochs)
 from mne.io import read_raw_fif
 from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
@@ -425,7 +425,9 @@ def test_elekta_averager():
     for cat in eav.categories:
         # XXX datasets match only when baseline is applied to both,
         # not sure where relative dc shift comes from
-        eps = eav.get_epochs(raw, cat, baseline=(-.05, 0))
+        (cat_ev, cat_id, tmin, tmax) = eav.get_category_t0(raw, cat)
+        eps = Epochs(raw, cat_ev, cat_id, tmin=tmin, tmax=tmax,
+                     baseline=(-.05, 0))
         ev = eps.average()
         ev_ref = read_evokeds(fname_ave_elekta, cat['comment'],
                               baseline=(-.05, 0), proj=False)

@@ -1106,19 +1106,17 @@ class ElektaAverager(object):
 
     @property
     def _categories_in_use(self):
-        return (
-            {k: v for k, v in self._categories.iteritems() if v['state']})
+        return {k: v for k, v in self._categories.iteritems() if v['state']}
 
     @property
     def _events_in_use(self):
-        return (
-            {k: v for k, v in self._events.iteritems() if v['in_use']})
+        return {k: v for k, v in self._events.iteritems() if v['in_use']}
 
-    def get_epochs(self, raw, category, picks=None, reject=None, flat=None,
-                   baseline=(None, 0), detrend=None, stim_channel=None,
-                   mask=None, uint_cast=None, mask_type=None):
-        """ Get an mne.Epochs instance corresponding to the given DACQ
-        (data acquisition) category.
+    def get_category_t0(self, raw, category, stim_channel=None, mask=None,
+                        uint_cast=None, mask_type=None):
+        """ Get reference times corresponding to the given DACQ
+        (data acquisition) category. Output can be used with
+        the Epochs class to extract corresponding epochs.
 
         Parameters
         ----------
@@ -1128,42 +1126,6 @@ class ElektaAverager(object):
             The category to use. Can be a name (e.g. 'my_category') or
             category dict (e.g. eav['my_category'], where eav is an instance
             of ElektaAverager).
-        picks : array-like of int | None (default)
-            Indices of channels to include (if None, all channels are used).
-        reject : True | dict | None
-            Rejection parameters based on peak-to-peak amplitude.
-            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-            If reject is None then no rejection is done. Example:
-                reject = dict(grad=4000e-13, # T / m (gradiometers)
-                              mag=4e-12, # T (magnetometers)
-                              eeg=40e-6, # V (EEG channels)
-                              eog=250e-6 # V (EOG channels))
-            If True, use the rejection limits defined in DACQ.
-            Note that all DACQ rejection criteria are not supported by mne.
-        flat : True | dict | None
-            Rejection parameters based on flatness of signal.
-            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-            are floats that set the minimum acceptable peak-to-peak amplitude.
-            If True, use the flatness rejection limits defined in DACQ.
-            If None, no rejection is done.
-        baseline : None or tuple of length 2 (default (None, 0))
-            The time interval to apply baseline correction.
-            If None do not apply it. If baseline is (a, b)
-            the interval is between "a (s)" and "b (s)".
-            If a is None the beginning of the data is used
-            and if b is None then b is set to the end of the interval.
-            If baseline is equal to (None, None) all the time
-            interval is used.
-            The baseline (a, b) includes both endpoints, i.e. all
-            timepoints t such that a <= t <= b.
-        detrend : int | None
-            If 0 or 1, the data channels (MEG and EEG) will be detrended when
-            loaded. 0 is a constant (DC) detrend, 1 is a linear detrend. None
-            is no detrending. Note that detrending is performed before baseline
-            correction. If no DC offset is preferred (zeroth order detrending),
-            either turn off baseline correction, as this may introduce a DC
-            shift, or set baseline correction to use the entire time interval
-            (will yield equivalent results but be slower).
         stim_channel : None | string | list of string
             Name of the stim channel or all the stim channels
             affected by the trigger. If None, the config variables
@@ -1183,28 +1145,37 @@ class ElektaAverager(object):
         mask_type: 'and' | 'not_and'
             The type of operation between the mask and the trigger.
             Choose 'and' for MNE-C masking behavior.
-        """
 
-        from .epochs import Epochs
+        Returns
+        -------
+        cat_t0 : array, shape (n_epochs_out, 3)
+            List of zero time points (t0) for the epochs matching the
+            category. Use as the ``events`` parameter to Epochs.
+        cat_id : dict
+            Category name and index compatible with cat_events. Should be
+            passed as the ``event_id``  parameter to Epochs together with
+            ``cat_t0``.
+        tmin : float
+            Epoch starting time relative to t0. Use as the ``tmin``
+            parameter to Epochs.
+        tmax : float
+            Epoch ending time relative to t0. Can be used as the ``tmax``
+            parameter to Epochs.
+        """
         if isinstance(category, str):
             category = self[category]
-        reject = self.reject if reject is True else reject
-        flat = self.flat if flat is True else flat
         mne_events = find_events(raw, stim_channel=stim_channel,
                                  mask=mask, mask_type=mask_type, output='step',
                                  uint_cast=uint_cast, consecutive=True,
                                  verbose=False)
         sfreq = raw.info['sfreq']
-        # create array of category reference times (t0)
-        # and corresponding (fake) event_id for mne.Epochs
-        cat_t = self._mne_events_to_category_t0(category, mne_events, sfreq)
-        cat_ev = np.c_[cat_t, np.zeros(cat_t.shape),
-                       np.ones(cat_t.shape)].astype(np.uint32)
-        id = {category['comment']: 1}
-        return Epochs(raw, cat_ev, event_id=id, reject=reject, flat=flat,
-                      tmin=category['start'], tmax=category['end'],
-                      baseline=baseline, detrend=detrend, picks=picks,
-                      preload=True, verbose=False)
+        cat_t0_ = self._mne_events_to_category_t0(category, mne_events, sfreq)
+        # make it compatible with a normal events array
+        cat_t0 = np.c_[cat_t0_, np.zeros(cat_t0_.shape),
+                       np.ones(cat_t0_.shape)].astype(np.uint32)
+        cat_id = {category['comment']: 1}
+        tmin, tmax = category['start'], category['end']
+        return (cat_t0, cat_id, tmin, tmax)
 
 
 def _acqpars_dict(acq_pars):
