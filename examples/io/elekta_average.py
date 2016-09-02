@@ -42,4 +42,12 @@ for cat in eav.categories:
 fname_out = 'elekta_evokeds-ave.fif'
 mne.write_evokeds(fname_out, evokeds)
 
-""" Modify averaging settings """
+""" Make a new category using an existing one as a template and extract
+corresponding epochs. """
+newcat = eav.categories[0].copy()
+newcat['comment'] = 'New category'
+newcat['event'] = 1
+newcat['start'] = -.1
+newcat['end'] = .5
+
+eps = eav.get_epochs(raw, newcat)
