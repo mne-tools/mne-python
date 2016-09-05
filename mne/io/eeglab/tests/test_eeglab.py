@@ -95,6 +95,7 @@ def test_io_set():
     event_id = {'S255/S8': 1, 'S8': 2, 'S255/S9': 3}
 
     epochs = read_epochs_eeglab(epochs_fname, epochs.events, event_id)
+    assert_equal(len(epochs.events), 4)
     epochs = read_epochs_eeglab(epochs_fname, out_fname, event_id)
     assert_raises(ValueError, read_epochs_eeglab, epochs_fname,
                   None, event_id)
@@ -128,8 +129,8 @@ def test_io_set():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         read_raw_eeglab(input_fname=one_chan_fname, preload=True)
-    # one warning for 'no events fond'
-    assert_equal(len(w), 1)
+    # no warning for 'no events found'
+    assert_equal(len(w), 0)
 
     # test if .dat file raises an error
     eeg = io.loadmat(epochs_fname, struct_as_record=False,
