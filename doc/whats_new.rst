@@ -173,6 +173,8 @@ API
 
     - The ``events`` parameter of :func:`mne.epochs.EpochsArray` is set by default to chronological time-samples and event values to 1, by `Jean-Remi King`_
 
+    - Deprecated ``axis`` parameter from :func:`mne.viz.plot_topomap` (use ``axes`` instead) by `Jaakko Leppakangas`_
+
 Authors
 ~~~~~~~
 
