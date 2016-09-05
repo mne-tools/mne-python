@@ -400,7 +400,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
     exclude_labels = list()
     for ii in picks:
         if ii in exclude:
-            line_label = 'ICA %03d' % (ii + 1)
+            line_label = 'ICA %03d' % (ii)
             if labels is not None:
                 annot = list()
                 for this_label in labels_used:
