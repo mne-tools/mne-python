@@ -400,7 +400,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
     exclude_labels = list()
     for ii in picks:
         if ii in exclude:
-            line_label = 'ICA %03d' % (ii)
+            line_label = 'IC #%03d' % (ii)
             if labels is not None:
                 annot = list()
                 for this_label in labels_used:
@@ -749,7 +749,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     eog_chs = pick_types(raw.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(raw.info, meg=False, ecg=True, ref_meg=False)
     data = [orig_data[pick] for pick in picks]
-    c_names = ['ICA %03d' % (x + 1) for x in range(len(orig_data))]
+    c_names = ['IC #%03d' % (x) for x in range(len(orig_data))]
     for eog_idx in eog_chs:
         c_names.append(raw.ch_names[eog_idx])
         types.append('eog')
@@ -842,7 +842,7 @@ def _pick_bads(event, params):
 def _close_event(events, params):
     """Function for excluding the selected components on close."""
     info = params['info']
-    c_names = ['ICA %03d' % (x + 1) for x
+    c_names = ['IC #%03d' % (x) for x
                in range(params['ica'].n_components_)]
     exclude = [c_names.index(x) for x in info['bads'] if x.startswith('ICA')]
     params['ica'].exclude = exclude
@@ -854,7 +854,7 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     data = ica._transform_epochs(epochs, concatenate=True)
     eog_chs = pick_types(epochs.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(epochs.info, meg=False, ecg=True, ref_meg=False)
-    c_names = ['ICA %03d' % (x + 1) for x in range(ica.n_components_)]
+    c_names = ['IC #%03d' % (x) for x in range(ica.n_components_)]
     ch_types = np.repeat('misc', ica.n_components_)
     for eog_idx in eog_chs:
         c_names.append(epochs.ch_names[eog_idx])
