@@ -572,7 +572,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
 
     For more information, see the tutorials :ref:`tut_background_filtering`
     and :ref:`tut_artifacts_filter`.
-    """  # noqa
+    """  # noqa: E501
     from scipy.signal import iirfilter, iirdesign
     known_filters = ('bessel', 'butter', 'butterworth', 'cauer', 'cheby1',
                      'cheby2', 'chebyshev1', 'chebyshev2', 'chebyshevi',
@@ -2236,7 +2236,7 @@ class FilterMixin(object):
         .. [1] Savitzky, A., Golay, M.J.E. (1964). "Smoothing and
                Differentiation of Data by Simplified Least Squares
                Procedures". Analytical Chemistry 36 (8): 1627-39.
-        """  # noqa
+        """  # noqa: E501
         from .evoked import Evoked
         from .epochs import _BaseEpochs
         inst = self.copy() if copy else self

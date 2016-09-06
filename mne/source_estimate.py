@@ -2832,7 +2832,7 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     -------
     label_tc : array | list (or generator) of array, shape=(len(labels), n_times)
         Extracted time course for each label and source estimate.
-    """  # noqa
+    """  # noqa: E501
     # convert inputs to lists
     if isinstance(stcs, SourceEstimate):
         stcs = [stcs]

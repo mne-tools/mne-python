@@ -20,7 +20,7 @@ _EEG_SELECTIONS = ['EEG 1-32', 'EEG 33-64', 'EEG 65-96', 'EEG 97-128']
 
 @verbose
 def read_selection(name, fname=None, info=None, verbose=None):
-    """Read channel selection from file
+    """Read channel selection from file.
 
     By default, the selections used in ``mne_browse_raw`` are supported.
     Additional selections can be added by specifying a selection file (e.g.
@@ -64,7 +64,6 @@ def read_selection(name, fname=None, info=None, verbose=None):
     sel : list of string
         List with channel names in the selection.
     """
-
     # convert name to list of string
     if not isinstance(name, (list, tuple)):
         name = [name]
@@ -124,7 +123,7 @@ def read_selection(name, fname=None, info=None, verbose=None):
 
 
 def _divide_to_regions(info, add_stim=True):
-    """Divides channels to regions by positions."""
+    """Divide channels to regions by positions."""
     from scipy.stats import zscore
     picks = _pick_data_channels(info, exclude=[])
     chs_in_lobe = len(picks) // 4

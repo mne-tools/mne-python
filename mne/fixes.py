@@ -52,7 +52,7 @@ else:
 def _safe_svd(A, **kwargs):
     """Wrapper to get around the SVD did not converge error of death"""
     # Intel has a bug with their GESVD driver:
-    #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa
+    #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa: E501
     # For SciPy 0.18 and up, we can work around it by using
     # lapack_driver='gesvd' instead.
     if kwargs.get('overwrite_a', False):

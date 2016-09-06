@@ -64,14 +64,14 @@ def init_cuda(ignore_config=False):
     # Triage possible errors for informative messaging
     _cuda_capable = False
     try:
-        from pycuda import gpuarray, driver  # noqa
+        from pycuda import gpuarray, driver  # noqa: F401
         from pycuda.elementwise import ElementwiseKernel
     except ImportError:
         warn('module pycuda not found, CUDA not enabled')
         return
     try:
         # Initialize CUDA; happens with importing autoinit
-        import pycuda.autoinit  # noqa
+        import pycuda.autoinit  # noqa: F401
     except ImportError:
         warn('pycuda.autoinit could not be imported, likely a hardware error, '
              'CUDA not enabled%s' % _explain_exception())

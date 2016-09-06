@@ -108,7 +108,7 @@ def _blk_read_lims(start, stop, buf_len):
 
         >>> data[d_lims[ii, 0]:d_lims[ii, 1]] = this_data[r_lims[ii, 0]:r_lims[ii, 1]]  # doctest: +SKIP
 
-    """  # noqa
+    """  # noqa: E501
     # this is used to deal with indexing in the middle of a sampling period
     assert all(isinstance(x, int) for x in (start, stop, buf_len))
     block_start_idx = (start // buf_len)

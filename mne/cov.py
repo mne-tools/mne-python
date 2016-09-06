@@ -51,7 +51,7 @@ def _check_covs_algebra(cov1, cov2):
 
 
 def _get_tslice(epochs, tmin, tmax):
-    """get the slice."""
+    """Get the slice."""
     mask = _time_mask(epochs.times, tmin, tmax, sfreq=epochs.info['sfreq'])
     tstart = np.where(mask)[0][0] if tmin is not None else None
     tend = np.where(mask)[0][-1] + 1 if tmax is not None else None
@@ -60,7 +60,6 @@ def _get_tslice(epochs, tmin, tmax):
 
 
 class Covariance(dict):
-
     """Noise covariance matrix.
 
     .. warning:: This class should not be instantiated directly, but
@@ -154,7 +153,7 @@ class Covariance(dict):
         end_file(fid)
 
     def copy(self):
-        """Copy the Covariance object
+        """Copy the Covariance object.
 
         Returns
         -------
@@ -184,7 +183,7 @@ class Covariance(dict):
         self['eigvec'] = None
         return self
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         if self.data.ndim == 2:
             s = 'size : %s x %s' % self.data.shape
         else:  # ndim == 1
@@ -1365,7 +1364,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     See Also
     --------
     compute_covariance
-    """  # noqa
+    """  # noqa: E501
     cov = cp.deepcopy(cov)
     info._check_consistency()
 

@@ -11,7 +11,7 @@ from .utils import logger, verbose
 
 
 def _log_rescale(baseline, mode='mean'):
-    """Helper to log the rescaling method"""
+    """Helper to log the rescaling method."""
     if baseline is not None:
         valid_modes = ('logratio', 'ratio', 'zscore', 'mean', 'percent',
                        'zlogratio')
@@ -25,7 +25,7 @@ def _log_rescale(baseline, mode='mean'):
 
 @verbose
 def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
-    """Rescale aka baseline correct data
+    """Rescale (baseline correct) data.
 
     Parameters
     ----------
@@ -42,7 +42,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         and if ``bmax is None`` then ``bmax`` is set to the end of the
         interval. If baseline is ``(None, None)`` the entire time
         interval is used. If baseline is None, no correction is applied.
-    mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio' # noqa
+    mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
         deviation of power during baseline after subtracting the mean,
@@ -61,7 +61,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
     -------
     data_scaled: array
         Array of same shape as data after rescaling.
-    """
+    """  # noqa: E501
     data = data.copy() if copy else data
     _log_rescale(baseline, mode)
     if baseline is None:

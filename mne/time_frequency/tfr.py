@@ -583,10 +583,9 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     return tfrs
 
 
-# Aux function to reduce redundancy between tfr_morlet and tfr_multitaper
-
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
              **tfr_params):
+    """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
     info = inst.info
@@ -819,7 +818,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         inst : instance of AverageTFR
             The modified instance.
 
-        """  # noqa
+        """  # noqa: E501
         self.data = rescale(self.data, self.times, baseline, mode,
                             copy=False)
         return self
@@ -883,7 +882,7 @@ class AverageTFR(_BaseTFR):
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=False, colorbar=True, show=True,
              title=None, axes=None, layout=None, verbose=None):
-        """Plot TFRs in a topography with images
+        """Plot TFRs in a topography with images.
 
         Parameters
         ----------
@@ -963,7 +962,7 @@ class AverageTFR(_BaseTFR):
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
-        """  # noqa
+        """  # noqa: E501
         from ..viz.topo import _imshow_tfr
         import matplotlib.pyplot as plt
         times, freqs = self.times.copy(), self.freqs.copy()
@@ -1132,7 +1131,7 @@ class AverageTFR(_BaseTFR):
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
-        """  # noqa
+        """  # noqa: E501
         from ..viz.topo import _imshow_tfr, _plot_topo, _imshow_tfr_unified
         from ..viz import add_background_image
         times = self.times.copy()
@@ -1288,7 +1287,7 @@ class AverageTFR(_BaseTFR):
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
-        """  # noqa
+        """  # noqa: E501
         from ..viz import plot_tfr_topomap
         return plot_tfr_topomap(self, tmin=tmin, tmax=tmax, fmin=fmin,
                                 fmax=fmax, ch_type=ch_type, baseline=baseline,

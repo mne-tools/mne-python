@@ -259,7 +259,7 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
         The computed cross spectral-density (either summed or not).
     freqs : array
         Frequencies the cross spectral-density is evaluated at.
-    """  # noqa
+    """  # noqa: E501
 
     # Check correctness of input data and parameters
     if fmax < fmin:

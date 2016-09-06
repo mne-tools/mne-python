@@ -1,5 +1,4 @@
-"""Demo datasets
-"""
+"""Demo datasets."""
 
 from . import brainstorm
 from . import eegbci

@@ -55,7 +55,7 @@ def _fig_to_img(function=None, fig=None, image_format='png',
         from scipy.misc import imread
         mlab = None
         try:
-            from mayavi import mlab  # noqa
+            from mayavi import mlab  # noqa: F401
         except:  # on some systems importing Mayavi raises SystemExit (!)
             warn('Could not import mayavi. Trying to render'
                  '`mayavi.core.scene.Scene` figure instances'

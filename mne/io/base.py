@@ -748,7 +748,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             >>> t_idx = raw.time_as_index([10., 20.])  # doctest: +SKIP
             >>> data, times = raw[picks, t_idx[0]:t_idx[1]]  # doctest: +SKIP
 
-        """  # noqa
+        """  # noqa: E501
         sel, start, stop = self._parse_get_set_params(item)
         if self.preload:
             data = self._data[sel, start:stop]
@@ -1245,7 +1245,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         For some data, it may be more accurate to use ``npad=0`` to reduce
         artifacts. This is dataset dependent -- check your data!
-        """  # noqa
+        """  # noqa: E501
         _check_preload(self, 'raw.resample')
 
         # When no event object is supplied, some basic detection of dropped

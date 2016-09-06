@@ -66,7 +66,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
         Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank,
         PhysioToolkit, and PhysioNet: Components of a New Research Resource for
         Complex Physiologic Signals. Circulation 101(23):e215-e220
-    """  # noqa
+    """  # noqa: E501
 
     key = 'MNE_DATASETS_EEGBCI_PATH'
     name = 'EEGBCI'

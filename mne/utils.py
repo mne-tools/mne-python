@@ -2463,7 +2463,7 @@ def sys_info(fid=None, show_paths=False):
         pycuda:        2015.1.3
         skcuda:        0.5.2
 
-    """  # noqa
+    """  # noqa: E501
     ljust = 15
     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
     out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'

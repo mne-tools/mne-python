@@ -1235,7 +1235,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     has patch statistics computed, these are used to improve the depth
     weighting. Thus slightly different results are to be expected with
     and without this information.
-    """  # noqa
+    """  # noqa: E501
     is_fixed_ori = is_fixed_orient(forward)
 
     if fixed and loose is not None:
@@ -1528,7 +1528,7 @@ def estimate_snr(evoked, inv, verbose=None):
     of 0.001.
 
     .. versionadded:: 0.9.0
-    """  # noqa
+    """  # noqa: E501
     from scipy.stats import chi2
     _check_reference(evoked)
     _check_ch_names(inv, evoked.info)

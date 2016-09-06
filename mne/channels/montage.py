@@ -30,7 +30,7 @@ from ..externals.six.moves import map
 
 
 class Montage(object):
-    """Montage for EEG cap
+    """Montage for EEG cap.
 
     Montages are typically loaded from a file using read_montage. Only use this
     class directly if you're constructing a new montage.
@@ -50,6 +50,7 @@ class Montage(object):
     -----
     .. versionadded:: 0.9.0
     """
+
     def __init__(self, pos, ch_names, kind, selection):
         self.pos = pos
         self.ch_names = ch_names
@@ -57,12 +58,13 @@ class Montage(object):
         self.selection = selection
 
     def __repr__(self):
+        """String representation."""
         s = ('<Montage | %s - %d channels: %s ...>'
              % (self.kind, len(self.ch_names), ', '.join(self.ch_names[:3])))
         return s
 
     def plot(self, scale_factor=1.5, show_names=False):
-        """Plot EEG sensor montage
+        """Plot EEG sensor montage.
 
         Parameters
         ----------
@@ -81,7 +83,7 @@ class Montage(object):
 
 
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
-    """Read a generic (built-in) montage from a file
+    """Read a generic (built-in) montage from a file.
 
     This function can be used to read electrode positions from a user specified
     file using the `kind` and `path` parameters. Alternatively, use only the
@@ -169,7 +171,6 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
     .. versionadded:: 0.9.0
     """
-
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'montages')
     if not op.isabs(kind):
@@ -326,7 +327,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
 
 class DigMontage(object):
-    """Montage for Digitized data
+    """Montage for Digitized data.
 
     Montages are typically loaded from a file using read_dig_montage. Only use
     this class directly if you're constructing a new montage.
@@ -361,6 +362,7 @@ class DigMontage(object):
     -----
     .. versionadded:: 0.9.0
     """
+
     def __init__(self, hsp, hpi, elp, point_names,
                  nasion=None, lpa=None, rpa=None, dev_head_t=None,
                  dig_ch_pos=None):
@@ -379,13 +381,14 @@ class DigMontage(object):
         self.dig_ch_pos = dig_ch_pos
 
     def __repr__(self):
+        """String representation."""
         s = '<DigMontage | %d Dig Points, %d HPI points: %s ...>'
         s %= (len(self.hsp), len(self.point_names),
               ', '.join(self.point_names[:3]))
         return s
 
     def plot(self, scale_factor=1.5, show_names=False):
-        """Plot EEG sensor montage
+        """Plot EEG sensor montage.
 
         Parameters
         ----------
@@ -412,7 +415,7 @@ _cardinal_ident_mapping = {
 
 
 def _check_frame(d, frame_str):
-    """Helper to check coordinate frames"""
+    """Helper to check coordinate frames."""
     if d['coord_frame'] != _str_to_frame[frame_str]:
         raise RuntimeError('dig point must be in %s coordinate frame, got %s'
                            % (frame_str, _frame_to_str[d['coord_frame']]))
@@ -420,7 +423,7 @@ def _check_frame(d, frame_str):
 
 def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                      unit='auto', fif=None, transform=True, dev_head_t=False):
-    """Read subject-specific digitization montage from a file
+    r"""Read subject-specific digitization montage from a file.
 
     Parameters
     ----------
@@ -466,7 +469,6 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         montage. To get a proper `dev_head_t`, the hpi and the elp points
         must be in the same order. If False, an identity matrix will be added
         to the montage. Default is False.
-
 
     Returns
     -------

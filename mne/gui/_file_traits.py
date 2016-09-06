@@ -325,7 +325,7 @@ class InstSource(HasPrivateTraits):
         if self.points_filter is None:
             return 0
         else:
-            return np.sum(self.points_filter == False)  # noqa
+            return np.sum(self.points_filter == False)  # noqa: E712
 
     @cached_property
     def _get_inst(self):

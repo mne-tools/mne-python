@@ -347,7 +347,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         # the selection only restricts these types of channels
         sel_kind = [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH,
                     FIFF.FIFFV_EEG_CH]
-        for k in np.where(pick == True)[0]:  # noqa
+        for k in np.where(pick)[0]:
             if (info['chs'][k]['kind'] in sel_kind and
                     info['ch_names'][k] not in selection):
                 pick[k] = False

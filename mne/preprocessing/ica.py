@@ -55,8 +55,8 @@ from ..externals.six import string_types, text_type
 from ..io.pick import channel_type
 
 
-__all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
-           'get_score_funcs', 'read_ica', 'run_ica']
+__all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
+           'get_score_funcs', 'read_ica', 'run_ica')
 
 
 def _make_xy_sfunc(func, ndim_output=False):

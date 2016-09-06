@@ -17,7 +17,7 @@ from ..externals.six import string_types
 from ..externals.six.moves import input
 
 
-_data_path_doc = """Get path to local copy of {name} dataset
+_data_path_doc = """Get path to local copy of {name} dataset.
 
     Parameters
     ----------
@@ -49,7 +49,7 @@ _data_path_doc = """Get path to local copy of {name} dataset
 """
 
 
-_version_doc = """Get version of the local {name} dataset
+_version_doc = """Get version of the local {name} dataset.
 
     Returns
     -------
@@ -80,7 +80,7 @@ For questions, please contact Francois Tadel (francois.tadel@mcgill.ca).
 
 
 def _dataset_version(path, name):
-    """Get the version of the dataset"""
+    """Get the version of the dataset."""
     ver_fname = op.join(path, 'version.txt')
     if op.exists(ver_fname):
         with open(ver_fname, 'r') as fid:
@@ -94,7 +94,7 @@ def _dataset_version(path, name):
 
 
 def _get_path(path, key, name):
-    """Helper to get a dataset path"""
+    """Helper to get a dataset path."""
     # 1. Input
     if path is not None:
         if not isinstance(path, string_types):
@@ -124,7 +124,7 @@ def _get_path(path, key, name):
 
 
 def _do_path_update(path, update_path, key, name):
-    """Helper to update path"""
+    """Helper to update path."""
     path = op.abspath(path)
     if update_path is None:
         if get_config(key, '') != path:
@@ -149,8 +149,7 @@ def _do_path_update(path, update_path, key, name):
 def _data_path(path=None, force_update=False, update_path=True, download=True,
                name=None, check_version=False, return_version=False,
                archive_name=None):
-    """Aux function
-    """
+    """Aux function."""
     key = {
         'fake': 'MNE_DATASETS_FAKE_PATH',
         'misc': 'MNE_DATASETS_MISC_PATH',
@@ -330,14 +329,14 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
 
 
 def _get_version(name):
-    """Helper to get a dataset version"""
+    """Helper to get a dataset version."""
     if not has_dataset(name):
         return None
     return _data_path(name=name, return_version=True)[1]
 
 
 def has_dataset(name):
-    """Helper for dataset presence"""
+    """Helper for dataset presence."""
     endswith = {
         'brainstorm': 'MNE_brainstorm-data',
         'fake': 'foo',
@@ -357,7 +356,7 @@ def has_dataset(name):
 
 @verbose
 def _download_all_example_data(verbose=True):
-    """Helper to download all datasets used in examples and tutorials"""
+    """Helper to download all datasets used in examples and tutorials."""
     # This function is designed primarily to be used by CircleCI. It has
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build

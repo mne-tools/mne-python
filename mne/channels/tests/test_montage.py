@@ -44,11 +44,11 @@ def test_montage():
     input_str = [
         'FidNz 0.00000 10.56381 -2.05108\nFidT9 -7.82694 0.45386 -3.76056\n'
         'very_very_very_long_name 7.82694 0.45386 -3.76056',
-        '// MatLab   Sphere coordinates [degrees]         Cartesian coordinates\n'  # noqa
-        '// Label       Theta       Phi    Radius         X         Y         Z       off sphere surface\n'  # noqa
-        'E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011\n'  # noqa
-        'E2      44.600      -0.880       1.000    0.7119    0.7021   -0.0154   0.00000000000000000\n'  # noqa
-        'E3      51.700      11.000       1.000    0.6084    0.7704    0.1908   0.00000000000000000',  # noqa
+        '// MatLab   Sphere coordinates [degrees]         Cartesian coordinates\n'  # noqa: E501
+        '// Label       Theta       Phi    Radius         X         Y         Z       off sphere surface\n'  # noqa: E501
+        'E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011\n'  # noqa: E501
+        'E2      44.600      -0.880       1.000    0.7119    0.7021   -0.0154   0.00000000000000000\n'  # noqa: E501
+        'E3      51.700      11.000       1.000    0.6084    0.7704    0.1908   0.00000000000000000',  # noqa: E501
         '# ASA electrode file\nReferenceLabel  avg\nUnitPosition    mm\n'
         'NumberPositions=    68\nPositions\n-86.0761 -19.9897 -47.9860\n'
         '85.7939 -20.0093 -48.0310\n0.0083 86.8110 -39.9830\n'

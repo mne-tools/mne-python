@@ -1,5 +1,4 @@
-"""Compute Linearly constrained minimum variance (LCMV) beamformer.
-"""
+"""Compute Linearly constrained minimum variance (LCMV) beamformer."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Roman Goj <roman.goj@gmail.com>
@@ -54,7 +53,7 @@ def _setup_picks(picks, info, forward, noise_cov=None):
 def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                 label=None, picks=None, pick_ori=None, rank=None,
                 verbose=None):
-    """ LCMV beamformer for evoked data, single epochs, and raw data
+    """LCMV beamformer for evoked data, single epochs, and raw data.
 
     Parameters
     ----------
@@ -220,7 +219,6 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
     Check input values, prepare channel list and gain matrix. For documentation
     of parameters, please refer to _apply_lcmv.
     """
-
     is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
     if pick_ori in ['normal', 'max-power'] and not is_free_ori:

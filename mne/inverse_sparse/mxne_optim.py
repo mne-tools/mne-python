@@ -380,7 +380,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     has_sklearn = True
     try:
-        from sklearn.linear_model.coordinate_descent import MultiTaskLasso  # noqa
+        from sklearn.linear_model.coordinate_descent import MultiTaskLasso  # noqa: F401
     except ImportError:
         has_sklearn = False
 

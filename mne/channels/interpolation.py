@@ -37,7 +37,7 @@ def _calc_g(cosang, stiffness=4, num_lterms=50):
 
 
 def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
-    """Compute interpolation matrix based on spherical splines
+    """Compute interpolation matrix based on spherical splines.
 
     Implementation based on [1]
 
@@ -62,7 +62,6 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
         Spherical splines for scalp potential and current density mapping.
         Electroencephalography Clinical Neurophysiology, Feb; 72(2):184-7.
     """
-
     pos_from = pos_from.copy()
     pos_to = pos_to.copy()
 
@@ -90,8 +89,7 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
 
 
 def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
-    """Dot product of channel mapping matrix to channel data
-    """
+    """Dot product of channel mapping matrix to channel data."""
     from ..io.base import _BaseRaw
     from ..epochs import _BaseEpochs
     from ..evoked import Evoked
@@ -109,7 +107,7 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
 
 
 def _interpolate_bads_eeg(inst):
-    """Interpolate bad EEG channels
+    """Interpolate bad EEG channels.
 
     Operates in place.
 

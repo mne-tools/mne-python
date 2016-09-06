@@ -1283,7 +1283,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(evoked, ch_type)
     import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa
+    from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
 
     mask_params = _handle_default('mask_params', mask_params)
     mask_params['markersize'] *= size / 2.

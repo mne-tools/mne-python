@@ -58,9 +58,9 @@ class _SearchLight(BaseEstimator, TransformerMixin):
 
         Returns
         -------
-        y_pred : array, shape (n_samples, n_estimators) | (n_samples, n_estimators, n_targets)  # noqa
+        y_pred : array, shape (n_samples, n_estimators) | (n_samples, n_estimators, n_targets)
             The predicted values for each estimator.
-        """
+        """  # noqa: E501
         return self.fit(X, y).transform(X)
 
     def fit(self, X, y):
@@ -149,9 +149,9 @@ class _SearchLight(BaseEstimator, TransformerMixin):
 
         Returns
         -------
-        y_pred : array, shape (n_samples, n_estimators) | (n_samples, n_estimators, n_targets)  # noqa
+        y_pred : array, shape (n_samples, n_estimators) | (n_samples, n_estimators, n_targets)
             Predicted values for each estimator/data slice.
-        """
+        """  # noqa: E501
         return self._transform(X, 'predict')
 
     def predict_proba(self, X):
@@ -190,13 +190,13 @@ class _SearchLight(BaseEstimator, TransformerMixin):
 
         Returns
         -------
-        y_pred : array, shape (n_samples, n_estimators, n_classes * (n_classes-1) / 2)  # noqa
+        y_pred : array, shape (n_samples, n_estimators, n_classes * (n_classes-1) // 2)
             Predicted distances for each estimator/data slice.
 
         Notes
         -----
         This requires base_estimator to have a `decision_function` method.
-        """
+        """  # noqa: E501
         return self._transform(X, 'decision_function')
 
     def _check_Xy(self, X, y=None):
@@ -305,9 +305,9 @@ def _sl_transform(estimators, X, method):
 
     Returns
     -------
-    y_pred : array, shape (n_samples, n_estimators, n_classes * (n_classes-1) / 2)  # noqa
+    y_pred : array, shape (n_samples, n_estimators, n_classes * (n_classes-1) // 2)
         The transformations for each slice of data.
-    """
+    """  # noqa: E501
     for ii, est in enumerate(estimators):
         transform = getattr(est, method)
         _y_pred = transform(X[..., ii])
@@ -457,9 +457,9 @@ class _GeneralizationLight(_SearchLight):
 
         Returns
         -------
-        y_pred : array, shape (n_samples, n_estimators, n_slices) | (n_samples, n_estimators, n_slices, n_targets) # noqa
+        y_pred : array, shape (n_samples, n_estimators, n_slices) | (n_samples, n_estimators, n_slices, n_targets)
             The predicted values for each estimator.
-        """
+        """  # noqa: E501
         return self._transform(X, 'predict')
 
     def predict_proba(self, X):
@@ -499,13 +499,13 @@ class _GeneralizationLight(_SearchLight):
 
         Returns
         -------
-        y_pred : array, shape (n_samples, n_estimators, n_slices, n_classes * (n_classes-1) / 2) # noqa
+        y_pred : array, shape (n_samples, n_estimators, n_slices, n_classes * (n_classes-1) // 2)
             The predicted values for each estimator.
 
         Notes
         -----
         This requires base_estimator to have a `decision_function` method.
-        """
+        """  # noqa: E501
         return self._transform(X, 'decision_function')
 
     def score(self, X, y):

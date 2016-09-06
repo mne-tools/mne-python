@@ -53,7 +53,8 @@ class Annotations(object):
     If ``orig_time`` is None, the annotations are synced to the start of the
     data (0 seconds). Otherwise the annotations are synced to sample 0 and
     ``raw.first_samp`` is taken into account the same way as with events.
-    """  # noqa
+    """  # noqa: E501
+
     def __init__(self, onset, duration, description, orig_time=None):
 
         if orig_time is not None:
@@ -112,8 +113,7 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq):
 
 
 def _onset_to_seconds(raw, onset):
-    """Helper function for adjusting annotation onsets in relation to raw data.
-    """
+    """Helper function for adjusting onsets in relation to raw data."""
     meas_date = raw.info['meas_date']
     if meas_date is None:
         meas_date = 0

@@ -1,6 +1,6 @@
-"""
-Module dedicated to the manipulation of channels,
-setting of sensors locations used for processing and plotting.
+"""Module dedicated to manipulation of channels.
+
+Can be used for setting of sensor locations used for processing and plotting.
 """
 
 from .layout import (Layout, make_eeg_layout, make_grid_layout, read_layout,

@@ -749,7 +749,7 @@ def _mouse_click(event, params):
 
 
 def _handle_topomap_bads(ch_name, params):
-    """Helper for coloring channels in selection topomap when selecting bads."""
+    """Color channels in selection topomap when selecting bads."""
     for type in ('mag', 'grad', 'eeg', 'seeg', 'hbo', 'hbr'):
         if type in params['types']:
             types = np.where(np.array(params['types']) == type)[0]
@@ -1385,7 +1385,7 @@ def _compute_scalings(scalings, inst):
 class DraggableColorbar(object):
     """Class for enabling interactive colorbar.
     See http://www.ster.kuleuven.be/~pieterd/python/html/plotting/interactive_colorbar.html
-    """  # noqa
+    """  # noqa: E501
     def __init__(self, cbar, mappable):
         import matplotlib.pyplot as plt
         self.cbar = cbar

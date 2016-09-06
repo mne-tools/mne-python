@@ -62,9 +62,7 @@ class _DecodingTime(dict):
 
 
 class _GeneralizationAcrossTime(object):
-    """Generic object to train and test a series of classifiers at and across
-    different time samples.
-    """  # noqa
+    """Object to train and test classifiers at and acrosstime samples."""
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
                  test_times=None, predict_method='predict',
                  predict_mode='cross-validation', scorer=None,
@@ -184,7 +182,7 @@ class _GeneralizationAcrossTime(object):
             time. Note that the number of testing times per training time need
             not be regular; else
             ``np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs)``.
-        """  # noqa
+        """  # noqa: E501
 
         # Check that classifier has predict_method (e.g. predict_proba is not
         # always available):
@@ -1015,7 +1013,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
        DOI: 10.1371/journal.pone.0085791
 
     .. versionadded:: 0.9.0
-    """  # noqa
+    """  # noqa: E501
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
                  test_times=None, predict_method='predict',
                  predict_mode='cross-validation', scorer=None,
@@ -1316,7 +1314,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     The function is equivalent to the diagonal of GeneralizationAcrossTime()
 
     .. versionadded:: 0.10
-    """  # noqa
+    """  # noqa: E501
 
     def __init__(self, picks=None, cv=5, clf=None, times=None,
                  predict_method='predict', predict_mode='cross-validation',
@@ -1404,7 +1402,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
         -------
         y_pred : list of lists of arrays of floats, shape (n_times, n_epochs, n_prediction_dims)
             The single-trial predictions at each time sample.
-        """  # noqa
+        """  # noqa: E501
         self._prep_times()
         super(TimeDecoding, self).predict(epochs)
         self._clean_times()
