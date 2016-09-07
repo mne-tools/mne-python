@@ -81,6 +81,27 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self.n_jobs = n_jobs
         self.verbose = verbose
 
+    def get_params(self, deep=True):
+        """Return all parameters (mimics sklearn API).
+
+        Parameters
+        ----------
+        deep: boolean, optional
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
+        """
+        params = {"frequencies": self.frequencies,
+                  "sfreq": self.sfreq,
+                  "method": self.method,
+                  "n_cycles": self.n_cycles,
+                  "time_bandwidth": self.time_bandwidth,
+                  "use_fft": self.use_fft,
+                  "decim": self.decim,
+                  "output": self.output,
+                  "n_jobs": self.n_jobs,
+                  "verbose": self.verbose}
+        return params
+
     def fit_transform(self, X, y=None):
         """
         Time-frequency transform of times series along the last axis.
