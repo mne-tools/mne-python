@@ -124,10 +124,11 @@ plt.show()
 ##############################################################################
 # Confusion matrix related to mental representations have been historically
 # summarized with dimensionality reduction using multi-dimensional scaling [1].
-# See how the face samples cluster together
+# See how the face samples cluster together.
 fig, ax = plt.subplots(1)
-mds = MDS(2, random_state=0)
-summary = mds.fit_transform(cm)
+mds = MDS(2, random_state=0, dissimilarity='precomputed')
+chance = 0.5
+summary = mds.fit_transform(chance - cm)
 cmap = plt.get_cmap('rainbow')
 colors = cmap(np.linspace(0., 1., len(set(names))))
 for color, name in zip(colors, set(names)):
