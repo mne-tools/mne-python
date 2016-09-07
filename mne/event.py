@@ -1112,20 +1112,22 @@ class ElektaAverager(object):
     def _events_in_use(self):
         return {k: v for k, v in self._events.iteritems() if v['in_use']}
 
-    def get_category_t0(self, raw, category, stim_channel=None, mask=None,
-                        uint_cast=None, mask_type=None):
-        """ Get reference times corresponding to the given DACQ
-        (data acquisition) category. Output can be used with
-        the Epochs class to extract corresponding epochs.
+    def get_condition_t0(self, raw, conditions, stim_channel=None, mask=None,
+                         uint_cast=None, mask_type=None):
+        """ Get reference times corresponding to the given condition
+        (=averaging category defined in Elekta data acquisition software).
+        Output can be used with the Epochs class to extract corresponding
+        epochs.
 
         Parameters
         ----------
         raw : Raw object
             An instance of Raw.
-        category : string | dict
-            The category to use. Can be a name (e.g. 'my_category') or
-            category dict (e.g. eav['my_category'], where eav is an instance
-            of ElektaAverager).
+        condition : list
+            List of conditions, or a condition. Can be names 
+            (e.g. 'Auditory left') or category dicts 
+            (e.g. eav['Auditory left'], where eav is an instance of
+            ElektaAverager).
         stim_channel : None | string | list of string
             Name of the stim channel or all the stim channels
             affected by the trigger. If None, the config variables
@@ -1148,34 +1150,43 @@ class ElektaAverager(object):
 
         Returns
         -------
-        cat_t0 : array, shape (n_epochs_out, 3)
-            List of zero time points (t0) for the epochs matching the
-            category. Use as the ``events`` parameter to Epochs.
-        cat_id : dict
-            Category name and index compatible with cat_events. Should be
-            passed as the ``event_id``  parameter to Epochs together with
-            ``cat_t0``.
-        tmin : float
-            Epoch starting time relative to t0. Use as the ``tmin``
-            parameter to Epochs.
-        tmax : float
-            Epoch ending time relative to t0. Can be used as the ``tmax``
-            parameter to Epochs.
+        conds_data : list of dicts corresponding to conditions, with keys:
+            events : array, shape (n_epochs_out, 3)
+                List of zero time points (t0) for the epochs matching the
+                condition. Use as the ``events`` parameter to Epochs. Note
+                that these are not (necessarily) actual trigger events.
+            event_id : dict
+                Condition name and index compatible with ``events``. Should be
+                passed as the ``event_id`` parameter to Epochs.
+            tmin : float
+                Epoch starting time relative to t0. Use as the ``tmin``
+                parameter to Epochs.
+            tmax : float
+                Epoch ending time relative to t0. Can be used as the ``tmax``
+                parameter to Epochs.
         """
-        if isinstance(category, str):
-            category = self[category]
-        mne_events = find_events(raw, stim_channel=stim_channel,
-                                 mask=mask, mask_type=mask_type, output='step',
-                                 uint_cast=uint_cast, consecutive=True,
-                                 verbose=False)
-        sfreq = raw.info['sfreq']
-        cat_t0_ = self._mne_events_to_category_t0(category, mne_events, sfreq)
-        # make it compatible with a normal events array
-        cat_t0 = np.c_[cat_t0_, np.zeros(cat_t0_.shape),
-                       np.ones(cat_t0_.shape)].astype(np.uint32)
-        cat_id = {category['comment']: 1}
-        tmin, tmax = category['start'], category['end']
-        return (cat_t0, cat_id, tmin, tmax)
+        if not isinstance(conditions, list):
+            conditions = list(conditions)
+        conds_data = list()
+        for category in conditions:
+            if isinstance(category, str):
+                category = self[category]
+            # TODO: add shortest_event=0 (or 1?) to prevent failures
+            mne_events = find_events(raw, stim_channel=stim_channel, mask=mask,
+                                     mask_type=mask_type, output='step',
+                                     uint_cast=uint_cast, consecutive=True,
+                                     verbose=False)
+            sfreq = raw.info['sfreq']
+            cat_t0_ = self._mne_events_to_category_t0(category,
+                                                      mne_events, sfreq)
+            # make it compatible with a normal events array
+            cat_t0 = np.c_[cat_t0_, np.zeros(cat_t0_.shape),
+                           np.ones(cat_t0_.shape)].astype(np.uint32)
+            cat_id = {category['comment']: 1}
+            tmin, tmax = category['start'], category['end']
+            conds_data.append(dict(events=cat_t0, event_id=cat_id,
+                                   tmin=tmin, tmax=tmax))
+        return conds_data
 
 
 def _acqpars_dict(acq_pars):
