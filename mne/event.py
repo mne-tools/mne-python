@@ -1112,20 +1112,19 @@ class ElektaAverager(object):
     def _events_in_use(self):
         return {k: v for k, v in self._events.iteritems() if v['in_use']}
 
-    def get_condition_t0(self, raw, conditions, stim_channel=None, mask=None,
-                         uint_cast=None, mask_type=None):
-        """ Get reference times corresponding to the given condition
-        (=averaging category defined in Elekta data acquisition software).
-        Output can be used with the Epochs class to extract corresponding
-        epochs.
+    def get_condition(self, raw, conditions, stim_channel=None, mask=None,
+                      uint_cast=None, mask_type=None):
+        """ Get data corresponding to the given condition (=averaging category
+        defined in Elekta data acquisition software).
+        Output can be used with Epochs to extract corresponding epochs.
 
         Parameters
         ----------
         raw : Raw object
             An instance of Raw.
-        condition : list
-            List of conditions, or a condition. Can be names 
-            (e.g. 'Auditory left') or category dicts 
+        condition : list | dict
+            List of conditions, or a condition. Can be names
+            (e.g. 'Auditory left') or category dicts
             (e.g. eav['Auditory left'], where eav is an instance of
             ElektaAverager).
         stim_channel : None | string | list of string
@@ -1150,11 +1149,11 @@ class ElektaAverager(object):
 
         Returns
         -------
-        conds_data : list of dicts corresponding to conditions, with keys:
+        conds_data : list of dict, each with following keys:
             events : array, shape (n_epochs_out, 3)
                 List of zero time points (t0) for the epochs matching the
                 condition. Use as the ``events`` parameter to Epochs. Note
-                that these are not (necessarily) actual trigger events.
+                that these are not (necessarily) actual events.
             event_id : dict
                 Condition name and index compatible with ``events``. Should be
                 passed as the ``event_id`` parameter to Epochs.
@@ -1166,12 +1165,12 @@ class ElektaAverager(object):
                 parameter to Epochs.
         """
         if not isinstance(conditions, list):
-            conditions = list(conditions)
+            conditions = [conditions]
         conds_data = list()
         for category in conditions:
             if isinstance(category, str):
                 category = self[category]
-            # TODO: add shortest_event=0 (or 1?) to prevent failures
+            # TODO: add shortest_event=0 (or 1?) to prevent failures?
             mne_events = find_events(raw, stim_channel=stim_channel, mask=mask,
                                      mask_type=mask_type, output='step',
                                      uint_cast=uint_cast, consecutive=True,
@@ -1179,7 +1178,7 @@ class ElektaAverager(object):
             sfreq = raw.info['sfreq']
             cat_t0_ = self._mne_events_to_category_t0(category,
                                                       mne_events, sfreq)
-            # make it compatible with a normal events array
+            # make it compatible with the usual events array
             cat_t0 = np.c_[cat_t0_, np.zeros(cat_t0_.shape),
                            np.ones(cat_t0_.shape)].astype(np.uint32)
             cat_id = {category['comment']: 1}

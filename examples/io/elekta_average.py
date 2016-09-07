@@ -29,17 +29,16 @@ eav = ElektaAverager(raw.info)
 print(eav)
 
 # extract epochs corresponding to a category
-(cat_ev, cat_id, tmin, tmax) = eav.get_category_t0(raw, 'Test event 3')
-eps = mne.Epochs(raw, cat_ev, cat_id, tmin=tmin, tmax=tmax)
+cond = eav.get_condition(raw, 'Test event 3')[0]  # always returns a list
+eps = mne.Epochs(raw, **cond)
 
 # get epochs corresponding to each category, average and save all averages
 # into a new evoked fiff file
 evokeds = []
 for cat in eav.categories:
-    (cat_ev, cat_id, tmin, tmax) = eav.get_category_t0(raw, cat)
+    cond = eav.get_condition(raw, cat)[0]
     # copy (supported) rejection parameters from DACQ settings
-    eps = mne.Epochs(raw, cat_ev, cat_id, tmin=tmin, tmax=tmax,
-                     reject=eav.reject, flat=eav.flat)
+    eps = mne.Epochs(raw, reject=eav.reject, flat=eav.flat, **cond)
     evoked = eps.average()
     evoked.comment = cat['comment']
     evokeds.append(evoked)
@@ -56,5 +55,5 @@ newcat['end'] = .5  # epoch end
 newcat['reqevent'] = 2  # additional required event; 0 if none
 newcat['reqwithin'] = 1.5  # req. event required within 1.5 sec of ref. event
 newcat['reqwhen'] = 1  # required before (1) or after (2) ref. event
-(cat_ev, cat_id, tmin, tmax) = eav.get_category_t0(raw, newcat)
-eps = mne.Epochs(raw, cat_ev, cat_id, tmin=tmin, tmax=tmax)
+cond = eav.get_condition(raw, newcat)[0]
+eps = mne.Epochs(raw, **cond)
