@@ -50,10 +50,10 @@ class Annotations(object):
 
     Notes
     -----
-    Annotations are synced to sample 0. ``raw.first_samp`` is taken
-    into account in the same way as with events.
+    If ``orig_time`` is None, the annotations are synced to the start of the
+    data (0 seconds). Otherwise the annotations are synced to sample 0 and
+    ``raw.first_samp`` is taken into account the same way as with events.
     """  # noqa
-
     def __init__(self, onset, duration, description, orig_time=None):
 
         if orig_time is not None:
