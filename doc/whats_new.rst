@@ -112,6 +112,8 @@ BUG
 
         - Fix comparisons of filter settings for determining "strictest" filter
 
+    - Fixed plotting and timing of :class:`Annotations` and restricted addition of annotations outside data range to prevent problems with cropping and concatenating data by `Jaakko Leppakangas`_
+
 API
 ~~~
 
