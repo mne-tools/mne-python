@@ -16,12 +16,13 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 from scipy import stats
 from itertools import product
 
-from mne import Epochs, read_events, pick_types, create_info, EpochsArray
+from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
+                 EvokedArray, pick_info)
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
-from mne.preprocessing.ica import (get_score_funcs, corrmap, _get_ica_map,
-                                   _ica_explained_variance, _sort_components)
+from mne.preprocessing.ica import (get_score_funcs, corrmap, _sort_components,
+                                   _ica_explained_variance,)
 from mne.io import Raw, Info, RawArray
 from mne.io.meas_info import _kind_dict
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
@@ -321,10 +322,15 @@ def test_ica_additional():
     corrmap([ica, ica2], (0, 0), threshold=2, plot=False, show=False)
     assert_true(ica.labels_["blinks"] == ica2.labels_["blinks"])
     assert_true(0 in ica.labels_["blinks"])
-    template = _get_ica_map(ica)[0]
+    # test retrieval of component maps as arrays
+    components = ica.get_components()
+    template = components[0]
+    EvokedArray(components.T, ica.info, tmin=0.).plot_topomap([0])
+
     corrmap([ica, ica3], template, threshold='auto', label='blinks', plot=True,
             ch_type="mag")
     assert_true(ica2.labels_["blinks"] == ica3.labels_["blinks"])
+
     plt.close('all')
 
     # test warnings on bad filenames
