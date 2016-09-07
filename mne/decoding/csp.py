@@ -98,21 +98,6 @@ class CSP(TransformerMixin, BaseEstimator):
         if X.ndim < 3:
             raise ValueError('X must have at least 3 dimensions.')
 
-    def get_params(self, deep=True):
-        """Return all parameters (mimics sklearn API).
-
-        Parameters
-        ----------
-        deep: boolean, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
-        """
-        params = {"n_components": self.n_components,
-                  "reg": self.reg,
-                  "log": self.log,
-                  "cov_est": self.cov_est}
-        return params
-
     def fit(self, X, y, epochs_data=None):
         """Estimate the CSP decomposition on epochs.
 

@@ -46,20 +46,6 @@ class Scaler(TransformerMixin):
         self.ch_mean_ = dict()  # TODO rename attribute
         self.std_ = dict()  # TODO rename attribute
 
-    def get_params(self, deep=True):
-        """Return all parameters (mimics sklearn API).
-
-        Parameters
-        ----------
-        deep: boolean, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
-        """
-        params = {"info": self.info,
-                  "with_mean": self.with_mean,
-                  "with_std": self.with_std}
-        return params
-
     def fit(self, epochs_data, y):
         """Standardizes data across channels
 
@@ -184,18 +170,6 @@ class EpochsVectorizer(TransformerMixin):
         self.info = info
         self.n_channels = None
         self.n_times = None
-
-    def get_params(self, deep=True):
-        """Return all parameters (mimics sklearn API).
-
-        Parameters
-        ----------
-        deep: boolean, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
-        """
-        params = {"info": self.info}
-        return params
 
     def fit(self, epochs_data, y):
         """For each epoch, concatenate data from different channels into a single
@@ -421,26 +395,6 @@ class PSDEstimator(TransformerMixin):
         self.verbose = verbose
         self.normalization = normalization
 
-    def get_params(self, deep=True):
-        """Return all parameters (mimics sklearn API).
-
-        Parameters
-        ----------
-        deep: boolean, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
-        """
-        params = {"sfreq": self.info,
-                  "fmin": self.fmin,
-                  "fmax": self.fmax,
-                  "bandwidth": self.bandwidth,
-                  "adaptive": self.adaptive,
-                  "low_bias": self.low_bias,
-                  "n_jobs": self.n_jobs,
-                  "normalization": self.normalization,
-                  "verbose": self.verbose}
-        return params
-
     def fit(self, epochs_data, y):
         """Compute power spectrum density (PSD) using a multi-taper method
 
@@ -561,29 +515,6 @@ class FilterEstimator(TransformerMixin):
         self.n_jobs = n_jobs
         self.method = method
         self.iir_params = iir_params
-        self.verbose = verbose
-
-    def get_params(self, deep=True):
-        """Return all parameters (mimics sklearn API).
-
-        Parameters
-        ----------
-        deep: boolean, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
-        """
-        params = {"info": self.info,
-                  "l_freq": self.l_freq,
-                  "h_freq": self.h_freq,
-                  "picks": self.picks,
-                  "filter_length": self.filter_length,
-                  "l_trans_bandwidth": self.l_trans_bandwidth,
-                  "h_trans_bandwidth": self.h_trans_bandwidth,
-                  "n_jobs": self.n_jobs,
-                  "method": self.method,
-                  "iir_params": self.iir_params,
-                  "verbose": self.verbose}
-        return params
 
     def fit(self, epochs_data, y):
         """Filters data
@@ -725,19 +656,6 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
         self.estimator = estimator
         self.average = average
-
-    def get_params(self, deep=True):
-        """Return all parameters (mimics sklearn API).
-
-        Parameters
-        ----------
-        deep: boolean, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
-        """
-        params = {"estimator": self.estimator,
-                  "average": self.average}
-        return params
 
     def fit(self, X, y=None):
         """Fit the spatial filters.
@@ -896,28 +814,6 @@ class TemporalFilter(TransformerMixin):
         if not isinstance(self.n_jobs, int) and self.n_jobs == 'cuda':
             raise ValueError('n_jobs must be int or "cuda", got %s instead.'
                              % type(self.n_jobs))
-
-    def get_params(self, deep=True):
-        """Return all parameters (mimics sklearn API).
-
-        Parameters
-        ----------
-        deep: boolean, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
-        """
-        params = {"l_freq": self.l_freq,
-                  "h_freq": self.h_freq,
-                  "sfreq": self.sfreq,
-                  "filter_length": self.filter_length,
-                  "l_trans_bandwidth": self.l_trans_bandwidth,
-                  "h_trans_bandwidth": self.h_trans_bandwidth,
-                  "n_jobs": self.n_jobs,
-                  "method": self.method,
-                  "iir_params": self.iir_params,
-                  "fir_window": self.fir_window,
-                  "verbose": self.verbose}
-        return params
 
     def fit(self, X, y=None):
         """Does nothing. For scikit-learn compatibility purposes.
