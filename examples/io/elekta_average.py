@@ -21,19 +21,22 @@ fname_raw_elekta = os.path.join(elekta_base_dir, 'test_elekta_3ch_raw.fif')
 
 print(__doc__)
 
-# read raw file and create averager instance
+###############################################################################
+# Read raw file and create averager instance
 raw = mne.io.read_raw_fif(fname_raw_elekta)
 eav = ElektaAverager(raw.info)
 
-# check DACQ defined averaging categories
+###############################################################################
+# Check DACQ defined averaging categories and other info
 print(eav)
 
-# extract epochs corresponding to a category
+###############################################################################
+# Extract epochs corresponding to a category
 cond = eav.get_condition(raw, 'Test event 3')[0]  # always returns a list
 eps = mne.Epochs(raw, **cond)
 
-# get epochs corresponding to each category, average and save all averages
-# into a new evoked fiff file
+###############################################################################
+# Get epochs from all conditions, average, save to an evoked fiff file
 evokeds = []
 for cat in eav.categories:
     cond = eav.get_condition(raw, cat)[0]
@@ -45,8 +48,8 @@ for cat in eav.categories:
 fname_out = 'elekta_evokeds-ave.fif'
 mne.write_evokeds(fname_out, evokeds)
 
-# make a new category using existing one as a template and extract
-# corresponding epochs
+###############################################################################
+# Make a new category using existing one as a template, extract epochs
 newcat = eav.categories[0].copy()
 newcat['comment'] = 'New category'
 newcat['event'] = 1  # reference event
