@@ -26,6 +26,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 import warnings
 
 import numpy as np
@@ -69,6 +70,17 @@ _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
 
 ###############################################################################
 # RANDOM UTILITIES
+
+
+def _explain_exception(start=-1, stop=None, prefix='> '):
+    """Explain an exception."""
+    # start=-1 means "only the most recent caller"
+    etype, value, tb = sys.exc_info()
+    string = traceback.format_list(traceback.extract_tb(tb)[start:stop])
+    string = (''.join(string).split('\n') +
+              traceback.format_exception_only(etype, value))
+    string = ':\n' + prefix + ('\n' + prefix).join(string)
+    return string
 
 
 def _check_copy_dep(inst, copy, kind='inst'):
