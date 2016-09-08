@@ -124,13 +124,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Parameters
         ----------
         baseline : tuple of length 2
-            The time interval to apply rescaling / baseline correction.
-            If None do not apply it. If baseline is (a, b)
-            the interval is between "a (s)" and "b (s)".
-            If a is None the beginning of the data is used
-            and if b is None then b is set to the end of the interval.
-            If baseline is equal to (None, None) all the time
-            interval is used. If None, no correction is applied.
+            The time interval to apply baseline correction. If None do not
+            apply it. If baseline is (a, b) the interval is between "a (s)" and
+            "b (s)". If a is None the beginning of the data is used and if b is
+            None then b is set to the end of the interval. If baseline is equal
+            to (None, None) all the time interval is used. Correction is
+            applied by computing mean of the baseline period and subtracting it
+            from the data. The baseline (a, b) includes both endpoints, i.e.
+            all timepoints t such that a <= t <= b.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -941,9 +942,12 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     baseline : None (default) or tuple of length 2
         The time interval to apply baseline correction. If None do not apply
         it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used and if b is None then
-        b is set to the end of the interval. If baseline is equal to
-        (None, None) all the time interval is used.
+        If a is None the beginning of the data is used and if b is None then b
+        is set to the end of the interval. If baseline is equal to (None, None)
+        all the time interval is used. Correction is applied by computing mean
+        of the baseline period and subtracting it from the data. The baseline
+        (a, b) includes both endpoints, i.e. all timepoints t such that
+        a <= t <= b.
     kind : str
         Either 'average' or 'standard_error', the type of data to read.
     proj : bool
