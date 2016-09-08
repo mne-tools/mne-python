@@ -4,7 +4,7 @@ Brain Vision Data Exchange Header File Version 1.0
 [Common Infos]
 Codepage=UTF-8
 DataFile=test.eeg
-MarkerFile=test_partially_disabled_hw_filter.vmrk
+MarkerFile=test.vmrk
 DataFormat=BINARY
 ; Data orientation: MULTIPLEXED=ch1,pt1, ch2,pt1 ...
 DataOrientation=MULTIPLEXED
