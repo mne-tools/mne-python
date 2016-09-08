@@ -6,7 +6,7 @@
 import os.path as op
 import warnings
 
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_raises, assert_equal, assert_array_equal
 from nose.tools import assert_true
 
 from mne import io, read_events, Epochs, read_cov
@@ -163,6 +163,12 @@ def test_plot_ica_sources():
                            ecg=False, eog=False, exclude='bads')
     ica = ICA(n_components=2, max_pca_components=3, n_pca_components=3)
     ica.fit(raw, picks=ica_picks)
+    ica.exclude = [1]
+    fig = ica.plot_sources(raw)
+    fig.canvas.key_press_event('escape')
+    # Sadly close_event isn't called on Agg backend and the test always passes.
+    assert_array_equal(ica.exclude, [1])
+
     raw.info['bads'] = ['MEG 0113']
     assert_raises(RuntimeError, ica.plot_sources, inst=raw)
     ica.plot_sources(epochs)

@@ -844,7 +844,7 @@ def _close_event(events, params):
     info = params['info']
     c_names = ['IC #%03d' % (x) for x
                in range(params['ica'].n_components_)]
-    exclude = [c_names.index(x) for x in info['bads'] if x.startswith('ICA')]
+    exclude = [c_names.index(x) for x in info['bads'] if x.startswith('IC')]
     params['ica'].exclude = exclude
 
 
@@ -927,7 +927,7 @@ def _close_epochs_event(events, params):
     """Function for excluding the selected components on close."""
     info = params['info']
     exclude = [info['ch_names'].index(x) for x in info['bads']
-               if x.startswith('ICA')]
+               if x.startswith('IC')]
     params['ica'].exclude = exclude
 
 
