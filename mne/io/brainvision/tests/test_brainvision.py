@@ -37,16 +37,27 @@ vmrk_old_path = op.join(data_dir,
 
 vhdr_v2_path = op.join(data_dir, 'testv2.vhdr')
 vmrk_v2_path = op.join(data_dir, 'testv2.vmrk')
+
 vhdr_highpass_path = op.join(data_dir, 'test_highpass.vhdr')
+vhdr_mixed_highpass_path = op.join(data_dir, 'test_mixed_highpass.vhdr')
+vhdr_highpass_hz_path = op.join(data_dir, 'test_highpass_hz.vhdr')
+vhdr_mixed_highpass_hz_path = op.join(data_dir, 'test_mixed_highpass_hz.vhdr')
+
+# Not a typo: we can reuse the highpass file for the lowpass (Hz) test
+vhdr_lowpass_path = op.join(data_dir, 'test_highpass.vhdr')
+vhdr_mixed_lowpass_path = op.join(data_dir, 'test_mixed_lowpass.vhdr')
+vhdr_lowpass_s_path = op.join(data_dir, 'test_lowpass_s.vhdr')
+vhdr_mixed_lowpass_s_path = op.join(data_dir, 'test_mixed_lowpass_s.vhdr')
+
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
 
 warnings.simplefilter('always')
 
-
-def test_brainvision_data_filters():
-    """Test reading raw Brain Vision files with amplifier filter settings"""
+def test_brainvision_data_highpass_filters():
+    """Test reading raw Brain Vision files with amplifier HP filter settings"""
+    # Homogeneous highpass in seconds (default measurement unit)
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_highpass_path,
@@ -56,10 +67,111 @@ def test_brainvision_data_filters():
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
 
+    # Heterogeneous highpass in seconds (default measurement unit)
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_path,
+            montage=montage, eog=eog)
+
+    trigger_warning = ['parse triggers that' in str(ww.message) for ww in w]
+    lowpass_warning = ['different lowpass filters' in str(ww.message) for ww in w]
+    highpass_warning = ['different highpass filters' in str(ww.message) for ww in w]
+
+    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+
+    assert_true(all( any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+
+    assert_equal(raw.info['highpass'], 0.2)
+    assert_equal(raw.info['lowpass'], 250.)
+
+    # Homogeneous highpass in Hertz
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_highpass_hz_path,
+            montage=montage, eog=eog)
+    assert_true(all('parse triggers that' in str(ww.message) for ww in w))
+
+    assert_equal(raw.info['highpass'], 10.)
+    assert_equal(raw.info['lowpass'], 250.)
+
+    # Heterogeneous highpass in Hertz
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_hz_path,
+            montage=montage, eog=eog)
+
+    trigger_warning = ['parse triggers that' in str(ww.message) for ww in w]
+    lowpass_warning = ['different lowpass filters' in str(ww.message) for ww in w]
+    highpass_warning = ['different highpass filters' in str(ww.message) for ww in w]
+
+    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+
+    assert_true(all( any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+
+    assert_equal(raw.info['highpass'], 10.)
+    assert_equal(raw.info['lowpass'], 250.)
+
+
+def test_brainvision_data_lowpass_filters():
+    """Test reading raw Brain Vision files with amplifier LP filter settings"""
+
+    # Homogeneous lowpass in Hertz (default measurement unit)
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_lowpass_path,
+            montage=montage, eog=eog)
+    assert_true(all('parse triggers that' in str(ww.message) for ww in w))
+
+    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['lowpass'], 250.)
+
+    # Heterogeneous lowpass in Hertz (default measurement unit)
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_path,
+            montage=montage, eog=eog)
+
+    trigger_warning = ['parse triggers that' in str(ww.message) for ww in w]
+    lowpass_warning = ['different lowpass filters' in str(ww.message) for ww in w]
+    highpass_warning = ['different highpass filters' in str(ww.message) for ww in w]
+
+    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+
+    assert_true(all( any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+
+    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['lowpass'], 125.)
+
+    # Homogeneous lowpass in seconds
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_lowpass_s_path,
+            montage=montage, eog=eog)
+    assert_true(all('parse triggers that' in str(ww.message) for ww in w))
+
+    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['lowpass'], 250.)
+
+    # Heterogeneous lowpass in Hesecondsrtz
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_s_path,
+            montage=montage, eog=eog)
+
+    trigger_warning = ['parse triggers that' in str(ww.message) for ww in w]
+    lowpass_warning = ['different lowpass filters' in str(ww.message) for ww in w]
+    highpass_warning = ['different highpass filters' in str(ww.message) for ww in w]
+
+    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+
+    assert_true(all( any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+
+    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['lowpass'], 125.)
 
 def test_brainvision_data_partially_disabled_hw_filters():
     """Test reading raw Brain Vision files with heterogeneous amplifier
-       filter settings
+       filter settings including non-numeric values
     """
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw = _test_raw_reader(
