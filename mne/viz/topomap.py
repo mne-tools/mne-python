@@ -726,7 +726,6 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     """plot single ica map to axes"""
     import matplotlib as mpl
     from ..channels import _get_ch_type
-    from ..preprocessing.ica import _get_ica_map
 
     if ica.info is None:
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
@@ -736,7 +735,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                          'got %s instead.' % type(axes))
     ch_type = _get_ch_type(ica, ch_type)
 
-    data = _get_ica_map(ica, components=idx)
+    data = ica.get_components(idx)
     data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
         ica, ch_type, layout)
     pos, outlines = _check_outlines(pos, outlines, head_pos)
