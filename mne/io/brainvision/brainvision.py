@@ -510,16 +510,16 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 # not exactly the cleanest use of FP, but this makes us
                 # more conservative in *not* warning.
                 if info['highpass'] == 0.0:
-                    # not actually heterogenous in effect
-                    # ... just heterogenously disabled
+                    # not actually heterogeneous in effect
+                    # ... just heterogeneously disabled
                     heterogeneous_hp_filter = False
             else:
                 highpass = [float(_) if _ not in ('NaN', 'Off', 'DC')
                             else 0.0 for _ in highpass]
                 info['highpass'] = np.max(np.array(highpass, dtype=np.float))
                 if info['highpass'] == 0.0:
-                    # not actually heterogenous in effect
-                    # ... just heterogenously disabled
+                    # not actually heterogeneous in effect
+                    # ... just heterogeneously disabled
                     heterogeneous_hp_filter = False
             if heterogeneous_hp_filter:
                 warn('Channels contain different highpass filters. '
@@ -548,8 +548,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                     # No lowpass actually set (always Off or equivalent)
                     # so we let lowpass be set in _empty_info
                     del info['lowpass']
-                    # not actually heterogenous in effect
-                    # ... just heterogenously disabled
+                    # not actually heterogeneous in effect
+                    # ... just heterogeneously disabled
                     heterogeneous_lp_filter = False
             else:
                 # We convert channels with disabled filters to having
@@ -562,8 +562,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                     # No lowpass actually set (always Off or equivalent)
                     # so we let lowpass be set in _empty_info
                     del info['lowpass']
-                    # not actually heterogenous in effect
-                    # ... just heterogenously disabled
+                    # not actually heterogeneous in effect
+                    # ... just heterogeneously disabled
                     heterogeneous_lp_filter = False
 
             if heterogeneous_lp_filter:
