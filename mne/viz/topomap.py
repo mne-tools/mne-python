@@ -735,7 +735,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                          'got %s instead.' % type(axes))
     ch_type = _get_ch_type(ica, ch_type)
 
-    data = ica.get_components(idx)
+    data = ica.get_components()[idx]
     data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
         ica, ch_type, layout)
     pos, outlines = _check_outlines(pos, outlines, head_pos)

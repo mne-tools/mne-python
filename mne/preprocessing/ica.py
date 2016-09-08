@@ -658,14 +658,8 @@ class ICA(ContainsMixin):
 
         return sources
 
-    def get_components(self, components=None):
+    def get_components(self):
         """Get ICA topomap for components as numpy arrays
-
-        Parameters
-        ----------
-        components : None | list of int
-            The indices of the components to return. If None, all components
-            are returned.
 
         Returns
         -------
@@ -674,9 +668,7 @@ class ICA(ContainsMixin):
         """
 
         fast_dot = _get_fast_dot()
-        if components is None:
-            components = list(range(self.n_components_))
-        return fast_dot(self.mixing_matrix_[:, components].T,
+        return fast_dot(self.mixing_matrix_[:, :self.n_components_].T,
                         self.pca_components_[:self.n_components_])
 
     def get_sources(self, inst, add_channels=None, start=None, stop=None):
@@ -2428,7 +2420,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
                 ica.labels_[label] = list(set(list(max_corr) +
                                           ica.labels_.get(label, list())))
             if plot is True:
-                allmaps.extend(ica.get_components(components=max_corr))
+                allmaps.extend(ica.get_components()[max_corr])
                 subjs.extend([ii] * len(max_corr))
                 indices.extend(max_corr)
         else:
