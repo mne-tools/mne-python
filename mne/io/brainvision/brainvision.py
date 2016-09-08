@@ -496,13 +496,35 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 if hp_s:
                     info['highpass'] = 1. / info['highpass']
         else:
+            heterogeneous_hp_filter = True
             if hp_s:
+                # We convert channels with disabled filters to having
+                # highpass relaxed / no filters
+                highpass = [float(_) if _ not in ('NaN', 'Off', 'DC') else np.Inf
+                           for _ in highpass]
                 info['highpass'] = np.min(np.array(highpass, dtype=np.float))
+                # Coveniently enough 1 / np.Inf = 0.0, so this works for
+                # DC / no highpass filter
                 info['highpass'] = 1. / info['highpass']
+
+                # not exactly the cleanest use of FP, but this makes us
+                # more conservative in *not* warning.
+                if info['highpass'] == 0.0:
+                    # not actually heterogenous in effect
+                    # ... just heterogenously disabled
+                    heterogeneous_hp_filter = False
             else:
+                highpass = [float(_) if _ not in ('NaN', 'Off', 'DC') else 0.0
+                           for _ in highpass]
                 info['highpass'] = np.max(np.array(highpass, dtype=np.float))
-            warn('Channels contain different highpass filters. Highest filter '
-                 'setting will be stored.')
+                if info['highpass'] == 0.0:
+                    # not actually heterogenous in effect
+                    # ... just heterogenously disabled
+                    heterogeneous_hp_filter = False
+            if heterogeneous_hp_filter:
+                warn('Channels contain different highpass filters. Highest filter '
+                     'setting will be stored.')
+
         if len(lowpass) == 0:
             pass
         elif len(set(lowpass)) == 1:
@@ -513,13 +535,40 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 if lp_s:
                     info['lowpass'] = 1. / info['lowpass']
         else:
+            heterogeneous_lp_filter = True
             if lp_s:
+                # We convert channels with disabled filters to having
+                # infinitely relaxed / no filters
+                lowpass = [float(_) if _ not in ('NaN', 'Off') else 0.0
+                           for _ in lowpass]
                 info['lowpass'] = np.max(np.array(lowpass, dtype=np.float))
-                info['lowpass'] = 1. / info['lowpass']
+                try:
+                    info['lowpass'] = 1. / info['lowpass']
+                except ZeroDivisionError:
+                    # No lowpass actually set (always Off or equivalent)
+                    # so we let lowpass be set in _empty_info
+                    del info['lowpass']
+                    # not actually heterogenous in effect
+                    # ... just heterogenously disabled
+                    heterogeneous_lp_filter = False
             else:
+                # We convert channels with disabled filters to having
+                # infinitely relaxed / no filters
+                lowpass = [float(_) if _ not in ('NaN', 'Off') else np.Inf
+                           for _ in lowpass]
                 info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
-            warn('Channels contain different lowpass filters. Lowest filter '
-                 'setting will be stored.')
+
+                if np.isinf(info['lowpass']):
+                    # No lowpass actually set (always Off or equivalent)
+                    # so we let lowpass be set in _empty_info
+                    del info['lowpass']
+                    # not actually heterogenous in effect
+                    # ... just heterogenously disabled
+                    heterogeneous_lp_filter = False
+
+            if heterogeneous_lp_filter:
+                warn('Channels contain different lowpass filters. Lowest filter '
+                    'setting will be stored.')
 
     # locate EEG and marker files
     path = os.path.dirname(vhdr_fname)
