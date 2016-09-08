@@ -222,17 +222,6 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
     This function generates a source estimate with extended sources by
     filling the labels with the waveforms given in stc_data.
 
-    By default, the vertices within a label are assigned the same waveform.
-    The waveforms can be scaled for each vertex by using the label values
-    and value_fun. E.g.,
-
-    # create a source label where the values are the distance from the center
-    labels = circular_source_labels('sample', 0, 10, 0)
-
-    # sources with decaying strength (x will be the distance from the center)
-    fun = lambda x: exp(- x / 10)
-    stc = generate_stc(fwd, labels, stc_data, tmin, tstep, fun)
-
     Parameters
     ----------
     src : instance of SourceSpaces
@@ -245,8 +234,10 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
         The beginning of the timeseries
     tstep : float
         The time step (1 / sampling frequency)
-    value_fun : function
-        Function to apply to the label values
+    value_fun : function | None
+        Function to apply to the label values to obtain the waveform
+        scaling for each vertex in the label. If None (default), uniform
+        scaling is used.
 
     Returns
     -------
