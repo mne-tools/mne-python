@@ -601,7 +601,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
 
                 tmp = np.sqrt(omega21 / omega12)
                 tmp1 = (tmp * g12 + g21) / (omega + 1)
-                tmp2 = (tmp * g12 - g21) / np.max(omega - 1, 1e-9)
+                tmp2 = (tmp * g12 - g21) / np.maximum(omega - 1, 1e-9)
 
                 h12 = tmp1 + tmp2
                 h21 = np.conj((tmp1 - tmp2) / tmp)
