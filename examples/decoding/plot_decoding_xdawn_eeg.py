@@ -71,7 +71,7 @@ clf = make_pipeline(Xdawn(n_components=3),
 labels = epochs.events[:, -1]
 
 # Cross validator
-cv = StratifiedKFold(y=labels, n_folds=10, shuffle=True, random_state=42)
+cv = StratifiedKFold(y=labels, n_splits=10, shuffle=True, random_state=42)
 
 # Do cross-validation
 preds = np.empty(len(labels))
