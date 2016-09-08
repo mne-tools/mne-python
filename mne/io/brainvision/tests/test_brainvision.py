@@ -24,6 +24,12 @@ FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
 vmrk_path = op.join(data_dir, 'test.vmrk')
+
+vhdr_partially_disabled_hw_filter_path = op.join(data_dir,
+                               'test_partially_disabled_hw_filter.vhdr')
+vmrk_partially_disabled_hw_filter_path = op.join(data_dir,
+                               'test_partially_disabled_hw_filter.vmrk')
+
 vhdr_old_path = op.join(data_dir,
                         'test_old_layout_latin1_software_filter.vhdr')
 vmrk_old_path = op.join(data_dir,
@@ -40,12 +46,34 @@ warnings.simplefilter('always')
 
 
 def test_brainvision_data_filters():
-    """Test reading raw Brain Vision files"""
+    """Test reading raw Brain Vision files with amplifier filter settings"""
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_highpass_path,
             montage=montage, eog=eog)
     assert_true(all('parse triggers that' in str(ww.message) for ww in w))
+
+    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['lowpass'], 250.)
+
+
+def test_brainvision_data_partially_disabled_hw_filters():
+    """Test reading raw Brain Vision files with heterogeneous amplifier
+       filter settings
+    """
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision,
+            vhdr_fname=vhdr_partially_disabled_hw_filter_path,
+            montage=montage, eog=eog)
+
+    trigger_warning = ['parse triggers that' in str(ww.message) for ww in w]
+    lowpass_warning = ['different lowpass filters' in str(ww.message) for ww in w]
+    highpass_warning = ['different highpass filters' in str(ww.message) for ww in w]
+
+    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+
+    assert_true(all( any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
 
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
