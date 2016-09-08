@@ -523,7 +523,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                     heterogeneous_hp_filter = False
             if heterogeneous_hp_filter:
                 warn('Channels contain different highpass filters. '
-                     'Highest filter setting will be stored.')
+                     'Highest filter setting (%0.2f Hz) will be stored.'
+                     % info['highpass'])
 
         if len(lowpass) == 0:
             pass
@@ -568,7 +569,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
             if heterogeneous_lp_filter:
                 warn('Channels contain different lowpass filters. '
-                     'Lowest filter setting will be stored.')
+                     'Lowest filter setting (%0.2f Hz) will be stored.'
+                     % info['lowpass'])
 
     # locate EEG and marker files
     path = os.path.dirname(vhdr_fname)
