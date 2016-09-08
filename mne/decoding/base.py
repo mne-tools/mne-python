@@ -667,7 +667,7 @@ def _set_cv(cv, estimator=None, X=None, y=None):
         from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
         if isinstance(cv, (int, np.int)):
             XFold = StratifiedKFold if est_is_classifier else KFold
-            cv = XFold(n_folds=cv)
+            cv = XFold(n_splits=cv)
         elif isinstance(cv, str):
             if not hasattr(models, cv):
                 raise ValueError('Unknown cross-validation')
@@ -679,9 +679,9 @@ def _set_cv(cv, estimator=None, X=None, y=None):
         from sklearn.cross_validation import (check_cv, StratifiedKFold, KFold)
         if isinstance(cv, (int, np.int)):
             if est_is_classifier:
-                cv = StratifiedKFold(y=y, n_folds=cv)
+                cv = StratifiedKFold(y=y, n_splits=cv)
             else:
-                cv = KFold(n=len(y), n_folds=cv)
+                cv = KFold(n=len(y), n_splits=cv)
         elif isinstance(cv, str):
             if not hasattr(models, cv):
                 raise ValueError('Unknown cross-validation')

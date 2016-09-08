@@ -343,7 +343,7 @@ class _GeneralizationAcrossTime(object):
             number of testing times per training time need not be regular;
             else, np.shape(scores) = (n_train_time, n_test_time). If
             ``score_mode`` is 'fold-wise', np.shape(scores) = (n_train_time,
-            n_test_time, n_folds).
+            n_test_time, n_splits).
         """
         import sklearn.metrics
         from sklearn.base import is_classifier
@@ -451,7 +451,7 @@ def _predict_slices(X, train_times, estimators, cv_splits, predict_mode,
     ----------
     X : ndarray, shape (n_epochs, n_features, n_times)
         To-be-fitted data.
-    estimators : list of array-like, shape (n_times, n_folds)
+    estimators : list of array-like, shape (n_times, n_splits)
         List of array of scikit-learn classifiers fitted in cross-validation.
     cv_splits : list of tuples
         List of tuples of train and test array generated from cv.
@@ -805,7 +805,7 @@ def _predict(X, estimators, vectorize_times, predict_method):
 
     Parameters
     ----------
-    estimators : ndarray, shape (n_folds,) | shape (1,)
+    estimators : ndarray, shape (n_splits,) | shape (1,)
         Array of scikit-learn classifiers to predict data.
     X : ndarray, shape (n_epochs, n_features, n_times)
         To-be-predicted data
@@ -882,8 +882,8 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
         scikit-learn.model_selection module for the list of possible objects.
-        If clf is a classifier, defaults to StratifiedKFold(n_folds=5), else
-        defaults to KFold(n_folds=5).
+        If clf is a classifier, defaults to StratifiedKFold(n_splits=5), else
+        defaults to KFold(n_splits=5).
     clf : object | None
         An estimator compliant with the scikit-learn API (fit & predict).
         If None the classifier will be a standard pipeline including
@@ -1209,8 +1209,8 @@ class TimeDecoding(_GeneralizationAcrossTime):
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
         scikit-learn.model_selection module for the list of possible objects.
-        If clf is a classifier, defaults to StratifiedKFold(n_folds=5), else
-        defaults to KFold(n_folds=5).
+        If clf is a classifier, defaults to StratifiedKFold(n_splits=5), else
+        defaults to KFold(n_splits=5).
     clf : object | None
         An estimator compliant with the scikit-learn API (fit & predict).
         If None the classifier will be a standard pipeline including
