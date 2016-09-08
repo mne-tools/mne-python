@@ -513,7 +513,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 if lp_s:
                     info['lowpass'] = 1. / info['lowpass']
         else:
-            info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
+            if lp_s:
+                info['lowpass'] = np.max(np.array(lowpass, dtype=np.float))
+                info['lowpass'] = 1. / info['lowpass']
+            else:
+                info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
             warn('Channels contain different lowpass filters. Lowest filter '
                  'setting will be stored.')
 

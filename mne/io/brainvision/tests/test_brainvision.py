@@ -152,7 +152,7 @@ def test_brainvision_data_lowpass_filters():
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
 
-    # Heterogeneous lowpass in Hesecondsrtz
+    # Heterogeneous lowpass in seconds
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_s_path,
