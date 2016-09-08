@@ -28,9 +28,6 @@ vmrk_path = op.join(data_dir, 'test.vmrk')
 vhdr_partially_disabled_hw_filter_path = op.join(data_dir,
                                                  'test_partially_disabled'
                                                  '_hw_filter.vhdr')
-vmrk_partially_disabled_hw_filter_path = op.join(data_dir,
-                                                 'test_partially_disabled'
-                                                 '_hw_filter.vmrk')
 
 vhdr_old_path = op.join(data_dir,
                         'test_old_layout_latin1_software_filter.vhdr')
