@@ -500,8 +500,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             if hp_s:
                 # We convert channels with disabled filters to having
                 # highpass relaxed / no filters
-                highpass = [float(_) if _ not in ('NaN', 'Off', 'DC') else np.Inf
-                           for _ in highpass]
+                highpass = [float(_) if _ not in ('NaN', 'Off', 'DC')
+                            else np.Inf for _ in highpass]
                 info['highpass'] = np.min(np.array(highpass, dtype=np.float))
                 # Coveniently enough 1 / np.Inf = 0.0, so this works for
                 # DC / no highpass filter
@@ -514,16 +514,16 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                     # ... just heterogenously disabled
                     heterogeneous_hp_filter = False
             else:
-                highpass = [float(_) if _ not in ('NaN', 'Off', 'DC') else 0.0
-                           for _ in highpass]
+                highpass = [float(_) if _ not in ('NaN', 'Off', 'DC')
+                            else 0.0 for _ in highpass]
                 info['highpass'] = np.max(np.array(highpass, dtype=np.float))
                 if info['highpass'] == 0.0:
                     # not actually heterogenous in effect
                     # ... just heterogenously disabled
                     heterogeneous_hp_filter = False
             if heterogeneous_hp_filter:
-                warn('Channels contain different highpass filters. Highest filter '
-                     'setting will be stored.')
+                warn('Channels contain different highpass filters. '
+                     'Highest filter setting will be stored.')
 
         if len(lowpass) == 0:
             pass
@@ -567,8 +567,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                     heterogeneous_lp_filter = False
 
             if heterogeneous_lp_filter:
-                warn('Channels contain different lowpass filters. Lowest filter '
-                    'setting will be stored.')
+                warn('Channels contain different lowpass filters. '
+                     'Lowest filter setting will be stored.')
 
     # locate EEG and marker files
     path = os.path.dirname(vhdr_fname)
