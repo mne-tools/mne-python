@@ -500,8 +500,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             if hp_s:
                 # We convert channels with disabled filters to having
                 # highpass relaxed / no filters
-                highpass = [float(_) if _ not in ('NaN', 'Off', 'DC')
-                            else np.Inf for _ in highpass]
+                highpass = [float(f) if f not in ('NaN', 'Off', 'DC')
+                            else np.Inf for f in highpass]
                 info['highpass'] = np.min(np.array(highpass, dtype=np.float))
                 # Coveniently enough 1 / np.Inf = 0.0, so this works for
                 # DC / no highpass filter
@@ -514,8 +514,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                     # ... just heterogeneously disabled
                     heterogeneous_hp_filter = False
             else:
-                highpass = [float(_) if _ not in ('NaN', 'Off', 'DC')
-                            else 0.0 for _ in highpass]
+                highpass = [float(f) if f not in ('NaN', 'Off', 'DC')
+                            else 0.0 for f in highpass]
                 info['highpass'] = np.max(np.array(highpass, dtype=np.float))
                 if info['highpass'] == 0.0:
                     # not actually heterogeneous in effect
@@ -539,8 +539,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             if lp_s:
                 # We convert channels with disabled filters to having
                 # infinitely relaxed / no filters
-                lowpass = [float(_) if _ not in ('NaN', 'Off') else 0.0
-                           for _ in lowpass]
+                lowpass = [float(f) if f not in ('NaN', 'Off') else 0.0
+                           for f in lowpass]
                 info['lowpass'] = np.max(np.array(lowpass, dtype=np.float))
                 try:
                     info['lowpass'] = 1. / info['lowpass']
@@ -554,8 +554,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             else:
                 # We convert channels with disabled filters to having
                 # infinitely relaxed / no filters
-                lowpass = [float(_) if _ not in ('NaN', 'Off') else np.Inf
-                           for _ in lowpass]
+                lowpass = [float(f) if f not in ('NaN', 'Off') else np.Inf
+                           for f in lowpass]
                 info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
 
                 if np.isinf(info['lowpass']):
