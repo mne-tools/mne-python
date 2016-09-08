@@ -17,7 +17,7 @@ from scipy import stats
 from itertools import product
 
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
-                 EvokedArray, pick_info)
+                 EvokedArray)
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
