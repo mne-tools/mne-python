@@ -114,6 +114,8 @@ BUG
 
     - Fixed plotting and timing of :class:`Annotations` and restricted addition of annotations outside data range to prevent problems with cropping and concatenating data by `Jaakko Leppakangas`_
 
+    - Fixed ICA plotting functions to refer to IC index instead of component number by `Andreas Hojlund`_ and `Jaakko Leppakangas`_
+
 API
 ~~~
 
@@ -1747,3 +1749,5 @@ of commits):
 .. _Chris Mullins: http://crmullins.com
 
 .. _Phillip Alday: http://palday.bitbucket.org
+
+.. _Andreas Hojlund: https://github.com/ahoejlund
