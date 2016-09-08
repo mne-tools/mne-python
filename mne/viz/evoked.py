@@ -50,6 +50,7 @@ def _butterfly_onpick(event, params):
     text.set_text(ch_name)
     text.set_color(event.artist.get_color())
     text.set_alpha(1.)
+    text.set_zorder(len(ax.lines))  # to make sure it goes on top of the lines
     text.set_path_effects(params['path_effects'])
     # do NOT redraw here, since for butterfly plots hundreds of lines could
     # potentially be picked -- use on_button_press (happens once per click)
