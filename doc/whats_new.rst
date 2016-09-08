@@ -69,6 +69,8 @@ Changelog
 
     - Adds new function :func:`mne.viz.plot_compare_evokeds` to show multiple evoked time courses at a single location, or the mean over a ROI, or the GFP, automatically averaging and calculating a CI if multiple subjects are given, by `Jona Sassenhagen`_
 
+    - Added example of Representational Similarity Analysis, by `Jean-Remi King`_
+
 BUG
 ~~~
 
