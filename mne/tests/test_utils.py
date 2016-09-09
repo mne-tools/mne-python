@@ -54,7 +54,9 @@ def test_buggy_mkl():
     @buggy_mkl_svd
     def foo(a, b):
         raise np.linalg.LinAlgError('SVD did not converge')
-    assert_raises(SkipTest, foo, 1, 2)
+    with warnings.catch_warnings(record=True) as w:
+        assert_raises(SkipTest, foo, 1, 2)
+    assert_true(all('convergence error' in str(ww.message) for ww in w))
 
     @buggy_mkl_svd
     def bar(c, d, e):

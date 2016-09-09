@@ -479,7 +479,7 @@ def test_compute_tfr():
 
     picks = picks[:2]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0))
+                    baseline=(None, 0), add_eeg_ref=False)
     data = epochs.get_data()
     sfreq = epochs.info['sfreq']
     freqs = np.arange(10, 20, 3).astype(float)

@@ -560,7 +560,7 @@ def test_read_write_epochs():
 
     # Bad tmin/tmax parameters
     assert_raises(ValueError, Epochs, raw, events, event_id, tmax, tmin,
-                  baseline=None)
+                  baseline=None, add_eeg_ref=False)
 
     epochs_no_id = Epochs(raw, pick_events(events, include=event_id),
                           None, tmin, tmax, picks=picks,
@@ -617,7 +617,6 @@ def test_read_write_epochs():
         epochs = Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
                         baseline=(None, 0), proj=proj, reject=reject,
                         add_eeg_ref=False)
-        epochs.set_eeg_reference()
         assert_equal(epochs.proj, proj if proj != 'delayed' else False)
         data1 = epochs.get_data()
         epochs2 = epochs.copy().apply_proj()
@@ -826,9 +825,6 @@ def test_epochs_proj():
         assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
         epochs = read_epochs(temp_fname, proj=False, preload=preload)
         epochs.set_eeg_reference()
-        assert_raises(AssertionError, assert_allclose,
-                      epochs.get_data().mean(axis=1), 0., atol=1e-15)
-        epochs.add_eeg_average_proj()
         assert_raises(AssertionError, assert_allclose,
                       epochs.get_data().mean(axis=1), 0., atol=1e-15)
         epochs.apply_proj()
@@ -1066,8 +1062,7 @@ def test_comparision_with_c():
     epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=None,
                     preload=True, reject=None, flat=None, add_eeg_ref=False,
                     proj=False)
-    epochs.set_eeg_reference().apply_proj()
-    evoked = epochs.set_eeg_reference().average()
+    evoked = epochs.set_eeg_reference().apply_proj().average()
     sel = pick_channels(c_evoked.ch_names, evoked.ch_names)
     evoked_data = evoked.data
     c_evoked_data = c_evoked.data[sel]
@@ -1885,80 +1880,81 @@ def test_add_channels_epochs():
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['meas_date'] += 10
-    add_channels_epochs([epochs_meg2, epochs_eeg])
+    add_channels_epochs([epochs_meg2, epochs_eeg], add_eeg_ref=False)
 
     epochs_meg2 = epochs_meg.copy()
     epochs2.info['filename'] = epochs2.info['filename'].upper()
-    epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
+    epochs2 = add_channels_epochs([epochs_meg, epochs_eeg],
+                                  add_eeg_ref=False)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.events[3, 2] -= 1
     assert_raises(ValueError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
+                  [epochs_meg2, epochs_eeg], add_eeg_ref=False)
 
     assert_raises(ValueError, add_channels_epochs,
-                  [epochs_meg, epochs_eeg[:2]])
+                  [epochs_meg, epochs_eeg[:2]], add_eeg_ref=False)
 
     epochs_meg.info['chs'].pop(0)
     epochs_meg.info._update_redundant()
     assert_raises(RuntimeError, add_channels_epochs,
-                  [epochs_meg, epochs_eeg])
+                  [epochs_meg, epochs_eeg], add_eeg_ref=False)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['sfreq'] = None
     assert_raises(RuntimeError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
+                  [epochs_meg2, epochs_eeg], add_eeg_ref=False)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['sfreq'] += 10
     assert_raises(RuntimeError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
+                  [epochs_meg2, epochs_eeg], add_eeg_ref=False)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][0]
     epochs_meg2.info._update_redundant()
     assert_raises(RuntimeError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
+                  [epochs_meg2, epochs_eeg], add_eeg_ref=False)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['dev_head_t']['to'] += 1
     assert_raises(ValueError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
+                  [epochs_meg2, epochs_eeg], add_eeg_ref=False)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['dev_head_t']['to'] += 1
     assert_raises(ValueError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
+                  [epochs_meg2, epochs_eeg], add_eeg_ref=False)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['expimenter'] = 'foo'
     assert_raises(RuntimeError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
+                  [epochs_meg2, epochs_eeg], add_eeg_ref=False)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.preload = False
     assert_raises(ValueError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
+                  [epochs_meg2, epochs_eeg], add_eeg_ref=False)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.times += 0.4
     assert_raises(NotImplementedError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
+                  [epochs_meg2, epochs_eeg], add_eeg_ref=False)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.times += 0.5
     assert_raises(NotImplementedError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
+                  [epochs_meg2, epochs_eeg], add_eeg_ref=False)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.baseline = None
     assert_raises(NotImplementedError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
+                  [epochs_meg2, epochs_eeg], add_eeg_ref=False)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.event_id['b'] = 2
     assert_raises(NotImplementedError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
+                  [epochs_meg2, epochs_eeg], add_eeg_ref=False)
 
 
 def test_array_epochs():
