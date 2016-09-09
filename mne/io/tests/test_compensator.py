@@ -10,7 +10,7 @@ from numpy.testing import assert_allclose, assert_equal
 from mne import Epochs, read_evokeds, pick_types
 from mne.io.compensator import make_compensator, get_current_comp
 from mne.io import read_raw_fif
-from mne.utils import _TempDir, requires_mne, run_subprocess
+from mne.utils import _TempDir, requires_mne, run_subprocess, run_tests_if_main
 
 base_dir = op.join(op.dirname(__file__), 'data')
 ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
@@ -70,7 +70,7 @@ def test_compensation_mne():
         picks = pick_types(raw.info, meg=True, ref_meg=True)
         events = np.array([[0, 0, 1]], dtype=np.int)
         evoked = Epochs(raw, events, 1, 0, 20e-3, picks=picks,
-                        add_eeg_ref=False).set_eeg_reference().average()
+                        add_eeg_ref=False).average()
         return evoked
 
     def compensate_mne(fname, comp):
@@ -96,3 +96,5 @@ def test_compensation_mne():
         chs_c = [evoked_c.info['chs'][ii] for ii in picks_c]
         for ch_py, ch_c in zip(chs_py, chs_c):
             assert_equal(ch_py['coil_type'], ch_c['coil_type'])
+
+run_tests_if_main()

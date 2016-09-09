@@ -116,7 +116,7 @@ def test_get_inst_data():
     assert_equal(_get_inst_data(raw), raw._data)
     raw.pick_channels(raw.ch_names[:2])
 
-    epochs = _segment_raw(raw, 0.5, add_eeg_ref=False)
+    epochs = _segment_raw(raw, 0.5)
     assert_equal(_get_inst_data(epochs), epochs._data)
 
     evoked = epochs.average()
