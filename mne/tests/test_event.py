@@ -418,6 +418,7 @@ def test_define_events():
     assert_array_equal(true_lag_nofill, lag_nofill)
 
 
+@testing.requires_testing_data
 def test_elekta_averager():
     """Test averaging according to Elekta DACQ parameters"""
     raw = io.read_raw_fif(fname_raw_elekta, preload=True)
@@ -426,7 +427,7 @@ def test_elekta_averager():
         # XXX datasets match only when baseline is applied to both,
         # not sure where relative dc shift comes from
         cond = eav.get_condition(raw, cat)
-        eps = Epochs(raw, baseline=(-.05, 0), **cond[0])
+        eps = Epochs(raw, baseline=(-.05, 0), **cond)
         ev = eps.average()
         ev_ref = read_evokeds(fname_ave_elekta, cat['comment'],
                               baseline=(-.05, 0), proj=False)

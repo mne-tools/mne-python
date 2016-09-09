@@ -4,7 +4,8 @@ Getting averaging info from fiff
 ================================
 
 Get averaging information defined in Elekta Vectorview/TRIUX DACQ (data
-acquisition). Extract and average epochs accordingly.
+acquisition). Extract and average epochs accordingly. Modify some
+averaging parameters and get epochs.
 """
 # Author: Jussi Nurminen (jnu@iki.fi)
 #
@@ -32,17 +33,17 @@ print(eav)
 
 ###############################################################################
 # Extract epochs corresponding to a category
-cond = eav.get_condition(raw, 'Test event 3')[0]  # always returns a list
-eps = mne.Epochs(raw, **cond)
+cond = eav.get_condition(raw, 'Test event 3')
+epochs = mne.Epochs(raw, **cond)
 
 ###############################################################################
 # Get epochs from all conditions, average, save to an evoked fiff file
 evokeds = []
 for cat in eav.categories:
-    cond = eav.get_condition(raw, cat)[0]
+    cond = eav.get_condition(raw, cat)
     # copy (supported) rejection parameters from DACQ settings
-    eps = mne.Epochs(raw, reject=eav.reject, flat=eav.flat, **cond)
-    evoked = eps.average()
+    epochs = mne.Epochs(raw, reject=eav.reject, flat=eav.flat, **cond)
+    evoked = epochs.average()
     evoked.comment = cat['comment']
     evokeds.append(evoked)
 fname_out = 'elekta_evokeds-ave.fif'
@@ -51,12 +52,12 @@ mne.write_evokeds(fname_out, evokeds)
 ###############################################################################
 # Make a new category using existing one as a template, extract epochs
 newcat = eav.categories[0].copy()
-newcat['comment'] = 'New category'
+newcat['comment'] = 'My new category'
 newcat['event'] = 1  # reference event
 newcat['start'] = -.1  # epoch start rel. to ref. event (in seconds)
 newcat['end'] = .5  # epoch end
 newcat['reqevent'] = 2  # additional required event; 0 if none
 newcat['reqwithin'] = 1.5  # req. event required within 1.5 sec of ref. event
 newcat['reqwhen'] = 1  # required before (1) or after (2) ref. event
-cond = eav.get_condition(raw, newcat)[0]
-eps = mne.Epochs(raw, **cond)
+cond = eav.get_condition(raw, newcat)
+epochs = mne.Epochs(raw, **cond)

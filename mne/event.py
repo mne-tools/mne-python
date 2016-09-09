@@ -956,11 +956,11 @@ class ElektaAverager(object):
         self.reject = {'grad': self.megmax, 'mag': self.magmax,
                        'eeg': self.eegmax, 'eog': self.eogmax,
                        'ecg': self.ecgmax}
-        self.reject = {k: float(v) for k, v in self.reject.iteritems()
+        self.reject = {k: float(v) for k, v in self.reject.items()
                        if float(v) > 0}
         self.flat = {'grad': self.megmin, 'mag': self.magmin,
                      'eeg': self.eegmin}
-        self.flat = {k: float(v) for k, v in self.flat.iteritems()
+        self.flat = {k: float(v) for k, v in self.flat.items()
                      if float(v) > 0}
 
     def __repr__(self):
@@ -972,9 +972,9 @@ class ElektaAverager(object):
         evs_in_use = len(self._events_in_use)
         s += '(%d in use), ' % evs_in_use
         s += 'stim source: %s' % self.stimsource
-        s += '\nCategories:\n'
+        s += '\nCategories:'
         for cat in self.categories:
-            s += '%d: "%s"\n' % (cat['index'], cat['comment'])
+            s += '\n%d: "%s"' % (cat['index'], cat['comment'])
         s += '>'
         return s
 
@@ -1041,7 +1041,7 @@ class ElektaAverager(object):
         as 2**(1 - 1) + 2**(3 - 1) = 5. """
         events_ = mne_events.copy()
         events_[:, 1:3] = 0
-        for n, ev in self._events.iteritems():
+        for n, ev in self._events.items():
             if ev['in_use']:
                 pre_ok = (
                     np.bitwise_and(ev['oldmask'],
@@ -1106,27 +1106,29 @@ class ElektaAverager(object):
 
     @property
     def _categories_in_use(self):
-        return {k: v for k, v in self._categories.iteritems() if v['state']}
+        return {k: v for k, v in self._categories.items() if v['state']}
 
     @property
     def _events_in_use(self):
-        return {k: v for k, v in self._events.iteritems() if v['in_use']}
+        return {k: v for k, v in self._events.items() if v['in_use']}
 
-    def get_condition(self, raw, conditions, stim_channel=None, mask=None,
+    def get_condition(self, raw, conditions=None, stim_channel=None, mask=None,
                       uint_cast=None, mask_type=None):
-        """ Get data corresponding to the given condition (=averaging category
-        defined in Elekta data acquisition software).
-        Output can be used with Epochs to extract corresponding epochs.
+        """ Get parameters corresponding to a category defined in
+        Elekta DACQ (data acquisition).
+        Output is designed to be used with the Epochs class to extract the
+        corresponding epochs.
 
         Parameters
         ----------
         raw : Raw object
             An instance of Raw.
-        condition : list | dict
-            List of conditions, or a condition. Can be names
-            (e.g. 'Auditory left') or category dicts
+        condition : None | dict | list of dict
+            Condition or a list of conditions. Conditions can be strings
+            (DACQ comment field, e.g. 'Auditory left') or category dicts
             (e.g. eav['Auditory left'], where eav is an instance of
-            ElektaAverager).
+            ElektaAverager). If None, get all conditions marked active in
+            DACQ.
         stim_channel : None | string | list of string
             Name of the stim channel or all the stim channels
             affected by the trigger. If None, the config variables
@@ -1155,17 +1157,20 @@ class ElektaAverager(object):
                 condition. Use as the ``events`` parameter to Epochs. Note
                 that these are not (necessarily) actual events.
             event_id : dict
-                Condition name and index compatible with ``events``. Should be
-                passed as the ``event_id`` parameter to Epochs.
+                Name of condition and index compatible with ``events``.
+                Should be passed as the ``event_id`` parameter to Epochs.
             tmin : float
                 Epoch starting time relative to t0. Use as the ``tmin``
                 parameter to Epochs.
             tmax : float
-                Epoch ending time relative to t0. Can be used as the ``tmax``
+                Epoch ending time relative to t0. Use as the ``tmax``
                 parameter to Epochs.
+
         """
+        if conditions is None:
+            conditions = self.categories  # get all
         if not isinstance(conditions, list):
-            conditions = [conditions]
+            conditions = [conditions]  # single cond -> listify
         conds_data = list()
         for category in conditions:
             if isinstance(category, str):
@@ -1185,7 +1190,7 @@ class ElektaAverager(object):
             tmin, tmax = category['start'], category['end']
             conds_data.append(dict(events=cat_t0, event_id=cat_id,
                                    tmin=tmin, tmax=tmax))
-        return conds_data
+        return conds_data[0] if len(conds_data) == 1 else conds_data
 
 
 def _acqpars_dict(acq_pars):
