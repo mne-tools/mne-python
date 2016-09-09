@@ -984,7 +984,7 @@ class ElektaAverager(object):
     def _events_from_acq_pars(self):
         """ Collect DACQ defined events into a dict. Events are keyed by number
         starting from 1 (DACQ index of event). Each event is itself represented
-        by a dict containing the event definitions. """
+        by a dict containing the event parameters. """
         events = dict()
         for evnum in range(1, self.ncateg + 1):
             evnum_s = str(evnum).zfill(2)  # '01', '02' etc.
@@ -1008,8 +1008,8 @@ class ElektaAverager(object):
 
     def _categories_from_acq_pars(self):
         """ Collects DACQ averaging categories into a dict. Categories
-        are keyed by the comment defined in DACQ. Each category is represented
-        a dict containing the category definitions. """
+        are keyed by the comment field in DACQ. Each category is itself
+        represented a dict containing the category parameters. """
         cats = dict()
         for catnum in [str(x).zfill(2) for x in range(1, self.nevent + 1)]:
             catdi = dict()
@@ -1100,8 +1100,7 @@ class ElektaAverager(object):
     def events(self):
         """ Return events in DACQ defined order. Only returns events
         that are in use (referred to by a category). """
-        evs = sorted(self._events_in_use.values(),
-                     key=lambda ev: ev['index'])
+        evs = sorted(self._events_in_use.values(), key=lambda ev: ev['index'])
         return evs
 
     @property
@@ -1134,8 +1133,8 @@ class ElektaAverager(object):
             affected by the trigger. If None, the config variables
             'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
             etc. are read. If these are not found, it will fall back to
-            'STI 014' if present, then fall back to the first channel of type
-            'stim', if present.
+            'STI101' or 'STI 014' if present, then fall back to the first
+            channel of type 'stim', if present.
         mask : int | None
             The value of the digital mask to apply to the stim channel values.
             If None (default), no masking is performed.
