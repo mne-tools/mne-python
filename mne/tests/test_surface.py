@@ -131,8 +131,9 @@ def test_io_surface():
             pts, tri, vol_info = read_surface(fname, read_metadata=True)
         assert_true(all('No volume info' in str(ww.message) for ww in w))
         write_surface(op.join(tempdir, 'tmp'), pts, tri, volume_info=vol_info)
-        c_pts, c_tri, c_vol_info = read_surface(op.join(tempdir, 'tmp'),
-                                                read_metadata=True)
+        with warnings.catch_warnings(record=True) as w:  # No vol info
+            c_pts, c_tri, c_vol_info = read_surface(op.join(tempdir, 'tmp'),
+                                                    read_metadata=True)
         assert_array_equal(pts, c_pts)
         assert_array_equal(tri, c_tri)
         assert_true(_is_equal_dict([vol_info, c_vol_info]))

@@ -11,15 +11,16 @@ import numpy as np
 from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_allclose
 
-from mne import pick_channels, pick_types, Evoked, Epochs, read_events
+from mne import (pick_channels, pick_types, Evoked, Epochs, read_events,
+                 set_eeg_reference, set_bipolar_reference,
+                 add_reference_channels)
 from mne.epochs import _BaseEpochs
+from mne.io import read_raw_fif
 from mne.io.constants import FIFF
-from mne.io import (set_eeg_reference, set_bipolar_reference,
-                    add_reference_channels)
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
-from mne.io import read_raw_fif
+from mne.utils import run_tests_if_main
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -309,7 +310,7 @@ def test_add_reference():
                     add_eeg_ref=False)
     epochs_ref = add_reference_channels(epochs, 'Ref', copy=True)
     # CAR after custom reference is an Error
-    assert_raises(RuntimeError, epochs_ref.add_eeg_average_proj)
+    assert_raises(RuntimeError, epochs_ref.set_eeg_reference)
 
     assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 1)
     _check_channel_names(epochs_ref, 'Ref')
@@ -386,3 +387,5 @@ def test_add_reference():
     raw_np = read_raw_fif(fif_fname, preload=False, add_eeg_ref=False)
     assert_raises(RuntimeError, add_reference_channels, raw_np, ['Ref'])
     assert_raises(ValueError, add_reference_channels, raw, 1)
+
+run_tests_if_main()

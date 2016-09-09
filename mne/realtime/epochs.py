@@ -12,7 +12,7 @@ import numpy as np
 
 from .. import pick_channels
 from ..utils import logger, verbose
-from ..epochs import _BaseEpochs, _dep_eeg_ref
+from ..epochs import _BaseEpochs
 from ..event import _find_events
 
 
@@ -138,8 +138,6 @@ class RtEpochs(_BaseEpochs):
                  name='Unknown', reject=None, flat=None, proj=True,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
                  add_eeg_ref=None, isi_max=2., find_events=None, verbose=None):
-        add_eeg_ref = _dep_eeg_ref(add_eeg_ref)
-
         info = client.get_measurement_info()
 
         # the measurement info of the data as we receive it

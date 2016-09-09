@@ -27,7 +27,7 @@ event_name = op.join(base_dir, 'test-eve.fif')
 
 def _get_raw():
     """Get raw data."""
-    raw = read_raw_fif(raw_fname, preload=True)
+    raw = read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
     # Throws a warning about a changed unit.
     with warnings.catch_warnings(record=True):
         raw.set_channel_types({raw.ch_names[0]: 'ias'})
