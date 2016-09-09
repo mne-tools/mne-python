@@ -90,6 +90,8 @@ class CSP(TransformerMixin, BaseEstimator):
             raise ValueError('reg must be None, "oas", "ledoit_wolf" or a '
                              'float in between 0. and 1.')
         self.reg = reg
+        if not isinstance(log, bool):
+            raise ValueError('log must be a boolean.')
         self.log = log
         if not (cov_est == "concat" or cov_est == "epoch"):
             raise ValueError("unknown covariance estimation method")
