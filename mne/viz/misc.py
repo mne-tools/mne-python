@@ -281,7 +281,10 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     # Load the T1 data
     nim = nib.load(mri_fname)
     data = nim.get_data()
-    affine = nim.get_affine()
+    try:
+        affine = nim.affine
+    except AttributeError:  # older nibabel
+        affine = nim.get_affine()
 
     n_sag, n_axi, n_cor = data.shape
     orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)

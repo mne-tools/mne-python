@@ -1,4 +1,5 @@
 import os.path as op
+import warnings
 
 from nose.tools import assert_true, assert_equal
 
@@ -49,8 +50,9 @@ def test_find_ecg():
 
     # test with user provided ecg channel
     raw.info['projs'] = list()
-    raw.set_channel_types({'MEG 2641': 'ecg'})
+    with warnings.catch_warnings(record=True) as w:
+        raw.set_channel_types({'MEG 2641': 'ecg'})
+    assert_true(len(w) == 1 and 'unit for channel' in str(w[0].message))
     create_ecg_epochs(raw)
-
 
 run_tests_if_main()

@@ -63,15 +63,18 @@ def test_compensation_mne():
     tempdir = _TempDir()
 
     def make_evoked(fname, comp):
+        """Make evoked data."""
         raw = read_raw_fif(fname, add_eeg_ref=False)
         if comp is not None:
             raw.apply_gradient_compensation(comp)
         picks = pick_types(raw.info, meg=True, ref_meg=True)
         events = np.array([[0, 0, 1]], dtype=np.int)
-        evoked = Epochs(raw, events, 1, 0, 20e-3, picks=picks).average()
+        evoked = Epochs(raw, events, 1, 0, 20e-3, picks=picks,
+                        add_eeg_ref=False).set_eeg_reference().average()
         return evoked
 
     def compensate_mne(fname, comp):
+        """Compensate using MNE-C."""
         tmp_fname = '%s-%d-ave.fif' % (fname[:-4], comp)
         cmd = ['mne_compensate_data', '--in', fname,
                '--out', tmp_fname, '--grad', str(comp)]
