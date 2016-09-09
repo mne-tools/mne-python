@@ -137,7 +137,8 @@ def test_epochs_vectorizer():
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True, add_eeg_ref=False)
     epochs_data = epochs.get_data()
-    vector = EpochsVectorizer(epochs.info)
+    with warnings.catch_warnings(record=True):  # deprecation
+        vector = EpochsVectorizer(epochs.info)
     y = epochs.events[:, -1]
     X = vector.fit_transform(epochs_data, y)
 

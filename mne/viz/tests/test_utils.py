@@ -96,7 +96,7 @@ def test_auto_scale():
     """Test auto-scaling of channels for quick plotting."""
     raw = read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
     ev = read_events(ev_fname)
-    epochs = Epochs(raw, ev)
+    epochs = Epochs(raw, ev, add_eeg_ref=False)
     rand_data = np.random.randn(10, 100)
 
     for inst in [raw, epochs]:

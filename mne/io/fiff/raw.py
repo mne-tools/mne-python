@@ -89,8 +89,6 @@ class Raw(_BaseRaw):
                'has been deprecated and will be removed in 0.13. Use multiple '
                'calls to read_raw_fif with the "fname" argument followed by '
                'concatenate_raws instead.')
-        from ...epochs import _dep_eeg_ref
-        add_eeg_ref = _dep_eeg_ref(add_eeg_ref, True)
         if fnames is not None:
             warn(dep, DeprecationWarning)
         else:
@@ -133,6 +131,9 @@ class Raw(_BaseRaw):
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._raw_extras for r in raws],
             raws[0].orig_format, None, verbose=verbose)
+        if 'eeg' in self:
+            from ...epochs import _dep_eeg_ref
+            add_eeg_ref = _dep_eeg_ref(add_eeg_ref, True)
 
         # combine information from each raw file to construct self
         if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):

@@ -38,7 +38,7 @@ print(__doc__)
 data_path = bst_phantom_elekta.data_path()
 
 raw_fname = op.join(data_path, 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif')
-raw = read_raw_fif(raw_fname)
+raw = read_raw_fif(raw_fname, add_eeg_ref=False)
 
 ###############################################################################
 # Data channel array consisted of 204 MEG planor gradiometers,
@@ -79,7 +79,7 @@ raw.plot(events=events)
 tmin, tmax = -0.1, 0.1
 event_id = list(range(1, 33))
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=(None, -0.01),
-                    decim=5, preload=True)
+                    decim=5, preload=True, add_eeg_ref=False)
 epochs['1'].average().plot()
 
 ###############################################################################

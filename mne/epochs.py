@@ -297,11 +297,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             logger.info('Entering delayed SSP mode.')
         else:
             self._do_delayed_proj = False
-
+        add_eeg_ref = _dep_eeg_ref(add_eeg_ref) if 'eeg' in self else False
         activate = False if self._do_delayed_proj else proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=activate)
-
         if preload_at_end:
             assert self._data is None
             assert self.preload is False
@@ -1776,7 +1775,6 @@ class Epochs(_BaseEpochs):
         if not isinstance(raw, _BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of `mne.io.Raw`')
-        add_eeg_ref = _dep_eeg_ref(add_eeg_ref)
         info = deepcopy(raw.info)
 
         # proj is on when applied in Raw
@@ -2333,8 +2331,6 @@ class EpochsFIF(_BaseEpochs):
     def __init__(self, fname, proj=True, add_eeg_ref=None, preload=True,
                  verbose=None):
         check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
-        add_eeg_ref = _dep_eeg_ref(add_eeg_ref)
-
         fnames = [fname]
         ep_list = list()
         raw = list()

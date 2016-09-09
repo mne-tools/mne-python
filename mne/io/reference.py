@@ -287,7 +287,6 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
                  'has been left untouched.')
             return inst, None
         else:
-            inst.info['custom_ref_applied'] = False
             inst.add_proj(make_eeg_average_ref_proj(inst.info, activate=False))
             return inst, None
     else:
