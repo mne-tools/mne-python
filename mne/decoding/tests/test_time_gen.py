@@ -410,7 +410,10 @@ def test_decoding_time():
     """Test TimeDecoding
     """
     from sklearn.svm import SVR
-    from sklearn.cross_validation import KFold
+    if check_version('sklearn', '0.18'):
+        from sklearn.model_selection import KFold
+    else:
+        from sklearn.cross_validation import KFold
     epochs = make_epochs()
     tg = TimeDecoding()
     assert_equal("<TimeDecoding | no fit, no prediction, no score>", '%s' % tg)
