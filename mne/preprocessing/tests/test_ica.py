@@ -676,7 +676,7 @@ def test_eog_channel():
     # Test case for MEG data. Should have no EOG channel
     for inst in [raw, epochs]:
         picks1 = pick_types(inst.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')[:4]
+                            eog=False, exclude='bads')[:5]
         ica.fit(inst, picks=picks1)
         assert_false(any('EOG' in ch for ch in ica.ch_names))
 
