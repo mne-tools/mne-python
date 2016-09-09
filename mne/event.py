@@ -1178,7 +1178,7 @@ class ElektaAverager(object):
             mne_events = find_events(raw, stim_channel=stim_channel, mask=mask,
                                      mask_type=mask_type, output='step',
                                      uint_cast=uint_cast, consecutive=True,
-                                     verbose=False)
+                                     verbose=False, shortest_event=1)
             sfreq = raw.info['sfreq']
             cat_t0_ = self._mne_events_to_category_t0(category,
                                                       mne_events, sfreq)
