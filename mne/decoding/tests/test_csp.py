@@ -103,6 +103,20 @@ def test_csp():
         assert_array_equal(csp.filters_.shape, [n_channels, n_channels])
         assert_array_equal(csp.patterns_.shape, [n_channels, n_channels])
 
+    # Test log param
+    assert_true(csp.log)
+    assert_raises(CSP, log='foo')
+    csp = CSP(log=True)
+    csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
+
+    # Test transform_into
+    assert_true(csp.transform_into == 'average_power')
+    assert_raises(CSP, transform_into='foo')
+    assert_raises(CSP, transform_into=None)
+    csp = CSP(2, transform_into='csp_space')
+    Xt = csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
+    assert_array_equal(Xt.shape, [len(epochs_data), 2, epochs_data.shape[2]])
+
 
 @requires_sklearn
 def test_regularized_csp():

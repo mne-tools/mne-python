@@ -45,6 +45,10 @@ class CSP(TransformerMixin, BaseEstimator):
         for each class.
         If 'epoch', covariance matrices are estimated on each epoch separately
         and then averaged over each class.
+    transform_into : {'average_power', 'csp_space'}
+        If 'average_power' then self.transform will return the average power of
+        each spatial filter. If 'csp_space' self.transform will return the data
+        in CSP space. Defaults to 'average_power'.
 
     Attributes
     ----------
@@ -71,7 +75,8 @@ class CSP(TransformerMixin, BaseEstimator):
         Transactions on Biomedical Engineering, Vol 55, no. 8, 2008.
     """
 
-    def __init__(self, n_components=4, reg=None, log=True, cov_est="concat"):
+    def __init__(self, n_components=4, reg=None, log=True, cov_est="concat",
+                 transform_into='average_power'):
         """Init of CSP."""
         if not isinstance(n_components, int):
             raise ValueError('n_components must be an integer.')
@@ -89,6 +94,10 @@ class CSP(TransformerMixin, BaseEstimator):
         if not (cov_est == "concat" or cov_est == "epoch"):
             raise ValueError("unknown covariance estimation method")
         self.cov_est = cov_est
+        if transform_into not in ('average_power', 'csp_space'):
+            raise ValueError('transform_into must be "average_power" or '
+                             '"csp_space".')
+        self.transform_into = transform_into
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
@@ -208,8 +217,11 @@ class CSP(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        X : ndarray of shape (n_epochs, n_sources)
-            The CSP features averaged over time.
+        X : ndarray
+            If self.transform_into == 'average_power' then returns the power of
+            CSP features averaged over time and shape (n_epochs, n_sources)
+            If self.transform_into == 'csp_space' then returns the data in CSP
+            space and shape is (n_epochs, n_sources, n_times)
         """
         X = _check_deprecate(epochs_data, X)
         if not isinstance(X, np.ndarray):
@@ -222,7 +234,8 @@ class CSP(TransformerMixin, BaseEstimator):
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
 
         # compute features (mean band power)
-        X = (X ** 2).mean(axis=-1)
+        if self.transform_into == 'average_power':
+            X = (X ** 2).mean(axis=-1)
         if self.log:
             X = np.log(X)
         else:
