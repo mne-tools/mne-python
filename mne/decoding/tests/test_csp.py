@@ -104,18 +104,25 @@ def test_csp():
         assert_array_equal(csp.patterns_.shape, [n_channels, n_channels])
 
     # Test log param
-    assert_true(csp.log)
+    assert_true(csp.log is None)
     assert_raises(ValueError, CSP, log='foo')
+    csp = CSP()
+    Xt = csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
     csp = CSP(log=True)
-    csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
+    Xt_log = csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
+    assert_array_almost_equal(Xt, Xt_log)
 
     # Test transform_into
     assert_true(csp.transform_into == 'average_power')
     assert_raises(ValueError, CSP, transform_into='foo')
     assert_raises(ValueError, CSP, transform_into=None)
-    csp = CSP(2, transform_into='csp_space')
+    csp = CSP(2, transform_into='csp_space', log=None)
     Xt = csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
     assert_array_equal(Xt.shape, [len(epochs_data), 2, epochs_data.shape[2]])
+    # check that defaults csp_space does not apply log
+    csp = CSP(2, transform_into='csp_space', log=False)
+    Xt_nolog = csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
+    assert_array_almost_equal(Xt, Xt_nolog)
 
 
 @requires_sklearn
