@@ -92,6 +92,15 @@ def test_interpolation():
         inst.info['bads'] = [inst.ch_names[1]]
         assert_raises(ValueError, inst.interpolate_bads)
 
+    # check that interpolation works when non M/EEG channels are present
+    # before MEG channels
+    with warnings.catch_warnings(record=True):  # change of units
+        raw.rename_channels({'MEG 0113': 'TRIGGER'})
+        raw.set_channel_types({'TRIGGER': 'stim'})
+        raw.info['bads'] = [raw.info['ch_names'][1]]
+        raw.load_data()
+        raw.interpolate_bads()
+
     # check that interpolation works for MEG
     epochs_meg.info['bads'] = ['MEG 0141']
     evoked = epochs_meg.average()

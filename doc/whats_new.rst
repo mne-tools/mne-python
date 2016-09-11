@@ -116,6 +116,8 @@ BUG
 
     - Fixed ICA plotting functions to refer to IC index instead of component number by `Andreas Hojlund`_ and `Jaakko Leppakangas`_
 
+    - Fixed bug with ``picks`` when interpolating MEG channels by `Mainak Jas`_.
+
 API
 ~~~
 
