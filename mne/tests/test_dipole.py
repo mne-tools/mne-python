@@ -41,6 +41,8 @@ fname_trans = op.join(data_path, 'MEG', 'sample',
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 fname_xfit_dip = op.join(data_path, 'dip', 'fixed_auto.fif')
+fname_xfit_dip_txt = op.join(data_path, 'dip', 'fixed_auto.dip')
+fname_xfit_seq_txt = op.join(data_path, 'dip', 'sequential.dip')
 fname_ctf = op.join(data_path, 'CTF', 'testdata_ctf_short.ds')
 subjects_dir = op.join(data_path, 'subjects')
 
@@ -331,6 +333,14 @@ def test_dipole_fixed():
     """Test reading a fixed-position dipole (from Xfit)"""
     dip = read_dipole(fname_xfit_dip)
     _check_roundtrip_fixed(dip)
+    with warnings.catch_warnings(record=True) as w:  # unused fields
+        dip_txt = read_dipole(fname_xfit_dip_txt)
+    assert_true(any('extra fields' in str(ww.message) for ww in w))
+    assert_allclose(dip.info['chs'][0]['loc'][:3], dip_txt.pos[0])
+    assert_allclose(dip_txt.amplitude[0], 12.1e-9)
+    with warnings.catch_warnings(record=True):  # unused fields
+        dip_txt_seq = read_dipole(fname_xfit_seq_txt)
+    assert_allclose(dip_txt_seq.gof, [27.3, 46.4, 43.7, 41., 37.3, 32.5])
 
 
 def _check_roundtrip_fixed(dip):
