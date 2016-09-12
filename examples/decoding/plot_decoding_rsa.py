@@ -36,7 +36,7 @@ from pandas import read_csv
 import matplotlib.pyplot as plt
 
 from mne import find_events, Epochs, pick_types
-from mne.io import Raw
+from mne.io import read_raw_fif, concatenate_raws
 
 from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import make_pipeline
@@ -45,7 +45,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 from sklearn.manifold import MDS
 
-data_path = '/media/DATA/Pro/Projects/NewYork/cichy/'
+data_path = '/home/jrking/Downloads/cichy'
 ###############################################################################
 
 # Define stimulus - trigger mapping
@@ -58,21 +58,24 @@ for val in triggers:
     inv_conds[val] = sub['condition'].iloc[0]
 
 # Read MEG data
-fname = op.join(data_path, 'sample_subject_0_tsss_mc.fif')
-raw = Raw(fname)
-picks = pick_types(raw.info, meg='mag')[::2]
+fname = op.join(data_path, 'sample_subject_%i_tsss_mc.fif')
+raws = [read_raw_fif(fname % block) for block in range(4)]
+raw = concatenate_raws(raws)
+
+# XXX We need to decide whether we upload multiple runs
+# raw = read_raw_fif(fname % 0)
+
+picks = pick_types(raw.info, meg=True)
 events = find_events(raw, min_duration=.002)
 
 # Select & Format event values to match ad-hoc categories
 events = np.array([ev for ev in events if ev[2] in set(conds['trigger'])])
-# le = LabelEncoder()
-# events[:, 2] = le.fit_transform([inv_conds[val] for val in events[:, 2]])
 
 # Epoch data
 is_stim = [val in triggers for val in events[:, 2]]
 events = events[np.where(is_stim)[0]]
-epochs = Epochs(raw, events=events, decim=4, baseline=None, picks=picks,
-                tmin=.050, tmax=.800)
+epochs = Epochs(raw, events=events, baseline=None, picks=picks,
+                tmin=.050, tmax=.500)
 
 ##############################################################################
 # Representational Similarity Analysis is a neuroimaging-specific
@@ -80,7 +83,7 @@ epochs = Epochs(raw, events=events, decim=4, baseline=None, picks=picks,
 
 # Classify on the average ERF
 clf = make_pipeline(StandardScaler(),
-                    LogisticRegression(solver='lbfgs'))
+                    LogisticRegression(C=1, solver='lbfgs'))
 X = epochs.get_data().mean(2)
 y = epochs.events[:, 2]
 
@@ -104,20 +107,25 @@ for ii, train_class in enumerate(classes):
         cm[jj, ii] = cm[ii, jj]
 cm /= n_folds
 
-# Plot with formatted class names for easier reading
-names = [inv_conds[val] for val in classes]
-sparse_names = [name if next_name != name else ''
-                for name, next_name in zip(names[1:], names)]
+# Format class names for centered plotting
+names = np.array([inv_conds[val] for val in classes])
+sparse_names = np.copy(names)
+n = 0
+for ii, name in enumerate(names):
+    sparse_names[ii] = '' if n != (sum(names == name) // 2) else name
+    n = 0 if ii < (len(names) - 1) and names[ii + 1] != name else n + 1
+
+# Plot
 fig, ax = plt.subplots(1)
-im = ax.matshow(cm, cmap='plasma')
+im = ax.matshow(cm, cmap='RdBu_r')
 ax.set_yticks(range(len(classes)))
 ax.set_yticklabels(sparse_names)
 ax.set_xticks(range(len(classes)))
 ax.set_xticklabels(sparse_names, rotation=40, ha='left')
-for ii, name in enumerate(sparse_names):
-    if name != '':
-        ax.axhline(ii, color='k')
-        ax.axvline(ii, color='k')
+for ii, (name, next_name) in enumerate(zip(names, names[1:])):
+    if name != next_name:
+        ax.axhline(ii + 1, color='k')
+        ax.axvline(ii + 1, color='k')
 plt.colorbar(im)
 plt.show()
 
@@ -133,11 +141,10 @@ cmap = plt.get_cmap('rainbow')
 colors = cmap(np.linspace(0., 1., len(set(names))))
 for color, name in zip(colors, set(names)):
     sel = np.where([this_name == name for this_name in names])[0]
-    if name == 'human face':
-        ax.plot(summary[sel, 0], summary[sel, 1], color='k', zorder=0)
-    ax.scatter(summary[sel, 0], summary[sel, 1],
-               s=100, facecolors=color, label=name, edgecolors='k')
+    size = 500 if name == 'human face' else 100
+    ax.scatter(summary[sel, 0], summary[sel, 1], s=size,
+               facecolors=color, label=name, edgecolors='k')
 ax.axis('off')
-ax.legend(loc='best', scatterpoints=1, ncol=2)
+ax.legend(loc='lower right', scatterpoints=1, ncol=2)
 plt.tight_layout()
 plt.show()
