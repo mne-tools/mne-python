@@ -37,11 +37,10 @@ class CSP(TransformerMixin, BaseEstimator):
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
         if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
         or Oracle Approximating Shrinkage ('oas').
-    log : None | bool
-        If transform_into == 'average_power', defaults to True. If True then
+    log : None | bool, defaults to None
+        If transform_into == 'average_power' and log is None or True, then
         applies a log transform to standardize the features, else the features
-        are z-scored.
-        If transform_into == 'csp_space', then log is ignored.
+        are z-scored. If transform_into == 'csp_space', then log must be None.
     cov_est : 'concat' | 'epoch', defaults to 'concat'
         If 'concat', covariance matrices are estimated on concatenated epochs
         for each class.
