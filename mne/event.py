@@ -1187,21 +1187,20 @@ class ElektaAverager(object):
         if not isinstance(conditions, list):
             conditions = [conditions]  # single cond -> listify
         conds_data = list()
-        for category in conditions:
-            if isinstance(category, str):
-                category = self[category]
+        for cat in conditions:
+            if isinstance(cat, str):
+                cat = self[cat]
             mne_events = find_events(raw, stim_channel=stim_channel, mask=mask,
                                      mask_type=mask_type, output='step',
                                      uint_cast=uint_cast, consecutive=True,
                                      verbose=False, shortest_event=1)
             sfreq = raw.info['sfreq']
-            cat_t0_ = self._mne_events_to_category_t0(category,
-                                                      mne_events, sfreq)
+            cat_t0_ = self._mne_events_to_category_t0(cat, mne_events, sfreq)
             # make it compatible with the usual events array
             cat_t0 = np.c_[cat_t0_, np.zeros(cat_t0_.shape),
                            np.ones(cat_t0_.shape)].astype(np.uint32)
-            cat_id = {category['comment']: 1}
-            tmin, tmax = category['start'], category['end']
+            cat_id = {cat['comment']: 1}
+            tmin, tmax = cat['start'], cat['end']
             conds_data.append(dict(events=cat_t0, event_id=cat_id,
                                    tmin=tmin, tmax=tmax))
         return conds_data[0] if len(conds_data) == 1 else conds_data
