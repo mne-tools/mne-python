@@ -172,14 +172,15 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
         If not None, override default verbose level (see mne.verbose).
     """
     picks_meg = pick_types(inst.info, meg=True, eeg=False, exclude=[])
-    ch_names = [inst.info['ch_names'][p] for p in picks_meg]
     picks_good = pick_types(inst.info, meg=True, eeg=False, exclude='bads')
+    meg_ch_names = [inst.info['ch_names'][p] for p in picks_meg]
+    bads_meg = [ch for ch in inst.info['bads'] if ch in meg_ch_names]
 
     # select the bad meg channel to be interpolated
-    if len(inst.info['bads']) == 0:
+    if len(bads_meg) == 0:
         picks_bad = []
     else:
-        picks_bad = pick_channels(ch_names, inst.info['bads'],
+        picks_bad = pick_channels(inst.info['ch_names'], bads_meg,
                                   exclude=[])
 
     # return without doing anything if there are no meg channels
