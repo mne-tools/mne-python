@@ -37,10 +37,11 @@ class CSP(TransformerMixin, BaseEstimator):
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
         if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
         or Oracle Approximating Shrinkage ('oas').
-    log : None | bool, defaults to None
-        If true then apply log to standardize the features. If false then
-        features are only z-scored. If None and transform_into == 'csp_space'
-        then log is False, else log is True. Defaults to None.
+    log : None | bool
+        If transform_into == 'average_power', defaults to True. If True then
+        applies a log transform to standardize the features, else the features
+        are z-scored.
+        If transform_into == 'csp_space', then log is ignored.
     cov_est : 'concat' | 'epoch', defaults to 'concat'
         If 'concat', covariance matrices are estimated on concatenated epochs
         for each class.
@@ -79,9 +80,12 @@ class CSP(TransformerMixin, BaseEstimator):
     def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
                  transform_into='average_power'):
         """Init of CSP."""
+        # Init default CSP
         if not isinstance(n_components, int):
             raise ValueError('n_components must be an integer.')
         self.n_components = n_components
+
+        # Init default regularization
         if (
             (reg is not None) and
             (reg not in ['oas', 'ledoit_wolf']) and
@@ -91,16 +95,29 @@ class CSP(TransformerMixin, BaseEstimator):
             raise ValueError('reg must be None, "oas", "ledoit_wolf" or a '
                              'float in between 0. and 1.')
         self.reg = reg
-        if log is not None and not isinstance(log, bool):
-            raise ValueError('log must be a None or a boolean.')
-        self.log = log
+
+        # Init default cov_est
         if not (cov_est == "concat" or cov_est == "epoch"):
             raise ValueError("unknown covariance estimation method")
         self.cov_est = cov_est
+
+        # Init default transform_into
         if transform_into not in ('average_power', 'csp_space'):
             raise ValueError('transform_into must be "average_power" or '
                              '"csp_space".')
         self.transform_into = transform_into
+
+        # Init default log
+        if transform_into == 'average_power':
+            log = True if log is None else log
+            if not isinstance(log, bool):
+                raise ValueError('log must be a boolean if transform_into == '
+                                 '"average_power".')
+        else:
+            if log is not None:
+                raise ValueError('log must be a None if transform_into == '
+                                 '"csp_space".')
+        self.log = log
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
@@ -239,13 +256,11 @@ class CSP(TransformerMixin, BaseEstimator):
         # compute features (mean band power)
         if self.transform_into == 'average_power':
             X = (X ** 2).mean(axis=-1)
-        log = self.log
-        log = self.transform_into == 'average_power' if log is None else log
-        if log:
-            X = np.log(X)
-        else:
-            X -= self.mean_[np.newaxis, :, np.newaxis]
-            X /= self.std_[np.newaxis, :, np.newaxis]
+            if self.log:
+                X = np.log(X)
+            else:
+                X -= self.mean_
+                X /= self.std_
         return X
 
     def plot_patterns(self, info, components=None, ch_type=None, layout=None,

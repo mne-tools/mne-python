@@ -103,26 +103,36 @@ def test_csp():
         assert_array_equal(csp.filters_.shape, [n_channels, n_channels])
         assert_array_equal(csp.patterns_.shape, [n_channels, n_channels])
 
-    # Test log param
-    assert_true(csp.log is None)
-    assert_raises(ValueError, CSP, log='foo')
-    csp = CSP()
-    Xt = csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
-    csp = CSP(log=True)
-    Xt_log = csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
-    assert_array_almost_equal(Xt, Xt_log)
-
-    # Test transform_into
+    # Test average power transform
+    # Check default
+    csp = CSP(log=None)
+    assert_true(csp.log is True)
+    n_components = 2
     assert_true(csp.transform_into == 'average_power')
-    assert_raises(ValueError, CSP, transform_into='foo')
-    assert_raises(ValueError, CSP, transform_into=None)
-    csp = CSP(2, transform_into='csp_space', log=None)
+    feature_shape = [len(epochs_data), n_components]
+    X_trans = dict()
+    for log in (True, False):
+        csp = CSP(n_components=n_components, log=log)
+        assert_true(csp.log is log)
+        Xt = csp.fit_transform(epochs_data, epochs.events[:, 2])
+        assert_array_equal(Xt.shape, feature_shape)
+        X_trans[str(log)] = Xt
+    # Different normalization return different transform
+    assert_true(np.sum((X_trans['True'] - X_trans['False']) ** 2) > 1.)
+    # Check wrong inputs
+    assert_raises(ValueError, CSP, transform_into='average_power', log='foo')
+
+    # Test csp space transform
+    csp = CSP(transform_into='csp_space')
+    assert_true(csp.transform_into == 'csp_space')
+    assert_true(csp.log is None)
+    for log in ('foo', True, False):
+        assert_raises(ValueError, CSP, transform_into='csp_space', log=log)
+    n_components = 2
+    csp = CSP(n_components=n_components, transform_into='csp_space')
     Xt = csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
-    assert_array_equal(Xt.shape, [len(epochs_data), 2, epochs_data.shape[2]])
-    # check that defaults csp_space does not apply log
-    csp = CSP(2, transform_into='csp_space', log=False)
-    Xt_nolog = csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
-    assert_array_almost_equal(Xt, Xt_nolog)
+    feature_shape = [len(epochs_data), n_components, epochs_data.shape[2]]
+    assert_array_equal(Xt.shape, feature_shape)
 
 
 @requires_sklearn
