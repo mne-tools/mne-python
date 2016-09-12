@@ -15,8 +15,7 @@ import sys
 import numpy as np
 from scipy import linalg
 
-from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
-from .transforms import _ensure_trans, apply_trans
+from .transforms import _ensure_trans, apply_trans, _cart_to_sph, _sph_to_cart
 from .io import Info
 from .io.constants import FIFF
 from .io.write import (start_file, start_block, write_float, write_int,
@@ -25,6 +24,8 @@ from .io.write import (start_file, start_block, write_float, write_int,
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.open import fiff_open
+from .fixes import _get_sph_harm
+from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
 from .externals.six import string_types
 
 
@@ -801,7 +802,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
 
 
 # #############################################################################
-# Helpers
+# Sphere fitting
 
 _dig_kind_dict = {
     'cardinal': FIFF.FIFFV_POINT_CARDINAL,
@@ -850,6 +851,18 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     """
     if not isinstance(units, string_types) or units not in ('m', 'mm'):
         raise ValueError('units must be a "m" or "mm"')
+    radius, origin_head, origin_device = _fit_sph_harm_to_headshape(
+        info, dig_kinds, order=0)[:3]
+    if units == 'mm':
+        radius *= 1e3
+        origin_head *= 1e3
+        origin_device *= 1e3
+    return radius, origin_head, origin_device
+
+
+@verbose
+def _fit_sph_harm_to_headshape(info, dig_kinds, order=0, verbose=None):
+    """Fit spherical harmonics to the given head shape"""
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info not %s' % type(info))
     if info['dig'] is None:
@@ -859,10 +872,10 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
         if dig_kinds == 'auto':
             # try "extra" first
             try:
-                return fit_sphere_to_headshape(info, 'extra', units=units)
+                return _fit_sph_harm_to_headshape(info, 'extra')
             except ValueError:
                 pass
-            return fit_sphere_to_headshape(info, ('extra', 'eeg'), units=units)
+            return _fit_sph_harm_to_headshape(info, ('extra', 'eeg'))
         else:
             dig_kinds = (dig_kinds,)
     # convert string args to ints (first make dig_kinds mutable in case tuple)
@@ -880,7 +893,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
                            'contact mne-python developers')
 
     # exclude some frontal points (nose etc.)
-    hsp = [p for p in hsp if not (p[2] < 0 and p[1] > 0)]
+    hsp = np.array([p for p in hsp if not (p[2] < 0 and p[1] > 0)])
 
     if len(hsp) <= 10:
         kinds_str = ', '.join(['"%s"' % _dig_kind_rev[d]
@@ -896,31 +909,71 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     # compute origin in device coordinates
     head_to_dev = _ensure_trans(info['dev_head_t'], 'head', 'meg')
     origin_device = apply_trans(head_to_dev, origin_head)
-    radius *= 1e3
-    origin_head *= 1e3
-    origin_device *= 1e3
-
-    logger.info('Fitted sphere radius:'.ljust(30) + '%0.1f mm' % radius)
+    logger.info('Fitted sphere radius:'.ljust(30) + '%0.1f mm'
+                % (radius * 1e3,))
     # 99th percentile on Wikipedia for Giabella to back of head is 21.7cm,
     # i.e. 108mm "radius", so let's go with 110mm
     # en.wikipedia.org/wiki/Human_head#/media/File:HeadAnthropometry.JPG
-    if radius > 110.:
+    if radius > 0.110:
         warn('Estimated head size (%0.1f mm) exceeded 99th '
-             'percentile for adult head size' % (radius,))
+             'percentile for adult head size' % (1e3 * radius,))
     # > 2 cm away from head center in X or Y is strange
-    if np.sqrt(np.sum(origin_head[:2] ** 2)) > 20:
+    if np.sqrt(np.sum(origin_head[:2] ** 2)) > 0.02:
         warn('(X, Y) fit (%0.1f, %0.1f) more than 20 mm from '
-             'head frame origin' % tuple(origin_head[:2]))
+             'head frame origin' % tuple(1e3 * origin_head[:2]))
     logger.info('Origin head coordinates:'.ljust(30) +
-                '%0.1f %0.1f %0.1f mm' % tuple(origin_head))
+                '%0.1f %0.1f %0.1f mm' % tuple(1e3 * origin_head))
     logger.info('Origin device coordinates:'.ljust(30) +
-                '%0.1f %0.1f %0.1f mm' % tuple(origin_device))
-    if units == 'm':
-        radius /= 1e3
-        origin_head /= 1e3
-        origin_device /= 1e3
+                '%0.1f %0.1f %0.1f mm' % tuple(1e3 * origin_device))
 
-    return radius, origin_head, origin_device
+    #
+    # fit spherical harmonics
+    #
+
+    # This code is adapted from hsdig2fv, with permission:
+    # Copyright (c) 1995-2009 by John C. Mosher
+    # Permission is granted to modify and re-distribute this code in any manner
+    # as long as this notice is preserved.  All standard disclaimers apply.
+    logger.info('Fitting spherical harmonics with order %d' % order)
+    # center the coords and convert to spherical
+    rad, az, pol = _cart_to_sph(hsp - origin_head).T
+    # compute spherical harmonics and fit the actual sdistances
+    coeffs = linalg.lstsq(_compute_sph_harm(order, az, pol), rad)[0]
+    return radius, origin_head, origin_device, coeffs, hsp.copy()
+
+
+def _compute_sph_harm(order, az, pol):
+    """Compute complex spherical harmonics of Cartesion coordinates."""
+    # convert to spherical coords
+    sph_harm = _get_sph_harm()
+    # XXX Eventually we could use the real form here
+    out = np.empty((len(az), (order + 1) * (order + 2) // 2), complex)
+    idx = 0
+    for degree in range(order + 1):
+        for order_ in range(degree + 1):
+            out[:, idx] = sph_harm(order_, degree, az, pol)
+            idx += 1
+    assert idx == out.shape[1]
+    return out
+
+
+def _transform_sph(rr, coeffs, order, origin):
+    """Transform Cartesion coordinates based on a spherical harmonic fit."""
+    hsp = np.array([p for p in rr if not (p[2] < 0 and p[1] > 0)])
+    origin_surrogate = _fit_sphere(hsp, disp=False)[1]
+    rr = rr - origin_surrogate
+    sph = _cart_to_sph(rr)
+    p_sph = _compute_sph_harm(order, sph[:, 1], sph[:, 2])
+    rr_coeffs = linalg.lstsq(p_sph, sph[:, 0])[0]
+    # look at how our radii differ in the current surface fit
+    # XXX cross-check with other libs that this is how it's done?
+    rad_miss = sph[:, 0] / np.abs(np.dot(p_sph, rr_coeffs))
+    # refit using destination coefficients
+    sph[:, 0] = np.abs(np.dot(p_sph, coeffs))
+    # scale by original miss factor
+    sph[:, 0] *= rad_miss
+    rr = _sph_to_cart(sph) + origin
+    return rr
 
 
 def _fit_sphere(points, disp='auto'):

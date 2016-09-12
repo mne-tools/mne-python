@@ -15,11 +15,12 @@ at which the fix is no longer needed.
 from __future__ import division
 
 import inspect
+from distutils.version import LooseVersion
 import re
 import warnings
 
 import numpy as np
-from scipy import linalg
+from scipy import linalg, __version__ as sp_version
 
 
 ###############################################################################
@@ -277,6 +278,68 @@ def get_sosfiltfilt():
     except ImportError:
         sosfiltfilt = _sosfiltfilt
     return sosfiltfilt
+
+
+###############################################################################
+# scipy.special.sph_harm ()
+
+def _sph_harm(order, degree, az, pol):
+    """Evaluate point in specified multipolar moment.
+
+    When using, pay close attention to inputs. Spherical harmonic notation for
+    order/degree, and theta/phi are both reversed in original SSS work compared
+    to many other sources. See mathworld.wolfram.com/SphericalHarmonic.html for
+    more discussion.
+
+    Note that scipy has ``scipy.special.sph_harm``, but that function is
+    too slow on old versions (< 0.15) for heavy use.
+
+    Parameters
+    ----------
+    order : int
+        Order of spherical harmonic. (Usually) corresponds to 'm'.
+    degree : int
+        Degree of spherical harmonic. (Usually) corresponds to 'l'.
+    az : float
+        Azimuthal (longitudinal) spherical coordinate [0, 2*pi]. 0 is aligned
+        with x-axis.
+    pol : float
+        Polar (or colatitudinal) spherical coordinate [0, pi]. 0 is aligned
+        with z-axis.
+    norm : bool
+        If True, include normalization factor.
+
+    Returns
+    -------
+    base : complex float
+        The spherical harmonic value.
+    """
+    from scipy.special import lpmv
+    from .preprocessing.maxwell import _sph_harm_norm
+
+    # Error checks
+    if np.abs(order) > degree:
+        raise ValueError('Absolute value of order must be <= degree')
+    # Ensure that polar and azimuth angles are arrays
+    az = np.asarray(az)
+    pol = np.asarray(pol)
+    if (np.abs(az) > 2 * np.pi).any():
+        raise ValueError('Azimuth coords must lie in [-2*pi, 2*pi]')
+    if(pol < 0).any() or (pol > np.pi).any():
+        raise ValueError('Polar coords must lie in [0, pi]')
+    # This is the "seismology" convention on Wikipedia, w/o Condon-Shortley
+    sph = lpmv(order, degree, np.cos(pol)) * np.exp(1j * order * az)
+    sph *= _sph_harm_norm(order, degree)
+    return sph
+
+
+def _get_sph_harm():
+    """Helper to get a usable spherical harmonic function."""
+    if LooseVersion(sp_version) < LooseVersion('0.17.1'):
+        sph_harm = _sph_harm
+    else:
+        from scipy.special import sph_harm
+    return sph_harm
 
 
 ###############################################################################

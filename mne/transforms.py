@@ -557,6 +557,94 @@ def _sphere_to_cartesian(theta, phi, r):
     return x, y, z
 
 
+def _cart_to_sph(cart):
+    """Convert Cartesian coordinates to spherical coordinates.
+
+    Parameters
+    ----------
+    cart_pts : ndarray, shape (n_points, 3)
+        Array containing points in Cartesian coordinates (x, y, z)
+
+    Returns
+    -------
+    sph_pts : ndarray, shape (n_points, 3)
+        Array containing points in spherical coordinates (rad, azimuth, polar)
+    """
+    # XXX should de-duplicate with _cartesion_to_sphere!
+    cart = np.atleast_2d(cart)
+    out = np.empty((len(cart), 3))
+    out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
+    out[:, 1] = np.arctan2(cart[:, 1], cart[:, 0])
+    out[:, 2] = np.arccos(cart[:, 2] / out[:, 0])
+    return out
+
+
+def _sph_to_cart(sph):
+    """Convert spherical coordinates to Cartesion coordinates."""
+    sph = np.atleast_2d(sph)
+    out = np.empty((len(sph), 3))
+    out[:, 2] = sph[:, 0] * np.cos(sph[:, 2])
+    xy = sph[:, 0] * np.sin(sph[:, 2])
+    out[:, 0] = xy * np.cos(sph[:, 1])
+    out[:, 1] = xy * np.sin(sph[:, 1])
+    return out
+
+
+def _get_n_moments(order):
+    """Compute the number of multipolar moments (spherical harmonics).
+
+    Equivalent to [1]_ Eq. 32.
+
+    Parameters
+    ----------
+    order : array-like
+        Expansion orders, often ``[int_order, ext_order]``.
+
+    Returns
+    -------
+    M : ndarray
+        Number of moments due to each order.
+    """
+    order = np.asarray(order, int)
+    return (order + 2) * order
+
+
+def _sph_to_cart_partials(az, pol, g_rad, g_az, g_pol):
+    """Convert spherical partial derivatives to cartesian coords.
+
+    Note: Because we are dealing with partial derivatives, this calculation is
+    not a static transformation. The transformation matrix itself is dependent
+    on azimuth and polar coord.
+
+    See the 'Spherical coordinate sytem' section here:
+    wikipedia.org/wiki/Vector_fields_in_cylindrical_and_spherical_coordinates
+
+    Parameters
+    ----------
+    az : ndarray, shape (n_points,)
+        Array containing spherical coordinates points (azimuth).
+    pol : ndarray, shape (n_points,)
+        Array containing spherical coordinates points (polar).
+    sph_grads : ndarray, shape (n_points, 3)
+        Array containing partial derivatives at each spherical coordinate
+        (radius, azimuth, polar).
+
+    Returns
+    -------
+    cart_grads : ndarray, shape (n_points, 3)
+        Array containing partial derivatives in Cartesian coordinates (x, y, z)
+    """
+    sph_grads = np.c_[g_rad, g_az, g_pol]
+    cart_grads = np.zeros_like(sph_grads)
+    c_as, s_as = np.cos(az), np.sin(az)
+    c_ps, s_ps = np.cos(pol), np.sin(pol)
+    trans = np.array([[c_as * s_ps, -s_as, c_as * c_ps],
+                      [s_as * s_ps, c_as, c_ps * s_as],
+                      [c_ps, np.zeros_like(c_as), -s_ps]])
+    cart_grads = np.einsum('ijk,kj->ki', trans, sph_grads)
+    return cart_grads
+
+
 def _polar_to_cartesian(theta, r):
     """Transform polar coordinates to cartesian"""
     x = r * np.cos(theta)

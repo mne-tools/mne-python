@@ -17,7 +17,8 @@ from .. import __version__
 from ..bem import _check_origin
 from ..chpi import quat_to_rot, rot_to_quat
 from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
-                          _find_vector_rotation)
+                          _find_vector_rotation, _cart_to_sph, _get_n_moments,
+                          _sph_to_cart_partials)
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
 from ..io.constants import FIFF
@@ -26,7 +27,7 @@ from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, _BaseRaw
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..utils import verbose, logger, _clean_names, warn, _time_mask
-from ..fixes import _get_args, _safe_svd
+from ..fixes import _get_args, _safe_svd, _get_sph_harm
 from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
 
@@ -947,57 +948,6 @@ def _sph_harm_norm(order, degree):
     return norm
 
 
-def _sph_harm(order, degree, az, pol, norm=True):
-    """Evaluate point in specified multipolar moment. [1]_ Equation 4.
-
-    When using, pay close attention to inputs. Spherical harmonic notation for
-    order/degree, and theta/phi are both reversed in original SSS work compared
-    to many other sources. See mathworld.wolfram.com/SphericalHarmonic.html for
-    more discussion.
-
-    Note that scipy has ``scipy.special.sph_harm``, but that function is
-    too slow on old versions (< 0.15) for heavy use.
-
-    Parameters
-    ----------
-    order : int
-        Order of spherical harmonic. (Usually) corresponds to 'm'.
-    degree : int
-        Degree of spherical harmonic. (Usually) corresponds to 'l'.
-    az : float
-        Azimuthal (longitudinal) spherical coordinate [0, 2*pi]. 0 is aligned
-        with x-axis.
-    pol : float
-        Polar (or colatitudinal) spherical coordinate [0, pi]. 0 is aligned
-        with z-axis.
-    norm : bool
-        If True, include normalization factor.
-
-    Returns
-    -------
-    base : complex float
-        The spherical harmonic value.
-    """
-    from scipy.special import lpmv
-
-    # Error checks
-    if np.abs(order) > degree:
-        raise ValueError('Absolute value of order must be <= degree')
-    # Ensure that polar and azimuth angles are arrays
-    az = np.asarray(az)
-    pol = np.asarray(pol)
-    if (np.abs(az) > 2 * np.pi).any():
-        raise ValueError('Azimuth coords must lie in [-2*pi, 2*pi]')
-    if(pol < 0).any() or (pol > np.pi).any():
-        raise ValueError('Polar coords must lie in [0, pi]')
-    # This is the "seismology" convention on Wikipedia, w/o Condon-Shortley
-    if norm:
-        norm = _sph_harm_norm(order, degree)
-    else:
-        norm = 1.
-    return norm * lpmv(order, degree, np.cos(pol)) * np.exp(1j * order * az)
-
-
 def _concatenate_sph_coils(coils):
     """Helper to concatenate MEG coil parameters for spherical harmoncs."""
     rs = np.concatenate([coil['r0_exey'] for coil in coils])
@@ -1058,9 +1008,8 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
             S_in_out = list()
             grads_in_out = list()
             # Same spherical harmonic is used for both internal and external
-            sph = _sph_harm(order, degree, az, pol, norm=False)
+            sph = _get_sph_harm()(order, degree, az, pol)
             sph_norm = _sph_harm_norm(order, degree)
-            sph *= sph_norm
             # Compute complex gradient for all integration points
             # in spherical coordinates (Eq. 6). The gradient for rad, az, pol
             # is obtained by taking the partial derivative of Eq. 4 w.r.t. each
@@ -1455,80 +1404,6 @@ def _bases_real_to_complex(real_tot, int_order, ext_order):
                 comp[:, idx_pos] = this_comp
                 comp[:, idx_neg] = _sh_negate(this_comp, order)
     return comp_tot
-
-
-def _get_n_moments(order):
-    """Compute the number of multipolar moments.
-
-    Equivalent to [1]_ Eq. 32.
-
-    Parameters
-    ----------
-    order : array-like
-        Expansion orders, often ``[int_order, ext_order]``.
-
-    Returns
-    -------
-    M : ndarray
-        Number of moments due to each order.
-    """
-    order = np.asarray(order, int)
-    return (order + 2) * order
-
-
-def _sph_to_cart_partials(az, pol, g_rad, g_az, g_pol):
-    """Convert spherical partial derivatives to cartesian coords.
-
-    Note: Because we are dealing with partial derivatives, this calculation is
-    not a static transformation. The transformation matrix itself is dependent
-    on azimuth and polar coord.
-
-    See the 'Spherical coordinate sytem' section here:
-    wikipedia.org/wiki/Vector_fields_in_cylindrical_and_spherical_coordinates
-
-    Parameters
-    ----------
-    az : ndarray, shape (n_points,)
-        Array containing spherical coordinates points (azimuth).
-    pol : ndarray, shape (n_points,)
-        Array containing spherical coordinates points (polar).
-    sph_grads : ndarray, shape (n_points, 3)
-        Array containing partial derivatives at each spherical coordinate
-        (radius, azimuth, polar).
-
-    Returns
-    -------
-    cart_grads : ndarray, shape (n_points, 3)
-        Array containing partial derivatives in Cartesian coordinates (x, y, z)
-    """
-    sph_grads = np.c_[g_rad, g_az, g_pol]
-    cart_grads = np.zeros_like(sph_grads)
-    c_as, s_as = np.cos(az), np.sin(az)
-    c_ps, s_ps = np.cos(pol), np.sin(pol)
-    trans = np.array([[c_as * s_ps, -s_as, c_as * c_ps],
-                      [s_as * s_ps, c_as, c_ps * s_as],
-                      [c_ps, np.zeros_like(c_as), -s_ps]])
-    cart_grads = np.einsum('ijk,kj->ki', trans, sph_grads)
-    return cart_grads
-
-
-def _cart_to_sph(cart_pts):
-    """Convert Cartesian coordinates to spherical coordinates.
-
-    Parameters
-    ----------
-    cart_pts : ndarray, shape (n_points, 3)
-        Array containing points in Cartesian coordinates (x, y, z)
-
-    Returns
-    -------
-    sph_pts : ndarray, shape (n_points, 3)
-        Array containing points in spherical coordinates (rad, azimuth, polar)
-    """
-    rad = np.sqrt(np.sum(cart_pts * cart_pts, axis=1))
-    az = np.arctan2(cart_pts[:, 1], cart_pts[:, 0])
-    pol = np.arccos(cart_pts[:, 2] / rad)
-    return np.array([rad, az, pol]).T
 
 
 def _check_info(info, sss=True, tsss=True, calibration=True, ctc=True):
