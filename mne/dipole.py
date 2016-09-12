@@ -395,10 +395,14 @@ def _read_dipole_text(fname):
     # Figure out the special fields
     need_header = True
     def_line = name = None
+    # There is a bug in older np.loadtxt regarding skipping fields,
+    # so just read the data ourselves (need to get name and header anyway)
+    data = list()
     with open(fname, 'r') as fid:
         for line in fid:
             if not (line.startswith('%') or line.startswith('#')):
                 need_header = False
+                data.append(line.strip().split())
             else:
                 if need_header:
                     def_line = line
@@ -407,6 +411,7 @@ def _read_dipole_text(fname):
                     if m:
                         name = m.group(1)
         del line
+    data = np.atleast_2d(np.array(data, float))
     if def_line is None:
         raise IOError('Dipole text file is missing field definition '
                       'comment, cannot parse %s' % (fname,))
@@ -432,9 +437,10 @@ def _read_dipole_text(fname):
     ignored_fields = sorted(set(fields) - set(used_fields) - set(['end/ms']))
     if len(ignored_fields) > 0:
         warn('Ignoring extra fields in dipole file: %s' % (ignored_fields,))
+    if len(fields) != data.shape[1]:
+        raise IOError('More data fields (%s) found than data columns (%s): %s'
+                      % (len(fields), data.shape[1], fields))
 
-    # Actually load the data
-    data = np.atleast_2d(np.loadtxt(fname, comments=['%', '#']))
     logger.info("%d dipole(s) found" % len(data))
 
     if 'end/ms' in fields:
