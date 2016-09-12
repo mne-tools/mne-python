@@ -109,8 +109,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
         # Init default log
         if transform_into == 'average_power':
-            log = True if log is None else log
-            if not isinstance(log, bool):
+            if log is not None and not isinstance(log, bool):
                 raise ValueError('log must be a boolean if transform_into == '
                                  '"average_power".')
         else:
@@ -256,7 +255,8 @@ class CSP(TransformerMixin, BaseEstimator):
         # compute features (mean band power)
         if self.transform_into == 'average_power':
             X = (X ** 2).mean(axis=-1)
-            if self.log:
+            log = True if self.log is None else self.log
+            if log:
                 X = np.log(X)
             else:
                 X -= self.mean_

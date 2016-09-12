@@ -104,19 +104,18 @@ def test_csp():
         assert_array_equal(csp.patterns_.shape, [n_channels, n_channels])
 
     # Test average power transform
-    # Check default
-    csp = CSP(log=None)
-    assert_true(csp.log is True)
     n_components = 2
     assert_true(csp.transform_into == 'average_power')
     feature_shape = [len(epochs_data), n_components]
     X_trans = dict()
-    for log in (True, False):
+    for log in (None, True, False):
         csp = CSP(n_components=n_components, log=log)
         assert_true(csp.log is log)
         Xt = csp.fit_transform(epochs_data, epochs.events[:, 2])
         assert_array_equal(Xt.shape, feature_shape)
         X_trans[str(log)] = Xt
+    # log=None => log=True
+    assert_array_almost_equal(X_trans['None'], X_trans['True'])
     # Different normalization return different transform
     assert_true(np.sum((X_trans['True'] - X_trans['False']) ** 2) > 1.)
     # Check wrong inputs
@@ -125,7 +124,6 @@ def test_csp():
     # Test csp space transform
     csp = CSP(transform_into='csp_space')
     assert_true(csp.transform_into == 'csp_space')
-    assert_true(csp.log is None)
     for log in ('foo', True, False):
         assert_raises(ValueError, CSP, transform_into='csp_space', log=log)
     n_components = 2
