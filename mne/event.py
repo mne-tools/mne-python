@@ -975,9 +975,10 @@ class ElektaAverager(object):
         evs_in_use = len(self._events_in_use)
         s += '(%d in use), ' % evs_in_use
         s += 'stim source: %s' % self.stimsource
-        s += '\nCategories:'
-        for cat in self.categories:
-            s += '\n%d: "%s"' % (cat['index'], cat['comment'])
+        if self.categories:
+            s += '\nAveraging categories:'
+            for cat in self.categories:
+                s += '\n%d: "%s"' % (cat['index'], cat['comment'])
         s += '>'
         return s
 
