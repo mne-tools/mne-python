@@ -889,8 +889,11 @@ def concatenate_events(events, first_samps, last_samps):
 
 
 class ElektaAverager(object):
-    """Handles events and averaging categories defined in DACQ
-    (data acquisition) software of Elekta TRIUX/Vectorview systems.
+    """ Parser for Elekta DACQ averaging categories.
+
+    This class parses events and averaging categories that are defined in the
+    Elekta TRIUX/VectorView data acquisition software and stored in
+    ``info['acq_pars']``.
 
     Parameters
     ----------
@@ -982,9 +985,11 @@ class ElektaAverager(object):
         return self._categories[items]
 
     def _events_from_acq_pars(self):
-        """ Collect DACQ defined events into a dict. Events are keyed by number
-        starting from 1 (DACQ index of event). Each event is itself represented
-        by a dict containing the event parameters. """
+        """ Collect DACQ events into a dict.
+
+        Events are keyed by number starting from 1 (DACQ index of event).
+        Each event is itself represented by a dict containing the event
+        parameters. """
         events = dict()
         for evnum in range(1, self.ncateg + 1):
             evnum_s = str(evnum).zfill(2)  # '01', '02' etc.
@@ -1007,9 +1012,10 @@ class ElektaAverager(object):
         return events
 
     def _categories_from_acq_pars(self):
-        """ Collects DACQ averaging categories into a dict. Categories
-        are keyed by the comment field in DACQ. Each category is itself
-        represented a dict containing the category parameters. """
+        """ Collect DACQ averaging categories into a dict.
+
+        Categories are keyed by the comment field in DACQ. Each category is
+        itself represented a dict containing the category parameters. """
         cats = dict()
         for catnum in [str(x).zfill(2) for x in range(1, self.nevent + 1)]:
             catdi = dict()
@@ -1033,6 +1039,7 @@ class ElektaAverager(object):
 
     def _events_mne_to_dacq(self, mne_events):
         """ Creates list of DACQ events based on mne trigger transitions list.
+
         mne_events is typically given by mne.find_events (use consecutive=True
         to get all transitions). Output consists of rows in the form
         [t, 0, event_codes] where t is time in samples and event_codes is all
@@ -1054,8 +1061,13 @@ class ElektaAverager(object):
         return events_
 
     def _mne_events_to_category_t0(self, cat, mne_events, sfreq):
-        """ Translate mne_events to reference times (t0) for epochs in a given
-        DACQ averaging category cat. """
+        """ Translate mne_events to epoch zero times (t0).
+
+        First mne events (trigger transitions) are converted into DACQ events.
+        Then the zero times for the epochs are obtained by considering the
+        reference and conditional (required) events and the delay to stimulus.
+        """
+
         cat_ev = cat['event']
         cat_reqev = cat['reqevent']
         # first convert mne events to dacq event list
@@ -1090,16 +1102,19 @@ class ElektaAverager(object):
 
     @property
     def categories(self):
-        """ Return list of averaging categories in DACQ defined order. Only
-        returns categories marked active in DACQ. """
+        """ Return list of averaging categories in DACQ defined order.
+
+        Only returns categories marked active in DACQ.
+        """
         cats = sorted(self._categories_in_use.values(),
                       key=lambda cat: cat['index'])
         return cats
 
     @property
     def events(self):
-        """ Return events in DACQ defined order. Only returns events
-        that are in use (referred to by a category). """
+        """ Return events in DACQ defined order.
+
+        Only returns events that are in use (referred to by a category). """
         evs = sorted(self._events_in_use.values(), key=lambda ev: ev['index'])
         return evs
 
@@ -1112,9 +1127,9 @@ class ElektaAverager(object):
         return {k: v for k, v in self._events.items() if v['in_use']}
 
     def get_condition(self, raw, conditions=None, stim_channel=None, mask=None,
-                      uint_cast=None, mask_type=None):
-        """ Get parameters corresponding to a category defined in
-        Elekta DACQ (data acquisition).
+                      uint_cast=None, mask_type='and'):
+        """ Get averaging parameters for a condition (averaging category).
+
         Output is designed to be used with the Epochs class to extract the
         corresponding epochs.
 
@@ -1150,7 +1165,7 @@ class ElektaAverager(object):
 
         Returns
         -------
-        conds_data : list of dict, each with following keys:
+        conds_data : dict or list of dict, each with following keys:
             events : array, shape (n_epochs_out, 3)
                 List of zero time points (t0) for the epochs matching the
                 condition. Use as the ``events`` parameter to Epochs. Note
@@ -1174,7 +1189,6 @@ class ElektaAverager(object):
         for category in conditions:
             if isinstance(category, str):
                 category = self[category]
-            # TODO: add shortest_event=0 (or 1?) to prevent failures?
             mne_events = find_events(raw, stim_channel=stim_channel, mask=mask,
                                      mask_type=mask_type, output='step',
                                      uint_cast=uint_cast, consecutive=True,
@@ -1193,14 +1207,12 @@ class ElektaAverager(object):
 
 
 def _acqpars_dict(acq_pars):
-    """ Makes a dict from a string of acquisition parameters, which is
-    info['acq_pars'] for Elekta Vectorview/TRIUX systems. """
+    """ Parse `` info['acq_pars']`` into a dict. """
     return dict(_acqpars_gen(acq_pars))
 
 
 def _acqpars_gen(acq_pars):
-    """ Yields key/value pairs from a string containing Elekta Vectorview/TRIUX
-    acquisition parameters (usually info['acq_pars']) """
+    """ Helper function, yields key/value pairs from ``info['acq_pars'])`` """
     # DACQ variable names always start with one of these
     acq_var_magic = ['ERF', 'DEF', 'ACQ', 'TCP']
     for line in acq_pars.split():

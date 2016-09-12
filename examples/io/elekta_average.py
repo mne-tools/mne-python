@@ -1,7 +1,7 @@
 """
-================================
-Getting averaging info from fiff
-================================
+======================================
+Getting averaging info from .fif files
+======================================
 
 Get averaging information defined in Elekta Vectorview/TRIUX DACQ (data
 acquisition). Extract and average epochs accordingly. Modify some
@@ -15,16 +15,16 @@ averaging parameters and get epochs.
 import mne
 import os
 from mne.datasets import testing
-from mne.event import ElektaAverager
+from mne import ElektaAverager
 
-elekta_base_dir = os.path.join(testing.data_path(), 'misc')
-fname_raw_elekta = os.path.join(elekta_base_dir, 'test_elekta_3ch_raw.fif')
+fname_raw = os.path.join(testing.data_path(), 'misc',
+                         'test_elekta_3ch_raw.fif')
 
 print(__doc__)
 
 ###############################################################################
 # Read raw file and create averager instance
-raw = mne.io.read_raw_fif(fname_raw_elekta)
+raw = mne.io.read_raw_fif(fname_raw)
 eav = ElektaAverager(raw.info)
 
 ###############################################################################
