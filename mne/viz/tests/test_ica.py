@@ -9,8 +9,7 @@ import warnings
 from numpy.testing import assert_raises, assert_equal, assert_array_equal
 from nose.tools import assert_true
 
-from mne import io, read_events, Epochs, read_cov
-from mne import pick_types
+from mne import io, read_events, Epochs, read_cov, pick_types
 from mne.utils import run_tests_if_main, requires_sklearn
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click
