@@ -453,8 +453,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
             data += np.dot(raw_segment, raw_segment.T)
             n_samples += raw_segment.shape[1]
         _check_n_samples(n_samples, len(picks))
-        mu /= n_samples
-        data -= n_samples * mu[:, None] * mu[None, :]
+        data -= mu[:, None] * (mu[None, :] / n_samples)
         data /= (n_samples - 1.0)
         logger.info("Number of samples used : %d" % n_samples)
         logger.info('[done]')

@@ -30,7 +30,7 @@ event_id = dict(aud_l=1, vis_l=3)
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
-raw.set_eeg_reference()
+raw.set_eeg_reference()  # set EEG average reference
 raw.filter(2, None, method='iir')  # replace baselining with high-pass
 events = mne.read_events(event_fname)
 
