@@ -287,6 +287,43 @@ class XdawnTransformer(BaseEstimator, TransformerMixin):
             signal_cov=self.signal_cov)
         return self
 
+    def partial_fit(self, X, y=None):
+        """Fit Xdawn spatial filters.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_samples)
+            The target data.
+        y : array, shape (n_epochs,) | None
+            The target labels. If None, Xdawn fit on the average evoked.
+
+        Returns
+        -------
+        self : Xdawn instance
+            The Xdawn instance.
+        """
+        X, y = self._check_Xy(X, y)
+
+        # Update classes in case new one
+        if not hasattr(self, 'classes_'):
+            self.classes_ = np.unique(y)
+            self._nave = dict((this_class, 0) for this_class in self.classes_)
+        else:
+            for this_class in np.unique(y):
+                if this_class not in self.classes_:
+                    self.classes_.append(this_class)
+                    self._nave[this_class] = 0
+
+        # TODO update ERP
+        # TODO update cov
+        # TODO adapt fit
+        # Main function
+        self.filters_, self.patterns_, _ = _fit_xdawn(
+            X, y, n_components=self.n_components, reg=self.reg,
+            signal_cov=self.signal_cov)
+        return self
+
+
     def transform(self, X):
         """Transform data with spatial filters.
 
