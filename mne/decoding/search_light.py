@@ -5,7 +5,7 @@
 import numpy as np
 
 from .mixin import TransformerMixin
-from .base import BaseEstimator, _check_estimator
+from .base import BaseEstimator, _check_estimator, _check_partial_fit
 from ..parallel import parallel_func
 
 
@@ -107,13 +107,8 @@ class SearchLight(BaseEstimator, TransformerMixin):
         """
         self._check_Xy(X, y)
         self.estimators_ = list()
-        est = self.base_estimator
-        if hasattr(self.base_estimator, 'steps'):
-            est = self.base_estimator.steps[-1][1]
-        if not hasattr(est, 'partial_fit'):
-            raise AttributeError('The base_estimator does not support '
-                                 'partial_fit.')
 
+        _check_partial_fit(self.base_estimator)
         if not hasattr(self, 'estimators_'):
             return self.fit(X, y)
 
