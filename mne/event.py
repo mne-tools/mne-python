@@ -983,7 +983,15 @@ class ElektaAverager(object):
         return s
 
     def __getitem__(self, items):
-        return self._categories[items]
+        if not isinstance(items, str):
+            raise TypeError('Keys must be category names')
+        if items in self._categories:
+            return self._categories[items]
+        else:
+            raise KeyError('No such category')
+
+    def __len__(self):
+        return len(self.categories)
 
     def _events_from_acq_pars(self):
         """ Collect DACQ events into a dict.
