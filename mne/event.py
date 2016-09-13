@@ -892,8 +892,9 @@ class ElektaAverager(object):
     """ Parser for Elekta DACQ averaging categories.
 
     This class parses events and averaging categories that are defined in the
-    Elekta TRIUX/VectorView data acquisition software and stored in
-    ``info['acq_pars']``.
+    Elekta TRIUX/VectorView data acquisition software (DACQ) and stored in
+    ``info['acq_pars']``. It can be used to reaverage raw data according to
+    DACQ settings and modify original averaging settings if necessary.
 
     Parameters
     ----------
@@ -912,6 +913,11 @@ class ElektaAverager(object):
         (e.g. spike, slope)
     flat : dict
         Flatness criteria from DACQ that can be used with mne.Epochs.
+
+    Notes
+    -----
+    Any category (also non-active ones) can be accessed by indexing as
+    ``elekta_averager['category_name']``.
     """
 
     # averager related DACQ variable names (without preceding 'ERF')
