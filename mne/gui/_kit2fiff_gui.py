@@ -121,6 +121,9 @@ class Kit2FiffModel(HasPrivateTraits):
     can_save = Property(Bool, depends_on=['stim_chs_ok', 'fid',
                                           'elp', 'hsp', 'dev_head_trans'])
 
+    # Show GUI feedback (like error messages and progress bar)
+    show_gui = Bool(False)
+
     @cached_property
     def _get_can_save(self):
         "Only allow saving when either all or no head shape elements are set."
@@ -149,9 +152,10 @@ class Kit2FiffModel(HasPrivateTraits):
 
         n_use = len(self.use_mrk)
         if n_use < 3:
-            error(None, "Estimating the device head transform requires at "
-                  "least 3 marker points. Please adjust the markers used.",
-                  "Not Enough Marker Points")
+            if self.show_gui:
+                error(None, "Estimating the device head transform requires at "
+                      "least 3 marker points. Please adjust the markers used.",
+                      "Not Enough Marker Points")
             return
         elif n_use < 5:
             src_pts = src_pts[self.use_mrk]
@@ -178,9 +182,10 @@ class Kit2FiffModel(HasPrivateTraits):
             if len(pts) < 8:
                 raise ValueError("File contains %i points, need 8" % len(pts))
         except Exception as err:
-            error(None, str(err), "Error Reading Fiducials")
+            if self.show_gui:
+                error(None, str(err), "Error Reading Fiducials")
             self.reset_traits(['fid_file'])
-            raise
+            raise err
         else:
             return pts
 
@@ -232,13 +237,15 @@ class Kit2FiffModel(HasPrivateTraits):
                        "which is more than the recommended maximum ({n_rec}). "
                        "The file will be automatically downsampled, which "
                        "might take a while. A better way to downsample is "
-                       "using FastScan.")
-                msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS)
-                information(None, msg, "Too Many Head Shape Points")
+                       "using FastScan.".
+                       format(n_in=n_pts, n_rec=KIT.DIG_POINTS))
+                if self.show_gui:
+                    information(None, msg, "Too Many Head Shape Points")
                 pts = _decimate_points(pts, 5)
 
         except Exception as err:
-            error(None, str(err), "Error Reading Head Shape")
+            if self.show_gui:
+                error(None, str(err), "Error Reading Head Shape")
             self.reset_traits(['hsp_file'])
             raise
         else:
@@ -264,19 +271,25 @@ class Kit2FiffModel(HasPrivateTraits):
     def _get_misc_data(self):
         if not self.raw:
             return
-        # progress dialog with indefinite progress bar
-        prog = ProgressDialog(title="Loading SQD data...",
-                              message="Loading stim channel data from SQD "
-                              "file ...")
-        prog.open()
-        prog.update(0)
+        if self.show_gui:
+            # progress dialog with indefinite progress bar
+            prog = ProgressDialog(title="Loading SQD data...",
+                                  message="Loading stim channel data from SQD "
+                                  "file ...")
+            prog.open()
+            prog.update(0)
+        else:
+            prog = None
+
         try:
             data, times = self.raw[self.misc_chs]
         except Exception as err:
-            prog.close()
-            error(None, str(err), "Error Creating FsAverage")
-            raise
-        prog.close()
+            if self.show_gui:
+                error(None, str(err), "Error Creating FsAverage")
+            raise err
+        finally:
+            if self.show_gui:
+                prog.close()
         return data
 
     @cached_property
@@ -298,10 +311,12 @@ class Kit2FiffModel(HasPrivateTraits):
         try:
             return RawKIT(self.sqd_file, stim=None)
         except Exception as err:
-            error(None, "Error reading SQD data file: %s (Check the terminal "
-                  "output for details)" % str(err), "Error Reading SQD file")
             self.reset_traits(['sqd_file'])
-            raise
+            if self.show_gui:
+                error(None, "Error reading SQD data file: %s (Check the "
+                      "terminal output for details)" % str(err),
+                      "Error Reading SQD file")
+            raise err
 
     @cached_property
     def _get_sqd_fname(self):
@@ -608,7 +623,14 @@ class Kit2FiffPanel(HasPrivateTraits):
         self.queue_len += 1
 
     def _test_stim_fired(self):
-        events = self.model.get_event_info()
+        try:
+            events = self.model.get_event_info()
+        except Exception as err:
+            error(None, "Error reading events from SQD data file: %s (Check "
+                  "the terminal output for details)" % str(err),
+                  "Error Reading events from SQD file")
+            raise err
+
         if len(events) == 0:
             information(None, "No events were found with the current "
                         "settings.", "No Events Found")
@@ -621,7 +643,7 @@ class Kit2FiffPanel(HasPrivateTraits):
 
 class Kit2FiffFrame(HasTraits):
     """GUI for interpolating between two KIT marker files"""
-    model = Instance(Kit2FiffModel, ())
+    model = Instance(Kit2FiffModel, kw={'show_gui': True})
     scene = Instance(MlabSceneModel, ())
     headview = Instance(HeadViewController)
     marker_panel = Instance(CombineMarkersPanel)
