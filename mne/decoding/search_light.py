@@ -87,6 +87,46 @@ class SearchLight(BaseEstimator, TransformerMixin):
         self.estimators_ = np.concatenate(estimators, 0)
         return self
 
+    def partial_fit(self, X, y=None):
+        """Fit a series of independent estimators to the dataset.
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, nd_features, n_estimators)
+            The training input samples. For each data slice, a clone estimator
+            is fitted independently. The feature dimension can be
+            multidimensional e.g.
+            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+        y : array, shape (n_samples,) | (n_samples, n_targets)
+            The target values.
+
+        Returns
+        -------
+        self : object
+            Return self.
+        """
+        self._check_Xy(X, y)
+        self.estimators_ = list()
+        est = self.base_estimator
+        if hasattr(self.base_estimator, 'steps'):
+            est = self.base_estimator.steps[-1][1]
+        if not hasattr(est, 'partial_fit'):
+            raise AttributeError('The base_estimator does not support '
+                                 'partial_fit.')
+
+        if not hasattr(self, 'estimators_'):
+            return self.fit(X, y)
+
+        # For fitting, the parallelization is across estimators.
+        parallel, p_func, n_jobs = parallel_func(_sl_partial_fit, self.n_jobs)
+        n_jobs = min(n_jobs, X.shape[-1])
+        estimators = parallel(
+            p_func(estimators, split, y)
+            for estimators, split in zip(
+                np.array_split(self.estimators_, n_jobs),
+                np.array_split(X, n_jobs, axis=-1)))
+        self.estimators_ = np.concatenate(estimators, 0)
+
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation."""
         self._check_Xy(X)
@@ -269,6 +309,31 @@ def _sl_fit(estimator, X, y):
         est.fit(X[..., ii], y)
         estimators_.append(est)
     return estimators_
+
+
+def _sl_partial_fit(estimators, X, y):
+    """Aux. function to fit SearchLight in parallel.
+
+    Fit a clone estimator to each slice of data.
+
+    Parameters
+    ----------
+    estimator : list of estimators
+        The estimators to iteratively fit on a subset of the dataset.
+    X : array, shape (n_samples, nd_features, n_estimators)
+        The target data. The feature dimension can be multidimensional e.g.
+        X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+    y : array, shape (n_sample, )
+        The target values.
+
+    Returns
+    -------
+    estimators_ : list of estimators
+        The fitted estimators.
+    """
+    for ii, est in enumerate(estimators):
+        est.fit(X[..., ii], y)
+    return estimators
 
 
 def _sl_transform(estimators, X, method):
