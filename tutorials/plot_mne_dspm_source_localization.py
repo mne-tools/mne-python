@@ -23,7 +23,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = mne.io.read_raw_fif(raw_fname, add_eeg_ref=False)
-raw.set_eeg_reference()
+raw.set_eeg_reference()  # set EEG average reference
 events = mne.find_events(raw, stim_channel='STI 014')
 
 event_id = dict(aud_r=1)  # event trigger and conditions
