@@ -354,12 +354,12 @@ It creates a BrainVision ``vhdr`` file and calls :ref:`mne_brain_vision2fiff`.
 Setting EEG references
 ######################
 
-The preferred method for creating an average EEG reference in MNE is
+The preferred method for applying an EEG reference in MNE is
 :func:`mne.set_eeg_reference`, or equivalent instance methods like
-:meth:`raw.set_eeg_reference() <mne.io.Raw.set_eeg_reference>`. Instead
-of applying the average reference to the data directly, an average EEG
-reference projector is created that is applied like any other SSP projection
-operator.
+:meth:`raw.set_eeg_reference() <mne.io.Raw.set_eeg_reference>`. By default,
+an average reference is used. Instead of applying the average reference to
+the data directly, an average EEG reference projector is created that is
+applied like any other SSP projection operator.
 
 There are also other functions that can be useful for other referencing
 operations. See :func:`mne.set_bipolar_reference` and
