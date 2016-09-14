@@ -779,9 +779,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
     with warnings.catch_warnings(record=True):  # traits warnings
-        brain = Brain(subject, hemi, surface, True, title, cortex, size,
-                      background, foreground, figure, subjects_dir, views,
-                      config_opts=config_opts)
+        brain = Brain(subject, hemi=hemi, surf=surface, curv=True,
+                      title=title, cortex=cortex, size=size,
+                      background=background, foreground=foreground,
+                      figure=figure, subjects_dir=subjects_dir,
+                      views=views, config_opts=config_opts)
 
     if time_unit == 's':
         times = stc.times
