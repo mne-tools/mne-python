@@ -1089,7 +1089,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     return dipoles, residual
 
 
-def get_phantom_dipoles(kind='elekta'):
+def get_phantom_dipoles(kind='vectorview'):
     """Get standard phantom dipole locations and orientations
 
     Parameters
