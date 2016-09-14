@@ -17,7 +17,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, find_events
 from mne.io.constants import FIFF
-from mne.io import Raw, read_raw_brainvision
+from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -56,7 +56,7 @@ warnings.simplefilter('always')
 
 
 def test_brainvision_data_highpass_filters():
-    """Test reading raw Brain Vision files with amplifier HP filter settings"""
+    """Test reading raw Brain Vision files with amplifier filter settings."""
     # Homogeneous highpass in seconds (default measurement unit)
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw = _test_raw_reader(
@@ -208,7 +208,7 @@ def test_brainvision_data_partially_disabled_hw_filters():
 
 
 def test_brainvision_data_software_filters_latin1_global_units():
-    """Test reading raw Brain Vision files"""
+    """Test reading raw Brain Vision files."""
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_old_path,
@@ -220,7 +220,7 @@ def test_brainvision_data_software_filters_latin1_global_units():
 
 
 def test_brainvision_data():
-    """Test reading raw Brain Vision files"""
+    """Test reading raw Brain Vision files."""
     assert_raises(IOError, read_raw_brainvision, vmrk_path)
     assert_raises(ValueError, read_raw_brainvision, vhdr_path, montage,
                   preload=True, scale="foo")
@@ -240,7 +240,7 @@ def test_brainvision_data():
     data_py, times_py = raw_py[picks]
 
     # compare with a file that was generated using MNE-C
-    raw_bin = Raw(eeg_bin, preload=True)
+    raw_bin = read_raw_fif(eeg_bin, preload=True, add_eeg_ref=False)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_bin, times_bin = raw_bin[picks]
 
@@ -271,7 +271,7 @@ def test_brainvision_data():
 
 
 def test_events():
-    """Test reading and modifying events"""
+    """Test reading and modifying events."""
     tempdir = _TempDir()
 
     # check that events are read and stim channel is synthesized correcly

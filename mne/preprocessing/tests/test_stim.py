@@ -8,7 +8,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
 
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne.io.pick import pick_types
 from mne.event import read_events
 from mne.epochs import Epochs
@@ -20,20 +20,20 @@ event_fname = op.join(data_path, 'test-eve.fif')
 
 
 def test_fix_stim_artifact():
-    """Test fix stim artifact"""
+    """Test fix stim artifact."""
     events = read_events(event_fname)
 
-    raw = Raw(raw_fname, preload=False)
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
     assert_raises(RuntimeError, fix_stim_artifact, raw)
 
-    raw = Raw(raw_fname, preload=True)
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False, preload=True)
 
     # use window before stimulus in epochs
     tmin, tmax, event_id = -0.2, 0.5, 1
     picks = pick_types(raw.info, meg=True, eeg=True,
                        eog=True, stim=False, exclude='bads')
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, reject=None)
+                    preload=True, reject=None, add_eeg_ref=False)
     e_start = int(np.ceil(epochs.info['sfreq'] * epochs.tmin))
     tmin, tmax = -0.045, -0.015
     tmin_samp = int(-0.035 * epochs.info['sfreq']) - e_start
@@ -72,7 +72,8 @@ def test_fix_stim_artifact():
     # get epochs from raw with fixed data
     tmin, tmax, event_id = -0.2, 0.5, 1
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, reject=None, baseline=None)
+                    preload=True, reject=None, baseline=None,
+                    add_eeg_ref=False)
     e_start = int(np.ceil(epochs.info['sfreq'] * epochs.tmin))
     tmin_samp = int(-0.035 * epochs.info['sfreq']) - e_start
     tmax_samp = int(-0.015 * epochs.info['sfreq']) - e_start

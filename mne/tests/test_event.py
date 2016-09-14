@@ -8,7 +8,8 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
-                 find_events, pick_events, find_stim_steps, io, pick_channels)
+                 find_events, pick_events, find_stim_steps, pick_channels)
+from mne.io import read_raw_fif
 from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
 from mne.event import define_target_events, merge_events
@@ -29,8 +30,8 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 
 
 def test_fix_stim():
-    """Test fixing stim STI016 for Neuromag"""
-    raw = io.read_raw_fif(raw_fname, preload=True)
+    """Test fixing stim STI016 for Neuromag."""
+    raw = read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
     # 32768 (016) + 3 (002+001) bits gets incorrectly coded during acquisition
     raw._data[raw.ch_names.index('STI 014'), :3] = [0, -32765, 0]
     with warnings.catch_warnings(record=True) as w:
@@ -43,12 +44,12 @@ def test_fix_stim():
 
 
 def test_add_events():
-    """Test adding events to a Raw file"""
+    """Test adding events to a Raw file."""
     # need preload
-    raw = io.read_raw_fif(raw_fname, preload=False)
+    raw = read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
     events = np.array([[raw.first_samp, 0, 1]])
     assert_raises(RuntimeError, raw.add_events, events, 'STI 014')
-    raw = io.read_raw_fif(raw_fname, preload=True)
+    raw = read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
     orig_events = find_events(raw, 'STI 014')
     # add some events
     events = np.array([raw.first_samp, 0, 1])
@@ -66,7 +67,7 @@ def test_add_events():
 
 
 def test_merge_events():
-    """Test event merging"""
+    """Test event merging."""
     events_orig = [[1, 0, 1], [3, 0, 2], [10, 0, 3], [20, 0, 4]]
 
     events_replacement = \
@@ -98,7 +99,7 @@ def test_merge_events():
 
 
 def test_io_events():
-    """Test IO for events"""
+    """Test IO for events."""
     tempdir = _TempDir()
     # Test binary fif IO
     events = read_events(fname)  # Use as the gold standard
@@ -169,9 +170,9 @@ def test_io_events():
 
 
 def test_find_events():
-    """Test find events in raw file"""
+    """Test find events in raw file."""
     events = read_events(fname)
-    raw = io.read_raw_fif(raw_fname, preload=True)
+    raw = read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
     # let's test the defaulting behavior while we're at it
     extra_ends = ['', '_1']
     orig_envs = [os.getenv('MNE_STIM_CHANNEL%s' % s) for s in extra_ends]
@@ -181,7 +182,7 @@ def test_find_events():
     events2 = find_events(raw)
     assert_array_almost_equal(events, events2)
     # now test with mask
-    events11 = find_events(raw, mask=3)
+    events11 = find_events(raw, mask=3, mask_type='not_and')
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         events22 = read_events(fname, mask=3)
@@ -205,13 +206,17 @@ def test_find_events():
     assert_raises(TypeError, find_events, raw, mask="0")
     assert_raises(ValueError, find_events, raw, mask=0, mask_type='blah')
     # testing mask_type. default = 'not_and'
-    assert_array_equal(find_events(raw, shortest_event=1, mask=1),
+    assert_array_equal(find_events(raw, shortest_event=1, mask=1,
+                                   mask_type='not_and'),
                        [[2, 0, 2], [4, 2, 4]])
-    assert_array_equal(find_events(raw, shortest_event=1, mask=2),
+    assert_array_equal(find_events(raw, shortest_event=1, mask=2,
+                                   mask_type='not_and'),
                        [[1, 0, 1], [3, 0, 1], [4, 1, 4]])
-    assert_array_equal(find_events(raw, shortest_event=1, mask=3),
+    assert_array_equal(find_events(raw, shortest_event=1, mask=3,
+                                   mask_type='not_and'),
                        [[4, 0, 4]])
-    assert_array_equal(find_events(raw, shortest_event=1, mask=4),
+    assert_array_equal(find_events(raw, shortest_event=1, mask=4,
+                                   mask_type='not_and'),
                        [[1, 0, 1], [2, 1, 2], [3, 2, 3]])
     # testing with mask_type = 'and'
     assert_array_equal(find_events(raw, shortest_event=1, mask=1,
@@ -333,7 +338,7 @@ def test_find_events():
 
 
 def test_pick_events():
-    """Test pick events in a events ndarray"""
+    """Test pick events in a events ndarray."""
     events = np.array([[1, 0, 1],
                        [2, 1, 0],
                        [3, 0, 4],
@@ -353,8 +358,8 @@ def test_pick_events():
 
 
 def test_make_fixed_length_events():
-    """Test making events of a fixed length"""
-    raw = io.read_raw_fif(raw_fname)
+    """Test making events of a fixed length."""
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
     events = make_fixed_length_events(raw, id=1)
     assert_true(events.shape[1], 3)
     events_zero = make_fixed_length_events(raw, 1, first_samp=False)
@@ -376,9 +381,9 @@ def test_make_fixed_length_events():
 
 
 def test_define_events():
-    """Test defining response events"""
+    """Test defining response events."""
     events = read_events(fname)
-    raw = io.read_raw_fif(raw_fname)
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
     events_, _ = define_target_events(events, 5, 32, raw.info['sfreq'],
                                       .2, 0.7, 42, 99)
     n_target = events[events[:, 2] == 5].shape[0]

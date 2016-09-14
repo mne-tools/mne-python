@@ -4,7 +4,7 @@
 
 import numpy as np
 import os.path as op
-from mne import io
+from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.io.proc_history import _get_sss_rank
 from nose.tools import assert_true, assert_equal
@@ -14,9 +14,9 @@ raw_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 
 def test_maxfilter_io():
-    """test maxfilter io"""
-    raw = io.read_raw_fif(raw_fname)
-    mf = raw.info['proc_history'][1]['max_info']
+    """Test maxfilter io."""
+    info = read_info(raw_fname)
+    mf = info['proc_history'][1]['max_info']
 
     assert_true(mf['sss_info']['frame'], FIFF.FIFFV_COORD_HEAD)
     # based on manual 2.0, rev. 5.0 page 23
@@ -24,7 +24,7 @@ def test_maxfilter_io():
     assert_true(mf['sss_info']['out_order'] <= 5)
     assert_true(mf['sss_info']['nchan'] > len(mf['sss_info']['components']))
 
-    assert_equal(raw.ch_names[:mf['sss_info']['nchan']],
+    assert_equal(info['ch_names'][:mf['sss_info']['nchan']],
                  mf['sss_ctc']['proj_items_chs'])
     assert_equal(mf['sss_ctc']['decoupler'].shape,
                  (mf['sss_info']['nchan'], mf['sss_info']['nchan']))
@@ -39,9 +39,8 @@ def test_maxfilter_io():
 
 
 def test_maxfilter_get_rank():
-    """test maxfilter rank lookup"""
-    raw = io.read_raw_fif(raw_fname)
-    mf = raw.info['proc_history'][0]['max_info']
+    """Test maxfilter rank lookup."""
+    mf = read_info(raw_fname)['proc_history'][0]['max_info']
     rank1 = mf['sss_info']['nfree']
     rank2 = _get_sss_rank(mf)
     assert_equal(rank1, rank2)

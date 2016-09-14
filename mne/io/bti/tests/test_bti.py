@@ -13,7 +13,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_equal
 
-from mne.io import Raw, read_raw_bti
+from mne.io import read_raw_fif, read_raw_bti
 from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info)
@@ -43,7 +43,7 @@ NCH = 248
 
 
 def test_read_config():
-    """ Test read bti config file """
+    """Test read bti config file."""
     # for config in config_fname, config_solaris_fname:
     for config in config_fnames:
         cfg = _read_config(config)
@@ -52,7 +52,7 @@ def test_read_config():
 
 
 def test_crop_append():
-    """ Test crop and append raw """
+    """Test crop and append raw."""
     with warnings.catch_warnings(record=True):  # preload warning
         warnings.simplefilter('always')
         raw = _test_raw_reader(
@@ -68,7 +68,7 @@ def test_crop_append():
 
 
 def test_transforms():
-    """ Test transformations """
+    """Test transformations."""
     bti_trans = (0.0, 0.02, 0.11)
     bti_dev_t = Transform('ctf_meg', 'meg', _get_bti_dev_t(0.0, bti_trans))
     for pdf, config, hs, in zip(pdf_fnames, config_fnames, hs_fnames):
@@ -91,7 +91,7 @@ def test_transforms():
 
 
 def test_raw():
-    """ Test bti conversion to Raw object """
+    """Test bti conversion to Raw object."""
     for pdf, config, hs, exported in zip(pdf_fnames, config_fnames, hs_fnames,
                                          exported_fnames):
         # rx = 2 if 'linux' in pdf else 0
@@ -100,7 +100,7 @@ def test_raw():
                       preload=False)
         if op.exists(tmp_raw_fname):
             os.remove(tmp_raw_fname)
-        ex = Raw(exported, preload=True)
+        ex = read_raw_fif(exported, preload=True, add_eeg_ref=False)
         with warnings.catch_warnings(record=True):  # weight tables
             ra = read_raw_bti(pdf, config, hs, preload=False)
         assert_true('RawBTi' in repr(ra))
@@ -137,7 +137,7 @@ def test_raw():
                                     ra.info[key][ent])
 
         ra.save(tmp_raw_fname)
-        re = Raw(tmp_raw_fname)
+        re = read_raw_fif(tmp_raw_fname, add_eeg_ref=False)
         print(re)
         for key in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
             assert_true(isinstance(re.info[key], dict))
@@ -149,7 +149,7 @@ def test_raw():
 
 
 def test_info_no_rename_no_reorder_no_pdf():
-    """ Test private renaming, reordering and partial construction option """
+    """Test private renaming, reordering and partial construction option."""
     for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
         with warnings.catch_warnings(record=True):  # weight tables
             info, bti_info = _get_bti_info(
@@ -212,8 +212,7 @@ def test_info_no_rename_no_reorder_no_pdf():
 
 
 def test_no_conversion():
-    """ Test bti no-conversion option """
-
+    """Test bti no-conversion option."""
     get_info = partial(
         _get_bti_info,
         rotation_x=0.0, translation=(0.0, 0.02, 0.11), convert=False,
@@ -272,7 +271,7 @@ def test_no_conversion():
 
 
 def test_bytes_io():
-    """ Test bti bytes-io API """
+    """Test bti bytes-io API."""
     for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
         with warnings.catch_warnings(record=True):  # weight tables
             raw = read_raw_bti(pdf, config, hs, convert=True, preload=False)
@@ -290,7 +289,7 @@ def test_bytes_io():
 
 
 def test_setup_headshape():
-    """ Test reading bti headshape """
+    """Test reading bti headshape."""
     for hs in hs_fnames:
         dig, t = _process_bti_headshape(hs)
         expected = set(['kind', 'ident', 'r'])

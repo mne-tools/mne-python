@@ -437,7 +437,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         pick_mask = slice(None)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
-                    preload=False, proj=False)
+                    preload=False, proj=False, add_eeg_ref=False)
     if method is None:
         method = 'empirical'
     if isinstance(method, string_types) and method == 'empirical':
@@ -453,8 +453,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
             data += np.dot(raw_segment, raw_segment.T)
             n_samples += raw_segment.shape[1]
         _check_n_samples(n_samples, len(picks))
-        mu /= n_samples
-        data -= n_samples * mu[:, None] * mu[None, :]
+        data -= mu[:, None] * (mu[None, :] / n_samples)
         data /= (n_samples - 1.0)
         logger.info("Number of samples used : %d" % n_samples)
         logger.info('[done]')

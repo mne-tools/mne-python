@@ -24,7 +24,7 @@ fine_cal_fname = data_path + '/SSS/sss_cal_mgh.dat'
 
 ###############################################################################
 # Preprocess with Maxwell filtering
-raw = mne.io.read_raw_fif(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname, add_eeg_ref=False)
 raw.info['bads'] = ['MEG 2443', 'EEG 053', 'MEG 1032', 'MEG 2313']  # set bads
 # Here we don't use tSSS (set st_duration) because MGH data is very clean
 raw_sss = maxwell_filter(raw, cross_talk=ctc_fname, calibration=fine_cal_fname)

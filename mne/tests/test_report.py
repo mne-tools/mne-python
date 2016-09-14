@@ -14,7 +14,7 @@ from nose.tools import assert_true, assert_equal, assert_raises
 from nose.plugins.skip import SkipTest
 
 from mne import Epochs, read_events, pick_types, read_evokeds
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
@@ -49,8 +49,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 @testing.requires_testing_data
 @requires_PIL
 def test_render_report():
-    """Test rendering -*.fif files for mne report.
-    """
+    """Test rendering -*.fif files for mne report."""
     tempdir = _TempDir()
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
     event_fname_new = op.join(tempdir, 'temp_raw-eve.fif')
@@ -67,9 +66,10 @@ def test_render_report():
     # create and add -epo.fif and -ave.fif files
     epochs_fname = op.join(tempdir, 'temp-epo.fif')
     evoked_fname = op.join(tempdir, 'temp-ave.fif')
-    raw = Raw(raw_fname_new)
+    raw = read_raw_fif(raw_fname_new, add_eeg_ref=False)
     picks = pick_types(raw.info, meg='mag', eeg=False)  # faster with one type
-    epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2, picks=picks)
+    epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2, picks=picks,
+                    add_eeg_ref=False)
     epochs.save(epochs_fname)
     epochs.average().save(evoked_fname)
 
@@ -130,8 +130,7 @@ def test_render_report():
 @requires_mayavi
 @requires_PIL
 def test_render_add_sections():
-    """Test adding figures/images to section.
-    """
+    """Test adding figures/images to section."""
     from PIL import Image
     tempdir = _TempDir()
     import matplotlib.pyplot as plt
@@ -183,8 +182,7 @@ def test_render_add_sections():
 @requires_mayavi
 @requires_nibabel()
 def test_render_mri():
-    """Test rendering MRI for mne report.
-    """
+    """Test rendering MRI for mne report."""
     tempdir = _TempDir()
     trans_fname_new = op.join(tempdir, 'temp-trans.fif')
     for a, b in [[trans_fname, trans_fname_new]]:
@@ -202,8 +200,7 @@ def test_render_mri():
 @testing.requires_testing_data
 @requires_nibabel()
 def test_render_mri_without_bem():
-    """Test rendering MRI without BEM for mne report.
-    """
+    """Test rendering MRI without BEM for mne report."""
     tempdir = _TempDir()
     os.mkdir(op.join(tempdir, 'sample'))
     os.mkdir(op.join(tempdir, 'sample', 'mri'))
@@ -220,8 +217,7 @@ def test_render_mri_without_bem():
 @testing.requires_testing_data
 @requires_nibabel()
 def test_add_htmls_to_section():
-    """Test adding html str to mne report.
-    """
+    """Test adding html str to mne report."""
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     html = '<b>MNE-Python is AWESOME</b>'
@@ -234,8 +230,7 @@ def test_add_htmls_to_section():
 
 
 def test_add_slider_to_section():
-    """Test adding a slider with a series of images to mne report.
-    """
+    """Test adding a slider with a series of images to mne report."""
     tempdir = _TempDir()
     from matplotlib import pyplot as plt
     report = Report(info_fname=raw_fname,
@@ -258,6 +253,7 @@ def test_add_slider_to_section():
 
 
 def test_validate_input():
+    """Test Report input validation."""
     report = Report()
     items = ['a', 'b', 'c']
     captions = ['Letter A', 'Letter B', 'Letter C']

@@ -140,14 +140,12 @@ def test_volume_stc():
         with warnings.catch_warnings(record=True):  # nib<->numpy
             img = nib.load(vol_fname)
         assert_true(img.shape == t1_img.shape + (len(stc.times),))
-        assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
-                                  decimal=5)
+        assert_array_almost_equal(img.affine, t1_img.affine, decimal=5)
 
         # export without saving
         img = stc.as_volume(src, dest='mri', mri_resolution=True)
         assert_true(img.shape == t1_img.shape + (len(stc.times),))
-        assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
-                                  decimal=5)
+        assert_array_almost_equal(img.affine, t1_img.affine, decimal=5)
 
     except ImportError:
         print('Save as nifti test skipped, needs NiBabel')
