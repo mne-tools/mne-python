@@ -112,7 +112,9 @@ BUG
 
         - Use online software filter information when present
 
-        - Fix comparisons of filter settings for determining "strictest" filter
+        - Fix comparisons of filter settings for determining "strictest"/"weakest" filter
+
+        - Weakest filter is now used for heterogeneous channel filter settings, leading to more consistent behavior with filtering methods applied to a subset of channels (e.g. ``Raw.filter`` with ``picks != None``).  
 
     - Fixed plotting and timing of :class:`Annotations` and restricted addition of annotations outside data range to prevent problems with cropping and concatenating data by `Jaakko Leppakangas`_
 

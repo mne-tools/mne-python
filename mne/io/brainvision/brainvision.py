@@ -502,29 +502,30 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 # highpass relaxed / no filters
                 highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
                             else np.Inf for filt in highpass]
-                info['highpass'] = np.min(np.array(highpass, dtype=np.float))
+                info['highpass'] = np.max(np.array(highpass, dtype=np.float))
                 # Coveniently enough 1 / np.Inf = 0.0, so this works for
                 # DC / no highpass filter
                 info['highpass'] = 1. / info['highpass']
 
                 # not exactly the cleanest use of FP, but this makes us
                 # more conservative in *not* warning.
-                if info['highpass'] == 0.0:
+                if info['highpass'] == 0.0 and len(set(highpass)) == 1:
                     # not actually heterogeneous in effect
                     # ... just heterogeneously disabled
                     heterogeneous_hp_filter = False
             else:
                 highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
                             else 0.0 for filt in highpass]
-                info['highpass'] = np.max(np.array(highpass, dtype=np.float))
-                if info['highpass'] == 0.0:
+                info['highpass'] = np.min(np.array(highpass, dtype=np.float))
+                if info['highpass'] == 0.0 and len(set(highpass)) == 1:
                     # not actually heterogeneous in effect
                     # ... just heterogeneously disabled
                     heterogeneous_hp_filter = False
+
             if heterogeneous_hp_filter:
                 warn('Channels contain different highpass filters. '
-                     'Highest filter setting (%0.2f Hz) will be stored.'
-                     % info['highpass'])
+                     'Lowest (weakest) filter setting (%0.2f Hz) '
+                     'will be stored.' % info['highpass'])
 
         if len(lowpass) == 0:
             pass
@@ -542,35 +543,49 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 # infinitely relaxed / no filters
                 lowpass = [float(filt) if filt not in ('NaN', 'Off')
                            else 0.0 for filt in lowpass]
-                info['lowpass'] = np.max(np.array(lowpass, dtype=np.float))
+                info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
                 try:
                     info['lowpass'] = 1. / info['lowpass']
                 except ZeroDivisionError:
-                    # No lowpass actually set (always Off or equivalent)
-                    # so we let lowpass be set in _empty_info
-                    del info['lowpass']
-                    # not actually heterogeneous in effect
-                    # ... just heterogeneously disabled
-                    heterogeneous_lp_filter = False
+                    if len(set(lowpass)) == 1:
+                        # No lowpass actually set for the weakest setting
+                        # so we set lowpass to the Nyquist frequency
+                        info['lowpass'] = info['sfreq'] / 2.
+                        # not actually heterogeneous in effect
+                        # ... just heterogeneously disabled
+                        heterogeneous_lp_filter = False
+                    else:
+                        # no lowpass filter is the weakest filter,
+                        # but it wasn't the only filter
+                        pass
             else:
                 # We convert channels with disabled filters to having
                 # infinitely relaxed / no filters
                 lowpass = [float(filt) if filt not in ('NaN', 'Off')
                            else np.Inf for filt in lowpass]
-                info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
+                info['lowpass'] = np.max(np.array(lowpass, dtype=np.float))
 
                 if np.isinf(info['lowpass']):
-                    # No lowpass actually set (always Off or equivalent)
-                    # so we let lowpass be set in _empty_info
-                    del info['lowpass']
-                    # not actually heterogeneous in effect
-                    # ... just heterogeneously disabled
-                    heterogeneous_lp_filter = False
+                    # No lowpass actually set for the weakest setting
+                    # so we set lowpass to the Nyquist frequency
+                    info['lowpass'] = info['sfreq'] / 2.
+                    if len(set(lowpass)) == 1:
+                        # not actually heterogeneous in effect
+                        # ... just heterogeneously disabled
+                        heterogeneous_lp_filter = False
 
             if heterogeneous_lp_filter:
+                # this isn't clean FP, but then again, we only want to provide
+                # the Nyquist hint when the lowpass filter was actually
+                # calculated from dividing the sampling frequency by 2, so the
+                # exact/direct comparison (instead of tolerance) makes sense
+                if info['lowpass'] == info['sfreq'] / 2.0:
+                    nyquist = ', Nyquist limit'
+                else:
+                    nyquist = ""
                 warn('Channels contain different lowpass filters. '
-                     'Lowest filter setting (%0.2f Hz) will be stored.'
-                     % info['lowpass'])
+                     'Highest (weakest) filter setting (%0.2f Hz%s) '
+                     'will be stored.' % (info['lowpass'], nyquist))
 
     # locate EEG and marker files
     path = os.path.dirname(vhdr_fname)

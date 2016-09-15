@@ -84,7 +84,7 @@ def test_brainvision_data_highpass_filters():
 
     assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
 
-    assert_equal(raw.info['highpass'], 0.2)
+    assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
 
     # Homogeneous highpass in Hertz
@@ -114,7 +114,7 @@ def test_brainvision_data_highpass_filters():
 
     assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
 
-    assert_equal(raw.info['highpass'], 10.)
+    assert_equal(raw.info['highpass'], 5.)
     assert_equal(raw.info['lowpass'], 250.)
 
 
@@ -149,7 +149,7 @@ def test_brainvision_data_lowpass_filters():
     assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
 
     assert_equal(raw.info['highpass'], 0.1)
-    assert_equal(raw.info['lowpass'], 125.)
+    assert_equal(raw.info['lowpass'], 250.)
 
     # Homogeneous lowpass in seconds
     with warnings.catch_warnings(record=True) as w:  # event parsing
@@ -179,7 +179,7 @@ def test_brainvision_data_lowpass_filters():
     assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
 
     assert_equal(raw.info['highpass'], 0.1)
-    assert_equal(raw.info['lowpass'], 125.)
+    assert_equal(raw.info['lowpass'], 250.)
 
 
 def test_brainvision_data_partially_disabled_hw_filters():
@@ -203,8 +203,8 @@ def test_brainvision_data_partially_disabled_hw_filters():
 
     assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
 
-    assert_equal(raw.info['highpass'], 0.1)
-    assert_equal(raw.info['lowpass'], 250.)
+    assert_equal(raw.info['highpass'], 0.)
+    assert_equal(raw.info['lowpass'], 500.)
 
 
 def test_brainvision_data_software_filters_latin1_global_units():
