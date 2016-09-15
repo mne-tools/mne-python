@@ -2298,10 +2298,10 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         original Corrmap)
         Defaults to "auto".
     label : None | str
-        If not None, categorised ICs are stored in a dictionary "labels_" under
-        the given name. Preexisting entries will be appended to (excluding
-        repeats), not overwritten. If None, a dry run is performed and
-        the supplied ICs are not changed.
+        If not None, categorised ICs are stored in a dictionary ``labels_``
+        under the given name. Preexisting entries will be appended to
+        (excluding repeats), not overwritten. If None, a dry run is performed
+        and the supplied ICs are not changed.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
         The channel type to plot. Defaults to 'eeg'.
     plot : bool

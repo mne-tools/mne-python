@@ -123,6 +123,8 @@ BUG
 API
 ~~~
 
+    - The ``add_eeg_ref`` argument in core functions like :func:`mne.io.read_raw_fif` and :class:`mne.Epochs` has been deprecated in favor of using :func:`mne.set_eeg_reference` and equivalent instance methods like :meth:`raw.set_eeg_reference() <mne.io.Raw.set_eeg_reference>`. In functions like :func:`mne.io.read_raw_fif` where the default in 0.13 and older versions is ``add_eeg_ref=True``, the default will change to ``add_eeg_ref=False`` in 0.14, and the argument will be removed in 0.15.
+
     - Multiple aspects of FIR filtering in MNE-Python has been refactored:
 
           1. New recommended defaults for ``l_trans_bandwidth='auto'``, ``h_trans_bandwidth='auto'``, and ``filter_length='auto'``. This should generally reduce filter artifacts at the expense of slight decrease in effective filter stop-band attenuation. For details see :ref:`tut_filtering_in_python`. The default values of ``l_trans_bandwidth=h_trans_bandwidth=0.5`` and ``filter_length='10s'`` will change to ``'auto'`` in 0.14.
