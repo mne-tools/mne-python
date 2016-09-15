@@ -704,7 +704,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
             Return the modified instance.
         """
         _check_partial_fit(self.estimator)
-        self.estimator.fit(self._preproc_X(X))
+        self.estimator.partial_fit(self._preproc_X(X))
 
     def fit_transform(self, X, y=None):
         """Transform the data to its filtered components after fitting.
