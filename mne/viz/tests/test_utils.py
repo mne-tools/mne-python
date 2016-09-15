@@ -29,8 +29,7 @@ ev_fname = op.join(base_dir, 'test_raw-eve.fif')
 
 
 def test_mne_analyze_colormap():
-    """Test mne_analyze_colormap
-    """
+    """Test mne_analyze_colormap."""
     assert_raises(ValueError, mne_analyze_colormap, [0])
     assert_raises(ValueError, mne_analyze_colormap, [-1, 1, 2])
     assert_raises(ValueError, mne_analyze_colormap, [0, 2, 1])
@@ -95,9 +94,9 @@ def test_add_background_image():
 
 def test_auto_scale():
     """Test auto-scaling of channels for quick plotting."""
-    raw = read_raw_fif(raw_fname, preload=False)
+    raw = read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
     ev = read_events(ev_fname)
-    epochs = Epochs(raw, ev)
+    epochs = Epochs(raw, ev, add_eeg_ref=False)
     rand_data = np.random.randn(10, 100)
 
     for inst in [raw, epochs]:
@@ -122,6 +121,7 @@ def test_auto_scale():
 
 
 def test_validate_if_list_of_axes():
+    """Test validation of axes."""
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(2, 2)
     assert_raises(ValueError, _validate_if_list_of_axes, ax)

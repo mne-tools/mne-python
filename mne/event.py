@@ -678,8 +678,8 @@ def _mask_trigs(events, mask, mask_type):
 
     if mask is not None:
         if mask_type is None:
-            warn("The default setting will change from 'not_and' "
-                 "to 'and' in v0.14.", DeprecationWarning)
+            warn("The default setting for mask_type will change from "
+                 "'not and' to 'and' in v0.14.", DeprecationWarning)
             mask_type = 'not_and'
         if mask_type == 'not_and':
             mask = np.bitwise_not(mask)

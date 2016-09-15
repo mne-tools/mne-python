@@ -888,12 +888,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     if cmap == 'interactive':
         cmap = ('RdBu_r', True)
     elif not isinstance(cmap, tuple):
-        if len(picks) > 2:
-            warn('Disabling interactive colorbar for multiple axes. Turn '
-                 'interactivity on explicitly by passing cmap as a tuple.')
-            cmap = (cmap, False)
-        else:
-            cmap = (cmap, True)
+        cmap = (cmap, False if len(picks) > 2 else True)
     data = np.dot(ica.mixing_matrix_[:, picks].T,
                   ica.pca_components_[:ica.n_components_])
 
@@ -1400,12 +1395,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     if cmap == 'interactive':
         cmap = (None, True)
     elif not isinstance(cmap, tuple):
-        if len(times) > 2:
-            warn('Disabling interactive colorbar for multiple axes. Turn '
-                 'interactivity on explicitly by passing cmap as a tuple.')
-            cmap = (cmap, False)
-        else:
-            cmap = (cmap, True)
+        cmap = (cmap, False if len(times) > 2 else True)
     for idx, time in enumerate(times):
         tp, cn = plot_topomap(data[:, idx], pos, vmin=vmin, vmax=vmax,
                               sensors=sensors, res=res, names=names,

@@ -9,12 +9,12 @@ import warnings
 from numpy.testing import assert_raises, assert_equal, assert_array_equal
 from nose.tools import assert_true
 
-from mne import io, read_events, Epochs, read_cov
-from mne import pick_types
+from mne import read_events, Epochs, read_cov, pick_types
+from mne.io import read_raw_fif
+from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.utils import run_tests_if_main, requires_sklearn
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click
-from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 
 # Set our plotters to test mode
 import matplotlib
@@ -31,33 +31,35 @@ event_id, tmin, tmax = 1, -0.1, 0.2
 
 
 def _get_raw(preload=False):
-    return io.read_raw_fif(raw_fname, preload=preload)
+    """Get raw data."""
+    return read_raw_fif(raw_fname, preload=preload, add_eeg_ref=False)
 
 
 def _get_events():
+    """Get events."""
     return read_events(event_name)
 
 
 def _get_picks(raw):
+    """Get picks."""
     return [0, 1, 2, 6, 7, 8, 12, 13, 14]  # take a only few channels
 
 
 def _get_epochs():
+    """Get epochs."""
     raw = _get_raw()
     events = _get_events()
     picks = _get_picks(raw)
     with warnings.catch_warnings(record=True):  # bad proj
         epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0))
+                        baseline=(None, 0), add_eeg_ref=False)
     return epochs
 
 
 @requires_sklearn
 def test_plot_ica_components():
-    """Test plotting of ICA solutions
-    """
+    """Test plotting of ICA solutions."""
     import matplotlib.pyplot as plt
-
     raw = _get_raw()
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
@@ -98,11 +100,11 @@ def test_plot_ica_components():
 
 @requires_sklearn
 def test_plot_ica_properties():
-    """Test plotting of ICA properties
-    """
+    """Test plotting of ICA properties."""
     import matplotlib.pyplot as plt
 
     raw = _get_raw(preload=True)
+    raw.add_proj([], remove_existing=True)
     events = _get_events()
     picks = _get_picks(raw)[:6]
     pick_names = [raw.ch_names[k] for k in picks]
@@ -151,11 +153,10 @@ def test_plot_ica_properties():
 
 @requires_sklearn
 def test_plot_ica_sources():
-    """Test plotting of ICA panel
-    """
+    """Test plotting of ICA panel."""
     import matplotlib.pyplot as plt
-    raw = io.read_raw_fif(raw_fname,
-                          preload=False).crop(0, 1, copy=False).load_data()
+    raw = read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
+    raw.crop(0, 1, copy=False).load_data()
     picks = _get_picks(raw)
     epochs = _get_epochs()
     raw.pick_channels([raw.ch_names[k] for k in picks])
@@ -199,8 +200,7 @@ def test_plot_ica_sources():
 
 @requires_sklearn
 def test_plot_ica_overlay():
-    """Test plotting of ICA cleaning
-    """
+    """Test plotting of ICA cleaning."""
     import matplotlib.pyplot as plt
     raw = _get_raw(preload=True)
     picks = _get_picks(raw)
@@ -224,8 +224,7 @@ def test_plot_ica_overlay():
 
 @requires_sklearn
 def test_plot_ica_scores():
-    """Test plotting of ICA scores
-    """
+    """Test plotting of ICA scores."""
     import matplotlib.pyplot as plt
     raw = _get_raw()
     picks = _get_picks(raw)

@@ -11,7 +11,7 @@ from nose.tools import assert_true, assert_false, assert_equal
 
 import mne
 from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne.utils import _TempDir, requires_traits, run_tests_if_main
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
@@ -26,7 +26,7 @@ warnings.simplefilter('always')
 
 @requires_traits
 def test_kit2fiff_model():
-    """Test CombineMarkersModel Traits Model"""
+    """Test CombineMarkersModel Traits Model."""
     from mne.gui._kit2fiff_gui import Kit2FiffModel, Kit2FiffPanel
     tempdir = _TempDir()
     tgt_fname = os.path.join(tempdir, 'test-raw.fif')
@@ -54,10 +54,10 @@ def test_kit2fiff_model():
     # export raw
     raw_out = model.get_raw()
     raw_out.save(tgt_fname)
-    raw = Raw(tgt_fname)
+    raw = read_raw_fif(tgt_fname, add_eeg_ref=False)
 
     # Compare exported raw with the original binary conversion
-    raw_bin = Raw(fif_path)
+    raw_bin = read_raw_fif(fif_path, add_eeg_ref=False)
     trans_bin = raw.info['dev_head_t']['trans']
     want_keys = list(raw_bin.info.keys())
     assert_equal(sorted(want_keys), sorted(list(raw.info.keys())))

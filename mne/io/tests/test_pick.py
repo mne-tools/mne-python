@@ -9,7 +9,8 @@ import numpy as np
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
                  pick_info, pick_channels, __file__, create_info)
-from mne.io import Raw, RawArray, read_raw_bti, read_raw_kit, read_info
+from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
+                    read_info)
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type)
 from mne.io.constants import FIFF
@@ -45,7 +46,8 @@ def test_pick_refs():
     infos.append(raw_bti.info)
     # CTF
     fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
-    raw_ctf = Raw(fname_ctf_raw).apply_gradient_compensation(2)
+    raw_ctf = read_raw_fif(fname_ctf_raw, add_eeg_ref=False)
+    raw_ctf.apply_gradient_compensation(2)
     infos.append(raw_ctf.info)
     for info in infos:
         info['bads'] = []
@@ -107,13 +109,14 @@ def test_pick_seeg_ecog():
         assert_equal(channel_type(info, i), types[i])
     raw = RawArray(np.zeros((len(names), 10)), info)
     events = np.array([[1, 0, 0], [2, 0, 0]])
-    epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5)
+    epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5, add_eeg_ref=False)
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
     e_seeg = evoked.copy().pick_types(meg=False, seeg=True)
     for l, r in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
         assert_equal(l, r)
     # Deal with constant debacle
-    raw = Raw(op.join(io_dir, 'tests', 'data', 'test_chpi_raw_sss.fif'))
+    raw = read_raw_fif(op.join(io_dir, 'tests', 'data',
+                               'test_chpi_raw_sss.fif'), add_eeg_ref=False)
     assert_equal(len(pick_types(raw.info, meg=False, seeg=True, ecog=True)), 0)
 
 
@@ -245,7 +248,7 @@ def test_clean_info_bads():
 
     raw_file = op.join(op.dirname(__file__), 'io', 'tests', 'data',
                        'test_raw.fif')
-    raw = Raw(raw_file)
+    raw = read_raw_fif(raw_file, add_eeg_ref=False)
 
     # select eeg channels
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)

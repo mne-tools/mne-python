@@ -31,16 +31,15 @@ event_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw-eve.fif'
 
 @testing.requires_testing_data
 def test_regression():
-    """Test Ordinary Least Squares Regression
-    """
+    """Test Ordinary Least Squares Regression."""
     tmin, tmax = -0.2, 0.5
     event_id = dict(aud_l=1, aud_r=2)
 
     # Setup for reading the raw data
-    raw = mne.io.read_raw_fif(raw_fname)
+    raw = mne.io.read_raw_fif(raw_fname, add_eeg_ref=False)
     events = mne.read_events(event_fname)[:10]
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                        baseline=(None, 0))
+                        baseline=(None, 0), add_eeg_ref=False)
     picks = np.arange(len(epochs.ch_names))
     evoked = epochs.average(picks=picks)
     design_matrix = epochs.events[:, 1:].astype(np.float64)
@@ -87,10 +86,10 @@ def test_regression():
 
 @testing.requires_testing_data
 def test_continuous_regression_no_overlap():
-    """Test regression without overlap correction, on real data"""
+    """Test regression without overlap correction, on real data."""
     tmin, tmax = -.1, .5
 
-    raw = mne.io.read_raw_fif(raw_fname, preload=True)
+    raw = mne.io.read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
     raw.apply_proj()
     events = mne.read_events(event_fname)
     event_id = dict(audio_l=1, audio_r=2)
@@ -98,7 +97,7 @@ def test_continuous_regression_no_overlap():
     raw = raw.pick_channels(raw.ch_names[:2])
 
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                        baseline=None, reject=None)
+                        baseline=None, reject=None, add_eeg_ref=False)
 
     revokeds = linear_regression_raw(raw, events, event_id,
                                      tmin=tmin, tmax=tmax,
@@ -122,7 +121,7 @@ def test_continuous_regression_no_overlap():
 
 
 def test_continuous_regression_with_overlap():
-    """Test regression with overlap correction"""
+    """Test regression with overlap correction."""
     signal = np.zeros(100000)
     times = [1000, 2500, 3000, 5000, 5250, 7000, 7250, 8000]
     events = np.zeros((len(times), 3), int)

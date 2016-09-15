@@ -48,20 +48,18 @@ class Raw(_BaseRaw):
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     proj : bool
-        Apply the signal space projection (SSP) operators present in
-        the file to the data. Note: Once the projectors have been
-        applied, they can no longer be removed. It is usually not
-        recommended to apply the projectors at this point as they are
-        applied automatically later on (e.g. when computing inverse
-        solutions).
+        Deprecated. Use :meth:`raw.apply_proj() <mne.io.Raw.apply_proj>`
+        instead.
     compensation : None | int
         Deprecated. Use :meth:`mne.io.Raw.apply_gradient_compensation`
         instead.
     add_eeg_ref : bool
-        If True, add average EEG reference projector (if it's not already
-        present).
+        If True, an EEG average reference will be added (unless one
+        already exists). The default value of True in 0.13 will change to
+        False in 0.14, and the parameter will be removed in 0.15. Use
+        :func:`mne.set_eeg_reference` instead.
     fnames : list or str
-        Deprecated.
+        Deprecated. Use :func:`mne.concatenate_raws` instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -80,12 +78,17 @@ class Raw(_BaseRaw):
     """
     @verbose
     def __init__(self, fname, allow_maxshield=False, preload=False,
-                 proj=False, compensation=None, add_eeg_ref=True,
+                 proj=None, compensation=None, add_eeg_ref=None,
                  fnames=None, verbose=None):
+        if not proj:
+            proj = False
+        else:
+            warn('The proj parameter has been dprecated and will be removed '
+                 'in 0.14. Use raw.apply_proj() instead.', DeprecationWarning)
         dep = ('Supplying a list of filenames with "fnames" to the Raw class '
                'has been deprecated and will be removed in 0.13. Use multiple '
                'calls to read_raw_fif with the "fname" argument followed by '
-               'and concatenate_raws instead.')
+               'concatenate_raws instead.')
         if fnames is not None:
             warn(dep, DeprecationWarning)
         else:
@@ -128,6 +131,9 @@ class Raw(_BaseRaw):
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._raw_extras for r in raws],
             raws[0].orig_format, None, verbose=verbose)
+        if 'eeg' in self:
+            from ...epochs import _dep_eeg_ref
+            add_eeg_ref = _dep_eeg_ref(add_eeg_ref, True)
 
         # combine information from each raw file to construct self
         if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
@@ -471,7 +477,7 @@ def _check_entry(first, nent):
 
 
 def read_raw_fif(fname, allow_maxshield=False, preload=False,
-                 proj=False, compensation=None, add_eeg_ref=True,
+                 proj=False, compensation=None, add_eeg_ref=None,
                  fnames=None, verbose=None):
     """Reader function for Raw FIF data
 
@@ -493,20 +499,18 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     proj : bool
-        Apply the signal space projection (SSP) operators present in
-        the file to the data. Note: Once the projectors have been
-        applied, they can no longer be removed. It is usually not
-        recommended to apply the projectors at this point as they are
-        applied automatically later on (e.g. when computing inverse
-        solutions).
+        Deprecated. Use :meth:`raw.apply_proj() <mne.io.Raw.apply_proj>`
+        instead.
     compensation : None | int
         Deprecated. Use :meth:`mne.io.Raw.apply_gradient_compensation`
         instead.
     add_eeg_ref : bool
-        If True, add average EEG reference projector (if it's not already
-        present).
+        If True, an EEG average reference will be added (unless one
+        already exists). The default value of True in 0.13 will change to
+        False in 0.14, and the parameter will be removed in 0.15. Use
+        :func:`mne.set_eeg_reference` instead.
     fnames : list or str
-        Deprecated.
+        Deprecated. Use :func:`mne.concatenate_raws` instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

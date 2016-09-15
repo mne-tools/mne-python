@@ -10,10 +10,12 @@ import os.path as op
 import mne
 
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample')
-raw = mne.io.read_raw_fif(op.join(data_path, 'sample_audvis_raw.fif'))
+raw = mne.io.read_raw_fif(op.join(data_path, 'sample_audvis_raw.fif'),
+                          add_eeg_ref=False)
+raw.set_eeg_reference()  # set EEG average reference
 events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
 picks = mne.pick_types(raw.info, meg='grad')
-epochs = mne.Epochs(raw, events, [1, 2], picks=picks)
+epochs = mne.Epochs(raw, events, [1, 2], picks=picks, add_eeg_ref=False)
 
 ###############################################################################
 # This tutorial focuses on visualization of epoched data. All of the functions

@@ -29,7 +29,7 @@ from mne.preprocessing import create_eog_epochs, create_ecg_epochs
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
 raw.filter(1, 40, n_jobs=2)  # 1Hz high pass is often helpful for fitting ICA
 
 picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,

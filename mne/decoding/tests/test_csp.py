@@ -27,14 +27,15 @@ start, stop = 0, 8
 def test_csp():
     """Test Common Spatial Patterns algorithm on epochs
     """
-    raw = io.read_raw_fif(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     picks = picks[2:12:3]  # subselect channels -> disable proj!
     raw.add_proj([], remove_existing=True)
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True, proj=False)
+                    baseline=(None, 0), preload=True, proj=False,
+                    add_eeg_ref=False)
     epochs_data = epochs.get_data()
     n_channels = epochs_data.shape[1]
     y = epochs.events[:, -1]
@@ -91,7 +92,8 @@ def test_csp():
     # Test with more than 2 classes
     epochs = Epochs(raw, events, tmin=tmin, tmax=tmax, picks=picks,
                     event_id=dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4),
-                    baseline=(None, 0), proj=False, preload=True)
+                    baseline=(None, 0), proj=False, preload=True,
+                    add_eeg_ref=False)
     epochs_data = epochs.get_data()
     n_channels = epochs_data.shape[1]
 
@@ -137,13 +139,13 @@ def test_csp():
 def test_regularized_csp():
     """Test Common Spatial Patterns algorithm using regularized covariance
     """
-    raw = io.read_raw_fif(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+                    baseline=(None, 0), preload=True, add_eeg_ref=False)
     epochs_data = epochs.get_data()
     n_channels = epochs_data.shape[1]
 

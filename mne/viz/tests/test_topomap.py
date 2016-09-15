@@ -14,7 +14,8 @@ from numpy.testing import assert_raises, assert_array_equal
 from nose.tools import assert_true, assert_equal
 
 
-from mne import io, read_evokeds, read_proj
+from mne import read_evokeds, read_proj
+from mne.io import read_raw_fif
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.channels import read_layout, make_eeg_layout
@@ -48,14 +49,14 @@ layout = read_layout('Vectorview-all')
 
 
 def _get_raw():
-    return io.read_raw_fif(raw_fname, preload=False)
+    """Get raw data."""
+    return read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
 
 
 @slow_test
 @testing.requires_testing_data
 def test_plot_topomap():
-    """Test topomap plotting
-    """
+    """Test topomap plotting."""
     import matplotlib.pyplot as plt
     from matplotlib.patches import Circle
     # evoked
@@ -272,8 +273,7 @@ def test_plot_topomap():
 
 
 def test_plot_tfr_topomap():
-    """Test plotting of TFR data
-    """
+    """Test plotting of TFR data."""
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     raw = _get_raw()
@@ -312,6 +312,5 @@ def test_plot_tfr_topomap():
     bands = [(4, 8, 'Theta')]
     psd = np.random.rand(len(info['ch_names']), freqs.shape[0])
     plot_psds_topomap(psd, freqs, info, bands=bands, axes=[axes])
-
 
 run_tests_if_main()
