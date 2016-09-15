@@ -1141,7 +1141,7 @@ class ElektaAverager(object):
     def _events_in_use(self):
         return {k: v for k, v in self._events.items() if v['in_use']}
 
-    def get_condition(self, raw, conditions=None, stim_channel=None, mask=None,
+    def get_condition(self, raw, condition=None, stim_channel=None, mask=None,
                       uint_cast=None, mask_type='and'):
         """ Get averaging parameters for a condition (averaging category).
 
