@@ -33,9 +33,12 @@ def test_kit2fiff_model():
 
     model = Kit2FiffModel()
     assert_false(model.can_save)
+    assert_equal(model.misc_chs_desc, "No SQD file selected...")
+    assert_equal(model.stim_chs_comment, "")
     model.markers.mrk1.file = mrk_pre_path
     model.markers.mrk2.file = mrk_post_path
     model.sqd_file = sqd_path
+    assert_equal(model.misc_chs_desc, "160:192")
     model.hsp_file = hsp_path
     assert_false(model.can_save)
     model.fid_file = fid_path
