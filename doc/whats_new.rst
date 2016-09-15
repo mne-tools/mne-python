@@ -73,6 +73,8 @@ Changelog
 
     - Added `transform_into` parameter into :class:`mne.decoding.CSP` to retrieve the average power of each source or the time course of each source, by `Jean-Remi King`_
 
+    - Added support for reading MaxShield (IAS) evoked data (e.g., from the acquisition machine) in :func:`mne.read_evokeds` by `Eric Larson`_
+
 BUG
 ~~~
 

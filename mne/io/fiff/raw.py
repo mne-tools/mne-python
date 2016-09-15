@@ -18,11 +18,11 @@ from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
 from ..tag import read_tag, read_tag_info
 from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
-from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
+from ..base import (_BaseRaw, _RawShell, _check_raw_compatibility,
+                    _check_maxshield)
 from ..utils import _mult_cal_one
 
 from ...annotations import Annotations, _combine_annotations
-from ...externals.six import string_types
 from ...utils import check_fname, logger, verbose, warn
 
 
@@ -216,22 +216,10 @@ class Raw(_BaseRaw):
                 raw_node = dir_tree_find(meas, FIFF.FIFFB_CONTINUOUS_DATA)
                 if (len(raw_node) == 0):
                     raw_node = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
-                    msg = ('This file contains raw Internal Active '
-                           'Shielding data. It may be distorted. Elekta '
-                           'recommends it be run through MaxFilter to '
-                           'produce reliable results. Consider closing '
-                           'the file and running MaxFilter on the data.')
                     if (len(raw_node) == 0):
                         raise ValueError('No raw data in %s' % fname)
-                    elif allow_maxshield:
-                        info['maxshield'] = True
-                        if not (isinstance(allow_maxshield, string_types) and
-                                allow_maxshield == 'yes'):
-                            warn(msg)
-                    else:
-                        msg += (' Use allow_maxshield=True if you are sure you'
-                                ' want to load the data despite this warning.')
-                        raise ValueError(msg)
+                    _check_maxshield(allow_maxshield)
+                    info['maxshield'] = True
 
             if len(raw_node) == 1:
                 raw_node = raw_node[0]
