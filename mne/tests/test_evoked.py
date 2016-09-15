@@ -159,15 +159,30 @@ def test_io_evoked():
             assert_equal(av1.comment, av2.comment)
 
     # test warnings on bad filenames
+    fname2 = op.join(tempdir, 'test-bad-name.fif')
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        fname2 = op.join(tempdir, 'test-bad-name.fif')
         write_evokeds(fname2, ave)
         read_evokeds(fname2)
     assert_naming(w, 'test_evoked.py', 2)
 
     # constructor
     assert_raises(TypeError, Evoked, fname)
+
+    # MaxShield
+    fname_ms = op.join(tempdir, 'test-ave.fif')
+    assert_true(ave.info['maxshield'] is False)
+    ave.info['maxshield'] = True
+    ave.save(fname_ms)
+    assert_raises(ValueError, read_evokeds, fname_ms)
+    with warnings.catch_warnings(record=True) as w:
+        aves = read_evokeds(fname_ms, allow_maxshield=True)
+    assert_true(all('Elekta' in str(ww.message) for ww in w))
+    assert_true(all(ave.info['maxshield'] is True for ave in aves))
+    with warnings.catch_warnings(record=True) as w:
+        aves = read_evokeds(fname_ms, allow_maxshield='yes')
+    assert_equal(len(w), 0)
+    assert_true(all(ave.info['maxshield'] is True for ave in aves))
 
 
 def test_shift_time_evoked():

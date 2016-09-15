@@ -2274,3 +2274,21 @@ def _check_update_montage(info, montage, path=None, update_ch_names=False):
                     "definitions: %s. If those channels lack positions "
                     "because they are EOG channels use the eog parameter."
                     % str(missing_positions))
+
+
+def _check_maxshield(allow_maxshield):
+    """Warn or error about MaxShield."""
+    msg = ('This file contains raw Internal Active '
+           'Shielding data. It may be distorted. Elekta '
+           'recommends it be run through MaxFilter to '
+           'produce reliable results. Consider closing '
+           'the file and running MaxFilter on the data.')
+    if allow_maxshield:
+        if not (isinstance(allow_maxshield, string_types) and
+                allow_maxshield == 'yes'):
+            warn(msg)
+        allow_maxshield = 'yes'
+    else:
+        msg += (' Use allow_maxshield=True if you are sure you'
+                ' want to load the data despite this warning.')
+        raise ValueError(msg)
