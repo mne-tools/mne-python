@@ -1152,7 +1152,7 @@ class ElektaAverager(object):
         ----------
         raw : Raw object
             An instance of Raw.
-        conditions : None | str | dict | list of dict
+        condition : None | str | dict | list of dict
             Condition or a list of conditions. Conditions can be strings
             (DACQ comment field, e.g. 'Auditory left') or category dicts
             (e.g. eav['Auditory left'], where eav is an instance of
@@ -1196,12 +1196,12 @@ class ElektaAverager(object):
                 parameter to Epochs.
 
         """
-        if conditions is None:
-            conditions = self.categories  # get all
-        if not isinstance(conditions, list):
-            conditions = [conditions]  # single cond -> listify
+        if condition is None:
+            condition = self.categories  # get all
+        if not isinstance(condition, list):
+            condition = [condition]  # single cond -> listify
         conds_data = list()
-        for cat in conditions:
+        for cat in condition:
             if isinstance(cat, str):
                 cat = self[cat]
             mne_events = find_events(raw, stim_channel=stim_channel, mask=mask,

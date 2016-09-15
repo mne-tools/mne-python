@@ -2027,20 +2027,9 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     if ch_count > 0:
         return stim_channel
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    if 'STI101' in info['ch_names']:  # newer Elekta systems
-        return ['STI101']
-
-    if 'STI 014' in info['ch_names']:  # older Elekta systems
-=======
     if 'STI101' in info['ch_names']:  # combination channel for newer systems
         return ['STI101']
     if 'STI 014' in info['ch_names']:  # for older systems
->>>>>>> try STI101 first, then STI 014
-=======
-    if 'STI 014' in info['ch_names']:
->>>>>>> Revert "try STI101 first, then STI 014"
         return ['STI 014']
 
     from .io.pick import pick_types
