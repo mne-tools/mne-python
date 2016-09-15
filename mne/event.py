@@ -1152,7 +1152,7 @@ class ElektaAverager(object):
         ----------
         raw : Raw object
             An instance of Raw.
-        conditions : None | dict | list of dict
+        conditions : None | str | dict | list of dict
             Condition or a list of conditions. Conditions can be strings
             (DACQ comment field, e.g. 'Auditory left') or category dicts
             (e.g. eav['Auditory left'], where eav is an instance of
