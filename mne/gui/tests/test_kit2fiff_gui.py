@@ -33,18 +33,28 @@ def test_kit2fiff_model():
 
     model = Kit2FiffModel()
     assert_false(model.can_save)
+    assert_equal(model.misc_chs_desc, "No SQD file selected...")
+    assert_equal(model.stim_chs_comment, "")
     model.markers.mrk1.file = mrk_pre_path
     model.markers.mrk2.file = mrk_post_path
     model.sqd_file = sqd_path
+    assert_equal(model.misc_chs_desc, "160:192")
     model.hsp_file = hsp_path
     assert_false(model.can_save)
     model.fid_file = fid_path
     assert_true(model.can_save)
 
+    # events
+    model.stim_slope = '+'
+    assert_equal(model.get_event_info(), {1: 2})
+    model.stim_slope = '-'
+    assert_equal(model.get_event_info(), {254: 2, 255: 2})
+
     # stim channels
     model.stim_chs = "181:184, 186"
     assert_array_equal(model.stim_chs_array, [181, 182, 183, 186])
     assert_true(model.stim_chs_ok)
+    assert_equal(model.get_event_info(), {})
     model.stim_chs = "181:184, bad"
     assert_false(model.stim_chs_ok)
     assert_false(model.can_save)

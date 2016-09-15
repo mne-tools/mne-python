@@ -179,8 +179,7 @@ class RawKIT(_BaseRaw):
 
         if stim is not None:
             if isinstance(stim, str):
-                picks = pick_types(info, meg=False, ref_meg=False,
-                                   misc=True, exclude=[])[:8]
+                picks = _default_stim_chs(info)
                 if stim == '<':
                     stim = picks[::-1]
                 elif stim == '>':
@@ -240,6 +239,7 @@ class RawKIT(_BaseRaw):
             data_offset = unpack('i', fid.read(KIT.INT))[0]
             pointer = start * nchan * KIT.SHORT
             fid.seek(data_offset + pointer)
+            stim = self._raw_extras[fi]['stim']
             for blk_start in np.arange(0, data_left, blk_size) // nchan:
                 blk_size = min(blk_size, data_left - blk_start * nchan)
                 block = np.fromfile(fid, dtype='h', count=blk_size)
@@ -248,28 +248,42 @@ class RawKIT(_BaseRaw):
                 data_view = data[:, blk_start:blk_stop]
                 block *= conv_factor[:, np.newaxis]
 
-                # Create a synthetic channel
-                if self._raw_extras[fi]['stim'] is not None:
-                    trig_chs = block[self._raw_extras[fi]['stim'], :]
-                    if self._raw_extras[fi]['slope'] == '+':
-                        trig_chs = trig_chs > self._raw_extras[0]['stimthresh']
-                    elif self._raw_extras[fi]['slope'] == '-':
-                        trig_chs = trig_chs < self._raw_extras[0]['stimthresh']
-                    else:
-                        raise ValueError("slope needs to be '+' or '-'")
-                    # trigger value
-                    if self._raw_extras[0]['stim_code'] == 'binary':
-                        ntrigchan = len(self._raw_extras[0]['stim'])
-                        trig_vals = np.array(2 ** np.arange(ntrigchan),
-                                             ndmin=2).T
-                    else:
-                        trig_vals = np.reshape(self._raw_extras[0]['stim'],
-                                               (-1, 1))
-                    trig_chs = trig_chs * trig_vals
-                    stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
+                # Create a synthetic stim channel
+                if stim is not None:
+                    params = self._raw_extras[fi]
+                    stim_ch = _make_stim_channel(block[stim, :],
+                                                 params['slope'],
+                                                 params['stimthresh'],
+                                                 params['stim_code'], stim)
                     block = np.vstack((block, stim_ch))
+
                 _mult_cal_one(data_view, block, idx, None, mult)
         # cals are all unity, so can be ignored
+
+
+def _default_stim_chs(info):
+    """Default stim channels for SQD files"""
+    return pick_types(info, meg=False, ref_meg=False, misc=True,
+                      exclude=[])[:8]
+
+
+def _make_stim_channel(trigger_chs, slope, threshold, stim_code,
+                       trigger_values):
+    """Create synthetic stim channel from multiple trigger channels"""
+    if slope == '+':
+        trig_chs_bin = trigger_chs > threshold
+    elif slope == '-':
+        trig_chs_bin = trigger_chs < threshold
+    else:
+        raise ValueError("slope needs to be '+' or '-'")
+    # trigger value
+    if stim_code == 'binary':
+        trigger_values = 2 ** np.arange(len(trigger_chs))
+    elif stim_code != 'channel':
+        raise ValueError("stim_code must be 'binary' or 'channel', got %s" %
+                         repr(stim_code))
+    trig_chs = trig_chs_bin * trigger_values[:, np.newaxis]
+    return np.array(trig_chs.sum(axis=0), ndmin=2)
 
 
 class EpochsKIT(_BaseEpochs):
