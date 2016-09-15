@@ -1212,8 +1212,9 @@ class ElektaAverager(object):
             cat_t0_ = self._mne_events_to_category_t0(cat, mne_events, sfreq)
             # make it compatible with the usual events array
             cat_t0 = np.c_[cat_t0_, np.zeros(cat_t0_.shape),
-                           np.ones(cat_t0_.shape)].astype(np.uint32)
-            cat_id = {cat['comment']: 1}
+                           cat['index'] * np.ones(cat_t0_.shape)
+                           ].astype(np.uint32)
+            cat_id = {cat['comment']: cat['index']}
             tmin, tmax = cat['start'], cat['end']
             conds_data.append(dict(events=cat_t0, event_id=cat_id,
                                    tmin=tmin, tmax=tmax))
