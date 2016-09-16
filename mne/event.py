@@ -921,29 +921,39 @@ class ElektaAverager(object):
     """
 
     # averager related DACQ variable names (without preceding 'ERF')
-    _dacq_vars = ('magMax', 'magMin', 'magNoise', 'magSlope', 'magSpike',
-                  'megMax', 'megMin', 'megNoise', 'megSlope', 'megSpike',
-                  'eegMax', 'eegMin', 'eegNoise', 'eegSlope', 'eegSpike',
-                  'eogMax', 'ecgMax', 'ncateg', 'nevent', 'stimSource',
-                  'triggerMap', 'update', 'version', 'artefIgnore',
-                  'averUpdate')
+    # old versions (DACQ < 3.4)
+    _dacq_vars_compat = ('megMax', 'megMin', 'megNoise', 'megSlope',
+                         'megSpike', 'eegMax', 'eegMin', 'eegNoise',
+                         'eegSlope', 'eegSpike', 'eogMax', 'ecgMax', 'ncateg',
+                         'nevent', 'stimSource', 'triggerMap', 'update',
+                         'artefIgnore', 'averUpdate')
 
-    _event_vars = ('Name', 'Channel', 'NewBits', 'OldBits', 'NewMask',
-                   'OldMask', 'Delay', 'Comment')
+    _event_vars_compat = ('Comment', 'Delay')
 
     _cat_vars = ('Comment', 'Display', 'Start', 'State', 'End', 'Event',
                  'Nave', 'ReqEvent', 'ReqWhen', 'ReqWithin',  'SubAve')
+
+    # new versions only (DACQ >= 3.4)
+    _dacq_vars = _dacq_vars_compat + ('magMax', 'magMin', 'magNoise',
+                                      'magSlope', 'magSpike', 'version')
+
+    _event_vars = _event_vars_compat + ('Name', 'Channel', 'NewBits',
+                                        'OldBits', 'NewMask', 'OldMask')
 
     def __init__(self, info):
         acq_pars = info['acq_pars']
         if not acq_pars:
             raise ValueError('No acquisition parameters')
         self.acq_dict = _acqpars_dict(acq_pars)
-        if 'ERFversion' not in self.acq_dict:
-            raise ValueError('Cannot parse version. The file may be from '
-                             'DACQ <3.4 which is not supported yet')
+        if 'ERFversion' in self.acq_dict:
+            self.compat = False  # DACQ ver >= 3.4
+        elif 'ERFncateg' in self.acq_dict:  # probably DACQ < 3.4
+                self.compat = True
+        else:
+            raise ValueError('Cannot parse acquisition parameters')
+        dacq_vars = self._dacq_vars_compat if self.compat else self._dacq_vars
         # set instance variables
-        for var in ElektaAverager._dacq_vars:
+        for var in dacq_vars:
             val = self.acq_dict['ERF' + var]
             if var[:3] in ['mag', 'meg', 'eeg', 'eog', 'ecg']:
                 val = float(val)
@@ -962,13 +972,15 @@ class ElektaAverager(object):
             if cat['reqevent']:
                 self._events[cat['reqevent']]['in_use'] = True
         # make mne rejection dicts based on the averager parameters
-        self.reject = {'grad': self.megmax, 'mag': self.magmax,
-                       'eeg': self.eegmax, 'eog': self.eogmax,
-                       'ecg': self.ecgmax}
+        self.reject = {'grad': self.megmax, 'eeg': self.eegmax,
+                       'eog': self.eogmax, 'ecg': self.ecgmax}
+        if not self.compat:
+            self.reject['mag'] = self.magmax
         self.reject = {k: float(v) for k, v in self.reject.items()
                        if float(v) > 0}
-        self.flat = {'grad': self.megmin, 'mag': self.magmin,
-                     'eeg': self.eegmin}
+        self.flat = {'grad': self.megmin, 'eeg': self.eegmin}
+        if not self.compat:
+            self.flat['mag'] = self.magmin
         self.flat = {k: float(v) for k, v in self.flat.items()
                      if float(v) > 0}
 
@@ -1005,11 +1017,17 @@ class ElektaAverager(object):
         Events are keyed by number starting from 1 (DACQ index of event).
         Each event is itself represented by a dict containing the event
         parameters. """
+        # lookup table for event number -> bits in old DACQ versions
+        _compat_event_lookup = {1: 1, 2: 2, 3: 4, 4: 8, 5: 16, 6: 32, 7: 3,
+                                8: 5, 9: 6, 10: 7, 11: 9, 12: 10, 13: 11,
+                                14: 12, 15: 13, 16: 14, 17: 15}
         events = dict()
-        for evnum in range(1, self.ncateg + 1):
+        for evnum in range(1, self.nevent + 1):
             evnum_s = str(evnum).zfill(2)  # '01', '02' etc.
             evdi = dict()
-            for var in self._event_vars:
+            event_vars = (self._event_vars_compat if self.compat
+                          else self._event_vars)
+            for var in event_vars:
                 # name of DACQ variable, e.g. 'ERFeventNewBits01'
                 acq_key = 'ERFevent' + var + evnum_s
                 # corresponding dict key, e.g. 'newbits'
@@ -1023,6 +1041,12 @@ class ElektaAverager(object):
                 evdi[dict_key] = val
                 evdi['in_use'] = False  # __init__() will set this
             evdi['index'] = evnum
+            if self.compat:
+                evdi['name'] = str(evnum)
+                evdi['oldmask'] = 63
+                evdi['newmask'] = 63
+                evdi['oldbits'] = 0
+                evdi['newbits'] = _compat_event_lookup[evnum]
             events[evnum] = evdi
         return events
 
@@ -1069,7 +1093,7 @@ class ElektaAverager(object):
                     np.bitwise_and(ev['oldmask'],
                                    mne_events[:, 1]) == ev['oldbits'])
                 post_ok = (
-                    np.bitwise_and(ev['newbits'],
+                    np.bitwise_and(ev['newmask'],
                                    mne_events[:, 2]) == ev['newbits'])
                 ok_ind = np.where(pre_ok & post_ok)
                 events_[ok_ind, 2] |= 1 << (n - 1)
@@ -1142,7 +1166,7 @@ class ElektaAverager(object):
         return {k: v for k, v in self._events.items() if v['in_use']}
 
     def get_condition(self, raw, condition=None, stim_channel=None, mask=None,
-                      uint_cast=None, mask_type='and'):
+                      uint_cast=None, mask_type='and', delayed_lookup=True):
         """ Get averaging parameters for a condition (averaging category).
 
         Output is designed to be used with the Epochs class to extract the
@@ -1177,6 +1201,16 @@ class ElektaAverager(object):
         mask_type: 'and' | 'not_and'
             The type of operation between the mask and the trigger.
             Choose 'and' for MNE-C masking behavior.
+        delayed_lookup: bool
+            If True, use the 'delayed lookup' procedure implemented in Elekta
+            software. When a trigger transition happens, the lookup of
+            the new trigger value will not happen immediately at the following
+            sample, but with a delay of one sample. This allows a slight
+            asynchrony between trigger onsets, when they are intended to be
+            synchronous. If you have accurate hardware and want to detect
+            transitions with a resolution of one sample resolution, use
+            delayed_lookup=False.
+
 
         Returns
         -------
@@ -1208,6 +1242,10 @@ class ElektaAverager(object):
                                      mask_type=mask_type, output='step',
                                      uint_cast=uint_cast, consecutive=True,
                                      verbose=False, shortest_event=1)
+            if delayed_lookup:
+                ind = np.where(np.diff(mne_events[:, 0]) == 1)[0]
+                mne_events[ind, 2] = mne_events[ind+1, 2]
+                mne_events = np.delete(mne_events, ind+1, axis=0)
             sfreq = raw.info['sfreq']
             cat_t0_ = self._mne_events_to_category_t0(cat, mne_events, sfreq)
             # make it compatible with the usual events array
