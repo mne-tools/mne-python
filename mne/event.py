@@ -1244,9 +1244,15 @@ class ElektaAverager(object):
                                      verbose=False, shortest_event=1)
             if delayed_lookup:
                 ind = np.where(np.diff(mne_events[:, 0]) == 1)[0]
-                # TODO: warn about several subsequent 1-sample transitions?
-                mne_events[ind, 2] = mne_events[ind+1, 2]
-                mne_events = np.delete(mne_events, ind+1, axis=0)
+                if 1 in np.diff(ind):
+                    raise ValueError('There are several subsequent '
+                                     'transitions on the trigger channel. '
+                                     'This may not work well with '
+                                     'delayed_lookup=True. You may want to '
+                                     'check your trigger data and possibly '
+                                     'set delayed_lookup=False.')
+                mne_events[ind, 2] = mne_events[ind + 1, 2]
+                mne_events = np.delete(mne_events, ind + 1, axis=0)
             sfreq = raw.info['sfreq']
             cat_t0_ = self._mne_events_to_category_t0(cat, mne_events, sfreq)
             # make it compatible with the usual events array
