@@ -8,8 +8,8 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
-                 find_events, pick_events, find_stim_steps, io, pick_channels,
-                 read_evokeds, io, Epochs)
+                 find_events, pick_events, find_stim_steps, pick_channels,
+                 read_evokeds, Epochs)
 from mne.io import read_raw_fif
 from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
@@ -421,7 +421,7 @@ def test_define_events():
 @testing.requires_testing_data
 def test_elekta_averager():
     """Test averaging according to Elekta DACQ parameters"""
-    raw = io.read_raw_fif(fname_raw_elekta, preload=True)
+    raw = read_raw_fif(fname_raw_elekta, preload=True)
     eav = ElektaAverager(raw.info)
     for cat in eav.categories:
         # XXX datasets match only when baseline is applied to both,
