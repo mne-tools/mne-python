@@ -103,7 +103,9 @@ def test_object_size():
                               (0, 150, np.int32(1)),
                               (150, 500, np.ones(20)),
                               (100, 400, dict()),
-                              (400, 1000, dict(a=np.ones(50)))):
+                              (400, 1000, dict(a=np.ones(50))),
+                              (300, 900, sparse.eye(20, format='csc')),
+                              (300, 900, sparse.eye(20, format='csr'))):
         size = object_size(obj)
         assert_true(lower < size < upper,
                     msg='%s < %s < %s:\n%s' % (lower, size, upper, obj))

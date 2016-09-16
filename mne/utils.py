@@ -195,6 +195,9 @@ def object_size(x):
             size += object_size(value)
     elif isinstance(x, (list, tuple)):
         size = sys.getsizeof(x) + sum(object_size(xx) for xx in x)
+    elif sparse.isspmatrix_csc(x) or sparse.isspmatrix_csr(x):
+        size = sum(sys.getsizeof(xx)
+                   for xx in [x, x.data, x.indices, x.indptr])
     else:
         raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
     return size
