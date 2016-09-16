@@ -86,6 +86,7 @@ Direct financial support for the project has been provided by:
 - (FR) European Research Council (ERC) Starting Grant (ERC-YStG-263584).
 - (FR) French National Research Agency (ANR-14-NEUC-0002-01).
 - (FR) European Research Council (ERC) Starting Grant (ERC-YStG-676943).
+- Amazon Webservices - Research Grant issued to Denis A. Engemann
 
 .. raw:: html
 
