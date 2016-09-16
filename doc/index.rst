@@ -83,6 +83,10 @@ Direct financial support for the project has been provided by:
   Institute.
 - (FR) IDEX Paris-Saclay, ANR-11-IDEX-0003-02, via the
   `Center for Data Science <http://www.datascience-paris-saclay.fr/>`_.
+- (FR) European Research Council (ERC) Starting Grant (ERC-YStG-263584).
+- (FR) French National Research Agency (ANR-14-NEUC-0002-01).
+- (FR) European Research Council (ERC) Starting Grant (ERC-YStG-676943).
+- Amazon Web Services - Research Grant issued to Denis A. Engemann
 
 .. raw:: html
 
