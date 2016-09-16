@@ -1244,6 +1244,7 @@ class ElektaAverager(object):
                                      verbose=False, shortest_event=1)
             if delayed_lookup:
                 ind = np.where(np.diff(mne_events[:, 0]) == 1)[0]
+                # TODO: warn about several subsequent 1-sample transitions?
                 mne_events[ind, 2] = mne_events[ind+1, 2]
                 mne_events = np.delete(mne_events, ind+1, axis=0)
             sfreq = raw.info['sfreq']
