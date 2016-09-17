@@ -272,8 +272,8 @@ def test_bytes_io():
             config = six.BytesIO(fid.read())
         with open(hs, 'rb') as fid:
             hs = six.BytesIO(fid.read())
-        with warnings.catch_warnings(record=True):  # weight tables
-            raw2 = read_raw_bti(pdf, config, hs, convert=True, preload=False)
+
+        raw2 = read_raw_bti(pdf, config, hs, convert=True, preload=False)
         repr(raw2)
         assert_array_equal(raw[:][0], raw2[:][0])
 
