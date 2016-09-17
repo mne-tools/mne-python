@@ -12,7 +12,7 @@ from itertools import count
 
 import numpy as np
 
-from ...utils import logger, verbose, sum_squared,
+from ...utils import logger, verbose, sum_squared
 from ...transforms import (combine_transforms, invert_transform, apply_trans,
                            Transform)
 from ..constants import FIFF
