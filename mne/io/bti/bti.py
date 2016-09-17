@@ -12,7 +12,7 @@ from itertools import count
 
 import numpy as np
 
-from ...utils import logger, verbose, sum_squared, warn
+from ...utils import logger, verbose, sum_squared
 from ...transforms import (combine_transforms, invert_transform, apply_trans,
                            Transform)
 from ..constants import FIFF
@@ -1303,10 +1303,11 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                        colcals=np.ones(mat.shape[1], dtype='>f4'),
                        save_calibrated=0)]
     else:
-        warn('Currently direct inclusion of 4D weight tables is not supported.'
-             ' For critical use cases please take into account the MNE command'
-             ' "mne_create_comp_data" to include weights as printed out by '
-             'the 4D "print_table" routine.')
+        logger.info(
+            'Currently direct inclusion of 4D weight tables is not supported.'
+            ' For critical use cases please take into account the MNE command'
+            ' "mne_create_comp_data" to include weights as printed out by '
+            'the 4D "print_table" routine.')
 
     # check that the info is complete
     info._update_redundant()
