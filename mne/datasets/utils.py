@@ -159,6 +159,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'somato': 'MNE_DATASETS_SOMATO_PATH',
         'brainstorm': 'MNE_DATASETS_BRAINSTORM_PATH',
         'testing': 'MNE_DATASETS_TESTING_PATH',
+        'multimodal': 'MNE_DATASETS_MULTIMODAL_PATH',
     }[name]
 
     path = _get_path(path, key, name)
@@ -175,6 +176,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         somato='MNE-somato-data.tar.gz',
         spm='MNE-spm-face.tar.gz',
         testing='mne-testing-data-%s.tar.gz' % releases['testing'],
+        multimodal='MNE-multimodal-data.tar.gz',
         fake='foo.tgz',
     )
     if archive_name is not None:
@@ -185,6 +187,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         misc='MNE-misc-data',
         sample='MNE-sample-data',
         somato='MNE-somato-data',
+        multimodal='MNE-multimodal-data',
         spm='MNE-spm-face',
         testing='MNE-testing-data',
     )
@@ -200,6 +203,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         spm='https://mne-tools.s3.amazonaws.com/datasets/%s',
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
+        multimodal='https://ndownloader.figshare.com/files/5999598',
     )
     hashes = dict(
         brainstorm=None,
@@ -208,7 +212,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='1d5da3a809fded1ef5734444ab5bf857',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
         spm='f61041e3f3f2ba0def8a2ca71592cc41',
-        testing='217aed43e361c86b622dc0363ae3cef4'
+        testing='217aed43e361c86b622dc0363ae3cef4',
+        multimodal='26ec847ae9ab80f58f204d09e2c08367',
     )
     folder_origs = dict(  # not listed means None
         misc='mne-misc-data-%s' % releases['misc'],
