@@ -920,6 +920,9 @@ class AcqParserFIF(object):
     ``elekta_averager['category_name']``.
     """
 
+    # DACQ variables always start with one of these
+    _acq_var_magic = ['ERF', 'DEF', 'ACQ', 'TCP']
+
     # averager related DACQ variable names (without preceding 'ERF')
     # old versions (DACQ < 3.4)
     _dacq_vars_compat = ('megMax', 'megMin', 'megNoise', 'megSlope',
@@ -944,7 +947,7 @@ class AcqParserFIF(object):
         acq_pars = info['acq_pars']
         if not acq_pars:
             raise ValueError('No acquisition parameters')
-        self.acq_dict = _acqpars_dict(acq_pars)
+        self.acq_dict = self._acqpars_dict(acq_pars)
         if 'ERFversion' in self.acq_dict:
             self.compat = False  # DACQ ver >= 3.4
         elif 'ERFncateg' in self.acq_dict:  # probably DACQ < 3.4
@@ -1048,6 +1051,22 @@ class AcqParserFIF(object):
                 evdi['newbits'] = _compat_event_lookup[evnum]
             events[evnum] = evdi
         return events
+
+    def _acqpars_dict(self, acq_pars):
+        """ Parse `` info['acq_pars']`` into a dict. """
+        return dict(self._acqpars_gen(acq_pars))
+
+    def _acqpars_gen(self, acq_pars):
+        """ Yields key/value pairs from ``info['acq_pars'])`` """
+        # DACQ variable names always start with one of these
+        for line in acq_pars.split():
+            if any([line.startswith(x) for x in self._acq_var_magic]):
+                key = line
+                val = ''
+            else:
+                # DACQ splits items with spaces into multiple lines
+                val += ' ' + line if val else line
+            yield key, val
 
     def _categories_from_acq_pars(self):
         """ Collect DACQ averaging categories into a dict.
@@ -1265,20 +1284,3 @@ class AcqParserFIF(object):
         return conds_data[0] if len(conds_data) == 1 else conds_data
 
 
-def _acqpars_dict(acq_pars):
-    """ Parse `` info['acq_pars']`` into a dict. """
-    return dict(_acqpars_gen(acq_pars))
-
-
-def _acqpars_gen(acq_pars):
-    """ Helper function, yields key/value pairs from ``info['acq_pars'])`` """
-    # DACQ variable names always start with one of these
-    acq_var_magic = ['ERF', 'DEF', 'ACQ', 'TCP']
-    for line in acq_pars.split():
-        if any([line.startswith(x) for x in acq_var_magic]):
-            key = line
-            val = ''
-        else:
-            # DACQ splits items with spaces into multiple lines
-            val += ' ' + line if val else line
-        yield key, val
