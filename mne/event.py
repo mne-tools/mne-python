@@ -991,8 +991,7 @@ class ElektaAverager(object):
         s += '(%d in use), ' % cats_in_use
         s += 'events: %d ' % self.nevent
         evs_in_use = len(self._events_in_use)
-        s += '(%d in use), ' % evs_in_use
-        s += 'stim source: %s' % self.stimsource
+        s += '(%d in use)' % evs_in_use
         if self.categories:
             s += '\nAveraging categories:'
             for cat in self.categories:
@@ -1017,7 +1016,7 @@ class ElektaAverager(object):
         Events are keyed by number starting from 1 (DACQ index of event).
         Each event is itself represented by a dict containing the event
         parameters. """
-        # lookup table for event number -> bits in old DACQ versions
+        # lookup table for event number -> bits for old DACQ versions
         _compat_event_lookup = {1: 1, 2: 2, 3: 4, 4: 8, 5: 16, 6: 32, 7: 3,
                                 8: 5, 9: 6, 10: 7, 11: 9, 12: 10, 13: 11,
                                 14: 12, 15: 13, 16: 14, 17: 15}
@@ -1203,12 +1202,12 @@ class ElektaAverager(object):
             Choose 'and' for MNE-C masking behavior.
         delayed_lookup: bool
             If True, use the 'delayed lookup' procedure implemented in Elekta
-            software. When a trigger transition happens, the lookup of
+            software. When a trigger transition occurs, the lookup of
             the new trigger value will not happen immediately at the following
-            sample, but with a delay of one sample. This allows a slight
+            sample, but with a 1-sample delay. This allows a slight
             asynchrony between trigger onsets, when they are intended to be
             synchronous. If you have accurate hardware and want to detect
-            transitions with a resolution of one sample resolution, use
+            transitions with a resolution of one sample, use
             delayed_lookup=False.
 
 
@@ -1247,9 +1246,9 @@ class ElektaAverager(object):
                 if 1 in np.diff(ind):
                     raise ValueError('There are several subsequent '
                                      'transitions on the trigger channel. '
-                                     'This may not work well with '
+                                     'This will not work well with '
                                      'delayed_lookup=True. You may want to '
-                                     'check your trigger data and possibly '
+                                     'check your trigger data and '
                                      'set delayed_lookup=False.')
                 mne_events[ind, 2] = mne_events[ind + 1, 2]
                 mne_events = np.delete(mne_events, ind + 1, axis=0)
