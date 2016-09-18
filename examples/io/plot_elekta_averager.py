@@ -14,16 +14,11 @@ averaging parameters and get epochs.
 
 import mne
 import os
-from mne.datasets import testing, somato
+from mne.datasets import testing
 from mne import AcqParserFIF
 
 fname_raw = os.path.join(testing.data_path(), 'misc',
                          'test_elekta_3ch_raw.fif')
-
-#fname_raw = os.path.join(somato.data_path(), 'MEG', 'somato',
-#                         'sef_raw_sss.fif')
-
-# fname_raw = '/Users/hus20664877/Dropbox/jn_multimodal01_raw.fif'
 
 
 print(__doc__)

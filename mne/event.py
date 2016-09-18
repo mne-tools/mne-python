@@ -889,12 +889,13 @@ def concatenate_events(events, first_samps, last_samps):
 
 
 class AcqParserFIF(object):
-    """ Parser for Elekta DACQ averaging categories.
+    """ Parser for Elekta DACQ settings.
 
-    This class parses events and averaging categories that are defined in the
-    Elekta TRIUX/VectorView data acquisition software (DACQ) and stored in
-    ``info['acq_pars']``. It can be used to reaverage raw data according to
-    DACQ settings and modify original averaging settings if necessary.
+    This class parses parameters (e.g. events and averaging categories) that
+    are defined in the Elekta TRIUX/VectorView data acquisition software (DACQ)
+    and stored in ``info['acq_pars']``. It can be used to reaverage raw data
+    according to DACQ settings and modify original averaging settings if
+    necessary.
 
     Parameters
     ----------
@@ -913,11 +914,13 @@ class AcqParserFIF(object):
         (e.g. spike, slope)
     flat : dict
         Flatness criteria from DACQ that can be used with mne.Epochs.
+    acq_dict : dict
+        All DACQ parameters.
 
     Notes
     -----
-    Any category (also non-active ones) can be accessed by indexing as
-    ``elekta_averager['category_name']``.
+    Any averaging category (also non-active ones) can be accessed by indexing
+    as ``acqparserfif['category_name']``.
     """
 
     # DACQ variables always start with one of these
@@ -1057,7 +1060,7 @@ class AcqParserFIF(object):
         return dict(self._acqpars_gen(acq_pars))
 
     def _acqpars_gen(self, acq_pars):
-        """ Yields key/value pairs from ``info['acq_pars'])`` """
+        """ Yields key/value pairs from ``info['acq_pars'])``. """
         # DACQ variable names always start with one of these
         for line in acq_pars.split():
             if any([line.startswith(x) for x in self._acq_var_magic]):
@@ -1282,5 +1285,4 @@ class AcqParserFIF(object):
             conds_data.append(dict(events=cat_t0, event_id=cat_id,
                                    tmin=tmin, tmax=tmax))
         return conds_data[0] if len(conds_data) == 1 else conds_data
-
 
