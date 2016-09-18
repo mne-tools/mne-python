@@ -15,7 +15,7 @@ averaging parameters and get epochs.
 import mne
 import os
 from mne.datasets import testing, somato
-from mne import ElektaAverager
+from mne import AcqParserFIF
 
 fname_raw = os.path.join(testing.data_path(), 'misc',
                          'test_elekta_3ch_raw.fif')
@@ -31,7 +31,7 @@ print(__doc__)
 ###############################################################################
 # Read raw file and create averager instance
 raw = mne.io.read_raw_fif(fname_raw)
-eav = ElektaAverager(raw.info)
+eav = AcqParserFIF(raw.info)
 
 ###############################################################################
 # Check DACQ defined averaging categories and other info

@@ -888,7 +888,7 @@ def concatenate_events(events, first_samps, last_samps):
     return events_out
 
 
-class ElektaAverager(object):
+class AcqParserFIF(object):
     """ Parser for Elekta DACQ averaging categories.
 
     This class parses events and averaging categories that are defined in the
@@ -985,7 +985,7 @@ class ElektaAverager(object):
                      if float(v) > 0}
 
     def __repr__(self):
-        s = '<ElektaAverager | '
+        s = '<AcqParserFIF | '
         s += 'categories: %d ' % self.ncateg
         cats_in_use = len(self._categories_in_use)
         s += '(%d in use), ' % cats_in_use
@@ -1179,7 +1179,7 @@ class ElektaAverager(object):
             Condition or a list of conditions. Conditions can be strings
             (DACQ comment field, e.g. 'Auditory left') or category dicts
             (e.g. eav['Auditory left'], where eav is an instance of
-            ElektaAverager). If None, get all conditions marked active in
+            AcqParserFIF). If None, get all conditions marked active in
             DACQ.
         stim_channel : None | string | list of string
             Name of the stim channel or all the stim channels

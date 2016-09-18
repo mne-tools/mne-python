@@ -29,7 +29,7 @@ Classes
    io.RawFIF
    io.RawArray
    Annotations
-   ElektaAverager
+   AcqParserFIF
    Epochs
    Evoked
    SourceSpaces
