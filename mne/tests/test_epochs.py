@@ -528,7 +528,7 @@ def test_epoch_multi_ids():
     epochs = Epochs(raw, events, {'a/b/a': 1, 'a/b/b': 2, 'a/c': 3,
                                   'b/d': 4, 'a_b': 5},
                     tmin, tmax, picks=picks, preload=False, add_eeg_ref=False)
-    epochs_regular = epochs[['a', 'b']]
+    epochs_regular = epochs['a/b']
     epochs_multi = epochs[['a/b/a', 'a/b/b']]
     assert_array_equal(epochs_regular.events, epochs_multi.events)
 
