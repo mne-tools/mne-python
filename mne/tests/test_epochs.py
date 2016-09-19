@@ -72,6 +72,28 @@ reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 
+def test_hierarchical():
+    """Test hierarchical access."""
+    raw, events, picks = _get_data()
+    event_id = {'a/1': 1, 'a/2': 2, 'b/1': 3, 'b/2': 4}
+    epochs = Epochs(raw, events, event_id, add_eeg_ref=False, preload=True)
+    epochs_a1 = epochs['a/1']
+    epochs_a2 = epochs['a/2']
+    epochs_b1 = epochs['b/1']
+    epochs_b2 = epochs['b/2']
+    epochs_a = epochs['a']
+    assert_equal(len(epochs_a), len(epochs_a1) + len(epochs_a2))
+    epochs_b = epochs['b']
+    assert_equal(len(epochs_b), len(epochs_b1) + len(epochs_b2))
+    epochs_1 = epochs['1']
+    assert_equal(len(epochs_1), len(epochs_a1) + len(epochs_b1))
+    epochs_2 = epochs['2']
+    assert_equal(len(epochs_2), len(epochs_a2) + len(epochs_b2))
+    epochs_all = epochs[('1', '2')]
+    assert_equal(len(epochs), len(epochs_all))
+    assert_array_equal(epochs.get_data(), epochs_all.get_data())
+
+
 @slow_test
 @testing.requires_testing_data
 def test_average_movements():
