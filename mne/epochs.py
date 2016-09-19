@@ -548,7 +548,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # Baseline correct
         picks = pick_types(self.info, meg=True, eeg=True, stim=False,
                            ref_meg=True, eog=True, ecg=True, seeg=True,
-                           emg=True, bio=True, ecog=True, exclude=[])
+                           emg=True, bio=True, ecog=True, fnirs=True,
+                           exclude=[])
         epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
                                copy=False, verbose=False)
 
@@ -660,7 +661,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Parameters
         ----------
         picks : array-like of int | None
-            If None only MEG, EEG, SEEG, and ECoG channels are kept
+            If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
             otherwise the channels indices in picks are kept.
 
         Returns
@@ -682,7 +683,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Parameters
         ----------
         picks : array-like of int | None
-            If None only MEG, EEG, SEEG, and ECoG channels are kept
+            If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
             otherwise the channels indices in picks are kept.
 
         Returns
@@ -2647,7 +2648,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         event sample numbers in ``epochs.events``). Can be ``None``
         if data have not been decimated or resampled.
     picks : array-like of int | None
-        If None only MEG, EEG, SEEG, and ECoG channels are kept
+        If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
         otherwise the channels indices in picks are kept.
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in head

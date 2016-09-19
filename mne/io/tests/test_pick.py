@@ -143,6 +143,18 @@ def test_pick_bio():
     assert_array_equal(idx['bio'], [4, 5, 6])
 
 
+def test_pick_fnirs():
+    """Test picking fNIRS channels."""
+    names = 'A1 A2 Fz O hbo1 hbo2 hbr1'.split()
+    types = 'mag mag eeg eeg hbo hbo hbr'.split()
+    info = create_info(names, 1024., types)
+    idx = channel_indices_by_type(info)
+    assert_array_equal(idx['mag'], [0, 1])
+    assert_array_equal(idx['eeg'], [2, 3])
+    assert_array_equal(idx['hbo'], [4, 5])
+    assert_array_equal(idx['hbr'], [6])
+
+
 def _check_fwd_n_chan_consistent(fwd, n_expected):
     n_ok = len(fwd['info']['ch_names'])
     n_sol = fwd['sol']['data'].shape[0]
@@ -152,8 +164,7 @@ def _check_fwd_n_chan_consistent(fwd, n_expected):
 
 @testing.requires_testing_data
 def test_pick_forward_seeg_ecog():
-    """Test picking forward with SEEG and ECoG
-    """
+    """Test picking forward with SEEG and ECoG.    """
     fwd = read_forward_solution(fname_meeg)
     counts = channel_indices_by_type(fwd['info'])
     for key in counts.keys():
@@ -200,7 +211,6 @@ def test_pick_forward_seeg_ecog():
 
 def test_picks_by_channels():
     """Test creating pick_lists"""
-
     rng = np.random.RandomState(909)
 
     test_data = rng.random_sample((4, 2000))

@@ -43,6 +43,8 @@ _kind_dict = dict(
     seeg=(FIFF.FIFFV_SEEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
     bio=(FIFF.FIFFV_BIO_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     ecog=(FIFF.FIFFV_ECOG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
+    hbo=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBO, FIFF.FIFF_UNIT_NONE),
+    hbr=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBR, FIFF.FIFF_UNIT_NONE)
 )
 
 
@@ -1423,7 +1425,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
     ch_types : list of str | str
         Channel types. If None, data are assumed to be misc.
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
-        'seeg', 'ecog', 'mag', 'eeg', 'ref_meg' or 'grad'.
+        'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'hbr' or 'hbo'.
         If str, then all channels are assumed to be of the same type.
     montage : None | str | Montage | DigMontage | list
         A montage containing channel positions. If str or Montage is

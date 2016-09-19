@@ -585,7 +585,7 @@ def _radio_clicked(label, params):
     channels = params['selections'][label]
     ax_topo = params['fig_selection'].get_axes()[1]
     types = np.array([], dtype=int)
-    for this_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog'):
+    for this_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr'):
         if this_type in params['types']:
             types = np.concatenate(
                 [types, np.where(np.array(params['types']) == this_type)[0]])
@@ -752,7 +752,7 @@ def _mouse_click(event, params):
 
 def _handle_topomap_bads(ch_name, params):
     """Helper for coloring channels in selection topomap when selecting bads"""
-    for type in ('mag', 'grad', 'eeg', 'seeg'):
+    for type in ('mag', 'grad', 'eeg', 'seeg', 'hbo', 'hbr'):
         if type in params['types']:
             types = np.where(np.array(params['types']) == type)[0]
             break

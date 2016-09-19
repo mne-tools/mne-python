@@ -888,17 +888,19 @@ def test_filter():
 
 def test_filter_picks():
     """Test filtering default channel picks."""
-    ch_types = ['mag', 'grad', 'eeg', 'seeg', 'misc', 'stim', 'ecog']
+    ch_types = ['mag', 'grad', 'eeg', 'seeg', 'misc', 'stim', 'ecog', 'hbo',
+                'hbr']
     info = create_info(ch_names=ch_types, ch_types=ch_types, sfreq=256)
     raw = RawArray(data=np.zeros((len(ch_types), 1000)), info=info)
 
-    # -- Deal with meg mag grad exception
+    # -- Deal with meg mag grad and fnirs exceptions
     ch_types = ('misc', 'stim', 'meg', 'eeg', 'seeg', 'ecog')
 
     # -- Filter data channels
-    for ch_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog'):
+    for ch_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr'):
         picks = dict((ch, ch == ch_type) for ch in ch_types)
         picks['meg'] = ch_type if ch_type in ('mag', 'grad') else False
+        picks['fnirs'] = ch_type if ch_type in ('hbo', 'hbr') else False
         raw_ = raw.copy().pick_types(**picks)
         raw_.filter(10, 30, l_trans_bandwidth='auto',
                     h_trans_bandwidth='auto', filter_length='auto',

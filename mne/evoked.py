@@ -517,7 +517,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Either 0 or 1, the order of the detrending. 0 is a constant
             (DC) detrend, 1 is a linear detrend.
         picks : array-like of int | None
-            If None only MEG, EEG, SEEG, and ECoG channels are detrended.
+            If None only MEG, EEG, SEEG, ECoG and fNIRS channels are detrended.
 
         Returns
         -------
@@ -597,7 +597,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        ch_type : {'mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', None}
+        ch_type : 'mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', hbr', 'misc', None  # noqa
             The channel type to use. Defaults to None. If more than one sensor
             Type is present in the data the channel type has to be explicitly
             set.
@@ -623,7 +623,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The time point of the maximum response, either latency in seconds
             or index.
         """
-        supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'None')
+        supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
+                     'hbr', 'None')
         data_picks = _pick_data_channels(self.info, with_ref_meg=False)
         types_used = set([channel_type(self.info, idx) for idx in data_picks])
 
@@ -642,11 +643,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                'must not be `None`, pass a sensor type '
                                'value instead')
 
-        meg = eeg = misc = seeg = ecog = False
+        meg = eeg = misc = seeg = ecog = fnirs = False
         picks = None
-        if ch_type == 'mag':
-            meg = ch_type
-        elif ch_type == 'grad':
+        if ch_type in ('mag', 'grad'):
             meg = ch_type
         elif ch_type == 'eeg':
             eeg = True
@@ -656,10 +655,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             seeg = True
         elif ch_type == 'ecog':
             ecog = True
+        elif ch_type in ('hbo', 'hbr'):
+            fnirs = ch_type
 
         if ch_type is not None:
             picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
-                               seeg=seeg, ecog=ecog, ref_meg=False)
+                               seeg=seeg, ecog=ecog, ref_meg=False,
+                               fnirs=fnirs)
 
         data = self.data
         ch_names = self.ch_names
