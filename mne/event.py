@@ -1285,4 +1285,3 @@ class AcqParserFIF(object):
             conds_data.append(dict(events=cat_t0, event_id=cat_id,
                                    tmin=tmin, tmax=tmax))
         return conds_data[0] if len(conds_data) == 1 else conds_data
-
