@@ -486,7 +486,7 @@ class LinearModel(BaseEstimator):
                                      mask=mask, outlines=outlines,
                                      contours=contours, title=title,
                                      image_interp=image_interp, show=show,
-                                     head_pos=head_pos)
+                                     head_pos=head_pos, average=average)
 
     def plot_filters(self, info, times=None, ch_type=None, layout=None,
                      vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
@@ -647,7 +647,7 @@ class LinearModel(BaseEstimator):
                                     mask=mask, outlines=outlines,
                                     contours=contours, title=title,
                                     image_interp=image_interp, show=show,
-                                    head_pos=head_pos)
+                                    head_pos=head_pos, average=average)
 
 
 def _set_cv(cv, estimator=None, X=None, y=None):
