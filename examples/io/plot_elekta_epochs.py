@@ -52,8 +52,8 @@ for cat in ap.categories:
 # mne.write_evokeds(fname_out, evokeds)
 
 ###############################################################################
-# Make a new category using existing one as a template, extract epochs
-newcat = ap.categories[0].copy()
+# Make a new averaging category
+newcat = dict()
 newcat['comment'] = 'Visual lower left, longer epochs'
 newcat['event'] = 3  # reference event
 newcat['start'] = -.2  # epoch start rel. to ref. event (in seconds)
@@ -61,6 +61,7 @@ newcat['end'] = .7  # epoch end
 newcat['reqevent'] = 0  # additional required event; 0 if none
 newcat['reqwithin'] = .5  # ...required within .5 sec (before or after)
 newcat['reqwhen'] = 2  # ...required before (1) or after (2) ref. event
+newcat['index'] = 9  # can be set freely
 
 cond = ap.get_condition(raw, newcat)
 epochs = mne.Epochs(raw, reject=ap.reject, flat=ap.flat, **cond)
