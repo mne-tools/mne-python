@@ -426,12 +426,26 @@ def test_acqparser():
     # invalid acquisition parameters
     assert_raises(ValueError, AcqParserFIF, {'acq_pars': 'baaa'})
     assert_raises(ValueError, AcqParserFIF, {'acq_pars': 'ERFVersion\n1'})
-    # check file
+    # test oldish file
+    raw = read_raw_fif(raw_fname, preload=False)
+    acqp = AcqParserFIF(raw.info)
+    # test __repr__()
+    assert_true(repr(acqp))
+    # old file should trigger compat mode
+    assert_true(acqp.compat)
+    # count events and categories
+    assert_equal(len(acqp.categories), 6)
+    assert_equal(len(acqp._categories), 17)
+    assert_equal(len(acqp.events), 6)
+    assert_equal(len(acqp._events), 17)
+    # get category
+    assert_true(acqp['Surprise visual'])
+    # test TRIUX file
     raw = read_raw_fif(fname_raw_elekta, preload=False)
     acqp = AcqParserFIF(raw.info)
     # test __repr__()
     assert_true(repr(acqp))
-    # this file not in compatibility mode
+    # this file should not be in compatibility mode
     assert_true(not acqp.compat)
     # nonexisting category
     assert_raises(KeyError, acqp.__getitem__, 'does not exist')
@@ -444,6 +458,8 @@ def test_acqparser():
     assert_equal(len(acqp._categories), 32)
     assert_equal(len(acqp.events), 6)
     assert_equal(len(acqp._events), 32)
+    # get category
+    assert_true(acqp['Test event 5'])
 
 
 @testing.requires_testing_data
