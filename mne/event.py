@@ -1005,15 +1005,65 @@ class AcqParserFIF(object):
         s += '>'
         return s
 
-    def __getitem__(self, items):
-        if not isinstance(items, str):
-            raise TypeError('Keys must be category names')
-        if items in self._categories:
-            return self._categories[items]
-        else:
-            raise KeyError('No such category')
+    def __getitem__(self, item):
+        """ Return an averaging category, or list of categories.
+
+        Parameters
+        ----------
+        item : str or list of str
+            Name of the category (comment field in DACQ).
+
+        Returns
+        -------
+        conds : dict or list of dict, each with following keys:
+            comment: str
+                The comment field in DACQ.
+            state : bool
+                Whether the category was marked enabled in DACQ.
+            index : int
+                The index of the category in DACQ. Indices start from 1.
+            event : int
+                Index of the reference event (trigger event, zero time for the
+                corresponding epochs).
+            start : float
+                Start time of epoch relative to the reference event.
+            end : float
+                End time of epoch relative to the reference event.
+            reqevent : int
+                Index of the required event.
+            reqwhen : int
+                Whether the required event is required before (1) or after (2)
+                the reference event.
+            reqwithin : float
+                The time range within which the required event must occur,
+                before or after the reference event.
+            display : bool
+                Whether the category was displayed online in DACQ.
+            nave : int
+                Desired number of averages. DACQ stops collecting averages once
+                this number is reached.
+            subave : int
+                Whether to compute normal and alternating subaverages, and
+                how many epochs to include. See the Elekta data acquisition
+                manual for details. Currently the class does not offer any
+                facility for computing subaverages, but it can be done manually
+                by the user after collecting the epochs.
+
+        """
+        if isinstance(item, str):
+            item = [item]
+        elif not isinstance(item, list):
+            raise ValueError('Keys must be category names')
+        cats = list()
+        for it in item:
+            if it in self._categories:
+                cats.append(self._categories[it])
+            else:
+                raise KeyError('No such category')
+        return cats[0] if len(cats) == 1 else cats
 
     def __len__(self):
+        """ Return number of averaging categories marked active in DACQ. """
         return len(self.categories)
 
     def _events_from_acq_pars(self):
@@ -1200,7 +1250,7 @@ class AcqParserFIF(object):
         condition : None | str | dict | list of dict
             Condition or a list of conditions. Conditions can be strings
             (DACQ comment field, e.g. 'Auditory left') or category dicts
-            (e.g. eav['Auditory left'], where eav is an instance of
+            (e.g. acqp['Auditory left'], where acqp is an instance of
             AcqParserFIF). If None, get all conditions marked active in
             DACQ.
         stim_channel : None | string | list of string
