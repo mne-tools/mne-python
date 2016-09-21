@@ -15,7 +15,7 @@ from mne.io import read_raw_fif
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.io.proj import (make_projector, activate_proj,
                          _needs_eeg_average_ref_proj)
-from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
+from mne.proj import (read_proj, write_proj, _make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne import read_events, Epochs, sensitivity_map, read_source_estimate
 from mne.tests.common import assert_naming
@@ -106,10 +106,9 @@ def test_sensitivity_maps():
                 assert_array_almost_equal(stc.data, w, decim)
 
     # test corner case for EEG
-    stc = sensitivity_map(fwd, projs=[make_eeg_average_ref_proj(fwd['info'])],
+    stc = sensitivity_map(fwd, projs=[_make_eeg_average_ref_proj(fwd['info'])],
                           ch_type='eeg', exclude='bads')
     # test corner case for projs being passed but no valid ones (#3135)
-    assert_raises(ValueError, sensitivity_map, fwd, projs=None, mode='angle')
     assert_raises(RuntimeError, sensitivity_map, fwd, projs=[], mode='angle')
     # test volume source space
     fname = op.join(sample_path, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
@@ -217,7 +216,8 @@ def test_compute_proj_raw():
 
         # test that you can save them
         raw.info['projs'] += projs
-        raw.save(op.join(tempdir, 'foo_%d_raw.fif' % ii), overwrite=True)
+        raw.save(op.join(tempdir, 'foo_%d_raw.fif' % ii), overwrite=True,
+                 buffer_size_sec=None)
 
     # Test that purely continuous (no duration) raw projection works
     with warnings.catch_warnings(record=True) as w:
@@ -235,7 +235,8 @@ def test_compute_proj_raw():
 
     # test that you can save them
     raw.info['projs'] += projs
-    raw.save(op.join(tempdir, 'foo_rawproj_continuous_raw.fif'))
+    raw.save(op.join(tempdir, 'foo_rawproj_continuous_raw.fif'),
+             buffer_size_sec=None)
 
     # test resampled-data projector, upsampling instead of downsampling
     # here to save an extra filtering (raw would have to be LP'ed to be equiv)
@@ -254,6 +255,8 @@ def test_compute_proj_raw():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         projs = compute_proj_raw(raw, n_grad=0, n_mag=0, n_eeg=1)
+    assert_true(all('dangerous' in str(ww.message) or
+                    'unreliable' in str(ww.message) for ww in w))
 
     # test that bad channels can be excluded
     proj, nproj, U = make_projector(projs, raw.ch_names,
@@ -270,7 +273,7 @@ def test_make_eeg_average_ref_proj():
     assert_true(not np.all(raw._data[eeg].mean(axis=0) < 1e-19))
 
     # Apply average EEG reference
-    car = make_eeg_average_ref_proj(raw.info)
+    car = _make_eeg_average_ref_proj(raw.info)
     reref = raw.copy()
     reref.add_proj(car)
     reref.apply_proj()
@@ -278,7 +281,7 @@ def test_make_eeg_average_ref_proj():
 
     # Error when custom reference has already been applied
     raw.info['custom_ref_applied'] = True
-    assert_raises(RuntimeError, make_eeg_average_ref_proj, raw.info)
+    assert_raises(RuntimeError, _make_eeg_average_ref_proj, raw.info)
 
 
 def test_has_eeg_average_ref_proj():

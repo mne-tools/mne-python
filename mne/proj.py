@@ -15,7 +15,7 @@ from .cov import _check_n_samples
 from .forward import (is_fixed_orient, _subject_from_forward,
                       convert_forward_solution)
 from .source_estimate import SourceEstimate, VolSourceEstimate
-from .io.proj import make_projector, make_eeg_average_ref_proj
+from .io.proj import make_projector, _make_eeg_average_ref_proj
 
 
 def read_proj(fname):
@@ -283,6 +283,9 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     Such maps are used to know how much sources are visible by a type
     of sensor, and how much projections shadow some sources.
 
+    .. note:: For EEG, an average reference projector will be added if
+              one is not already present.
+
     Parameters
     ----------
     fwd : Forward
@@ -308,6 +311,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         The sensitivity map as a SourceEstimate or VolSourceEstimate instance
         for visualization.
     """
+    projs = list() if projs is None else projs
     # check strings
     if ch_type not in ['eeg', 'grad', 'mag']:
         raise ValueError("ch_type should be 'eeg', 'mag' or 'grad (got %s)"
@@ -336,26 +340,22 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
 
     # Make sure EEG has average
     if ch_type == 'eeg':
-        if projs is None or not _has_eeg_average_ref_proj(projs):
-            eeg_ave = [make_eeg_average_ref_proj(fwd['info'])]
+        if not _has_eeg_average_ref_proj(projs):
+            eeg_ave = [_make_eeg_average_ref_proj(fwd['info'])]
         else:
             eeg_ave = []
         projs = eeg_ave if projs is None else projs + eeg_ave
 
     # Construct the projector
     residual_types = ['angle', 'remaining', 'dampening']
-    if projs is not None:
-        proj, ncomp, U = make_projector(projs, fwd['sol']['row_names'],
-                                        include_active=True)
-        # do projection for most types
-        if mode not in residual_types:
-            gain = np.dot(proj, gain)
-        elif ncomp == 0:
-            raise RuntimeError('No valid projectors found for channel type '
-                               '%s, cannot compute %s' % (ch_type, mode))
-    # can only run the last couple methods if there are projectors
-    elif mode in residual_types:
-        raise ValueError('No projectors used, cannot compute %s' % mode)
+    proj, ncomp, U = make_projector(projs, fwd['sol']['row_names'],
+                                    include_active=True)
+    # do projection for most types
+    if mode not in residual_types:
+        gain = np.dot(proj, gain)
+    elif ncomp == 0:
+        raise RuntimeError('No valid projectors found for channel type '
+                           '%s, cannot compute %s' % (ch_type, mode))
 
     n_sensors, n_dipoles = gain.shape
     n_locations = n_dipoles // 3

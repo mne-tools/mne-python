@@ -2,6 +2,8 @@
 #
 # License: BSD (3-clause)
 
+import warnings
+
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal, assert_array_equal
 
@@ -97,9 +99,11 @@ def assert_dig_allclose(info_py, info_bin):
                         err_msg='Failure on %s:\n%s\n%s'
                         % (ii, d_py['r'], d_bin['r']))
     if any(d['kind'] == FIFF.FIFFV_POINT_EXTRA for d in dig_py):
-        r_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(info_bin,
-                                                               units='m')
-        r_py, o_head_py, o_dev_py = fit_sphere_to_headshape(info_py, units='m')
+        with warnings.catch_warnings(record=True):  # bad distances
+            r_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(info_bin,
+                                                                   units='m')
+            r_py, o_head_py, o_dev_py = fit_sphere_to_headshape(info_py,
+                                                                units='m')
         assert_allclose(r_py, r_bin, atol=1e-6)
         assert_allclose(o_dev_py, o_dev_bin, rtol=1e-5, atol=1e-6)
         assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-6)

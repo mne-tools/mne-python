@@ -80,7 +80,7 @@ def test_concat():
     raw = read_raw_fif(test_fif_fname, add_eeg_ref=False)
     raw.crop(0, 2., copy=False)
     test_name = op.join(tempdir, 'test_raw.fif')
-    raw.save(test_name)
+    raw.save(test_name, buffer_size_sec=None)
     # now run the standard test
     _test_concat(partial(read_raw_fif, add_eeg_ref=False), test_name)
 
@@ -130,7 +130,7 @@ def test_subject_info():
         subject_info[key] = val
     raw.info['subject_info'] = subject_info
     out_fname = op.join(tempdir, 'test_subj_info_raw.fif')
-    raw.save(out_fname, overwrite=True)
+    raw.save(out_fname, overwrite=True, buffer_size_sec=None)
     raw_read = read_raw_fif(out_fname, add_eeg_ref=False)
     for key in keys:
         assert_equal(subject_info[key], raw_read.info['subject_info'][key])
@@ -184,10 +184,9 @@ def test_rank_estimation():
 
         raw.apply_proj()
         n_proj = len(raw.info['projs'])
-
         assert_array_equal(raw.estimate_rank(tstart=tstart, tstop=tstop,
                                              scalings=scalings),
-                           expected_rank - (1 if 'sss' in fname else n_proj))
+                           expected_rank - (0 if 'sss' in fname else n_proj))
 
 
 @testing.requires_testing_data
@@ -205,8 +204,9 @@ def test_output_formats():
     for ii, (fmt, tol) in enumerate(zip(formats, tols)):
         # Let's test the overwriting error throwing while we're at it
         if ii > 0:
-            assert_raises(IOError, raw.save, temp_file, fmt=fmt)
-        raw.save(temp_file, fmt=fmt, overwrite=True)
+            assert_raises(IOError, raw.save, temp_file, fmt=fmt,
+                          buffer_size_sec=None)
+        raw.save(temp_file, fmt=fmt, overwrite=True, buffer_size_sec=None)
         raw2 = read_raw_fif(temp_file, add_eeg_ref=False)
         raw2_data = raw2[:, :][0]
         assert_allclose(raw2_data, raw[:, :][0], rtol=tol, atol=1e-25)
@@ -243,7 +243,8 @@ def test_multiple_files():
     raws = [None] * len(tmins)
     for ri in range(len(tmins) - 1, -1, -1):
         fname = op.join(tempdir, 'test_raw_split-%d_raw.fif' % ri)
-        raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
+        raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri],
+                 buffer_size_sec=None)
         raws[ri] = read_raw_fif(fname, add_eeg_ref=False)
         assert_equal(len(raws[ri].times),
                      int(round((tmaxs[ri] - tmins[ri]) *
@@ -462,7 +463,7 @@ def test_load_bad_channels():
     # Test normal case
     raw.load_bad_channels(bad_file_works)
     # Write it out, read it in, and check
-    raw.save(op.join(tempdir, 'foo_raw.fif'))
+    raw.save(op.join(tempdir, 'foo_raw.fif'), buffer_size_sec=None)
     raw_new = read_raw_fif(op.join(tempdir, 'foo_raw.fif'), add_eeg_ref=False)
     assert_equal(correct_bads, raw_new.info['bads'])
     # Reset it
@@ -485,7 +486,8 @@ def test_load_bad_channels():
 
     # Check that bad channels are cleared
     raw.load_bad_channels(None)
-    raw.save(op.join(tempdir, 'foo_raw.fif'), overwrite=True)
+    raw.save(op.join(tempdir, 'foo_raw.fif'), overwrite=True,
+             buffer_size_sec=None)
     raw_new = read_raw_fif(op.join(tempdir, 'foo_raw.fif'), add_eeg_ref=False)
     assert_equal([], raw_new.info['bads'])
 
@@ -503,7 +505,7 @@ def test_io_raw():
             assert_true(op.basename(fif_fname) in repr(r))
             desc1 = r.info['description'] = chars.decode('utf-8')
             temp_file = op.join(tempdir, 'raw.fif')
-            r.save(temp_file, overwrite=True)
+            r.save(temp_file, overwrite=True, buffer_size_sec=None)
             with read_raw_fif(temp_file, add_eeg_ref=False) as r2:
                 desc2 = r2.info['description']
             assert_equal(desc1, desc2)
@@ -559,7 +561,8 @@ def test_io_raw():
         assert_true(times2.max() <= 3)
 
         # Writing
-        raw.save(fname_out, picks, tmin=0, tmax=5, overwrite=True)
+        raw.save(fname_out, picks, tmin=0, tmax=5, overwrite=True,
+                 buffer_size_sec=None)
 
         if fname_in == fif_fname or fname_in == fif_fname + '.gz':
             assert_equal(len(raw.info['dig']), 146)
@@ -631,7 +634,7 @@ def test_io_complex():
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             raw_cp.save(op.join(tempdir, 'raw.fif'), picks, tmin=0, tmax=5,
-                        overwrite=True)
+                        overwrite=True, buffer_size_sec=None)
             # warning gets thrown on every instance b/c simplifilter('always')
             assert_equal(len(w), 1)
 
@@ -713,7 +716,9 @@ def test_proj():
                            add_eeg_ref=False)
 
         # write the file with proj. activated, make sure proj has been applied
-        raw.save(op.join(tempdir, 'raw.fif'), proj=True, overwrite=True)
+        raw.apply_proj()
+        raw.save(op.join(tempdir, 'raw.fif'), overwrite=True,
+                 buffer_size_sec=None)
         raw2 = read_raw_fif(op.join(tempdir, 'raw.fif'), proj=False,
                             add_eeg_ref=False)
         data_proj_2, _ = raw2[:, 0:2]
@@ -741,7 +746,7 @@ def test_proj():
     raw.info['projs'] = [raw.info['projs'][-1]]
     raw._data.fill(0)
     raw._data[-1] = 1.
-    raw.save(out_fname)
+    raw.save(out_fname, buffer_size_sec=None)
     raw = read_raw_fif(out_fname, preload=False, add_eeg_ref=False)
     raw.apply_proj()
     assert_allclose(raw[:, :][0][:1], raw[0, :][0])
@@ -769,7 +774,7 @@ def test_preload_modify():
                 raise err
 
         tmp_fname = op.join(tempdir, 'raw.fif')
-        raw.save(tmp_fname, overwrite=True)
+        raw.save(tmp_fname, overwrite=True, buffer_size_sec=None)
 
         raw_new = read_raw_fif(tmp_fname, add_eeg_ref=False)
         data_new, _ = raw_new[picks, :nsamp / 2]
@@ -973,7 +978,8 @@ def test_resample():
     # test parallel on upsample
     raw_resamp.resample(sfreq * 2, n_jobs=2, npad='auto')
     assert_equal(raw_resamp.n_times, len(raw_resamp.times))
-    raw_resamp.save(op.join(tempdir, 'raw_resamp-raw.fif'))
+    raw_resamp.save(op.join(tempdir, 'raw_resamp-raw.fif'),
+                    buffer_size_sec=None)
     raw_resamp = read_raw_fif(op.join(tempdir, 'raw_resamp-raw.fif'),
                               preload=True, add_eeg_ref=False)
     assert_equal(sfreq, raw_resamp.info['sfreq'] / 2)
@@ -1193,10 +1199,10 @@ def test_save():
     tempdir = _TempDir()
     raw = read_raw_fif(fif_fname, preload=False, add_eeg_ref=False)
     # can't write over file being read
-    assert_raises(ValueError, raw.save, fif_fname)
+    assert_raises(ValueError, raw.save, fif_fname, buffer_size_sec=None)
     raw = read_raw_fif(fif_fname, preload=True, add_eeg_ref=False)
     # can't overwrite file without overwrite=True
-    assert_raises(IOError, raw.save, fif_fname)
+    assert_raises(IOError, raw.save, fif_fname, buffer_size_sec=None)
 
     # test abspath support and annotations
     sfreq = raw.info['sfreq']
@@ -1204,10 +1210,10 @@ def test_save():
                         raw.info['meas_date'] + raw.first_samp / sfreq)
     raw.annotations = annot
     new_fname = op.join(op.abspath(op.curdir), 'break-raw.fif')
-    raw.save(op.join(tempdir, new_fname), overwrite=True)
+    raw.save(op.join(tempdir, new_fname), overwrite=True, buffer_size_sec=None)
     new_raw = read_raw_fif(op.join(tempdir, new_fname), preload=False,
                            add_eeg_ref=False)
-    assert_raises(ValueError, new_raw.save, new_fname)
+    assert_raises(ValueError, new_raw.save, new_fname, buffer_size_sec=None)
     assert_array_equal(annot.onset, new_raw.annotations.onset)
     assert_array_equal(annot.duration, new_raw.annotations.duration)
     assert_array_equal(annot.description, new_raw.annotations.description)
@@ -1239,7 +1245,8 @@ def test_save():
     # make sure we can overwrite the file we loaded when preload=True
     new_raw = read_raw_fif(op.join(tempdir, new_fname), preload=True,
                            add_eeg_ref=False)
-    new_raw.save(op.join(tempdir, new_fname), overwrite=True)
+    new_raw.save(op.join(tempdir, new_fname), overwrite=True,
+                 buffer_size_sec=None)
     os.remove(new_fname)
 
 
@@ -1337,7 +1344,7 @@ def test_compensation_raw():
 
     # Try IO with compensation
     temp_file = op.join(tempdir, 'raw.fif')
-    raw_3.save(temp_file, overwrite=True)
+    raw_3.save(temp_file, overwrite=True, buffer_size_sec=None)
     for preload in (True, False):
         raw_read = read_raw_fif(temp_file, preload=preload, add_eeg_ref=False)
         assert_equal(raw_read.compensation_grade, 3)
@@ -1358,7 +1365,7 @@ def test_compensation_raw():
     # to inexact inversions with saving/loading (casting back to single)
     # in between (e.g., 1->3->1 will degrade like this)
     looser_tols = dict(rtol=1e-6, atol=1e-18)
-    raw_1.save(temp_file, overwrite=True)
+    raw_1.save(temp_file, overwrite=True, buffer_size_sec=None)
     for preload in (True, False):
         raw_read = read_raw_fif(temp_file, preload=preload, verbose=True,
                                 add_eeg_ref=False)

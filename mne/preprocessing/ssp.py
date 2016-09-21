@@ -11,7 +11,7 @@ import numpy as np
 from .. import Epochs, compute_proj_evoked, compute_proj_epochs
 from ..utils import logger, verbose, warn
 from .. import pick_types
-from ..io import make_eeg_average_ref_proj
+from ..io.proj import _make_eeg_average_ref_proj
 from .ecg import find_ecg_events
 from .eog import find_eog_events
 
@@ -108,6 +108,9 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     if not raw.preload:
         raise ValueError('raw needs to be preloaded, '
                          'use preload=True in constructor')
+    if avg_ref:
+        warn('avg_ref is deprecated and will be removed in 0.14',
+             DeprecationWarning)
 
     if no_proj:
         projs = []
@@ -117,8 +120,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                     % len(projs))
 
     if avg_ref:
-        eeg_proj = make_eeg_average_ref_proj(raw.info)
-        projs.append(eeg_proj)
+        projs.append(_make_eeg_average_ref_proj(raw.info))
 
     if raw_event is None:
         raw_event = raw
@@ -260,6 +262,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     bads : list
         List with (additional) bad channels.
     avg_ref : bool
+        Deprecated, use raw.set_eeg_reference().
         Add EEG average reference proj.
     no_proj : bool
         Exclude the SSP projectors currently in the fiff file.
@@ -353,6 +356,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     bads : list
         List with (additional) bad channels.
     avg_ref : bool
+        Deprecated, use raw.set_eeg_reference().
         Add EEG average reference proj.
     no_proj : bool
         Exclude the SSP projectors currently in the fiff file.

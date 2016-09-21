@@ -299,6 +299,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._do_delayed_proj = False
         add_eeg_ref = _dep_eeg_ref(add_eeg_ref) if 'eeg' in self else False
         activate = False if self._do_delayed_proj else proj
+        self._proj_bypass = not proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=activate)
         if preload_at_end:
@@ -972,7 +973,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if (epoch is None) or isinstance(epoch, string_types):
             # can happen if t < 0 or reject based on annotations
             return epoch
-        proj = self._do_delayed_proj or self.proj
+        # self.proj is a property based on proj.applied, which we can't always
+        # trust in the context of e.g. channel subselection...
+        proj = self._do_delayed_proj or (self.proj and not self._proj_bypass)
         if self._projector is not None and proj is True:
             epoch = np.dot(self._projector, epoch)
         return epoch
@@ -1776,10 +1779,7 @@ class Epochs(_BaseEpochs):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of `mne.io.Raw`')
         info = deepcopy(raw.info)
-
-        # proj is on when applied in Raw
-        proj = proj or raw.proj
-
+        # don't set proj=True in Epochs constructor based on raw.proj anymore
         self.reject_by_annotation = reject_by_annotation
         # call _BaseEpochs constructor
         super(Epochs, self).__init__(

@@ -31,7 +31,7 @@ from mne.utils import (_TempDir, requires_pandas, slow_test,
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif
-from mne.io.proj import _has_eeg_average_ref_proj
+from mne.io.proj import _has_eeg_average_ref_proj, deactivate_proj
 from mne.event import merge_events
 from mne.io.constants import FIFF
 from mne.externals.six import text_type
@@ -829,6 +829,28 @@ def test_epochs_proj():
                       epochs.get_data().mean(axis=1), 0., atol=1e-15)
         epochs.apply_proj()
         assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
+
+    # GH#2310: don't re-apply proj even if they were applied for raw
+    raw, events, picks = _get_data()
+    assert_equal(len(raw.info['projs']), 3)
+    for proj in raw.info['projs']:
+        assert_equal(len(proj['data']['col_names']), 102)
+    raw.apply_proj()
+    for proj in raw.info['projs']:
+        assert_equal(len(proj['data']['col_names']), 102)
+    raw.info['bads'] = ['MEG 0121', 'MEG 0131', 'MEG 0141']
+    deactivate_proj(raw.info['projs'], copy=False)
+    raw.apply_proj()
+    for proj in raw.info['projs']:
+        assert_equal(len(proj['data']['col_names']), 99)
+    assert_true(raw.proj)
+    # Select a single channel -- if proj happens, it will be zeroed out
+    epochs = Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                    add_eeg_ref=False, picks=np.arange(3), preload=True)
+    assert_allclose(epochs.get_data()[0, 2], 0.)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
+                    add_eeg_ref=False, picks=np.arange(3), preload=True)
+    assert_true((epochs.get_data()[0, 2] != 0).all())
 
 
 def test_evoked_arithmetic():

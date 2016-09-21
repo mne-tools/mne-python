@@ -111,8 +111,7 @@ class ProjMixin(object):
         """Add an average EEG reference projector if one does not exist."""
         if _needs_eeg_average_ref_proj(self.info):
             # Don't set as active, since we haven't applied it
-            eeg_proj = make_eeg_average_ref_proj(self.info, activate=False)
-            self.add_proj(eeg_proj)
+            self.add_proj(_make_eeg_average_ref_proj(self.info))
         elif self.info.get('custom_ref_applied', False):
             raise RuntimeError('Cannot add an average EEG reference '
                                'projection since a custom reference has been '
@@ -156,17 +155,20 @@ class ProjMixin(object):
             return self
 
         # Exit delayed mode if you apply proj
-        if isinstance(self, _BaseEpochs) and self._do_delayed_proj:
-            logger.info('Leaving delayed SSP mode.')
-            self._do_delayed_proj = False
+        if isinstance(self, _BaseEpochs):
+            if self._do_delayed_proj:
+                logger.info('Leaving delayed SSP mode.')
+                self._do_delayed_proj = False
+            self._proj_bypass = False
 
         if all(p['active'] for p in self.info['projs']):
             logger.info('Projections have already been applied. '
                         'Setting proj attribute to True.')
             return self
 
-        _projector, info = setup_proj(deepcopy(self.info), activate=True,
-                                      verbose=self.verbose)
+        _projector, info = setup_proj(deepcopy(self.info),
+                                      add_eeg_ref=False, activate=True,
+                                      subselect=True, verbose=self.verbose)
         # let's not raise a RuntimeError here, otherwise interactive plotting
         if _projector is None:  # won't be fun.
             logger.info('The projections don\'t apply to these data.'
@@ -464,12 +466,15 @@ def make_projector(projs, ch_names, bads=(), include_active=True):
 
 
 def _make_projector(projs, ch_names, bads=(), include_active=True,
-                    inplace=False):
+                    inplace=False, subselect=False):
     """Helper to subselect projs based on ch_names and bads
 
     Use inplace=True mode to modify ``projs`` inplace so that no
     warning will be raised next time projectors are constructed with
     the given inputs. If inplace=True, no meaningful data are returned.
+
+    Use subselect=True when the projectors will be activated to help
+    with provenance.
     """
     nchan = len(ch_names)
     if nchan == 0:
@@ -504,25 +509,32 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
 
             # Get the two selection vectors to pick correct elements from
             # the projection vectors omitting bad channels
-            sel = []
-            vecsel = []
+            ch_sel = []
+            proj_sel = []
             for c, name in enumerate(ch_names):
                 if name in p['data']['col_names'] and name not in bads:
-                    sel.append(c)
-                    vecsel.append(p['data']['col_names'].index(name))
+                    ch_sel.append(c)
+                    proj_sel.append(p['data']['col_names'].index(name))
 
             # If there is something to pick, pickit
             nrow = p['data']['nrow']
             this_vecs = vecs[:, nvec:nvec + nrow]
-            if len(sel) > 0:
-                this_vecs[sel] = p['data']['data'][:, vecsel].T
+            if len(ch_sel) > 0:
+                this_vecs[ch_sel] = p['data']['data'][:, proj_sel].T
+                # prevent re-applying a projection if the channels have changed
+                if p['active'] and (len(proj_sel) !=
+                                    len(p['data']['col_names'])):
+                    warn('Creating a new projection vector of length %s from '
+                         'a subset of %s channels originally used to apply '
+                         'the projector can be dangerous'
+                         % (len(proj_sel), len(p['data']['col_names'])))
 
             # Rescale for better detection of small singular values
             for v in range(p['data']['nrow']):
                 psize = sqrt(np.sum(this_vecs[:, v] * this_vecs[:, v]))
                 if psize > 0:
                     orig_n = p['data']['data'].shape[1]
-                    if len(vecsel) < 0.9 * orig_n and not inplace:
+                    if len(proj_sel) < 0.9 * orig_n and not inplace:
                         warn('Projection vector "%s" has magnitude %0.2f '
                              '(should be unity), applying projector with '
                              '%s/%s of the original channels available may '
@@ -530,15 +542,15 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
                              'projection vectors for channels that are '
                              'eventually used. If this is intentional, '
                              'consider using info.normalize_proj()'
-                             % (p['desc'], psize, len(vecsel), orig_n))
+                             % (p['desc'], psize, len(proj_sel), orig_n))
                     this_vecs[:, v] /= psize
                     nonzero += 1
             # If doing "inplace" mode, "fix" the projectors to only operate
             # on this subset of channels.
-            if inplace:
-                p['data']['data'] = this_vecs[sel].T
+            if inplace or subselect:
+                p['data']['data'] = this_vecs[ch_sel].T
                 p['data']['col_names'] = [p['data']['col_names'][ii]
-                                          for ii in vecsel]
+                                          for ii in proj_sel]
             nvec += p['data']['nrow']
 
     #   Check whether all of the vectors are exactly zero
@@ -554,7 +566,6 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
 
     # Here is the celebrated result
     proj = np.eye(nchan, nchan) - np.dot(U, U.T)
-
     return proj, nproj, U
 
 
@@ -567,9 +578,12 @@ def _normalize_proj(info):
     """
     # Here we do info.get b/c info can actually be a noise cov
     _make_projector(info['projs'], info.get('ch_names', info.get('names')),
-                    info['bads'], include_active=True, inplace=True)
+                    info['bads'], include_active=True, inplace=True,
+                    subselect=True)
 
 
+@deprecated('This function is deprecated and will be removed in 0.14. Use '
+            'make_projector instead.')
 def make_projector_info(info, include_active=True):
     """Make an SSP operator using the measurement info
 
@@ -581,6 +595,9 @@ def make_projector_info(info, include_active=True):
         Measurement info.
     include_active : bool
         Also include projectors that are already active.
+    subselect : bool
+        If True, subselect each projector to contain only the channels
+        that are used (good ones).
 
     Returns
     -------
@@ -589,9 +606,8 @@ def make_projector_info(info, include_active=True):
     nproj : int
         How many items in the projector.
     """
-    proj, nproj, _ = make_projector(info['projs'], info['ch_names'],
-                                    info['bads'], include_active)
-    return proj, nproj
+    return make_projector(info['projs'], info['ch_names'],
+                          info['bads'], include_active)[:2]
 
 
 @verbose
@@ -659,15 +675,13 @@ def deactivate_proj(projs, copy=True, verbose=None):
 
 
 @verbose
-def make_eeg_average_ref_proj(info, activate=True, verbose=None):
+def _make_eeg_average_ref_proj(info, verbose=None):
     """Create an EEG average reference SSP projection vector
 
     Parameters
     ----------
     info : dict
         Measurement info.
-    activate : bool
-        If True projections are activated.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -695,11 +709,36 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
     explained_var = None
     eeg_proj_data = dict(col_names=eeg_names, row_names=None,
                          data=vec, nrow=1, ncol=n_eeg)
-    eeg_proj = Projection(active=activate, data=eeg_proj_data,
+    eeg_proj = Projection(active=False, data=eeg_proj_data,
                           desc='Average EEG reference',
                           kind=FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF,
                           explained_var=explained_var)
     return eeg_proj
+
+
+@deprecated('make_eeg_average_ref_proj is deprecated and will be removed '
+            'in 0.14. Use mne.set_eeg_reference() instead.')
+def make_eeg_average_ref_proj(info, activate=True, verbose=None):
+    """Create an EEG average reference SSP projection vector
+
+    Parameters
+    ----------
+    info : dict
+        Measurement info.
+    activate : bool
+        If True projections are activated.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    eeg_proj: instance of Projection
+        The SSP/PCA projector.
+    """
+    proj = _make_eeg_average_ref_proj(info, verbose)
+    if activate:
+        activate_proj(proj, copy=False)
+    return proj
 
 
 def _has_eeg_average_ref_proj(projs, check_active=False):
@@ -730,8 +769,11 @@ def _needs_eeg_average_ref_proj(info):
 
 
 @verbose
-def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
+def setup_proj(info, add_eeg_ref=True, activate=True, subselect=False,
+               verbose=None):
     """Set up projection for Raw and Epochs
+
+    This function modifies ``info`` inplace.
 
     Parameters
     ----------
@@ -742,6 +784,9 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
         already exists).
     activate : bool
         If True projections are activated.
+    subselect : bool
+        If True, subselect each projector to contain only the channels
+        that are used (good ones).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -750,15 +795,19 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
     projector : array of shape [n_channels, n_channels]
         The projection operator to apply to the data.
     info : dict
-        The modified measurement info (Warning: info is modified inplace).
+        The modified measurement info.
     """
     # Add EEG ref reference proj if necessary
-    if add_eeg_ref and _needs_eeg_average_ref_proj(info):
-        eeg_proj = make_eeg_average_ref_proj(info, activate=activate)
-        info['projs'].append(eeg_proj)
+    if add_eeg_ref:
+        warn('add_eeg_ref is deprecated. It will default to False in 0.14 '
+             'and be removed in 0.15')
+        if _needs_eeg_average_ref_proj(info):
+            info['projs'].append(_make_eeg_average_ref_proj(info))
 
     # Create the projector
-    projector, nproj = make_projector_info(info)
+    projector, nproj = _make_projector(
+        info['projs'], info['ch_names'], info['bads'], include_active=True,
+        subselect=subselect)[:2]
     if nproj == 0:
         if verbose:
             logger.info('The projection vectors do not apply to these '
@@ -770,7 +819,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
 
     # The projection items have been activated
     if activate:
-        info['projs'] = activate_proj(info['projs'], copy=False)
+        activate_proj(info['projs'], copy=False)
 
     return projector, info
 
