@@ -418,15 +418,21 @@ def test_define_events():
     assert_array_equal(true_lag_nofill, lag_nofill)
 
 
+def test_acqparser():
+    raw = read_raw_fif(fname_raw_elekta, preload=True)
+    acqp = AcqParserFIF(raw.info)
+    assert_true(repr(acqp))
+
+
 @testing.requires_testing_data
-def test_elekta_averager():
+def test_acqparser_averaging():
     """Test averaging according to Elekta DACQ parameters"""
     raw = read_raw_fif(fname_raw_elekta, preload=True)
-    eav = AcqParserFIF(raw.info)
-    for cat in eav.categories:
+    acqp = AcqParserFIF(raw.info)
+    for cat in acqp.categories:
         # XXX datasets match only when baseline is applied to both,
         # not sure where relative dc shift comes from
-        cond = eav.get_condition(raw, cat)
+        cond = acqp.get_condition(raw, cat)
         eps = Epochs(raw, baseline=(-.05, 0), **cond)
         ev = eps.average()
         ev_ref = read_evokeds(fname_ave_elekta, cat['comment'],
