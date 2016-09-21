@@ -29,14 +29,15 @@ def _check_input_st(x_in, n_fft):
     elif n_fft < n_times:
         raise ValueError("n_fft cannot be smaller than signal size. "
                          "Got %s < %s." % (n_fft, n_times))
-    zero_pad = None
     if n_times < n_fft:
         warn('The input signal is shorter ({0}) than "n_fft" ({1}). '
              'Applying zero padding.'.format(x_in.shape[-1], n_fft))
         zero_pad = n_fft - n_times
         pad_array = np.zeros(x_in.shape[:-1] + (zero_pad,), x_in.dtype)
         x_in = np.concatenate((x_in, pad_array), axis=-1)
-        return x_in, n_fft, zero_pad
+    else:
+        zero_pad = 0
+    return x_in, n_fft, zero_pad
 
 
 def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
@@ -83,7 +84,10 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     for i_f, window in enumerate(W):
         f = start_f + i_f
         ST = fftpack.ifft(XX[:, f:f + n_samp] * window)
-        TFR = ST[:, :-zero_pad:decim]
+        if zero_pad > 0:
+            TFR = ST[:, :-zero_pad:decim]
+        else:
+            TFR = ST[:, ::decim]
         TFR_abs = np.abs(TFR)
         if compute_itc:
             TFR /= TFR_abs
