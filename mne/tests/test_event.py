@@ -419,10 +419,16 @@ def test_define_events():
 
 
 def test_acqparser():
-    raw = read_raw_fif(fname_raw_elekta, preload=True)
+    raw = read_raw_fif(fname_raw_elekta, preload=False)
     acqp = AcqParserFIF(raw.info)
+    # test __repr__()
     assert_true(repr(acqp))
-
+    # nonexisting category
+    assert_raises(KeyError, acqp.__getitem__, 'does not exist')
+    # not a string
+    assert_raises(ValueError, acqp.__getitem__, 0)
+    # length
+    assert_equal(len(acqp), 7)
 
 @testing.requires_testing_data
 def test_acqparser_averaging():
