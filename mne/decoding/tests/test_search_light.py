@@ -10,8 +10,6 @@ from ...utils import requires_sklearn_0_15
 from ..search_light import SearchLight, GeneralizationLight
 from .. import Vectorizer
 
-from sklearn.metrics import roc_auc_score
-
 
 def make_data():
     n_epochs, n_chan, n_time = 50, 32, 10
@@ -29,6 +27,8 @@ def test_searchlight():
     """Test SearchLight"""
     from sklearn.linear_model import Ridge, LogisticRegression
     from sklearn.pipeline import make_pipeline
+    from sklearn.metrics import roc_auc_score
+
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # init

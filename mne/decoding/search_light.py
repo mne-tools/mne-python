@@ -402,6 +402,13 @@ class GeneralizationLight(SearchLight):
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
     """
+    def __init__(self, base_estimator, n_jobs=1):
+        _check_estimator(base_estimator)
+        self.base_estimator = base_estimator
+        self.n_jobs = n_jobs
+
+        if not isinstance(self.n_jobs, int):
+            raise ValueError('n_jobs must be int, got %s' % n_jobs)
 
     def __repr__(self):
         repr_str = super(GeneralizationLight, self).__repr__()
