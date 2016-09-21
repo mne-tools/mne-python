@@ -420,6 +420,7 @@ def test_define_events():
 
 @testing.requires_testing_data
 def test_acqparser():
+    """ Test AcqParserFIF """
     raw = read_raw_fif(fname_raw_elekta, preload=False)
     acqp = AcqParserFIF(raw.info)
     # test __repr__()
@@ -433,13 +434,13 @@ def test_acqparser():
     assert_equal(len(acqp), 7)
     assert_equal(len(acqp.categories), 7)
     assert_equal(len(acqp._categories), 32)
-    assert_equal(len(acqp.events), 6)    
+    assert_equal(len(acqp.events), 6)
     assert_equal(len(acqp._events), 32)
 
 
 @testing.requires_testing_data
 def test_acqparser_averaging():
-    """Test averaging according to Elekta DACQ parameters"""
+    """ Test averaging with AcqParserFIF vs. Elekta software """
     raw = read_raw_fif(fname_raw_elekta, preload=True)
     acqp = AcqParserFIF(raw.info)
     for cat in acqp.categories:
