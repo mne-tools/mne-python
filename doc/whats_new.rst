@@ -203,6 +203,8 @@ API
 
     - :func:`mne.preprocessing.create_ecg_epochs` now includes all the channels when ``picks=None`` by `Jaakko Leppakangas`_
 
+    - Added functionality to change scoring method in :class:`mne.decoding.SearchLight` by `Asish Panda`_
+
 .. _changes_0_12:
 
 Version 0.12

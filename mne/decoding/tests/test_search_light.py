@@ -10,8 +10,8 @@ from ...utils import requires_sklearn_0_15
 from ..search_light import SearchLight, GeneralizationLight
 from .. import Vectorizer
 
-from sklearn.metrics import accuracy_score, roc_auc_score
-from sklearn.cross_validation import cross_val_score
+from sklearn.metrics import roc_auc_score
+
 
 def make_data():
     n_epochs, n_chan, n_time = 50, 32, 10
@@ -63,8 +63,6 @@ def test_searchlight():
     score = sl.score(X, y)
     assert_array_equal(score.shape, [n_time])
     assert_true(score.dtype == float)
-    sl = SearchLight(LogisticRegression())
-    assert_array_equal(cross_val_score(sl, X, y, scoring='roc_auc'), score)
 
     # n_jobs
     sl = SearchLight(LogisticRegression(), n_jobs=2)

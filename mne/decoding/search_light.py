@@ -8,8 +8,6 @@ from .mixin import TransformerMixin
 from .base import BaseEstimator, _check_estimator
 from ..parallel import parallel_func
 
-from sklearn.metrics import make_scorer
-
 
 class SearchLight(BaseEstimator, TransformerMixin):
     """Search Light.
@@ -233,6 +231,8 @@ class SearchLight(BaseEstimator, TransformerMixin):
         score : array, shape (n_samples, n_estimators)
             Score for each estimator / data slice couple.
         """
+        from sklearn.metrics import make_scorer
+
         self._check_Xy(X)
         if X.shape[-1] != len(self.estimators_):
             raise ValueError('The number of estimators does not match '
