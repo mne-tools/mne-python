@@ -418,6 +418,7 @@ def test_define_events():
     assert_array_equal(true_lag_nofill, lag_nofill)
 
 
+@testing.requires_testing_data
 def test_acqparser():
     raw = read_raw_fif(fname_raw_elekta, preload=False)
     acqp = AcqParserFIF(raw.info)
@@ -425,10 +426,16 @@ def test_acqparser():
     assert_true(repr(acqp))
     # nonexisting category
     assert_raises(KeyError, acqp.__getitem__, 'does not exist')
-    # not a string
+    assert_raises(KeyError, acqp.get_condition, raw, 'foo')
+    # category not a string
     assert_raises(ValueError, acqp.__getitem__, 0)
-    # length
+    # number of events / categories
     assert_equal(len(acqp), 7)
+    assert_equal(len(acqp.categories), 7)
+    assert_equal(len(acqp._categories), 32)
+    assert_equal(len(acqp.events), 6)    
+    assert_equal(len(acqp._events), 32)
+
 
 @testing.requires_testing_data
 def test_acqparser_averaging():
