@@ -1112,11 +1112,14 @@ class AcqParserFIF(object):
     def _acqpars_gen(self, acq_pars):
         """ Yields key/value pairs from ``info['acq_pars'])``. """
         # DACQ variable names always start with one of these
+        key, val = '', ''
         for line in acq_pars.split():
             if any([line.startswith(x) for x in self._acq_var_magic]):
                 key = line
                 val = ''
             else:
+                if not key:
+                    raise ValueError('Cannot parse acquisition parameters')
                 # DACQ splits items with spaces into multiple lines
                 val += ' ' + line if val else line
             yield key, val

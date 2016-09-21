@@ -421,10 +421,18 @@ def test_define_events():
 @testing.requires_testing_data
 def test_acqparser():
     """ Test AcqParserFIF """
+    # no acquisition parameters
+    assert_raises(ValueError, AcqParserFIF, {'acq_pars': ''})
+    # invalid acquisition parameters
+    assert_raises(ValueError, AcqParserFIF, {'acq_pars': 'baaa'})
+    assert_raises(ValueError, AcqParserFIF, {'acq_pars': 'ERFVersion\n1'})
+    # check file
     raw = read_raw_fif(fname_raw_elekta, preload=False)
     acqp = AcqParserFIF(raw.info)
     # test __repr__()
     assert_true(repr(acqp))
+    # this file not in compatibility mode
+    assert_true(not acqp.compat)
     # nonexisting category
     assert_raises(KeyError, acqp.__getitem__, 'does not exist')
     assert_raises(KeyError, acqp.get_condition, raw, 'foo')
