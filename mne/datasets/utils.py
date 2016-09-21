@@ -362,12 +362,13 @@ def _download_all_example_data(verbose=True):
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
-                   eegbci)
+                   eegbci, multimodal)
     sample.data_path()
     testing.data_path()
     misc.data_path()
     spm_face.data_path()
     somato.data_path()
+    multimodal.data_path()
     sys.argv += ['--accept-brainstorm-license']
     try:
         brainstorm.bst_raw.data_path()
