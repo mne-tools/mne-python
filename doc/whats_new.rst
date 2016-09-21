@@ -126,6 +126,8 @@ BUG
 
     - Fixed bug with ``picks`` when interpolating MEG channels by `Mainak Jas`_.
 
+    - Fixed bug in padding of Stockwell transform for signal of length a power of 2 by `Johannes Niediek`_
+
 API
 ~~~
 
@@ -1763,3 +1765,5 @@ of commits):
 .. _Phillip Alday: http://palday.bitbucket.org
 
 .. _Andreas Hojlund: https://github.com/ahoejlund
+
+.. _Johannes Niediek: https://github.com/jniediek
