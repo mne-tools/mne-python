@@ -112,7 +112,7 @@ def test_set_channel_types():
         assert_true(info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_EEG)
     idx = pick_channels(raw.ch_names, ['MEG 2442'])[0]
     assert_true(info['chs'][idx]['kind'] == FIFF.FIFFV_FNIRS_CH)
-    assert_true(info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_NONE)
+    assert_true(info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_MOL)
     assert_true(info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO)
 
     # Test meaningful error when setting channel type with unknown unit

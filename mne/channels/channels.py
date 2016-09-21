@@ -212,11 +212,12 @@ _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'syst': FIFF.FIFF_UNIT_NONE,
                'bio': FIFF.FIFF_UNIT_V,
                'ecog': FIFF.FIFF_UNIT_V,
-               'hbo': FIFF.FIFF_UNIT_NONE,
-               'hbr': FIFF.FIFF_UNIT_NONE}
+               'hbo': FIFF.FIFF_UNIT_MOL,
+               'hbr': FIFF.FIFF_UNIT_MOL}
 _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_T: 'T',
                FIFF.FIFF_UNIT_T_M: 'T/m',
+               FIFF.FIFF_UNIT_MOL: 'M',
                FIFF.FIFF_UNIT_NONE: 'NA'}
 
 

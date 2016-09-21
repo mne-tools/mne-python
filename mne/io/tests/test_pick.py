@@ -164,7 +164,7 @@ def _check_fwd_n_chan_consistent(fwd, n_expected):
 
 @testing.requires_testing_data
 def test_pick_forward_seeg_ecog():
-    """Test picking forward with SEEG and ECoG.    """
+    """Test picking forward with SEEG and ECoG."""
     fwd = read_forward_solution(fname_meeg)
     counts = channel_indices_by_type(fwd['info'])
     for key in counts.keys():
