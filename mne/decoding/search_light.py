@@ -327,7 +327,7 @@ def _sl_partial_fit(estimators, X, y):
         The fitted estimators.
     """
     for ii, est in enumerate(estimators):
-        est.fit(X[..., ii], y)
+        est.partial_fit(X[..., ii], y)
     return estimators
 
 
