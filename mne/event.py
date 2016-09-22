@@ -889,7 +889,7 @@ def concatenate_events(events, first_samps, last_samps):
 
 
 class AcqParserFIF(object):
-    """ Parser for Elekta DACQ settings.
+    """ Parser for Elekta data acquisition settings.
 
     This class parses parameters (e.g. events and averaging categories) that
     are defined in the Elekta TRIUX/VectorView data acquisition software (DACQ)
@@ -911,9 +911,9 @@ class AcqParserFIF(object):
     reject : dict
         Rejection criteria from DACQ that can be used with mne.Epochs.
         Note that mne does not support all DACQ rejection criteria
-        (e.g. spike, slope)
+        (e.g. spike, slope).
     flat : dict
-        Flatness criteria from DACQ that can be used with mne.Epochs.
+        Flatness rejection criteria from DACQ that can be used with mne.Epochs.
     acq_dict : dict
         All DACQ parameters.
 
@@ -1023,14 +1023,15 @@ class AcqParserFIF(object):
             index : int
                 The index of the category in DACQ. Indices start from 1.
             event : int
-                Index of the reference event (trigger event, zero time for the
-                corresponding epochs).
+                DACQ index of the reference event (trigger event, zero time for
+                the corresponding epochs). Note that the event indices start
+                from 1.
             start : float
                 Start time of epoch relative to the reference event.
             end : float
                 End time of epoch relative to the reference event.
             reqevent : int
-                Index of the required event.
+                Index of the required (conditional) event.
             reqwhen : int
                 Whether the required event is required before (1) or after (2)
                 the reference event.
@@ -1215,7 +1216,7 @@ class AcqParserFIF(object):
 
     @property
     def categories(self):
-        """ Return list of averaging categories in DACQ defined order.
+        """ Return list of averaging categories ordered by DACQ index.
 
         Only returns categories marked active in DACQ.
         """
@@ -1225,9 +1226,10 @@ class AcqParserFIF(object):
 
     @property
     def events(self):
-        """ Return events in DACQ defined order.
+        """ Return events ordered by DACQ index.
 
-        Only returns events that are in use (referred to by a category). """
+        Only returns events that are in use (referred to by a category).
+        """
         evs = sorted(self._events_in_use.values(), key=lambda ev: ev['index'])
         return evs
 
