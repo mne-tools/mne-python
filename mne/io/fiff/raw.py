@@ -37,10 +37,11 @@ class Raw(_BaseRaw):
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
         raw_tsss.fif or raw_tsss.fif.gz.
     allow_maxshield : bool | str (default False)
-        allow_maxshield if True, allow loading of data that has been
-        processed with Maxshield. Maxshield-processed data should generally
-        not be loaded directly, but should be processed using SSS first.
-        Can also be "yes" to load without eliciting a warning.
+        If True, allow loading of data that has been recorded with internal
+        active compensation (MaxShield). Data recorded with MaxShield should
+        generally not be loaded directly, but should first be processed using
+        SSS/tSSS to remove the compensation signals that may also affect brain
+        activity. Can also be "yes" to load without eliciting a warning.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
