@@ -3,7 +3,7 @@
 Getting averaging info from .fif files
 ======================================
 
-Get averaging information defined in Elekta Vectorview/TRIUX DACQ (data
+Parse averaging information defined in Elekta Vectorview/TRIUX DACQ (data
 acquisition). Extract and average epochs accordingly. Modify some
 averaging parameters and get epochs.
 """
@@ -23,7 +23,7 @@ fname_raw = os.path.join(multimodal.data_path(), 'multimodal_raw.fif')
 print(__doc__)
 
 ###############################################################################
-# Read raw file and create averager instance
+# Read raw file and create parser instance
 raw = mne.io.read_raw_fif(fname_raw)
 ap = AcqParserFIF(raw.info)
 
@@ -47,7 +47,7 @@ for cat in ap.categories:
     evoked = epochs.average()
     evoked.comment = cat['comment']
     evokeds.append(evoked)
-# save to an evoked fiff file
+# save all averages to an evoked fiff file
 # fname_out = 'multimodal-ave.fif'
 # mne.write_evokeds(fname_out, evokeds)
 
