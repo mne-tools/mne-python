@@ -251,9 +251,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     for t in ['grad', 'mag']:
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
+    for t in ['hbo', 'hbr']:
+        inds += [pick_types(info, meg=False, ref_meg=False, fnirs=t,
+                            exclude=[])]
+        types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
     for key in _PICK_TYPES_KEYS:
-        if key != 'meg':
+        if key not in ['meg', 'fnirs']:
             pick_kwargs[key] = True
             inds += [pick_types(raw.info, **pick_kwargs)]
             types += [key] * len(inds[-1])
@@ -947,7 +951,7 @@ def _setup_browser_selection(raw, kind):
     misc = pick_types(raw.info, meg=False, eeg=False, stim=True, eog=True,
                       ecg=True, emg=True, ref_meg=False, misc=True, resp=True,
                       chpi=True, exci=True, ias=True, syst=True, seeg=False,
-                      bio=True, ecog=False, exclude=())
+                      bio=True, ecog=False, fnirs=False, exclude=())
     if len(misc) > 0:
         order['Misc'] = misc
     keys = np.concatenate([keys, ['Misc']])

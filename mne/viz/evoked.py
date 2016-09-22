@@ -200,7 +200,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     units = _handle_default('units', units)
     # Valid data types ordered for consistency
     valid_channel_types = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
-                           'dipole', 'gof', 'bio', 'ecog']
+                           'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr']
 
     if picks is None:
         picks = list(range(info['nchan']))
@@ -1108,7 +1108,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         evoked.drop_channels(exclude)
 
     info = evoked.info
-    data_types = ['eeg', 'grad', 'mag', 'seeg', 'ecog']
+    data_types = ['eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr']
     ch_types = set(ch_type for ch_type in data_types if ch_type in evoked)
 
     # if multiple sensor types: one plot per channel type, recursive call

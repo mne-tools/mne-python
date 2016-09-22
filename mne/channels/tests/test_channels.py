@@ -75,7 +75,8 @@ def test_set_channel_types():
     assert_raises(ValueError, raw.set_channel_types, mapping)
     # Test changing type if in proj (avg eeg ref here)
     mapping = {'EEG 058': 'ecog', 'EEG 059': 'ecg', 'EEG 060': 'eog',
-               'EOG 061': 'seeg', 'MEG 2441': 'eeg', 'MEG 2443': 'eeg'}
+               'EOG 061': 'seeg', 'MEG 2441': 'eeg', 'MEG 2443': 'eeg',
+               'MEG 2442': 'hbo'}
     assert_raises(RuntimeError, raw.set_channel_types, mapping)
     # Test type change
     raw2 = read_raw_fif(raw_fname, add_eeg_ref=False)
@@ -109,6 +110,10 @@ def test_set_channel_types():
         assert_true(info['chs'][idx]['kind'] == FIFF.FIFFV_EEG_CH)
         assert_true(info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_V)
         assert_true(info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_EEG)
+    idx = pick_channels(raw.ch_names, ['MEG 2442'])[0]
+    assert_true(info['chs'][idx]['kind'] == FIFF.FIFFV_FNIRS_CH)
+    assert_true(info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_MOL)
+    assert_true(info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO)
 
     # Test meaningful error when setting channel type with unknown unit
     raw.info['chs'][0]['unit'] = 0.

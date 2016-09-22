@@ -73,8 +73,9 @@ def _contains_ch_type(info, ch_type):
                          '`str`'.format(actual_class=type(ch_type)))
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
+    fnirs_extras = ['hbo', 'hbr']
     valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
-                                  if key != 'meg'] + meg_extras)
+                                  if key != 'meg'] + meg_extras + fnirs_extras)
     if ch_type not in valid_channel_types:
         raise ValueError('ch_type must be one of %s, not "%s"'
                          % (valid_channel_types, ch_type))
@@ -195,7 +196,9 @@ _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
                'stim': FIFF.FIFFV_STIM_CH,
                'syst': FIFF.FIFFV_SYST_CH,
                'bio': FIFF.FIFFV_BIO_CH,
-               'ecog': FIFF.FIFFV_ECOG_CH}
+               'ecog': FIFF.FIFFV_ECOG_CH,
+               'hbo': FIFF.FIFFV_FNIRS_CH,
+               'hbr': FIFF.FIFFV_FNIRS_CH}
 _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'eeg': FIFF.FIFF_UNIT_V,
                'emg': FIFF.FIFF_UNIT_V,
@@ -208,10 +211,13 @@ _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'stim': FIFF.FIFF_UNIT_NONE,
                'syst': FIFF.FIFF_UNIT_NONE,
                'bio': FIFF.FIFF_UNIT_V,
-               'ecog': FIFF.FIFF_UNIT_V}
+               'ecog': FIFF.FIFF_UNIT_V,
+               'hbo': FIFF.FIFF_UNIT_MOL,
+               'hbr': FIFF.FIFF_UNIT_MOL}
 _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_T: 'T',
                FIFF.FIFF_UNIT_T_M: 'T/m',
+               FIFF.FIFF_UNIT_MOL: 'M',
                FIFF.FIFF_UNIT_NONE: 'NA'}
 
 
@@ -332,7 +338,8 @@ class SetChannelsMixin(object):
         """Define the sensor type of channels.
 
         Note: The following sensor types are accepted:
-            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog
+            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog,
+            hbo, hbr
 
         Parameters
         ----------
@@ -372,9 +379,14 @@ class SetChannelsMixin(object):
                      % (ch_name, _unit2human[unit_old], _unit2human[unit_new]))
             self.info['chs'][c_ind]['unit'] = _human2unit[ch_type]
             if ch_type in ['eeg', 'seeg', 'ecog']:
-                self.info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_EEG
+                coil_type = FIFF.FIFFV_COIL_EEG
+            elif ch_type == 'hbo':
+                coil_type = FIFF.FIFFV_COIL_FNIRS_HBO
+            elif ch_type == 'hbr':
+                coil_type = FIFF.FIFFV_COIL_FNIRS_HBR
             else:
-                self.info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_NONE
+                coil_type = FIFF.FIFFV_COIL_NONE
+            self.info['chs'][c_ind]['coil_type'] = coil_type
 
     def rename_channels(self, mapping):
         """Rename channels.
@@ -500,7 +512,7 @@ class UpdateChannelsMixin(object):
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
-                   include=[], exclude='bads', selection=None):
+                   fnirs=False, include=[], exclude='bads', selection=None):
         """Pick some channels by type and names
 
         Parameters
@@ -546,6 +558,11 @@ class UpdateChannelsMixin(object):
             Bio channels.
         ecog : bool
             Electrocorticography channels.
+        fnirs : bool | str
+            Functional near-infrared spectroscopy channels. If True include all
+            fNIRS channels. If False (default) include none. If string it can
+            be 'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
+            include channels measuring deoxyhemoglobin).
         include : list of string
             List of additional channels to include. If empty do not include
             any.
@@ -568,7 +585,8 @@ class UpdateChannelsMixin(object):
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
-            ecog=ecog, include=include, exclude=exclude, selection=selection)
+            ecog=ecog, fnirs=fnirs, include=include, exclude=exclude,
+            selection=selection)
         self._pick_drop_channels(idx)
         return self
 

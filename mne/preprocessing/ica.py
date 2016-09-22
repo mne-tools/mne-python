@@ -94,7 +94,7 @@ def get_score_funcs():
 def _check_for_unsupported_ica_channels(picks, info):
     """Check for channels in picks that are not considered
     valid channels. Accepted channels are the data channels
-    ('seeg','ecog','eeg','mag', and 'grad') and 'eog'.
+    ('seeg','ecog','eeg', 'hbo', 'hbr', 'mag', and 'grad') and 'eog'.
     This prevents the program from crashing without
     feedback when a bad channel is provided to ICA whitening.
     """
@@ -107,8 +107,8 @@ def _check_for_unsupported_ica_channels(picks, info):
     check = all([ch in types for ch in chs])
     if not check:
         raise ValueError('Invalid channel type(s) passed for ICA.\n'
-                         'Only the following channels are supported {}\n'
-                         'Following types were passed {}\n'
+                         'Only the following channels are supported {0}\n'
+                         'Following types were passed {1}\n'
                          .format(types, chs))
 
 
@@ -322,7 +322,8 @@ class ICA(ContainsMixin):
             within ``start`` and ``stop`` are used.
         reject : dict | None
             Rejection parameters based on peak-to-peak amplitude.
-            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg'.
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg',
+            'hbo', 'hbr'.
             If reject is None then no rejection is done. Example::
 
                 reject = dict(grad=4000e-13, # T / m (gradiometers)
@@ -334,7 +335,8 @@ class ICA(ContainsMixin):
             It only applies if `inst` is of type Raw.
         flat : dict | None
             Rejection parameters based on flatness of signal.
-            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg'.
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg',
+            'hbo', 'hbr'.
             Values are floats that set the minimum acceptable peak-to-peak
             amplitude. If flat is None then no rejection is done.
             It only applies if `inst` is of type Raw.
@@ -480,13 +482,15 @@ class ICA(ContainsMixin):
                         this_picks = pick_types(info, meg=False, ecog=True)
                     elif ch_type == 'eeg':
                         this_picks = pick_types(info, meg=False, eeg=True)
-                    elif ch_type in ['mag', 'grad']:
+                    elif ch_type in ('mag', 'grad'):
                         this_picks = pick_types(info, meg=ch_type)
                     elif ch_type == 'eog':
                         this_picks = pick_types(info, meg=False, eog=True)
+                    elif ch_type in ('hbo', 'hbr'):
+                        this_picks = pick_types(info, meg=False, fnirs=ch_type)
                     else:
                         raise RuntimeError('Should not be reached.'
-                                           'Unsupported channel {}'
+                                           'Unsupported channel {0}'
                                            .format(ch_type))
                     pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener

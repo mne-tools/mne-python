@@ -603,6 +603,14 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         mask = np.in1d(idxs, picks, assume_unique=True)
         inds.append(idxs[mask])
         types += [t] * len(inds[-1])
+    for t in ['hbo', 'hbr']:
+        idxs = pick_types(params['info'], meg=False, ref_meg=False, fnirs=t,
+                          exclude=[])
+        if len(idxs) < 1:
+            continue
+        mask = np.in1d(idxs, picks, assume_unique=True)
+        inds.append(idxs[mask])
+        types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
     if order is None:
         order = ['eeg', 'seeg', 'ecog', 'eog', 'ecg', 'emg', 'ref_meg', 'stim',
@@ -986,7 +994,8 @@ def _handle_picks(epochs):
                            exclude=[])
     else:
         picks = pick_types(epochs.info, meg=True, eeg=True, eog=True, ecg=True,
-                           seeg=True, ecog=True, ref_meg=False, exclude=[])
+                           seeg=True, ecog=True, ref_meg=False, fnirs=True,
+                           exclude=[])
     return picks
 
 
