@@ -65,7 +65,7 @@ def test_searchlight():
     assert_true(score1.dtype == float)
 
     X_2d = X.reshape(X.shape[0], X.shape[1] * X.shape[2])
-    lg_score = LogisticRegression().fit(X_2d ,y).predict_proba(X_2d)[:, 1]
+    lg_score = LogisticRegression().fit(X_2d, y).predict_proba(X_2d)[:, 1]
     assert_equal(score1[0], roc_auc_score(y, lg_score))
 
     sl2 = SearchLight(LogisticRegression(), scoring='roc_auc')
