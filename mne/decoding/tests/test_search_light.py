@@ -58,11 +58,24 @@ def test_searchlight():
     assert_true(score.dtype == float)
 
     # change score method
-    sl = SearchLight(LogisticRegression(), scoring=roc_auc_score)
-    sl.fit(X, y)
-    score = sl.score(X, y)
-    assert_array_equal(score.shape, [n_time])
-    assert_true(score.dtype == float)
+    sl1 = SearchLight(LogisticRegression(), scoring=roc_auc_score)
+    sl1.fit(X, y)
+    score1 = sl1.score(X, y)
+    assert_array_equal(score1.shape, [n_time])
+    assert_true(score1.dtype == float)
+
+    X_2d = X.reshape(X.shape[0], X.shape[1] * X.shape[2])
+    lg_score = LogisticRegression().fit(X_2d ,y).predict_proba(X_2d)[:, 1]
+    assert_equal(score1[0], roc_auc_score(y, lg_score))
+
+    sl2 = SearchLight(LogisticRegression(), scoring='roc_auc')
+    sl2.fit(X, y)
+    assert_array_equal(score1, sl2.score(X, y))
+
+    assert_raises(ValueError, SearchLight, LogisticRegression(), scoring='foo')
+
+    sl = SearchLight(LogisticRegression())
+    assert_equal(sl.scoring, None)
 
     # n_jobs
     sl = SearchLight(LogisticRegression(), n_jobs=2)
