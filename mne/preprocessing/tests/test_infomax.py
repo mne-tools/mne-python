@@ -123,6 +123,20 @@ def test_infomax_simple():
                 assert_almost_equal(np.dot(s2_, s2) / n_samples, 1, decimal=1)
 
 
+def test_infomax_weights_ini():
+    """ Test the infomax algorithm when user provides an initial weights matrix.
+    """
+
+    X = np.random.random((3, 100))
+    weights = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.float64)
+
+    w1 = infomax(X, max_iter=0, weights=weights, extended=True)
+    w2 = infomax(X, max_iter=0, weights=weights, extended=False)
+
+    assert_almost_equal(w1, weights)
+    assert_almost_equal(w2, weights)
+
+
 @requires_sklearn
 def test_non_square_infomax():
     """ Test non-square infomax
