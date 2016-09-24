@@ -41,7 +41,7 @@ from .cov import (read_cov, write_cov, Covariance, compute_raw_covariance,
                   compute_covariance, whiten_evoked, make_ad_hoc_cov)
 from .event import (read_events, write_events, find_events, merge_events,
                     pick_events, make_fixed_length_events, concatenate_events,
-                    find_stim_steps)
+                    find_stim_steps, AcqParserFIF)
 from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       average_forward_solutions, Forward,
                       write_forward_solution, make_forward_solution,

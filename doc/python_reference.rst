@@ -29,6 +29,7 @@ Classes
    io.RawFIF
    io.RawArray
    Annotations
+   AcqParserFIF
    Epochs
    Evoked
    SourceSpaces
@@ -534,6 +535,7 @@ Events
    average_movements
    combine_event_ids
    equalize_epoch_counts
+
 
 Sensor Space Data
 =================

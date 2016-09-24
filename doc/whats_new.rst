@@ -15,6 +15,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+    - Add new class :class:`AcqParserFIF` to parse Elekta/Neuromag MEG acquisition info, allowing e.g. collecting epochs according to acquisition-defined averaging categories by `Jussi Nurminen`_
+
     - Adds automatic determination of FIR filter parameters ``filter_length``, ``l_trans_bandwidth``, and ``h_trans_bandwidth`` and adds ``phase`` argument in e.g. in :meth:`mne.io.Raw.filter` by `Eric Larson`_
 
     - Adds faster ``n_fft='auto'`` option to :meth:`mne.io.Raw.apply_hilbert` by `Eric Larson`_
@@ -31,7 +33,7 @@ Changelog
 
     - Add label center of mass function :func:`mne.Label.center_of_mass` by `Eric Larson`_
 
-    - Added :func:`mne.viz.plot_ica_properties` that allows ploting of independent component properties similar to ``pop_prop`` in EEGLAB. Also :class:`mne.preprocessing.ICA` has :func:`mne.preprocessing.ICA.plot_properties` method now. Added by `Mikołaj Magnuski`_
+    - Added :func:`mne.viz.plot_ica_properties` that allows plotting of independent component properties similar to ``pop_prop`` in EEGLAB. Also :class:`mne.preprocessing.ICA` has :func:`mne.preprocessing.ICA.plot_properties` method now. Added by `Mikołaj Magnuski`_
 
     - Add second-order sections (instead of ``(b, a)`` form) IIR filtering for reduced numerical error by `Eric Larson`_
 
