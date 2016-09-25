@@ -10,7 +10,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne import Epochs, read_events, pick_types, compute_raw_covariance
 from mne.io import read_raw_fif
 from mne.utils import requires_sklearn, run_tests_if_main
-from mne.preprocessing.xdawn import Xdawn, XdawnTransformer
+from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -159,8 +159,8 @@ def test_xdawn_regularization():
 
 
 @requires_sklearn
-def test_xdawntransformer():
-    """Test XdawnTransformer."""
+def test_XdawnTransformer():
+    """Test _XdawnTransformer."""
     # Get data
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -169,37 +169,37 @@ def test_xdawntransformer():
     X = epochs._data
     y = epochs.events[:, -1]
     # Fit
-    xdt = XdawnTransformer()
+    xdt = _XdawnTransformer()
     xdt.fit(X, y)
     assert_raises(ValueError, xdt.fit, X, y[1:])
     assert_raises(ValueError, xdt.fit, 'foo')
 
     # Provide covariance object
     signal_cov = compute_raw_covariance(raw, picks=picks)
-    xdt = XdawnTransformer(signal_cov=signal_cov)
+    xdt = _XdawnTransformer(signal_cov=signal_cov)
     xdt.fit(X, y)
     # Provide ndarray
     signal_cov = np.eye(len(picks))
-    xdt = XdawnTransformer(signal_cov=signal_cov)
+    xdt = _XdawnTransformer(signal_cov=signal_cov)
     xdt.fit(X, y)
     # Provide ndarray of bad shape
     signal_cov = np.eye(len(picks) - 1)
-    xdt = XdawnTransformer(signal_cov=signal_cov)
+    xdt = _XdawnTransformer(signal_cov=signal_cov)
     assert_raises(ValueError, xdt.fit, X, y)
     # Provide another type
     signal_cov = 42
-    xdt = XdawnTransformer(signal_cov=signal_cov)
+    xdt = _XdawnTransformer(signal_cov=signal_cov)
     assert_raises(ValueError, xdt.fit, X, y)
 
     # Fit with y as None
-    xdt = XdawnTransformer()
+    xdt = _XdawnTransformer()
     xdt.fit(X)
 
-    # Compare xdawn and XdawnTransformer
+    # Compare xdawn and _XdawnTransformer
     xd = Xdawn(correct_overlap=False)
     xd.fit(epochs)
 
-    xdt = XdawnTransformer()
+    xdt = _XdawnTransformer()
     xdt.fit(X, y)
     assert_array_almost_equal(xd.filters_['cond2'][:, :2],
                               xdt.filters_.reshape(2, 2, 8)[0].T)

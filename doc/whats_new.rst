@@ -191,8 +191,6 @@ API
 
     - The API of :meth:`mne.SourceEstimate.plot` and :func:`mne.viz.plot_source_estimates` has been updated to reflect current PySurfer 0.6 API. The ``config_opts`` parameter is now deprecated and will be removed in mne 0.14, and the default representation for time will change from ``ms`` to ``s`` in mne 0.14. By `Christian Brodbeck`_
 
-    - Added :class:`mne.decoding.XdawnTransformer` implementing xdawn filtering algorithm working with numpy arrays of epochs data and compatible with scikit-learn pipeline. Does not support overlap case. By `Asish Panda`_
-
     - The default dataset location has been changed from ``examples/`` in the MNE-Python root directory to ``~/mne_data`` in the user's home directory, by `Eric Larson`_
 
     - A new option ``set_env`` has been added to :func:`mne.set_config` that defaults to ``False`` in 0.13 but will change to ``True`` in 0.14, by `Eric Larson`_
@@ -215,7 +213,6 @@ API
 
     - :func:`mne.preprocessing.create_ecg_epochs` now includes all the channels when ``picks=None`` by `Jaakko Leppakangas`_
 
-    - Added functionality to change scoring method in :class:`mne.decoding.SearchLight` by `Asish Panda`_
 
 .. _changes_0_12:
 

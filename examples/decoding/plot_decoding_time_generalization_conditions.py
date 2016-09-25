@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.decoding.search_light import GeneralizationLight
+from mne.decoding.search_light import _GeneralizationLight
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
@@ -62,7 +62,7 @@ triggers = epochs.events[:, 2]
 
 # Each estimator fitted at each time point is an independent Scikit-Learn
 # pipeline with a ``fit``, and a ``score`` method.
-gat = GeneralizationLight(
+gat = _GeneralizationLight(
     make_pipeline(StandardScaler(), LogisticRegression()),
     n_jobs=1)
 
