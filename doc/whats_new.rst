@@ -82,6 +82,8 @@ Changelog
 BUG
 ~~~
 
+    - Fixed Infomax/Extended Infomax when the user provides an initial weights matrix by `Jair Montoya Martinez`_
+    
     - Fixed channel selection order when MEG channels do not come first in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
 
     - Fixed color ranges to correspond to the colorbar when plotting several time instances with :func:`mne.viz.plot_evoked_topomap` by `Jaakko Leppakangas`_
