@@ -207,7 +207,7 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
     return filters, patterns, evokeds
 
 
-class XdawnTransformer(BaseEstimator, TransformerMixin):
+class _XdawnTransformer(BaseEstimator, TransformerMixin):
     """Implementation of the Xdawn Algorithm compatible with scikit-learn.
 
     Xdawn is a spatial filtering method designed to improve the signal
@@ -216,7 +216,7 @@ class XdawnTransformer(BaseEstimator, TransformerMixin):
     response with respect to the non-target response. This implementation is a
     generalization to any type of event related response.
 
-    .. note:: XdawnTransformer does not correct for epochs overlap. To correct
+    .. note:: _XdawnTransformer does not correct for epochs overlap. To correct
               overlaps see ``Xdawn``.
 
     Parameters
@@ -356,7 +356,7 @@ class XdawnTransformer(BaseEstimator, TransformerMixin):
         return X, y
 
 
-class Xdawn(XdawnTransformer):
+class Xdawn(_XdawnTransformer):
     """Implementation of the Xdawn Algorithm.
 
     Xdawn is a spatial filtering method designed to improve the signal
@@ -404,7 +404,6 @@ class Xdawn(XdawnTransformer):
     See Also
     --------
     CSP
-    XdawnTransformer
 
     References
     ----------
@@ -654,5 +653,5 @@ class Xdawn(XdawnTransformer):
     def inverse_transform(self):
         """Not implemented, see Xdawn.apply() instead.
         """
-        # Exists because of XdawnTransformer
+        # Exists because of _XdawnTransformer
         raise NotImplementedError('See Xdawn.apply()')

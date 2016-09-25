@@ -256,7 +256,7 @@ class Vectorizer(TransformerMixin):
 
     Examples
     --------
-    clf = make_pipeline(SpatialFilter(), XdawnTransformer(), Vectorizer(),
+    clf = make_pipeline(SpatialFilter(), _XdawnTransformer(), Vectorizer(),
                         LogisticRegression())
 
     Attributes
