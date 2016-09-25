@@ -72,7 +72,9 @@ def test_searchlight():
     sl2.fit(X, y)
     assert_array_equal(score1, sl2.score(X, y))
 
-    assert_raises(ValueError, SearchLight, LogisticRegression(), scoring='foo')
+    sl = SearchLight(LogisticRegression(), scoring='foo')
+    sl.fit(X, y)
+    assert_raises(ValueError, sl.score, X, y)
 
     sl = SearchLight(LogisticRegression())
     assert_equal(sl.scoring, None)
