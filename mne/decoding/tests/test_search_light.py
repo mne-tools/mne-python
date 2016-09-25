@@ -27,6 +27,8 @@ def test_searchlight():
     """Test SearchLight"""
     from sklearn.linear_model import Ridge, LogisticRegression
     from sklearn.pipeline import make_pipeline
+    from sklearn.metrics import roc_auc_score
+
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # init
@@ -54,6 +56,28 @@ def test_searchlight():
     assert_array_equal(score.shape, [n_time])
     assert_true(np.sum(np.abs(score)) != 0)
     assert_true(score.dtype == float)
+
+    # change score method
+    sl1 = SearchLight(LogisticRegression(), scoring=roc_auc_score)
+    sl1.fit(X, y)
+    score1 = sl1.score(X, y)
+    assert_array_equal(score1.shape, [n_time])
+    assert_true(score1.dtype == float)
+
+    X_2d = X.reshape(X.shape[0], X.shape[1] * X.shape[2])
+    lg_score = LogisticRegression().fit(X_2d, y).predict_proba(X_2d)[:, 1]
+    assert_equal(score1[0], roc_auc_score(y, lg_score))
+
+    sl2 = SearchLight(LogisticRegression(), scoring='roc_auc')
+    sl2.fit(X, y)
+    assert_array_equal(score1, sl2.score(X, y))
+
+    sl = SearchLight(LogisticRegression(), scoring='foo')
+    sl.fit(X, y)
+    assert_raises(ValueError, sl.score, X, y)
+
+    sl = SearchLight(LogisticRegression())
+    assert_equal(sl.scoring, None)
 
     # n_jobs
     sl = SearchLight(LogisticRegression(), n_jobs=2)
