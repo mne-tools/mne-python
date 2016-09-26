@@ -5,11 +5,6 @@ Decoding sensor space data with generalization across time and conditions
 
 This example runs the analysis computed in:
 
-Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
-and Stanislas Dehaene, "Two distinct dynamic modes subtend the detection of
-unexpected sounds", PLOS ONE, 2013,
-http://www.ncbi.nlm.nih.gov/pubmed/24475052
-
 King & Dehaene (2014) 'Characterizing the dynamics of mental
 representations: the temporal generalization method', Trends In Cognitive
 Sciences, 18(4), 203-210.
@@ -25,14 +20,10 @@ can predict accurately over time and on a second set of conditions.
 # License: BSD (3-clause)
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.decoding.search_light import _GeneralizationLight
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
+from mne.decoding import GeneralizationAcrossTime
 
 print(__doc__)
 
@@ -42,51 +33,37 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 events_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-picks = mne.pick_types(raw.info, meg='mag')  # Pick magnetometers only
+picks = mne.pick_types(raw.info, meg=True, exclude='bads')  # Pick MEG channels
+raw.filter(1, 30, method='fft')  # Band pass filtering signals
 events = mne.read_events(events_fname)
 event_id = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
 decim = 2  # decimate to make the example faster to run
 epochs = mne.Epochs(raw, events, event_id, -0.050, 0.400, proj=True,
                     picks=picks, baseline=None, preload=True,
-                    decim=decim, verbose=False)
+                    reject=dict(mag=5e-12), decim=decim, verbose=False)
 
 # We will train the classifier on all left visual vs auditory trials
 # and test on all right visual vs auditory trials.
 
 # In this case, because the test data is independent from the train data,
-# we do not need a cross validation.
+# we test the classifier of each fold and average the respective predictions.
 
 # Define events of interest
 triggers = epochs.events[:, 2]
+viz_vs_auditory = np.in1d(triggers, (1, 2)).astype(int)
 
+gat = GeneralizationAcrossTime(predict_mode='mean-prediction', n_jobs=1)
 
-# Each estimator fitted at each time point is an independent Scikit-Learn
-# pipeline with a ``fit``, and a ``score`` method.
-gat = _GeneralizationLight(
-    make_pipeline(StandardScaler(), LogisticRegression()),
-    n_jobs=1)
+# For our left events, which ones are visual?
+viz_vs_auditory_l = (triggers[np.in1d(triggers, (1, 3))] == 3).astype(int)
+# To make scikit-learn happy, we converted the bool array to integers
+# in the same line. This results in an array of zeros and ones:
+print("The unique classes' labels are: %s" % np.unique(viz_vs_auditory_l))
 
-# Fit: for our left events, which ones are visual?
-X = epochs[('AudL', 'VisL')].get_data()
-y = triggers[np.in1d(triggers, (1, 3))] == 3
-gat.fit(X, y)
+gat.fit(epochs[('AudL', 'VisL')], y=viz_vs_auditory_l)
 
-# Generalize: for our right events, which ones are visual?
-X = epochs[('AudR', 'VisR')].get_data()
-y = triggers[np.in1d(triggers, (2, 4))] == 4
-score = gat.score(X, y)
+# For our right events, which ones are visual?
+viz_vs_auditory_r = (triggers[np.in1d(triggers, (2, 4))] == 4).astype(int)
 
-# Plot temporal generalization accuracies.
-extent = epochs.times[[0, -1, 0, -1]]
-fig, ax = plt.subplots(1)
-im = ax.matshow(score, origin='lower', cmap='RdBu_r', vmin=0., vmax=1.,
-                extent=extent)
-ticks = np.arange(0., .401, .100)
-ax.set_xticks(ticks)
-ax.set_xticklabels(ticks)
-ax.set_yticks(ticks)
-ax.set_yticklabels(ticks)
-ax.axvline(0, color='k')
-ax.axhline(0, color='k')
-plt.colorbar(im)
-plt.show()
+gat.score(epochs[('AudR', 'VisR')], y=viz_vs_auditory_r)
+gat.plot(title="Temporal Generalization (visual vs auditory): left to right")
