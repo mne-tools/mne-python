@@ -151,7 +151,7 @@ evoked_right = epochs['Auditory/Right'].average(picks=picks)
 epochs_left = epochs['Left']
 
 # ... or to select a very specific subset. This is the same as above:
-evoked_left = epochs['Auditory', 'Left'].average(picks=picks)
+evoked_left = epochs['Left/Auditory'].average(picks=picks)
 
 ###############################################################################
 # Finally, let's plot the evoked responses.
