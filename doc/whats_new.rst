@@ -83,7 +83,9 @@ BUG
 ~~~
 
     - Fixed Infomax/Extended Infomax when the user provides an initial weights matrix by `Jair Montoya Martinez`_
-    
+
+    - Fixed the default raw FIF writing buffer size to be 1 second instead of 10 seconds by `Eric Larson`_
+
     - Fixed channel selection order when MEG channels do not come first in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
 
     - Fixed color ranges to correspond to the colorbar when plotting several time instances with :func:`mne.viz.plot_evoked_topomap` by `Jaakko Leppakangas`_
@@ -124,7 +126,7 @@ BUG
 
         - Fix comparisons of filter settings for determining "strictest"/"weakest" filter
 
-        - Weakest filter is now used for heterogeneous channel filter settings, leading to more consistent behavior with filtering methods applied to a subset of channels (e.g. ``Raw.filter`` with ``picks != None``).  
+        - Weakest filter is now used for heterogeneous channel filter settings, leading to more consistent behavior with filtering methods applied to a subset of channels (e.g. ``Raw.filter`` with ``picks != None``).
 
     - Fixed plotting and timing of :class:`Annotations` and restricted addition of annotations outside data range to prevent problems with cropping and concatenating data by `Jaakko Leppakangas`_
 

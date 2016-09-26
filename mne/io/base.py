@@ -1395,7 +1395,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return raw
 
     @verbose
-    def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
+    def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=None,
              drop_small_buffer=False, proj=False, fmt='single',
              overwrite=False, split_size='2GB', verbose=None):
         """Save raw data to file
@@ -1861,10 +1861,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _get_buffer_size(self, buffer_size_sec=None):
         """Helper to get the buffer size"""
         if buffer_size_sec is None:
-            if 'buffer_size_sec' in self.info:
-                buffer_size_sec = self.info['buffer_size_sec']
-            else:
-                buffer_size_sec = 10.0
+            buffer_size_sec = self.info.get('buffer_size_sec', 1.)
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
 
