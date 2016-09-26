@@ -529,8 +529,12 @@ def test_epoch_multi_ids():
                                   'b/d': 4, 'a_b': 5},
                     tmin, tmax, picks=picks, preload=False, add_eeg_ref=False)
     epochs_regular = epochs['a/b']
+    epochs_reverse = epochs['b/a']
     epochs_multi = epochs[['a/b/a', 'a/b/b']]
-    assert_array_equal(epochs_regular.events, epochs_multi.events)
+    assert_array_equal(epochs_multi.events, epochs_regular.events)
+    assert_array_equal(epochs_reverse.events, epochs_regular.events)
+    assert_allclose(epochs_multi.get_data(), epochs_regular.get_data())
+    assert_allclose(epochs_reverse.get_data(), epochs_regular.get_data())
 
 
 def test_read_epochs_bad_events():

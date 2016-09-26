@@ -1201,23 +1201,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         class_name = 'Epochs' if class_name == '_BaseEpochs' else class_name
         return '<%s  |  %s>' % (class_name, s)
 
-    def _key_matches(self, keys):
-        """Helper function for event dict use with hierarchical tags."""
-        # form the hierarchical event ID mapping
-        keys = [keys] if not isinstance(keys, (list, tuple)) else keys
-        use_keys = []
-        for key in keys:
-            if not isinstance(key, string_types):
-                raise KeyError('keys must be strings, got %s (%s)'
-                               % (type(key), key))
-            use_keys.extend(k for k in self.event_id.keys()
-                            if set(key.split('/')).issubset(k.split('/')))
-        if len(use_keys) == 0:
-            raise KeyError('Event "%s" is not in Epochs.' % key)
-        use_keys = list(set(use_keys))  # deduplicate if necessary
-        idx = np.array([self.events[:, 2] == self.event_id[k]
-                        for k in use_keys]).any(axis=0)
-        return idx
+    def _keys_to_idx(self, keys):
+        """Find entries in event dict."""
+        return np.array([self.events[:, 2] == self.event_id[k]
+                         for k in _hid_match(self.event_id, keys)]).any(axis=0)
 
     def __getitem__(self, item):
         """Return an Epochs object with a copied subset of epochs
@@ -1272,7 +1259,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if isinstance(item, (list, tuple)) and \
                 isinstance(item[0], string_types):
-            select = epochs._key_matches(item)
+            select = epochs._keys_to_idx(item)
             epochs.name = '+'.join(item)
         else:
             select = item if isinstance(item, slice) else np.atleast_1d(item)
@@ -1536,7 +1523,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                      "orthogonal selection.")
 
         for eq in event_ids:
-            eq_inds.append(np.where(epochs._key_matches(eq))[0])
+            eq_inds.append(np.where(epochs._keys_to_idx(eq))[0])
 
         event_times = [epochs.events[e, 0] for e in eq_inds]
         indices = _get_drop_indices(event_times, method)
@@ -1545,6 +1532,36 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         epochs.drop(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return epochs, indices
+
+
+def _hid_match(event_id, keys):
+    """Match event IDs using HID selection.
+
+    Parameters
+    ----------
+    event_id : dict
+        The event ID dictionary.
+    keys : list | str
+        The event ID or subset (for HID), or list of such items.
+
+    Returns
+    -------
+    use_keys : list
+        The full keys that fit the selection criteria.
+    """
+    # form the hierarchical event ID mapping
+    keys = [keys] if not isinstance(keys, (list, tuple)) else keys
+    use_keys = []
+    for key in keys:
+        if not isinstance(key, string_types):
+            raise KeyError('keys must be strings, got %s (%s)'
+                           % (type(key), key))
+        use_keys.extend(k for k in event_id.keys()
+                        if set(key.split('/')).issubset(k.split('/')))
+    if len(use_keys) == 0:
+        raise KeyError('Event "%s" is not in Epochs.' % key)
+    use_keys = list(set(use_keys))  # deduplicate if necessary
+    return use_keys
 
 
 def _check_baseline(baseline, tmin, tmax, sfreq):
