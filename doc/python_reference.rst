@@ -375,16 +375,9 @@ Projections:
    compute_proj_epochs
    compute_proj_evoked
    compute_proj_raw
+   set_eeg_reference
    read_proj
    write_proj
-
-.. currentmodule:: mne.preprocessing.ssp
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   make_eeg_average_ref_proj
 
 Manipulate channels and set sensors locations for processing and plotting:
 

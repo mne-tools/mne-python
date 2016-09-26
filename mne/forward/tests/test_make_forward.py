@@ -341,7 +341,7 @@ def test_make_forward_dipole():
     for s in stc:
         evo_test = simulate_evoked(fwd, s, info, cov,
                                    snr=snr, random_state=rng)
-        # evo_test.add_proj(make_eeg_average_ref_proj(evo_test.info))
+        # evo_test.set_eeg_reference()
         dfit, resid = fit_dipole(evo_test, cov, sphere, None)
         times += dfit.times.tolist()
         pos += dfit.pos.tolist()

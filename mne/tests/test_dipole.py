@@ -18,7 +18,6 @@ from mne.simulation import simulate_evoked
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
                        run_subprocess)
-from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import read_raw_fif, read_raw_ctf
 
@@ -120,7 +119,7 @@ def test_dipole_fitting():
         pick_types(evoked.info, meg=True, eeg=False)[::2],
         pick_types(evoked.info, meg=False, eeg=True)[::2]]))
     evoked.pick_channels([evoked.ch_names[p] for p in picks])
-    evoked.add_proj(make_eeg_average_ref_proj(evoked.info))
+    evoked.set_eeg_reference()
     write_evokeds(fname_sim, evoked)
 
     # Run MNE-C version

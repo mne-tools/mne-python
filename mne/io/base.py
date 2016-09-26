@@ -1395,7 +1395,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return raw
 
     @verbose
-    def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
+    def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec='',
              drop_small_buffer=False, proj=False, fmt='single',
              overwrite=False, split_size='2GB', verbose=None):
         """Save raw data to file
@@ -1422,6 +1422,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Drop or not the last buffer. It is required by maxfilter (SSS)
             that only accepts raw files with buffers of the same size.
         proj : bool
+            This parameter is deprecated and will be removed in 0.14.
             If True the data is saved with the projections applied (active).
 
             .. note:: If ``apply_proj()`` was used to apply the projections,
@@ -1462,6 +1463,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
+        if isinstance(buffer_size_sec, string_types) and buffer_size_sec == '':
+            warn('The default for buffer_size_sec is "10s" in 0.13 but will '
+                 'change to None (original buffer size) in 0.14. Set it '
+                 'explicitly to avoid this warning', DeprecationWarning)
+            buffer_size_sec = 10.
         check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                                    'raw.fif.gz', 'raw_sss.fif.gz',
                                    'raw_tsss.fif.gz'))
@@ -1498,8 +1504,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         _check_fname(fname, overwrite)
 
         if proj:
+            warn('proj is deprecated and will be removed in 0.14. '
+                 'Use raw.apply_proj() instead.', DeprecationWarning)
             info = copy.deepcopy(self.info)
-            projector, info = setup_proj(info)
+            from .proj import (_needs_eeg_average_ref_proj,
+                               _make_eeg_average_ref_proj)
+            if _needs_eeg_average_ref_proj(info):
+                info['projs'] += _make_eeg_average_ref_proj(info)
+            projector, info = setup_proj(info, add_eeg_ref=False)
+
             activate_proj(info['projs'], copy=False)
         else:
             info = self.info

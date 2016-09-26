@@ -17,7 +17,7 @@ from ..open import fiff_open, _fiff_get_fid, _get_next_fname
 from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
 from ..tag import read_tag, read_tag_info
-from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
+from ..proj import _make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
 from ..base import (_BaseRaw, _RawShell, _check_raw_compatibility,
                     _check_maxshield)
 from ..utils import _mult_cal_one
@@ -138,8 +138,7 @@ class Raw(_BaseRaw):
 
         # combine information from each raw file to construct self
         if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
-            eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
-            self.add_proj(eeg_ref)
+            self.add_proj(_make_eeg_average_ref_proj(self.info))
 
         # combine annotations
         self.annotations = raws[0].annotations

@@ -7,7 +7,7 @@
 import numpy as np
 
 from .constants import FIFF
-from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
+from .proj import _has_eeg_average_ref_proj, _make_eeg_average_ref_proj
 from .pick import pick_types
 from .base import _BaseRaw
 from ..evoked import Evoked
@@ -287,7 +287,7 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
                  'has been left untouched.')
             return inst, None
         else:
-            inst.add_proj(make_eeg_average_ref_proj(inst.info, activate=False))
+            inst.add_proj(_make_eeg_average_ref_proj(inst.info))
             return inst, None
     else:
         logger.info('Applying a custom EEG reference.')
