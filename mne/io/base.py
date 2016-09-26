@@ -1416,8 +1416,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Time in seconds of last sample to save. If None last sample
             is used.
         buffer_size_sec : float | None
-            Size of data chunks in seconds. If None, the buffer size of
-            the original file is used.
+            Size of data chunks in seconds. If None (default), the buffer
+            size of the original file is used.
         drop_small_buffer : bool
             Drop or not the last buffer. It is required by maxfilter (SSS)
             that only accepts raw files with buffers of the same size.
