@@ -85,7 +85,9 @@ BUG
     - Fixed a bug where selecting epochs using hierarchical event IDs (HIDs) was *and*-like instead of *or*-like. When doing e.g. ``epochs[('Auditory', 'Left')]``, previously all trials that contain ``'Auditory'`` *and* ``'Left'`` (like ``'Auditory/Left'``) would be selected, but now any conditions matching ``'Auditory'`` *or* ``'Left'`` will be selected (like ``'Auditory/Left'``, ``'Auditory/Right'``, and ``'Visual/Left'``). This is now consistent with how epoch selection was done without HID tags, e.g. ``epochs[['a', 'b']]`` would select all epochs of type ``'a'`` and type ``'b'``. By `Eric Larson`_
 
     - Fixed Infomax/Extended Infomax when the user provides an initial weights matrix by `Jair Montoya Martinez`_
-    
+
+    - Fixed the default raw FIF writing buffer size to be 1 second instead of 10 seconds by `Eric Larson`_
+
     - Fixed channel selection order when MEG channels do not come first in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
 
     - Fixed color ranges to correspond to the colorbar when plotting several time instances with :func:`mne.viz.plot_evoked_topomap` by `Jaakko Leppakangas`_
@@ -126,7 +128,7 @@ BUG
 
         - Fix comparisons of filter settings for determining "strictest"/"weakest" filter
 
-        - Weakest filter is now used for heterogeneous channel filter settings, leading to more consistent behavior with filtering methods applied to a subset of channels (e.g. ``Raw.filter`` with ``picks != None``).  
+        - Weakest filter is now used for heterogeneous channel filter settings, leading to more consistent behavior with filtering methods applied to a subset of channels (e.g. ``Raw.filter`` with ``picks != None``).
 
     - Fixed plotting and timing of :class:`Annotations` and restricted addition of annotations outside data range to prevent problems with cropping and concatenating data by `Jaakko Leppakangas`_
 
