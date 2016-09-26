@@ -70,6 +70,8 @@ td.plot(title='Sensor space decoding')
 # Generalization Across Time
 # --------------------------
 #
+# This runs the analysis used in [1]_ and further detailed in [2]_
+#
 # Here we'll use a stratified cross-validation scheme.
 
 # make response vector
@@ -99,3 +101,16 @@ gat.plot_diagonal()
 #
 # Have a look at the example
 # :ref:`sphx_glr_auto_examples_decoding_plot_decoding_csp_space.py`
+#
+# References
+# ==========
+#
+# .. [1] Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
+#        and Stanislas Dehaene, "Two distinct dynamic modes subtend the
+#        detection of unexpected sounds", PLOS ONE, 2013,
+#        http://www.ncbi.nlm.nih.gov/pubmed/24475052
+#
+# .. [2] King & Dehaene (2014) 'Characterizing the dynamics of mental
+#        representations: the temporal generalization method', Trends In
+#        Cognitive Sciences, 18(4), 203-210.
+#        http://www.ncbi.nlm.nih.gov/pubmed/24593982
