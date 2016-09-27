@@ -9,8 +9,10 @@ What's new
 
 .. currentmodule:: mne
 
-Current
--------
+.. _changes_0_13:
+
+Version 0.13
+------------
 
 Changelog
 ~~~~~~~~~
@@ -213,6 +215,42 @@ API
 
     - :func:`mne.preprocessing.create_ecg_epochs` now includes all the channels when ``picks=None`` by `Jaakko Leppakangas`_
 
+Authors
+~~~~~~~
+
+The committer list for this release is the following (sorted by alphabetical order):
+
+    * Alexander Rudiuk
+    * Alexandre Barachant
+    * Alexandre Gramfort
+    * Asish Panda
+    * Camilo Lamus
+    * Chris Holdgraf
+    * Christian Brodbeck
+    * Christopher J. Bailey
+    * Christopher Mullins
+    * Clemens Brunner
+    * Denis A. Engemann
+    * Eric Larson
+    * Federico Raimondo
+    * Félix Raimundo
+    * Guillaume Dumas
+    * Jaakko Leppakangas
+    * Jair Montoya
+    * Jean-Remi King
+    * Johannes Niediek
+    * Jona Sassenhagen
+    * Jussi Nurminen
+    * Keith Doelling
+    * Mainak Jas
+    * Marijn van Vliet
+    * Michael Krause
+    * Mikolaj Magnuski
+    * Nick Foti
+    * Phillip Alday
+    * Simon-Shlomo Poil
+    * Teon Brooks
+    * Yaroslav Halchenko
 
 .. _changes_0_12:
 
