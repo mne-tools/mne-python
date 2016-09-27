@@ -937,7 +937,8 @@ def _fit_sph_harm_to_headshape(info, dig_kinds, order=0, verbose=None):
     # center the coords and convert to spherical
     rad, az, pol = _cart_to_sph(hsp - origin_head).T
     # compute spherical harmonics and fit the actual sdistances
-    coeffs = linalg.lstsq(_compute_sph_harm(order, az, pol), rad)[0]
+    coeffs = linalg.lstsq(_compute_sph_harm(order, az, pol), rad,
+                          overwrite_a=True, overwrite_b=True)[0]
     return radius, origin_head, origin_device, coeffs, hsp.copy()
 
 
@@ -957,8 +958,10 @@ def _compute_sph_harm(order, az, pol):
     return out
 
 
-def _transform_sph(rr, coeffs, order, origin):
+def _transform_sph(rr, coeffs, origin):
     """Transform Cartesion coordinates based on a spherical harmonic fit."""
+    order = int(np.round(np.sqrt(len(coeffs)))) - 1
+    assert (order + 1) ** 2 == len(coeffs)
     hsp = np.array([p for p in rr if not (p[2] < 0 and p[1] > 0)])
     origin_surrogate = _fit_sphere(hsp, disp=False)[1]
     rr = rr - origin_surrogate
