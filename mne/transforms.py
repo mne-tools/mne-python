@@ -548,6 +548,9 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
     return trans
 
 
+###############################################################################
+# Spherical coordinates and harmonics
+
 def _sphere_to_cartesian(theta, phi, r):
     """Transform spherical coordinates to cartesian"""
     z = r * np.sin(phi)
@@ -555,6 +558,15 @@ def _sphere_to_cartesian(theta, phi, r):
     x = rcos_phi * np.cos(theta)
     y = rcos_phi * np.sin(theta)
     return x, y, z
+
+
+def _cartesian_to_sphere(x, y, z):
+    """Transform cartesian coordinates to spherical"""
+    hypotxy = np.hypot(x, y)
+    r = np.hypot(hypotxy, z)
+    elev = np.arctan2(z, hypotxy)
+    az = np.arctan2(y, x)
+    return az, elev, r
 
 
 def _cart_to_sph(cart):
@@ -594,6 +606,8 @@ def _get_n_moments(order):
     """Compute the number of multipolar moments (spherical harmonics).
 
     Equivalent to [1]_ Eq. 32.
+
+    .. note:: This count excludes ``degree=0`` (for ``order=0``).
 
     Parameters
     ----------
@@ -645,20 +659,74 @@ def _sph_to_cart_partials(az, pol, g_rad, g_az, g_pol):
     return cart_grads
 
 
+def _deg_ord_idx(deg, order):
+    """Get the index into S_in or S_out given a degree and order."""
+    # The -1 here is because we typically exclude the degree=0 term
+    return deg * deg + deg + order - 1
+
+
+def _sh_negate(sh, order):
+    """Helper to get the negative spherical harmonic from a positive one"""
+    assert order >= 0
+    return sh.conj() * (-1. if order % 2 else 1.)  # == (-1) ** order
+
+
+def _sh_complex_to_real(sh, order):
+    """Helper function to convert complex to real basis functions.
+
+    Parameters
+    ----------
+    sh : array-like
+        Spherical harmonics. Must be from order >=0 even if negative orders
+        are used.
+    order : int
+        Order (usually 'm') of multipolar moment.
+
+    Returns
+    -------
+    real_sh : array-like
+        The real version of the spherical harmonics.
+
+    Notes
+    -----
+    This does not include the Condon-Shortely phase.
+    """
+
+    if order == 0:
+        return np.real(sh)
+    else:
+        return np.sqrt(2.) * (np.real if order > 0 else np.imag)(sh)
+
+
+def _sh_real_to_complex(shs, order):
+    """Convert real spherical harmonic pair to complex
+
+    Parameters
+    ----------
+    shs : ndarray, shape (2, ...)
+        The real spherical harmonics at ``[order, -order]``.
+    order : int
+        Order (usually 'm') of multipolar moment.
+
+    Returns
+    -------
+    sh : array-like, shape (...)
+        The complex version of the spherical harmonics.
+    """
+    if order == 0:
+        return shs[0]
+    else:
+        return (shs[0] + 1j * np.sign(order) * shs[1]) / np.sqrt(2.)
+
+
+###############################################################################
+# Other transforms
+
 def _polar_to_cartesian(theta, r):
     """Transform polar coordinates to cartesian"""
     x = r * np.cos(theta)
     y = r * np.sin(theta)
     return x, y
-
-
-def _cartesian_to_sphere(x, y, z):
-    """Transform cartesian coordinates to spherical"""
-    hypotxy = np.hypot(x, y)
-    r = np.hypot(hypotxy, z)
-    elev = np.arctan2(z, hypotxy)
-    az = np.arctan2(y, x)
-    return az, elev, r
 
 
 def _topo_to_sphere(theta, radius):
@@ -667,6 +735,9 @@ def _topo_to_sphere(theta, radius):
     sph_theta = -theta
     return sph_phi, sph_theta
 
+
+###############################################################################
+# Quaternions
 
 def quat_to_rot(quat):
     """Convert a set of quaternions to rotations

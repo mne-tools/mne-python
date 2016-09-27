@@ -15,7 +15,9 @@ import sys
 import numpy as np
 from scipy import linalg
 
-from .transforms import _ensure_trans, apply_trans, _cart_to_sph, _sph_to_cart
+from .transforms import (_ensure_trans, apply_trans, _cart_to_sph,
+                         _sph_to_cart, _sh_complex_to_real, _sh_negate,
+                         _deg_ord_idx, _get_n_moments)
 from .io import Info
 from .io.constants import FIFF
 from .io.write import (start_file, start_block, write_float, write_int,
@@ -31,9 +33,6 @@ from .externals.six import string_types
 
 # ############################################################################
 # Compute BEM solution
-
-# define VEC_DIFF(from,to,diff) {\
-# (diff)[X] = (to)[X] - (from)[X];\
 
 # The following approach is based on:
 #
@@ -943,17 +942,18 @@ def _fit_sph_harm_to_headshape(info, dig_kinds, order=0, verbose=None):
 
 
 def _compute_sph_harm(order, az, pol):
-    """Compute complex spherical harmonics of Cartesion coordinates."""
-    # convert to spherical coords
+    """Compute complex spherical harmonics of spherical coordinates."""
     sph_harm = _get_sph_harm()
-    # XXX Eventually we could use the real form here
-    out = np.empty((len(az), (order + 1) * (order + 2) // 2), complex)
-    idx = 0
+    out = np.empty((len(az), _get_n_moments(order) + 1))
+    # _deg_ord_idx(0, 0) = -1 so we're actually okay to use it here
     for degree in range(order + 1):
         for order_ in range(degree + 1):
-            out[:, idx] = sph_harm(order_, degree, az, pol)
-            idx += 1
-    assert idx == out.shape[1]
+            sph = sph_harm(order_, degree, az, pol)
+            out[:, _deg_ord_idx(degree, order_)] = \
+                _sh_complex_to_real(sph, order_)
+            if order_ > 0:
+                out[:, _deg_ord_idx(degree, -order_)] = \
+                    _sh_complex_to_real(_sh_negate(sph, order_), -order_)
     return out
 
 
@@ -964,14 +964,13 @@ def _transform_sph(rr, coeffs, order, origin):
     rr = rr - origin_surrogate
     sph = _cart_to_sph(rr)
     p_sph = _compute_sph_harm(order, sph[:, 1], sph[:, 2])
-    rr_coeffs = linalg.lstsq(p_sph, sph[:, 0])[0]
-    # look at how our radii differ in the current surface fit
-    # XXX cross-check with other libs that this is how it's done?
-    rad_miss = sph[:, 0] / np.abs(np.dot(p_sph, rr_coeffs))
+    # we could look at how our radii differ in the current surface fit...
+    # rr_coeffs = linalg.lstsq(p_sph, sph[:, 0])[0]
+    # rad_miss = sph[:, 0] / np.dot(p_sph, rr_coeffs)
     # refit using destination coefficients
     sph[:, 0] = np.abs(np.dot(p_sph, coeffs))
-    # scale by original miss factor
-    sph[:, 0] *= rad_miss
+    # and then scale by original miss factor (but we don't here)
+    # sph[:, 0] *= rad_miss
     rr = _sph_to_cart(sph) + origin
     return rr
 
