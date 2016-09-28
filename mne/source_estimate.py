@@ -1314,10 +1314,10 @@ class SourceEstimate(_BaseSourceEstimate):
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='auto', time_label='auto',
              smoothing_steps=10, transparent=None, alpha=1.0,
-             time_viewer=False, config_opts=None, subjects_dir=None,
+             time_viewer=False, subjects_dir=None,
              figure=None, views='lat', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
-             foreground="white", initial_time=None, time_unit=None):
+             foreground="white", initial_time=None, time_unit='s'):
         brain = plot_source_estimates(self, subject, surface=surface,
                                       hemi=hemi, colormap=colormap,
                                       time_label=time_label,

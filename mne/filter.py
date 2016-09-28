@@ -846,10 +846,11 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
 
 @verbose
-def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='',
-                     l_trans_bandwidth=None, h_trans_bandwidth=None,
+def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='auto',
+                     l_trans_bandwidth='auto', h_trans_bandwidth='auto',
                      method='fir', iir_params=None, picks=None, n_jobs=1,
-                     copy=True, phase='', fir_window='', verbose=None):
+                     copy=True, phase='zero', fir_window='hamming',
+                     verbose=None):
     """Bandpass filter for the signal x.
 
     Applies a zero-phase bandpass filter to the signal x, operating on the

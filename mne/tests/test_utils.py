@@ -310,9 +310,13 @@ def test_logging():
     tempdir = _TempDir()
     test_name = op.join(tempdir, 'test.log')
     with open(fname_log, 'r') as old_log_file:
+        # [:-1] used to strip an extra "No baseline correction applied"
         old_lines = clean_lines(old_log_file.readlines())
+        old_lines.pop(-1)
     with open(fname_log_2, 'r') as old_log_file_2:
         old_lines_2 = clean_lines(old_log_file_2.readlines())
+        old_lines_2.pop(14)
+        old_lines_2.pop(-1)
 
     if op.isfile(test_name):
         os.remove(test_name)

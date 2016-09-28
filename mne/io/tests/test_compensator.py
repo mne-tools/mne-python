@@ -19,7 +19,7 @@ ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 def test_compensation():
     """Test compensation."""
     tempdir = _TempDir()
-    raw = read_raw_fif(ctf_comp_fname, compensation=None)
+    raw = read_raw_fif(ctf_comp_fname)
     assert_equal(get_current_comp(raw.info), 3)
     comp1 = make_compensator(raw.info, 3, 1, exclude_comp_chs=False)
     assert_true(comp1.shape == (340, 340))

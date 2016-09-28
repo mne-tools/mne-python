@@ -56,8 +56,7 @@ except:
 def test_ica_full_data_recovery():
     """Test recovery of full data when no source is rejected."""
     # Most basic recovery
-    raw = read_raw_fif(raw_fname)
-    raw.crop(0.5, stop, copy=False).load_data()
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
@@ -115,8 +114,7 @@ def test_ica_full_data_recovery():
 def test_ica_rank_reduction():
     """Test recovery ICA rank reduction."""
     # Most basic recovery
-    raw = read_raw_fif(raw_fname)
-    raw.crop(0.5, stop, copy=False).load_data()
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
     n_components = 5
@@ -143,8 +141,7 @@ def test_ica_rank_reduction():
 @requires_sklearn
 def test_ica_reset():
     """Test ICA resetting."""
-    raw = read_raw_fif(raw_fname)
-    raw.crop(0.5, stop, copy=False).load_data()
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
 
@@ -171,8 +168,7 @@ def test_ica_reset():
 @requires_sklearn
 def test_ica_core():
     """Test ICA on raw and epochs."""
-    raw = read_raw_fif(raw_fname)
-    raw.crop(1.5, stop, copy=False).load_data()
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     # XXX. The None cases helped revealing bugs but are time consuming.
@@ -276,8 +272,7 @@ def test_ica_additional():
     """Test additional ICA functionality."""
     tempdir = _TempDir()
     stop2 = 500
-    raw = read_raw_fif(raw_fname)
-    raw.crop(1.5, stop, copy=False).load_data()
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     # XXX This breaks the tests :(
     # raw.info['bads'] = [raw.ch_names[1]]
     test_cov = read_cov(test_cov_name)
@@ -562,8 +557,7 @@ def test_ica_additional():
 @requires_sklearn
 def test_run_ica():
     """Test run_ica function."""
-    raw = read_raw_fif(raw_fname)
-    raw.crop(1.5, stop, copy=False).load_data()
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     params = []
     params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx
     params += [(None, 'MEG 1531')]  # ECG / EOG channel params
@@ -578,8 +572,7 @@ def test_run_ica():
 @requires_sklearn
 def test_ica_reject_buffer():
     """Test ICA data raw buffer rejection."""
-    raw = read_raw_fif(raw_fname)
-    raw.crop(1.5, stop, copy=False).load_data()
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     ica = ICA(n_components=3, max_pca_components=4, n_pca_components=4)
@@ -596,8 +589,7 @@ def test_ica_reject_buffer():
 @requires_sklearn
 def test_ica_twice():
     """Test running ICA twice."""
-    raw = read_raw_fif(raw_fname)
-    raw.crop(1.5, stop, copy=False).load_data()
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     picks = pick_types(raw.info, meg='grad', exclude='bads')
     n_components = 0.9
     max_pca_components = None

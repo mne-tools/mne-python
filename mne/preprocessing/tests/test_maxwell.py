@@ -127,7 +127,7 @@ def read_crop(fname, lims=(0, None)):
 def test_movement_compensation():
     """Test movement compensation."""
     temp_dir = _TempDir()
-    lims = (0, 4, False)
+    lims = (0, 4)
     raw = read_crop(raw_fname, lims).load_data()
     head_pos = read_head_pos(pos_fname)
 
@@ -526,7 +526,7 @@ def test_spatiotemporal_maxwell():
         # onto the previous buffer if it's shorter than st_duration, we have to
         # crop the data here to compensate for Elekta's tSSS behavior.
         if st_duration == 10.:
-            tsss_bench.crop(0, st_duration, copy=False)
+            tsss_bench.crop(0, st_duration)
 
         # Test sss computation at the standard head origin. Same cropping issue
         # as mentioned above.

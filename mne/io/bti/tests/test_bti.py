@@ -59,7 +59,7 @@ def test_crop_append():
     y, t = raw[:]
     t0, t1 = 0.25 * t[-1], 0.75 * t[-1]
     mask = (t0 <= t) * (t <= t1)
-    raw_ = raw.copy().crop(t0, t1, copy=False)
+    raw_ = raw.copy().crop(t0, t1)
     y_, _ = raw_[:]
     assert_true(y_.shape[1] == mask.sum())
     assert_true(y_.shape[0] == y.shape[0])
