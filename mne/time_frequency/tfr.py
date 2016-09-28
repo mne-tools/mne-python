@@ -234,8 +234,8 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 
             # Center and decimate decomposition
             if mode == "valid":
-                sz = abs(W.size - n_times) + 1
-                offset = (n_times - sz) / 2
+                sz = int(abs(W.size - n_times)) + 1
+                offset = (n_times - sz) // 2
                 this_slice = slice(offset // decim.step,
                                    (offset + sz) // decim.step)
                 if use_fft:

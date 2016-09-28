@@ -190,7 +190,7 @@ def test_time_frequency():
                                     decim=decim)
             assert_equal(power.data.shape[2],
                          np.ceil(float(len(times)) / decim))
-    freqs = range(50, 55)
+    freqs = list(range(50, 55))
     decim = 2
     _, n_chan, n_time = data.shape
     tfr = tfr_morlet(epochs[0], freqs, 2., decim=decim, average=False,

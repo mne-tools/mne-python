@@ -2032,7 +2032,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                              '%s' % (type(filter_length),))
     if method != 'fir':
         filter_length = len_x
-    if phase == 'zero':
+    if phase == 'zero' and method == 'fir':
         filter_length += (filter_length % 2 == 0)
     if filter_length <= 0:
         raise ValueError('filter_length must be positive, got %s'
