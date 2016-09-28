@@ -5,7 +5,7 @@ from nose.tools import assert_true
 
 from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
-from mne.utils import requires_version, slow_test
+from mne.utils import requires_version, slow_test, run_tests_if_main
 from mne.time_frequency import psd_welch, psd_multitaper
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -16,7 +16,7 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 @requires_version('scipy', '0.12')
 def test_psd():
     """Tests the welch and multitaper PSD."""
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     picks_psd = [0, 1]
 
     # Populate raw with sinusoids
@@ -67,13 +67,13 @@ def test_psd():
     events[:, 0] -= first_samp
     tmin, tmax, event_id = -0.5, 0.5, 1
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks_psd,
-                    proj=False, preload=True, baseline=None, add_eeg_ref=False)
+                    proj=False, preload=True, baseline=None)
     evoked = epochs.average()
 
     tmin_full, tmax_full = -1, 1
     epochs_full = Epochs(raw, events[:10], event_id, tmin_full, tmax_full,
                          picks=picks_psd, proj=False, preload=True,
-                         baseline=None, add_eeg_ref=False)
+                         baseline=None)
     kws_psd = dict(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
                    picks=picks_psd)  # Common to all
     funcs = [(psd_welch, kws_welch),
@@ -130,7 +130,7 @@ def test_psd():
 @requires_version('scipy', '0.12')
 def test_compares_psd():
     """Test PSD estimation on raw for plt.psd and scipy.signal.welch."""
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
 
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
@@ -171,3 +171,5 @@ def test_compares_psd():
 
     assert_true(np.sum(psds_welch < 0) == 0)
     assert_true(np.sum(psds_mpl < 0) == 0)
+
+run_tests_if_main()

@@ -16,7 +16,7 @@ proj_fname = op.join(data_path, 'test-proj.fif')
 
 def test_find_ecg():
     """Test find ECG peaks."""
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
 
     # once with mag-trick
     # once with characteristic channel

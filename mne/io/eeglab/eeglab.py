@@ -550,7 +550,7 @@ class EpochsEEGLAB(_BaseEpochs):
         super(EpochsEEGLAB, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
-            reject_tmax=reject_tmax, add_eeg_ref=False, verbose=verbose)
+            reject_tmax=reject_tmax, verbose=verbose)
         logger.info('Ready.')
 
 

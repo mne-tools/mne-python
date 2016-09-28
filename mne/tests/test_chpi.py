@@ -38,8 +38,7 @@ warnings.simplefilter('always')
 @testing.requires_testing_data
 def test_chpi_adjust():
     """Test cHPI logging and adjustment."""
-    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes',
-                       add_eeg_ref=False)
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
     with catch_logging() as log:
         _get_hpi_info(raw.info, adjust=True, verbose='debug')
 
@@ -101,11 +100,10 @@ def test_hpi_info():
     tempdir = _TempDir()
     temp_name = op.join(tempdir, 'temp_raw.fif')
     for fname in (chpi_fif_fname, sss_fif_fname):
-        raw = read_raw_fif(fname, allow_maxshield='yes', add_eeg_ref=False)
+        raw = read_raw_fif(fname, allow_maxshield='yes')
         assert_true(len(raw.info['hpi_subsystem']) > 0)
         raw.save(temp_name, overwrite=True)
-        raw_2 = read_raw_fif(temp_name, allow_maxshield='yes',
-                             add_eeg_ref=False)
+        raw_2 = read_raw_fif(temp_name, allow_maxshield='yes')
         assert_equal(len(raw_2.info['hpi_subsystem']),
                      len(raw.info['hpi_subsystem']))
 
@@ -149,15 +147,14 @@ def _compare_positions(a, b, max_dist=0.003, max_angle=5.):
 def test_calculate_chpi_positions():
     """Test calculation of cHPI positions."""
     trans, rot, t = head_pos_to_trans_rot_t(read_head_pos(pos_fname))
-    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True,
-                       add_eeg_ref=False)
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
     t -= raw.first_samp / raw.info['sfreq']
     quats = _calculate_chpi_positions(raw, verbose='debug')
     trans_est, rot_est, t_est = head_pos_to_trans_rot_t(quats)
     _compare_positions((trans, rot, t), (trans_est, rot_est, t_est), 0.003)
 
     # degenerate conditions
-    raw_no_chpi = read_raw_fif(test_fif_fname, add_eeg_ref=False)
+    raw_no_chpi = read_raw_fif(test_fif_fname)
     assert_raises(RuntimeError, _calculate_chpi_positions, raw_no_chpi)
     raw_bad = raw.copy()
     for d in raw_bad.info['dig']:
@@ -169,7 +166,7 @@ def test_calculate_chpi_positions():
     for d in raw_bad.info['dig']:
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
             d['r'] = np.ones(3)
-    raw_bad.crop(0, 1., copy=False)
+    raw_bad.crop(0, 1.)
     with warnings.catch_warnings(record=True):  # bad pos
         with catch_logging() as log_file:
             _calculate_chpi_positions(raw_bad, verbose=True)
@@ -186,31 +183,28 @@ def test_calculate_chpi_positions():
 @testing.requires_testing_data
 def test_chpi_subtraction():
     """Test subtraction of cHPI signals."""
-    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True,
-                       add_eeg_ref=False)
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
     raw.info['bads'] = ['MEG0111']
     with catch_logging() as log:
         filter_chpi(raw, include_line=False, verbose=True)
     assert_true('5 cHPI' in log.getvalue())
     # MaxFilter doesn't do quite as well as our algorithm with the last bit
-    raw.crop(0, 16, copy=False)
+    raw.crop(0, 16)
     # remove cHPI status chans
-    raw_c = read_raw_fif(sss_hpisubt_fname,
-                         add_eeg_ref=False).crop(0, 16, copy=False).load_data()
+    raw_c = read_raw_fif(sss_hpisubt_fname).crop(0, 16).load_data()
     raw_c.pick_types(
         meg=True, eeg=True, eog=True, ecg=True, stim=True, misc=True)
     assert_meg_snr(raw, raw_c, 143, 624)
 
     # Degenerate cases
-    raw_nohpi = read_raw_fif(test_fif_fname, preload=True, add_eeg_ref=False)
+    raw_nohpi = read_raw_fif(test_fif_fname, preload=True)
     assert_raises(RuntimeError, filter_chpi, raw_nohpi)
 
     # When MaxFliter downsamples, like::
     #     $ maxfilter -nosss -ds 2 -f test_move_anon_raw.fif \
     #           -o test_move_anon_ds2_raw.fif
     # it can strip out some values of info, which we emulate here:
-    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes',
-                       add_eeg_ref=False)
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
     with warnings.catch_warnings(record=True):  # uint cast suggestion
         raw = raw.crop(0, 1).load_data().resample(600., npad='auto')
     raw.info['buffer_size_sec'] = np.float64(2.)

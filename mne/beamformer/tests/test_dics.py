@@ -40,7 +40,7 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
     """
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)[:10]
-    raw = mne.io.read_raw_fif(fname_raw, preload=False, add_eeg_ref=False)
+    raw = mne.io.read_raw_fif(fname_raw, preload=False)
     raw.add_proj([], remove_existing=True)  # we'll subselect so remove proj
     forward = mne.read_forward_solution(fname_fwd)
     if read_all_forward:
@@ -67,8 +67,7 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
     # Read epochs
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                         picks=picks, baseline=(None, 0), preload=True,
-                        reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6),
-                        add_eeg_ref=False)
+                        reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
     epochs.resample(200, npad=0, n_jobs=2)
     evoked = epochs.average()
 

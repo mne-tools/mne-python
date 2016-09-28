@@ -599,11 +599,11 @@ def _limits_to_control_points(clim, stc_data, colormap):
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
                           smoothing_steps=10, transparent=None, alpha=1.0,
-                          time_viewer=False, config_opts=None,
-                          subjects_dir=None, figure=None, views='lat',
-                          colorbar=True, clim='auto', cortex="classic",
-                          size=800, background="black", foreground="white",
-                          initial_time=None, time_unit=None):
+                          time_viewer=False, subjects_dir=None, figure=None,
+                          views='lat', colorbar=True, clim='auto',
+                          cortex="classic", size=800, background="black",
+                          foreground="white", initial_time=None,
+                          time_unit='s'):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -644,8 +644,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Alpha value to apply globally to the overlay.
     time_viewer : bool
         Display time viewer GUI.
-    config_opts : dict
-        Deprecated parameter.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
@@ -690,10 +688,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).
     time_unit : 's' | 'ms'
-        Whether time is represented in seconds (expected by PySurfer) or
-        milliseconds. The current default is 'ms', but will change to 's'
-        in MNE 0.14. To avoid a deprecation warning specify ``time_unit``
-        explicitly.
+        Whether time is represented in seconds ("s", default) or
+        milliseconds ("ms").
 
 
     Returns
@@ -716,14 +712,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           "using:\n\n    $ pip install -U pysurfer" %
                           surfer.__version__)
 
-    if time_unit is None:
-        if initial_time is not None:
-            warn("The time_unit parameter default will change from 'ms' to "
-                 "'s' in MNE 0.14 and be removed in 0.15. To avoid this "
-                 "warning specify the parameter explicitly.",
-                 DeprecationWarning)
-        time_unit = 'ms'
-    elif time_unit not in ('s', 'ms'):
+    if time_unit not in ('s', 'ms'):
         raise ValueError("time_unit needs to be 's' or 'ms', got %r" %
                          (time_unit,))
 
@@ -785,7 +774,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                       title=title, cortex=cortex, size=size,
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
-                      views=views, config_opts=config_opts)
+                      views=views)
 
     if time_unit == 's':
         times = stc.times

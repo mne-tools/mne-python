@@ -39,16 +39,6 @@ n_chan = 6
 layout = read_layout('Vectorview-all')
 
 
-def _get_raw():
-    """Get raw data."""
-    return read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
-
-
-def _get_events():
-    """Get events."""
-    return read_events(event_name)
-
-
 def _get_picks(raw):
     """Get picks."""
     return pick_types(raw.info, meg=True, eeg=False, stim=False,
@@ -57,29 +47,26 @@ def _get_picks(raw):
 
 def _get_epochs():
     """Get epochs."""
-    raw = _get_raw()
+    raw = read_raw_fif(raw_fname)
     raw.add_proj([], remove_existing=True)
-    events = _get_events()
+    events = read_events(event_name)
     picks = _get_picks(raw)
     # Use a subset of channels for plotting speed
     picks = picks[np.round(np.linspace(0, len(picks) - 1, n_chan)).astype(int)]
     picks[0] = 2  # make sure we have a magnetometer
-    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), add_eeg_ref=False)
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks)
     epochs.info['bads'] = [epochs.ch_names[-1]]
     return epochs
 
 
 def _get_epochs_delayed_ssp():
     """Get epochs with delayed SSP."""
-    raw = _get_raw()
-    events = _get_events()
+    raw = read_raw_fif(raw_fname)
+    events = read_events(event_name)
     picks = _get_picks(raw)
     reject = dict(mag=4e-12)
     epochs_delayed_ssp = Epochs(raw, events[:10], event_id, tmin, tmax,
-                                picks=picks, baseline=(None, 0),
-                                proj='delayed', reject=reject,
-                                add_eeg_ref=False)
+                                picks=picks, proj='delayed', reject=reject)
     return epochs_delayed_ssp
 
 

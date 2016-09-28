@@ -38,11 +38,6 @@ event_id, tmin, tmax = 1, -0.2, 0.2
 layout = read_layout('Vectorview-all')
 
 
-def _get_raw():
-    """Get raw data."""
-    return read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
-
-
 def _get_events():
     """Get events."""
     return read_events(event_name)
@@ -55,25 +50,24 @@ def _get_picks(raw):
 
 def _get_epochs():
     """Get epochs."""
-    raw = _get_raw()
+    raw = read_raw_fif(raw_fname)
     raw.add_proj([], remove_existing=True)
     events = _get_events()
     picks = _get_picks(raw)
     # bad proj warning
-    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), add_eeg_ref=False)
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks)
     return epochs
 
 
 def _get_epochs_delayed_ssp():
     """Get epochs with delayed SSP."""
-    raw = _get_raw()
+    raw = read_raw_fif(raw_fname)
     events = _get_events()
     picks = _get_picks(raw)
     reject = dict(mag=4e-12)
     epochs_delayed_ssp = Epochs(
         raw, events[:10], event_id, tmin, tmax, picks=picks,
-        baseline=(None, 0), proj='delayed', reject=reject, add_eeg_ref=False)
+        proj='delayed', reject=reject)
     return epochs_delayed_ssp
 
 

@@ -97,7 +97,7 @@ def test_raw():
                       preload=False)
         if op.exists(tmp_raw_fname):
             os.remove(tmp_raw_fname)
-        ex = read_raw_fif(exported, preload=True, add_eeg_ref=False)
+        ex = read_raw_fif(exported, preload=True)
         ra = read_raw_bti(pdf, config, hs, preload=False)
         assert_true('RawBTi' in repr(ra))
         assert_equal(ex.ch_names[:NCH], ra.ch_names[:NCH])
@@ -132,7 +132,7 @@ def test_raw():
                                     ra.info[key][ent])
 
         ra.save(tmp_raw_fname)
-        re = read_raw_fif(tmp_raw_fname, add_eeg_ref=False)
+        re = read_raw_fif(tmp_raw_fname)
         print(re)
         for key in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
             assert_true(isinstance(re.info[key], dict))

@@ -7,7 +7,7 @@ import warnings
 import mne
 
 from mne.io import read_raw_fif
-from mne.utils import sum_squared
+from mne.utils import sum_squared, run_tests_if_main
 from mne.time_frequency import csd_epochs, csd_array, tfr_morlet
 
 warnings.simplefilter('always')
@@ -18,7 +18,7 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 
 def _get_data(mode='real'):
     """Get data."""
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     events = mne.read_events(event_fname)[0:100]
     if mode == 'real':
         # Read raw data
@@ -30,17 +30,15 @@ def _get_data(mode='real'):
 
         # Read several epochs
         event_id, tmin, tmax = 1, -0.2, 0.5
-        epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                            picks=picks, baseline=(None, 0), preload=True,
-                            reject=dict(grad=4000e-13, mag=4e-12),
-                            add_eeg_ref=False)
+        epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            preload=True,
+                            reject=dict(grad=4000e-13, mag=4e-12))
     elif mode == 'sin':
         # Create an epochs object with one epoch and one channel of artificial
         # data
         event_id, tmin, tmax = 1, 0.0, 1.0
-        epochs = mne.Epochs(raw, events[0:5], event_id, tmin, tmax, proj=True,
-                            picks=[0], baseline=(None, 0), preload=True,
-                            reject=dict(grad=4000e-13), add_eeg_ref=False)
+        epochs = mne.Epochs(raw, events[0:5], event_id, tmin, tmax,  picks=[0],
+                            preload=True, reject=dict(grad=4000e-13))
         freq = 10
         epochs._data = np.sin(2 * np.pi * freq *
                               epochs.times)[None, None, :]
@@ -316,3 +314,5 @@ def test_csd_on_artificial_data():
                     delta = 0.004
                 assert_true(abs(signal_power_per_sample -
                                 mt_power_per_sample) < delta)
+
+run_tests_if_main()

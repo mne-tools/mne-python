@@ -12,7 +12,6 @@ from ..utils import logger, verbose, warn
 from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _csd_from_mt, _psd_from_mt_adaptive)
 
-from ..utils import deprecated
 from ..externals.six.moves import xrange as range
 
 
@@ -49,19 +48,6 @@ class CrossSpectralDensity(object):
         s += ', size : %s x %s' % self.data.shape
         s += ', data : %s' % self.data
         return '<CrossSpectralDensity  |  %s>' % s
-
-
-@deprecated(("compute_epochs_csd has been deprecated and will be removed in "
-             "0.14, use csd_epochs instead."))
-@verbose
-def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
-                       fsum=True, tmin=None, tmax=None, n_fft=None,
-                       mt_bandwidth=None, mt_adaptive=False, mt_low_bias=True,
-                       projs=None, verbose=None):
-    return csd_epochs(epochs, mode=mode, fmin=fmin, fmax=fmax,
-                      fsum=fsum, tmin=tmin, tmax=tmax, n_fft=n_fft,
-                      mt_bandwidth=mt_bandwidth, mt_adaptive=mt_adaptive,
-                      mt_low_bias=mt_low_bias, projs=projs, verbose=verbose)
 
 
 @verbose

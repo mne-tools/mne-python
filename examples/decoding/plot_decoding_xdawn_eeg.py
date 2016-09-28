@@ -59,7 +59,7 @@ picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
 
 epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
                 picks=picks, baseline=None, preload=True,
-                add_eeg_ref=False, verbose=False)
+                verbose=False)
 
 # Create classification pipeline
 clf = make_pipeline(Xdawn(n_components=3),

@@ -24,7 +24,7 @@ fine_cal_fname = data_path + '/SSS/sss_cal_mgh.dat'
 
 ###############################################################################
 # Preprocess with Maxwell filtering
-raw = mne.io.read_raw_fif(raw_fname, add_eeg_ref=False)
+raw = mne.io.read_raw_fif(raw_fname)
 raw.info['bads'] = ['MEG 2443', 'EEG 053', 'MEG 1032', 'MEG 2313']  # set bads
 # Here we don't use tSSS (set st_duration) because MGH data is very clean
 raw_sss = maxwell_filter(raw, cross_talk=ctc_fname, calibration=fine_cal_fname)
@@ -38,8 +38,7 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
                        include=[], exclude='bads')
 for r, kind in zip((raw, raw_sss), ('Raw data', 'Maxwell filtered data')):
     epochs = mne.Epochs(r, events, event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), reject=dict(eog=150e-6),
-                        preload=False)
+                        baseline=(None, 0), reject=dict(eog=150e-6))
     evoked = epochs.average()
     evoked.plot(window_title=kind, ylim=dict(grad=(-200, 250),
                                              mag=(-600, 700)))

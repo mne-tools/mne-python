@@ -44,7 +44,7 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 
 def _get_raw():
     """Get raw data."""
-    return read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
+    return read_raw_fif(raw_fname, preload=True)
 
 
 def _get_events():

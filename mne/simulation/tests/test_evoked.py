@@ -35,7 +35,7 @@ cov_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 def test_simulate_evoked():
     """Test simulation of evoked data."""
 
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     fwd = read_forward_solution(fwd_fname, force_fixed=True)
     fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
     cov = read_cov(cov_fname)

@@ -31,7 +31,7 @@ tmin, tmax = 0, 20  # use the first 20s of data
 
 # Setup for reading the raw data (save memory by cropping the raw data
 # before loading it)
-raw = mne.io.read_raw_fif(raw_fname, add_eeg_ref=False)
+raw = mne.io.read_raw_fif(raw_fname)
 raw.crop(tmin, tmax).load_data()
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # bads + 2 more
 

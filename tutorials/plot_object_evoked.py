@@ -24,8 +24,8 @@ print(evokeds)
 # categories of
 # ``['Left Auditory', 'Right Auditory', 'Left Visual', 'Right Visual']``.
 # We can also use ``condition`` parameter to read in only one category.
-evoked = mne.read_evokeds(fname, condition='Left Auditory', baseline=(None, 0),
-                          proj=True)
+evoked = mne.read_evokeds(fname, condition='Left Auditory')
+evoked.apply_baseline((None, 0)).apply_proj()
 print(evoked)
 
 ###############################################################################

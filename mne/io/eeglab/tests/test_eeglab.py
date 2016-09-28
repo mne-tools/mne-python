@@ -54,8 +54,8 @@ def test_io_set():
         raw3 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
                                event_id=event_id)
         raw4 = read_raw_eeglab(input_fname=raw_fname, montage=montage)
-        Epochs(raw0, find_events(raw0), event_id, add_eeg_ref=False)
-        epochs = Epochs(raw1, find_events(raw1), event_id, add_eeg_ref=False)
+        Epochs(raw0, find_events(raw0), event_id)
+        epochs = Epochs(raw1, find_events(raw1), event_id)
         assert_equal(len(find_events(raw4)), 0)  # no events without event_id
         assert_equal(epochs["square"].average().nave, 80)  # 80 with
         assert_array_equal(raw0[:][0], raw1[:][0], raw2[:][0], raw3[:][0])

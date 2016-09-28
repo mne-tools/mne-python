@@ -45,14 +45,6 @@ Neuromag Raw FIF files can be loaded using :func:`mne.io.read_raw_fif`.
     with MaxFilter, they may need to be loaded with
     ``mne.io.read_raw_fif(..., allow_maxshield=True)``.
 
-.. note::
-    This file format also supports EEG data. In 0.13, an average reference
-    will be added by default on reading EEG data. To change this behavior,
-    use the argument ``add_eeg_ref=False``, which will become the default
-    in 0.14. The argument will be removed in 0.15 in favor of
-    :func:`mne.set_eeg_reference` and :meth:`mne.io.Raw.set_eeg_reference`.
-
-
 Importing 4-D Neuroimaging / BTI data
 =====================================
 

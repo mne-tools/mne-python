@@ -134,7 +134,7 @@ print(raw_fname)
 #
 # Read data from file:
 
-raw = mne.io.read_raw_fif(raw_fname, add_eeg_ref=False)
+raw = mne.io.read_raw_fif(raw_fname)
 print(raw)
 print(raw.info)
 
@@ -222,8 +222,7 @@ reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 # Read epochs:
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-                    baseline=baseline, preload=False, reject=reject,
-                    add_eeg_ref=False)
+                    baseline=baseline, preload=False, reject=reject)
 print(epochs)
 
 ##############################################################################

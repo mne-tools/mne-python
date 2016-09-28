@@ -27,7 +27,7 @@ data_path = somato.data_path()
 raw_fname = data_path + '/MEG/somato/sef_raw_sss.fif'
 
 # Setup for reading the raw data
-raw = mne.io.read_raw_fif(raw_fname, add_eeg_ref=False)
+raw = mne.io.read_raw_fif(raw_fname)
 events = mne.find_events(raw, stim_channel='STI 014')
 
 # picks MEG gradiometers
@@ -38,7 +38,7 @@ event_id, tmin, tmax = 1, -1., 3.
 baseline = (None, 0)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=baseline, reject=dict(grad=4000e-13, eog=350e-6),
-                    preload=True, add_eeg_ref=False)
+                    preload=True)
 
 epochs.resample(150., npad='auto')  # resample to reduce computation time
 

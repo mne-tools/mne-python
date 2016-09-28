@@ -22,7 +22,7 @@ from mne.datasets import sample
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-raw = mne.io.read_raw_fif(raw_fname, add_eeg_ref=False, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.set_eeg_reference()  # set EEG average reference
 
 ###############################################################################
@@ -99,7 +99,7 @@ reject = dict(eeg=180e-6, eog=150e-6)
 event_id, tmin, tmax = {'left/auditory': 1}, -0.2, 0.5
 events = mne.read_events(event_fname)
 epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
-                     reject=reject, add_eeg_ref=False)
+                     reject=reject)
 
 evoked_no_ref = mne.Epochs(raw_no_ref, **epochs_params).average()
 del raw_no_ref  # save memory

@@ -40,17 +40,17 @@ def test_mne_c_design():
            '--save', out_fname)
     run_subprocess(cmd)
     h = design_mne_c_filter(sfreq, None, 40)
-    h_c = read_raw_fif(out_fname, add_eeg_ref=False)[0][0][0][time_sl]
+    h_c = read_raw_fif(out_fname)[0][0][0][time_sl]
     assert_allclose(h, h_c, **tols)
 
     run_subprocess(cmd + ('--highpass', '5', '--highpassw', '2.5'))
     h = design_mne_c_filter(sfreq, 5, 40, 2.5)
-    h_c = read_raw_fif(out_fname, add_eeg_ref=False)[0][0][0][time_sl]
+    h_c = read_raw_fif(out_fname)[0][0][0][time_sl]
     assert_allclose(h, h_c, **tols)
 
     run_subprocess(cmd + ('--lowpass', '1000', '--highpass', '10'))
     h = design_mne_c_filter(sfreq, 10, None, verbose=True)
-    h_c = read_raw_fif(out_fname, add_eeg_ref=False)[0][0][0][time_sl]
+    h_c = read_raw_fif(out_fname)[0][0][0][time_sl]
     assert_allclose(h, h_c, **tols)
 
 

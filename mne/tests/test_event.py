@@ -38,7 +38,7 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 
 def test_fix_stim():
     """Test fixing stim STI016 for Neuromag."""
-    raw = read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname, preload=True)
     # 32768 (016) + 3 (002+001) bits gets incorrectly coded during acquisition
     raw._data[raw.ch_names.index('STI 014'), :3] = [0, -32765, 0]
     with warnings.catch_warnings(record=True) as w:
@@ -53,10 +53,10 @@ def test_fix_stim():
 def test_add_events():
     """Test adding events to a Raw file."""
     # need preload
-    raw = read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     events = np.array([[raw.first_samp, 0, 1]])
     assert_raises(RuntimeError, raw.add_events, events, 'STI 014')
-    raw = read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname, preload=True)
     orig_events = find_events(raw, 'STI 014')
     # add some events
     events = np.array([raw.first_samp, 0, 1])
@@ -179,7 +179,7 @@ def test_io_events():
 def test_find_events():
     """Test find events in raw file."""
     events = read_events(fname)
-    raw = read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname, preload=True)
     # let's test the defaulting behavior while we're at it
     extra_ends = ['', '_1']
     orig_envs = [os.getenv('MNE_STIM_CHANNEL%s' % s) for s in extra_ends]
@@ -366,7 +366,7 @@ def test_pick_events():
 
 def test_make_fixed_length_events():
     """Test making events of a fixed length."""
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     events = make_fixed_length_events(raw, id=1)
     assert_true(events.shape[1], 3)
     events_zero = make_fixed_length_events(raw, 1, first_samp=False)
@@ -390,7 +390,7 @@ def test_make_fixed_length_events():
 def test_define_events():
     """Test defining response events."""
     events = read_events(fname)
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     events_, _ = define_target_events(events, 5, 32, raw.info['sfreq'],
                                       .2, 0.7, 42, 99)
     n_target = events[events[:, 2] == 5].shape[0]

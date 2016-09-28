@@ -1,5 +1,5 @@
 from .transformer import Scaler, FilterEstimator
-from .transformer import (PSDEstimator, EpochsVectorizer, Vectorizer,
+from .transformer import (PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)
 from .mixin import TransformerMixin
 from .base import BaseEstimator, LinearModel

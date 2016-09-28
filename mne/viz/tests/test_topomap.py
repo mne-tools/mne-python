@@ -48,11 +48,6 @@ event_name = op.join(base_dir, 'test-eve.fif')
 layout = read_layout('Vectorview-all')
 
 
-def _get_raw():
-    """Get raw data."""
-    return read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
-
-
 @slow_test
 @testing.requires_testing_data
 def test_plot_topomap():
@@ -276,7 +271,7 @@ def test_plot_tfr_topomap():
     """Test plotting of TFR data."""
     import matplotlib as mpl
     import matplotlib.pyplot as plt
-    raw = _get_raw()
+    raw = read_raw_fif(raw_fname)
     times = np.linspace(-0.1, 0.1, 200)
     n_freqs = 3
     nave = 1

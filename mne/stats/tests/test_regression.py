@@ -36,10 +36,10 @@ def test_regression():
     event_id = dict(aud_l=1, aud_r=2)
 
     # Setup for reading the raw data
-    raw = mne.io.read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = mne.io.read_raw_fif(raw_fname)
     events = mne.read_events(event_fname)[:10]
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                        baseline=(None, 0), add_eeg_ref=False)
+                        baseline=(None, 0))
     picks = np.arange(len(epochs.ch_names))
     evoked = epochs.average(picks=picks)
     design_matrix = epochs.events[:, 1:].astype(np.float64)
@@ -89,7 +89,7 @@ def test_continuous_regression_no_overlap():
     """Test regression without overlap correction, on real data."""
     tmin, tmax = -.1, .5
 
-    raw = mne.io.read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
+    raw = mne.io.read_raw_fif(raw_fname, preload=True)
     raw.apply_proj()
     events = mne.read_events(event_fname)
     event_id = dict(audio_l=1, audio_r=2)
@@ -97,7 +97,7 @@ def test_continuous_regression_no_overlap():
     raw = raw.pick_channels(raw.ch_names[:2])
 
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                        baseline=None, reject=None, add_eeg_ref=False)
+                        baseline=None, reject=None)
 
     revokeds = linear_regression_raw(raw, events, event_id,
                                      tmin=tmin, tmax=tmax,

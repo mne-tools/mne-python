@@ -18,21 +18,19 @@ events = read_events(event_name)
 def test_mockclient():
     """Test the RtMockClient."""
 
-    raw = mne.io.read_raw_fif(raw_fname, preload=True, verbose=False,
-                              add_eeg_ref=False)
+    raw = mne.io.read_raw_fif(raw_fname, preload=True, verbose=False)
     picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                            stim=True, exclude=raw.info['bads'])
 
     event_id, tmin, tmax = 1, -0.2, 0.5
 
     epochs = Epochs(raw, events[:7], event_id=event_id, tmin=tmin, tmax=tmax,
-                    picks=picks, baseline=(None, 0), preload=True,
-                    add_eeg_ref=False)
+                    picks=picks, baseline=(None, 0), preload=True)
     data = epochs.get_data()
 
     rt_client = MockRtClient(raw)
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
-                         isi_max=0.5, add_eeg_ref=False)
+                         isi_max=0.5)
 
     rt_epochs.start()
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
@@ -46,15 +44,14 @@ def test_mockclient():
 def test_get_event_data():
     """Test emulation of realtime data stream."""
 
-    raw = mne.io.read_raw_fif(raw_fname, preload=True, verbose=False,
-                              add_eeg_ref=False)
+    raw = mne.io.read_raw_fif(raw_fname, preload=True, verbose=False)
     picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                            stim=True, exclude=raw.info['bads'])
 
     event_id, tmin, tmax = 2, -0.1, 0.3
     epochs = Epochs(raw, events, event_id=event_id,
                     tmin=tmin, tmax=tmax, picks=picks, baseline=None,
-                    preload=True, proj=False, add_eeg_ref=False)
+                    preload=True, proj=False)
 
     data = epochs.get_data()[0, :, :]
 
@@ -69,8 +66,7 @@ def test_get_event_data():
 def test_find_events():
     """Test find_events in rt_epochs."""
 
-    raw = mne.io.read_raw_fif(raw_fname, preload=True, verbose=False,
-                              add_eeg_ref=False)
+    raw = mne.io.read_raw_fif(raw_fname, preload=True, verbose=False)
     picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                            stim=True, exclude=raw.info['bads'])
 
@@ -98,7 +94,7 @@ def test_find_events():
     rt_client = MockRtClient(raw)
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
                          stim_channel='STI 014', isi_max=0.5,
-                         find_events=find_events, add_eeg_ref=False)
+                         find_events=find_events)
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
     rt_epochs.start()
     events = [5, 6]
@@ -111,7 +107,7 @@ def test_find_events():
     rt_client = MockRtClient(raw)
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
                          stim_channel='STI 014', isi_max=0.5,
-                         find_events=find_events, add_eeg_ref=False)
+                         find_events=find_events)
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
     rt_epochs.start()
     events = [5, 6, 5, 6]
@@ -124,7 +120,7 @@ def test_find_events():
     rt_client = MockRtClient(raw)
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
                          stim_channel='STI 014', isi_max=0.5,
-                         find_events=find_events, add_eeg_ref=False)
+                         find_events=find_events)
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
     rt_epochs.start()
     events = [5]
@@ -137,7 +133,7 @@ def test_find_events():
     rt_client = MockRtClient(raw)
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
                          stim_channel='STI 014', isi_max=0.5,
-                         find_events=find_events, add_eeg_ref=False)
+                         find_events=find_events)
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
     rt_epochs.start()
     events = [5, 6, 5, 0, 6, 0]

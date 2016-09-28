@@ -64,10 +64,10 @@ def test_kit2fiff_model():
     # export raw
     raw_out = model.get_raw()
     raw_out.save(tgt_fname)
-    raw = read_raw_fif(tgt_fname, add_eeg_ref=False)
+    raw = read_raw_fif(tgt_fname)
 
     # Compare exported raw with the original binary conversion
-    raw_bin = read_raw_fif(fif_path, add_eeg_ref=False)
+    raw_bin = read_raw_fif(fif_path)
     trans_bin = raw.info['dev_head_t']['trans']
     want_keys = list(raw_bin.info.keys())
     assert_equal(sorted(want_keys), sorted(list(raw.info.keys())))

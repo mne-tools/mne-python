@@ -249,11 +249,10 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     """
     if duration is not None:
         events = make_fixed_length_events(raw, 999, start, stop, duration)
+        picks = pick_types(raw.info, meg=True, eeg=True, eog=True, ecg=True,
+                           emg=True, exclude='bads')
         epochs = Epochs(raw, events, None, tmin=0., tmax=duration,
-                        picks=pick_types(raw.info, meg=True, eeg=True,
-                                         eog=True, ecg=True, emg=True,
-                                         exclude='bads'),
-                        reject=reject, flat=flat, add_eeg_ref=False)
+                        picks=picks, reject=reject, flat=flat)
         data = _compute_cov_epochs(epochs, n_jobs)
         info = epochs.info
         if not stop:

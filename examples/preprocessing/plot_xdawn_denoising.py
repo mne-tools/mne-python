@@ -58,7 +58,7 @@ picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=False,
 # Epoching
 epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
                 picks=picks, baseline=None, preload=True,
-                add_eeg_ref=False, verbose=False)
+                verbose=False)
 
 # Plot image epoch before xdawn
 plot_epochs_image(epochs['vis_r'], picks=[230], vmin=-500, vmax=500)

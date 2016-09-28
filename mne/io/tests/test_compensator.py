@@ -19,7 +19,7 @@ ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 def test_compensation():
     """Test compensation."""
     tempdir = _TempDir()
-    raw = read_raw_fif(ctf_comp_fname, compensation=None, add_eeg_ref=False)
+    raw = read_raw_fif(ctf_comp_fname, compensation=None)
     assert_equal(get_current_comp(raw.info), 3)
     comp1 = make_compensator(raw.info, 3, 1, exclude_comp_chs=False)
     assert_true(comp1.shape == (340, 340))
@@ -40,12 +40,12 @@ def test_compensation():
             assert_allclose(np.dot(comp2, comp1), desired, atol=1e-12)
 
     # make sure that changing the comp doesn't modify the original data
-    raw2 = read_raw_fif(ctf_comp_fname, add_eeg_ref=False)
+    raw2 = read_raw_fif(ctf_comp_fname)
     raw2.apply_gradient_compensation(2)
     assert_equal(get_current_comp(raw2.info), 2)
     fname = op.join(tempdir, 'ctf-raw.fif')
     raw2.save(fname)
-    raw2 = read_raw_fif(fname, add_eeg_ref=False)
+    raw2 = read_raw_fif(fname)
     assert_equal(raw2.compensation_grade, 2)
     raw2.apply_gradient_compensation(3)
     assert_equal(raw2.compensation_grade, 3)
@@ -64,13 +64,12 @@ def test_compensation_mne():
 
     def make_evoked(fname, comp):
         """Make evoked data."""
-        raw = read_raw_fif(fname, add_eeg_ref=False)
+        raw = read_raw_fif(fname)
         if comp is not None:
             raw.apply_gradient_compensation(comp)
         picks = pick_types(raw.info, meg=True, ref_meg=True)
         events = np.array([[0, 0, 1]], dtype=np.int)
-        evoked = Epochs(raw, events, 1, 0, 20e-3, picks=picks,
-                        add_eeg_ref=False).average()
+        evoked = Epochs(raw, events, 1, 0, 20e-3, picks=picks).average()
         return evoked
 
     def compensate_mne(fname, comp):

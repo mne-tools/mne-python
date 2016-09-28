@@ -1,5 +1,4 @@
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import assert_almost_equal
@@ -10,7 +9,7 @@ import scipy.io as sio
 from mne.io import read_raw_fif
 from mne import pick_types
 from mne.preprocessing.infomax_ import infomax
-from mne.utils import random_permutation, slow_test
+from mne.utils import random_permutation, slow_test, run_tests_if_main
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), 'data')
@@ -22,7 +21,7 @@ def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
     data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
     raw_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 
-    raw = read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname, preload=True)
 
     if ch_type == 'eeg':
         picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
@@ -35,13 +34,9 @@ def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
     idx_perm = random_permutation(picks.shape[0], random_state)
     picks = picks[idx_perm[:number_of_channels_to_use]]
 
-    with warnings.catch_warnings(record=True):  # deprecated params
-        raw.filter(1, 45, picks=picks)
-    # Eventually we will need to add these, but for now having none of
-    # them is a nice deprecation sanity check.
-    #           filter_length='10s',
-    #           l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-    #           phase='zero-double', fir_window='hann')  # use the old way
+    raw.filter(1, 45, picks=picks, filter_length='10s',
+               l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
+               phase='zero-double', fir_window='hann')  # use the old way
     X = raw[picks, :][0][:, ::20]
 
     # Subtract the mean
@@ -179,3 +174,5 @@ def test_mne_python_vs_eeglab():
                                                unmixing_eeglab))
 
             assert_almost_equal(maximum_difference, 1e-12, decimal=10)
+
+run_tests_if_main()

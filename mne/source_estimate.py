@@ -1324,7 +1324,6 @@ class SourceEstimate(_BaseSourceEstimate):
                                       smoothing_steps=smoothing_steps,
                                       transparent=transparent, alpha=alpha,
                                       time_viewer=time_viewer,
-                                      config_opts=config_opts,
                                       subjects_dir=subjects_dir, figure=figure,
                                       views=views, colorbar=colorbar,
                                       clim=clim, cortex=cortex, size=size,
