@@ -9,10 +9,11 @@ XDAWN components. The process is similar to an ICA, but is
 supervised in order to maximize the signal to signal + noise ratio of the
 evoked response.
 
-WARNING: As this denoising method exploits the known events to
-maximize SNR of the contrast between conditions it can lead to overfit.
-To avoid a statistical analysis problem you should split epochs used
-in fit with the ones used in apply method.
+.. warning:: As this denoising method exploits the known events to
+             maximize SNR of the contrast between conditions it can lead
+             to overfitting. To avoid a statistical analysis problem you
+             should split epochs used in fit with the ones used in
+             apply method.
 
 References
 ----------
@@ -49,7 +50,7 @@ event_id = dict(vis_r=4)
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 20, method='iir')  # replace baselining with high-pass
+raw.filter(1, 20)  # replace baselining with high-pass
 events = read_events(event_fname)
 
 raw.info['bads'] = ['MEG 2443']  # set bad channels

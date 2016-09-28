@@ -104,7 +104,7 @@ def test_average_movements():
     raw = read_raw_fif(fname_raw_move, allow_maxshield='yes')
     raw.info['bads'] += ['MEG2443']  # mark some bad MEG channel
     raw.crop(*crop).load_data()
-    raw.filter(None, 20, method='iir')
+    raw.filter(None, 20)
     events = make_fixed_length_events(raw, event_id)
     picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                        ecg=True, eog=True, exclude=())
@@ -148,7 +148,7 @@ def test_average_movements():
     # compare to averaged movecomp version (should be fairly similar)
     raw_sss = read_raw_fif(fname_raw_movecomp_sss)
     raw_sss.crop(*crop).load_data()
-    raw_sss.filter(None, 20, method='iir')
+    raw_sss.filter(None, 20)
     picks_sss = pick_types(raw_sss.info, meg=True, eeg=True, stim=True,
                            ecg=True, eog=True, exclude=())
     assert_array_equal(picks, picks_sss)
