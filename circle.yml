@@ -128,7 +128,7 @@ deployment:
       - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
   stable:
-    branch: maint/0.12
+    branch: maint/0.13
     commands:
       - git config --global user.email "circle@mne.com"
       - git config --global user.name "Circle Ci"
