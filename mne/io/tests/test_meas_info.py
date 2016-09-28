@@ -110,12 +110,12 @@ def test_fiducials_io():
 
 def test_info():
     """Test info object."""
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     event_id, tmin, tmax = 1, -0.2, 0.5
     events = read_events(event_name)
     event_id = int(events[0, 2])
     epochs = Epochs(raw, events[:1], event_id, tmin, tmax, picks=None,
-                    baseline=(None, 0), add_eeg_ref=False)
+                    baseline=(None, 0))
 
     evoked = epochs.average()
 
@@ -336,7 +336,7 @@ def test_anonymize():
     assert_raises(ValueError, anonymize_info, 'foo')
 
     # Fake some subject data
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     raw.info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
                                     first_name='bar', birthday=(1987, 4, 8),
                                     sex=0, hand=1)
@@ -345,7 +345,7 @@ def test_anonymize():
     orig_meas_id = raw.info['meas_id']['secs']
     # Test instance method
     events = read_events(event_name)
-    epochs = Epochs(raw, events[:1], 2, 0., 0.1, add_eeg_ref=False)
+    epochs = Epochs(raw, events[:1], 2, 0., 0.1)
     for inst in [raw, epochs]:
         assert_true('subject_info' in inst.info.keys())
         assert_true(inst.info['subject_info'] is not None)
@@ -363,7 +363,7 @@ def test_anonymize():
     tempdir = _TempDir()
     out_fname = op.join(tempdir, 'test_subj_info_raw.fif')
     raw.save(out_fname, overwrite=True)
-    raw = read_raw_fif(out_fname, add_eeg_ref=False)
+    raw = read_raw_fif(out_fname)
     assert_true(raw.info.get('subject_info') is None)
     assert_array_equal(raw.info['meas_date'], [0, 0])
     # XXX mne.io.write.write_id necessarily writes secs

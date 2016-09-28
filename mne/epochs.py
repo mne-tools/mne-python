@@ -42,7 +42,7 @@ from .fixes import _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
-                    _time_mask, check_random_state, warn, _check_copy_dep,
+                    _time_mask, check_random_state, warn,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc)
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
@@ -297,7 +297,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             logger.info('Entering delayed SSP mode.')
         else:
             self._do_delayed_proj = False
-        add_eeg_ref = _dep_eeg_ref(add_eeg_ref) if 'eeg' in self else False
+        add_eeg_ref = _dep_eeg_ref(add_eeg_ref)
         activate = False if self._do_delayed_proj else proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=activate)
@@ -1419,7 +1419,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             this_epochs.event_id = self.event_id
             _save_split(this_epochs, fname, part_idx, n_parts)
 
-    def equalize_event_counts(self, event_ids, method='mintime', copy=None):
+    def equalize_event_counts(self, event_ids, method='mintime'):
         """Equalize the number of trials in each condition
 
         It tries to make the remaining epochs occurring as close as possible in
@@ -1449,10 +1449,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If 'truncate', events will be truncated from the end of each event
             list. If 'mintime', timing differences between each event list
             will be minimized.
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.14.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
 
         Returns
         -------
@@ -1476,16 +1472,15 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         conditions will contribute evenly. E.g., it is possible to end up
         with 70 'Nonspatial' trials, 69 'Left' and 1 'Right'.
         """
-        epochs = _check_copy_dep(self, copy)
         if len(event_ids) == 0:
             raise ValueError('event_ids must have at least one element')
-        if not epochs._bad_dropped:
-            epochs.drop_bad()
+        if not self._bad_dropped:
+            self.drop_bad()
         # figure out how to equalize
         eq_inds = list()
 
         # deal with hierarchical tags
-        ids = epochs.event_id
+        ids = self.event_id
         orig_ids = list(event_ids)
         tagging = False
         if "/" in "".join(ids):
@@ -1515,7 +1510,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             # raise for non-orthogonal tags
             if tagging is True:
-                events_ = [set(epochs[x].events[:, 0]) for x in event_ids]
+                events_ = [set(self[x].events[:, 0]) for x in event_ids]
                 doubles = events_[0].intersection(events_[1])
                 if len(doubles):
                     raise ValueError("The two sets of epochs are "
@@ -1523,15 +1518,15 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                      "orthogonal selection.")
 
         for eq in event_ids:
-            eq_inds.append(np.where(epochs._keys_to_idx(eq))[0])
+            eq_inds.append(np.where(self._keys_to_idx(eq))[0])
 
-        event_times = [epochs.events[e, 0] for e in eq_inds]
+        event_times = [self.events[e, 0] for e in eq_inds]
         indices = _get_drop_indices(event_times, method)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
-        epochs.drop(indices, reason='EQUALIZED_COUNT')
+        self.drop(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
-        return epochs, indices
+        return self, indices
 
 
 def _hid_match(event_id, keys):
@@ -1614,20 +1609,12 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
     return perc
 
 
-def _dep_eeg_ref(add_eeg_ref, current_default=True):
+def _dep_eeg_ref(add_eeg_ref):
     """Helper for deprecation add_eeg_ref -> False"""
-    if current_default is True:
-        if add_eeg_ref is None:
-            add_eeg_ref = True
-            warn('add_eeg_ref defaults to True in 0.13, will default to '
-                 'False in 0.14, and will be removed in 0.15. We recommend '
-                 'to use add_eeg_ref=False and set_eeg_reference() instead.',
-                 DeprecationWarning)
     # current_default is False
-    elif add_eeg_ref is None:
-        add_eeg_ref = False
-    else:
-        warn('add_eeg_ref will be removed in 0.14, use set_eeg_reference()'
+    add_eeg_ref = bool(add_eeg_ref)
+    if add_eeg_ref:
+        warn('add_eeg_ref will be removed in 0.15, use set_eeg_reference()'
              ' instead', DeprecationWarning)
     return add_eeg_ref
 
@@ -2251,8 +2238,7 @@ def _read_one_epoch_file(f, tree, fname, preload):
 
 
 @verbose
-def read_epochs(fname, proj=True, add_eeg_ref=None, preload=True,
-                verbose=None):
+def read_epochs(fname, proj=True, preload=True, verbose=None):
     """Read epochs from a fif file
 
     Parameters
@@ -2270,10 +2256,6 @@ def read_epochs(fname, proj=True, add_eeg_ref=None, preload=True,
         detrending and temporal decimation will be postponed.
         If proj is False no projections will be applied which is the
         recommended value if SSPs are not used for cleaning the data.
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists). This parameter is deprecated and will be
-        removed in 0.14, use :func:`mne.set_eeg_reference` instead.
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
@@ -2286,8 +2268,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=None, preload=True,
     epochs : instance of Epochs
         The epochs
     """
-    add_eeg_ref = _dep_eeg_ref(add_eeg_ref, False)
-    return EpochsFIF(fname, proj, add_eeg_ref, preload, verbose)
+    return EpochsFIF(fname, proj, False, preload, verbose)
 
 
 class _RawContainer(object):
@@ -2323,8 +2304,7 @@ class EpochsFIF(_BaseEpochs):
         recommended value if SSPs are not used for cleaning the data.
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
-        already exists). The default value of True in 0.13 will change to
-        False in 0.14, and the parameter will be removed in 0.15. Use
+        already exists). This parameter will be removed in 0.15. Use
         :func:`mne.set_eeg_reference` instead.
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
@@ -2340,7 +2320,7 @@ class EpochsFIF(_BaseEpochs):
     mne.Epochs.equalize_event_counts
     """
     @verbose
-    def __init__(self, fname, proj=True, add_eeg_ref=None, preload=True,
+    def __init__(self, fname, proj=True, add_eeg_ref=False, preload=True,
                  verbose=None):
         check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
         fnames = [fname]
@@ -2469,7 +2449,7 @@ def _check_merge_epochs(epochs_list):
 
 
 @verbose
-def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=None,
+def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=False,
                         verbose=None):
     """Concatenate channels, info and data from two Epochs objects
 
@@ -2481,8 +2461,7 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=None,
         Comment that describes the Epochs data created.
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless there is
-        no EEG in the data). The default value of True in 0.13 will change to
-        False in 0.14, and the parameter will be removed in 0.15. Use
+        no EEG in the data). This parameter will be removed in 0.15. Use
         :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).

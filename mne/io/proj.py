@@ -18,7 +18,7 @@ from .constants import FIFF
 from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
-from ..utils import logger, verbose, warn, deprecated
+from ..utils import logger, verbose, warn
 from ..externals.six import string_types
 
 
@@ -103,21 +103,6 @@ class ProjMixin(object):
         # We don't want to add projectors that are activated again.
         self.info['projs'] = _uniquify_projs(self.info['projs'],
                                              check_active=False, sort=False)
-        return self
-
-    @deprecated('This function is deprecated and will be removed in 0.14. '
-                'Use set_eeg_reference() instead.')
-    def add_eeg_average_proj(self):
-        """Add an average EEG reference projector if one does not exist."""
-        if _needs_eeg_average_ref_proj(self.info):
-            # Don't set as active, since we haven't applied it
-            eeg_proj = make_eeg_average_ref_proj(self.info, activate=False)
-            self.add_proj(eeg_proj)
-        elif self.info.get('custom_ref_applied', False):
-            raise RuntimeError('Cannot add an average EEG reference '
-                               'projection since a custom reference has been '
-                               'applied to the data earlier.')
-
         return self
 
     def apply_proj(self):

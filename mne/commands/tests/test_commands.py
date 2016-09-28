@@ -68,7 +68,7 @@ def test_clean_eog_ecg():
     """Test mne clean_eog_ecg."""
     check_usage(mne_clean_eog_ecg)
     tempdir = _TempDir()
-    raw = concatenate_raws([read_raw_fif(f, add_eeg_ref=False)
+    raw = concatenate_raws([read_raw_fif(f)
                             for f in [raw_fname, raw_fname, raw_fname]])
     raw.info['bads'] = ['MEG 2443']
     use_fname = op.join(tempdir, op.basename(raw_fname))

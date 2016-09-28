@@ -22,8 +22,7 @@ event_id = dict(cond2=2, cond3=3)
 
 def _get_data():
     """Get data."""
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False, verbose=False,
-                       preload=True)
+    raw = read_raw_fif(raw_fname, verbose=False, preload=True)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=False, eeg=True, stim=False,
                        ecg=False, eog=False,
@@ -44,8 +43,7 @@ def test_xdawn_fit():
     # Get data
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, baseline=None, verbose=False,
-                    add_eeg_ref=False)
+                    preload=True, baseline=None, verbose=False)
     # =========== Basic Fit test =================
     # Test base xdawn
     xd = Xdawn(n_components=2, correct_overlap='auto')
@@ -81,8 +79,7 @@ def test_xdawn_fit():
     # error
     # XXX This is a buggy test, the epochs here don't overlap
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, baseline=(None, 0), verbose=False,
-                    add_eeg_ref=False)
+                    preload=True, baseline=(None, 0), verbose=False)
 
     xd = Xdawn(n_components=2, correct_overlap=True)
     assert_raises(ValueError, xd.fit, epochs)
@@ -94,7 +91,7 @@ def test_xdawn_apply_transform():
     raw, events, picks = _get_data()
     raw.pick_types(eeg=True, meg=False)
     epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
-                    add_eeg_ref=False, preload=True, baseline=None,
+                    preload=True, baseline=None,
                     verbose=False)
     n_components = 2
     # Fit Xdawn
@@ -130,8 +127,7 @@ def test_xdawn_regularization():
     # Get data
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, baseline=None, verbose=False,
-                    add_eeg_ref=False)
+                    preload=True, baseline=None, verbose=False)
 
     # Test with overlapping events.
     # modify events to simulate one overlap
@@ -164,8 +160,7 @@ def test_XdawnTransformer():
     # Get data
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, baseline=None, verbose=False,
-                    add_eeg_ref=False)
+                    preload=True, baseline=None, verbose=False)
     X = epochs._data
     y = epochs.events[:, -1]
     # Fit

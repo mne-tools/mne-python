@@ -48,19 +48,10 @@ class Raw(_BaseRaw):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    proj : bool
-        Deprecated. Use :meth:`raw.apply_proj() <mne.io.Raw.apply_proj>`
-        instead.
-    compensation : None | int
-        Deprecated. Use :meth:`mne.io.Raw.apply_gradient_compensation`
-        instead.
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
-        already exists). The default value of True in 0.13 will change to
-        False in 0.14, and the parameter will be removed in 0.15. Use
+        already exists). This parameter will be removed in 0.15. Use
         :func:`mne.set_eeg_reference` instead.
-    fnames : list or str
-        Deprecated. Use :func:`mne.concatenate_raws` instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -79,27 +70,9 @@ class Raw(_BaseRaw):
     """
     @verbose
     def __init__(self, fname, allow_maxshield=False, preload=False,
-                 proj=None, compensation=None, add_eeg_ref=None,
-                 fnames=None, verbose=None):
-        if not proj:
-            proj = False
-        else:
-            warn('The proj parameter has been dprecated and will be removed '
-                 'in 0.14. Use raw.apply_proj() instead.', DeprecationWarning)
-        dep = ('Supplying a list of filenames with "fnames" to the Raw class '
-               'has been deprecated and will be removed in 0.13. Use multiple '
-               'calls to read_raw_fif with the "fname" argument followed by '
-               'concatenate_raws instead.')
-        if fnames is not None:
-            warn(dep, DeprecationWarning)
-        else:
-            fnames = fname
+                 add_eeg_ref=False, verbose=None):
+        fnames = [op.realpath(fname)]
         del fname
-        if not isinstance(fnames, list):
-            fnames = [fnames]
-        else:
-            warn(dep, DeprecationWarning)
-        fnames = [op.realpath(f) for f in fnames]
         split_fnames = []
 
         raws = []
@@ -113,14 +86,6 @@ class Raw(_BaseRaw):
                     warn('Split raw file detected but next file %s does not '
                          'exist.' % next_fname)
                     continue
-                if next_fname in fnames:
-                    # the user manually specified the split files
-                    logger.info('Note: %s is part of a split raw file. It is '
-                                'not necessary to manually specify the parts '
-                                'in this case; simply construct Raw using '
-                                'the name of the first file.' % next_fname)
-                    continue
-
                 # process this file next
                 fnames.insert(ii + 1, next_fname)
                 split_fnames.append(next_fname)
@@ -132,9 +97,8 @@ class Raw(_BaseRaw):
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._raw_extras for r in raws],
             raws[0].orig_format, None, verbose=verbose)
-        if 'eeg' in self:
-            from ...epochs import _dep_eeg_ref
-            add_eeg_ref = _dep_eeg_ref(add_eeg_ref, True)
+        from ...epochs import _dep_eeg_ref
+        add_eeg_ref = _dep_eeg_ref(add_eeg_ref)
 
         # combine information from each raw file to construct self
         if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
@@ -154,20 +118,10 @@ class Raw(_BaseRaw):
                                                         last_samps,
                                                         first_samps,
                                                         r.info['sfreq'])
-        if compensation is not None:
-            warn('The "compensation" argument has been deprecated '
-                 'in favor of the "raw.apply_gradient_compensation" '
-                 'method and will be removed in 0.14',
-                 DeprecationWarning)
-            self.apply_gradient_compensation(compensation)
         if preload:
             self._preload_data(preload)
         else:
             self.preload = False
-
-        # setup the SSP projector
-        if proj:
-            self.apply_proj()
 
     @verbose
     def _read_raw_file(self, fname, allow_maxshield, preload,
@@ -466,8 +420,7 @@ def _check_entry(first, nent):
 
 
 def read_raw_fif(fname, allow_maxshield=False, preload=False,
-                 proj=False, compensation=None, add_eeg_ref=None,
-                 fnames=None, verbose=None):
+                 add_eeg_ref=False, verbose=None):
     """Reader function for Raw FIF data
 
     Parameters
@@ -489,19 +442,10 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    proj : bool
-        Deprecated. Use :meth:`raw.apply_proj() <mne.io.Raw.apply_proj>`
-        instead.
-    compensation : None | int
-        Deprecated. Use :meth:`mne.io.Raw.apply_gradient_compensation`
-        instead.
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
-        already exists). The default value of True in 0.13 will change to
-        False in 0.14, and the parameter will be removed in 0.15. Use
+        already exists). This parameter will be removed in 0.15. Use
         :func:`mne.set_eeg_reference` instead.
-    fnames : list or str
-        Deprecated. Use :func:`mne.concatenate_raws` instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -515,5 +459,4 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
     .. versionadded:: 0.9.0
     """
     return Raw(fname=fname, allow_maxshield=allow_maxshield,
-               preload=preload, proj=proj, compensation=compensation,
-               add_eeg_ref=add_eeg_ref, fnames=fnames, verbose=verbose)
+               preload=preload, add_eeg_ref=add_eeg_ref, verbose=verbose)

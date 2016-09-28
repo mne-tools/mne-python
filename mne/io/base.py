@@ -32,7 +32,7 @@ from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _resample_stim_channels)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
-                     _check_pandas_index_arguments, _check_copy_dep,
+                     _check_pandas_index_arguments,
                      check_fname, _get_stim_channel,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc)
@@ -835,7 +835,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 self._data[p, :] = data_picks_new[pp]
 
     @verbose
-    def apply_hilbert(self, picks, envelope=False, n_jobs=1, n_fft='',
+    def apply_hilbert(self, picks, envelope=False, n_jobs=1, n_fft='auto',
                       verbose=None):
         """ Compute analytic signal or envelope for a subset of channels.
 
@@ -900,12 +900,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if n_fft is None:
             n_fft = len(self.times)
         elif isinstance(n_fft, string_types):
-            if n_fft == '':
-                n_fft = len(self.times)
-                warn('n_fft is None by default in 0.13 but will change to '
-                     '"auto" in 0.14', DeprecationWarning)
-            elif n_fft == 'auto':
-                n_fft = next_fast_len(len(self.times))
+            if n_fft != 'auto':
+                raise ValueError('n_fft must be an integer, string, or None, '
+                                 'got %s' % (type(n_fft),))
+            n_fft = next_fast_len(len(self.times))
         n_fft = int(n_fft)
         if n_fft < self.n_times:
             raise ValueError("n_fft must be greater than n_times")
@@ -917,10 +915,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                 n_fft, envelope=envelope)
 
     @verbose
-    def filter(self, l_freq, h_freq, picks=None, filter_length='',
-               l_trans_bandwidth=None, h_trans_bandwidth=None, n_jobs=1,
-               method='fir', iir_params=None, phase='', fir_window='',
-               verbose=None):
+    def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
+               l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
+               method='fir', iir_params=None, phase='zero',
+               fir_window='hamming', verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -959,11 +957,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Length of the FIR filter to use (if applicable):
 
                 * int: specified length in samples.
-                * 'auto' (default in 0.14): the filter length is chosen based
+                * 'auto' (default): the filter length is chosen based
                   on the size of the transition regions (6.6 times the
                   reciprocal of the shortest transition band for
                   fir_window='hamming').
-                * str: (default in 0.13 is "10s") a human-readable time in
+                * str: a human-readable time in
                   units of "s" or "ms" (e.g., "10s" or "5500ms") will be
                   converted to that number of samples if ``phase="zero"``, or
                   the shortest power-of-two length at least that duration for
@@ -972,7 +970,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         l_trans_bandwidth : float | str
             Width of the transition band at the low cut-off frequency in Hz
             (high pass or cutoff 1 in bandpass). Can be "auto"
-            (default in 0.14) to use a multiple of ``l_freq``::
+            (default) to use a multiple of ``l_freq``::
 
                 min(max(l_freq * 0.25, 2), l_freq)
 
@@ -980,7 +978,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         h_trans_bandwidth : float | str
             Width of the transition band at the high cut-off frequency in Hz
             (low pass or cutoff 2 in bandpass). Can be "auto"
-            (default in 0.14) to use a multiple of ``h_freq``::
+            (default) to use a multiple of ``h_freq``::
 
                 min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
 
@@ -998,16 +996,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         phase : str
             Phase of the filter, only used if ``method='fir'``.
             By default, a symmetric linear-phase FIR filter is constructed.
-            If ``phase='zero'`` (default in 0.14), the delay of this filter
-            is compensated for. If ``phase=='zero-double'`` (default in 0.13
-            and before), then this filter is applied twice, once forward, and
-            once backward.
+            If ``phase='zero'`` (default), the delay of this filter
+            is compensated for. If ``phase=='zero-double'``, then this
+            filter is applied twice, once forward, and once backward.
 
             .. versionadded:: 0.13
 
         fir_window : str
-            The window to use in FIR design, can be "hamming" (default in
-            0.14), "hann" (default in 0.13), or "blackman".
+            The window to use in FIR design, can be "hamming" (default),
+            "hann" (default in 0.13), or "blackman".
 
             .. versionadded:: 0.13
 
@@ -1069,10 +1066,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     @verbose
-    def notch_filter(self, freqs, picks=None, filter_length='',
+    def notch_filter(self, freqs, picks=None, filter_length='auto',
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
                      method='fft', iir_params=None, mt_bandwidth=None,
-                     p_value=0.05, phase='', fir_window='', verbose=None):
+                     p_value=0.05, phase='zero', fir_window='hamming',
+                     verbose=None):
         """Notch filter a subset of channels.
 
         Applies a zero-phase notch filter to the channels selected by
@@ -1099,11 +1097,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Length of the FIR filter to use (if applicable):
 
                 * int: specified length in samples.
-                * 'auto' (default in 0.14): the filter length is chosen based
+                * 'auto' (default): the filter length is chosen based
                   on the size of the transition regions (6.6 times the
                   reciprocal of the shortest transition band for
                   fir_window='hamming').
-                * str: (default in 0.13 is "10s") a human-readable time in
+                * str: a human-readable time in
                   units of "s" or "ms" (e.g., "10s" or "5500ms") will be
                   converted to that number of samples if ``phase="zero"``, or
                   the shortest power-of-two length at least that duration for
@@ -1137,16 +1135,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         phase : str
             Phase of the filter, only used if ``method='fir'``.
             By default, a symmetric linear-phase FIR filter is constructed.
-            If ``phase='zero'`` (default in 0.14), the delay of this filter
-            is compensated for. If ``phase=='zero-double'`` (default in 0.13
-            and before), then this filter is applied twice, once forward, and
-            once backward.
+            If ``phase='zero'`` (default), the delay of this filter
+            is compensated for. If ``phase=='zero-double'`` then this filter
+            is applied twice, once forward, and once backward.
 
             .. versionadded:: 0.13
 
         fir_window : str
-            The window to use in FIR design, can be "hamming" (default in
-            0.14), "hann" (default in 0.13), or "blackman".
+            The window to use in FIR design, can be "hamming" (default),
+            "hann", or "blackman".
 
             .. versionadded:: 0.13
 
@@ -1186,7 +1183,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', stim_picks=None,
-                 n_jobs=1, events=None, copy=None, verbose=None):
+                 n_jobs=1, events=None, verbose=None):
         """Resample all channels.
 
         The Raw object has to have the data loaded e.g. with ``preload=True``
@@ -1230,9 +1227,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         events : 2D array, shape (n_events, 3) | None
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data.
-        copy : bool
-            Whether to operate on a copy of the data (True) or modify data
-            in-place (False). Defaults to False.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -1253,7 +1247,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         artifacts. This is dataset dependent -- check your data!
         """  # noqa
         _check_preload(self, 'raw.resample')
-        inst = _check_copy_dep(self, copy)
 
         # When no event object is supplied, some basic detection of dropped
         # events is performed to generate a warning. Finding events can fail
@@ -1262,26 +1255,26 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # warning should simply not be generated in this case.
         if events is None:
             try:
-                original_events = find_events(inst)
+                original_events = find_events(self)
             except:
                 pass
 
         sfreq = float(sfreq)
-        o_sfreq = float(inst.info['sfreq'])
+        o_sfreq = float(self.info['sfreq'])
 
-        offsets = np.concatenate(([0], np.cumsum(inst._raw_lengths)))
+        offsets = np.concatenate(([0], np.cumsum(self._raw_lengths)))
         new_data = list()
 
         ratio = sfreq / o_sfreq
 
         # set up stim channel processing
         if stim_picks is None:
-            stim_picks = pick_types(inst.info, meg=False, ref_meg=False,
+            stim_picks = pick_types(self.info, meg=False, ref_meg=False,
                                     stim=True, exclude=[])
         stim_picks = np.asanyarray(stim_picks)
 
-        for ri in range(len(inst._raw_lengths)):
-            data_chunk = inst._data[:, offsets[ri]:offsets[ri + 1]]
+        for ri in range(len(self._raw_lengths)):
+            data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
             new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
                                      window=window, n_jobs=n_jobs))
             new_ntimes = new_data[ri].shape[1]
@@ -1296,21 +1289,21 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     data_chunk.shape[1])
                 new_data[ri][stim_picks] = stim_resampled
 
-            inst._first_samps[ri] = int(inst._first_samps[ri] * ratio)
-            inst._last_samps[ri] = inst._first_samps[ri] + new_ntimes - 1
-            inst._raw_lengths[ri] = new_ntimes
+            self._first_samps[ri] = int(self._first_samps[ri] * ratio)
+            self._last_samps[ri] = self._first_samps[ri] + new_ntimes - 1
+            self._raw_lengths[ri] = new_ntimes
 
-        inst._data = np.concatenate(new_data, axis=1)
-        inst.info['sfreq'] = sfreq
-        if inst.info.get('lowpass') is not None:
-            inst.info['lowpass'] = min(inst.info['lowpass'], sfreq / 2.)
-        inst._update_times()
+        self._data = np.concatenate(new_data, axis=1)
+        self.info['sfreq'] = sfreq
+        if self.info.get('lowpass') is not None:
+            self.info['lowpass'] = min(self.info['lowpass'], sfreq / 2.)
+        self._update_times()
 
         # See the comment above why we ignore all errors here.
         if events is None:
             try:
                 # Did we loose events?
-                resampled_events = find_events(inst)
+                resampled_events = find_events(self)
                 if len(resampled_events) != len(original_events):
                     warn('Resampling of the stim channels caused event '
                          'information to become unreliable. Consider finding '
@@ -1319,18 +1312,18 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             except:
                 pass
 
-            return inst
+            return self
         else:
             if copy:
                 events = events.copy()
 
             events[:, 0] = np.minimum(
                 np.round(events[:, 0] * ratio).astype(int),
-                inst._data.shape[1]
+                self._data.shape[1]
             )
-            return inst, events
+            return self, events
 
-    def crop(self, tmin=0.0, tmax=None, copy=None):
+    def crop(self, tmin=0.0, tmax=None):
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
@@ -1344,18 +1337,13 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             New start time in seconds (must be >= 0).
         tmax : float | None
             New end time in seconds of the data (cannot exceed data duration).
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.14.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
 
         Returns
         -------
         raw : instance of Raw
             The cropped raw object.
         """
-        raw = _check_copy_dep(self, copy)
-        max_time = (raw.n_times - 1) / raw.info['sfreq']
+        max_time = (self.n_times - 1) / self.info['sfreq']
         if tmax is None:
             tmax = max_time
 
@@ -1369,30 +1357,30 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         smin, smax = np.where(_time_mask(self.times, tmin, tmax,
                                          sfreq=self.info['sfreq']))[0][[0, -1]]
-        cumul_lens = np.concatenate(([0], np.array(raw._raw_lengths,
+        cumul_lens = np.concatenate(([0], np.array(self._raw_lengths,
                                                    dtype='int')))
         cumul_lens = np.cumsum(cumul_lens)
         keepers = np.logical_and(np.less(smin, cumul_lens[1:]),
                                  np.greater_equal(smax, cumul_lens[:-1]))
         keepers = np.where(keepers)[0]
-        raw._first_samps = np.atleast_1d(raw._first_samps[keepers])
+        self._first_samps = np.atleast_1d(self._first_samps[keepers])
         # Adjust first_samp of first used file!
-        raw._first_samps[0] += smin - cumul_lens[keepers[0]]
-        raw._last_samps = np.atleast_1d(raw._last_samps[keepers])
-        raw._last_samps[-1] -= cumul_lens[keepers[-1] + 1] - 1 - smax
-        raw._raw_extras = [r for ri, r in enumerate(raw._raw_extras)
+        self._first_samps[0] += smin - cumul_lens[keepers[0]]
+        self._last_samps = np.atleast_1d(self._last_samps[keepers])
+        self._last_samps[-1] -= cumul_lens[keepers[-1] + 1] - 1 - smax
+        self._raw_extras = [r for ri, r in enumerate(self._raw_extras)
+                            if ri in keepers]
+        self._filenames = [r for ri, r in enumerate(self._filenames)
                            if ri in keepers]
-        raw._filenames = [r for ri, r in enumerate(raw._filenames)
-                          if ri in keepers]
-        if raw.preload:
+        if self.preload:
             # slice and copy to avoid the reference to large array
-            raw._data = raw._data[:, smin:smax + 1].copy()
-        raw._update_times()
-        if raw.annotations is not None:
-            annotations = raw.annotations
+            self._data = self._data[:, smin:smax + 1].copy()
+        self._update_times()
+        if self.annotations is not None:
+            annotations = self.annotations
             annotations.onset -= tmin
-            raw.annotations = annotations
-        return raw
+            self.annotations = annotations
+        return self
 
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=None,

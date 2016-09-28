@@ -472,7 +472,7 @@ def test_apply_mne_inverse_raw():
     """Test MNE with precomputed inverse operator on Raw."""
     start = 3
     stop = 10
-    raw = read_raw_fif(fname_raw, add_eeg_ref=False)
+    raw = read_raw_fif(fname_raw)
     label_lh = read_label(fname_label % 'Aud-lh')
     _, times = raw[0, start:stop]
     inverse_operator = read_inverse_operator(fname_full)
@@ -503,7 +503,7 @@ def test_apply_mne_inverse_raw():
 @testing.requires_testing_data
 def test_apply_mne_inverse_fixed_raw():
     """Test MNE with fixed-orientation inverse operator on Raw."""
-    raw = read_raw_fif(fname_raw, add_eeg_ref=False)
+    raw = read_raw_fif(fname_raw)
     start = 3
     stop = 10
     _, times = raw[0, start:stop]
@@ -546,7 +546,7 @@ def test_apply_mne_inverse_epochs():
     label_lh = read_label(fname_label % 'Aud-lh')
     label_rh = read_label(fname_label % 'Aud-rh')
     event_id, tmin, tmax = 1, -0.2, 0.5
-    raw = read_raw_fif(fname_raw, add_eeg_ref=False)
+    raw = read_raw_fif(fname_raw)
 
     picks = pick_types(raw.info, meg=True, eeg=False, stim=True, ecg=True,
                        eog=True, include=['STI 014'], exclude='bads')
@@ -555,8 +555,7 @@ def test_apply_mne_inverse_epochs():
 
     events = read_events(fname_event)[:15]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=reject, flat=flat,
-                    add_eeg_ref=False)
+                    baseline=(None, 0), reject=reject, flat=flat)
     stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
                                 label=label_lh, pick_ori="normal")
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,

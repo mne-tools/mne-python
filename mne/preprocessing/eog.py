@@ -208,5 +208,5 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
     eog_epochs = Epochs(raw, events=events, event_id=event_id,
                         tmin=tmin, tmax=tmax, proj=False, reject=reject,
                         flat=flat, picks=picks, baseline=baseline,
-                        preload=preload, add_eeg_ref=False)
+                        preload=preload)
     return eog_epochs

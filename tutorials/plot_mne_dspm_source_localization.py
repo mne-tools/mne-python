@@ -22,7 +22,7 @@ from mne.minimum_norm import (make_inverse_operator, apply_inverse,
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
-raw = mne.io.read_raw_fif(raw_fname, add_eeg_ref=False)
+raw = mne.io.read_raw_fif(raw_fname)
 raw.set_eeg_reference()  # set EEG average reference
 events = mne.find_events(raw, stim_channel='STI 014')
 
@@ -36,7 +36,7 @@ baseline = (None, 0)  # means from the first instant to t = 0
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-                    baseline=baseline, reject=reject, add_eeg_ref=False)
+                    baseline=baseline, reject=reject)
 
 ###############################################################################
 # Compute regularized noise covariance

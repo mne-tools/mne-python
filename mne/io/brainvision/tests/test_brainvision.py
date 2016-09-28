@@ -240,7 +240,7 @@ def test_brainvision_data():
     data_py, times_py = raw_py[picks]
 
     # compare with a file that was generated using MNE-C
-    raw_bin = read_raw_fif(eeg_bin, preload=True, add_eeg_ref=False)
+    raw_bin = read_raw_fif(eeg_bin, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_bin, times_bin = raw_bin[picks]
 

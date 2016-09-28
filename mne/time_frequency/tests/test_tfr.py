@@ -8,11 +8,9 @@ from mne import Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.io import read_raw_fif
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
                        grand_average)
-from mne.time_frequency import single_trial_power
-from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
-                                    _make_dpss, tfr_multitaper, rescale,
-                                    AverageTFR, read_tfrs, write_tfrs,
-                                    combine_tfr, cwt, _compute_tfr)
+from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
+                                    tfr_multitaper, AverageTFR, read_tfrs,
+                                    write_tfrs, combine_tfr, cwt, _compute_tfr)
 from mne.viz.utils import _fake_click
 from itertools import product
 import matplotlib
@@ -41,7 +39,7 @@ def test_time_frequency():
     tmax = 0.498  # Allows exhaustive decimation testing
 
     # Setup for reading the raw data
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     events = read_events(event_fname)
 
     include = []
@@ -52,14 +50,12 @@ def test_time_frequency():
                        stim=False, include=include, exclude=exclude)
 
     picks = picks[:2]
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), add_eeg_ref=False)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
     data = epochs.get_data()
     times = epochs.times
     nave = len(data)
 
-    epochs_nopicks = Epochs(raw, events, event_id, tmin, tmax,
-                            baseline=(None, 0), add_eeg_ref=False)
+    epochs_nopicks = Epochs(raw, events, event_id, tmin, tmax)
 
     freqs = np.arange(6, 20, 5)  # define frequencies of interest
     n_cycles = freqs / 4.
@@ -146,21 +142,22 @@ def test_time_frequency():
     assert_true(np.sum(itc.data >= 1) == 0)
     assert_true(np.sum(itc.data <= 0) == 0)
 
-    Fs = raw.info['sfreq']  # sampling in Hz
-    tfr = cwt_morlet(data[0], Fs, freqs, use_fft=True, n_cycles=2)
+    tfr = tfr_morlet(epochs[0], freqs, use_fft=True, n_cycles=2, average=False,
+                     return_itc=False).data[0]
     assert_true(tfr.shape == (len(picks), len(freqs), len(times)))
-    tfr2 = cwt_morlet(data[0], Fs, freqs, use_fft=True, n_cycles=2,
-                      decim=slice(0, 2))
+    tfr2 = tfr_morlet(epochs[0], freqs, use_fft=True, n_cycles=2,
+                      decim=slice(0, 2), average=False,
+                      return_itc=False).data[0]
     assert_true(tfr2.shape == (len(picks), len(freqs), 2))
 
-    single_power = single_trial_power(data, Fs, freqs, use_fft=False,
-                                      n_cycles=2)
-    single_power2 = single_trial_power(data, Fs, freqs, use_fft=False,
-                                       n_cycles=2, decim=slice(0, 2))
-    single_power3 = single_trial_power(data, Fs, freqs, use_fft=False,
-                                       n_cycles=2, decim=slice(1, 3))
-    single_power4 = single_trial_power(data, Fs, freqs, use_fft=False,
-                                       n_cycles=2, decim=slice(2, 4))
+    single_power = tfr_morlet(epochs, freqs, 2, average=False,
+                              return_itc=False).data
+    single_power2 = tfr_morlet(epochs, freqs, 2, decim=slice(0, 2),
+                               average=False, return_itc=False).data
+    single_power3 = tfr_morlet(epochs, freqs, 2, decim=slice(1, 3),
+                               average=False, return_itc=False).data
+    single_power4 = tfr_morlet(epochs, freqs, 2, decim=slice(2, 4),
+                               average=False, return_itc=False).data
 
     assert_array_almost_equal(np.mean(single_power, axis=0), power.data)
     assert_array_almost_equal(np.mean(single_power2, axis=0),
@@ -196,8 +193,8 @@ def test_time_frequency():
     freqs = range(50, 55)
     decim = 2
     _, n_chan, n_time = data.shape
-    tfr = cwt_morlet(data[0, :, :], sfreq=epochs.info['sfreq'],
-                     freqs=freqs, decim=decim)
+    tfr = tfr_morlet(epochs[0], freqs, 2., decim=decim, average=False,
+                     return_itc=False).data[0]
     assert_equal(tfr.shape, (n_chan, len(freqs), n_time // decim))
 
     # Test cwt modes
@@ -213,8 +210,6 @@ def test_time_frequency():
             cwt(data[0, :, :], Ws, use_fft=use_fft, mode=mode)
 
     # Test decim parameter checks
-    assert_raises(TypeError, single_trial_power, data, Fs, freqs,
-                  use_fft=False, n_cycles=2, decim=None)
     assert_raises(TypeError, tfr_morlet, epochs, freqs=freqs,
                   n_cycles=n_cycles, use_fft=True, return_itc=True,
                   decim='decim')
@@ -468,7 +463,7 @@ def test_compute_tfr():
     tmax = 0.498  # Allows exhaustive decimation testing
 
     # Setup for reading the raw data
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     events = read_events(event_fname)
 
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
@@ -478,8 +473,7 @@ def test_compute_tfr():
                        stim=False, include=[], exclude=exclude)
 
     picks = picks[:2]
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), add_eeg_ref=False)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
     data = epochs.get_data()
     sfreq = epochs.info['sfreq']
     freqs = np.arange(10, 20, 3).astype(float)
@@ -512,23 +506,6 @@ def test_compute_tfr():
         else:
             assert_equal(np.float, out.dtype)
         assert_true(np.all(np.isfinite(out)))
-
-    # Check that functions are equivalent to
-    # i) single_trial_power: X, shape (n_signals, n_chans, n_times)
-    old_power = single_trial_power(data, sfreq, freqs, n_cycles=2.)
-    new_power = _compute_tfr(data, freqs, sfreq, n_cycles=2.,
-                             method='morlet', output='power')
-    assert_array_almost_equal(old_power, new_power)
-    old_power = single_trial_power(data, sfreq, freqs, n_cycles=2.,
-                                   times=epochs.times, baseline=(-.100, 0),
-                                   baseline_mode='ratio')
-    new_power = rescale(new_power, epochs.times, (-.100, 0), 'ratio')
-
-    # ii) cwt_morlet: X, shape (n_signals, n_times)
-    old_complex = cwt_morlet(data[0], sfreq, freqs, n_cycles=2.)
-    new_complex = _compute_tfr(data[[0]], freqs, sfreq, n_cycles=2.,
-                               method='morlet', output='complex')
-    assert_array_almost_equal(old_complex, new_complex[0])
 
     # Check errors params
     for _data in (None, 'foo', data[0]):

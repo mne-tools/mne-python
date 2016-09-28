@@ -14,7 +14,7 @@ from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from mne import pick_types
 from mne.tests.common import assert_dig_allclose
 from mne.transforms import apply_trans
-from mne.io import Raw, read_raw_ctf
+from mne.io import read_raw_fif, read_raw_ctf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import _TempDir, run_tests_if_main, slow_test
 from mne.datasets import testing, spm_face
@@ -96,7 +96,7 @@ def test_read_ctf():
     # All our files
     use_fnames = [op.join(ctf_dir, c) for c in ctf_fnames]
     for fname in use_fnames:
-        raw_c = Raw(fname + '_raw.fif', add_eeg_ref=False, preload=True)
+        raw_c = read_raw_fif(fname + '_raw.fif', preload=True)
         with warnings.catch_warnings(record=True) as w:  # reclassified ch
             raw = read_raw_ctf(fname)
         assert_true(all('MISC channel' in str(ww.message) for ww in w))
@@ -167,7 +167,7 @@ def test_read_ctf():
 
         # check data match
         raw_c.save(out_fname, overwrite=True, buffer_size_sec=1.)
-        raw_read = Raw(out_fname, add_eeg_ref=False)
+        raw_read = read_raw_fif(out_fname)
 
         # so let's check tricky cases based on sample boundaries
         rng = np.random.RandomState(0)

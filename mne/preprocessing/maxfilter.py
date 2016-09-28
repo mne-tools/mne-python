@@ -136,7 +136,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     # determine the head origin if necessary
     if origin is None:
         logger.info('Estimating head origin from headshape points..')
-        raw = read_raw_fif(in_fname, add_eeg_ref=False)
+        raw = read_raw_fif(in_fname)
         r, o_head, o_dev = fit_sphere_to_headshape(raw.info, units='mm')
         raw.close()
         logger.info('[done]')

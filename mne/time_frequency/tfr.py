@@ -19,8 +19,7 @@ from scipy.fftpack import fft, ifft
 
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import (logger, verbose, _time_mask, check_fname, deprecated,
-                     sizeof_fmt)
+from ..utils import logger, verbose, _time_mask, check_fname, sizeof_fmt
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import pick_info, pick_types
@@ -538,65 +537,6 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
     return tfrs
 
 
-@deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
-            ".tfr_morlet() with average=False instead.")
-def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
-               decim=1):
-    """Compute time freq decomposition with Morlet wavelets
-
-    This function operates directly on numpy arrays. Consider using
-    `tfr_morlet` to process `Epochs` or `Evoked` instances.
-
-    Parameters
-    ----------
-    X : array, shape (n_signals, n_times)
-        Signals (one per line)
-    sfreq : float
-        Sampling frequency.
-    freqs : array
-        Array of frequencies of interest
-    use_fft : bool
-        Compute convolution with FFT or temoral convolution.
-    n_cycles: float | array of float
-        Number of cycles. Fixed number or one per frequency.
-    zero_mean : bool
-        Make sure the wavelets have a mean of zero.
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition.
-        If `int`, returns tfr[..., ::decim].
-        If `slice`, returns tfr[..., decim].
-
-        .. note: Decimation may create aliasing artifacts.
-
-        Defaults to 1.
-
-    Returns
-    -------
-    tfr : 3D array
-        Time Frequency Decompositions (n_signals x n_frequencies x n_times)
-
-    See Also
-    --------
-    tfr.cwt : Compute time-frequency decomposition with user-provided wavelets
-    """
-    mode = 'same'
-    # mode = "valid"
-    decim = _check_decim(decim)
-    n_signals, n_times = X[:, decim].shape
-
-    # Precompute wavelets for given frequency range to save time
-    Ws = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
-
-    coefs = cwt(X, Ws, use_fft=use_fft, mode=mode, decim=decim)
-
-    tfrs = np.empty((n_signals, len(freqs), n_times), dtype=np.complex)
-    for k, tfr in enumerate(coefs):
-        tfrs[k] = tfr
-
-    return tfrs
-
-
 def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     """Compute time freq decomposition with continuous wavelet transform
 
@@ -641,104 +581,6 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
         tfrs[k] = tfr
 
     return tfrs
-
-
-@deprecated("This function will be removed in mne 0.14; use mne.time_frequency"
-            ".tfr_morlet() with average=False instead.")
-@verbose
-def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
-                       baseline=None, baseline_mode='ratio', times=None,
-                       decim=1, n_jobs=1, zero_mean=False, verbose=None):
-    """Compute time-frequency power on single epochs
-
-    Parameters
-    ----------
-    data : array, shape (n_epochs, n_channels, n_times)
-        The epochs
-    sfreq : float
-        Sampling rate
-    frequencies : array-like
-        The frequencies
-    use_fft : bool
-        Use the FFT for convolutions or not.
-    n_cycles : float | array of float
-        Number of cycles  in the Morlet wavelet. Fixed number
-        or one per frequency.
-    baseline : None (default) or tuple of length 2
-        The time interval to apply baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal ot (None, None) all the time
-        interval is used.
-    baseline_mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-        Do baseline correction with ratio (power is divided by mean
-        power during baseline) or zscore (power is divided by standard
-        deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline)),
-        mean simply subtracts the mean power, percent is the same as
-        applying ratio then mean, logratio is the same as mean but then
-        rendered in log-scale, zlogratio is the same as zscore but data
-        is rendered in log-scale first.
-        If None no baseline correction is applied.
-    times : array
-        Required to define baseline
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition.
-        If `int`, returns tfr[..., ::decim].
-        If `slice`, returns tfr[..., decim].
-
-        .. note:: Decimation may create aliasing artifacts.
-
-        Defaults to 1.
-    n_jobs : int
-        The number of epochs to process at the same time
-    zero_mean : bool
-        Make sure the wavelets have a mean of zero.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    power : 4D array
-        Power estimate (Epochs x Channels x Frequencies x Timepoints).
-    """  # noqa
-    decim = _check_decim(decim)
-    mode = 'same'
-    n_frequencies = len(frequencies)
-    n_epochs, n_channels, n_times = data[:, :, decim].shape
-
-    # Precompute wavelets for given frequency range to save time
-    Ws = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
-
-    parallel, my_cwt, _ = parallel_func(cwt, n_jobs)
-
-    logger.info("Computing time-frequency power on single epochs...")
-
-    power = np.empty((n_epochs, n_channels, n_frequencies, n_times),
-                     dtype=np.float)
-
-    # Package arguments for `cwt` here to minimize omissions where only one of
-    # the two calls below is updated with new function arguments.
-    cwt_kw = dict(Ws=Ws, use_fft=use_fft, mode=mode, decim=decim)
-    if n_jobs == 1:
-        for k, e in enumerate(data):
-            x = cwt(e, **cwt_kw)
-            power[k] = (x * x.conj()).real
-    else:
-        # Precompute tf decompositions in parallel
-        tfrs = parallel(my_cwt(e, **cwt_kw) for e in data)
-        for k, tfr in enumerate(tfrs):
-            power[k] = (tfr * tfr.conj()).real
-
-    # Run baseline correction.  Be sure to decimate the times array as well if
-    # needed.
-    if times is not None:
-        times = times[decim]
-    power = rescale(power, times, baseline, baseline_mode, copy=False)
-    return power
 
 
 # Aux function to reduce redundancy between tfr_morlet and tfr_multitaper
@@ -975,7 +817,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         Returns
         -------
         inst : instance of AverageTFR
-            The modified instance.        
+            The modified instance.
 
         """  # noqa
         self.data = rescale(self.data, self.times, baseline, mode,

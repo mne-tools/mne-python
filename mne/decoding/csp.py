@@ -15,7 +15,6 @@ from scipy import linalg
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..cov import _regularized_covariance
-from ..utils import warn
 
 
 class CSP(TransformerMixin, BaseEstimator):
@@ -125,7 +124,7 @@ class CSP(TransformerMixin, BaseEstimator):
         if X.ndim < 3:
             raise ValueError('X must have at least 3 dimensions.')
 
-    def fit(self, X, y, epochs_data=None):
+    def fit(self, X, y):
         """Estimate the CSP decomposition on epochs.
 
         Parameters
@@ -140,7 +139,6 @@ class CSP(TransformerMixin, BaseEstimator):
         self : instance of CSP
             Returns the modified instance.
         """
-        X = _check_deprecate(epochs_data, X)
         if not isinstance(X, np.ndarray):
             raise ValueError("X should be of type ndarray (got %s)."
                              % type(X))
@@ -225,7 +223,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
         return self
 
-    def transform(self, X, epochs_data=None):
+    def transform(self, X):
         """Estimate epochs sources given the CSP filters.
 
         Parameters
@@ -241,7 +239,6 @@ class CSP(TransformerMixin, BaseEstimator):
             If self.transform_into == 'csp_space' then returns the data in CSP
             space and shape is (n_epochs, n_sources, n_times)
         """
-        X = _check_deprecate(epochs_data, X)
         if not isinstance(X, np.ndarray):
             raise ValueError("X should be of type ndarray (got %s)." % type(X))
         if self.filters_ is None:
@@ -657,11 +654,3 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
             break
     D = np.reshape(A, (n_times, n_m / n_times, n_times)).transpose(1, 0, 2)
     return V, D
-
-
-def _check_deprecate(epochs_data, X):
-    """Aux. function to CSP to deal with the change param name."""
-    if epochs_data is not None:
-        X = epochs_data
-        warn('epochs_data will be deprecated in mne 0.14. Use X instead')
-    return X

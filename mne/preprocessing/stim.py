@@ -9,7 +9,6 @@ from ..io import _BaseRaw
 from ..event import find_events
 
 from ..io.pick import pick_channels
-from ..utils import _check_copy_dep
 
 
 def _get_window(start, end):
@@ -44,7 +43,7 @@ def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
 
 
 def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
-                      tmax=0.01, mode='linear', stim_channel=None, copy=None):
+                      tmax=0.01, mode='linear', stim_channel=None):
     """Eliminate stimulation's artifacts from instance
 
     Parameters
@@ -66,8 +65,6 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         'window' applies a (1 - hanning) window.
     stim_channel : str | None
         Stim channel to use.
-    copy : bool
-        If True, data will be copied. Else data may be modified in place.
 
     Returns
     -------
@@ -76,7 +73,6 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     """
     if mode not in ('linear', 'window'):
         raise ValueError("mode has to be 'linear' or 'window' (got %s)" % mode)
-    inst = _check_copy_dep(inst, copy)
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
     s_end = int(np.ceil(inst.info['sfreq'] * tmax))
     if (mode == "window") and (s_end - s_start) < 4:

@@ -12,7 +12,7 @@ proj_fname = op.join(data_path, 'test-proj.fif')
 
 def test_find_eog():
     """Test find EOG peaks."""
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     events = find_eog_events(raw)
     n_events = len(events)
     assert_true(n_events == 4)

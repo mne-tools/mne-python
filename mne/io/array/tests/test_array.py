@@ -32,7 +32,7 @@ def test_array_raw():
     """
     import matplotlib.pyplot as plt
     # creating
-    raw = read_raw_fif(fif_fname, add_eeg_ref=False).crop(2, 5)
+    raw = read_raw_fif(fif_fname).crop(2, 5)
     data, times = raw[:, :]
     sfreq = raw.info['sfreq']
     ch_names = [(ch[4:] if 'STI' not in ch else ch)
@@ -100,8 +100,7 @@ def test_array_raw():
     events = find_events(raw2, stim_channel='STI 014')
     events[:, 2] = 1
     assert_true(len(events) > 2)
-    epochs = Epochs(raw2, events, 1, -0.2, 0.4, preload=True,
-                    add_eeg_ref=False)
+    epochs = Epochs(raw2, events, 1, -0.2, 0.4, preload=True)
     epochs.plot_drop_log()
     epochs.plot()
     evoked = epochs.average()

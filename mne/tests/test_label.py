@@ -185,8 +185,7 @@ def test_label_subject():
 
 
 def test_label_addition():
-    """Test label addition
-    """
+    """Test label addition."""
     pos = np.random.RandomState(0).rand(10, 3)
     values = np.arange(10.) / 10
     idx0 = list(range(7))
@@ -228,7 +227,6 @@ def test_label_addition():
 
     # adding lh and rh
     l2.hemi = 'rh'
-    # this now has deprecated behavior
     bhl = l0 + l2
     assert_equal(bhl.hemi, 'both')
     assert_equal(len(bhl), len(l0) + len(l2))

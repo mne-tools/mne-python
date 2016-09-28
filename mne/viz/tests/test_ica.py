@@ -32,7 +32,7 @@ event_id, tmin, tmax = 1, -0.1, 0.2
 
 def _get_raw(preload=False):
     """Get raw data."""
-    return read_raw_fif(raw_fname, preload=preload, add_eeg_ref=False)
+    return read_raw_fif(raw_fname, preload=preload)
 
 
 def _get_events():
@@ -51,8 +51,7 @@ def _get_epochs():
     events = _get_events()
     picks = _get_picks(raw)
     with warnings.catch_warnings(record=True):  # bad proj
-        epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), add_eeg_ref=False)
+        epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks)
     return epochs
 
 
@@ -155,7 +154,7 @@ def test_plot_ica_properties():
 def test_plot_ica_sources():
     """Test plotting of ICA panel."""
     import matplotlib.pyplot as plt
-    raw = read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     raw.crop(0, 1, copy=False).load_data()
     picks = _get_picks(raw)
     epochs = _get_epochs()

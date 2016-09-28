@@ -83,8 +83,7 @@ def test_dipole_fitting_ctf():
     """Test dipole fitting with CTF data."""
     raw_ctf = read_raw_ctf(fname_ctf).set_eeg_reference()
     events = make_fixed_length_events(raw_ctf, 1)
-    evoked = Epochs(raw_ctf, events, 1, 0, 0, baseline=None,
-                    add_eeg_ref=False).average()
+    evoked = Epochs(raw_ctf, events, 1, 0, 0, baseline=None).average()
     cov = make_ad_hoc_cov(evoked.info)
     sphere = make_sphere_model((0., 0., 0.))
     # XXX Eventually we should do some better checks about accuracy, but
@@ -243,7 +242,7 @@ def test_len_index_dipoles():
 def test_min_distance_fit_dipole():
     """Test dipole min_dist to inner_skull."""
     subject = 'sample'
-    raw = read_raw_fif(fname_raw, preload=True, add_eeg_ref=False)
+    raw = read_raw_fif(fname_raw, preload=True)
 
     # select eeg data
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')

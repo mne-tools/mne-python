@@ -16,7 +16,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
-                    deprecated, SizeMixin, copy_function_doc_to_method_doc)
+                    SizeMixin, copy_function_doc_to_method_doc)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import (_plot_evoked_white, plot_evoked_joint,
@@ -55,16 +55,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     condition : int, or str
         Dataset ID number (int) or comment/name (str). Optional if there is
         only one data set in file.
-    baseline : tuple or list of length 2, or None
-        This parameter has been deprecated and will be removed in 0.14
-        Use inst.apply_baseline(baseline) instead.
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used. If None, no correction is applied.
     proj : bool, optional
         Apply SSP projection vectors
     kind : str
@@ -108,7 +98,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     """
     @verbose
-    def __init__(self, fname, condition=None, baseline=None, proj=True,
+    def __init__(self, fname, condition=None, proj=True,
                  kind='average', allow_maxshield=False, verbose=None):
         if not isinstance(proj, bool):
             raise ValueError(r"'proj' must be 'True' or 'False'")
@@ -121,7 +111,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # project and baseline correct
         if proj:
             self.apply_proj()
-        self.apply_baseline(baseline, self.verbose)
 
     @verbose
     def apply_baseline(self, baseline=(None, 0), verbose=None):
@@ -554,44 +543,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         out.comment = '-' + (out.comment or 'unknown')
         return out
 
-    @deprecated('ev1 + ev2 weighted summation has been deprecated and will be '
-                'removed in 0.14, use combine_evoked([ev1, ev2],'
-                'weights="nave") instead')
-    def __add__(self, evoked):
-        """Add evoked taking into account number of epochs
-
-        The addition will be performed by weighting each Evoked
-        instance by the number of averages.
-
-        See Also
-        --------
-        mne.combine_evoked
-        """
-        out = combine_evoked([self, evoked], weights='nave')
-        out.comment = self.comment + " + " + evoked.comment
-        return out
-
-    @deprecated('ev1 - ev2 weighted subtraction has been deprecated and will '
-                'be removed in 0.14, use combine_evoked([ev1, -ev2], '
-                'weights="nave") instead')
-    def __sub__(self, evoked):
-        """Subtract evoked taking into account number of epochs
-
-        The subtraction will be performed by weighting each Evoked
-        instance by the number of averages.
-
-        See Also
-        --------
-        mne.combine_evoked
-        """
-        out = combine_evoked([self, -evoked], weights='nave')
-        if self.comment is None or evoked.comment is None:
-            warn('evoked.comment expects a string but is None')
-            out.comment = 'unknown'
-        else:
-            out.comment = self.comment + " - " + evoked.comment
-        return out
-
     def get_peak(self, ch_type=None, tmin=None, tmax=None, mode='abs',
                  time_as_index=False):
         """Get location and latency of peak amplitude
@@ -868,7 +819,7 @@ def grand_average(all_evoked, interpolate_bads=True):
     return grand_average
 
 
-def combine_evoked(all_evoked, weights=None):
+def combine_evoked(all_evoked, weights):
     """Merge evoked data by weighted addition or subtraction
 
     Data should have the same channels and the same time instants.
@@ -892,11 +843,6 @@ def combine_evoked(all_evoked, weights=None):
     -----
     .. versionadded:: 0.9.0
     """
-    if weights is None:
-        weights = 'nave'
-        warn('In 0.13 the default is weights="nave", but in 0.14 the default '
-             'will be removed and it will have to be explicitly set',
-             DeprecationWarning)
     evoked = all_evoked[0].copy()
     if isinstance(weights, string_types):
         if weights not in ('nave', 'equal'):

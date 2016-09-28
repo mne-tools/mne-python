@@ -17,9 +17,9 @@ from mne.datasets import sample
 data_path = sample.data_path()
 raw_empty_room_fname = op.join(
     data_path, 'MEG', 'sample', 'ernoise_raw.fif')
-raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname, add_eeg_ref=False)
+raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
 raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(raw_fname, add_eeg_ref=False)
+raw = mne.io.read_raw_fif(raw_fname)
 raw.set_eeg_reference()
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
 

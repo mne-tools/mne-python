@@ -28,7 +28,7 @@ warnings.simplefilter('always')
 
 
 def make_epochs():
-    raw = io.read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
+    raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -38,8 +38,7 @@ def make_epochs():
     # Test on time generalization within one condition
     with warnings.catch_warnings(record=True):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), preload=True, decim=decim,
-                        add_eeg_ref=False)
+                        baseline=(None, 0), preload=True, decim=decim)
     return epochs
 
 

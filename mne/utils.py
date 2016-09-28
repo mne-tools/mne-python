@@ -83,20 +83,6 @@ def _explain_exception(start=-1, stop=None, prefix='> '):
     return string
 
 
-def _check_copy_dep(inst, copy, kind='inst'):
-    """Check for copy deprecation for 0.14"""
-    # For methods with copy=False default, we only need one release cycle
-    # for deprecation (0.13). For copy=True, we first need to go to copy=False
-    # (one cycle; 0.13) then remove copy altogether (one cycle; 0.14).
-    if copy:
-        warn('The copy parameter is deprecated and will be removed in 0.14. '
-             'In 0.13 the default is copy=False. Use %s.copy() if necessary.'
-             % (kind,), DeprecationWarning)
-    elif copy is None:
-        copy = False
-    return inst.copy() if copy else inst
-
-
 def _get_call_line(in_verbose=False):
     """Helper to get the call line from within a function"""
     # XXX Eventually we could auto-triage whether in a `verbose` decorated
@@ -430,8 +416,7 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def estimate_rank(data, tol='auto', return_singular=False,
-                  norm=True, copy=None):
+def estimate_rank(data, tol='auto', return_singular=False, norm=True):
     """Helper to estimate the rank of data
 
     This function will normalize the rows of the data (typically
@@ -454,9 +439,6 @@ def estimate_rank(data, tol='auto', return_singular=False,
     norm : bool
         If True, data will be scaled by their estimated row-wise norm.
         Else data are assumed to be scaled. Defaults to True.
-    copy : bool
-        This parameter has been deprecated and will be removed in 0.13.
-        It is ignored in 0.12.
 
     Returns
     -------
@@ -466,8 +448,6 @@ def estimate_rank(data, tol='auto', return_singular=False,
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    if copy is not None:
-        warn('copy is deprecated and ignored. It will be removed in 0.13.')
     data = data.copy()  # operate on a copy
     if norm is True:
         norms = _compute_row_norms(data)

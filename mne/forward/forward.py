@@ -40,7 +40,7 @@ from ..source_estimate import VolSourceEstimate
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
-                     run_subprocess, check_fname, logger, verbose, deprecated)
+                     run_subprocess, check_fname, logger, verbose)
 from ..label import Label
 
 
@@ -94,31 +94,6 @@ class Forward(dict):
         entr += '>'
 
         return entr
-
-
-@deprecated("it will be removed in mne 0.14; use mne.make_bem_solution() "
-            "instead.")
-def prepare_bem_model(bem, sol_fname=None, method='linear'):
-    """Wrapper for the mne_prepare_bem_model command line utility
-
-    Parameters
-    ----------
-    bem : str
-        The name of the file containing the triangulations of the BEM surfaces
-        and the conductivities of the compartments. The standard ending for
-        this file is -bem.fif and it is produced either with the utility
-        mne_surf2bem or the convenience script mne_setup_forward_model.
-    sol_fname : None | str
-        The output file. None (the default) will employ the standard naming
-        scheme. To conform with the standard naming conventions the filename
-        should start with the subject name and end in "-bem-sol.fif".
-    method : 'linear' | 'constant'
-        The BEM approach.
-    """
-    cmd = ['mne_prepare_bem_model', '--bem', bem, '--method', method]
-    if sol_fname is not None:
-        cmd.extend(('--sol', sol_fname))
-    run_subprocess(cmd)
 
 
 def _block_diag(A, n):

@@ -71,7 +71,7 @@ def test_data():
     # Binary file only stores the sensor channels
     py_picks = pick_types(raw_py.info, exclude='bads')
     raw_bin = op.join(data_dir, 'test_bin_raw.fif')
-    raw_bin = read_raw_fif(raw_bin, preload=True, add_eeg_ref=False)
+    raw_bin = read_raw_fif(raw_bin, preload=True)
     bin_picks = pick_types(raw_bin.info, stim=True, exclude='bads')
     data_bin, _ = raw_bin[bin_picks]
     data_py, _ = raw_py[py_picks]
@@ -99,8 +99,7 @@ def test_epochs():
     """Test reading epoched SQD file."""
     raw = read_raw_kit(sqd_path, stim=None)
     events = read_events(events_path)
-    raw_epochs = Epochs(raw, events, None, tmin=0, tmax=.099, baseline=None,
-                        add_eeg_ref=False)
+    raw_epochs = Epochs(raw, events, None, tmin=0, tmax=.099, baseline=None)
     data1 = raw_epochs.get_data()
     epochs = read_epochs_kit(epochs_path, events_path)
     data11 = epochs.get_data()
@@ -136,8 +135,7 @@ def test_ch_loc():
     """Test raw kit loc."""
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp_txt_path,
                           stim='<')
-    raw_bin = read_raw_fif(op.join(data_dir, 'test_bin_raw.fif'),
-                           add_eeg_ref=False)
+    raw_bin = read_raw_fif(op.join(data_dir, 'test_bin_raw.fif'))
 
     ch_py = raw_py._raw_extras[0]['sensor_locs'][:, :5]
     # ch locs stored as m, not mm

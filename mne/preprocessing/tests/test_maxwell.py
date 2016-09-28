@@ -119,8 +119,7 @@ def _assert_n_free(raw_sss, lower, upper=None):
 
 def read_crop(fname, lims=(0, None)):
     """Read and crop."""
-    return read_raw_fif(fname, allow_maxshield='yes',
-                        add_eeg_ref=False).crop(*lims)
+    return read_raw_fif(fname, allow_maxshield='yes').crop(*lims)
 
 
 @slow_test

@@ -14,8 +14,7 @@ import re
 import numpy as np
 from scipy import linalg, sparse
 
-from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
-                    _check_copy_dep)
+from .utils import get_subjects_dir, _check_subject, logger, verbose, warn
 from .source_estimate import (morph_data, SourceEstimate, _center_of_mass,
                               spatial_src_connectivity)
 from .source_space import add_source_space_distances
@@ -452,7 +451,7 @@ class Label(object):
 
     @verbose
     def smooth(self, subject=None, smooth=2, grade=None,
-               subjects_dir=None, n_jobs=1, copy=None, verbose=None):
+               subjects_dir=None, n_jobs=1, verbose=None):
         """Smooth the label
 
         Useful for filling in labels made in a
@@ -483,10 +482,6 @@ class Label(object):
             Path to SUBJECTS_DIR if it is not set in the environment.
         n_jobs : int
             Number of jobs to run in parallel
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.14.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -504,11 +499,11 @@ class Label(object):
         """
         subject = _check_subject(self.subject, subject)
         return self.morph(subject, subject, smooth, grade, subjects_dir,
-                          n_jobs, copy=copy)
+                          n_jobs)
 
     @verbose
     def morph(self, subject_from=None, subject_to=None, smooth=5, grade=None,
-              subjects_dir=None, n_jobs=1, copy=None, verbose=None):
+              subjects_dir=None, n_jobs=1, verbose=None):
         """Morph the label
 
         Useful for transforming a label from one subject to another.
@@ -539,10 +534,6 @@ class Label(object):
             Path to SUBJECTS_DIR if it is not set in the environment.
         n_jobs : int
             Number of jobs to run in parallel.
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.14.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -582,15 +573,14 @@ class Label(object):
                          smooth=smooth, subjects_dir=subjects_dir,
                          warn=False, n_jobs=n_jobs)
         inds = np.nonzero(stc.data)[0]
-        label = _check_copy_dep(self, copy)
-        label.values = stc.data[inds, :].ravel()
-        label.pos = np.zeros((len(inds), 3))
-        if label.hemi == 'lh':
-            label.vertices = stc.vertices[0][inds]
+        self.values = stc.data[inds, :].ravel()
+        self.pos = np.zeros((len(inds), 3))
+        if self.hemi == 'lh':
+            self.vertices = stc.vertices[0][inds]
         else:
-            label.vertices = stc.vertices[1][inds]
-        label.subject = subject_to
-        return label
+            self.vertices = stc.vertices[1][inds]
+        self.subject = subject_to
+        return self
 
     def split(self, parts=2, subject=None, subjects_dir=None,
               freesurfer=False):

@@ -55,8 +55,6 @@ def get_name(func):
 # functions to ignore args / docstring of
 _docstring_ignores = [
     'mne.io.write',  # always ignore these
-    'mne.decoding.csp.CSP.fit',  # deprecated epochs_data
-    'mne.decoding.csp.CSP.transform'  # deprecated epochs_data
 ]
 
 _tab_ignores = [

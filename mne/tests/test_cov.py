@@ -44,12 +44,11 @@ hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 def test_cov_mismatch():
     """Test estimation with MEG<->Head mismatch."""
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False).crop(0, 5).load_data()
+    raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
     events = find_events(raw, stim_channel='STI 014')
     raw.pick_channels(raw.ch_names[:5])
     raw.add_proj([], remove_existing=True)
-    epochs = Epochs(raw, events, None, tmin=-0.2, tmax=0., preload=True,
-                    add_eeg_ref=False)
+    epochs = Epochs(raw, events, None, tmin=-0.2, tmax=0., preload=True)
     for kind in ('shift', 'None'):
         epochs_2 = epochs.copy()
         # This should be fine
@@ -142,7 +141,7 @@ def test_io_cov():
 def test_cov_estimation_on_raw():
     """Test estimation from raw (typically empty room)."""
     tempdir = _TempDir()
-    raw = read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname, preload=True)
     cov_mne = read_cov(erm_cov_fname)
 
     # The pure-string uses the more efficient numpy-based method, the
@@ -177,8 +176,7 @@ def test_cov_estimation_on_raw():
         cov = compute_raw_covariance(raw_pick, picks=picks, method=method)
         assert_snr(cov.data, cov_mne.data[picks][:, picks], 90)  # cutoff samps
         # make sure we get a warning with too short a segment
-        raw_2 = read_raw_fif(raw_fname,
-                             add_eeg_ref=False).crop(0, 1, copy=False)
+        raw_2 = read_raw_fif(raw_fname).crop(0, 1)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             cov = compute_raw_covariance(raw_2, method=method)
@@ -187,7 +185,7 @@ def test_cov_estimation_on_raw():
         assert_raises(ValueError, compute_raw_covariance, raw, tstep=None,
                       method='empirical', reject=dict(eog=200e-6))
         # but this should work
-        cov = compute_raw_covariance(raw.copy().crop(0, 10., copy=False),
+        cov = compute_raw_covariance(raw.copy().crop(0, 10.),
                                      tstep=None, method=method,
                                      reject=dict(eog=1000e-6))
 
@@ -196,7 +194,7 @@ def test_cov_estimation_on_raw():
 @requires_sklearn_0_15
 def test_cov_estimation_on_raw_reg():
     """Test estimation from raw with regularization."""
-    raw = read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname, preload=True)
     raw.info['sfreq'] /= 10.
     raw = RawArray(raw._data[:, ::10].copy(), raw.info)  # decimate for speed
     cov_mne = read_cov(erm_cov_fname)
@@ -212,7 +210,7 @@ def test_cov_estimation_on_raw_reg():
 def test_cov_estimation_with_triggers():
     """Test estimation from raw with triggers."""
     tempdir = _TempDir()
-    raw = read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     raw.set_eeg_reference()
     events = find_events(raw, stim_channel='STI 014')
     event_ids = [1, 2, 3, 4]
@@ -222,7 +220,7 @@ def test_cov_estimation_with_triggers():
     events_merged = merge_events(events, event_ids, 1234)
     epochs = Epochs(raw, events_merged, 1234, tmin=-0.2, tmax=0,
                     baseline=(-0.2, -0.1), proj=True,
-                    reject=reject, preload=True, add_eeg_ref=False)
+                    reject=reject, preload=True)
 
     cov = compute_covariance(epochs, keep_sample_mean=True)
     cov_mne = read_cov(cov_km_fname)
@@ -238,8 +236,7 @@ def test_cov_estimation_with_triggers():
 
     # cov using a list of epochs and keep_sample_mean=True
     epochs = [Epochs(raw, events, ev_id, tmin=-0.2, tmax=0,
-              baseline=(-0.2, -0.1), proj=True, reject=reject,
-              add_eeg_ref=False)
+              baseline=(-0.2, -0.1), proj=True, reject=reject)
               for ev_id in event_ids]
 
     cov2 = compute_covariance(epochs, keep_sample_mean=True)
@@ -270,11 +267,9 @@ def test_cov_estimation_with_triggers():
 
     # cov with list of epochs with different projectors
     epochs = [Epochs(raw, events[:4], event_ids[0], tmin=-0.2, tmax=0,
-                     baseline=(-0.2, -0.1), proj=True, reject=reject,
-                     add_eeg_ref=False),
+                     baseline=(-0.2, -0.1), proj=True, reject=reject),
               Epochs(raw, events[:4], event_ids[0], tmin=-0.2, tmax=0,
-                     baseline=(-0.2, -0.1), proj=False, reject=reject,
-                     add_eeg_ref=False)]
+                     baseline=(-0.2, -0.1), proj=False, reject=reject)]
     # these should fail
     assert_raises(ValueError, compute_covariance, epochs)
     assert_raises(ValueError, compute_covariance, epochs, projs=None)
@@ -287,8 +282,7 @@ def test_cov_estimation_with_triggers():
 
     # test new dict support
     epochs = Epochs(raw, events, dict(a=1, b=2, c=3, d=4), tmin=-0.2, tmax=0,
-                    baseline=(-0.2, -0.1), proj=True, reject=reject,
-                    add_eeg_ref=False)
+                    baseline=(-0.2, -0.1), proj=True, reject=reject)
     compute_covariance(epochs)
 
 
@@ -308,7 +302,7 @@ def test_arithmetic_cov():
 
 def test_regularize_cov():
     """Test cov regularization."""
-    raw = read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     raw.info['bads'].append(raw.ch_names[0])  # test with bad channels
     noise_cov = read_cov(cov_fname)
     # Regularize noise cov
@@ -359,9 +353,9 @@ def test_rank():
     assert_true((cov['eig'][1:] > 0).all())  # all else should be > 0
 
     # Now do some more comprehensive tests
-    raw_sample = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw_sample = read_raw_fif(raw_fname)
 
-    raw_sss = read_raw_fif(hp_fif_fname, add_eeg_ref=False)
+    raw_sss = read_raw_fif(hp_fif_fname)
     raw_sss.add_proj(compute_proj_raw(raw_sss))
 
     cov_sample = compute_raw_covariance(raw_sample)
@@ -515,7 +509,7 @@ def test_auto_low_rank():
 @requires_sklearn_0_15
 def test_compute_covariance_auto_reg():
     """Test automated regularization."""
-    raw = read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname, preload=True)
     raw.resample(100, npad='auto')  # much faster estimation
     events = find_events(raw, stim_channel='STI 014')
     event_ids = [1, 2, 3, 4]
@@ -529,8 +523,7 @@ def test_compute_covariance_auto_reg():
     raw.info.normalize_proj()
     epochs = Epochs(
         raw, events_merged, 1234, tmin=-0.2, tmax=0,
-        baseline=(-0.2, -0.1), proj=True, reject=reject, preload=True,
-        add_eeg_ref=False)
+        baseline=(-0.2, -0.1), proj=True, reject=reject, preload=True)
     epochs = epochs.crop(None, 0)[:10]
 
     method_params = dict(factor_analysis=dict(iter_n_components=[3]),

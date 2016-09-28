@@ -19,6 +19,7 @@ from .io.tag import read_tag
 from .io.open import fiff_open
 from .io.write import write_int, start_block, start_file, end_block, end_file
 from .io.pick import pick_channels
+from .externals.six import string_types
 
 
 def pick_events(events, include=None, exclude=None, step=False):
@@ -190,7 +191,7 @@ def _read_events_fif(fid, tree):
 
 
 def read_events(filename, include=None, exclude=None, mask=None,
-                mask_type=None):
+                mask_type='not_and'):
     """Reads events from fif or text file
 
     Parameters
@@ -421,7 +422,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
 
 def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0, mask=0,
-                 uint_cast=False, mask_type=None):
+                 uint_cast=False, mask_type='not_and'):
     """Helper function for find events"""
     if min_samples > 0:
         merge = int(min_samples // 1)
@@ -494,7 +495,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
                 shortest_event=2, mask=None, uint_cast=False,
-                mask_type=None, verbose=None):
+                mask_type='not_and', verbose=None):
     """Find events from raw file
 
     Parameters
@@ -669,6 +670,10 @@ def find_events(raw, stim_channel=None, output='onset',
 
 def _mask_trigs(events, mask, mask_type):
     """Helper function for masking digital trigger values"""
+    if not isinstance(mask_type, string_types) or \
+            mask_type not in ('not_and', 'and'):
+        raise ValueError('mask_type must be "not_and" or "and", got %s'
+                         % (mask_type,))
     if mask is not None:
         if not isinstance(mask, int):
             raise TypeError('You provided a(n) %s.' % type(mask) +
@@ -678,10 +683,6 @@ def _mask_trigs(events, mask, mask_type):
         return events.copy()
 
     if mask is not None:
-        if mask_type is None:
-            warn("The default setting for mask_type will change from "
-                 "'not and' to 'and' in v0.14.", DeprecationWarning)
-            mask_type = 'not_and'
         if mask_type == 'not_and':
             mask = np.bitwise_not(mask)
         elif mask_type != 'and':

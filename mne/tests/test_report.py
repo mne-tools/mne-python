@@ -66,10 +66,9 @@ def test_render_report():
     # create and add -epo.fif and -ave.fif files
     epochs_fname = op.join(tempdir, 'temp-epo.fif')
     evoked_fname = op.join(tempdir, 'temp-ave.fif')
-    raw = read_raw_fif(raw_fname_new, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname_new)
     picks = pick_types(raw.info, meg='mag', eeg=False)  # faster with one type
-    epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2, picks=picks,
-                    add_eeg_ref=False)
+    epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2, picks=picks)
     epochs.save(epochs_fname)
     epochs.average().save(evoked_fname)
 

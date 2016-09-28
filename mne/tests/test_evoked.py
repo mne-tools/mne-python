@@ -55,13 +55,12 @@ def test_decim():
     assert_array_equal(data_epochs, data_epochs_3)
 
     # Now let's do it with some real data
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     events = read_events(event_name)
     sfreq_new = raw.info['sfreq'] / decim
     raw.info['lowpass'] = sfreq_new / 4.  # suppress aliasing warnings
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=())
-    epochs = Epochs(raw, events, 1, -0.2, 0.5, picks=picks, preload=True,
-                    add_eeg_ref=False)
+    epochs = Epochs(raw, events, 1, -0.2, 0.5, picks=picks, preload=True)
     for offset in (0, 1):
         ev_ep_decim = epochs.copy().decimate(decim, offset).average()
         ev_decim = epochs.average().decimate(decim, offset)
@@ -417,8 +416,7 @@ def test_arithmetic():
     # combine_evoked([ev1, ev2]) should be the same as ev1 + ev2:
     # data should be added according to their `nave` weights
     # nave = ev1.nave + ev2.nave
-    with warnings.catch_warnings(record=True):  # deprecation no weights
-        ev = combine_evoked([ev1, ev2])
+    ev = combine_evoked([ev1, ev2], weights='nave')
     assert_equal(ev.nave, ev1.nave + ev2.nave)
     assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
 

@@ -102,7 +102,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
-raw = mne.io.read_raw_fif(raw_fname, add_eeg_ref=False)
+raw = mne.io.read_raw_fif(raw_fname)
 raw.set_eeg_reference()  # set EEG average reference
 
 # For simplicity we will only consider the first 10 epochs
@@ -120,8 +120,7 @@ reject = dict(grad=4000e-13, eog=150e-6)
 event_id = dict(auditory_l=1, auditory_r=2, visual_l=3, visual_r=4)
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-                    baseline=baseline, preload=True, reject=reject,
-                    add_eeg_ref=False)
+                    baseline=baseline, preload=True, reject=reject)
 
 ###############################################################################
 # Export DataFrame

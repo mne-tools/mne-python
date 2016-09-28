@@ -57,7 +57,7 @@ def _make_stc(raw, src):
 def _get_data():
     """Helper to get some starting data."""
     # raw with ECG channel
-    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = read_raw_fif(raw_fname)
     raw.crop(0., 5.0, copy=False).load_data()
     data_picks = pick_types(raw.info, meg=True, eeg=True)
     other_picks = pick_types(raw.info, meg=False, stim=True, eog=True)
@@ -111,8 +111,7 @@ def test_simulate_raw_sphere():
     test_outname = op.join(tempdir, 'sim_test_raw.fif')
     raw_sim.save(test_outname)
 
-    raw_sim_loaded = read_raw_fif(test_outname, preload=True, proj=False,
-                                  add_eeg_ref=False)
+    raw_sim_loaded = read_raw_fif(test_outname, preload=True, proj=False)
     assert_allclose(raw_sim_loaded[:][0], raw_sim[:][0], rtol=1e-6, atol=1e-20)
     del raw_sim, raw_sim_2
     # with no cov (no noise) but with artifacts, most time periods should match
@@ -226,8 +225,7 @@ def test_simulate_raw_bem():
                               (raw_sim_bem, bem_fname, 28)):
         events = find_events(use_raw, 'STI 014')
         assert_equal(len(locs), 12)  # oct1 count
-        evoked = Epochs(use_raw, events, 1, 0, tmax, baseline=None,
-                        add_eeg_ref=False).average()
+        evoked = Epochs(use_raw, events, 1, 0, tmax, baseline=None).average()
         assert_equal(len(evoked.times), len(locs))
         fits = fit_dipole(evoked, cov, bem, trans, min_dist=1.)[0].pos
         diffs = np.sqrt(np.sum((locs - fits) ** 2, axis=-1)) * 1000
@@ -240,8 +238,7 @@ def test_simulate_raw_bem():
 @testing.requires_testing_data
 def test_simulate_raw_chpi():
     """Test simulation of raw data with cHPI."""
-    raw = read_raw_fif(raw_chpi_fname, allow_maxshield='yes',
-                       add_eeg_ref=False)
+    raw = read_raw_fif(raw_chpi_fname, allow_maxshield='yes')
     sphere = make_sphere_model('auto', 'auto', raw.info)
     # make sparse spherical source space
     sphere_vol = tuple(sphere['r0'] * 1000.) + (sphere.radius * 1000.,)
