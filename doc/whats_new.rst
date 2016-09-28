@@ -9,6 +9,24 @@ What's new
 
 .. currentmodule:: mne
 
+Current
+-------
+
+Changelog
+~~~~~~~~~
+
+    - ...
+
+BUG
+~~~
+
+    - ...
+
+API
+~~~
+
+    - ...
+
 .. _changes_0_13:
 
 Version 0.13
