@@ -100,7 +100,7 @@ for n_train in samples_epochs:
                               for id_ in [event_ids[k] for k in conditions]])
     epochs_train = mne.Epochs(raw, events_, event_ids, tmin, tmax, picks=picks,
                               baseline=baseline, preload=True, reject=reject)
-    epochs_train.equalize_event_counts(event_ids, copy=False)
+    epochs_train.equalize_event_counts(event_ids)
     assert len(epochs_train) == 2 * n_train
 
     noise_covs = compute_covariance(
@@ -156,7 +156,7 @@ for ni, (n_train, axes) in enumerate(zip(samples_epochs, (axes1, axes2))):
                                             ['best', 'worst'],
                                             colors):
         brain = stc.plot(subjects_dir=subjects_dir, hemi='both', clim=clim)
-        brain.set_time(175)
+        brain.set_time(0.175)
 
         im = brain_to_mpl(brain)
         brain.close()

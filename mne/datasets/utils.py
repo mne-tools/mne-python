@@ -383,7 +383,4 @@ def _download_all_example_data(verbose=True):
                      data_type='experimental', update_path=True)
     megsim.load_data(condition='visual', data_format='evoked',
                      data_type='simulation', update_path=True)
-    url_root = 'http://www.physionet.org/physiobank/database/eegmmidb/'
-    eegbci.data_path(url_root + 'S001/S001R06.edf', update_path=True)
-    eegbci.data_path(url_root + 'S001/S001R10.edf', update_path=True)
-    eegbci.data_path(url_root + 'S001/S001R14.edf', update_path=True)
+    eegbci.load_data(1, [6, 10, 14], update_path=True)

@@ -21,8 +21,7 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     .. note:: No projections from ``info`` will be present in the
               output ``evoked``. You can use e.g.
               :func:`evoked.add_proj <mne.Evoked.add_proj>` or
-              :func:`evoked.add_eeg_average_proj
-              <mne.Evoked.add_eeg_average_proj>`
+              :func:`evoked.set_eeg_reference <mne.Evoked.set_eeg_reference>`
               to add them afterward as necessary.
 
     Parameters
