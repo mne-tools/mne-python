@@ -58,13 +58,9 @@ def test_generalization_across_time():
     epochs = make_epochs()
     y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
     if check_version('sklearn', '0.18'):
-        if check_version('sklearn', '0.19'):
-            from sklearn.model_selection import LeaveOneGroupOut as LOO
-        else:
-            from sklearn.model_selection import LeaveOneLabelOut as LOO
         from sklearn.model_selection import (KFold, StratifiedKFold,
-                                             ShuffleSplit)
-        cv = LOO()
+                                             ShuffleSplit, LeaveOneGroupOut)
+        cv = LeaveOneGroupOut()
         cv_shuffle = ShuffleSplit()
         # XXX we cannot pass any other parameters than X and y to cv.split
         # so we have to build it before hand

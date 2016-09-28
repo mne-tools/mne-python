@@ -58,7 +58,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     reject=dict(grad=4000e-13, eog=150e-6),
                     decim=5)  # decimate to save memory and increase speed
 
-epochs.equalize_event_counts(list(event_id.keys()), 'mintime', copy=False)
+epochs.equalize_event_counts(list(event_id.keys()))
 epochs_list = [epochs[k] for k in event_id]
 
 # Compute inverse solution

@@ -53,6 +53,7 @@ dependencies:
     # Figure out if we should run a full, pattern, or noplot version
     - cd /home/ubuntu/mne-python && python setup.py develop;
     - git branch -a
+    - mkdir -p ~/mne_data;
     - PATTERN="";
       if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
         echo html_dev > build.txt;
@@ -66,19 +67,25 @@ dependencies:
             echo "Checking example $FNAME ...";
             PATTERN=`basename $FNAME`"\\|"$PATTERN;
             if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
-              python -c "import mne; print(mne.datasets.sample.data_path())";
+              python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*somato.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.somato.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*eegbci.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.eegbci.load_data(1, [6, 10, 14], update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_auditory.*" | wc -l) -gt 0 ]]; then
-              python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path())" --accept-brainstorm-license;
+              python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path(update_path=True))" --accept-brainstorm-license;
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_raw.*" | wc -l) -gt 0 ]]; then
-              python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path())" --accept-brainstorm-license;
+              python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path(update_path=True))" --accept-brainstorm-license;
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_ctf.*" | wc -l) -gt 0 ]]; then
-              python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_ctf.data_path())" --accept-brainstorm-license;
+              python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_ctf.data_path(update_path=True))" --accept-brainstorm-license;
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_elekta.*" | wc -l) -gt 0 ]]; then
-              python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path())" --accept-brainstorm-license;
+              python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path(update_path=True))" --accept-brainstorm-license;
             fi;
           fi;
         done;
@@ -93,7 +100,6 @@ dependencies:
       fi;
       echo "$PATTERN" > pattern.txt;
     - echo BUILD="$(cat build.txt)"
-    - mkdir -p ~/mne_data;
     - ls -al ~/mne_data;
     - if [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
         python -c "import mne; mne.datasets._download_all_example_data()";

@@ -49,7 +49,6 @@ Classes
    preprocessing.ICA
    preprocessing.Xdawn
    decoding.CSP
-   decoding.EpochsVectorizer
    decoding.FilterEstimator
    decoding.GeneralizationAcrossTime
    decoding.PSDEstimator
@@ -841,10 +840,8 @@ Functions that operate on ``np.ndarray`` objects:
    :template: function.rst
 
    csd_array
-   cwt_morlet
    dpss_windows
    morlet
-   single_trial_power
    stft
    istft
    stftfreq
