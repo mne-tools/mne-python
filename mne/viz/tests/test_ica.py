@@ -154,8 +154,7 @@ def test_plot_ica_properties():
 def test_plot_ica_sources():
     """Test plotting of ICA panel."""
     import matplotlib.pyplot as plt
-    raw = read_raw_fif(raw_fname)
-    raw.crop(0, 1, copy=False).load_data()
+    raw = read_raw_fif(raw_fname).crop(0, 1).load_data()
     picks = _get_picks(raw)
     epochs = _get_epochs()
     raw.pick_channels([raw.ch_names[k] for k in picks])

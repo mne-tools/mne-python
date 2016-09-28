@@ -1333,7 +1333,7 @@ def test_compensation_raw_mne():
 
     for grad in [0, 2, 3]:
         raw_py = read_raw_fif(ctf_comp_fname, preload=True)
-        raw_py.apply_compensation(grad)
+        raw_py.apply_gradient_compensation(grad)
         raw_c = compensate_mne(ctf_comp_fname, grad)
         assert_allclose(raw_py._data, raw_c._data, rtol=1e-6, atol=1e-17)
         assert_equal(raw_py.info['nchan'], raw_c.info['nchan'])

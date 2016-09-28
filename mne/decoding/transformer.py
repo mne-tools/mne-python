@@ -402,8 +402,8 @@ class FilterEstimator(TransformerMixin):
     --------
     TemporalFilter
     """
-    def __init__(self, info, l_freq, h_freq, picks=None, filter_length='',
-                 l_trans_bandwidth=None, h_trans_bandwidth=None, n_jobs=1,
+    def __init__(self, info, l_freq, h_freq, picks=None, filter_length='auto',
+                 l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                  method='fft', iir_params=None, verbose=None):
         self.info = info
         self.l_freq = l_freq

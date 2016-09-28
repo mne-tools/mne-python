@@ -1484,7 +1484,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             warn("Confidence Interval not drawn when plotting GFP.")
     else:
         ci = False
-        combine_evoked(list(evokeds.values()))  # check if they are compatible
+        # check if they are compatible (XXX there should be a cleaner way)
+        combine_evoked(list(evokeds.values()), weights='nave')
     # we now have dicts for data ('evokeds' - grand averaged Evoked's)
     # and the CI ('sem_array') with cond name labels
 

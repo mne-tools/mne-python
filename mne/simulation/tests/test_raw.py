@@ -57,8 +57,7 @@ def _make_stc(raw, src):
 def _get_data():
     """Helper to get some starting data."""
     # raw with ECG channel
-    raw = read_raw_fif(raw_fname)
-    raw.crop(0., 5.0, copy=False).load_data()
+    raw = read_raw_fif(raw_fname).crop(0., 5.0).load_data()
     data_picks = pick_types(raw.info, meg=True, eeg=True)
     other_picks = pick_types(raw.info, meg=False, stim=True, eog=True)
     picks = np.sort(np.concatenate((data_picks[::16], other_picks)))
@@ -111,7 +110,7 @@ def test_simulate_raw_sphere():
     test_outname = op.join(tempdir, 'sim_test_raw.fif')
     raw_sim.save(test_outname)
 
-    raw_sim_loaded = read_raw_fif(test_outname, preload=True, proj=False)
+    raw_sim_loaded = read_raw_fif(test_outname, preload=True)
     assert_allclose(raw_sim_loaded[:][0], raw_sim[:][0], rtol=1e-6, atol=1e-20)
     del raw_sim, raw_sim_2
     # with no cov (no noise) but with artifacts, most time periods should match
