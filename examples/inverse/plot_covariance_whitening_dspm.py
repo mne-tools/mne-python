@@ -155,8 +155,8 @@ for ni, (n_train, axes) in enumerate(zip(samples_epochs, (axes1, axes2))):
                                             methods_ordered[ni],
                                             ['best', 'worst'],
                                             colors):
-        brain = stc.plot(subjects_dir=subjects_dir, hemi='both', clim=clim)
-        brain.set_time(0.175)
+        brain = stc.plot(subjects_dir=subjects_dir, hemi='both', clim=clim,
+                         initial_time=0.175)
 
         im = brain_to_mpl(brain)
         brain.close()

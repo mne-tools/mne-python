@@ -46,6 +46,9 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
                       tmax=0.01, mode='linear', stim_channel=None):
     """Eliminate stimulation's artifacts from instance
 
+    .. note:: This function operates in-place, consider passing
+              ``inst.copy()`` if this is not desired.
+
     Parameters
     ----------
     inst : instance of Raw or Epochs or Evoked
