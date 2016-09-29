@@ -205,6 +205,8 @@ def test_discrete_source_space():
         # now do MRI
         assert_raises(ValueError, setup_volume_source_space, 'sample',
                       pos=pos_dict, mri=fname_mri)
+        assert_equal(repr(src_new), repr(src_c))
+        assert_equal(src_new.kind, 'discrete')
     finally:
         if op.isfile(temp_name):
             os.remove(temp_name)
@@ -233,6 +235,8 @@ def test_volume_source_space():
     assert_raises(IOError, setup_volume_source_space, 'sample', temp_name,
                   pos=7.0, bem=None, surface='foo',  # bad surf
                   mri=fname_mri, subjects_dir=subjects_dir)
+    assert_equal(repr(src), repr(src_new))
+    assert_equal(src.kind, 'volume')
 
 
 @testing.requires_testing_data
@@ -254,6 +258,7 @@ def test_other_volume_source_spaces():
                                         mri=fname_mri,
                                         subjects_dir=subjects_dir)
     _compare_source_spaces(src, src_new, mode='approx')
+    assert_true('volume, shape' in repr(src))
     del src
     del src_new
     assert_raises(ValueError, setup_volume_source_space, 'sample', temp_name,
@@ -341,6 +346,8 @@ def test_setup_source_space():
                                      subjects_dir=subjects_dir, add_dist=False,
                                      overwrite=True)
     _compare_source_spaces(src, src_new, mode='approx')
+    assert_equal(repr(src), repr(src_new))
+    assert_equal(repr(src).count('surface ('), 2)
     assert_array_equal(src[0]['vertno'], np.arange(10242))
     assert_array_equal(src[1]['vertno'], np.arange(10242))
 
@@ -531,6 +538,8 @@ def test_combine_source_spaces():
     src.save(src_out_name)
     src_from_file = read_source_spaces(src_out_name)
     _compare_source_spaces(src, src_from_file, mode='approx')
+    assert_equal(repr(src), repr(src_from_file))
+    assert_equal(src.kind, 'combined')
 
     # test that all source spaces are in MRI coordinates
     coord_frames = np.array([s['coord_frame'] for s in src])
@@ -551,9 +560,9 @@ def test_combine_source_spaces():
 
     # unrecognized file type
     bad_image_fname = op.join(tempdir, 'temp-image.png')
-    with warnings.catch_warnings(record=True):  # vertices outside vol space
-        assert_raises(ValueError, src.export_volume, bad_image_fname,
-                      verbose='error')
+    # vertices outside vol space warning
+    assert_raises(ValueError, src.export_volume, bad_image_fname,
+                  verbose='error')
 
     # mixed coordinate frames
     disc3 = disc.copy()

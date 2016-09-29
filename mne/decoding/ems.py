@@ -1,25 +1,113 @@
 # Author: Denis Engemann <denis.engemann@gmail.com>
 #         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
+from collections import Counter
+
 import numpy as np
 
+from .mixin import TransformerMixin, EstimatorMixin
+from .base import _set_cv
 from ..utils import logger, verbose
-from ..fixes import Counter
 from ..parallel import parallel_func
 from .. import pick_types, pick_info
 
 
+class EMS(TransformerMixin, EstimatorMixin):
+    """Transformer to compute event-matched spatial filters.
+
+    This version operates on the entire time course. The result is a spatial
+    filter at each time point and a corresponding time course. Intuitively,
+    the result gives the similarity between the filter at each time point and
+    the data vector (sensors) at that time point.
+
+    .. note : EMS only works for binary classification.
+
+    References
+    ----------
+    [1] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
+        multi-sensor data to a single time course that reveals experimental
+        effects", BMC Neuroscience 2013, 14:122
+
+    Attributes
+    ----------
+    filters_ : ndarray, shape (n_channels, n_times)
+        The set of spatial filters.
+    classes_ : ndarray, shape (n_classes,)
+        The target classes.
+    """
+
+    def __repr__(self):
+        if hasattr(self, 'filters_'):
+            return '<EMS: fitted with %i filters on %i classes.>' % (
+                len(self.filters_), len(self.classes_))
+        else:
+            return '<EMS: not fitted.>'
+
+    def fit(self, X, y):
+        """Fit the spatial filters.
+
+        .. note : EMS is fitted on data normalized by channel type before the
+                  fitting of the spatial filters.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The training data.
+        y : array of int, shape (n_epochs)
+            The target classes.
+
+        Returns
+        -------
+        self : returns and instance of self.
+        """
+        classes = np.unique(y)
+        if len(classes) != 2:
+            raise ValueError('EMS only works for binary classification.')
+        self.classes_ = classes
+        filters = X[y == classes[0]].mean(0) - X[y == classes[1]].mean(0)
+        filters /= np.linalg.norm(filters, axis=0)[None, :]
+        self.filters_ = filters
+        return self
+
+    def transform(self, X):
+        """Transform the data by the spatial filters.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The input data.
+
+        Returns
+        -------
+        X : array, shape (n_epochs, n_times)
+            The input data transformed by the spatial filters.
+        """
+        Xt = np.sum(X * self.filters_, axis=1)
+        return Xt
+
+
 @verbose
-def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
-    """Compute event-matched spatial filter on epochs
+def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
+                cv=None):
+    """Compute event-matched spatial filter on epochs.
 
     This version operates on the entire time course. No time window needs to
     be specified. The result is a spatial filter at each time point and a
     corresponding time course. Intuitively, the result gives the similarity
     between the filter at each time point and the data vector (sensors) at
     that time point.
+
+    .. note : EMS only works for binary classification.
+    .. note : The present function applies a leave-one-out cross-validation,
+              following Schurger et al's paper. However, we recommend using
+              a stratified k-fold cross-validation. Indeed, leave-one-out tends
+              to overfit and cannot be used to estimate the variance of the
+              prediction within a given fold.
+    .. note : Because of the leave-one-out, thise function needs an equal
+              number of epochs in each of the two conditions.
 
     References
     ----------
@@ -31,29 +119,33 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
     ----------
     epochs : instance of mne.Epochs
         The epochs.
-    conditions : list of str | None
-        If a list of strings, strings must match the
-        epochs.event_id's key as well as the number of conditions supported
-        by the objective_function. If None keys in epochs.event_id are used.
-    picks : array-like of int | None
+    conditions : list of str | None, defaults to None
+        If a list of strings, strings must match the epochs.event_id's key as
+        well as the number of conditions supported by the objective_function.
+        If None keys in epochs.event_id are used.
+    picks : array-like of int | None, defaults to None
         Channels to be included. If None only good data channels are used.
-        Defaults to None
-    n_jobs : int
+    n_jobs : int, defaults to 1
         Number of jobs to run in parallel.
-    verbose : bool, str, int, or None
+    verbose : bool, str, int, or None, defaults to self.verbose
         If not None, override default verbose level (see mne.verbose).
-        Defaults to self.verbose.
+    cv : cross-validation object | str | None, defaults to LeaveOneOut
+        The cross-validation scheme.
 
     Returns
     -------
-    surrogate_trials : ndarray, shape (trials, n_trials, n_time_points)
+    surrogate_trials : ndarray, shape (n_trials // 2, n_times)
         The trial surrogates.
     mean_spatial_filter : ndarray, shape (n_channels, n_times)
         The set of spatial filters.
-    conditions : ndarray, shape (n_epochs,)
+    conditions : ndarray, shape (n_classes,)
         The conditions used. Values correspond to original event ids.
     """
     logger.info('...computing surrogate time series. This can take some time')
+
+    # Default to leave-one-out cv
+    cv = 'LeaveOneOut' if cv is None else cv
+
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True)
 
@@ -76,7 +168,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
                          len(conditions))
 
     ev = epochs.events[:, 2]
-    # special care to avoid path dependent mappings and orders
+    # Special care to avoid path dependent mappings and orders
     conditions = list(sorted(conditions))
     cond_idx = [np.where(ev == epochs.event_id[k])[0] for k in conditions]
 
@@ -84,30 +176,28 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
     data = epochs.get_data()[:, picks]
 
     # Scale (z-score) the data by channel type
+    # XXX the z-scoring is applied outside the CV, which is not standard.
     for ch_type in ['mag', 'grad', 'eeg']:
         if ch_type in epochs:
+            # FIXME should be applied to all sort of data channels
             if ch_type == 'eeg':
                 this_picks = pick_types(info, meg=False, eeg=True)
             else:
                 this_picks = pick_types(info, meg=ch_type, eeg=False)
             data[:, this_picks] /= np.std(data[:, this_picks])
 
-    try:
-        from sklearn.model_selection import LeaveOneOut
-    except:  # XXX support sklearn < 0.18
-        from sklearn.cross_validation import LeaveOneOut
-
-    def _iter_cv(n):  # XXX support sklearn < 0.18
-        if hasattr(LeaveOneOut, 'split'):
-            cv = LeaveOneOut()
-            return cv.split(np.zeros((n, 1)))
-        else:
-            cv = LeaveOneOut(len(data))
-            return cv
+    # Setup cross-validation. Need to use _set_cv to deal with sklearn
+    # deprecation of cv objects.
+    y = epochs.events[:, 2]
+    _, cv_splits = _set_cv(cv, 'classifier', X=y, y=y)
 
     parallel, p_func, _ = parallel_func(_run_ems, n_jobs=n_jobs)
+    # FIXME this parallization should be removed.
+    #   1) it's numpy computation so it's already efficient,
+    #   2) it duplicates the data in RAM,
+    #   3) the computation is already super fast.
     out = parallel(p_func(_ems_diff, data, cond_idx, train, test)
-                   for train, test in _iter_cv(len(data)))
+                   for train, test in cv_splits)
 
     surrogate_trials, spatial_filter = zip(*out)
     surrogate_trials = np.array(surrogate_trials)
@@ -117,7 +207,8 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
 
 
 def _ems_diff(data0, data1):
-    """default diff objective function"""
+    """Aux. function to compute_ems that computes the default diff
+    objective function."""
     return np.mean(data0, axis=0) - np.mean(data1, axis=0)
 
 

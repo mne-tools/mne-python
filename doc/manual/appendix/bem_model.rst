@@ -78,9 +78,9 @@ following steps:
 - Inspecting the meshes with tkmedit, see :ref:`BABHJBED`.
 
 .. note:: Different methods can be employed for the creation of the
-          individual surfaces. For example, it may turn out that the 
+          individual surfaces. For example, it may turn out that the
           watershed algorithm produces are better quality skin surface than
-          the segmentation approach based on the FLASH images. If this is 
+          the segmentation approach based on the FLASH images. If this is
           the case, ``outer_skin.surf`` can set to point to the corresponding
           watershed output file while the other surfaces can be picked from
           the FLASH segmentation data.
@@ -158,6 +158,12 @@ Before running mne_flash_bem do the following:
   - ``ln -s``  <*FLASH 5 series dir*> ``flash05``
 
   - ``ln -s``  <*FLASH 30 series dir*> ``flash30``
+
+- Some partition formats (e.g. FAT32) do not support symbolic links. In this case, copy the file to the appropriate series:
+
+  - ``cp`` <*FLASH 5 series dir*> ``flash05``
+
+  - ``cp`` <*FLASH 30 series dir*> ``flash30``
 
 - Set the ``SUBJECTS_DIR`` and ``SUBJECT`` environment
   variables

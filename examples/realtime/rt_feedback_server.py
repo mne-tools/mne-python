@@ -43,7 +43,7 @@ import mne
 from mne.datasets import sample
 from mne.realtime import StimServer
 from mne.realtime import MockRtClient
-from mne.decoding import EpochsVectorizer, FilterEstimator
+from mne.decoding import Vectorizer, FilterEstimator
 
 print(__doc__)
 
@@ -55,7 +55,7 @@ raw = mne.io.read_raw_fif(raw_fname, preload=True)
 # Instantiating stimulation server
 
 # The with statement is necessary to ensure a clean exit
-with StimServer('localhost', port=4218) as stim_server:
+with StimServer(port=4218) as stim_server:
 
     # The channels to be used while decoding
     picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
@@ -66,7 +66,7 @@ with StimServer('localhost', port=4218) as stim_server:
     # Constructing the pipeline for classification
     filt = FilterEstimator(raw.info, 1, 40)
     scaler = preprocessing.StandardScaler()
-    vectorizer = EpochsVectorizer()
+    vectorizer = Vectorizer()
     clf = SVC(C=1, kernel='linear')
 
     concat_classifier = Pipeline([('filter', filt), ('vector', vectorizer),

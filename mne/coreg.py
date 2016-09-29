@@ -39,6 +39,9 @@ head_bem_fname = pformat(bem_fname, name='head')
 fid_fname = pformat(bem_fname, name='fiducials')
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
+_high_res_head_fnames = (os.path.join(bem_dirname, '{subject}-head-dense.fif'),
+                         os.path.join(surf_dirname, 'lh.seghead'),
+                         os.path.join(surf_dirname, 'lh.smseghead'))
 
 
 def _make_writable(fname):
@@ -52,6 +55,13 @@ def _make_writable_recursive(path):
     for root, dirs, files in os.walk(path, topdown=False):
         for f in dirs + files:
             _make_writable(os.path.join(root, f))
+
+
+def _find_high_res_head(subject, subjects_dir):
+    for fname in _high_res_head_fnames:
+        path = fname.format(subjects_dir=subjects_dir, subject=subject)
+        if os.path.exists(path):
+            return path
 
 
 def create_default_subject(mne_root=None, fs_home=None, update=False,
@@ -587,13 +597,16 @@ def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
     return paths
 
 
-def _find_mri_paths(subject='fsaverage', subjects_dir=None):
+def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     """Find all files of an mri relevant for source transformation
 
     Parameters
     ----------
     subject : str
         Name of the mri subject.
+    skip_fiducials : bool
+        Do not scale the MRI fiducials. If False, an IOError will be raised
+        if no fiducials file can be found.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
@@ -613,15 +626,18 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
     # surf/ files
     paths['surf'] = surf = []
     surf_fname = os.path.join(surf_dirname, '{name}')
-    surf_names = ('inflated', 'sphere', 'sphere.reg', 'white')
-    if os.getenv('_MNE_FEW_SURFACES', '') != 'true':  # for testing
-        surf_names = surf_names + (
-            'orig', 'orig_avg', 'inflated_avg', 'inflated_pre', 'pial',
-            'pial_avg', 'smoothwm', 'white_avg', 'sphere.reg.avg')
-    for name in surf_names:
+    surf_names = ('inflated', 'sphere', 'sphere.reg', 'white', 'orig',
+                  'orig_avg', 'inflated_avg', 'inflated_pre', 'pial',
+                  'pial_avg', 'smoothwm', 'white_avg', 'sphere.reg.avg')
+    if os.getenv('_MNE_FEW_SURFACES', '') == 'true':  # for testing
+        surf_names = surf_names[:4]
+    for surf_name in surf_names:
         for hemi in ('lh.', 'rh.'):
-            fname = pformat(surf_fname, name=hemi + name)
-            surf.append(fname)
+            name = hemi + surf_name
+            path = surf_fname.format(subjects_dir=subjects_dir,
+                                     subject=subject, name=name)
+            if os.path.exists(path):
+                surf.append(pformat(surf_fname, name=name))
 
     # BEM files
     paths['bem'] = bem = []
@@ -638,7 +654,17 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
         bem.append(name)
 
     # fiducials
-    paths['fid'] = [fid_fname]
+    if skip_fiducials:
+        paths['fid'] = []
+    else:
+        paths['fid'] = _find_fiducials_files(subject, subjects_dir)
+        # check that we found at least one
+        if len(paths['fid']) == 0:
+            raise IOError("No fiducials file found for %s. The fiducials "
+                          "file should be named "
+                          "{subject}/bem/{subject}-fiducials.fif. In "
+                          "order to scale an MRI without fiducials set "
+                          "skip_fiducials=True." % subject)
 
     # duplicate curvature files
     paths['duplicate'] = dup = []
@@ -648,7 +674,7 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
         dup.append(fname)
 
     # check presence of required files
-    for ftype in ['surf', 'fid', 'duplicate']:
+    for ftype in ['surf', 'duplicate']:
         for fname in paths[ftype]:
             path = fname.format(subjects_dir=subjects_dir, subject=subject)
             path = os.path.realpath(path)
@@ -669,6 +695,24 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
     return paths
 
 
+def _find_fiducials_files(subject, subjects_dir):
+    fid = []
+    # standard fiducials
+    if os.path.exists(fid_fname.format(subjects_dir=subjects_dir,
+                                       subject=subject)):
+        fid.append(fid_fname)
+    # fiducials with subject name
+    pattern = pformat(fid_fname_general, subjects_dir=subjects_dir,
+                      subject=subject, head='*')
+    regex = pformat(fid_fname_general, subjects_dir=subjects_dir,
+                    subject=subject, head='(.+)')
+    for path in iglob(pattern):
+        match = re.match(regex, path)
+        head = match.group(1).replace(subject, '{subject}')
+        fid.append(pformat(fid_fname_general, head=head))
+    return fid
+
+
 def _is_mri_subject(subject, subjects_dir=None):
     """Check whether a directory in subjects_dir is an mri subject directory
 
@@ -685,12 +729,30 @@ def _is_mri_subject(subject, subjects_dir=None):
         Whether ``subject`` is an mri subject.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
     fname = head_bem_fname.format(subjects_dir=subjects_dir, subject=subject)
-    if not os.path.exists(fname):
-        return False
+    return os.path.exists(fname)
 
-    return True
+
+def _is_scaled_mri_subject(subject, subjects_dir=None):
+    """Check whether a directory in subjects_dir is a scaled mri subject
+
+    Parameters
+    ----------
+    subject : str
+        Name of the potential subject/directory.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
+
+    Returns
+    -------
+    is_scaled_mri_subject : bool
+        Whether ``subject`` is a scaled mri subject.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    if not _is_mri_subject(subject, subjects_dir):
+        return False
+    fname = os.path.join(subjects_dir, subject, 'MRI scaling parameters.cfg')
+    return os.path.exists(fname)
 
 
 def _mri_subject_has_bem(subject, subjects_dir=None):
@@ -789,6 +851,22 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
 
 
 def _scale_params(subject_to, subject_from, scale, subjects_dir):
+    """Assemble parameters for scaling
+
+    Returns
+    -------
+    subjects_dir : str
+        Subjects directory.
+    subject_from : str
+        Name of the source subject.
+    scale : array
+        Scaling factor, either shape=() for uniform scaling or shape=(3,) for
+        non-uniform scaling.
+    nn_scale : None | array
+        Scaling factor for surface normal. If scaling is uniform, normals are
+        unchanged and nn_scale is None. If scaling is non-uniform nn_scale is
+        an array of shape (3,).
+    """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if (subject_from is None) != (scale is None):
         raise TypeError("Need to provide either both subject_from and scale "
@@ -809,7 +887,15 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
             raise ValueError("Invalid shape for scale parameer. Need scalar "
                              "or array of length 3. Got %s." % str(scale))
 
-    return subjects_dir, subject_from, n_params, scale
+    # prepare scaling parameter for normals
+    if n_params == 1:
+        nn_scale = None
+    elif n_params == 3:
+        nn_scale = 1. / scale
+    else:
+        raise RuntimeError("Invalid n_params value: %s" % repr(n_params))
+
+    return subjects_dir, subject_from, scale, nn_scale
 
 
 def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
@@ -833,9 +919,8 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
-    subjects_dir, subject_from, _, scale = _scale_params(subject_to,
-                                                         subject_from, scale,
-                                                         subjects_dir)
+    subjects_dir, subject_from, scale, nn_scale = \
+        _scale_params(subject_to, subject_from, scale, subjects_dir)
 
     src = bem_fname.format(subjects_dir=subjects_dir, subject=subject_from,
                            name=bem_name)
@@ -846,12 +931,12 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
         raise IOError("File alredy exists: %s" % dst)
 
     surfs = read_bem_surfaces(src)
-    if len(surfs) != 1:
-        raise NotImplementedError("BEM file with more than one surface: %r"
-                                  % src)
-    surf0 = surfs[0]
-    surf0['rr'] = surf0['rr'] * scale
-    write_bem_surfaces(dst, surf0)
+    for surf in surfs:
+        surf['rr'] *= scale
+        if nn_scale is not None:
+            surf['nn'] *= nn_scale
+            surf['nn'] /= np.sqrt(np.sum(surf['nn'] ** 2, 1))[:, np.newaxis]
+    write_bem_surfaces(dst, surfs)
 
 
 def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
@@ -915,7 +1000,7 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
 
 
 def scale_mri(subject_from, subject_to, scale, overwrite=False,
-              subjects_dir=None):
+              subjects_dir=None, skip_fiducials=False):
     """Create a scaled copy of an MRI subject
 
     Parameters
@@ -930,6 +1015,9 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         If an MRI already exists for subject_to, overwrite it.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
+    skip_fiducials : bool
+        Do not scale the MRI fiducials. If False (default), an IOError will be
+        raised if no fiducials file can be found.
 
     See Also
     --------
@@ -937,7 +1025,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     scale_source_space : add a source space to a scaled MRI
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    paths = _find_mri_paths(subject_from, subjects_dir=subjects_dir)
+    paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)
     scale = np.asarray(scale)
 
     # make sure we have an empty target directory
@@ -950,6 +1038,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
             raise IOError("Subject directory for %s already exists: %r"
                           % (subject_to, dest))
 
+    # create empty directory structure
     for dirname in paths['dirs']:
         dir_ = dirname.format(subject=subject_to, subjects_dir=subjects_dir)
         os.makedirs(dir_)
@@ -1024,10 +1113,8 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         applies if scale is an array of length 3, and will not use more cores
         than there are source spaces).
     """
-    subjects_dir, subject_from, n_params, scale = _scale_params(subject_to,
-                                                                subject_from,
-                                                                scale,
-                                                                subjects_dir)
+    subjects_dir, subject_from, scale, nn_scale = \
+        _scale_params(subject_to, subject_from, scale, subjects_dir)
 
     # find the source space file names
     if src_name.isdigit():
@@ -1047,15 +1134,6 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
     dst = src_pattern.format(subjects_dir=subjects_dir, subject=subject_to,
                              spacing=spacing)
 
-    # prepare scaling parameters
-    if n_params == 1:
-        norm_scale = None
-    elif n_params == 3:
-        norm_scale = 1. / scale
-    else:
-        raise RuntimeError("Invalid n_params entry in MRI cfg file: %s"
-                           % str(n_params))
-
     # read and scale the source space [in m]
     sss = read_source_spaces(src)
     logger.info("scaling source space %s:  %s -> %s", spacing, subject_from,
@@ -1067,16 +1145,14 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         ss['rr'] *= scale
 
         # distances and patch info
-        if norm_scale is None:
+        if nn_scale is None:  # i.e. uniform scaling
             if ss['dist'] is not None:
                 ss['dist'] *= scale
                 ss['nearest_dist'] *= scale
                 ss['dist_limit'] *= scale
-        else:
-            nn = ss['nn']
-            nn *= norm_scale
-            norm = np.sqrt(np.sum(nn ** 2, 1))
-            nn /= norm[:, np.newaxis]
+        else:  # non-uniform scaling
+            ss['nn'] *= nn_scale
+            ss['nn'] /= np.sqrt(np.sum(ss['nn'] ** 2, 1))[:, np.newaxis]
             if ss['dist'] is not None:
                 add_dist = True
 

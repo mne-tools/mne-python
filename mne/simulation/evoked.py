@@ -18,9 +18,16 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
                     iir_filter=None, random_state=None, verbose=None):
     """Generate noisy evoked data
 
+    .. note:: No projections from ``info`` will be present in the
+              output ``evoked``. You can use e.g.
+              :func:`evoked.add_proj <mne.Evoked.add_proj>` or
+              :func:`evoked.add_eeg_average_proj
+              <mne.Evoked.add_eeg_average_proj>`
+              to add them afterward as necessary.
+
     Parameters
     ----------
-    fwd : dict
+    fwd : Forward
         a forward solution.
     stc : SourceEstimate object
         The source time courses.
@@ -49,6 +56,12 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     evoked : Evoked object
         The simulated evoked data
 
+    See Also
+    --------
+    simulate_raw
+    simulate_stc
+    simulate_sparse_stc
+
     Notes
     -----
     .. versionadded:: 0.10.0
@@ -56,8 +69,8 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     evoked = apply_forward(fwd, stc, info)
     if snr < np.inf:
         noise = simulate_noise_evoked(evoked, cov, iir_filter, random_state)
-        evoked_noise = add_noise_evoked(evoked, noise, snr,
-                                        tmin=tmin, tmax=tmax)
+        evoked_noise = add_noise_evoked(evoked, noise, snr, tmin=tmin,
+                                        tmax=tmax)
     else:
         evoked_noise = evoked
     return evoked_noise
@@ -98,6 +111,12 @@ def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
     """Helper to create spatially colored and temporally IIR-filtered noise"""
     from scipy.signal import lfilter
     noise_cov = pick_channels_cov(cov, include=info['ch_names'], exclude=[])
+    if set(info['ch_names']) != set(noise_cov.ch_names):
+        raise ValueError('Evoked and covariance channel names are not '
+                         'identical. Cannot generate the noise matrix. '
+                         'Channels missing in covariance %s.' %
+                         np.setdiff1d(info['ch_names'], noise_cov.ch_names))
+
     rng = check_random_state(random_state)
     c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
     mu_channels = np.zeros(len(c))

@@ -21,9 +21,9 @@ evoked = mne.read_evokeds(fname, baseline=(None, 0), proj=True)
 print(evoked)
 
 ###############################################################################
-# Notice that ``evoked`` is a list of evoked instances. You can read only one
-# of the categories by passing the argument ``condition`` to
-# :func:`mne.read_evokeds`. To make things more simple for this tutorial, we
+# Notice that ``evoked`` is a list of :class:`evoked <mne.Evoked>` instances.
+# You can read only one of the categories by passing the argument ``condition``
+# to :func:`mne.read_evokeds`. To make things more simple for this tutorial, we
 # read each instance to a variable.
 evoked_l_aud = evoked[0]
 evoked_r_aud = evoked[1]
@@ -113,6 +113,33 @@ ts_args = dict(gfp=True)
 topomap_args = dict(sensors=False)
 evoked_r_aud.plot_joint(title='right auditory', times=[.07, .105],
                         ts_args=ts_args, topomap_args=topomap_args)
+
+###############################################################################
+# Sometimes, you may want to compare two conditions at a selection of sensors,
+# or e.g. for the Global Field Power. For this, you can use the function
+# :func:`mne.viz.plot_compare_evokeds`. The easiest way is to create a  Python
+# dictionary, where the keys are condition names and the values are
+# :class:`mne.Evoked` objects. If you provide lists of :class:`mne.Evoked`
+# objects, such as those for multiple subjects, the grand average is plotted,
+# along with a confidence interval band - this can be used to contrast
+# conditions for a whole experiment.
+# First, we load in the evoked objects into a dictionary, setting the keys to
+# '/'-separated tags. Then, we plot with :func:`mne.viz.plot_compare_evokeds`.
+# The plot is styled with dictionary arguments, again using "/"-separated tags.
+# We plot a MEG channel with a strong auditory response.
+conditions = ["Left Auditory", "Right Auditory", "Left visual", "Right visual"]
+evoked_dict = dict()
+for condition in conditions:
+    evoked_dict[condition.replace(" ", "/")] = mne.read_evokeds(
+        fname, baseline=(None, 0), proj=True, condition=condition)
+print(evoked_dict)
+
+colors = dict(Left="Crimson", Right="CornFlowerBlue")
+linestyles = dict(Auditory='-', visual='--')
+pick = evoked_dict["Left/Auditory"].ch_names.index('MEG 1811')
+
+mne.viz.plot_compare_evokeds(evoked_dict, picks=pick,
+                             colors=colors, linestyles=linestyles)
 
 ###############################################################################
 # We can also plot the activations as images. The time runs along the x-axis

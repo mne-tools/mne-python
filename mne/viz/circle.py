@@ -16,7 +16,6 @@ import numpy as np
 
 from .utils import plt_show
 from ..externals.six import string_types
-from ..fixes import tril_indices, normalize_colors
 
 
 def circular_layout(node_names, node_order, start_pos=90, start_between=True,
@@ -253,7 +252,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         if con.shape[0] != n_nodes or con.shape[1] != n_nodes:
             raise ValueError('con has to be 1D or a square matrix')
         # we use the lower-triangular part
-        indices = tril_indices(n_nodes, -1)
+        indices = np.tril_indices(n_nodes, -1)
         con = con[indices]
     else:
         raise ValueError('con has to be 1D or a square matrix')
@@ -392,8 +391,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                   axes=axes)
 
     if colorbar:
-        norm = normalize_colors(vmin=vmin, vmax=vmax)
-        sm = plt.cm.ScalarMappable(cmap=colormap, norm=norm)
+        sm = plt.cm.ScalarMappable(cmap=colormap,
+                                   norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
         cb = plt.colorbar(sm, ax=axes, use_gridspec=False,
                           shrink=colorbar_size,

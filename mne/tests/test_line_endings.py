@@ -17,6 +17,11 @@ skip_files = (
     'FreeSurferColorLUT.txt',
     'test_edf_stim_channel.txt',
     'FieldTrip.py',
+    'license.txt',
+    # part of testing compatibility with older BV formats is testing
+    # the line endings and coding schemes used there
+    'test_old_layout_latin1_software_filter.vhdr',
+    'test_old_layout_latin1_software_filter.vmrk'
 )
 
 
@@ -50,8 +55,7 @@ def _assert_line_endings(dir_):
 
 
 def test_line_endings():
-    """Test line endings of mne-python
-    """
+    """Test line endings of mne-python"""
     tempdir = _TempDir()
     with open(op.join(tempdir, 'foo'), 'wb') as fid:
         fid.write('bad\r\ngood\n'.encode('ascii'))

@@ -40,7 +40,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     """
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
-    raw = mne.io.read_raw_fif(fname_raw, preload=True)
+    raw = mne.io.read_raw_fif(fname_raw, preload=True, add_eeg_ref=False)
     forward = mne.read_forward_solution(fname_fwd)
     if all_forward:
         forward_surf_ori = read_forward_solution_meg(fname_fwd, surf_ori=True)
@@ -69,7 +69,8 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         epochs = mne.Epochs(
             raw, events, event_id, tmin, tmax, proj=True,
             baseline=(None, 0), preload=epochs_preload,
-            reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+            reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6),
+            add_eeg_ref=False)
         if epochs_preload:
             epochs.resample(200, npad=0, n_jobs=2)
         evoked = epochs.average()
@@ -267,7 +268,7 @@ def test_tf_lcmv():
     """
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
-    raw = mne.io.read_raw_fif(fname_raw, preload=True)
+    raw = mne.io.read_raw_fif(fname_raw, preload=True, add_eeg_ref=False)
     forward = mne.read_forward_solution(fname_fwd)
 
     event_id, tmin, tmax = 1, -0.2, 0.2
@@ -287,7 +288,8 @@ def test_tf_lcmv():
     # Read epochs
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                         baseline=None, preload=False,
-                        reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+                        reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6),
+                        add_eeg_ref=False)
     epochs.drop_bad()
 
     freq_bins = [(4, 12), (15, 40)]
@@ -300,10 +302,11 @@ def test_tf_lcmv():
     noise_covs = []
     for (l_freq, h_freq), win_length in zip(freq_bins, win_lengths):
         raw_band = raw.copy()
-        raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1)
+        raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1,
+                        iir_params=dict(output='ba'))
         epochs_band = mne.Epochs(
             raw_band, epochs.events, epochs.event_id, tmin=tmin, tmax=tmax,
-            baseline=None, proj=True)
+            baseline=None, proj=True, add_eeg_ref=False)
         with warnings.catch_warnings(record=True):  # not enough samples
             noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=tmin +
                                            win_length)
@@ -364,7 +367,8 @@ def test_tf_lcmv():
     # Test correct detection of preloaded epochs objects that do not contain
     # the underlying raw object
     epochs_preloaded = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                                  baseline=(None, 0), preload=True)
+                                  baseline=(None, 0), preload=True,
+                                  add_eeg_ref=False)
     epochs_preloaded._raw = None
     with warnings.catch_warnings(record=True):  # not enough samples
         assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward,

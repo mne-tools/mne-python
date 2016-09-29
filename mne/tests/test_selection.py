@@ -20,7 +20,7 @@ def test_read_selection():
                  'Right-parietal', 'Left-occipital', 'Right-occipital',
                  'Left-frontal', 'Right-frontal']
 
-    raw = read_raw_fif(raw_fname)
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
     for i, name in enumerate(sel_names):
         sel = read_selection(name)
         assert_true(ch_names[i] in sel)
@@ -40,7 +40,7 @@ def test_read_selection():
     assert_true(len(set(frontal).intersection(set(occipital))) == 0)
 
     ch_names_new = [ch.replace(' ', '') for ch in ch_names]
-    raw_new = read_raw_fif(raw_new_fname)
+    raw_new = read_raw_fif(raw_new_fname, add_eeg_ref=False)
     for i, name in enumerate(sel_names):
         sel = read_selection(name, info=raw_new.info)
         assert_true(ch_names_new[i] in sel)

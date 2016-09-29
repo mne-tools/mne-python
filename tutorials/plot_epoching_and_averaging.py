@@ -17,7 +17,8 @@ import mne
 # First let's read in the raw sample data.
 data_path = mne.datasets.sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(fname)
+raw = mne.io.read_raw_fif(fname, add_eeg_ref=False)
+raw.set_eeg_reference()  # set EEG average reference
 
 ###############################################################################
 # To create time locked epochs, we first need a set of events that contain the
@@ -109,7 +110,7 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True)
 baseline = (None, 0.0)
 reject = {'mag': 4e-12, 'eog': 200e-6}
 epochs = mne.Epochs(raw, events=events, event_id=event_id, tmin=tmin,
-                    tmax=tmax, reject=reject, picks=picks)
+                    tmax=tmax, reject=reject, picks=picks, add_eeg_ref=False)
 
 ###############################################################################
 # Let's plot the epochs to see the results. The number at the top refers to the
@@ -150,7 +151,7 @@ evoked_right = epochs['Auditory/Right'].average(picks=picks)
 epochs_left = epochs['Left']
 
 # ... or to select a very specific subset. This is the same as above:
-evoked_left = epochs['Auditory', 'Left'].average(picks=picks)
+evoked_left = epochs['Left/Auditory'].average(picks=picks)
 
 ###############################################################################
 # Finally, let's plot the evoked responses.

@@ -9,7 +9,7 @@ import os
 
 
 from ..bem import fit_sphere_to_headshape
-from ..io import Raw
+from ..io import read_raw_fif
 from ..utils import logger, verbose, warn
 from ..externals.six.moves import map
 
@@ -136,7 +136,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     # determine the head origin if necessary
     if origin is None:
         logger.info('Estimating head origin from headshape points..')
-        raw = Raw(in_fname)
+        raw = read_raw_fif(in_fname, add_eeg_ref=False)
         r, o_head, o_dev = fit_sphere_to_headshape(raw.info, units='mm')
         raw.close()
         logger.info('[done]')

@@ -14,10 +14,12 @@ from scipy import sparse
 
 from ..externals.six import string_types
 
-from ..utils import verbose, logger, warn, _check_copy_dep
+from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
+from ..io.compensator import get_current_comp
+from ..io.constants import FIFF
+from ..io.meas_info import anonymize_info
 from ..io.pick import (channel_type, pick_info, pick_types,
                        _check_excludes_includes, _PICK_TYPES_KEYS)
-from ..io.constants import FIFF
 
 
 def _get_meg_system(info):
@@ -25,6 +27,7 @@ def _get_meg_system(info):
     system = '306m'
     for ch in info['chs']:
         if ch['kind'] == FIFF.FIFFV_MEG_CH:
+            # Only take first 16 bits, as higher bits store CTF grad comp order
             coil_type = ch['coil_type'] & 0xFFFF
             if coil_type == FIFF.FIFFV_COIL_NM_122:
                 system = '122m'
@@ -70,8 +73,9 @@ def _contains_ch_type(info, ch_type):
                          '`str`'.format(actual_class=type(ch_type)))
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
+    fnirs_extras = ['hbo', 'hbr']
     valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
-                                  if key != 'meg'] + meg_extras)
+                                  if key != 'meg'] + meg_extras + fnirs_extras)
     if ch_type not in valid_channel_types:
         raise ValueError('ch_type must be one of %s, not "%s"'
                          % (valid_channel_types, ch_type))
@@ -144,13 +148,40 @@ class ContainsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
     def __contains__(self, ch_type):
-        """Check channel type membership"""
+        """Check channel type membership
+
+        Parameters
+        ----------
+        ch_type : str
+            Channel type to check for. Can be e.g. 'meg', 'eeg', 'stim', etc.
+
+        Returns
+        -------
+        in : bool
+            Whether or not the instance contains the given channel type.
+
+        Examples
+        --------
+        Channel type membership can be tested as::
+
+            >>> 'meg' in inst  # doctest: +SKIP
+            True
+            >>> 'seeg' in inst  # doctest: +SKIP
+            False
+
+        """
         if ch_type == 'meg':
             has_ch_type = (_contains_ch_type(self.info, 'mag') or
                            _contains_ch_type(self.info, 'grad'))
         else:
             has_ch_type = _contains_ch_type(self.info, ch_type)
         return has_ch_type
+
+    @property
+    def compensation_grade(self):
+        """The current gradient compensation grade"""
+        return get_current_comp(self.info)
+
 
 # XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py
 _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
@@ -165,7 +196,9 @@ _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
                'stim': FIFF.FIFFV_STIM_CH,
                'syst': FIFF.FIFFV_SYST_CH,
                'bio': FIFF.FIFFV_BIO_CH,
-               'ecog': FIFF.FIFFV_ECOG_CH}
+               'ecog': FIFF.FIFFV_ECOG_CH,
+               'hbo': FIFF.FIFFV_FNIRS_CH,
+               'hbr': FIFF.FIFFV_FNIRS_CH}
 _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'eeg': FIFF.FIFF_UNIT_V,
                'emg': FIFF.FIFF_UNIT_V,
@@ -178,10 +211,13 @@ _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'stim': FIFF.FIFF_UNIT_NONE,
                'syst': FIFF.FIFF_UNIT_NONE,
                'bio': FIFF.FIFF_UNIT_V,
-               'ecog': FIFF.FIFF_UNIT_V}
+               'ecog': FIFF.FIFF_UNIT_V,
+               'hbo': FIFF.FIFF_UNIT_MOL,
+               'hbr': FIFF.FIFF_UNIT_MOL}
 _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_T: 'T',
                FIFF.FIFF_UNIT_T_M: 'T/m',
+               FIFF.FIFF_UNIT_MOL: 'M',
                FIFF.FIFF_UNIT_NONE: 'NA'}
 
 
@@ -198,8 +234,52 @@ def _check_set(ch, projs, ch_type):
 
 
 class SetChannelsMixin(object):
-    """Mixin class for Raw, Evoked, Epochs
-    """
+    """Mixin class for Raw, Evoked, Epochs."""
+
+    def set_eeg_reference(self, ref_channels=None):
+        """Rereference EEG channels to new reference channel(s).
+
+        If multiple reference channels are specified, they will be averaged. If
+        no reference channels are specified, an average reference will be
+        applied.
+
+        Parameters
+        ----------
+        ref_channels : list of str | None
+            The names of the channels to use to construct the reference. If
+            None (default), an average reference will be added as an SSP
+            projector but not immediately applied to the data. If an empty list
+            is specified, the data is assumed to already have a proper
+            reference and MNE will not attempt any re-referencing of the data.
+            Defaults to an average reference (None).
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            Data with EEG channels re-referenced. For ``ref_channels=None``,
+            an average projector will be added instead of directly subtarcting
+            data.
+
+        Notes
+        -----
+        1. If a reference is requested that is not the average reference, this
+           function removes any pre-existing average reference projections.
+
+        2. During source localization, the EEG signal should have an average
+           reference.
+
+        3. In order to apply a reference other than an average reference, the
+           data must be preloaded.
+
+        .. versionadded:: 0.13.0
+
+        See Also
+        --------
+        mne.set_bipolar_reference
+        """
+        from ..io.reference import set_eeg_reference
+        return set_eeg_reference(self, ref_channels, copy=False)[0]
+
     def _get_channel_positions(self, picks=None):
         """Gets channel locations from info
 
@@ -258,7 +338,8 @@ class SetChannelsMixin(object):
         """Define the sensor type of channels.
 
         Note: The following sensor types are accepted:
-            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog
+            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog,
+            hbo, hbr
 
         Parameters
         ----------
@@ -298,9 +379,14 @@ class SetChannelsMixin(object):
                      % (ch_name, _unit2human[unit_old], _unit2human[unit_new]))
             self.info['chs'][c_ind]['unit'] = _human2unit[ch_type]
             if ch_type in ['eeg', 'seeg', 'ecog']:
-                self.info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_EEG
+                coil_type = FIFF.FIFFV_COIL_EEG
+            elif ch_type == 'hbo':
+                coil_type = FIFF.FIFFV_COIL_FNIRS_HBO
+            elif ch_type == 'hbr':
+                coil_type = FIFF.FIFFV_COIL_FNIRS_HBR
             else:
-                self.info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_NONE
+                coil_type = FIFF.FIFFV_COIL_NONE
+            self.info['chs'][c_ind]['coil_type'] = coil_type
 
     def rename_channels(self, mapping):
         """Rename channels.
@@ -339,23 +425,50 @@ class SetChannelsMixin(object):
         _set_montage(self.info, montage)
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
-                     show_names=False, show=True):
+                     show_names=False, ch_groups=None, axes=None, block=False,
+                     show=True):
         """
         Plot sensors positions.
 
         Parameters
         ----------
         kind : str
-            Whether to plot the sensors as 3d or as topomap. Available options
-            'topomap', '3d'. Defaults to 'topomap'.
-        ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | 'ecog' | None
-            The channel type to plot. If None, then channels are chosen in the
-            order given above.
+            Whether to plot the sensors as 3d, topomap or as an interactive
+            sensor selection dialog. Available options 'topomap', '3d',
+            'select'. If 'select', a set of channels can be selected
+            interactively by using lasso selector or clicking while holding
+            control key. The selected channels are returned along with the
+            figure instance. Defaults to 'topomap'.
+        ch_type : None | str
+            The channel type to plot. Available options 'mag', 'grad', 'eeg',
+            'seeg', 'ecog', 'all'. If ``'all'``, all the available mag, grad,
+            eeg, seeg and ecog channels are plotted. If None (default), then
+            channels are chosen in the order given above.
         title : str | None
-            Title for the figure. If None (default), equals to
-            ``'Sensor positions (%s)' % ch_type``.
+            Title for the figure. If None (default), equals to ``'Sensor
+            positions (%s)' % ch_type``.
         show_names : bool
             Whether to display all channel names. Defaults to False.
+        ch_groups : 'position' | array of shape (ch_groups, picks) | None
+            Channel groups for coloring the sensors. If None (default), default
+            coloring scheme is used. If 'position', the sensors are divided
+            into 8 regions. See ``order`` kwarg of :func:`mne.viz.plot_raw`. If
+            array, the channels are divided by picks given in the array.
+
+            .. versionadded:: 0.13.0
+
+        axes : instance of Axes | instance of Axes3D | None
+            Axes to draw the sensors to. If ``kind='3d'``, axes must be an
+            instance of Axes3D. If None (default), a new axes will be created.
+
+            .. versionadded:: 0.13.0
+
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Defaults to False.
+
+            .. versionadded:: 0.13.0
+
         show : bool
             Show figure if True. Defaults to True.
 
@@ -363,6 +476,8 @@ class SetChannelsMixin(object):
         -------
         fig : instance of matplotlib figure
             Figure containing the sensor topography.
+        selection : list
+            A list of selected channels. Only returned if ``kind=='select'``.
 
         See Also
         --------
@@ -375,11 +490,19 @@ class SetChannelsMixin(object):
         :func:`mne.viz.plot_trans`.
 
         .. versionadded:: 0.12.0
-
         """
         from ..viz.utils import plot_sensors
         return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
-                            show_names=show_names, show=show)
+                            show_names=show_names, ch_groups=ch_groups,
+                            axes=axes, block=block, show=show)
+
+    @copy_function_doc_to_method_doc(anonymize_info)
+    def anonymize(self):
+        """
+        .. versionadded:: 0.13.0
+        """
+        anonymize_info(self.info)
+        return self
 
 
 class UpdateChannelsMixin(object):
@@ -388,8 +511,8 @@ class UpdateChannelsMixin(object):
     def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
-                   seeg=False, bio=False, ecog=False, include=[],
-                   exclude='bads', selection=None, copy=None):
+                   seeg=False, dipole=False, gof=False, bio=False, ecog=False,
+                   fnirs=False, include=[], exclude='bads', selection=None):
         """Pick some channels by type and names
 
         Parameters
@@ -427,10 +550,19 @@ class UpdateChannelsMixin(object):
             System status channel information (on Triux systems only).
         seeg : bool
             Stereotactic EEG channels.
+        dipole : bool
+            Dipole time course channels.
+        gof : bool
+            Dipole goodness of fit channels.
         bio : bool
             Bio channels.
         ecog : bool
             Electrocorticography channels.
+        fnirs : bool | str
+            Functional near-infrared spectroscopy channels. If True include all
+            fNIRS channels. If False (default) include none. If string it can
+            be 'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
+            include channels measuring deoxyhemoglobin).
         include : list of string
             List of additional channels to include. If empty do not include
             any.
@@ -439,10 +571,6 @@ class UpdateChannelsMixin(object):
             in ``info['bads']``.
         selection : list of string
             Restrict sensor channels (MEG, EEG) to this list of channel names.
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
 
         Returns
         -------
@@ -453,26 +581,22 @@ class UpdateChannelsMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        inst = _check_copy_dep(self, copy)
         idx = pick_types(
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
-            ias=ias, syst=syst, seeg=seeg, bio=bio, ecog=ecog, include=include,
-            exclude=exclude, selection=selection)
-        inst._pick_drop_channels(idx)
-        return inst
+            ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
+            ecog=ecog, fnirs=fnirs, include=include, exclude=exclude,
+            selection=selection)
+        self._pick_drop_channels(idx)
+        return self
 
-    def pick_channels(self, ch_names, copy=None):
+    def pick_channels(self, ch_names):
         """Pick some channels
 
         Parameters
         ----------
         ch_names : list
             The list of channels to select.
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
 
         Returns
         -------
@@ -487,23 +611,18 @@ class UpdateChannelsMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        inst = _check_copy_dep(self, copy)
         _check_excludes_includes(ch_names)
-        idx = [inst.ch_names.index(c) for c in ch_names if c in inst.ch_names]
-        inst._pick_drop_channels(idx)
-        return inst
+        idx = [self.ch_names.index(c) for c in ch_names if c in self.ch_names]
+        self._pick_drop_channels(idx)
+        return self
 
-    def drop_channels(self, ch_names, copy=None):
+    def drop_channels(self, ch_names):
         """Drop some channels
 
         Parameters
         ----------
         ch_names : list
-            The list of channels to remove.
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
+            List of the names of the channels to remove.
 
         Returns
         -------
@@ -518,12 +637,27 @@ class UpdateChannelsMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        inst = _check_copy_dep(self, copy)
-        bad_idx = [inst.ch_names.index(c) for c in ch_names
-                   if c in inst.ch_names]
-        idx = np.setdiff1d(np.arange(len(inst.ch_names)), bad_idx)
-        inst._pick_drop_channels(idx)
-        return inst
+        msg = ("'ch_names' should be a list of strings (the name[s] of the "
+               "channel to be dropped), not a {0}.")
+        if isinstance(ch_names, string_types):
+            raise ValueError(msg.format("string"))
+        else:
+            if not all([isinstance(ch_name, string_types)
+                        for ch_name in ch_names]):
+                raise ValueError(msg.format(type(ch_names[0])))
+
+        missing = [ch_name for ch_name in ch_names
+                   if ch_name not in self.ch_names]
+        if len(missing) > 0:
+            msg = "Channel(s) {0} not found, nothing dropped."
+            raise ValueError(msg.format(", ".join(missing)))
+
+        bad_idx = [self.ch_names.index(ch_name) for ch_name in ch_names
+                   if ch_name in self.ch_names]
+        idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
+        self._pick_drop_channels(idx)
+
+        return self
 
     def _pick_drop_channels(self, idx):
         # avoid circular imports
@@ -560,7 +694,7 @@ class UpdateChannelsMixin(object):
         elif isinstance(self, Evoked):
             self.data = self.data.take(idx, axis=0)
 
-    def add_channels(self, add_list, copy=None, force_update_info=False):
+    def add_channels(self, add_list, force_update_info=False):
         """Append new channels to the instance.
 
         Parameters
@@ -568,10 +702,6 @@ class UpdateChannelsMixin(object):
         add_list : list
             A list of objects to append to self. Must contain all the same
             type as the current object
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
         force_update_info : bool
             If True, force the info for objects to be appended to match the
             values in `self`. This should generally only be used when adding
@@ -584,7 +714,6 @@ class UpdateChannelsMixin(object):
         inst : instance of Raw, Epochs, or Evoked
             The modified instance.
         """
-        out = _check_copy_dep(self, copy)
         # avoid circular imports
         from ..io import _BaseRaw, _merge_info
         from ..epochs import _BaseEpochs
@@ -623,12 +752,12 @@ class UpdateChannelsMixin(object):
         new_info = _merge_info(infos, force_update_to_first=force_update_info)
 
         # Now update the attributes
-        setattr(out, data_name, data)
-        out.info = new_info
+        setattr(self, data_name, data)
+        self.info = new_info
         if isinstance(self, _BaseRaw):
-            out._cals = np.concatenate([getattr(inst, '_cals')
-                                        for inst in [self] + add_list])
-        return out
+            self._cals = np.concatenate([getattr(inst, '_cals')
+                                         for inst in [self] + add_list])
+        return self
 
 
 class InterpolationMixin(object):

@@ -9,6 +9,7 @@
 #
 # License: Simplified BSD
 
+from collections import Counter
 from functools import partial
 import copy
 
@@ -17,19 +18,18 @@ import numpy as np
 from ..utils import verbose, get_config, set_config, logger, warn
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
-from ..fixes import Counter, _in1d
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show,
-                    _compute_scalings)
+                    _compute_scalings, DraggableColorbar)
 from ..defaults import _handle_default
 
 
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap='RdBu_r',
-                      fig=None, overlay_times=None):
+                      fig=None, axes=None, overlay_times=None):
     """Plot Event Related Potential / Fields image
 
     Parameters
@@ -65,12 +65,24 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         The scalings of the channel types to be applied for plotting.
         If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
         eog=1e6)`.
-    cmap : matplotlib colormap
-        Colormap.
+    cmap : matplotlib colormap | (colormap, bool) | 'interactive'
+        Colormap. If tuple, the first value indicates the colormap to use and
+        the second value is a boolean defining interactivity. In interactive
+        mode the colors are adjustable by clicking and dragging the colorbar
+        with left and right mouse button. Left mouse button moves the scale up
+        and down and right mouse button adjusts the range. Hitting space bar
+        resets the scale. Up and down arrows can be used to change the
+        colormap. If 'interactive', translates to ('RdBu_r', True). Defaults to
+        'RdBu_r'.
     fig : matplotlib figure | None
         Figure instance to draw the image to. Figure must contain two axes for
         drawing the single trials and evoked responses. If None a new figure is
         created. Defaults to None.
+    axes : list of matplotlib axes | None
+        List of axes instances to draw the image, erp and colorbar to.
+        Must be of length three if colorbar is True (with the last list element
+        being the colorbar axes) or two if colorbar is False. If both fig and
+        axes are passed an error is raised. Defaults to None.
     overlay_times : array-like, shape (n_epochs,) | None
         If not None the parameter is interpreted as time instants in seconds
         and is added to the image. It is typically useful to display reaction
@@ -95,18 +107,37 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         raise ValueError('Scalings and units must have the same keys.')
 
     picks = np.atleast_1d(picks)
-    if fig is not None and len(picks) > 1:
+    if (fig is not None or axes is not None) and len(picks) > 1:
         raise ValueError('Only single pick can be drawn to a figure.')
+    if axes is not None:
+        if fig is not None:
+            raise ValueError('Both figure and axes were passed, please'
+                             'decide between the two.')
+        from .utils import _validate_if_list_of_axes
+        oblig_len = 3 if colorbar else 2
+        _validate_if_list_of_axes(axes, obligatory_len=oblig_len)
+        ax1, ax2 = axes[:2]
+        # if axes were passed - we ignore fig param and get figure from axes
+        fig = ax1.get_figure()
+        if colorbar:
+            ax3 = axes[-1]
     evoked = epochs.average(picks)
     data = epochs.get_data()[:, picks, :]
+    n_epochs = len(data)
+    data = np.swapaxes(data, 0, 1)
+    if sigma > 0.:
+        for k in range(len(picks)):
+            data[k, :] = ndimage.gaussian_filter1d(
+                data[k, :], sigma=sigma, axis=0)
+
     scale_vmin = True if vmin is None else False
     scale_vmax = True if vmax is None else False
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
-    if overlay_times is not None and len(overlay_times) != len(data):
+    if overlay_times is not None and len(overlay_times) != n_epochs:
         raise ValueError('size of overlay_times parameter (%s) do not '
                          'match the number of epochs (%s).'
-                         % (len(overlay_times), len(data)))
+                         % (len(overlay_times), n_epochs))
 
     if overlay_times is not None:
         overlay_times = np.array(overlay_times)
@@ -118,7 +149,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                  % (epochs.tmin, epochs.tmax))
 
     figs = list()
-    for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
+    for i, (this_data, idx) in enumerate(zip(data, picks)):
         if fig is None:
             this_fig = plt.figure()
         else:
@@ -150,26 +181,28 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             if this_overlay_times is not None:
                 this_overlay_times = this_overlay_times[this_order]
 
-        if sigma > 0.:
-            this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma,
-                                                  axis=0)
         plt.figure(this_fig.number)
-        ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
-        if scale_vmin:
-            vmin *= scalings[ch_type]
-        if scale_vmax:
-            vmax *= scalings[ch_type]
+        if axes is None:
+            ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
+            ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
+            if colorbar:
+                ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
+
+        this_vmin = vmin * scalings[ch_type] if scale_vmin else vmin
+        this_vmax = vmax * scalings[ch_type] if scale_vmax else vmax
+
+        if cmap == 'interactive':
+            cmap = ('RdBu_r', True)
+        elif not isinstance(cmap, tuple):
+            cmap = (cmap, True)
         im = ax1.imshow(this_data,
                         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
-                                0, len(data)],
+                                0, n_epochs],
                         aspect='auto', origin='lower', interpolation='nearest',
-                        vmin=vmin, vmax=vmax, cmap=cmap)
+                        vmin=this_vmin, vmax=this_vmax, cmap=cmap[0])
         if this_overlay_times is not None:
             plt.plot(1e3 * this_overlay_times, 0.5 + np.arange(len(this_data)),
                      'k', linewidth=2)
-        ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
-        if colorbar:
-            ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
         ax1.set_title(epochs.ch_names[idx])
         ax1.set_ylabel('Epochs')
         ax1.axis('auto')
@@ -188,10 +221,12 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         ax2.set_ylim([evoked_vmin, evoked_vmax])
         ax2.axvline(0, color='m', linewidth=3, linestyle='--')
         if colorbar:
-            plt.colorbar(im, cax=ax3)
+            cbar = plt.colorbar(im, cax=ax3)
+            if cmap[1]:
+                ax1.CB = DraggableColorbar(cbar, im)
             tight_layout(fig=this_fig)
-
     plt_show(show)
+
     return figs
 
 
@@ -403,6 +438,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     with f11 key. The amount of epochs and channels per view can be adjusted
     with home/end and page down/page up keys. Butterfly plot can be toggled
     with ``b`` key. Right mouse click adds a vertical line to the plot.
+
+    .. versionadded:: 0.10.0
     """
     epochs.drop_bad()
     scalings = _compute_scalings(scalings, epochs)
@@ -563,7 +600,15 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         idxs = pick_types(params['info'], meg=t, ref_meg=False, exclude=[])
         if len(idxs) < 1:
             continue
-        mask = _in1d(idxs, picks, assume_unique=True)
+        mask = np.in1d(idxs, picks, assume_unique=True)
+        inds.append(idxs[mask])
+        types += [t] * len(inds[-1])
+    for t in ['hbo', 'hbr']:
+        idxs = pick_types(params['info'], meg=False, ref_meg=False, fnirs=t,
+                          exclude=[])
+        if len(idxs) < 1:
+            continue
+        mask = np.in1d(idxs, picks, assume_unique=True)
         inds.append(idxs[mask])
         types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
@@ -575,7 +620,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         idxs = pick_types(params['info'], **pick_kwargs)
         if len(idxs) < 1:
             continue
-        mask = _in1d(idxs, picks, assume_unique=True)
+        mask = np.in1d(idxs, picks, assume_unique=True)
         inds.append(idxs[mask])
         types += [ch_type] * len(inds[-1])
         pick_kwargs[ch_type] = False
@@ -949,7 +994,8 @@ def _handle_picks(epochs):
                            exclude=[])
     else:
         picks = pick_types(epochs.info, meg=True, eeg=True, eog=True, ecg=True,
-                           seeg=True, ecog=True, ref_meg=False, exclude=[])
+                           seeg=True, ecog=True, ref_meg=False, fnirs=True,
+                           exclude=[])
     return picks
 
 
@@ -1358,7 +1404,7 @@ def _close_event(event, params):
 def _resize_event(event, params):
     """Function to handle resize event"""
     size = ','.join([str(s) for s in params['fig'].get_size_inches()])
-    set_config('MNE_BROWSE_RAW_SIZE', size)
+    set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
     _layout_figure(params)
 
 

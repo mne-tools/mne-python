@@ -9,7 +9,6 @@ from functools import reduce
 from string import ascii_uppercase
 
 from ..externals.six import string_types
-from ..fixes import matrix_rank
 
 # The following function is a rewriting of scipy.stats.f_oneway
 # Contrary to the scipy.stats.f_oneway implementation it does not
@@ -180,7 +179,7 @@ def _iter_contrasts(n_subjects, factor_levels, effect_picks):
         for i_contrast in range(1, n_factors):
             this_contrast = contrast_idx[(n_factors - 1) - i_contrast]
             c_ = np.kron(c_, sc[i_contrast][this_contrast])
-        df1 = matrix_rank(c_)
+        df1 = np.linalg.matrix_rank(c_)
         df2 = df1 * (n_subjects - 1)
         yield c_, df1, df2
 
@@ -198,11 +197,13 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
     effects : str
         A string denoting the effect to be returned. The following
         mapping is currently supported:
-            'A': main effect of A
-            'B': main effect of B
-            'A:B': interaction effect
-            'A+B': both main effects
-            'A*B': all three effects
+
+            * ``'A'``: main effect of A
+            * ``'B'``: main effect of B
+            * ``'A:B'``: interaction effect
+            * ``'A+B'``: both main effects
+            * ``'A*B'``: all three effects
+
     pvalue : float
         The p-value to be thresholded.
 

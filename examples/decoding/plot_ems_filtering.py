@@ -23,72 +23,110 @@ condition. Finally a topographic plot is created which exhibits the
 temporal evolution of the spatial filters.
 """
 # Author: Denis Engemann <denis.engemann@gmail.com>
+#         Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
+import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne import io
+from mne import io, EvokedArray
 from mne.datasets import sample
-from mne.decoding import compute_ems
+from mne.decoding import EMS, compute_ems
+from sklearn.cross_validation import StratifiedKFold
 
 print(__doc__)
 
 data_path = sample.data_path()
 
-# Set parameters
+# Preprocess the data
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-event_ids = {'AudL': 1, 'VisL': 3, 'AudR': 2, 'VisR': 4}
-tmin = -0.2
-tmax = 0.5
+event_ids = {'AudL': 1, 'VisL': 3}
 
 # Read data and create epochs
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 45)
+raw.filter(0.5, 45, l_trans_bandwidth='auto', h_trans_bandwidth='auto',
+           filter_length='auto', phase='zero')
 events = mne.read_events(event_fname)
 
-include = []  # or stim channels ['STI 014']
-ch_type = 'grad'
-picks = mne.pick_types(raw.info, meg=ch_type, eeg=False, stim=False, eog=True,
-                       include=include, exclude='bads')
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
+                       exclude='bads')
 
-reject = dict(grad=4000e-13, eog=150e-6)
+epochs = mne.Epochs(raw, events, event_ids, tmin=-0.2, tmax=0.5, picks=picks,
+                    baseline=None, reject=dict(grad=4000e-13, eog=150e-6),
+                    preload=True)
+epochs.drop_bad()
+epochs.pick_types(meg='grad')
 
-epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
-                    baseline=None, reject=reject)
+# Setup the data to use it a scikit-learn way:
+X = epochs.get_data()  # The MEG data
+y = epochs.events[:, 2]  # The conditions indices
+n_epochs, n_channels, n_times = X.shape
 
-# Let's equalize the trial counts in each condition
-epochs.equalize_event_counts(epochs.event_id, copy=False)
+#############################################################################
 
-# compute surrogate time series
-surrogates, filters, conditions = compute_ems(epochs, ['AudL', 'VisL'])
+# Initialize EMS transformer
+ems = EMS()
 
-times = epochs.times * 1e3
+# Initialize the variables of interest
+X_transform = np.zeros((n_epochs, n_times))  # Data after EMS transformation
+filters = list()  # Spatial filters at each time point
+
+# In the original paper, the cross-validation is a leave-one-out. However,
+# we recommend using a Stratified KFold, because leave-one-out tends
+# to overfit and cannot be used to estimate the variance of the
+# prediction within a given fold.
+
+for train, test in StratifiedKFold(y):
+    # In the original paper, the z-scoring is applied outside the CV.
+    # However, we recommend to apply this preprocessing inside the CV.
+    # Note that such scaling should be done separately for each channels if the
+    # data contains multiple channel types.
+    X_scaled = X / np.std(X[train])
+
+    # Fit and store the spatial filters
+    ems.fit(X_scaled[train], y[train])
+
+    # Store filters for future plotting
+    filters.append(ems.filters_)
+
+    # Generate the transformed data
+    X_transform[test] = ems.transform(X_scaled[test])
+
+# Average the spatial filters across folds
+filters = np.mean(filters, axis=0)
+
+# Plot individual trials
 plt.figure()
 plt.title('single trial surrogates')
-plt.imshow(surrogates[conditions.argsort()], origin='lower', aspect='auto',
-           extent=[times[0], times[-1], 1, len(surrogates)],
+plt.imshow(X_transform[y.argsort()], origin='lower', aspect='auto',
+           extent=[epochs.times[0], epochs.times[-1], 1, len(X_transform)],
            cmap='RdBu_r')
 plt.xlabel('Time (ms)')
 plt.ylabel('Trials (reordered by condition)')
 
+# Plot average response
 plt.figure()
 plt.title('Average EMS signal')
-
-mappings = [(k, v) for k, v in event_ids.items() if v in conditions]
+mappings = [(key, value) for key, value in event_ids.items()]
 for key, value in mappings:
-    ems_ave = surrogates[conditions == value]
-    ems_ave *= 1e13
-    plt.plot(times, ems_ave.mean(0), label=key)
+    ems_ave = X_transform[y == value]
+    plt.plot(epochs.times, ems_ave.mean(0), label=key)
 plt.xlabel('Time (ms)')
-plt.ylabel('fT/cm')
+plt.ylabel('a.u.')
 plt.legend(loc='best')
-
-
-# visualize spatial filters across time
 plt.show()
-evoked = epochs.average()
-evoked.data = filters
-evoked.plot_topomap(ch_type=ch_type)
+
+# Visualize spatial filters across time
+evoked = EvokedArray(filters, epochs.info, tmin=epochs.tmin)
+evoked.plot_topomap()
+
+#############################################################################
+# Note that a similar transformation can be applied with `compute_ems`
+# However, this function replicates Schurger et al's original paper, and thus
+# applies the normalization outside a leave-one-out cross-validation, which we
+# recommend not to do.
+epochs.equalize_event_counts(event_ids)
+X_transform, filters, classes = compute_ems(epochs)

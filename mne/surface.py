@@ -9,6 +9,7 @@ from os import path as op
 import sys
 from struct import pack
 from glob import glob
+from distutils.version import LooseVersion
 
 import numpy as np
 from scipy.sparse import coo_matrix, csr_matrix, eye as speye
@@ -18,13 +19,13 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tree import dir_tree_find
 from .io.tag import find_tag
-from .io.write import (write_int, start_file, end_block,
-                       start_block, end_file, write_string,
-                       write_float_sparse_rcs)
+from .io.write import (write_int, start_file, end_block, start_block, end_file,
+                       write_string, write_float_sparse_rcs)
 from .channels.channels import _get_meg_system
 from .transforms import transform_surface_to
 from .utils import logger, verbose, get_subjects_dir, warn
 from .externals.six import string_types
+from .fixes import _read_volume_info, _serialize_volume_info
 
 
 ###############################################################################
@@ -406,13 +407,29 @@ def read_curvature(filepath):
 
 
 @verbose
-def read_surface(fname, verbose=None):
+def read_surface(fname, read_metadata=False, verbose=None):
     """Load a Freesurfer surface mesh in triangular format
 
     Parameters
     ----------
     fname : str
         The name of the file containing the surface.
+    read_metadata : bool
+        Read metadata as key-value pairs.
+        Valid keys:
+
+            * 'head' : array of int
+            * 'valid' : str
+            * 'filename' : str
+            * 'volume' : array of int, shape (3,)
+            * 'voxelsize' : array of float, shape (3,)
+            * 'xras' : array of float, shape (3,)
+            * 'yras' : array of float, shape (3,)
+            * 'zras' : array of float, shape (3,)
+            * 'cras' : array of float, shape (3,)
+
+        .. versionadded:: 0.13.0
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -421,13 +438,25 @@ def read_surface(fname, verbose=None):
     rr : array, shape=(n_vertices, 3)
         Coordinate points.
     tris : int array, shape=(n_faces, 3)
-        Triangulation (each line contains indexes for three points which
+        Triangulation (each line contains indices for three points which
         together form a face).
+    volume_info : dict-like
+        If read_metadata is true, key-value pairs found in the geometry file.
 
     See Also
     --------
     write_surface
+    read_tri
     """
+    try:
+        import nibabel as nib
+        has_nibabel = True
+    except ImportError:
+        has_nibabel = False
+    if has_nibabel and LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
+        return nib.freesurfer.read_geometry(fname, read_metadata=read_metadata)
+
+    volume_info = dict()
     TRIANGLE_MAGIC = 16777214
     QUAD_MAGIC = 16777215
     NEW_QUAD_MAGIC = 16777213
@@ -462,6 +491,8 @@ def read_surface(fname, verbose=None):
             fnum = np.fromfile(fobj, ">i4", 1)[0]
             coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
             faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
+            if read_metadata:
+                volume_info = _read_volume_info(fobj)
         else:
             raise ValueError("%s does not appear to be a Freesurfer surface"
                              % fname)
@@ -469,19 +500,25 @@ def read_surface(fname, verbose=None):
                     % (create_stamp.strip(), len(coords), len(faces)))
 
     coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
-    return coords, faces
+
+    ret = (coords, faces)
+    if read_metadata:
+        if len(volume_info) == 0:
+            warn('No volume information contained in the file')
+        ret += (volume_info,)
+    return ret
 
 
 @verbose
-def _read_surface_geom(fname, patch_stats=True, norm_rr=False, verbose=None):
+def _read_surface_geom(fname, patch_stats=True, norm_rr=False,
+                       read_metadata=False, verbose=None):
     """Load the surface as dict, optionally add the geometry information"""
     # based on mne_load_surface_geom() in mne_surface_io.c
     if isinstance(fname, string_types):
-        rr, tris = read_surface(fname)  # mne_read_triangle_file()
-        nvert = len(rr)
-        ntri = len(tris)
-        s = dict(rr=rr, tris=tris, use_tris=tris, ntri=ntri,
-                 np=nvert)
+        ret = read_surface(fname, read_metadata=read_metadata)
+        nvert = len(ret[0])
+        ntri = len(ret[1])
+        s = dict(rr=ret[0], tris=ret[1], use_tris=ret[1], ntri=ntri, np=nvert)
     elif isinstance(fname, dict):
         s = fname
     else:
@@ -490,6 +527,8 @@ def _read_surface_geom(fname, patch_stats=True, norm_rr=False, verbose=None):
         s = _complete_surface_info(s)
     if norm_rr is True:
         _normalize_vectors(s['rr'])
+    if read_metadata:
+        return s, ret[2]
     return s
 
 
@@ -671,7 +710,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
     return surf
 
 
-def write_surface(fname, coords, faces, create_stamp=''):
+def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
     """Write a triangular Freesurfer surface mesh
 
     Accepts the same data format as is returned by read_surface().
@@ -683,16 +722,42 @@ def write_surface(fname, coords, faces, create_stamp=''):
     coords : array, shape=(n_vertices, 3)
         Coordinate points.
     faces : int array, shape=(n_faces, 3)
-        Triangulation (each line contains indexes for three points which
+        Triangulation (each line contains indices for three points which
         together form a face).
     create_stamp : str
         Comment that is written to the beginning of the file. Can not contain
         line breaks.
+    volume_info : dict-like or None
+        Key-value pairs to encode at the end of the file.
+        Valid keys:
+
+            * 'head' : array of int
+            * 'valid' : str
+            * 'filename' : str
+            * 'volume' : array of int, shape (3,)
+            * 'voxelsize' : array of float, shape (3,)
+            * 'xras' : array of float, shape (3,)
+            * 'yras' : array of float, shape (3,)
+            * 'zras' : array of float, shape (3,)
+            * 'cras' : array of float, shape (3,)
+
+        .. versionadded:: 0.13.0
 
     See Also
     --------
     read_surface
+    read_tri
     """
+    try:
+        import nibabel as nib
+        has_nibabel = True
+    except ImportError:
+        has_nibabel = False
+    if has_nibabel and LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
+        nib.freesurfer.io.write_geometry(fname, coords, faces,
+                                         create_stamp=create_stamp,
+                                         volume_info=volume_info)
+        return
     if len(create_stamp.splitlines()) > 1:
         raise ValueError("create_stamp can only contain one line")
 
@@ -707,6 +772,10 @@ def write_surface(fname, coords, faces, create_stamp=''):
         fid.write(np.array(coords, dtype='>f4').tostring())
         fid.write(np.array(faces, dtype='>i4').tostring())
 
+        # Add volume info, if given
+        if volume_info is not None and len(volume_info) > 0:
+            fid.write(_serialize_volume_info(volume_info))
+
 
 ###############################################################################
 # Decimation
@@ -717,6 +786,7 @@ def _decimate_surface(points, triangles, reduction):
         os.environ['ETS_TOOLKIT'] = 'null'
     try:
         from tvtk.api import tvtk
+        from tvtk.common import configure_input
     except ImportError:
         raise ValueError('This function requires the TVTK package to be '
                          'installed')
@@ -724,7 +794,8 @@ def _decimate_surface(points, triangles, reduction):
         raise ValueError('The triangles refer to undefined points. '
                          'Please check your mesh.')
     src = tvtk.PolyData(points=points, polys=triangles)
-    decimate = tvtk.QuadricDecimation(input=src, target_reduction=reduction)
+    decimate = tvtk.QuadricDecimation(target_reduction=reduction)
+    configure_input(decimate, src)
     decimate.update()
     out = decimate.output
     tris = out.polys.to_array()
@@ -1111,3 +1182,61 @@ def mesh_dist(tris, vert):
                           axis=1))
     dist_matrix = csr_matrix((dist, (edges.row, edges.col)), shape=edges.shape)
     return dist_matrix
+
+
+@verbose
+def read_tri(fname_in, swap=False, verbose=None):
+    """Function for reading triangle definitions from an ascii file.
+
+    Parameters
+    ----------
+    fname_in : str
+        Path to surface ASCII file (ending with '.tri').
+    swap : bool
+        Assume the ASCII file vertex ordering is clockwise instead of
+        counterclockwise.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    rr : array, shape=(n_vertices, 3)
+        Coordinate points.
+    tris : int array, shape=(n_faces, 3)
+        Triangulation (each line contains indices for three points which
+        together form a face).
+
+    Notes
+    -----
+    .. versionadded:: 0.13.0
+
+    See Also
+    --------
+    read_surface
+    write_surface
+    """
+    with open(fname_in, "r") as fid:
+        lines = fid.readlines()
+    n_nodes = int(lines[0])
+    n_tris = int(lines[n_nodes + 1])
+    n_items = len(lines[1].split())
+    if n_items in [3, 6, 14, 17]:
+        inds = range(3)
+    elif n_items in [4, 7]:
+        inds = range(1, 4)
+    else:
+        raise IOError('Unrecognized format of data.')
+    rr = np.array([np.array([float(v) for v in l.split()])[inds]
+                   for l in lines[1:n_nodes + 1]])
+    tris = np.array([np.array([int(v) for v in l.split()])[inds]
+                     for l in lines[n_nodes + 2:n_nodes + 2 + n_tris]])
+    if swap:
+        tris[:, [2, 1]] = tris[:, [1, 2]]
+    tris -= 1
+    logger.info('Loaded surface from %s with %s nodes and %s triangles.' %
+                (fname_in, n_nodes, n_tris))
+    if n_items in [3, 4]:
+        logger.info('Node normals were not included in the source file.')
+    else:
+        warn('Node normals were not read.')
+    return (rr, tris)

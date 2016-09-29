@@ -16,12 +16,12 @@ import numpy as np
 
 from ..io.constants import Bunch
 from ..io.pick import channel_type, pick_types
-from ..fixes import normalize_colors
 from ..utils import _clean_names, warn
 from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
-                    add_background_image, plt_show, _setup_vmin_vmax)
+                    add_background_image, plt_show, _setup_vmin_vmax,
+                    DraggableColorbar)
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -162,8 +162,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
 
     fig = plt.figure()
     if colorbar:
-        norm = normalize_colors(vmin=vmin, vmax=vmax)
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
         ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg=fig_facecolor)
         cb = fig.colorbar(sm, ax=ax)
@@ -235,6 +234,8 @@ def _plot_topo_onpick(event, show_func):
 
 def _compute_scalings(bn, xlim, ylim):
     """Compute scale factors for a unified plot"""
+    if isinstance(ylim[0], (tuple, list, np.ndarray)):
+        ylim = (ylim[0][0], ylim[1][0])
     pos = bn.pos
     bn.x_s = pos[2] / (xlim[1] - xlim[0])
     bn.x_t = pos[0] - bn.x_s * xlim[0]
@@ -249,13 +250,15 @@ def _check_vlim(vlim):
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, vline=None, x_label=None, y_label=None,
-                colorbar=False, picker=True, cmap='RdBu_r', title=None,
+                colorbar=False, picker=True, cmap=('RdBu_r', True), title=None,
                 hline=None):
     """ Aux function to show time-freq map on topo """
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
 
     extent = (tmin, tmax, freq[0], freq[-1])
+    cmap, interactive_cmap = cmap
+
     img = ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
                     vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
     if isinstance(ax, plt.Axes):
@@ -269,7 +272,12 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         if y_label is not None:
             plt.ylabel(y_label)
     if colorbar:
-        plt.colorbar(mappable=img)
+        if isinstance(colorbar, DraggableColorbar):
+            cbar = colorbar.cbar  # this happens with multiaxes case
+        else:
+            cbar = plt.colorbar(mappable=img)
+        if interactive_cmap:
+            ax.CB = DraggableColorbar(cbar, img)
     if title:
         plt.title(title)
     if not isinstance(ax, plt.Axes):
@@ -464,9 +472,9 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         The values at which to show a horizontal line.
     fig_facecolor : str | obj
         The figure face color. Defaults to black.
-    fig_background : None | numpy ndarray
-        A background image for the figure. This must work with a call to
-        plt.imshow. Defaults to None.
+    fig_background : None | array
+        A background image for the figure. This must be a valid input to
+        `matplotlib.pyplot.imshow`. Defaults to None.
     axis_facecolor : str | obj
         The face color to be used for each sensor plot. Defaults to black.
     font_color : str | obj
@@ -582,13 +590,13 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         else:
             ylim_ = zip(*[np.array(yl) for yl in ylim_])
     else:
-        raise ValueError('ylim must be None ore a dict')
+        raise TypeError('ylim must be None or a dict. Got %s.' % type(ylim))
 
     data = [e.data for e in evoked]
-    show_func = partial(_plot_timeseries_unified, data=data,
-                        color=color, times=times, vline=vline, hline=hline)
-    click_func = partial(_plot_timeseries, data=data,
-                         color=color, times=times, vline=vline, hline=hline)
+    show_func = partial(_plot_timeseries_unified, data=data, color=color,
+                        times=times, vline=vline, hline=hline)
+    click_func = partial(_plot_timeseries, data=data, color=color, times=times,
+                         vline=vline, hline=hline)
 
     fig = _plot_topo(info=info, times=times, show_func=show_func,
                      click_func=click_func, layout=layout,
@@ -598,8 +606,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      axis_facecolor=axis_facecolor, title=title,
                      x_label='Time (s)', y_label=y_label, unified=True)
 
-    if fig_background is not None:
-        add_background_image(fig, fig_background)
+    add_background_image(fig, fig_background)
 
     if proj == 'interactive':
         for e in evoked:
@@ -634,8 +641,8 @@ def _plot_update_evoked_topo_proj(params, bools):
 def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
                            vmax=None, colorbar=True, order=None, cmap='RdBu_r',
                            layout_scale=.95, title=None, scalings=None,
-                           border='none', fig_facecolor='k', font_color='w',
-                           show=True):
+                           border='none', fig_facecolor='k',
+                           fig_background=None, font_color='w', show=True):
     """Plot Event Related Potential / Fields image on topographies
 
     Parameters
@@ -675,6 +682,9 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         matplotlib borders style to be used for each sensor plot.
     fig_facecolor : str | obj
         The figure face color. Defaults to black.
+    fig_background : None | array
+        A background image for the figure. This must be a valid input to
+        `matplotlib.pyplot.imshow`. Defaults to None.
     font_color : str | obj
         The color of tick labels in the colorbar. Defaults to white.
     show : bool
@@ -711,5 +721,6 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
                      fig_facecolor=fig_facecolor, font_color=font_color,
                      border=border, x_label='Time (s)', y_label='Epoch',
                      unified=True, img=True)
+    add_background_image(fig, fig_background)
     plt_show(show)
     return fig

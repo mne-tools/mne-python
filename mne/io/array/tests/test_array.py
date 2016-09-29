@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
@@ -8,10 +6,12 @@ import os.path as op
 import warnings
 import matplotlib
 
+import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from nose.tools import assert_equal, assert_raises, assert_true
+
 from mne import find_events, Epochs, pick_types
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.meas_info import create_info, _kind_dict
@@ -32,15 +32,16 @@ def test_array_raw():
     """
     import matplotlib.pyplot as plt
     # creating
-    raw = Raw(fif_fname).crop(2, 5, copy=False)
+    raw = read_raw_fif(fif_fname, add_eeg_ref=False).crop(2, 5)
     data, times = raw[:, :]
     sfreq = raw.info['sfreq']
     ch_names = [(ch[4:] if 'STI' not in ch else ch)
                 for ch in raw.info['ch_names']]  # change them, why not
     # del raw
     types = list()
-    for ci in range(102):
+    for ci in range(101):
         types.extend(('grad', 'grad', 'mag'))
+    types.extend(['ecog', 'seeg', 'hbo'])  # really 3 meg channels
     types.extend(['stim'] * 9)
     types.extend(['eeg'] * 60)
     # wrong length
@@ -66,23 +67,27 @@ def test_array_raw():
     picks = pick_types(raw2.info, misc=True, exclude='bads')[:4]
     assert_equal(len(picks), 4)
     raw_lp = raw2.copy()
-    with warnings.catch_warnings(record=True):
-        raw_lp.filter(0., 4.0 - 0.25, picks=picks, n_jobs=2)
+    raw_lp.filter(None, 4.0, h_trans_bandwidth=4.,
+                  filter_length='auto', picks=picks, n_jobs=2, phase='zero',
+                  fir_window='hamming')
     raw_hp = raw2.copy()
-    with warnings.catch_warnings(record=True):
-        raw_hp.filter(8.0 + 0.25, None, picks=picks, n_jobs=2)
+    raw_hp.filter(16.0, None, l_trans_bandwidth=4.,
+                  filter_length='auto', picks=picks, n_jobs=2, phase='zero',
+                  fir_window='hamming')
     raw_bp = raw2.copy()
-    with warnings.catch_warnings(record=True):
-        raw_bp.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks)
+    raw_bp.filter(8.0, 12.0, l_trans_bandwidth=4.,
+                  h_trans_bandwidth=4., filter_length='auto', picks=picks,
+                  phase='zero', fir_window='hamming')
     raw_bs = raw2.copy()
-    with warnings.catch_warnings(record=True):
-        raw_bs.filter(8.0 + 0.25, 4.0 - 0.25, picks=picks, n_jobs=2)
+    raw_bs.filter(16.0, 4.0, l_trans_bandwidth=4., h_trans_bandwidth=4.,
+                  filter_length='auto', picks=picks, n_jobs=2, phase='zero',
+                  fir_window='hamming')
     data, _ = raw2[picks, :]
     lp_data, _ = raw_lp[picks, :]
     hp_data, _ = raw_hp[picks, :]
     bp_data, _ = raw_bp[picks, :]
     bs_data, _ = raw_bs[picks, :]
-    sig_dec = 11
+    sig_dec = 15
     assert_array_almost_equal(data, lp_data + bp_data + hp_data, sig_dec)
     assert_array_almost_equal(data, bp_data + bs_data, sig_dec)
 
@@ -95,12 +100,19 @@ def test_array_raw():
     events = find_events(raw2, stim_channel='STI 014')
     events[:, 2] = 1
     assert_true(len(events) > 2)
-    epochs = Epochs(raw2, events, 1, -0.2, 0.4, preload=True)
+    epochs = Epochs(raw2, events, 1, -0.2, 0.4, preload=True,
+                    add_eeg_ref=False)
     epochs.plot_drop_log()
     epochs.plot()
     evoked = epochs.average()
     evoked.plot()
     assert_equal(evoked.nave, len(events) - 1)
     plt.close('all')
+
+    # complex data
+    rng = np.random.RandomState(0)
+    data = rng.randn(1, 100) + 1j * rng.randn(1, 100)
+    raw = RawArray(data, create_info(1, 1000., 'eeg'))
+    assert_allclose(raw._data, data)
 
 run_tests_if_main()

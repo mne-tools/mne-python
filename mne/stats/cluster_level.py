@@ -17,7 +17,6 @@ from scipy import sparse
 from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import split_list, logger, verbose, ProgressBar, warn
-from ..fixes import in1d, unravel_index
 from ..source_estimate import SourceEstimate
 
 
@@ -42,8 +41,8 @@ def _get_clusters_spatial(s, neighbors):
             ind = t_inds[icount - 1]
             # look across other vertices
             buddies = np.where(r)[0]
-            buddies = buddies[in1d(s[buddies], neighbors[s[ind]],
-                                   assume_unique=True)]
+            buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
+                                      assume_unique=True)]
             t_inds += buddies.tolist()
             r[buddies] = False
             icount += 1
@@ -152,8 +151,8 @@ def _get_clusters_st_multistep(keepers, neighbors, max_step=1):
                 # look at current time point across other vertices
                 buddies = inds[t_border[t[ind]]:t_border[t[ind] + 1]]
                 buddies = buddies[r[buddies]]
-                buddies = buddies[in1d(s[buddies], neighbors[s[ind]],
-                                       assume_unique=True)]
+                buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
+                                          assume_unique=True)]
                 buddies = np.concatenate((selves, buddies))
                 t_inds += buddies.tolist()
                 r[buddies] = False
@@ -176,7 +175,7 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
     cl_goods = np.where(x_in)[0]
     if len(cl_goods) > 0:
         keepers = [np.array([], dtype=int)] * n_times
-        row, col = unravel_index(cl_goods, (n_times, n_src))
+        row, col = np.unravel_index(cl_goods, (n_times, n_src))
         if isinstance(row, int):
             row = [row]
             col = [col]
@@ -1490,7 +1489,7 @@ def _reshape_clusters(clusters, sample_shape):
         if clusters[0].dtype == bool:  # format of mask
             clusters = [c.reshape(sample_shape) for c in clusters]
         else:  # format of indices
-            clusters = [unravel_index(c, sample_shape) for c in clusters]
+            clusters = [np.unravel_index(c, sample_shape) for c in clusters]
     return clusters
 
 
@@ -1520,6 +1519,10 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
     Returns
     -------
     out : instance of SourceEstimate
+        A summary of the clusters. The first time point in this SourceEstimate
+        object is the summation of all the clusters. Subsequent time points
+        contain each individual cluster. The magnitude of the activity
+        corresponds to the length the cluster spans in time (in samples).
     """
     if vertices is None:
         vertices = [np.arange(10242), np.arange(10242)]

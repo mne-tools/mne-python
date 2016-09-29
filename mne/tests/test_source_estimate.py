@@ -49,7 +49,7 @@ rng = np.random.RandomState(0)
 
 
 @testing.requires_testing_data
-def test_aaspatial_inter_hemi_connectivity():
+def test_spatial_inter_hemi_connectivity():
     """Test spatial connectivity between hemispheres"""
     # trivial cases
     conn = spatial_inter_hemi_connectivity(fname_src_3, 5e-6)
@@ -140,14 +140,12 @@ def test_volume_stc():
         with warnings.catch_warnings(record=True):  # nib<->numpy
             img = nib.load(vol_fname)
         assert_true(img.shape == t1_img.shape + (len(stc.times),))
-        assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
-                                  decimal=5)
+        assert_array_almost_equal(img.affine, t1_img.affine, decimal=5)
 
         # export without saving
         img = stc.as_volume(src, dest='mri', mri_resolution=True)
         assert_true(img.shape == t1_img.shape + (len(stc.times),))
-        assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
-                                  decimal=5)
+        assert_array_almost_equal(img.affine, t1_img.affine, decimal=5)
 
     except ImportError:
         print('Save as nifti test skipped, needs NiBabel')
@@ -271,8 +269,7 @@ def test_stc_arithmetic():
 @slow_test
 @testing.requires_testing_data
 def test_stc_methods():
-    """Test stc methods lh_data, rh_data, bin(), center_of_mass(), resample()
-    """
+    """Test stc methods lh_data, rh_data, bin, center_of_mass, resample"""
     stc = read_source_estimate(fname_stc)
 
     # lh_data / rh_data
@@ -286,6 +283,8 @@ def test_stc_methods():
     assert a[0] == bin.data[0, 0]
 
     assert_raises(ValueError, stc.center_of_mass, 'sample')
+    assert_raises(TypeError, stc.center_of_mass, 'sample',
+                  subjects_dir=subjects_dir, surf=1)
     stc.lh_data[:] = 0
     vertex, hemi, t = stc.center_of_mass('sample', subjects_dir=subjects_dir)
     assert_true(hemi == 1)
@@ -441,6 +440,11 @@ def test_morph_data():
     stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12, buffer_size=1000,
                              subjects_dir=subjects_dir)
     stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
+    # Morphing to a density that is too high should raise an informative error
+    # (here we need to push to grade=6, but for some subjects even grade=5
+    # will break)
+    assert_raises(ValueError, stc_to1.morph, subject_from, grade=6,
+                  subjects_dir=subjects_dir)
     # make sure we can specify vertices
     vertices_to = grade_to_vertices(subject_to, grade=3,
                                     subjects_dir=subjects_dir)

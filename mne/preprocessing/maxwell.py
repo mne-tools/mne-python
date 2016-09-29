@@ -6,6 +6,7 @@
 
 # License: BSD (3-clause)
 
+from functools import partial
 from math import factorial
 from os import path as op
 
@@ -17,7 +18,7 @@ from ..bem import _check_origin
 from ..chpi import quat_to_rot, rot_to_quat
 from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
                           _find_vector_rotation)
-from ..forward import _concatenate_coils, _prep_meg_channels
+from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
 from ..io.constants import FIFF
 from ..io.proc_history import _read_ctc
@@ -25,7 +26,7 @@ from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, _BaseRaw
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..utils import verbose, logger, _clean_names, warn, _time_mask
-from ..fixes import _get_args, partial
+from ..fixes import _get_args, _safe_svd
 from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
 
@@ -40,7 +41,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    calibration=None, cross_talk=None, st_duration=None,
                    st_correlation=0.98, coord_frame='head', destination=None,
                    regularize='in', ignore_ref=False, bad_condition='error',
-                   head_pos=None, st_fixed=True, st_only=False, verbose=None):
+                   head_pos=None, st_fixed=True, st_only=False, mag_scale=100.,
+                   verbose=None):
     """Apply Maxwell filter to data using multipole moments
 
     .. warning:: Automatic bad channel detection is not currently implemented.
@@ -135,6 +137,16 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         :func:`mne.epochs.average_movements`.
 
         .. versionadded:: 0.12
+
+    mag_scale : float | str
+        The magenetometer scale-factor used to bring the magnetometers
+        to approximately the same order of magnitude as the gradiometers
+        (default 100.), as they have different units (T vs T/m).
+        Can be ``'auto'`` to use the reciprocal of the physical distance
+        between the gradiometer pickup loops (e.g., 0.0168 m yields
+        59.5 for VectorView).
+
+        .. versionadded:: 0.13
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
@@ -247,11 +259,12 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     recon_trans = _check_destination(destination, raw.info, head_frame)
     if st_duration is not None:
         st_duration = float(st_duration)
-        if not 0. < st_duration <= raw.times[-1]:
+        if not 0. < st_duration <= raw.times[-1] + 1. / raw.info['sfreq']:
             raise ValueError('st_duration (%0.1fs) must be between 0 and the '
                              'duration of the data (%0.1fs).'
                              % (st_duration, raw.times[-1]))
         st_correlation = float(st_correlation)
+        st_duration = int(round(st_duration * raw.info['sfreq']))
         if not 0. < st_correlation <= 1:
             raise ValueError('st_correlation must be between 0. and 1.')
     if not isinstance(bad_condition, string_types) or \
@@ -279,9 +292,13 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         raw, add_channels=add_channels)
     del raw
     _remove_meg_projs(raw_sss)  # remove MEG projectors, they won't apply now
-    info, times = raw_sss.info, raw_sss.times
-    meg_picks, mag_picks, grad_picks, good_picks, coil_scale, mag_or_fine = \
-        _get_mf_picks(info, int_order, ext_order, ignore_ref, mag_scale=100.)
+    info = raw_sss.info
+    meg_picks, mag_picks, grad_picks, good_picks, mag_or_fine = \
+        _get_mf_picks(info, int_order, ext_order, ignore_ref)
+
+    # Magnetometers are scaled to improve numerical stability
+    coil_scale, mag_scale = _get_coil_scale(
+        meg_picks, mag_picks, grad_picks, mag_scale, info)
 
     #
     # Fine calibration processing (load fine cal and overwrite sensor geometry)
@@ -289,11 +306,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     sss_cal = dict()
     if calibration is not None:
         calibration, sss_cal = _update_sensor_geometry(info, calibration,
-                                                       head_frame, ignore_ref)
+                                                       ignore_ref)
         mag_or_fine.fill(True)  # all channels now have some mag-type data
 
     # Determine/check the origin of the expansion
-    origin = _check_origin(origin, raw_sss.info, coord_frame, disp=True)
+    origin = _check_origin(origin, info, coord_frame, disp=True)
     origin.setflags(write=False)
     n_in, n_out = _get_n_moments([int_order, ext_order])
 
@@ -312,7 +329,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         if len(missing) > 0:
             warn('Not all cross-talk channels in raw:\n%s' % missing)
         ctc_picks = pick_channels(ctc_chs,
-                                  [info['ch_names'][c] for c in good_picks])
+                                  [info['ch_names'][c]
+                                   for c in meg_picks[good_picks]])
+        assert len(ctc_picks) == len(good_picks)  # otherwise we errored
         ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
         # I have no idea why, but MF transposes this for storage..
         sss_ctc['decoupler'] = sss_ctc['decoupler'].T.tocsc()
@@ -322,8 +341,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     #
     # Translate to destination frame (always use non-fine-cal bases)
     #
-    exp = dict(origin=origin, int_order=int_order, ext_order=0,
-               head_frame=head_frame)
+    exp = dict(origin=origin, int_order=int_order, ext_order=0)
     all_coils = _prep_mf_coils(info, ignore_ref)
     S_recon = _trans_sss_basis(exp, all_coils, recon_trans, coil_scale)
     exp['ext_order'] = ext_order
@@ -341,29 +359,33 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Reconstruct raw file object with spatiotemporal processed data
     max_st = dict()
     if st_duration is not None:
-        max_st.update(job=10, subspcorr=st_correlation, buflen=st_duration)
+        max_st.update(job=10, subspcorr=st_correlation,
+                      buflen=st_duration / info['sfreq'])
         logger.info('    Processing data using tSSS with st_duration=%s'
-                    % st_duration)
+                    % max_st['buflen'])
         st_when = 'before' if st_fixed else 'after'  # relative to movecomp
     else:
-        st_duration = min(raw_sss.times[-1], 10.)  # chunk size
+        # st_duration from here on will act like the chunk size
+        st_duration = max(int(round(10. * info['sfreq'])), 1)
         st_correlation = None
         st_when = 'never'
+    st_duration = min(len(raw_sss.times), st_duration)
     del st_fixed
 
-    # Generate time points to break up data into windows
-    chunk_times = np.arange(times[0], times[-1], st_duration)
-    read_lims = raw_sss.time_as_index(chunk_times)
-    len_last_buf = raw_sss.times[-1] - raw_sss.times[read_lims[-1]]
-    if len_last_buf == st_duration:
+    # Generate time points to break up data into equal-length windows
+    read_lims = np.arange(0, len(raw_sss.times) + 1, st_duration)
+    if len(read_lims) == 1:
         read_lims = np.concatenate([read_lims, [len(raw_sss.times)]])
-    else:
-        # len_last_buf < st_dur so fold it into the previous buffer
+    if read_lims[-1] != len(raw_sss.times):
         read_lims[-1] = len(raw_sss.times)
-        if st_correlation is not None:
+        # len_last_buf < st_dur so fold it into the previous buffer
+        if st_correlation is not None and len(read_lims) > 2:
             logger.info('    Spatiotemporal window did not fit evenly into '
                         'raw object. The final %0.2f seconds were lumped '
-                        'onto the previous window.' % len_last_buf)
+                        'onto the previous window.'
+                        % ((read_lims[-1] - read_lims[-2]) / info['sfreq'],))
+    assert len(read_lims) >= 2
+    assert read_lims[0] == 0 and read_lims[-1] == len(raw_sss.times)
 
     #
     # Do the heavy lifting
@@ -373,7 +395,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # (and transform pos[1] to times)
     head_pos[1] = raw_sss.time_as_index(head_pos[1], use_rounding=True)
     # Compute the first bit of pos_data for cHPI reporting
-    if raw_sss.info['dev_head_t'] is not None and head_pos[0] is not None:
+    if info['dev_head_t'] is not None and head_pos[0] is not None:
         this_pos_quat = np.concatenate([
             rot_to_quat(info['dev_head_t']['trans'][:3, :3]),
             info['dev_head_t']['trans'][:3, 3],
@@ -385,19 +407,24 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         cal=calibration, regularize=regularize,
         exp=exp, ignore_ref=ignore_ref, coil_scale=coil_scale,
         grad_picks=grad_picks, mag_picks=mag_picks, good_picks=good_picks,
-        mag_or_fine=mag_or_fine, bad_condition=bad_condition)
+        mag_or_fine=mag_or_fine, bad_condition=bad_condition,
+        mag_scale=mag_scale)
     S_decomp, pS_decomp, reg_moments, n_use_in = _get_this_decomp_trans(
-        info['dev_head_t'])
+        info['dev_head_t'], t=0.)
     reg_moments_0 = reg_moments.copy()
     # Loop through buffer windows of data
+    n_sig = int(np.floor(np.log10(max(len(read_lims), 0)))) + 1
     pl = 's' if len(read_lims) != 2 else ''
     logger.info('    Processing %s data chunk%s of (at least) %0.1f sec'
-                % (len(read_lims) - 1, pl, st_duration))
-    for start, stop in zip(read_lims[:-1], read_lims[1:]):
-        t_str = '% 8.2f - % 8.2f sec' % tuple(raw_sss.times[[start, stop - 1]])
+                % (len(read_lims) - 1, pl, st_duration / info['sfreq']))
+    for ii, (start, stop) in enumerate(zip(read_lims[:-1], read_lims[1:])):
+        rel_times = raw_sss.times[start:stop]
+        t_str = '%8.3f - %8.3f sec' % tuple(rel_times[[0, -1]])
+        t_str += ('(#%d/%d)'
+                  % (ii + 1, len(read_lims) - 1)).rjust(2 * n_sig + 5)
 
         # Get original data
-        orig_data = raw_sss._data[good_picks, start:stop]
+        orig_data = raw_sss._data[meg_picks[good_picks], start:stop]
         # This could just be np.empty if not st_only, but shouldn't be slow
         # this way so might as well just always take the original data
         out_meg_data = raw_sss._data[meg_picks, start:stop]
@@ -422,7 +449,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                 if avg_trans is not None:
                     # if doing movecomp
                     S_decomp_st, pS_decomp_st, _, n_use_in_st = \
-                        _get_this_decomp_trans(avg_trans, verbose=False)
+                        _get_this_decomp_trans(avg_trans, t=rel_times[0])
                 else:
                     S_decomp_st, pS_decomp_st = S_decomp, pS_decomp
                     n_use_in_st = n_use_in
@@ -446,7 +473,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                 # previous interval)
                 if trans is not None:
                     S_decomp, pS_decomp, reg_moments, n_use_in = \
-                        _get_this_decomp_trans(trans, verbose=False)
+                        _get_this_decomp_trans(trans, t=rel_times[rel_start])
 
                 # Determine multipole moments for this interval
                 mm_in = np.dot(pS_decomp[:n_use_in],
@@ -477,7 +504,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         if st_when == 'after':
             _do_tSSS(out_meg_data, orig_in_data, resid, st_correlation,
                      n_positions, t_str)
-        else:
+        elif st_when == 'never' and head_pos[0] is not None:
             pl = 's' if n_positions > 1 else ''
             logger.info('        Used % 2d head position%s for %s'
                         % (n_positions, pl, t_str))
@@ -491,6 +518,37 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                      st_only)
     logger.info('[done]')
     return raw_sss
+
+
+def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
+    """Helper to get the magnetometer scale factor"""
+    if isinstance(mag_scale, string_types):
+        if mag_scale != 'auto':
+            raise ValueError('mag_scale must be a float or "auto", got "%s"'
+                             % mag_scale)
+        if len(mag_picks) in (0, len(meg_picks)):
+            mag_scale = 100.  # only one coil type, doesn't matter
+            logger.info('    Setting mag_scale=%0.2f because only one '
+                        'coil type is present' % mag_scale)
+        else:
+            # Find our physical distance between gradiometer pickup loops
+            # ("base line")
+            coils = _create_meg_coils(pick_info(info, meg_picks)['chs'],
+                                      'accurate')
+            grad_base = set(coils[pick]['base'] for pick in grad_picks)
+            if len(grad_base) != 1 or list(grad_base)[0] <= 0:
+                raise RuntimeError('Could not automatically determine '
+                                   'mag_scale, could not find one '
+                                   'proper gradiometer distance from: %s'
+                                   % list(grad_base))
+            grad_base = list(grad_base)[0]
+            mag_scale = 1. / grad_base
+            logger.info('    Setting mag_scale=%0.2f based on gradiometer '
+                        'distance %0.2f mm' % (mag_scale, 1000 * grad_base))
+    mag_scale = float(mag_scale)
+    coil_scale = np.ones((len(meg_picks), 1))
+    coil_scale[mag_picks] = mag_scale
+    return coil_scale, mag_scale
 
 
 def _remove_meg_projs(inst):
@@ -620,10 +678,10 @@ def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
     np.asarray_chkfinite(resid)
     t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
     # Apply projector according to Eq. 12 in [2]_
-    msg = ('        Projecting % 2d intersecting tSSS components '
+    msg = ('        Projecting %2d intersecting tSSS components '
            'for %s' % (t_proj.shape[1], t_str))
     if n_positions > 1:
-        msg += ' (across % 2d positions)' % n_positions
+        msg += ' (across %2d positions)' % n_positions
     logger.info(msg)
     clean_data -= np.dot(np.dot(clean_data, t_proj), t_proj.T)
 
@@ -693,6 +751,11 @@ def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
         raise ValueError('Head position time points must be greater than '
                          'first sample offset, but found %0.4f < %0.4f'
                          % (t[0], t_off))
+    max_dist = np.sqrt(np.sum(pos[:, 4:7] ** 2, axis=1)).max()
+    if max_dist > 1.:
+        warn('Found a distance greater than 1 m (%0.3g m) from the device '
+             'origin, positions may be invalid and Maxwell filtering could '
+             'fail' % (max_dist,))
     dev_head_ts = np.zeros((len(t), 4, 4))
     dev_head_ts[:, 3, 3] = 1.
     dev_head_ts[:, :3, 3] = pos[:, 4:7]
@@ -701,33 +764,24 @@ def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
     return pos
 
 
-@verbose
 def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
                 coil_scale, grad_picks, mag_picks, good_picks, mag_or_fine,
-                bad_condition, verbose=None):
-    """Helper to get a decomposition matrix"""
+                bad_condition, t, mag_scale):
+    """Helper to get a decomposition matrix and pseudoinverse matrices"""
     #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
-    S_decomp = _trans_sss_basis(exp, all_coils, trans, coil_scale)
-    if cal is not None:
-        # Compute point-like mags to incorporate gradiometer imbalance
-        cal['grad_cals'] = _sss_basis_point(exp, trans, cal, ignore_ref)
-        # Add point like magnetometer data to bases.
-        S_decomp[grad_picks, :] += cal['grad_cals']
-        # Scale magnetometers by calibration coefficient
-        S_decomp[mag_picks, :] /= cal['mag_cals']
-        # We need to be careful about KIT gradiometers
-    S_decomp = S_decomp[good_picks]
+    S_decomp = _get_s_decomp(exp, all_coils, trans, coil_scale, cal,
+                             ignore_ref, grad_picks, mag_picks, good_picks,
+                             mag_scale)
 
     #
     # Regularization
     #
-    reg_moments, n_use_in = _regularize(regularize, exp, S_decomp, mag_or_fine)
-    S_decomp = S_decomp.take(reg_moments, axis=1)
+    S_decomp, pS_decomp, sing, reg_moments, n_use_in = _regularize(
+        regularize, exp, S_decomp, mag_or_fine, t=t)
 
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
-    pS_decomp, sing = _col_norm_pinv(S_decomp.copy())
     cond = sing[0] / sing[-1]
     logger.debug('    Decomposition matrix condition: %0.1f' % cond)
     if bad_condition != 'ignore' and cond >= 1000.:
@@ -743,13 +797,31 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
     return S_decomp, pS_decomp, reg_moments, n_use_in
 
 
-def _regularize(regularize, exp, S_decomp, mag_or_fine):
+def _get_s_decomp(exp, all_coils, trans, coil_scale, cal, ignore_ref,
+                  grad_picks, mag_picks, good_picks, mag_scale):
+    """Helper to get S_decomp"""
+    S_decomp = _trans_sss_basis(exp, all_coils, trans, coil_scale)
+    if cal is not None:
+        # Compute point-like mags to incorporate gradiometer imbalance
+        grad_cals = _sss_basis_point(exp, trans, cal, ignore_ref, mag_scale)
+        # Add point like magnetometer data to bases.
+        S_decomp[grad_picks, :] += grad_cals
+        # Scale magnetometers by calibration coefficient
+        S_decomp[mag_picks, :] /= cal['mag_cals']
+        # We need to be careful about KIT gradiometers
+    S_decomp = S_decomp[good_picks]
+    return S_decomp
+
+
+@verbose
+def _regularize(regularize, exp, S_decomp, mag_or_fine, t, verbose=None):
     """Regularize a decomposition matrix"""
     # ALWAYS regularize the out components according to norm, since
     # gradiometer-only setups (e.g., KIT) can have zero first-order
     # components
     int_order, ext_order = exp['int_order'], exp['ext_order']
     n_in, n_out = _get_n_moments([int_order, ext_order])
+    t_str = '%8.3f' % t
     if regularize is not None:  # regularize='in'
         logger.info('    Computing regularization')
         in_removes, out_removes = _regularize_in(
@@ -762,15 +834,18 @@ def _regularize(regularize, exp, S_decomp, mag_or_fine):
                                    out_removes)
     n_use_in = len(reg_in_moments)
     n_use_out = len(reg_out_moments)
-    if regularize is not None or n_use_out != n_out:
-        logger.info('        Using %s/%s inside and %s/%s outside harmonic '
-                    'components' % (n_use_in, n_in, n_use_out, n_out))
     reg_moments = np.concatenate((reg_in_moments, reg_out_moments))
-    return reg_moments, n_use_in
+    S_decomp = S_decomp.take(reg_moments, axis=1)
+    pS_decomp, sing = _col_norm_pinv(S_decomp.copy())
+    if regularize is not None or n_use_out != n_out:
+        logger.info('        Using %s/%s harmonic components for %s  '
+                    '(%s/%s in, %s/%s out)'
+                    % (n_use_in + n_use_out, n_in + n_out, t_str,
+                       n_use_in, n_in, n_use_out, n_out))
+    return S_decomp, pS_decomp, sing, reg_moments, n_use_in
 
 
-def _get_mf_picks(info, int_order, ext_order, ignore_ref=False,
-                  mag_scale=100.):
+def _get_mf_picks(info, int_order, ext_order, ignore_ref=False):
     """Helper to pick types for Maxwell filtering"""
     # Check for T1/T2 mag types
     mag_inds_T1T2 = _get_T1T2_mag_inds(info)
@@ -798,16 +873,13 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False,
     ref_meg = False if ignore_ref else 'grad'
     grad_picks = pick_types(meg_info, meg='grad', ref_meg=ref_meg, exclude=[])
     assert len(mag_picks) + len(grad_picks) == len(meg_info['ch_names'])
-    # Magnetometers are scaled by 100 to improve numerical stability
-    coil_scale = np.ones((len(meg_picks), 1))
-    coil_scale[mag_picks] = 100.
     # Determine which are magnetometers for external basis purposes
     mag_or_fine = np.zeros(len(meg_picks), bool)
     mag_or_fine[mag_picks] = True
     # KIT gradiometers are marked as having units T, not T/M (argh)
     # We need a separate variable for this because KIT grads should be
     # treated mostly like magnetometers (e.g., scaled by 100) for reg
-    mag_or_fine[np.array([ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD
+    mag_or_fine[np.array([ch['coil_type'] & 0xFFFF == FIFF.FIFFV_COIL_KIT_GRAD
                           for ch in meg_info['chs']], bool)] = False
     msg = ('    Processing %s gradiometers and %s magnetometers'
            % (len(grad_picks), len(mag_picks)))
@@ -815,8 +887,7 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False,
     if n_kit > 0:
         msg += ' (of which %s are actually KIT gradiometers)' % n_kit
     logger.info(msg)
-    return (meg_picks, mag_picks, grad_picks, good_picks, coil_scale,
-            mag_or_fine)
+    return meg_picks, mag_picks, grad_picks, good_picks, mag_or_fine
 
 
 def _check_regularize(regularize):
@@ -830,14 +901,11 @@ def _check_usable(inst):
     """Helper to ensure our data are clean"""
     if inst.proj:
         raise RuntimeError('Projectors cannot be applied to data.')
-    if hasattr(inst, 'comp'):
-        if inst.comp is not None:
-            raise RuntimeError('Maxwell filter cannot be done on compensated '
-                               'channels.')
-    else:
-        if len(inst.info['comps']) > 0:  # more conservative check
-            raise RuntimeError('Maxwell filter cannot be done on data that '
-                               'might have been compensated.')
+    current_comp = inst.compensation_grade
+    if current_comp not in (0, None):
+        raise RuntimeError('Maxwell filter cannot be done on compensated '
+                           'channels, but data have been compensated with '
+                           'grade %s.' % current_comp)
 
 
 def _col_norm_pinv(x):
@@ -976,7 +1044,7 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
     S_in = S_tot[:, :n_in]
     S_out = S_tot[:, n_in:]
     coil_scale = np.ones((len(coils), 1))
-    coil_scale[_get_mag_mask(coils)] = 100.
+    coil_scale[_get_mag_mask(coils)] = mag_scale
 
     # Compute internal/external basis vectors (exclude degree 0; L/RHS Eq. 5)
     for degree in range(1, max(int_order, ext_order) + 1):
@@ -1540,8 +1608,7 @@ if 'check_finite' in _get_args(linalg.svd):
 def _orth_overwrite(A):
     """Helper to create a slightly more efficient 'orth'"""
     # adapted from scipy/linalg/decomp_svd.py
-    u, s = linalg.svd(A, overwrite_a=True, full_matrices=False,
-                      **check_disable)[:2]
+    u, s = _safe_svd(A, full_matrices=False, **check_disable)[:2]
     M, N = A.shape
     eps = np.finfo(float).eps
     tol = max(M, N) * np.amax(s) * eps
@@ -1618,45 +1685,63 @@ def _read_fine_cal(fine_cal):
     return cal_chs, cal_ch_numbers
 
 
-def _update_sensor_geometry(info, fine_cal, head_frame, ignore_ref):
+def _update_sensor_geometry(info, fine_cal, ignore_ref):
     """Helper to replace sensor geometry information and reorder cal_chs"""
+    from ._fine_cal import read_fine_calibration
     logger.info('    Using fine calibration %s' % op.basename(fine_cal))
-    cal_chs, cal_ch_numbers = _read_fine_cal(fine_cal)
+    fine_cal = read_fine_calibration(fine_cal)  # filename -> dict
+    ch_names = _clean_names(info['ch_names'], remove_whitespace=True)
+    info_order = pick_channels(ch_names, fine_cal['ch_names'])
+    meg_picks = pick_types(info, meg=True, exclude=[])
+    if len(set(info_order) - set(meg_picks)) != 0:
+        # this should never happen
+        raise RuntimeError('Found channels in cal file that are not marked '
+                           'as MEG channels in the data file')
+    if len(info_order) != len(meg_picks):
+        raise RuntimeError(
+            'Not all MEG channels found in fine calibration file, missing:\n%s'
+            % sorted(list(set(ch_names[pick] for pick in meg_picks) -
+                          set(fine_cal['ch_names']))))
+    rev_order = np.argsort(info_order)
+    rev_grad = rev_order[np.in1d(meg_picks,
+                                 pick_types(info, meg='grad', exclude=()))]
+    rev_mag = rev_order[np.in1d(meg_picks,
+                                pick_types(info, meg='mag', exclude=()))]
 
-    # Check that we ended up with correct channels
-    meg_info = pick_info(info, pick_types(info, meg=True, exclude=[]))
-    clean_meg_names = _clean_names(meg_info['ch_names'],
-                                   remove_whitespace=True)
-    cal_names = [c['ch_name'] for c in cal_chs]
-    order = pick_channels(cal_names, clean_meg_names)
-    if meg_info['nchan'] != len(order):
-        raise RuntimeError('Not all MEG channels found in fine calibration '
-                           'file, missing:\n%s'
-                           % sorted(list(set(clean_meg_names) -
-                                         set(cal_names))))
-    # ensure they're ordered like our data
-    cal_chs = [cal_chs[ii] for ii in order]
+    # Determine gradiometer imbalances and magnetometer calibrations
+    grad_imbalances = np.array([fine_cal['imb_cals'][ri] for ri in rev_grad]).T
+    if grad_imbalances.shape[0] not in [1, 3]:
+        raise ValueError('Must have 1 (x) or 3 (x, y, z) point-like ' +
+                         'magnetometers. Currently have %i' %
+                         grad_imbalances.shape[0])
+    mag_cals = np.array([fine_cal['imb_cals'][ri] for ri in rev_mag])
+    del rev_order, rev_grad, rev_mag
+    # Now let's actually construct our point-like adjustment coils for grads
+    grad_coilsets = _get_grad_point_coilsets(
+        info, n_types=len(grad_imbalances), ignore_ref=ignore_ref)
+    calibration = dict(grad_imbalances=grad_imbalances,
+                       grad_coilsets=grad_coilsets, mag_cals=mag_cals)
 
     # Replace sensor locations (and track differences) for fine calibration
-    ang_shift = np.zeros((len(cal_chs), 3))
+    ang_shift = np.zeros((len(fine_cal['ch_names']), 3))
     used = np.zeros(len(info['chs']), bool)
     cal_corrs = list()
-    coil_types = list()
-    grad_picks = pick_types(meg_info, meg='grad')
+    cal_chans = list()
+    grad_picks = pick_types(info, meg='grad', exclude=())
     adjust_logged = False
-    clean_info_names = _clean_names(info['ch_names'], remove_whitespace=True)
-    for ci, cal_ch in enumerate(cal_chs):
-        idx = clean_info_names.index(cal_ch['ch_name'])
-        assert not used[idx]
-        used[idx] = True
-        info_ch = info['chs'][idx]
-        coil_types.append(info_ch['coil_type'])
+    for ci, info_idx in enumerate(info_order):
+        assert ch_names[info_idx] == fine_cal['ch_names'][ci]
+        assert not used[info_idx]
+        used[info_idx] = True
+        info_ch = info['chs'][info_idx]
+        ch_num = int(fine_cal['ch_names'][ci].lstrip('MEG').lstrip('0'))
+        cal_chans.append([ch_num, info_ch['coil_type']])
 
         # Some .dat files might only rotate EZ, so we must check first that
         # EX and EY are orthogonal to EZ. If not, we find the rotation between
         # the original and fine-cal ez, and rotate EX and EY accordingly:
         ch_coil_rot = _loc_to_coil_trans(info_ch['loc'])[:3, :3]
-        cal_loc = cal_ch['loc'].copy()
+        cal_loc = fine_cal['locs'][ci].copy()
         cal_coil_rot = _loc_to_coil_trans(cal_loc)[:3, :3]
         if np.max([np.abs(np.dot(cal_coil_rot[:, ii], cal_coil_rot[:, 2]))
                    for ii in range(2)]) > 1e-6:  # X or Y not orthogonal
@@ -1669,51 +1754,34 @@ def _update_sensor_geometry(info, fine_cal, head_frame, ignore_ref):
             cal_loc[3:] = np.dot(this_trans, ch_coil_rot).T.ravel()
 
         # calculate shift angle
-        v1 = _loc_to_coil_trans(cal_ch['loc'])[:3, :3]
+        v1 = _loc_to_coil_trans(cal_loc)[:3, :3]
         _normalize_vectors(v1)
         v2 = _loc_to_coil_trans(info_ch['loc'])[:3, :3]
         _normalize_vectors(v2)
         ang_shift[ci] = np.sum(v1 * v2, axis=0)
-        if idx in grad_picks:
-            extra = [1., cal_ch['calib_coeff'][0]]
+        if info_idx in grad_picks:
+            extra = [1., fine_cal['imb_cals'][ci][0]]
         else:
-            extra = [cal_ch['calib_coeff'][0], 0.]
+            extra = [fine_cal['imb_cals'][ci][0], 0.]
         cal_corrs.append(np.concatenate([extra, cal_loc]))
         # Adjust channel normal orientations with those from fine calibration
         # Channel positions are not changed
         info_ch['loc'][3:] = cal_loc[3:]
-        assert (info_ch['coord_frame'] == cal_ch['coord_frame'] ==
-                FIFF.FIFFV_COORD_DEVICE)
-    cal_chans = [[sc, ct] for sc, ct in zip(cal_ch_numbers, coil_types)]
+        assert (info_ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE)
+    assert used[meg_picks].all()
+    assert not used[np.setdiff1d(np.arange(len(used)), meg_picks)].any()
+    # This gets written to the Info struct
     sss_cal = dict(cal_corrs=np.array(cal_corrs),
                    cal_chans=np.array(cal_chans))
 
+    # Log quantification of sensor changes
     # Deal with numerical precision giving absolute vals slightly more than 1.
     np.clip(ang_shift, -1., 1., ang_shift)
     np.rad2deg(np.arccos(ang_shift), ang_shift)  # Convert to degrees
-
-    # Log quantification of sensor changes
     logger.info('        Adjusted coil positions by (μ ± σ): '
                 '%0.1f° ± %0.1f° (max: %0.1f°)' %
                 (np.mean(ang_shift), np.std(ang_shift),
                  np.max(np.abs(ang_shift))))
-
-    # Determine gradiometer imbalances and magnetometer calibrations
-    grad_picks = pick_types(info, meg='grad', exclude=[])
-    mag_picks = pick_types(info, meg='mag', exclude=[])
-    grad_imbalances = np.array([cal_chs[ii]['calib_coeff']
-                                for ii in grad_picks]).T
-    if grad_imbalances.shape[0] not in [1, 3]:
-        raise ValueError('Must have 1 (x) or 3 (x, y, z) point-like ' +
-                         'magnetometers. Currently have %i' %
-                         grad_imbalances.shape[0])
-    mag_cals = np.array([cal_chs[ii]['calib_coeff'] for ii in mag_picks])
-
-    # Now let's actually construct our point-like adjustment coils for grads
-    grad_coilsets = _get_grad_point_coilsets(
-        info, n_types=len(grad_imbalances), ignore_ref=ignore_ref)
-    calibration = dict(grad_imbalances=grad_imbalances,
-                       grad_coilsets=grad_coilsets, mag_cals=mag_cals)
     return calibration, sss_cal
 
 
@@ -1845,10 +1913,10 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine):
                      'Removing in component %s: l=%s, m=%+0.0f'
                      % (tuple(eigs[ii]) + (eigs[ii, 0] / eigs[ii, 1],
                         ri, degrees[ri], orders[ri])))
-    logger.info('        Resulting information: %0.1f bits/sample '
-                '(%0.1f%% of peak %0.1f)'
-                % (I_tots[lim_idx], 100 * I_tots[lim_idx] / max_info,
-                   max_info))
+    logger.debug('        Resulting information: %0.1f bits/sample '
+                 '(%0.1f%% of peak %0.1f)'
+                 % (I_tots[lim_idx], 100 * I_tots[lim_idx] / max_info,
+                    max_info))
     return in_removes, out_removes
 
 
@@ -1901,6 +1969,7 @@ def _trans_sss_basis(exp, all_coils, trans=None, coil_scale=100.):
     if trans is not None:
         if not isinstance(trans, Transform):
             trans = Transform('meg', 'head', trans)
+        assert not np.isnan(trans['trans']).any()
         all_coils = (apply_trans(trans, all_coils[0]),
                      apply_trans(trans, all_coils[1], move=False),
                      ) + all_coils[2:]

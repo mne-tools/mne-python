@@ -4,6 +4,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Cathy Nangini <cnangini@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: Simplified BSD
 
@@ -14,10 +15,11 @@ import numpy as np
 from numpy.testing import assert_raises
 
 
-from mne import io, read_events, Epochs, pick_types, read_cov
+from mne import read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
+from mne.io import read_raw_fif
 from mne.utils import slow_test, run_tests_if_main
-from mne.viz.evoked import _butterfly_onselect
+from mne.viz.evoked import _butterfly_onselect, plot_compare_evokeds
 from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
@@ -38,19 +40,23 @@ layout = read_layout('Vectorview-all')
 
 
 def _get_raw():
-    return io.read_raw_fif(raw_fname, preload=False)
+    """Get raw data."""
+    return read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
 
 
 def _get_events():
+    """Get events."""
     return read_events(event_name)
 
 
 def _get_picks(raw):
+    """Get picks."""
     return pick_types(raw.info, meg=True, eeg=False, stim=False,
                       ecg=False, eog=False, exclude='bads')
 
 
 def _get_epochs():
+    """Get epochs."""
     raw = _get_raw()
     raw.add_proj([], remove_existing=True)
     events = _get_events()
@@ -58,28 +64,28 @@ def _get_epochs():
     # Use a subset of channels for plotting speed
     picks = picks[np.round(np.linspace(0, len(picks) - 1, n_chan)).astype(int)]
     picks[0] = 2  # make sure we have a magnetometer
-    with warnings.catch_warnings(record=True):  # proj
-        epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0))
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), add_eeg_ref=False)
     epochs.info['bads'] = [epochs.ch_names[-1]]
     return epochs
 
 
 def _get_epochs_delayed_ssp():
+    """Get epochs with delayed SSP."""
     raw = _get_raw()
     events = _get_events()
     picks = _get_picks(raw)
     reject = dict(mag=4e-12)
     epochs_delayed_ssp = Epochs(raw, events[:10], event_id, tmin, tmax,
                                 picks=picks, baseline=(None, 0),
-                                proj='delayed', reject=reject)
+                                proj='delayed', reject=reject,
+                                add_eeg_ref=False)
     return epochs_delayed_ssp
 
 
 @slow_test
 def test_plot_evoked():
-    """Test plotting of evoked
-    """
+    """Test plotting of evoked."""
     import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     with warnings.catch_warnings(record=True):
@@ -91,9 +97,10 @@ def test_plot_evoked():
                     [line.get_xdata()[0], line.get_ydata()[0]], 'data')
         _fake_click(fig, ax,
                     [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
-        # plot with bad channels excluded & spatial_colors
+        # plot with bad channels excluded & spatial_colors & zorder
         evoked.plot(exclude='bads')
-        evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True)
+        evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True,
+                    zorder='std')
 
         # test selective updating of dict keys is working.
         evoked.plot(hline=[1], units=dict(mag='femto foo'))
@@ -115,18 +122,58 @@ def test_plot_evoked():
 
         evoked.plot_image(proj=True)
         # plot with bad channels excluded
-        evoked.plot_image(exclude='bads')
+        evoked.plot_image(exclude='bads', cmap='interactive')
         evoked.plot_image(exclude=evoked.info['bads'])  # does the same thing
         plt.close('all')
 
         evoked.plot_topo()  # should auto-find layout
-        _butterfly_onselect(0, 200, ['mag'], evoked)  # test averaged topomap
+        _butterfly_onselect(0, 200, ['mag', 'grad'], evoked)
         plt.close('all')
 
         cov = read_cov(cov_fname)
         cov['method'] = 'empirical'
         evoked.plot_white(cov)
         evoked.plot_white([cov, cov])
+
+        # plot_compare_evokeds: test condition contrast, CI, color assignment
+        plot_compare_evokeds(evoked.copy().pick_types(meg='mag'))
+        evoked.rename_channels({'MEG 2142': "MEG 1642"})
+        assert len(plot_compare_evokeds(evoked)) == 2
+        colors = dict(red='r', blue='b')
+        linestyles = dict(red='--', blue='-')
+        red, blue = evoked.copy(), evoked.copy()
+        red.data *= 1.1
+        blue.data *= 0.9
+        plot_compare_evokeds([red, blue], picks=3)  # list of evokeds
+        plot_compare_evokeds([[red, evoked], [blue, evoked]],
+                             picks=3)  # list of lists
+        # test picking & plotting grads
+        contrast = dict()
+        contrast["red/stim"] = list((evoked.copy(), red))
+        contrast["blue/stim"] = list((evoked.copy(), blue))
+        # test a bunch of params at once
+        plot_compare_evokeds(contrast, colors=colors, linestyles=linestyles,
+                             picks=[0, 2], vlines=[.01, -.04], invert_y=True,
+                             truncate_yaxis=False, ylim=dict(mag=(-10, 10)),
+                             styles={"red/stim": {"linewidth": 1}})
+        assert_raises(ValueError, plot_compare_evokeds,
+                      contrast, picks='str')  # bad picks: not int
+        assert_raises(ValueError, plot_compare_evokeds, evoked, picks=3,
+                      colors=dict(fake=1))  # 'fake' not in conds
+        assert_raises(ValueError, plot_compare_evokeds, evoked, picks=3,
+                      styles=dict(fake=1))  # 'fake' not in conds
+        assert_raises(ValueError, plot_compare_evokeds, [[1, 2], [3, 4]],
+                      picks=3)  # evoked must contain Evokeds
+        assert_raises(ValueError, plot_compare_evokeds, evoked, picks=3,
+                      styles=dict(err=1))  # bad styles dict
+        assert_raises(ValueError, plot_compare_evokeds, evoked, picks=3,
+                      gfp=True)  # no single-channel GFP
+        assert_raises(TypeError, plot_compare_evokeds, evoked, picks=3,
+                      ci='fake')  # ci must be float or None
+        contrast["red/stim"] = red
+        contrast["blue/stim"] = blue
+        plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
+                             ylim=dict(mag=(1, 10)))
 
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()

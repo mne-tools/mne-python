@@ -2,12 +2,14 @@
 #
 # License: Simplified BSD
 
+import numpy as np
 import os.path as op
 import warnings
 
-from numpy.testing import assert_raises
+from numpy.testing import assert_raises, assert_equal
 
-from mne import io, read_events, pick_types, Annotations
+from mne import read_events, pick_types, Annotations
+from mne.io import read_raw_fif
 from mne.utils import requires_version, run_tests_if_main
 from mne.viz.utils import _fake_click
 from mne.viz import plot_raw, plot_sensors
@@ -24,7 +26,8 @@ event_name = op.join(base_dir, 'test-eve.fif')
 
 
 def _get_raw():
-    raw = io.read_raw_fif(raw_fname, preload=True)
+    """Get raw data."""
+    raw = read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
     # Throws a warning about a changed unit.
     with warnings.catch_warnings(record=True):
         raw.set_channel_types({raw.ch_names[0]: 'ias'})
@@ -34,9 +37,11 @@ def _get_raw():
 
 
 def _get_events():
+    """Get events."""
     return read_events(event_name)
 
 
+@requires_version('matplotlib', '1.2')
 def test_plot_raw():
     """Test plotting of raw data."""
     import matplotlib.pyplot as plt
@@ -94,6 +99,39 @@ def test_plot_raw():
         raw.annotations = annot
         fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
         plt.close('all')
+        for order in ['position', 'selection', range(len(raw.ch_names))[::-4],
+                      [1, 2, 4, 6]]:
+            fig = raw.plot(order=order)
+            x = fig.get_axes()[0].lines[1].get_xdata()[10]
+            y = fig.get_axes()[0].lines[1].get_ydata()[10]
+            _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
+            fig.canvas.key_press_event('down')  # change selection
+            _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+            if order in ('position', 'selection'):
+                sel_fig = plt.figure(1)
+                topo_ax = sel_fig.axes[1]
+                _fake_click(sel_fig, topo_ax, [-0.425, 0.20223853],
+                            xform='data')
+                fig.canvas.key_press_event('down')
+                fig.canvas.key_press_event('up')
+                fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
+                fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
+                _fake_click(sel_fig, topo_ax, [-0.5, 0.], xform='data')
+                _fake_click(sel_fig, topo_ax, [0.5, 0.], xform='data',
+                            kind='motion')
+                _fake_click(sel_fig, topo_ax, [0.5, 0.5], xform='data',
+                            kind='motion')
+                _fake_click(sel_fig, topo_ax, [-0.5, 0.5], xform='data',
+                            kind='release')
+
+            plt.close('all')
+        # test if meas_date has only one element
+        raw.info['meas_date'] = np.array([raw.info['meas_date'][0]],
+                                         dtype=np.int32)
+        raw.annotations = Annotations([1 + raw.first_samp / raw.info['sfreq']],
+                                      [5], ['bad'])
+        raw.plot()
+        plt.close('all')
 
 
 @requires_version('scipy', '0.10')
@@ -133,16 +171,48 @@ def test_plot_raw_psd():
     # topo psd
     raw.plot_psd_topo()
     plt.close('all')
+    # with a flat channel
+    raw[5, :] = 0
+    assert_raises(ValueError, raw.plot_psd)
 
 
+@requires_version('matplotlib', '1.2')
 def test_plot_sensors():
     """Test plotting of sensor array."""
     import matplotlib.pyplot as plt
     raw = _get_raw()
     fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
-    raw.plot_sensors('topomap')
+    raw.plot_sensors('topomap', ch_type='mag')
+    ax = plt.subplot(111)
+    raw.plot_sensors(ch_groups='position', axes=ax)
+    raw.plot_sensors(ch_groups='selection')
+    raw.plot_sensors(ch_groups=[[0, 1, 2], [3, 4]])
+    assert_raises(ValueError, raw.plot_sensors, ch_groups='asd')
     assert_raises(TypeError, plot_sensors, raw)  # needs to be info
+    assert_raises(ValueError, plot_sensors, raw.info, kind='sasaasd')
+    plt.close('all')
+    fig, sels = raw.plot_sensors('select', show_names=True)
+    ax = fig.axes[0]
+
+    # Click with no sensors
+    _fake_click(fig, ax, (0., 0.), xform='data')
+    _fake_click(fig, ax, (0, 0.), xform='data', kind='release')
+    assert_equal(len(fig.lasso.selection), 0)
+
+    # Lasso with 1 sensor
+    _fake_click(fig, ax, (-0.5, 0.5), xform='data')
+    plt.draw()
+    _fake_click(fig, ax, (0., 0.5), xform='data', kind='motion')
+    _fake_click(fig, ax, (0., 0.), xform='data', kind='motion')
+    fig.canvas.key_press_event('control')
+    _fake_click(fig, ax, (-0.5, 0.), xform='data', kind='release')
+    assert_equal(len(fig.lasso.selection), 1)
+
+    _fake_click(fig, ax, (-0.09, -0.43), xform='data')  # single selection
+    assert_equal(len(fig.lasso.selection), 2)
+    _fake_click(fig, ax, (-0.09, -0.43), xform='data')  # deselect
+    assert_equal(len(fig.lasso.selection), 1)
     plt.close('all')
 
 run_tests_if_main()

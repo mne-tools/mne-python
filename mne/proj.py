@@ -253,7 +253,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
                         picks=pick_types(raw.info, meg=True, eeg=True,
                                          eog=True, ecg=True, emg=True,
                                          exclude='bads'),
-                        reject=reject, flat=flat)
+                        reject=reject, flat=flat, add_eeg_ref=False)
         data = _compute_cov_epochs(epochs, n_jobs)
         info = epochs.info
         if not stop:
@@ -285,7 +285,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
 
     Parameters
     ----------
-    fwd : dict
+    fwd : Forward
         The forward operator.
     projs : list
         List of projection vectors.

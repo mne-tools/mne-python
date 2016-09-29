@@ -6,17 +6,18 @@
 import os.path as op
 
 from copy import deepcopy
+from functools import partial
 import warnings
 
 import numpy as np
+from scipy.io import savemat
 from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
 
 from mne.channels import rename_channels, read_ch_connectivity
 from mne.channels.channels import _ch_neighbor_connectivity
-from mne.io import read_info, Raw
+from mne.io import read_info, read_raw_fif
 from mne.io.constants import FIFF
-from mne.fixes import partial, savemat
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, pick_channels
 
@@ -27,8 +28,7 @@ warnings.simplefilter('always')
 
 
 def test_rename_channels():
-    """Test rename channels
-    """
+    """Test rename channels"""
     info = read_info(raw_fname)
     # Error Tests
     # Test channel name exists in ch_names
@@ -64,9 +64,8 @@ def test_rename_channels():
 
 
 def test_set_channel_types():
-    """Test set_channel_types
-    """
-    raw = Raw(raw_fname)
+    """Test set_channel_types"""
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
     # Error Tests
     # Test channel name exists in ch_names
     mapping = {'EEG 160': 'EEG060'}
@@ -76,12 +75,14 @@ def test_set_channel_types():
     assert_raises(ValueError, raw.set_channel_types, mapping)
     # Test changing type if in proj (avg eeg ref here)
     mapping = {'EEG 058': 'ecog', 'EEG 059': 'ecg', 'EEG 060': 'eog',
-               'EOG 061': 'seeg', 'MEG 2441': 'eeg', 'MEG 2443': 'eeg'}
+               'EOG 061': 'seeg', 'MEG 2441': 'eeg', 'MEG 2443': 'eeg',
+               'MEG 2442': 'hbo'}
     assert_raises(RuntimeError, raw.set_channel_types, mapping)
     # Test type change
-    raw2 = Raw(raw_fname, add_eeg_ref=False)
+    raw2 = read_raw_fif(raw_fname, add_eeg_ref=False)
     raw2.info['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
-    assert_raises(RuntimeError, raw2.set_channel_types, mapping)  # has proj
+    with warnings.catch_warnings(record=True):  # MEG channel change
+        assert_raises(RuntimeError, raw2.set_channel_types, mapping)  # has prj
     raw2.add_proj([], remove_existing=True)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -109,6 +110,10 @@ def test_set_channel_types():
         assert_true(info['chs'][idx]['kind'] == FIFF.FIFFV_EEG_CH)
         assert_true(info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_V)
         assert_true(info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_EEG)
+    idx = pick_channels(raw.ch_names, ['MEG 2442'])[0]
+    assert_true(info['chs'][idx]['kind'] == FIFF.FIFFV_FNIRS_CH)
+    assert_true(info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_MOL)
+    assert_true(info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO)
 
     # Test meaningful error when setting channel type with unknown unit
     raw.info['chs'][0]['unit'] = 0.
@@ -117,7 +122,7 @@ def test_set_channel_types():
 
 
 def test_read_ch_connectivity():
-    "Test reading channel connectivity templates"
+    """Test reading channel connectivity templates"""
     tempdir = _TempDir()
     a = partial(np.array, dtype='<U7')
     # no pep8
@@ -158,9 +163,8 @@ def test_read_ch_connectivity():
 
 
 def test_get_set_sensor_positions():
-    """Test get/set functions for sensor positions
-    """
-    raw1 = Raw(raw_fname)
+    """Test get/set functions for sensor positions"""
+    raw1 = read_raw_fif(raw_fname, add_eeg_ref=False)
     picks = pick_types(raw1.info, meg=False, eeg=True)
     pos = np.array([ch['loc'][:3] for ch in raw1.info['chs']])[picks]
     raw_pos = raw1._get_channel_positions(picks=picks)
@@ -168,7 +172,7 @@ def test_get_set_sensor_positions():
 
     ch_name = raw1.info['ch_names'][13]
     assert_raises(ValueError, raw1._set_channel_positions, [1, 2], ['name'])
-    raw2 = Raw(raw_fname)
+    raw2 = read_raw_fif(raw_fname, add_eeg_ref=False)
     raw2.info['chs'][13]['loc'][:3] = np.array([1, 2, 3])
     raw1._set_channel_positions([[1, 2, 3]], [ch_name])
     assert_array_equal(raw1.info['chs'][13]['loc'],

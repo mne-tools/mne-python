@@ -4,6 +4,7 @@
 # License: Simplified BSD
 
 from copy import deepcopy
+from functools import partial
 import re
 
 import numpy as np
@@ -31,7 +32,6 @@ from .bem import _bem_find_surface, _bem_explain_surface
 from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
-from .fixes import partial
 from .utils import logger, verbose, _time_mask, warn, _check_fname, check_fname
 
 
@@ -210,25 +210,48 @@ class Dipole(object):
         from .viz import plot_dipole_amplitudes
         return plot_dipole_amplitudes([self], [color], show)
 
-    def __getitem__(self, idx_slice):
-        """Handle indexing"""
-        if isinstance(idx_slice, int):  # make sure attributes stay 2d
-            idx_slice = [idx_slice]
+    def __getitem__(self, item):
+        """Get a time slice
 
-        selected_times = self.times[idx_slice].copy()
-        selected_pos = self.pos[idx_slice, :].copy()
-        selected_amplitude = self.amplitude[idx_slice].copy()
-        selected_ori = self.ori[idx_slice, :].copy()
-        selected_gof = self.gof[idx_slice].copy()
+        Parameters
+        ----------
+        item : array-like or slice
+            The slice of time points to use.
+
+        Returns
+        -------
+        dip : instance of Dipole
+            The sliced dipole.
+        """
+        if isinstance(item, int):  # make sure attributes stay 2d
+            item = [item]
+
+        selected_times = self.times[item].copy()
+        selected_pos = self.pos[item, :].copy()
+        selected_amplitude = self.amplitude[item].copy()
+        selected_ori = self.ori[item, :].copy()
+        selected_gof = self.gof[item].copy()
         selected_name = self.name
-
-        new_dipole = Dipole(selected_times, selected_pos,
-                            selected_amplitude, selected_ori,
-                            selected_gof, selected_name)
-        return new_dipole
+        return Dipole(
+            selected_times, selected_pos, selected_amplitude, selected_ori,
+            selected_gof, selected_name)
 
     def __len__(self):
-        """Handle len function"""
+        """The number of dipoles
+
+        Returns
+        -------
+        len : int
+            The number of dipoles.
+
+        Examples
+        --------
+        This can be used as::
+
+            >>> len(dipoles)  # doctest: +SKIP
+            10
+
+        """
         return self.pos.shape[0]
 
 
@@ -363,29 +386,80 @@ def read_dipole(fname, verbose=None):
     _check_fname(fname, overwrite=True, must_exist=True)
     if fname.endswith('.fif') or fname.endswith('.fif.gz'):
         return _read_dipole_fixed(fname)
-    try:
-        data = np.loadtxt(fname, comments='%')
-    except:
-        data = np.loadtxt(fname, comments='#')  # handle 2 types of comments...
-    name = None
+    else:
+        return _read_dipole_text(fname)
+
+
+def _read_dipole_text(fname):
+    """Read a dipole text file."""
+    # Figure out the special fields
+    need_header = True
+    def_line = name = None
+    # There is a bug in older np.loadtxt regarding skipping fields,
+    # so just read the data ourselves (need to get name and header anyway)
+    data = list()
     with open(fname, 'r') as fid:
-        for line in fid.readlines():
-            if line.startswith('##') or line.startswith('%%'):
-                m = re.search('Name "(.*) dipoles"', line)
-                if m:
-                    name = m.group(1)
-                    break
-    if data.ndim == 1:
-        data = data[None, :]
+        for line in fid:
+            if not (line.startswith('%') or line.startswith('#')):
+                need_header = False
+                data.append(line.strip().split())
+            else:
+                if need_header:
+                    def_line = line
+                if line.startswith('##') or line.startswith('%%'):
+                    m = re.search('Name "(.*) dipoles"', line)
+                    if m:
+                        name = m.group(1)
+        del line
+    data = np.atleast_2d(np.array(data, float))
+    if def_line is None:
+        raise IOError('Dipole text file is missing field definition '
+                      'comment, cannot parse %s' % (fname,))
+    # actually parse the fields
+    def_line = def_line.lstrip('%').lstrip('#').strip()
+    # MNE writes it out differently than Elekta, let's standardize them...
+    fields = re.sub('([X|Y|Z] )\(mm\)',  # "X (mm)", etc.
+                    lambda match: match.group(1).strip() + '/mm', def_line)
+    fields = re.sub('\((.*?)\)',  # "Q(nAm)", etc.
+                    lambda match: '/' + match.group(1), fields)
+    fields = re.sub('(begin|end) ',  # "begin" and "end" with no units
+                    lambda match: match.group(1) + '/ms', fields)
+    fields = fields.lower().split()
+    used_fields = ('begin/ms',
+                   'x/mm', 'y/mm', 'z/mm',
+                   'q/nam',
+                   'qx/nam', 'qy/nam', 'qz/nam',
+                   'g/%')
+    missing_fields = sorted(set(used_fields) - set(fields))
+    if len(missing_fields) > 0:
+        raise RuntimeError('Could not find necessary fields in header: %s'
+                           % (missing_fields,))
+    ignored_fields = sorted(set(fields) - set(used_fields) - set(['end/ms']))
+    if len(ignored_fields) > 0:
+        warn('Ignoring extra fields in dipole file: %s' % (ignored_fields,))
+    if len(fields) != data.shape[1]:
+        raise IOError('More data fields (%s) found than data columns (%s): %s'
+                      % (len(fields), data.shape[1], fields))
+
     logger.info("%d dipole(s) found" % len(data))
-    times = data[:, 0] / 1000.
-    pos = 1e-3 * data[:, 2:5]  # put data in meters
-    amplitude = data[:, 5]
+
+    if 'end/ms' in fields:
+        if np.diff(data[:, [fields.index('begin/ms'),
+                            fields.index('end/ms')]], 1, -1).any():
+            warn('begin and end fields differed, but only begin will be used '
+                 'to store time values')
+
+    # Find the correct column in our data array, then scale to proper units
+    idx = [fields.index(field) for field in used_fields]
+    assert len(idx) == 9
+    times = data[:, idx[0]] / 1000.
+    pos = 1e-3 * data[:, idx[1:4]]  # put data in meters
+    amplitude = data[:, idx[4]]
     norm = amplitude.copy()
     amplitude /= 1e9
     norm[norm == 0] = 1
-    ori = data[:, 6:9] / norm[:, np.newaxis]
-    gof = data[:, 9]
+    ori = data[:, idx[5:8]] / norm[:, np.newaxis]
+    gof = data[:, idx[8]]
     return Dipole(times, pos, amplitude, ori, gof, name)
 
 
@@ -650,7 +724,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
     B2 = np.dot(B, B)
     if B2 == 0:
         warn('Zero field found for time %s' % t)
-        return np.zeros(3), 0, np.zeros(3), 0
+        return np.zeros(3), 0, np.zeros(3), 0, B
 
     idx = np.argmin([_fit_eval(guess_rrs[[fi], :], B, B2, fwd_svd)
                      for fi, fwd_svd in enumerate(guess_data['fwd_svd'])])
@@ -720,8 +794,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         The dataset to fit.
     cov : str | instance of Covariance
         The noise covariance.
-    bem : str | dict
-        The BEM filename (str) or a loaded sphere model (dict).
+    bem : str | instance of ConductorModel
+        The BEM filename (str) or conductor model.
     trans : str | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
@@ -795,15 +869,19 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     del min_dist
 
     # Figure out our inputs
-    neeg = len(pick_types(info, meg=False, eeg=True, exclude=[]))
+    neeg = len(pick_types(info, meg=False, eeg=True, ref_meg=False,
+                          exclude=[]))
     if isinstance(bem, string_types):
-        logger.info('BEM               : %s' % bem)
+        bem_extra = bem
+    else:
+        bem_extra = repr(bem)
+        logger.info('BEM               : %s' % bem_extra)
     if trans is not None:
         logger.info('MRI transform     : %s' % trans)
         mri_head_t, trans = _get_trans(trans)
     else:
         mri_head_t = Transform('head', 'mri', np.eye(4))
-    bem = _setup_bem(bem, bem, neeg, mri_head_t, verbose=False)
+    bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=False)
     if not bem['is_sphere']:
         if trans is None:
             raise ValueError('mri must not be None if BEM is provided')
@@ -909,7 +987,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
 
     # Whitener for the data
     logger.info('Decomposing the sensor noise covariance matrix...')
-    picks = pick_types(info, meg=True, eeg=True)
+    picks = pick_types(info, meg=True, eeg=True, ref_meg=False)
 
     # In case we want to more closely match MNE-C for debugging:
     # from .io.pick import pick_info
@@ -1009,3 +1087,63 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     residual = out[4]
     logger.info('%d time points fitted' % len(dipoles.times))
     return dipoles, residual
+
+
+def get_phantom_dipoles(kind='vectorview'):
+    """Get standard phantom dipole locations and orientations
+
+    Parameters
+    ----------
+    kind : str
+        Get the information for the given system.
+
+            ``vectorview`` (default)
+              The Neuromag VectorView phantom.
+
+            ``122``
+              The Neuromag-122 phantom. This has the same dipoles
+              as the VectorView phantom, but in a different order.
+
+    Returns
+    -------
+    pos : ndarray, shape (n_dipoles, 3)
+        The dipole positions.
+    ori : ndarray, shape (n_dipoles, 3)
+        The dipole orientations.
+    """
+    _valid_types = ('122', 'vectorview')
+    if not isinstance(kind, string_types) or kind not in _valid_types:
+        raise ValueError('kind must be one of %s, got %s'
+                         % (_valid_types, kind,))
+    if kind in ('122', 'vectorview'):
+        a = np.array([59.7, 48.6, 35.8, 24.8, 37.2, 27.5, 15.8, 7.9])
+        b = np.array([46.1, 41.9, 38.3, 31.5, 13.9, 16.2, 20, 19.3])
+        x = np.concatenate((a, [0] * 8, -b, [0] * 8))
+        y = np.concatenate(([0] * 8, -a, [0] * 8, b))
+        c = [22.9, 23.5, 25.5, 23.1, 52, 46.4, 41, 33]
+        d = [44.4, 34, 21.6, 12.7, 62.4, 51.5, 39.1, 27.9]
+        z = np.concatenate((c, c, d, d))
+        pos = np.vstack((x, y, z)).T / 1000.
+        if kind == 122:
+            reorder = (list(range(8, 16)) + list(range(0, 8)) +
+                       list(range(24, 32) + list(range(16, 24))))
+            pos = pos[reorder]
+        # Locs are always in XZ or YZ, and so are the oris. The oris are
+        # also in the same plane and tangential, so it's easy to determine
+        # the orientation.
+        ori = list()
+        for this_pos in pos:
+            this_ori = np.zeros(3)
+            idx = np.where(this_pos == 0)[0]
+            # assert len(idx) == 1
+            idx = np.setdiff1d(np.arange(3), idx[0])
+            this_ori[idx] = (this_pos[idx][::-1] /
+                             np.linalg.norm(this_pos[idx])) * [1, -1]
+            # Now we have this quality, which we could uncomment to
+            # double-check:
+            # np.testing.assert_allclose(np.dot(this_ori, this_pos) /
+            #                            np.linalg.norm(this_pos), 0,
+            #                            atol=1e-15)
+            ori.append(this_ori)
+        ori = np.array(ori)
+    return pos, ori

@@ -105,7 +105,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     info = _empty_info(header_info['sample_freq'])
     info.update({'filename': fname,
                  'meas_date': calendar.timegm(date.utctimetuple()),
-                 'description': None, 'buffer_size_sec': 10.})
+                 'description': None, 'buffer_size_sec': 1.})
 
     if ch_type == 'eeg':
         ch_coil = FIFF.FIFFV_COIL_EEG

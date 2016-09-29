@@ -2,14 +2,14 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types
+from functools import partial
 from inspect import getmembers
 
 import numpy as np
 from scipy.fftpack import fftfreq
 
 from .utils import check_indices
-from ..fixes import tril_indices, partial, _get_args
+from ..fixes import _get_args
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
 from ..epochs import _BaseEpochs
@@ -18,6 +18,7 @@ from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
 from ..utils import logger, verbose, _time_mask, warn
+from ..externals.six import string_types
 
 ########################################################################
 # Various connectivity estimators
@@ -704,7 +705,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         The number of DPSS tapers used. Only defined in 'multitaper' mode.
         Otherwise None is returned.
     """
-    if n_jobs > 1:
+    if n_jobs != 1:
         parallel, my_epoch_spectral_connectivity, _ = \
             parallel_func(_epoch_spectral_connectivity, n_jobs,
                           verbose=verbose)
@@ -789,7 +790,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
             if indices is None:
                 # only compute r for lower-triangular region
-                indices_use = tril_indices(n_signals, -1)
+                indices_use = np.tril_indices(n_signals, -1)
             else:
                 indices_use = check_indices(indices)
 
@@ -924,8 +925,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                     cwt_n_cycles = cwt_n_cycles[freq_mask]
 
                 # get the Morlet wavelets
-                wavelets = morlet(sfreq, freqs,
-                                  n_cycles=cwt_n_cycles, zero_mean=True)
+                wavelets = morlet(sfreq, freqs, n_cycles=cwt_n_cycles,
+                                  zero_mean=True)
                 eigvals = None
                 n_tapers = None
                 window_fun = None

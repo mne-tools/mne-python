@@ -55,14 +55,14 @@ from sklearn import preprocessing  # noqa
 from sklearn.svm import SVC  # noqa
 from sklearn.pipeline import Pipeline  # noqa
 from sklearn.cross_validation import cross_val_score, ShuffleSplit  # noqa
-from mne.decoding import EpochsVectorizer, FilterEstimator  # noqa
+from mne.decoding import Vectorizer, FilterEstimator  # noqa
 
 
 scores_x, scores, std_scores = [], [], []
 
 filt = FilterEstimator(rt_epochs.info, 1, 40)
 scaler = preprocessing.StandardScaler()
-vectorizer = EpochsVectorizer()
+vectorizer = Vectorizer()
 clf = SVC(C=1, kernel='linear')
 
 concat_classifier = Pipeline([('filter', filt), ('vector', vectorizer),

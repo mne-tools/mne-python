@@ -46,9 +46,11 @@ Neuromag Raw FIF files can be loaded using :func:`mne.io.read_raw_fif`.
     ``mne.io.read_raw_fif(..., allow_maxshield=True)``.
 
 .. note::
-    This file format also supports EEG data. An average reference will be added
-    by default on reading EEG data. To change this behavior call the readers
-    like this: ``mne.io.read_raw_fif(..., add_eeg_ref=False)``
+    This file format also supports EEG data. In 0.13, an average reference
+    will be added by default on reading EEG data. To change this behavior,
+    use the argument ``add_eeg_ref=False``, which will become the default
+    in 0.14. The argument will be removed in 0.15 in favor of
+    :func:`mne.set_eeg_reference` and :meth:`mne.io.Raw.set_eeg_reference`.
 
 
 Importing 4-D Neuroimaging / BTI data
@@ -349,6 +351,20 @@ to the fif format with help of the :ref:`mne_eximia2fiff` script.
 It creates a BrainVision ``vhdr`` file and calls :ref:`mne_brain_vision2fiff`.
 
 
+Setting EEG references
+######################
+
+The preferred method for applying an EEG reference in MNE is
+:func:`mne.set_eeg_reference`, or equivalent instance methods like
+:meth:`raw.set_eeg_reference() <mne.io.Raw.set_eeg_reference>`. By default,
+an average reference is used. Instead of applying the average reference to
+the data directly, an average EEG reference projector is created that is
+applied like any other SSP projection operator.
+
+There are also other functions that can be useful for other referencing
+operations. See :func:`mne.set_bipolar_reference` and
+:func:`mne.add_reference_channels` for more information.
+
 
 Reading Electrode locations and Headshapes for EEG recordings
 #############################################################
@@ -373,7 +389,7 @@ Arbitrary (e.g., simulated or manually read in) raw data can be constructed
 from memory by making use of :class:`mne.io.RawArray`, :class:`mne.EpochsArray`
 or :class:`mne.EvokedArray` in combination with :func:`mne.create_info`.
 
-This functionality is illustrated in :ref:`example_io_plot_objects_from_arrays.py` .
+This functionality is illustrated in :ref:`sphx_glr_auto_examples_io_plot_objects_from_arrays.py`.
 Using 3rd party libraries such as NEO (https://pythonhosted.org/neo/) in combination
 with these functions abundant electrophysiological file formats can be easily loaded
 into MNE.

@@ -15,19 +15,19 @@ try:
                             on_trait_change, Array, Bool, Button, DelegatesTo,
                             Directory, Enum, Event, File, Instance, Int, List,
                             Property, Str)
-    from traitsui.api import View, Item, VGroup
+    from traitsui.api import View, Item, VGroup, HGroup
     from pyface.api import (DirectoryDialog, OK, ProgressDialog, error,
                             information)
 except Exception:
     from ..utils import trait_wraith
     HasTraits = HasPrivateTraits = object
     cached_property = on_trait_change = Any = Array = Bool = Button = \
-        DelegatesTo = Directory = Enum = Event = File = Instance = \
+        DelegatesTo = Directory = Enum = Event = File = Instance = HGroup = \
         Int = List = Property = Str = View = Item = VGroup = trait_wraith
 
 from ..io.constants import FIFF
 from ..io import read_info, read_fiducials
-from ..surface import read_bem_surfaces
+from ..surface import read_bem_surfaces, read_surface
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config
@@ -92,7 +92,7 @@ def _get_root_home(cfg, name, check_fun):
             root = dlg.path
             problem = check_fun(root)
             if problem is None:
-                set_config(cfg, root)
+                set_config(cfg, root, set_env=False)
         else:
             return None
     return root
@@ -185,27 +185,27 @@ def _mne_root_problem(mne_root):
                     "installation, consider reinstalling." % mne_root)
 
 
-class BemSource(HasTraits):
-    """Expose points and tris of a given BEM file
+class SurfaceSource(HasTraits):
+    """Expose points and tris of a file storing a surface
 
     Parameters
     ----------
     file : File
-        Path to the BEM file (*.fif).
+        Path to a *-bem.fif file or a surface containing a Freesurfer surface.
 
     Attributes
     ----------
     pts : Array, shape = (n_pts, 3)
-        BEM file points.
-    tri : Array, shape = (n_tri, 3)
-        BEM file triangles.
+        Point coordinates.
+    tris : Array, shape = (n_tri, 3)
+        Triangles.
 
     Notes
     -----
     tri is always updated after pts, so in case downstream objects depend on
-    both, they should sync to a change in tri.
+    both, they should sync to a change in tris.
     """
-    file = File(exists=True, filter=['*.fif'])
+    file = File(exists=True, filter=['*.fif', '*.*'])
     points = Array(shape=(None, 3), value=np.empty((0, 3)))
     norms = Array
     tris = Array(shape=(None, 3), value=np.empty((0, 3)))
@@ -213,10 +213,24 @@ class BemSource(HasTraits):
     @on_trait_change('file')
     def read_file(self):
         if os.path.exists(self.file):
-            bem = read_bem_surfaces(self.file)[0]
-            self.points = bem['rr']
-            self.norms = bem['nn']
-            self.tris = bem['tris']
+            if self.file.endswith('.fif'):
+                bem = read_bem_surfaces(self.file)[0]
+                self.points = bem['rr']
+                self.norms = bem['nn']
+                self.tris = bem['tris']
+            else:
+                try:
+                    points, tris = read_surface(self.file)
+                    points /= 1e3
+                    self.points = points
+                    self.norms = []
+                    self.tris = tris
+                except Exception:
+                    error(message="Error loading surface from %s (see "
+                                  "Terminal for details).",
+                          title="Error Loading Surface")
+                    self.reset_traits(['file'])
+                    raise
         else:
             self.points = np.empty((0, 3))
             self.norms = np.empty((0, 3))
@@ -250,17 +264,24 @@ class FiducialsSource(HasTraits):
         if not os.path.exists(self.file):
             return None
 
-        points = np.zeros((3, 3))
-        fids, _ = read_fiducials(self.file)
-        for fid in fids:
-            ident = fid['ident']
-            if ident == FIFF.FIFFV_POINT_LPA:
-                points[0] = fid['r']
-            elif ident == FIFF.FIFFV_POINT_NASION:
-                points[1] = fid['r']
-            elif ident == FIFF.FIFFV_POINT_RPA:
-                points[2] = fid['r']
-        return points
+        try:
+            points = np.zeros((3, 3))
+            fids, _ = read_fiducials(self.file)
+            for fid in fids:
+                ident = fid['ident']
+                if ident == FIFF.FIFFV_POINT_LPA:
+                    points[0] = fid['r']
+                elif ident == FIFF.FIFFV_POINT_NASION:
+                    points[1] = fid['r']
+                elif ident == FIFF.FIFFV_POINT_RPA:
+                    points[2] = fid['r']
+            return points
+        except Exception as err:
+            error(None, "Error reading fiducials from %s: %s (See terminal "
+                  "for more information)" % (self.fname, str(err)),
+                  "Error Reading Fiducials")
+            self.reset_traits(['file'])
+            raise
 
 
 class InstSource(HasPrivateTraits):
@@ -318,7 +339,14 @@ class InstSource(HasPrivateTraits):
     @cached_property
     def _get_inst(self):
         if self.file:
-            return read_info(self.file)
+            info = read_info(self.file)
+            if info['dig'] is None:
+                error(None, "The selected FIFF file does not contain "
+                      "digitizer information. Please select a different "
+                      "file.", "Error Reading FIFF File")
+                self.reset_traits(['file'])
+            else:
+                return info
 
     @cached_property
     def _get_inst_dir(self):
@@ -405,6 +433,7 @@ class MRISubjectSource(HasPrivateTraits):
     subjects_dir = Directory(exists=True)
     subjects = Property(List(Str), depends_on=['subjects_dir', 'refresh'])
     subject = Enum(values='subjects')
+    use_high_res_head = Bool(True)
 
     # info
     can_create_fsaverage = Property(Bool, depends_on=['subjects_dir',
@@ -481,6 +510,7 @@ class SubjectSelectorPanel(HasPrivateTraits):
     subjects_dir = DelegatesTo('model')
     subject = DelegatesTo('model')
     subjects = DelegatesTo('model')
+    use_high_res_head = DelegatesTo('model')
 
     create_fsaverage = Button("Copy FsAverage to Subjects Folder",
                               desc="Copy the files for the fsaverage subject "
@@ -488,6 +518,8 @@ class SubjectSelectorPanel(HasPrivateTraits):
 
     view = View(VGroup(Item('subjects_dir', label='subjects_dir'),
                        'subject',
+                       HGroup(Item('use_high_res_head',
+                                   label='High Resolution Head')),
                        Item('create_fsaverage', show_label=False,
                             enabled_when='can_create_fsaverage')))
 
@@ -507,3 +539,12 @@ class SubjectSelectorPanel(HasPrivateTraits):
             raise
         finally:
             prog.close()
+
+    def _subjects_dir_changed(self, old, new):
+        if new and self.subjects == ['']:
+            information(None, "The directory selected as subjects-directory "
+                        "(%s) does not contain any valid MRI subjects. MRI "
+                        "subjects need to contain head surface models which "
+                        "can be created by running:\n\n    $ mne "
+                        "make_scalp_surfaces" % self.subjects_dir,
+                        "No Subjects Found")

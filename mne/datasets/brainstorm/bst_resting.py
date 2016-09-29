@@ -2,9 +2,10 @@
 #
 # License: BSD (3-clause)
 
+from functools import partial
 import os.path as op
+
 from ...utils import verbose
-from ...fixes import partial
 from ..utils import (has_dataset, _data_path, _get_version, _version_doc,
                      _data_path_doc)
 

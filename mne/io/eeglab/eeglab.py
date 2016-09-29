@@ -64,6 +64,9 @@ def _get_info(eeg, montage, eog=()):
 
     # add the ch_names and info['chs'][idx]['loc']
     path = None
+    if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
+            eeg.chanlocs = [eeg.chanlocs]
+
     if len(eeg.chanlocs) > 0:
         ch_names, pos = list(), list()
         kind = 'user_defined'
@@ -107,7 +110,7 @@ def _get_info(eeg, montage, eog=()):
 
 def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
                     event_id_func='strip_to_integer', preload=False,
-                    verbose=None):
+                    verbose=None, uint16_codec=None):
     """Read an EEGLAB .set file
 
     Parameters
@@ -149,8 +152,14 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
         on the hard drive (slower, requires less memory). Note that
         preload=False will be effective only if the data is stored in a
         separate binary file.
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
+    uint16_codec : str | None
+        If your \*.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
 
     Returns
     -------
@@ -167,11 +176,11 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
     """
     return RawEEGLAB(input_fname=input_fname, montage=montage, preload=preload,
                      eog=eog, event_id=event_id, event_id_func=event_id_func,
-                     verbose=verbose)
+                     verbose=verbose, uint16_codec=uint16_codec)
 
 
 def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
-                       eog=(), verbose=None):
+                       eog=(), verbose=None, uint16_codec=None):
     """Reader function for EEGLAB epochs files
 
     Parameters
@@ -204,8 +213,14 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
+    uint16_codec : str | None
+        If your \*.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
 
     Returns
     -------
@@ -222,7 +237,8 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     mne.Epochs : Documentation of attribute and methods.
     """
     epochs = EpochsEEGLAB(input_fname=input_fname, events=events, eog=eog,
-                          event_id=event_id, montage=montage, verbose=verbose)
+                          event_id=event_id, montage=montage, verbose=verbose,
+                          uint16_codec=uint16_codec)
     return epochs
 
 
@@ -266,8 +282,14 @@ class RawEEGLAB(_BaseRaw):
         amount of memory). If preload is a string, preload is the file name of
         a memory-mapped file which is used to store the data on the hard
         drive (slower, requires less memory).
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
+    uint16_codec : str | None
+        If your \*.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
 
     Returns
     -------
@@ -285,14 +307,14 @@ class RawEEGLAB(_BaseRaw):
     @verbose
     def __init__(self, input_fname, montage, eog=(), event_id=None,
                  event_id_func='strip_to_integer', preload=False,
-                 verbose=None):
+                 verbose=None, uint16_codec=None):
         """Read EEGLAB .set file.
         """
         from scipy import io
         basedir = op.dirname(input_fname)
         _check_mat_struct(input_fname)
         eeg = io.loadmat(input_fname, struct_as_record=False,
-                         squeeze_me=True)['EEG']
+                         squeeze_me=True, uint16_codec=uint16_codec)['EEG']
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
                             ' files. Please use `mne.io.read_epochs_eeglab` if'
@@ -329,7 +351,10 @@ class RawEEGLAB(_BaseRaw):
                      'the .set file')
             # can't be done in standard way with preload=True because of
             # different reading path (.set file)
-            n_chan, n_times = eeg.data.shape
+            if eeg.nbchan == 1 and len(eeg.data.shape) == 1:
+                n_chan, n_times = [1, eeg.data.shape[0]]
+            else:
+                n_chan, n_times = eeg.data.shape
             data = np.empty((n_chan + 1, n_times), dtype=np.double)
             data[:-1] = eeg.data
             data *= CAL
@@ -417,8 +442,14 @@ class EpochsEEGLAB(_BaseEpochs):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None
         If not None, override default verbose level (see mne.verbose).
+    uint16_codec : str | None
+        If your \*.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
 
     Notes
     -----
@@ -431,11 +462,12 @@ class EpochsEEGLAB(_BaseEpochs):
     @verbose
     def __init__(self, input_fname, events=None, event_id=None, tmin=0,
                  baseline=None,  reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, montage=None, eog=(), verbose=None):
+                 reject_tmax=None, montage=None, eog=(), verbose=None,
+                 uint16_codec=None):
         from scipy import io
         _check_mat_struct(input_fname)
         eeg = io.loadmat(input_fname, struct_as_record=False,
-                         squeeze_me=True)['EEG']
+                         squeeze_me=True, uint16_codec=uint16_codec)['EEG']
 
         if not ((events is None and event_id is None) or
                 (events is not None and event_id is not None)):
@@ -446,6 +478,7 @@ class EpochsEEGLAB(_BaseEpochs):
             # first extract the events and construct an event_id dict
             event_name, event_latencies, unique_ev = list(), list(), list()
             ev_idx = 0
+            warn_multiple_events = False
             for ep in eeg.epoch:
                 if not isinstance(ep.eventtype, string_types):
                     event_type = '/'.join(ep.eventtype.tolist())
@@ -453,8 +486,7 @@ class EpochsEEGLAB(_BaseEpochs):
                     # store latency of only first event
                     event_latencies.append(eeg.event[ev_idx].latency)
                     ev_idx += len(ep.eventtype)
-                    warn('An epoch has multiple events. Only the latency of '
-                         'the first event will be retained.')
+                    warn_multiple_events = True
                 else:
                     event_type = ep.eventtype
                     event_name.append(ep.eventtype)
@@ -467,6 +499,12 @@ class EpochsEEGLAB(_BaseEpochs):
                 # invent event dict but use id > 0 so you know its a trigger
                 event_id = dict((ev, idx + 1) for idx, ev
                                 in enumerate(unique_ev))
+
+            # warn about multiple events in epoch if necessary
+            if warn_multiple_events:
+                warn('At least one epoch has multiple events. Only the latency'
+                     ' of the first event will be retained.')
+
             # now fill up the event array
             events = np.zeros((eeg.trials, 3), dtype=int)
             for idx in range(0, eeg.trials):
@@ -501,6 +539,9 @@ class EpochsEEGLAB(_BaseEpochs):
                                     order="F")
         else:
             data = eeg.data
+
+        if eeg.nbchan == 1 and len(data.shape) == 2:
+            data = data[np.newaxis, :]
         data = data.transpose((2, 0, 1)).astype('double')
         data *= CAL
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
@@ -526,16 +567,20 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
         event_id = dict()
 
     if isinstance(eeg.event, np.ndarray):
-        types = [event.type for event in eeg.event]
+        types = [str(event.type) for event in eeg.event]
         latencies = [event.latency for event in eeg.event]
     else:
         # only one event - TypeError: 'mat_struct' object is not iterable
-        types = [eeg.event.type]
+        types = [str(eeg.event.type)]
         latencies = [eeg.event.latency]
     if "boundary" in types and "boundary" not in event_id:
         warn("The data contains 'boundary' events, indicating data "
              "discontinuities. Be cautious of filtering and epoching around "
              "these events.")
+
+    if len(types) < 1:  # if there are 0 events, we can exit here
+        logger.info('No events found, returning empty stim channel ...')
+        return np.zeros((0, 3))
 
     not_in_event_id = set(x for x in types if x not in event_id)
     not_purely_numeric = set(x for x in not_in_event_id if not x.isdigit())
@@ -566,14 +611,15 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
             pass  # We're already raising warnings above, so we just drop
 
     if len(events) < len(types):
-        warn("Some event codes could not be mapped to integers. Use the "
-             "`event_id` parameter to map such events to integers manually.")
-    if len(events) < 1:
-        warn("No events found, consider adding an `event_id`. As is, the "
-             "trigger channel will consist entirely of zeros.")
-        return np.zeros((0, 3))
-    else:
-        return np.asarray(events)
+        missings = len(types) - len(events)
+        msg = ("{0}/{1} event codes could not be mapped to integers. Use "
+               "the 'event_id' parameter to map such events manually.")
+        warn(msg.format(missings, len(types)))
+        if len(events) < 1:
+            warn("As is, the trigger channel will consist entirely of zeros.")
+            return np.zeros((0, 3))
+
+    return np.asarray(events)
 
 
 def _strip_to_integer(trigger):

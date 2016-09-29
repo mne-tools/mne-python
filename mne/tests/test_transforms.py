@@ -54,7 +54,7 @@ def test_io_trans():
     assert_raises(RuntimeError, _find_trans, 'sample', subjects_dir=tempdir)
     trans0 = read_trans(fname)
     fname1 = op.join(tempdir, 'sample', 'test-trans.fif')
-    write_trans(fname1, trans0)
+    trans0.save(fname1)
     assert_true(fname1 == _find_trans('sample', subjects_dir=tempdir))
     trans1 = read_trans(fname1)
 

@@ -5,16 +5,16 @@
 #
 # License: BSD (3-clause)
 
-import sys
+from functools import partial
+import glob
 import os
 import os.path as op
 import shutil
-import glob
+import sys
 
 import numpy as np
 from scipy import linalg
 
-from .fixes import partial
 from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
 from .transforms import _ensure_trans, apply_trans
 from .io import Info
@@ -318,6 +318,7 @@ def make_bem_solution(surfs, verbose=None):
         logger.info('Homogeneous model surface loaded.')
     else:
         raise RuntimeError('Only 1- or 3-layer BEM computations supported')
+    _check_bem_size(bem['surfs'])
     _fwd_bem_linear_collocation_solution(bem)
     logger.info('BEM geometry computations complete.')
     return bem
@@ -556,6 +557,7 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
         surfaces = surfaces[:1]
         ids = ids[:1]
     surfaces = _surfaces_to_bem(surfaces, ids, conductivity, ico)
+    _check_bem_size(surfaces)
     logger.info('Complete.\n')
     return surfaces
 
@@ -812,7 +814,7 @@ _dig_kind_ints = tuple(_dig_kind_dict.values())
 
 
 @verbose
-def fit_sphere_to_headshape(info, dig_kinds='auto', units=None, verbose=None):
+def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     """Fit a sphere to the headshape points to determine head center
 
     Parameters
@@ -825,8 +827,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units=None, verbose=None):
         be 'auto' (default), which will use only the 'extra' points if
         enough are available, and if not, uses 'extra' and 'eeg' points.
     units : str
-        Can be "m" or "mm". The default in 0.12 is "mm" but will be changed
-        to "m" in 0.13.
+        Can be "m" (default) or "mm".
 
         .. versionadded:: 0.12
 
@@ -847,11 +848,6 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units=None, verbose=None):
     This function excludes any points that are low and frontal
     (``z < 0 and y > 0``) to improve the fit.
     """
-    if units is None:
-        warn('Please explicitly set the units. In 0.12 units="mm" will '
-             'be used, but this will change to units="m" in 0.13.',
-             DeprecationWarning)
-        units = 'mm'
     if not isinstance(units, string_types) or units not in ('m', 'mm'):
         raise ValueError('units must be a "m" or "mm"')
     if not isinstance(info, Info):
@@ -1019,7 +1015,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     -----
     .. versionadded:: 0.10
     """
-    from .surface import read_surface
+    from .surface import read_surface, write_surface, _read_surface_geom
     from .viz.misc import plot_bem
     env, mri_dir = _prepare_env(subject, subjects_dir,
                                 requires_freesurfer=True,
@@ -1069,14 +1065,20 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
 
     if op.isfile(T1_mgz):
-        # XXX : do this with python code
+        new_info = _extract_volume_info(T1_mgz)
+        if new_info is None:
+            warn('nibabel is required to replace the volume info. Volume info'
+                 'not updated in the written surface.')
+            new_info = dict()
         surfs = ['brain', 'inner_skull', 'outer_skull', 'outer_skin']
         for s in surfs:
             surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))
-            cmd = ['mne_convert_surface', '--surf', surf_ws_out, '--mghmri',
-                   T1_mgz, '--surfout', s, "--replacegeom"]
-            run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
 
+            surf, volume_info = _read_surface_geom(surf_ws_out,
+                                                   read_metadata=True)
+            volume_info.update(new_info)  # replace volume info, 'head' stays
+
+            write_surface(s, surf['rr'], surf['tris'], volume_info=volume_info)
             # Create symbolic links
             surf_out = op.join(bem_dir, '%s.surf' % s)
             if not overwrite and op.exists(surf_out):
@@ -1084,7 +1086,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
             else:
                 if op.exists(surf_out):
                     os.remove(surf_out)
-                os.symlink(surf_ws_out, surf_out)
+                _symlink(surf_ws_out, surf_out)
                 skip_symlink = False
 
         if skip_symlink:
@@ -1118,6 +1120,28 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                  orientation='coronal', slices=None, show=True)
 
     logger.info('Created %s\n\nComplete.' % (fname_head,))
+
+
+def _extract_volume_info(mgz, raise_error=True):
+    """Helper for extracting volume info from a mgz file."""
+    try:
+        import nibabel as nib
+    except ImportError:
+        return  # warning raised elsewhere
+    header = nib.load(mgz).header
+    new_info = dict()
+    version = header['version']
+    if version == 1:
+        version = '%s  # volume info valid' % version
+    else:
+        raise ValueError('Volume info invalid.')
+    new_info['valid'] = version
+    new_info['filename'] = mgz
+    new_info['volume'] = header['dims'][:3]
+    new_info['voxelsize'] = header['delta']
+    new_info['xras'], new_info['yras'], new_info['zras'] = header['Mdc'].T
+    new_info['cras'] = header['Pxyz_c']
+    return new_info
 
 
 # ############################################################################
@@ -1244,7 +1268,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS)
     if tag is None:
-        tag = tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NORMALS)
+        tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NORMALS)
     if tag is None:
         res['nn'] = list()
     else:
@@ -1451,6 +1475,7 @@ def write_bem_solution(fname, bem):
     --------
     read_bem_solution
     """
+    _check_bem_size(bem['surfs'])
     with start_file(fname) as fid:
         start_block(fid, FIFF.FIFFB_BEM)
         # Coordinate frame (mainly for backward compatibility)
@@ -1537,6 +1562,10 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
            appropriate series:
            $ ln -s <FLASH 5 series dir> flash05
            $ ln -s <FLASH 30 series dir> flash30
+           Some partition formats (e.g. FAT32) do not support symbolic links.
+           In this case, copy the file to the appropriate series:
+           $ cp <FLASH 5 series dir> flash05
+           $ cp <FLASH 30 series dir> flash30
         4. cd to the directory where flash05 and flash30 links are
         5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
         6. Run this script
@@ -1644,7 +1673,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
-                   verbose=None):
+                   flash_path=None, verbose=None):
     """Create 3-Layer BEM model from prepared flash MRI images
 
     Parameters
@@ -1657,30 +1686,40 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         Show surfaces to visually inspect all three BEM surfaces (recommended).
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
+    flash_path : str | None
+        Path to the flash images. If None (default), mri/flash/parameter_maps
+        within the subject reconstruction is used.
+
+        .. versionadded:: 0.13.0
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Notes
     -----
-    This program assumes that FreeSurfer and MNE are installed and
-    sourced properly.
+    This program assumes that FreeSurfer is installed and sourced properly.
 
     This function extracts the BEM surfaces (outer skull, inner skull, and
     outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
     degrees, in mgz format.
-
-    This function assumes that the flash images are available in the
-    folder mri/bem/flash within the freesurfer subject reconstruction.
 
     See Also
     --------
     convert_flash_mris
     """
     from .viz.misc import plot_bem
+    from .surface import write_surface, read_tri
+
+    is_test = os.environ.get('MNE_SKIP_FS_FLASH_CALL', False)
+
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
                                          requires_freesurfer=True,
-                                         requires_mne=True)
+                                         requires_mne=False)
 
+    if flash_path is None:
+        flash_path = op.join(mri_dir, 'flash', 'parameter_maps')
+    else:
+        flash_path = op.abspath(flash_path)
     curdir = os.getcwd()
     subjects_dir = env['SUBJECTS_DIR']
 
@@ -1692,13 +1731,15 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                                        op.join(bem_dir, 'flash')))
     # Step 4 : Register with MPRAGE
     logger.info("\n---- Registering flash 5 with MPRAGE ----")
-    if not op.exists('flash5_reg.mgz'):
+    flash5 = op.join(flash_path, 'flash5.mgz')
+    flash5_reg = op.join(flash_path, 'flash5_reg.mgz')
+    if not op.exists(flash5_reg):
         if op.exists(op.join(mri_dir, 'T1.mgz')):
             ref_volume = op.join(mri_dir, 'T1.mgz')
         else:
             ref_volume = op.join(mri_dir, 'T1')
-        cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', 'flash5.mgz',
-               '-o', 'flash5_reg.mgz']
+        cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', flash5,
+               '-o', flash5_reg]
         run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
     else:
         logger.info("Registered flash 5 image is already there")
@@ -1706,8 +1747,9 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     logger.info("\n---- Converting flash5 volume into COR format ----")
     shutil.rmtree(op.join(mri_dir, 'flash5'), ignore_errors=True)
     os.makedirs(op.join(mri_dir, 'flash5'))
-    cmd = ['mri_convert', 'flash5_reg.mgz', op.join(mri_dir, 'flash5')]
-    run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+    if not is_test:  # CIs don't have freesurfer, skipped when testing.
+        cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
+        run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
     # Step 5b and c : Convert the mgz volumes into COR
     os.chdir(mri_dir)
     convert_T1 = False
@@ -1735,9 +1777,11 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     else:
         logger.info("Brain volume is already in COR format")
     # Finally ready to go
-    logger.info("\n---- Creating the BEM surfaces ----")
-    cmd = ['mri_make_bem_surfaces', subject]
-    run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+    if not is_test:  # CIs don't have freesurfer, skipped when testing.
+        logger.info("\n---- Creating the BEM surfaces ----")
+        cmd = ['mri_make_bem_surfaces', subject]
+        run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+
     logger.info("\n---- Converting the tri files into surf files ----")
     os.chdir(bem_dir)
     if not op.exists('flash'):
@@ -1746,11 +1790,16 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     surfs = ['inner_skull', 'outer_skull', 'outer_skin']
     for surf in surfs:
         shutil.move(op.join(bem_dir, surf + '.tri'), surf + '.tri')
-        cmd = ['mne_convert_surface', '--tri', surf + '.tri', '--surfout',
-               surf + '.surf', '--swap', '--mghmri',
-               op.join(subjects_dir, subject, 'mri', 'flash', 'parameter_maps',
-                       'flash5_reg.mgz')]
-        run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+
+        nodes, tris = read_tri(surf + '.tri', swap=True)
+        vol_info = _extract_volume_info(flash5_reg)
+        if vol_info is None:
+            warn('nibabel is required to update the volume info. Volume info '
+                 'omitted from the written surface.')
+        else:
+            vol_info['head'] = np.array([20])
+        write_surface(surf + '.surf', nodes, tris, volume_info=vol_info)
+
     # Cleanup section
     logger.info("\n---- Cleaning up ----")
     os.chdir(bem_dir)
@@ -1774,7 +1823,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         else:
             if op.exists(surf):
                 os.remove(surf)
-            os.symlink(op.join('flash', surf), op.join(surf))
+            _symlink(op.join('flash', surf), op.join(surf))
             skip_symlink = False
     if skip_symlink:
         logger.info("Unable to create all symbolic links to .surf files "
@@ -1794,3 +1843,22 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
     # Go back to initial directory
     os.chdir(curdir)
+
+
+def _check_bem_size(surfs):
+    """Helper for checking bem surface sizes."""
+    if surfs[0]['np'] > 10000:
+        msg = ('The bem surface has %s data points. 5120 (ico grade=4) should '
+               'be enough.' % surfs[0]['np'])
+        if len(surfs) == 3:
+            msg += ' Dense 3-layer bems may not save properly.'
+        warn(msg)
+
+
+def _symlink(src, dest):
+    try:
+        os.symlink(src, dest)
+    except OSError:
+        warn('Could not create symbolic link %s. Check that your partition '
+             'handles symbolic links. The file will be copied instead.' % dest)
+        shutil.copy(src, dest)

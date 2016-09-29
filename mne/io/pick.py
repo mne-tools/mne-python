@@ -28,7 +28,7 @@ def channel_type(info, idx):
     -------
     type : 'grad' | 'mag' | 'eeg' | 'stim' | 'eog' | 'emg' | 'ecg'
            'ref_meg' | 'resp' | 'exci' | 'ias' | 'syst' | 'misc'
-           'seeg' | 'bio' | 'chpi' | 'dipole' | 'gof' | 'ecog'
+           'seeg' | 'bio' | 'chpi' | 'dipole' | 'gof' | 'ecog' | 'hbo' | 'hbr'
         Type of channel
     """
     kind = info['chs'][idx]['kind']
@@ -74,6 +74,11 @@ def channel_type(info, idx):
         return 'gof'
     elif kind == FIFF.FIFFV_ECOG_CH:
         return 'ecog'
+    elif kind == FIFF.FIFFV_FNIRS_CH:
+        if info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO:
+            return 'hbo'
+        elif info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR:
+            return 'hbr'
     raise Exception('Unknown channel type')
 
 
@@ -167,6 +172,17 @@ def _triage_meg_pick(ch, meg):
     return False
 
 
+def _triage_fnirs_pick(ch, fnirs):
+    """Helper to triage an fNIRS pick type."""
+    if fnirs is True:
+        return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO and fnirs == 'hbo':
+        return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR and fnirs == 'hbr':
+        return True
+    return False
+
+
 def _check_meg_type(meg, allow_auto=False):
     """Helper to ensure a valid meg type"""
     if isinstance(meg, string_types):
@@ -180,15 +196,15 @@ def _check_meg_type(meg, allow_auto=False):
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
-               gof=False, bio=False, ecog=False, include=[], exclude='bads',
-               selection=None):
+               gof=False, bio=False, ecog=False, fnirs=False, include=[],
+               exclude='bads', selection=None):
     """Pick channels by type and names
 
     Parameters
     ----------
     info : dict
         The measurement info.
-    meg : bool or string
+    meg : bool | str
         If True include all MEG channels. If False include None
         If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
         only magnetometers, all gradiometers, or a specific type of
@@ -230,11 +246,16 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         Bio channels.
     ecog : bool
         Electrocorticography channels.
+    fnirs : bool | str
+        Functional near-infrared spectroscopy channels. If True include all
+        fNIRS channels. If False (default) include none. If string it can be
+        'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
+        include channels measuring deoxyhemoglobin).
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
         List of channels to exclude. If 'bads' (default), exclude channels
-        in info['bads'].
+        in ``info['bads']``.
     selection : list of string
         Restrict sensor channels (MEG, EEG) to this list of channel names.
 
@@ -272,7 +293,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                   ias, syst, seeg, dipole, gof, bio, ecog):
         if not isinstance(param, bool):
             w = ('Parameters for all channel types (with the exception '
-                 'of "meg" and "ref_meg") must be of type bool, not {}.')
+                 'of "meg", "ref_meg" and "fnirs") must be of type bool, '
+                 'not {0}.')
             raise ValueError(w.format(type(param)))
 
     for k in range(nchan):
@@ -317,6 +339,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
             pick[k] = True
         elif kind == FIFF.FIFFV_ECOG_CH and ecog:
             pick[k] = True
+        elif kind == FIFF.FIFFV_FNIRS_CH:
+            pick[k] = _triage_fnirs_pick(info['chs'][k], fnirs)
 
     # restrict channels to selection if provided
     if selection is not None:
@@ -557,8 +581,9 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
 def channel_indices_by_type(info):
     """Get indices of channels by type
     """
-    idx = dict((key, list()) for key in _PICK_TYPES_KEYS if key != 'meg')
-    idx.update(mag=list(), grad=list())
+    idx = dict((key, list()) for key in _PICK_TYPES_KEYS if
+               key not in ('meg', 'fnirs'))
+    idx.update(mag=list(), grad=list(), hbo=list(), hbr=list())
     for k, ch in enumerate(info['chs']):
         for key in idx.keys():
             if channel_type(info, k) == key:
@@ -677,9 +702,9 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
 _PICK_TYPES_DATA_DICT = dict(
     meg=True, eeg=True, stim=False, eog=False, ecg=False, emg=False,
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
-    seeg=True, dipole=False, gof=False, bio=False, ecog=True)
+    seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
-_DATA_CH_TYPES_SPLIT = ['mag', 'grad', 'eeg', 'seeg', 'ecog']
+_DATA_CH_TYPES_SPLIT = ['mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr']
 
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True):

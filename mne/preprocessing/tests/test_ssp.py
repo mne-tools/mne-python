@@ -5,7 +5,7 @@ from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_array_almost_equal
 import numpy as np
 
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne.io.proj import make_projector, activate_proj
 from mne.preprocessing.ssp import compute_proj_ecg, compute_proj_eog
 from mne.utils import run_tests_if_main
@@ -19,8 +19,8 @@ eog_times = np.array([0.5, 2.3, 3.6, 14.5])
 
 
 def test_compute_proj_ecg():
-    """Test computation of ECG SSP projectors"""
-    raw = Raw(raw_fname).crop(0, 10, copy=False)
+    """Test computation of ECG SSP projectors."""
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False).crop(0, 10, copy=False)
     raw.load_data()
     for average in [False, True]:
         # For speed, let's not filter here (must also not reject then)
@@ -29,7 +29,8 @@ def test_compute_proj_ecg():
                                          average=average, avg_ref=True,
                                          no_proj=True, l_freq=None,
                                          h_freq=None, reject=None,
-                                         tmax=dur_use, qrs_threshold=0.5)
+                                         tmax=dur_use, qrs_threshold=0.5,
+                                         filter_length=6000)
         assert_true(len(projs) == 7)
         # heart rate at least 0.5 Hz, but less than 3 Hz
         assert_true(events.shape[0] > 0.5 * dur_use and
@@ -55,13 +56,13 @@ def test_compute_proj_ecg():
                                              average=average, avg_ref=True,
                                              no_proj=True, l_freq=None,
                                              h_freq=None, tmax=dur_use)
-            assert_equal(len(w), 1)
+        assert_true(len(w) >= 1)
         assert_equal(projs, None)
 
 
 def test_compute_proj_eog():
-    """Test computation of EOG SSP projectors"""
-    raw = Raw(raw_fname).crop(0, 10, copy=False)
+    """Test computation of EOG SSP projectors."""
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False).crop(0, 10, copy=False)
     raw.load_data()
     for average in [False, True]:
         n_projs_init = len(raw.info['projs'])
@@ -69,7 +70,8 @@ def test_compute_proj_eog():
                                          bads=['MEG 2443'], average=average,
                                          avg_ref=True, no_proj=False,
                                          l_freq=None, h_freq=None,
-                                         reject=None, tmax=dur_use)
+                                         reject=None, tmax=dur_use,
+                                         filter_length=6000)
         assert_true(len(projs) == (7 + n_projs_init))
         assert_true(np.abs(events.shape[0] -
                     np.sum(np.less(eog_times, dur_use))) <= 1)
@@ -94,26 +96,26 @@ def test_compute_proj_eog():
                                              avg_ref=True, no_proj=False,
                                              l_freq=None, h_freq=None,
                                              tmax=dur_use)
-            assert_equal(len(w), 1)
+        assert_true(len(w) >= 1)
         assert_equal(projs, None)
 
 
 def test_compute_proj_parallel():
-    """Test computation of ExG projectors using parallelization"""
-    raw_0 = Raw(raw_fname).crop(0, 10, copy=False)
+    """Test computation of ExG projectors using parallelization."""
+    raw_0 = read_raw_fif(raw_fname, add_eeg_ref=False).crop(0, 10, copy=False)
     raw_0.load_data()
     raw = raw_0.copy()
     projs, _ = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
                                 bads=['MEG 2443'], average=False,
                                 avg_ref=True, no_proj=False, n_jobs=1,
                                 l_freq=None, h_freq=None, reject=None,
-                                tmax=dur_use)
+                                tmax=dur_use, filter_length=6000)
     raw_2 = raw_0.copy()
     projs_2, _ = compute_proj_eog(raw_2, n_mag=2, n_grad=2, n_eeg=2,
                                   bads=['MEG 2443'], average=False,
                                   avg_ref=True, no_proj=False, n_jobs=2,
                                   l_freq=None, h_freq=None, reject=None,
-                                  tmax=dur_use)
+                                  tmax=dur_use, filter_length=6000)
     projs = activate_proj(projs)
     projs_2 = activate_proj(projs_2)
     projs, _, _ = make_projector(projs, raw_2.info['ch_names'],

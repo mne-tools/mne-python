@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import os
+import re
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -14,8 +15,16 @@ import mne
 from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.utils import (_TempDir, requires_traits, requires_mne,
-                       requires_freesurfer, run_tests_if_main)
+                       requires_freesurfer, run_tests_if_main, requires_mayavi)
 from mne.externals.six import string_types
+
+# backend needs to be set early
+try:
+    from traits.etsconfig.api import ETSConfig
+except ImportError:
+    pass
+else:
+    ETSConfig.toolkit = 'qt4'
 
 
 data_path = testing.data_path(download=False)
@@ -38,6 +47,8 @@ def test_coreg_model():
 
     model = CoregModel()
     assert_raises(RuntimeError, model.save_trans, 'blah.fif')
+
+    model.mri.use_high_res_head = False
 
     model.mri.subjects_dir = subjects_dir
     model.mri.subject = 'sample'
@@ -101,7 +112,26 @@ def test_coreg_model():
     assert_true(isinstance(model.fid_eval_str, string_types))
     assert_true(isinstance(model.points_eval_str, string_types))
 
-    model.get_prepare_bem_model_job('sample')
+    # scaling job
+    sdir, sfrom, sto, scale, skip_fiducials, bemsol = \
+        model.get_scaling_job('sample2', False, True)
+    assert_equal(sdir, subjects_dir)
+    assert_equal(sfrom, 'sample')
+    assert_equal(sto, 'sample2')
+    assert_equal(scale, model.scale)
+    assert_equal(skip_fiducials, False)
+    # find BEM files
+    bems = set()
+    for fname in os.listdir(os.path.join(subjects_dir, 'sample', 'bem')):
+        match = re.match('sample-(.+-bem)\.fif', fname)
+        if match:
+            bems.add(match.group(1))
+    assert_equal(set(bemsol), bems)
+    sdir, sfrom, sto, scale, skip_fiducials, bemsol = \
+        model.get_scaling_job('sample2', True, False)
+    assert_equal(bemsol, [])
+    assert_true(skip_fiducials)
+
     model.load_trans(fname_trans)
 
     from mne.gui._coreg_gui import CoregFrame
@@ -120,13 +150,14 @@ def test_coreg_model():
 @requires_mne
 @requires_freesurfer
 def test_coreg_model_with_fsaverage():
-    """Test CoregModel"""
+    """Test CoregModel with the fsaverage brain data"""
     tempdir = _TempDir()
     from mne.gui._coreg_gui import CoregModel
 
     mne.create_default_subject(subjects_dir=tempdir)
 
     model = CoregModel()
+    model.mri.use_high_res_head = False
     model.mri.subjects_dir = tempdir
     model.mri.subject = 'fsaverage'
     assert_true(model.mri.fid_ok)
@@ -165,12 +196,17 @@ def test_coreg_model_with_fsaverage():
     avg_point_distance_1param = np.mean(model.point_distance)
     assert_true(avg_point_distance_1param < avg_point_distance)
 
-    desc, func, args, kwargs = model.get_scaling_job('test')
-    assert_true(isinstance(desc, string_types))
-    assert_equal(args[0], 'fsaverage')
-    assert_equal(args[1], 'test')
-    assert_allclose(args[2], model.scale)
-    assert_equal(kwargs['subjects_dir'], tempdir)
+    # scaling job
+    sdir, sfrom, sto, scale, skip_fiducials, bemsol = \
+        model.get_scaling_job('scaled', False, True)
+    assert_equal(sdir, tempdir)
+    assert_equal(sfrom, 'fsaverage')
+    assert_equal(sto, 'scaled')
+    assert_equal(scale, model.scale)
+    assert_equal(set(bemsol), set(('inner_skull-bem',)))
+    sdir, sfrom, sto, scale, skip_fiducials, bemsol = \
+        model.get_scaling_job('scaled', False, False)
+    assert_equal(bemsol, [])
 
     # scale with 3 parameters
     model.n_scale_params = 3
@@ -182,6 +218,25 @@ def test_coreg_model_with_fsaverage():
     with warnings.catch_warnings(record=True):
         model.hsp.file = kit_raw_path
     assert_equal(model.hsp.n_omitted, 0)
+
+
+@testing.requires_testing_data
+@requires_mayavi
+def test_coreg_gui():
+    """Test Coregistration GUI"""
+    from mne.gui._coreg_gui import CoregFrame
+
+    frame = CoregFrame()
+    frame.edit_traits()
+
+    frame.model.mri.subjects_dir = subjects_dir
+    frame.model.mri.subject = 'sample'
+
+    assert_false(frame.model.mri.fid_ok)
+    frame.model.mri.lpa = [[-0.06, 0, 0]]
+    frame.model.mri.nasion = [[0, 0.05, 0]]
+    frame.model.mri.rpa = [[0.08, 0, 0]]
+    assert_true(frame.model.mri.fid_ok)
 
 
 run_tests_if_main()

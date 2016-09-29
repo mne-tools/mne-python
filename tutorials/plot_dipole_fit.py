@@ -71,7 +71,7 @@ pred_evoked.plot_topomap(time_format='Predicted field', axes=axes[1],
                          **plot_params)
 
 # Subtract predicted from measured data (apply equal weights)
-diff = combine_evoked([evoked, pred_evoked], [1, -1])
+diff = combine_evoked([evoked, -pred_evoked], weights='equal')
 plot_params['colorbar'] = True
 diff.plot_topomap(time_format='Difference', axes=axes[2], **plot_params)
 plt.suptitle('Comparison of measured and predicted fields '

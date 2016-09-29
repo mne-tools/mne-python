@@ -27,7 +27,7 @@ data_path = somato.data_path()
 raw_fname = data_path + '/MEG/somato/sef_raw_sss.fif'
 
 # Setup for reading the raw data
-raw = mne.io.read_raw_fif(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname, add_eeg_ref=False)
 events = mne.find_events(raw, stim_channel='STI 014')
 
 # picks MEG gradiometers
@@ -38,7 +38,7 @@ event_id, tmin, tmax = 1, -1., 3.
 baseline = (None, 0)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=baseline, reject=dict(grad=4000e-13, eog=350e-6),
-                    preload=True)
+                    preload=True, add_eeg_ref=False)
 
 epochs.resample(150., npad='auto')  # resample to reduce computation time
 
@@ -59,7 +59,7 @@ epochs.plot_psd_topomap(ch_type='grad', normalize=True)
 
 ###############################################################################
 # Alternatively, you can also create PSDs from Epochs objects with functions
-# that start with psd_ such as
+# that start with ``psd_`` such as
 # :func:`mne.time_frequency.psd_multitaper` and
 # :func:`mne.time_frequency.psd_welch`.
 

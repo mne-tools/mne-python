@@ -17,16 +17,37 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, find_events
 from mne.io.constants import FIFF
-from mne.io import Raw, read_raw_brainvision
+from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
 vmrk_path = op.join(data_dir, 'test.vmrk')
+
+vhdr_partially_disabled_hw_filter_path = op.join(data_dir,
+                                                 'test_partially_disabled'
+                                                 '_hw_filter.vhdr')
+
+vhdr_old_path = op.join(data_dir,
+                        'test_old_layout_latin1_software_filter.vhdr')
+vmrk_old_path = op.join(data_dir,
+                        'test_old_layout_latin1_software_filter.vmrk')
+
 vhdr_v2_path = op.join(data_dir, 'testv2.vhdr')
 vmrk_v2_path = op.join(data_dir, 'testv2.vmrk')
+
 vhdr_highpass_path = op.join(data_dir, 'test_highpass.vhdr')
+vhdr_mixed_highpass_path = op.join(data_dir, 'test_mixed_highpass.vhdr')
+vhdr_highpass_hz_path = op.join(data_dir, 'test_highpass_hz.vhdr')
+vhdr_mixed_highpass_hz_path = op.join(data_dir, 'test_mixed_highpass_hz.vhdr')
+
+# Not a typo: we can reuse the highpass file for the lowpass (Hz) test
+vhdr_lowpass_path = op.join(data_dir, 'test_highpass.vhdr')
+vhdr_mixed_lowpass_path = op.join(data_dir, 'test_mixed_lowpass.vhdr')
+vhdr_lowpass_s_path = op.join(data_dir, 'test_lowpass_s.vhdr')
+vhdr_mixed_lowpass_s_path = op.join(data_dir, 'test_mixed_lowpass_s.vhdr')
+
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
@@ -34,9 +55,9 @@ eog = ['HL', 'HR', 'Vb']
 warnings.simplefilter('always')
 
 
-def test_brainvision_data_filters():
-    """Test reading raw Brain Vision files
-    """
+def test_brainvision_data_highpass_filters():
+    """Test reading raw Brain Vision files with amplifier filter settings."""
+    # Homogeneous highpass in seconds (default measurement unit)
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_highpass_path,
@@ -46,18 +67,170 @@ def test_brainvision_data_filters():
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
 
+    # Heterogeneous highpass in seconds (default measurement unit)
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_path,
+            montage=montage, eog=eog)
+
+    trigger_warning = ['parse triggers that' in str(ww.message)
+                       for ww in w]
+    lowpass_warning = ['different lowpass filters' in str(ww.message)
+                       for ww in w]
+    highpass_warning = ['different highpass filters' in str(ww.message)
+                        for ww in w]
+
+    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+
+    assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+
+    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['lowpass'], 250.)
+
+    # Homogeneous highpass in Hertz
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_highpass_hz_path,
+            montage=montage, eog=eog)
+    assert_true(all('parse triggers that' in str(ww.message) for ww in w))
+
+    assert_equal(raw.info['highpass'], 10.)
+    assert_equal(raw.info['lowpass'], 250.)
+
+    # Heterogeneous highpass in Hertz
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_hz_path,
+            montage=montage, eog=eog)
+
+    trigger_warning = ['parse triggers that' in str(ww.message)
+                       for ww in w]
+    lowpass_warning = ['different lowpass filters' in str(ww.message)
+                       for ww in w]
+    highpass_warning = ['different highpass filters' in str(ww.message)
+                        for ww in w]
+
+    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+
+    assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+
+    assert_equal(raw.info['highpass'], 5.)
+    assert_equal(raw.info['lowpass'], 250.)
+
+
+def test_brainvision_data_lowpass_filters():
+    """Test reading raw Brain Vision files with amplifier LP filter settings"""
+
+    # Homogeneous lowpass in Hertz (default measurement unit)
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_lowpass_path,
+            montage=montage, eog=eog)
+    assert_true(all('parse triggers that' in str(ww.message) for ww in w))
+
+    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['lowpass'], 250.)
+
+    # Heterogeneous lowpass in Hertz (default measurement unit)
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_path,
+            montage=montage, eog=eog)
+
+    trigger_warning = ['parse triggers that' in str(ww.message)
+                       for ww in w]
+    lowpass_warning = ['different lowpass filters' in str(ww.message)
+                       for ww in w]
+    highpass_warning = ['different highpass filters' in str(ww.message)
+                        for ww in w]
+
+    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+
+    assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+
+    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['lowpass'], 250.)
+
+    # Homogeneous lowpass in seconds
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_lowpass_s_path,
+            montage=montage, eog=eog)
+    assert_true(all('parse triggers that' in str(ww.message) for ww in w))
+
+    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['lowpass'], 250.)
+
+    # Heterogeneous lowpass in seconds
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_s_path,
+            montage=montage, eog=eog)
+
+    trigger_warning = ['parse triggers that' in str(ww.message)
+                       for ww in w]
+    lowpass_warning = ['different lowpass filters' in str(ww.message)
+                       for ww in w]
+    highpass_warning = ['different highpass filters' in str(ww.message)
+                        for ww in w]
+
+    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+
+    assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+
+    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['lowpass'], 250.)
+
+
+def test_brainvision_data_partially_disabled_hw_filters():
+    """Test reading raw Brain Vision files with heterogeneous amplifier
+       filter settings including non-numeric values
+    """
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision,
+            vhdr_fname=vhdr_partially_disabled_hw_filter_path,
+            montage=montage, eog=eog)
+
+    trigger_warning = ['parse triggers that' in str(ww.message)
+                       for ww in w]
+    lowpass_warning = ['different lowpass filters' in str(ww.message)
+                       for ww in w]
+    highpass_warning = ['different highpass filters' in str(ww.message)
+                        for ww in w]
+
+    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+
+    assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+
+    assert_equal(raw.info['highpass'], 0.)
+    assert_equal(raw.info['lowpass'], 500.)
+
+
+def test_brainvision_data_software_filters_latin1_global_units():
+    """Test reading raw Brain Vision files."""
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_old_path,
+            eog=("VEOGo", "VEOGu", "HEOGli", "HEOGre"), misc=("A2",))
+    assert_true(all('software filter detected' in str(ww.message) for ww in w))
+
+    assert_equal(raw.info['highpass'], 1. / 0.9)
+    assert_equal(raw.info['lowpass'], 50.)
+
 
 def test_brainvision_data():
-    """Test reading raw Brain Vision files
-    """
+    """Test reading raw Brain Vision files."""
     assert_raises(IOError, read_raw_brainvision, vmrk_path)
     assert_raises(ValueError, read_raw_brainvision, vhdr_path, montage,
                   preload=True, scale="foo")
+
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw_py = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_path, montage=montage,
-            eog=eog)
+            eog=eog, misc='auto')
     assert_true(all('parse triggers that' in str(ww.message) for ww in w))
+
     assert_true('RawBrainVision' in repr(raw_py))
 
     assert_equal(raw_py.info['highpass'], 0.)
@@ -67,7 +240,7 @@ def test_brainvision_data():
     data_py, times_py = raw_py[picks]
 
     # compare with a file that was generated using MNE-C
-    raw_bin = Raw(eeg_bin, preload=True)
+    raw_bin = read_raw_fif(eeg_bin, preload=True, add_eeg_ref=False)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_bin, times_bin = raw_bin[picks]
 
@@ -80,8 +253,15 @@ def test_brainvision_data():
             assert_equal(ch['kind'], FIFF.FIFFV_EOG_CH)
         elif ch['ch_name'] == 'STI 014':
             assert_equal(ch['kind'], FIFF.FIFFV_STIM_CH)
+        elif ch['ch_name'] in ('CP5', 'CP6'):
+            assert_equal(ch['kind'], FIFF.FIFFV_MISC_CH)
+            assert_equal(ch['unit'], FIFF.FIFF_UNIT_NONE)
+        elif ch['ch_name'] == 'ReRef':
+            assert_equal(ch['kind'], FIFF.FIFFV_MISC_CH)
+            assert_equal(ch['unit'], FIFF.FIFF_UNIT_CEL)
         elif ch['ch_name'] in raw_py.info['ch_names']:
             assert_equal(ch['kind'], FIFF.FIFFV_EEG_CH)
+            assert_equal(ch['unit'], FIFF.FIFF_UNIT_V)
         else:
             raise RuntimeError("Unknown Channel: %s" % ch['ch_name'])
 
@@ -91,7 +271,7 @@ def test_brainvision_data():
 
 
 def test_events():
-    """Test reading and modifying events"""
+    """Test reading and modifying events."""
     tempdir = _TempDir()
 
     # check that events are read and stim channel is synthesized correcly

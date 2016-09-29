@@ -23,7 +23,8 @@ from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
 from ..utils import _clean_names, _time_mask, verbose, logger, warn
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
-                    plt_show, _process_times)
+                    plt_show, _process_times, DraggableColorbar,
+                    _validate_if_list_of_axes)
 from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
@@ -135,9 +136,16 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         Layout instance specifying sensor positions (does not need to be
         specified for Neuromag data). Or a list of Layout if projections
         are from different sensor types.
-    cmap : matplotlib colormap | None
-        Colormap to use. If None, 'Reds' is used for all positive data,
-        otherwise defaults to 'RdBu_r'.
+    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+        Colormap to use. If tuple, the first value indicates the colormap to
+        use and the second value is a boolean defining interactivity. In
+        interactive mode (only works if ``colorbar=True``) the colors are
+        adjustable by clicking and dragging the colorbar with left and right
+        mouse button. Left mouse button moves the scale up and down and right
+        mouse button adjusts the range. Hitting space bar resets the range. Up
+        and down arrows can be used to change the colormap. If None (default),
+        'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
+        If 'interactive', translates to (None, True).
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be
@@ -182,7 +190,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
-
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
     if layout is None:
         from ..channels import read_layout
         layout = read_layout('Vectorview-all')
@@ -194,6 +202,10 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     nrows = math.floor(math.sqrt(n_projs))
     ncols = math.ceil(n_projs / nrows)
 
+    if cmap == 'interactive':
+        cmap = (None, True)
+    elif not isinstance(cmap, tuple):
+        cmap = (cmap, True)
     if axes is None:
         plt.figure()
         axes = list()
@@ -232,12 +244,16 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
             break
 
         if len(idx):
-            plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap,
-                         sensors=sensors, res=res, axes=axes[proj_idx],
-                         outlines=outlines, contours=contours,
-                         image_interp=image_interp, show=False)
+            im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap[0],
+                              sensors=sensors, res=res, axes=axes[proj_idx],
+                              outlines=outlines, contours=contours,
+                              image_interp=image_interp, show=False)[0]
             if colorbar:
-                plt.colorbar()
+                divider = make_axes_locatable(axes[proj_idx])
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                cbar = plt.colorbar(im, cax=cax, cmap=cmap)
+                if cmap[1]:
+                    axes[proj_idx].CB = DraggableColorbar(cbar, im)
         else:
             raise RuntimeError('Cannot find a proper layout for projection %s'
                                % proj['desc'])
@@ -381,7 +397,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  res=64, axes=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
                  contours=6, image_interp='bilinear', show=True,
-                 head_pos=None, onselect=None, axis=None):
+                 head_pos=None, onselect=None):
     """Plot a topographic map as image
 
     Parameters
@@ -462,8 +478,6 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         Handle for a function that is called when the user selects a set of
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
         None interactive selection is disabled. Defaults to None.
-    axis : instance of Axes | None
-        Deprecated. Will be removed in 0.13. Use ``axes`` instead.
 
     Returns
     -------
@@ -540,10 +554,6 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     pos, outlines = _check_outlines(pos, outlines, head_pos)
 
-    if axis is not None:
-        axes = axis
-        warn('axis parameter is deprecated and will be removed in 0.13. '
-             'Use axes instead.', DeprecationWarning)
     ax = axes if axes else plt.gca()
     pos_x, pos_y = _prepare_topomap(pos, ax)
     if outlines is None:
@@ -709,11 +719,62 @@ def _inside_contour(pos, contour):
     return check_mask
 
 
+def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
+                      vmin=None, vmax=None, cmap='RdBu_r', colorbar=False,
+                      title=None, show=True, outlines='head', contours=6,
+                      image_interp='bilinear', head_pos=None, axes=None):
+    """plot single ica map to axes"""
+    import matplotlib as mpl
+    from ..channels import _get_ch_type
+    from ..preprocessing.ica import _get_ica_map
+
+    if ica.info is None:
+        raise RuntimeError('The ICA\'s measurement info is missing. Please '
+                           'fit the ICA or add the corresponding info object.')
+    if not isinstance(axes, mpl.axes.Axes):
+        raise ValueError('axis has to be an instance of matplotlib Axes, '
+                         'got %s instead.' % type(axes))
+    ch_type = _get_ch_type(ica, ch_type)
+
+    data = _get_ica_map(ica, components=idx)
+    data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
+        ica, ch_type, layout)
+    pos, outlines = _check_outlines(pos, outlines, head_pos)
+    if outlines not in (None, 'head'):
+        image_mask, pos = _make_image_mask(outlines, pos, res)
+    else:
+        image_mask = None
+
+    data = np.atleast_2d(data)
+    data = data[:, data_picks]
+
+    if merge_grads:
+        from ..channels.layout import _merge_grad_data
+        data = _merge_grad_data(data)
+    axes.set_title('IC #%03d' % idx, fontsize=12)
+    vmin_, vmax_ = _setup_vmin_vmax(data, vmin, vmax)
+    im = plot_topomap(data.ravel(), pos, vmin=vmin_, vmax=vmax_,
+                      res=res, axes=axes, cmap=cmap, outlines=outlines,
+                      image_mask=image_mask, contours=contours,
+                      image_interp=image_interp, show=show)[0]
+    if colorbar:
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.axes_grid import make_axes_locatable
+        divider = make_axes_locatable(axes)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        cbar = plt.colorbar(im, cax=cax, format='%3.2f', cmap=cmap)
+        cbar.ax.tick_params(labelsize=12)
+        cbar.set_ticks((vmin_, vmax_))
+        cbar.ax.set_title('AU', fontsize=10)
+    _hide_frame(axes)
+
+
 def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                         sensors=True, colorbar=False, title=None,
                         show=True, outlines='head', contours=6,
-                        image_interp='bilinear', head_pos=None):
+                        image_interp='bilinear', head_pos=None,
+                        inst=None):
     """Project unmixing matrix on interpolated sensor topogrpahy.
 
     Parameters
@@ -741,8 +802,20 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         The value specifying the upper bound of the color range.
         If None, the maximum absolute value is used. If callable, the output
         equals vmax(data). Defaults to None.
-    cmap : matplotlib colormap
-        Colormap.
+    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+        Colormap to use. If tuple, the first value indicates the colormap to
+        use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If None, 'Reds' is used for all positive data,
+        otherwise defaults to 'RdBu_r'. If 'interactive', translates to
+        (None, True). Defaults to 'RdBu_r'.
+
+        .. warning::  Interactive mode works smoothly only for a small amount
+            of topomaps.
+
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib
         plot format string (e.g., 'r+' for red plusses). If True, a circle
@@ -774,12 +847,19 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         the head circle. If dict, can have entries 'center' (tuple) and
         'scale' (tuple) for what the center and scale of the head should be
         relative to the electrode locations.
+    inst : Raw | Epochs | None
+        To be able to see component properties after clicking on component
+        topomap you need to pass relevant data - instances of Raw or Epochs
+        (for example the data that ICA was trained on). This takes effect
+        only when running matplotlib in interactive mode.
 
     Returns
     -------
     fig : instance of matplotlib.pyplot.Figure or list
         The figure object(s).
     """
+    from ..io import _BaseRaw
+    from ..epochs import _BaseEpochs
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid import make_axes_locatable
     from ..channels import _get_ch_type
@@ -791,19 +871,24 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         figs = []
         for k in range(0, n_components, p):
             picks = range(k, min(k + p, n_components))
-            fig = plot_ica_components(ica, picks=picks,
-                                      ch_type=ch_type, res=res, layout=layout,
-                                      vmax=vmax, cmap=cmap, sensors=sensors,
+            fig = plot_ica_components(ica, picks=picks, ch_type=ch_type,
+                                      res=res, layout=layout, vmax=vmax,
+                                      cmap=cmap, sensors=sensors,
                                       colorbar=colorbar, title=title,
                                       show=show, outlines=outlines,
                                       contours=contours,
-                                      image_interp=image_interp)
+                                      image_interp=image_interp,
+                                      head_pos=head_pos, inst=inst)
             figs.append(fig)
         return figs
     elif np.isscalar(picks):
         picks = [picks]
     ch_type = _get_ch_type(ica, ch_type)
 
+    if cmap == 'interactive':
+        cmap = ('RdBu_r', True)
+    elif not isinstance(cmap, tuple):
+        cmap = (cmap, False if len(picks) > 2 else True)
     data = np.dot(ica.mixing_matrix_[:, picks].T,
                   ica.pca_components_[:ica.n_components_])
 
@@ -835,9 +920,10 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
         im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
-                          res=res, axes=ax, cmap=cmap, outlines=outlines,
+                          res=res, axes=ax, cmap=cmap[0], outlines=outlines,
                           image_mask=image_mask, contours=contours,
                           image_interp=image_interp, show=False)[0]
+        im.axes.set_label('IC #%03d' % ii)
         if colorbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -845,10 +931,21 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
             cbar.ax.tick_params(labelsize=12)
             cbar.set_ticks((vmin_, vmax_))
             cbar.ax.set_title('AU', fontsize=10)
+            if cmap[1]:
+                ax.CB = DraggableColorbar(cbar, im)
         _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.95)
     fig.canvas.draw()
+    if isinstance(inst, (_BaseRaw, _BaseEpochs)):
+        def onclick(event, ica=ica, inst=inst):
+            # check which component to plot
+            label = event.inaxes.get_label()
+            if 'IC #' in label:
+                ic = int(label[4:])
+                ica.plot_properties(inst, picks=ic, show=True)
+        fig.canvas.mpl_connect('button_press_event', onclick)
+
     plt_show(show)
     return fig
 
@@ -910,10 +1007,16 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         The value specifying the upper bound of the color range. If None, the
         maximum value is used. If callable, the output equals vmax(data).
         Defaults to None.
-    cmap : matplotlib colormap | None
-        Colormap. If None and the plotted data is all positive, defaults to
-        'Reds'. If None and data contains also negative values, defaults to
-        'RdBu_r'. Defaults to None.
+    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+        Colormap to use. If tuple, the first value indicates the colormap to
+        use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If None (default), 'Reds' is used for all positive data,
+        otherwise defaults to 'RdBu_r'. If 'interactive', translates to
+        (None, True).
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib
         plot format string (e.g., 'r+' for red plusses). If True, a circle will
@@ -925,7 +1028,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     res : int
         The resolution of the topomap image (n pixels along each side).
     size : float
-        Side length per topomap in inches.
+        Side length per topomap in inches (only applies when plotting multiple
+        topomaps at a time).
     cbar_fmt : str
         String format for colorbar values.
     show_names : bool | callable
@@ -1000,8 +1104,10 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     norm = False if np.min(data) < 0 else True
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
-    if cmap is None:
-        cmap = 'Reds' if norm else 'RdBu_r'
+    if cmap is None or cmap == 'interactive':
+        cmap = ('Reds', True) if norm else ('RdBu_r', True)
+    elif not isinstance(cmap, tuple):
+        cmap = (cmap, True)
 
     if axes is None:
         fig = plt.figure()
@@ -1017,21 +1123,23 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     fig_wrapper = list()
     selection_callback = partial(_onselect, tfr=tfr, pos=pos, ch_type=ch_type,
                                  itmin=itmin, itmax=itmax, ifmin=ifmin,
-                                 ifmax=ifmax, cmap=cmap, fig=fig_wrapper,
+                                 ifmax=ifmax, cmap=cmap[0], fig=fig_wrapper,
                                  layout=layout)
 
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
-                         axes=ax, cmap=cmap, image_interp='bilinear',
+                         axes=ax, cmap=cmap[0], image_interp='bilinear',
                          contours=False, names=names, show_names=show_names,
                          show=False, onselect=selection_callback)
 
     if colorbar:
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
-        cbar = plt.colorbar(im, cax=cax, format=cbar_fmt, cmap=cmap)
+        cbar = plt.colorbar(im, cax=cax, format=cbar_fmt, cmap=cmap[0])
         cbar.set_ticks((vmin, vmax))
         cbar.ax.tick_params(labelsize=12)
         cbar.ax.set_title('AU')
+        if cmap[1]:
+            ax.CB = DraggableColorbar(cbar, im)
 
     plt_show(show)
     return fig
@@ -1075,9 +1183,20 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         The value specifying the upper bound of the color range.
         If None, the maximum absolute value is used. If callable, the output
         equals vmax(data). Defaults to None.
-    cmap : matplotlib colormap | None
-        Colormap to use. If None, 'Reds' is used for all positive data,
-        otherwise defaults to 'RdBu_r'.
+    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+        Colormap to use. If tuple, the first value indicates the colormap to
+        use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If None (default), 'Reds' is used for all positive data,
+        otherwise defaults to 'RdBu_r'. If 'interactive', translates to
+        (None, True).
+
+        .. warning::  Interactive mode works smoothly only for a small amount
+            of topomaps.
+
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be
@@ -1269,10 +1388,18 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     else:
         image_mask = None
 
+    vlims = [_setup_vmin_vmax(data[:, i], vmin, vmax, norm=merge_grads)
+             for i in range(len(times))]
+    vmin = np.min(vlims)
+    vmax = np.max(vlims)
+    if cmap == 'interactive':
+        cmap = (None, True)
+    elif not isinstance(cmap, tuple):
+        cmap = (cmap, False if len(times) > 2 else True)
     for idx, time in enumerate(times):
         tp, cn = plot_topomap(data[:, idx], pos, vmin=vmin, vmax=vmax,
                               sensors=sensors, res=res, names=names,
-                              show_names=show_names, cmap=cmap,
+                              show_names=show_names, cmap=cmap[0],
                               mask=mask_[:, idx] if mask is not None else None,
                               mask_params=mask_params, axes=axes[idx],
                               outlines=outlines, image_mask=image_mask,
@@ -1304,6 +1431,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             cax.set_title(unit)
         cbar = fig.colorbar(images[-1], ax=cax, cax=cax, format=cbar_fmt)
         cbar.set_ticks([cbar.vmin, 0, cbar.vmax])
+        if cmap[1]:
+            for im in images:
+                im.axes.CB = DraggableColorbar(cbar, im)
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
@@ -1318,8 +1448,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     return fig
 
 
-def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
-                             vmin=None, vmax=None, cmap='RdBu_r',
+def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
+                             vmax=None, cmap=None, outlines='head',
                              colorbar=False, cbar_fmt='%3.3f'):
     """Aux Function"""
     import matplotlib.pyplot as plt
@@ -1329,11 +1459,15 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
     vmin = np.min(data) if vmin is None else vmin
     vmax = np.max(data) if vmax is None else vmax
 
+    if cmap == 'interactive':
+        cmap = (None, True)
+    elif not isinstance(cmap, tuple):
+        cmap = (cmap, True)
     if title is not None:
         ax.set_title(title, fontsize=10)
     im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axes=ax,
-                         cmap=cmap, image_interp='bilinear', contours=False,
-                         show=False)
+                         cmap=cmap[0], image_interp='bilinear', contours=False,
+                         outlines=outlines, show=False)
 
     if colorbar is True:
         divider = make_axes_locatable(ax)
@@ -1343,6 +1477,8 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
         if unit is not None:
             cbar.ax.set_title(unit, fontsize=8)
         cbar.ax.tick_params(labelsize=8)
+        if cmap[1]:
+            ax.CB = DraggableColorbar(cbar, im)
 
 
 @verbose
@@ -1352,7 +1488,8 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                             normalization='length', ch_type=None, layout=None,
                             cmap='RdBu_r', agg_fun=None, dB=False, n_jobs=1,
                             normalize=False, cbar_fmt='%0.3f',
-                            outlines='head', show=True, verbose=None):
+                            outlines='head', axes=None, show=True,
+                            verbose=None):
     """Plot the topomap of the power spectral density across epochs
 
     Parameters
@@ -1404,9 +1541,16 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         file is inferred from the data; if no appropriate layout file was
         found, the layout is automatically generated from the sensor
         locations.
-    cmap : matplotlib colormap
-        Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
-        'Reds'.
+    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+        Colormap to use. If tuple, the first value indicates the colormap to
+        use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If None (default), 'Reds' is used for all positive data,
+        otherwise defaults to 'RdBu_r'. If 'interactive', translates to
+        (None, True).
     agg_fun : callable
         The function used to aggregate over frequencies.
         Defaults to np.sum. if normalize is True, else np.mean.
@@ -1432,6 +1576,9 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
+    axes : list of axes | None
+        List of axes to plot consecutive topographies to. If None the axes
+        will be created automatically. Defaults to None.
     show : bool
         Show figure if True.
     verbose : bool, str, int, or None
@@ -1462,13 +1609,13 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     return plot_psds_topomap(
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
         vmax=vmax, bands=bands, cmap=cmap, dB=dB, normalize=normalize,
-        cbar_fmt=cbar_fmt, outlines=outlines, show=show)
+        cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show)
 
 
 def plot_psds_topomap(
         psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
-        cmap='RdBu_r', dB=True, normalize=False, cbar_fmt='%0.3f',
-        outlines='head', show=True):
+        cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
+        axes=None, show=True):
     """Plot spatial maps of PSDs
 
     Parameters
@@ -1497,9 +1644,16 @@ def plot_psds_topomap(
             bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
                      (12, 30, 'Beta'), (30, 45, 'Gamma')]
 
-    cmap : matplotlib colormap
-        Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
-        'Reds'.
+    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+        Colormap to use. If tuple, the first value indicates the colormap to
+        use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If None (default), 'Reds' is used for all positive data,
+        otherwise defaults to 'RdBu_r'. If 'interactive', translates to
+        (None, True).
     dB : bool
         If True, transform data to decibels (with ``10 * np.log10(data)``)
         following the application of `agg_fun`. Only valid if normalize is
@@ -1520,6 +1674,9 @@ def plot_psds_topomap(
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
+    axes : list of axes | None
+        List of axes to plot consecutive topographies to. If None the axes
+        will be created automatically. Defaults to None.
     show : bool
         Show figure if True.
 
@@ -1543,9 +1700,13 @@ def plot_psds_topomap(
         assert np.allclose(psds.sum(axis=-1), 1.)
 
     n_axes = len(bands)
-    fig, axes = plt.subplots(1, n_axes, figsize=(2 * n_axes, 1.5))
-    if n_axes == 1:
-        axes = [axes]
+    if axes is not None:
+        _validate_if_list_of_axes(axes, n_axes)
+        fig = axes[0].figure
+    else:
+        fig, axes = plt.subplots(1, n_axes, figsize=(2 * n_axes, 1.5))
+        if n_axes == 1:
+            axes = [axes]
 
     for ax, (fmin, fmax, title) in zip(axes, bands):
         freq_mask = (fmin < freqs) & (freqs < fmax)
@@ -1559,8 +1720,8 @@ def plot_psds_topomap(
         else:
             unit = 'power'
 
-        _plot_topomap_multi_cbar(data, pos, ax, title=title,
-                                 vmin=vmin, vmax=vmax, cmap=cmap,
+        _plot_topomap_multi_cbar(data, pos, ax, title=title, vmin=vmin,
+                                 vmax=vmax, cmap=cmap, outlines=outlines,
                                  colorbar=True, unit=unit, cbar_fmt=cbar_fmt)
     tight_layout(fig=fig)
     fig.canvas.draw()
@@ -1585,9 +1746,7 @@ def plot_layout(layout, show=True):
 
     Notes
     -----
-
     .. versionadded:: 0.12.0
-
     """
     import matplotlib.pyplot as plt
     fig = plt.figure()
@@ -1632,7 +1791,6 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
         data = np.mean(data[indices, ifmin:ifmax, itmin:itmax], axis=0)
         chs = [tfr.ch_names[picks[x]] for x in indices]
     elif ch_type == 'grad':
-        picks = pick_types(tfr.info, meg=ch_type, ref_meg=False)
         from ..channels.layout import _pair_grad_sensors
         grads = _pair_grad_sensors(tfr.info, layout=layout,
                                    topomap_coords=False)
@@ -1652,8 +1810,14 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     if not plt.fignum_exists(fig[0].number):
         fig[0] = figure_nobar()
     ax = fig[0].add_subplot(111)
-    itmax = min(itmax, len(tfr.times) - 1)
-    ifmax = min(ifmax, len(tfr.freqs) - 1)
+    itmax = len(tfr.times) - 1 if itmax is None else min(itmax,
+                                                         len(tfr.times) - 1)
+    ifmax = len(tfr.freqs) - 1 if ifmax is None else min(ifmax,
+                                                         len(tfr.freqs) - 1)
+    if itmin is None:
+        itmin = 0
+    if ifmin is None:
+        ifmin = 0
     extent = (tfr.times[itmin] * 1e3, tfr.times[itmax] * 1e3, tfr.freqs[ifmin],
               tfr.freqs[ifmax])
 
@@ -1685,8 +1849,9 @@ def _prepare_topomap(pos, ax):
 
 def _hide_frame(ax):
     """Helper to hide axis frame for topomaps."""
-    ax.set_xticks([])
-    ax.set_yticks([])
+    ax.get_yticks()
+    ax.xaxis.set_ticks([])
+    ax.yaxis.set_ticks([])
     ax.set_frame_on(False)
 
 
@@ -1894,7 +2059,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         raise ValueError('All times must be inside the evoked time series.')
     frames = [np.abs(evoked.times - time).argmin() for time in times]
 
-    blit = False if plt.get_backend() == 'MacOSX' else True
+    blit = False if plt.get_backend() == 'MacOSX' else blit
     picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
                                                              ch_type=ch_type,
                                                              layout=None)
@@ -1932,8 +2097,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
                                    frames=len(frames), interval=interval,
                                    blit=blit)
     fig.mne_animation = anim  # to make sure anim is not garbage collected
-    if show:
-        plt.show()
+    plt_show(show, block=False)
     if 'line' in params:
         # Finally remove the vertical line so it does not appear in saved fig.
         params['line'].remove()

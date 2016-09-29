@@ -49,7 +49,7 @@ html_dev:
 	@echo "Build finished. The HTML pages are in _build/html"
 
 html_dev-pattern:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=1 -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -b html $(ALLSPHINXOPTS) _build/html
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=1 -D raise_gallery=1 -D abort_on_example_error=1 -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
@@ -113,3 +113,8 @@ doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) _build/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in _build/doctest/output.txt."
+
+view:
+	@python -c "import webbrowser; webbrowser.open_new_tab('file://$(PWD)/_build/html/index.html')"
+
+show: view

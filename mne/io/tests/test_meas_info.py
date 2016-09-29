@@ -8,7 +8,8 @@ from numpy.testing import assert_array_equal, assert_allclose
 
 from mne import Epochs, read_events
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
-                    _loc_to_coil_trans, Raw, read_info, write_info)
+                    _loc_to_coil_trans, read_raw_fif, read_info, write_info,
+                    anonymize_info)
 from mne.io.constants import FIFF
 from mne.io.meas_info import (Info, create_info, _write_dig_points,
                               _read_dig_points, _make_dig_points, _merge_info,
@@ -21,14 +22,13 @@ fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 chpi_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
-evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 kit_data_dir = op.join(op.dirname(__file__), '..', 'kit', 'tests', 'data')
 hsp_fname = op.join(kit_data_dir, 'test_hsp.txt')
 elp_fname = op.join(kit_data_dir, 'test_elp.txt')
 
 
 def test_coil_trans():
-    """Test loc<->coil_trans functions"""
+    """Test loc<->coil_trans functions."""
     rng = np.random.RandomState(0)
     x = rng.randn(4, 4)
     x[3] = [0, 0, 0, 1]
@@ -38,8 +38,7 @@ def test_coil_trans():
 
 
 def test_make_info():
-    """Test some create_info properties
-    """
+    """Test some create_info properties."""
     n_ch = 1
     info = create_info(n_ch, 1000., 'eeg')
     assert_equal(sorted(info.keys()), sorted(RAW_INFO_FIELDS))
@@ -88,7 +87,7 @@ def test_make_info():
 
 
 def test_fiducials_io():
-    """Test fiducials i/o"""
+    """Test fiducials i/o."""
     tempdir = _TempDir()
     pts, coord_frame = read_fiducials(fiducials_fname)
     assert_equal(pts[0]['coord_frame'], FIFF.FIFFV_COORD_MRI)
@@ -110,13 +109,13 @@ def test_fiducials_io():
 
 
 def test_info():
-    """Test info object"""
-    raw = Raw(raw_fname)
+    """Test info object."""
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
     event_id, tmin, tmax = 1, -0.2, 0.5
     events = read_events(event_name)
     event_id = int(events[0, 2])
     epochs = Epochs(raw, events[:1], event_id, tmin, tmax, picks=None,
-                    baseline=(None, 0))
+                    baseline=(None, 0), add_eeg_ref=False)
 
     evoked = epochs.average()
 
@@ -164,8 +163,7 @@ def test_info():
 
 
 def test_read_write_info():
-    """Test IO of info
-    """
+    """Test IO of info."""
     tempdir = _TempDir()
     info = read_info(raw_fname)
     temp_file = op.join(tempdir, 'info.fif')
@@ -191,7 +189,7 @@ def test_read_write_info():
 
 
 def test_io_dig_points():
-    """Test Writing for dig files"""
+    """Test Writing for dig files."""
     tempdir = _TempDir()
     points = _read_dig_points(hsp_fname)
 
@@ -200,7 +198,7 @@ def test_io_dig_points():
     assert_raises(ValueError, _write_dig_points, dest, points[:, :2])
     assert_raises(ValueError, _write_dig_points, dest_bad, points)
     _write_dig_points(dest, points)
-    points1 = _read_dig_points(dest)
+    points1 = _read_dig_points(dest, unit='m')
     err = "Dig points diverged after writing and reading."
     assert_array_equal(points, points1, err)
 
@@ -210,14 +208,14 @@ def test_io_dig_points():
 
 
 def test_make_dig_points():
-    """Test application of Polhemus HSP to info"""
+    """Test application of Polhemus HSP to info."""
     dig_points = _read_dig_points(hsp_fname)
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
     info['dig'] = _make_dig_points(dig_points=dig_points)
     assert_true(info['dig'])
-    assert_array_equal(info['dig'][0]['r'], [-106.93, 99.80, 68.81])
+    assert_allclose(info['dig'][0]['r'], [-.10693, .09980, .06881])
 
     dig_points = _read_dig_points(elp_fname)
     nasion, lpa, rpa = dig_points[:3]
@@ -228,7 +226,7 @@ def test_make_dig_points():
     assert_true(info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
     assert_array_equal(info['dig'][idx]['r'],
-                       np.array([1.3930, 13.1613, -4.6967]))
+                       np.array([.0013930, .0131613, -.0046967]))
     assert_raises(ValueError, _make_dig_points, nasion[:2])
     assert_raises(ValueError, _make_dig_points, None, lpa[:2])
     assert_raises(ValueError, _make_dig_points, None, None, rpa[:2])
@@ -239,7 +237,7 @@ def test_make_dig_points():
 
 
 def test_redundant():
-    """Test some of the redundant properties of info"""
+    """Test some of the redundant properties of info."""
     # Indexing
     info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
     assert_equal(info['ch_names'][0], 'a')
@@ -259,7 +257,7 @@ def test_redundant():
 
 
 def test_merge_info():
-    """Test merging of multiple Info objects"""
+    """Test merging of multiple Info objects."""
     info_a = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
     info_b = create_info(ch_names=['d', 'e', 'f'], sfreq=1000., ch_types=None)
     info_merged = _merge_info([info_a, info_b])
@@ -279,10 +277,17 @@ def test_merge_info():
     # Check that you must supply Info
     assert_raises(ValueError, _force_update_info, info_a,
                   dict([('sfreq', 1000.)]))
+    # KIT System-ID
+    info_a['kit_system_id'] = 50
+    assert_equal(_merge_info((info_a, info_b))['kit_system_id'], 50)
+    info_b['kit_system_id'] = 50
+    assert_equal(_merge_info((info_a, info_b))['kit_system_id'], 50)
+    info_b['kit_system_id'] = 60
+    assert_raises(ValueError, _merge_info, (info_a, info_b))
 
 
 def test_check_consistency():
-    """Test consistency check of Info objects"""
+    """Test consistency check of Info objects."""
     info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000.)
 
     # This should pass
@@ -324,6 +329,46 @@ def test_check_consistency():
     info2 = info.copy()
     info2['chs'][2]['ch_name'] = 'b'
     assert_raises(RuntimeError, info2._check_consistency)
+
+
+def test_anonymize():
+    """Checks that sensitive information can be anonymized."""
+    assert_raises(ValueError, anonymize_info, 'foo')
+
+    # Fake some subject data
+    raw = read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw.info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
+                                    first_name='bar', birthday=(1987, 4, 8),
+                                    sex=0, hand=1)
+
+    orig_file_id = raw.info['file_id']['secs']
+    orig_meas_id = raw.info['meas_id']['secs']
+    # Test instance method
+    events = read_events(event_name)
+    epochs = Epochs(raw, events[:1], 2, 0., 0.1, add_eeg_ref=False)
+    for inst in [raw, epochs]:
+        assert_true('subject_info' in inst.info.keys())
+        assert_true(inst.info['subject_info'] is not None)
+        assert_true(inst.info['file_id']['secs'] != 0)
+        assert_true(inst.info['meas_id']['secs'] != 0)
+        assert_true(np.any(inst.info['meas_date'] != [0, 0]))
+        inst.anonymize()
+        assert_true('subject_info' not in inst.info.keys())
+        assert_equal(inst.info['file_id']['secs'], 0)
+        assert_equal(inst.info['meas_id']['secs'], 0)
+        assert_equal(inst.info['meas_date'], [0, 0])
+
+    # When we write out with raw.save, these get overwritten with the
+    # new save time
+    tempdir = _TempDir()
+    out_fname = op.join(tempdir, 'test_subj_info_raw.fif')
+    raw.save(out_fname, overwrite=True)
+    raw = read_raw_fif(out_fname, add_eeg_ref=False)
+    assert_true(raw.info.get('subject_info') is None)
+    assert_array_equal(raw.info['meas_date'], [0, 0])
+    # XXX mne.io.write.write_id necessarily writes secs
+    assert_true(raw.info['file_id']['secs'] != orig_file_id)
+    assert_true(raw.info['meas_id']['secs'] != orig_meas_id)
 
 
 run_tests_if_main()

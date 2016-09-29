@@ -32,8 +32,8 @@ from .epochs import Epochs
 from .event import make_fixed_length_events
 from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_version, _time_mask, warn,
-                    _check_copy_dep)
-from .fixes import in1d
+                    copy_function_doc_to_method_doc)
+from . import viz
 
 from .externals.six.moves import zip
 from .externals.six import string_types
@@ -163,15 +163,8 @@ class Covariance(dict):
         """
         return cp.deepcopy(self)
 
-    def as_diag(self, copy=None):
+    def as_diag(self):
         """Set covariance to be processed as being diagonal.
-
-        Parameters
-        ----------
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
 
         Returns
         -------
@@ -183,14 +176,13 @@ class Covariance(dict):
         This function allows creation of inverse operators
         equivalent to using the old "--diagnoise" mne option.
         """
-        cov = _check_copy_dep(self, copy, default=True)
-        if cov['diag']:
-            return cov
-        cov['diag'] = True
-        cov['data'] = np.diag(cov['data'])
-        cov['eig'] = None
-        cov['eigvec'] = None
-        return cov
+        if self['diag']:
+            return self
+        self['diag'] = True
+        self['data'] = np.diag(self['data'])
+        self['eig'] = None
+        self['eigvec'] = None
+        return self
 
     def __repr__(self):
         if self.data.ndim == 2:
@@ -227,38 +219,11 @@ class Covariance(dict):
         return self
 
     @verbose
+    @copy_function_doc_to_method_doc(viz.misc.plot_cov)
     def plot(self, info, exclude=[], colorbar=True, proj=False, show_svd=True,
              show=True, verbose=None):
-        """Plot Covariance data.
-
-        Parameters
-        ----------
-        info: dict
-            Measurement info.
-        exclude : list of string | str
-            List of channels to exclude. If empty do not exclude any channel.
-            If 'bads', exclude info['bads'].
-        colorbar : bool
-            Show colorbar or not.
-        proj : bool
-            Apply projections or not.
-        show_svd : bool
-            Plot also singular values of the noise covariance for each sensor
-            type. We show square roots ie. standard deviations.
-        show : bool
-            Call pyplot.show() as the end or not.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Returns
-        -------
-        fig_cov : instance of matplotlib.pyplot.Figure
-            The covariance plot.
-        fig_svd : instance of matplotlib.pyplot.Figure | None
-            The SVD spectra plot of the covariance.
-        """
-        from .viz.misc import plot_cov
-        return plot_cov(self, info, exclude, colorbar, proj, show_svd, show)
+        return viz.misc.plot_cov(self, info, exclude, colorbar, proj, show_svd,
+                                 show, verbose)
 
 
 ###############################################################################
@@ -466,13 +431,15 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     if picks is None:
         # Need to include all channels e.g. if eog rejection is to be used
         picks = np.arange(raw.info['nchan'])
-        pick_mask = in1d(
+        pick_mask = np.in1d(
             picks, _pick_data_channels(raw.info, with_ref_meg=False))
     else:
         pick_mask = slice(None)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
-                    preload=False, proj=False)
+                    preload=False, proj=False, add_eeg_ref=False)
+    if method is None:
+        method = 'empirical'
     if isinstance(method, string_types) and method == 'empirical':
         # potentially *much* more memory efficient to do it the iterative way
         picks = picks[pick_mask]
@@ -486,8 +453,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
             data += np.dot(raw_segment, raw_segment.T)
             n_samples += raw_segment.shape[1]
         _check_n_samples(n_samples, len(picks))
-        mu /= n_samples
-        data -= n_samples * mu[:, None] * mu[None, :]
+        data -= mu[:, None] * (mu[None, :] / n_samples)
         data /= (n_samples - 1.0)
         logger.info("Number of samples used : %d" % n_samples)
         logger.info('[done]')
@@ -514,7 +480,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                        projs=None, method='empirical', method_params=None,
                        cv=3, scalings=None, n_jobs=1, return_estimators=False,
-                       verbose=None):
+                       on_mismatch='raise', verbose=None):
     """Estimate noise covariance matrix from epochs.
 
     The noise covariance is typically estimated on pre-stim periods
@@ -622,6 +588,14 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     return_estimators : bool (default False)
         Whether to return all estimators or the best. Only considered if
         method equals 'auto' or is a list of str. Defaults to False
+    on_mismatch : str
+        What to do when the MEG<->Head transformations do not match between
+        epochs. If "raise" (default) an error is raised, if "warn" then a
+        warning is emitted, if "ignore" then nothing is printed. Having
+        mismatched transforms can in some cases lead to unexpected or
+        unstable results in covariance calculation, e.g. when data
+        have been processed with Maxwell filtering but not transformed
+        to the same head position.
     verbose : bool | str | int | or None (default None)
         If not None, override default verbose level (see mne.verbose).
 
@@ -654,7 +628,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     accepted_methods = ('auto', 'empirical', 'diagonal_fixed', 'ledoit_wolf',
                         'shrunk', 'pca', 'factor_analysis',)
     msg = ('Invalid method ({method}). Accepted values (individually or '
-           'in a list) are "%s"' % '" or "'.join(accepted_methods + ('None',)))
+           'in a list) are "%s" or None.' % '" or "'.join(accepted_methods))
 
     # scale to natural unit for best stability with MEG/EEG
     if isinstance(scalings, dict):
@@ -698,14 +672,30 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         epochs = sum([_unpack_epochs(epoch) for epoch in epochs], [])
 
     # check for baseline correction
-    for epochs_t in epochs:
-        if epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5 and \
-                keep_sample_mean:
-            warn('Epochs are not baseline corrected, covariance '
-                 'matrix may be inaccurate')
+    if any(epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5 and
+           keep_sample_mean for epochs_t in epochs):
+        warn('Epochs are not baseline corrected, covariance '
+             'matrix may be inaccurate')
 
-    for epoch in epochs:
+    orig = epochs[0].info['dev_head_t']
+    if not isinstance(on_mismatch, string_types) or \
+            on_mismatch not in ['raise', 'warn', 'ignore']:
+        raise ValueError('on_mismatch must be "raise", "warn", or "ignore", '
+                         'got %s' % on_mismatch)
+    for ei, epoch in enumerate(epochs):
         epoch.info._check_consistency()
+        if (orig is None) != (epoch.info['dev_head_t'] is None) or \
+                (orig is not None and not
+                 np.allclose(orig['trans'],
+                             epoch.info['dev_head_t']['trans'])):
+            msg = ('MEG<->Head transform mismatch between epochs[0]:\n%s\n\n'
+                   'and epochs[%s]:\n%s'
+                   % (orig, ei, epoch.info['dev_head_t']))
+            if on_mismatch == 'raise':
+                raise ValueError(msg)
+            elif on_mismatch == 'warn':
+                warn(msg)
+
     bads = epochs[0].info['bads']
     if projs is None:
         projs = cp.deepcopy(epochs[0].info['projs'])
@@ -732,7 +722,9 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
     info = epochs[0].info  # we will overwrite 'epochs'
 
-    if method == 'auto':
+    if method is None:
+        method = ['empirical']
+    elif method == 'auto':
         method = ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
     if not isinstance(method, (list, tuple)):
@@ -1225,7 +1217,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
 
     Parameters
     ----------
-    noise_cov : Covariance
+    noise_cov : instance of Covariance
         The noise covariance to process.
     info : dict
         The measurement info (used to get channel types and bad channels).
@@ -1238,18 +1230,25 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         to specify the rank for each modality.
     scalings : dict | None
         Data will be rescaled before rank estimation to improve accuracy.
-        If dict, it will override the following dict (default if None):
+        If dict, it will override the following dict (default if None)::
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    cov : instance of Covariance
+        A copy of the covariance with the good channels subselected
+        and parameters updated.
     """
-    C_ch_idx = [noise_cov.ch_names.index(c) for c in ch_names]
-    if noise_cov['diag'] is False:
-        C = noise_cov.data[np.ix_(C_ch_idx, C_ch_idx)]
+    noise_cov_idx = [noise_cov.ch_names.index(c) for c in ch_names]
+    n_chan = len(ch_names)
+    if not noise_cov['diag']:
+        C = noise_cov.data[np.ix_(noise_cov_idx, noise_cov_idx)]
     else:
-        C = np.diag(noise_cov.data[C_ch_idx])
+        C = np.diag(noise_cov.data[noise_cov_idx])
 
     scalings = _handle_default('scalings_cov_rank', scalings)
 
@@ -1260,17 +1259,33 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
                     % ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
-    pick_meg = pick_types(info, meg=True, eeg=False, ref_meg=False,
-                          exclude='bads')
-    pick_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                          exclude='bads')
-    meg_names = [info['chs'][k]['ch_name'] for k in pick_meg]
-    C_meg_idx = [k for k in range(len(C)) if ch_names[k] in meg_names]
-    eeg_names = [info['chs'][k]['ch_name'] for k in pick_eeg]
-    C_eeg_idx = [k for k in range(len(C)) if ch_names[k] in eeg_names]
-
-    has_meg = len(C_meg_idx) > 0
-    has_eeg = len(C_eeg_idx) > 0
+    info_pick_meg = pick_types(info, meg=True, eeg=False, ref_meg=False,
+                               exclude='bads')
+    info_pick_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                               exclude='bads')
+    info_meg_names = [info['chs'][k]['ch_name'] for k in info_pick_meg]
+    out_meg_idx = [k for k in range(len(C)) if ch_names[k] in info_meg_names]
+    info_eeg_names = [info['chs'][k]['ch_name'] for k in info_pick_eeg]
+    out_eeg_idx = [k for k in range(len(C)) if ch_names[k] in info_eeg_names]
+    # re-index based on ch_names order
+    del info_pick_meg, info_pick_eeg
+    meg_names = [ch_names[k] for k in out_meg_idx]
+    eeg_names = [ch_names[k] for k in out_eeg_idx]
+    if len(meg_names) > 0:
+        info_pick_meg = pick_channels(info['ch_names'], meg_names)
+    else:
+        info_pick_meg = []
+    if len(eeg_names) > 0:
+        info_pick_eeg = pick_channels(info['ch_names'], eeg_names)
+    else:
+        info_pick_eeg = []
+    assert len(info_pick_meg) == len(meg_names) == len(out_meg_idx)
+    assert len(info_pick_eeg) == len(eeg_names) == len(out_eeg_idx)
+    assert(len(out_meg_idx) + len(out_eeg_idx) == n_chan)
+    eigvec = np.zeros((n_chan, n_chan))
+    eig = np.zeros(n_chan)
+    has_meg = len(out_meg_idx) > 0
+    has_eeg = len(out_eeg_idx) > 0
 
     # Get the specified noise covariance rank
     if rank is not None:
@@ -1284,45 +1299,26 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         rank_meg, rank_eeg = None, None
 
     if has_meg:
-        C_meg = C[np.ix_(C_meg_idx, C_meg_idx)]
-        this_info = pick_info(info, pick_meg)
+        C_meg = C[np.ix_(out_meg_idx, out_meg_idx)]
+        this_info = pick_info(info, info_pick_meg)
         if rank_meg is None:
-            if len(C_meg_idx) < len(pick_meg):
-                this_info = pick_info(info, C_meg_idx)
             rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings)
-        C_meg_eig, C_meg_eigvec = _get_ch_whitener(C_meg, False, 'MEG',
-                                                   rank_meg)
+        eig[out_meg_idx], eigvec[np.ix_(out_meg_idx, out_meg_idx)] = \
+            _get_ch_whitener(C_meg, False, 'MEG', rank_meg)
     if has_eeg:
-        C_eeg = C[np.ix_(C_eeg_idx, C_eeg_idx)]
-        this_info = pick_info(info, pick_eeg)
+        C_eeg = C[np.ix_(out_eeg_idx, out_eeg_idx)]
+        this_info = pick_info(info, info_pick_eeg)
         if rank_eeg is None:
-            if len(C_meg_idx) < len(pick_meg):
-                this_info = pick_info(info, C_eeg_idx)
             rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings)
-        C_eeg_eig, C_eeg_eigvec = _get_ch_whitener(C_eeg, False, 'EEG',
-                                                   rank_eeg)
+        eig[out_eeg_idx], eigvec[np.ix_(out_eeg_idx, out_eeg_idx)], = \
+            _get_ch_whitener(C_eeg, False, 'EEG', rank_eeg)
     if _needs_eeg_average_ref_proj(info):
         warn('No average EEG reference present in info["projs"], covariance '
              'may be adversely affected. Consider recomputing covariance using'
              ' a raw file with an average eeg reference projector added.')
-
-    n_chan = len(ch_names)
-    eigvec = np.zeros((n_chan, n_chan), dtype=np.float)
-    eig = np.zeros(n_chan, dtype=np.float)
-
-    if has_meg:
-        eigvec[np.ix_(C_meg_idx, C_meg_idx)] = C_meg_eigvec
-        eig[C_meg_idx] = C_meg_eig
-    if has_eeg:
-        eigvec[np.ix_(C_eeg_idx, C_eeg_idx)] = C_eeg_eigvec
-        eig[C_eeg_idx] = C_eeg_eig
-
-    assert(len(C_meg_idx) + len(C_eeg_idx) == n_chan)
-
     noise_cov = cp.deepcopy(noise_cov)
     noise_cov.update(data=C, eig=eig, eigvec=eigvec, dim=len(ch_names),
                      diag=False, names=ch_names)
-
     return noise_cov
 
 
@@ -1630,13 +1626,17 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
     """Get whitening matrix for a set of data."""
     ch_names = [info['ch_names'][k] for k in picks]
     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
-    info = pick_info(info, picks)
+    if len(noise_cov['data']) != len(ch_names):
+        missing = list(set(ch_names) - set(noise_cov['names']))
+        raise RuntimeError('Not all channels present in noise covariance:\n%s'
+                           % missing)
     if diag:
         noise_cov = cp.deepcopy(noise_cov)
         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
 
     scalings = _handle_default('scalings_cov_rank', scalings)
-    W = compute_whitener(noise_cov, info, rank=rank, scalings=scalings)[0]
+    W = compute_whitener(noise_cov, info, picks=picks, rank=rank,
+                         scalings=scalings)[0]
     return W
 
 
@@ -1907,9 +1907,6 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
-    copy : bool
-        If False, values in data will be modified in-place during
-        rank estimation (saves memory).
 
     Returns
     -------
@@ -1935,7 +1932,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
 
 def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
                             return_singular=False):
-    """Estimate rank for M/EEG data.
+    """Estimate rank of M/EEG covariance data, given the covariance
 
     Parameters
     ----------

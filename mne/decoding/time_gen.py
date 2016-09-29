@@ -8,6 +8,7 @@
 import numpy as np
 import copy
 
+from .base import _set_cv
 from ..io.pick import _pick_data_channels
 from ..viz.decoding import plot_gat_matrix, plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
@@ -141,7 +142,7 @@ class _GeneralizationAcrossTime(object):
         self.ch_names = [epochs.ch_names[p] for p in self.picks_]
 
         # Prepare cross-validation
-        self.cv_, self._cv_splits = _set_cv(self.cv, clf=self.clf, X=X, y=y)
+        self.cv_, self._cv_splits = _set_cv(self.cv, self.clf, X=X, y=y)
 
         self.y_train_ = y
 
@@ -870,7 +871,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
 
     Creates an estimator object used to 1) fit a series of classifiers on
     multidimensional time-resolved data, and 2) test the ability of each
-    classifier to generalize across other time samples.
+    classifier to generalize across other time samples, as in [1]_.
 
     Parameters
     ----------
@@ -880,7 +881,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     cv : int | object
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
-        scikit-learn.model_selection module for the list of possible objects.
+        scikit-learn.cross_validation module for the list of possible objects.
         If clf is a classifier, defaults to StratifiedKFold(n_folds=5), else
         defaults to KFold(n_folds=5).
     clf : object | None
@@ -959,13 +960,13 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
 
     Attributes
     ----------
-    picks_ : array-like of int | None
+    ``picks_`` : array-like of int | None
         The channels indices to include.
     ch_names : list, array-like, shape (n_channels,)
         Names of the channels used for training.
-    y_train_ : list | ndarray, shape (n_samples,)
+    ``y_train_`` : list | ndarray, shape (n_samples,)
         The categories used for training.
-    train_times_ : dict
+    ``train_times_`` : dict
         A dictionary that configures the training times:
 
             * ``slices`` : ndarray, shape (n_clfs,)
@@ -975,7 +976,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
             * ``times`` : ndarray, shape (n_clfs,)
                 The training times (in seconds).
 
-    test_times_ : dict
+    ``test_times_`` : dict
         A dictionary that configures the testing times for each training time:
 
             ``slices`` : ndarray, shape (n_clfs, n_testing_times)
@@ -983,20 +984,20 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
             ``times`` : ndarray, shape (n_clfs, n_testing_times)
                 The testing times (in seconds) for each training time.
 
-    cv_ : CrossValidation object
+    ``cv_`` : CrossValidation object
         The actual CrossValidation input depending on y.
-    estimators_ : list of list of scikit-learn.base.BaseEstimator subclasses.
+    ``estimators_`` : list of list of scikit-learn.base.BaseEstimator subclasses.
         The estimators for each time point and each fold.
-    y_pred_ : list of lists of arrays of floats, shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
+    ``y_pred_`` : list of lists of arrays of floats, shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
         The single-trial predictions estimated by self.predict() at each
         training time and each testing time. Note that the number of testing
         times per training time need not be regular, else
         ``np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs).``
-    y_true_ : list | ndarray, shape (n_samples,)
+    ``y_true_`` : list | ndarray, shape (n_samples,)
         The categories used for scoring ``y_pred_``.
-    scorer_ : object
+    ``scorer_`` : object
         scikit-learn Scorer instance.
-    scores_ : list of lists of float
+    ``scores_`` : list of lists of float
         The scores estimated by ``self.scorer_`` at each training time and each
         testing time (e.g. mean accuracy of self.predict(X)). Note that the
         number of testing times per training time need not be regular;
@@ -1006,14 +1007,12 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     --------
     TimeDecoding
 
-    Notes
-    -----
-    The function implements the method used in:
-
-        Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
-        and Stanislas Dehaene, "Two distinct dynamic modes subtend the
-        detection of unexpected sounds", PLoS ONE, 2014
-        DOI: 10.1371/journal.pone.0085791
+    References
+    ----------
+    .. [1] Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
+       and Stanislas Dehaene, "Two distinct dynamic modes subtend the
+       detection of unexpected sounds", PLoS ONE, 2014
+       DOI: 10.1371/journal.pone.0085791
 
     .. versionadded:: 0.9.0
     """  # noqa
@@ -1209,7 +1208,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     cv : int | object
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
-        scikit-learn.model_selection module for the list of possible objects.
+        scikit-learn.cross_validation module for the list of possible objects.
         If clf is a classifier, defaults to StratifiedKFold(n_folds=5), else
         defaults to KFold(n_folds=5).
     clf : object | None
@@ -1279,13 +1278,13 @@ class TimeDecoding(_GeneralizationAcrossTime):
 
     Attributes
     ----------
-    picks_ : array-like of int | None
+    ``picks_`` : array-like of int | None
         The channels indices to include.
     ch_names : list, array-like, shape (n_channels,)
         Names of the channels used for training.
-    y_train_ : ndarray, shape (n_samples,)
+    ``y_train_`` : ndarray, shape (n_samples,)
         The categories used for training.
-    times_ : dict
+    ``times_`` : dict
         A dictionary that configures the training times:
 
             * ``slices`` : ndarray, shape (n_clfs,)
@@ -1295,17 +1294,17 @@ class TimeDecoding(_GeneralizationAcrossTime):
             * ``times`` : ndarray, shape (n_clfs,)
                 The training times (in seconds).
 
-    cv_ : CrossValidation object
+    ``cv_`` : CrossValidation object
         The actual CrossValidation input depending on y.
-    estimators_ : list of list of scikit-learn.base.BaseEstimator subclasses.
+    ``estimators_`` : list of list of scikit-learn.base.BaseEstimator subclasses.
         The estimators for each time point and each fold.
-    y_pred_ : ndarray, shape (n_times, n_epochs, n_prediction_dims)
+    ``y_pred_`` : ndarray, shape (n_times, n_epochs, n_prediction_dims)
         Class labels for samples in X.
-    y_true_ : list | ndarray, shape (n_samples,)
+    ``y_true_`` : list | ndarray, shape (n_samples,)
         The categories used for scoring ``y_pred_``.
-    scorer_ : object
+    ``scorer_`` : object
         scikit-learn Scorer instance.
-    scores_ : list of float, shape (n_times,)
+    ``scores_`` : list of float, shape (n_times,)
         The scores (mean accuracy of self.predict(X) wrt. y.).
 
     See Also
@@ -1317,7 +1316,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     The function is equivalent to the diagonal of GeneralizationAcrossTime()
 
     .. versionadded:: 0.10
-    """
+    """  # noqa
 
     def __init__(self, picks=None, cv=5, clf=None, times=None,
                  predict_method='predict', predict_mode='cross-validation',
@@ -1560,37 +1559,3 @@ def _chunk_data(X, slices):
     slices_chunk = [sl - start for sl in slices]
     X_chunk = X[:, :, start:stop]
     return X_chunk, slices_chunk
-
-
-def _set_cv(cv, clf=None, X=None, y=None):
-    from sklearn.base import is_classifier
-
-    # Set the default cross-validation depending on whether clf is classifier
-    # or regressor.
-    if check_version('sklearn', '0.18'):
-        from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
-        if isinstance(cv, (int, np.int)):
-            XFold = StratifiedKFold if is_classifier(clf) else KFold
-            cv = XFold(n_folds=cv)
-        cv = check_cv(cv=cv, y=y, classifier=is_classifier(clf))
-    else:
-        from sklearn.cross_validation import (check_cv, StratifiedKFold, KFold)
-        if isinstance(cv, (int, np.int)):
-            if is_classifier(clf):
-                cv = StratifiedKFold(y=y, n_folds=cv)
-            else:
-                cv = KFold(n=len(y), n_folds=cv)
-        cv = check_cv(cv=cv, X=X, y=y, classifier=is_classifier(clf))
-
-    # Extract train and test set to retrieve them at predict time
-    if hasattr(cv, 'split'):
-        cv_splits = [(train, test) for train, test in
-                     cv.split(X=np.zeros_like(y), y=y)]
-    else:
-        # XXX support sklearn.cross_validation cv
-        cv_splits = [(train, test) for train, test in cv]
-
-    if not np.all([len(train) for train, _ in cv_splits]):
-        raise ValueError('Some folds do not have any train epochs.')
-
-    return cv, cv_splits

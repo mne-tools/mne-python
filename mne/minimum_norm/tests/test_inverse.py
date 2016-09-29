@@ -16,7 +16,7 @@ from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution,
                  convert_forward_solution, Covariance)
-from mne.io import Raw, Info
+from mne.io import read_raw_fif, Info
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
                                       make_inverse_operator,
@@ -60,24 +60,28 @@ last_keys = [None] * 10
 
 
 def read_forward_solution_meg(*args, **kwargs):
+    """Read MEG forward."""
     fwd = read_forward_solution(*args, **kwargs)
     fwd = pick_types_forward(fwd, meg=True, eeg=False)
     return fwd
 
 
 def read_forward_solution_eeg(*args, **kwargs):
+    """Read EEG forward."""
     fwd = read_forward_solution(*args, **kwargs)
     fwd = pick_types_forward(fwd, meg=False, eeg=True)
     return fwd
 
 
 def _get_evoked():
+    """Get evoked data."""
     evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
     evoked.crop(0, 0.2)
     return evoked
 
 
 def _compare(a, b):
+    """Compare two python objects."""
     global last_keys
     skip_types = ['whitener', 'proj', 'reginv', 'noisenorm', 'nchan',
                   'command_line', 'working_dir', 'mri_file', 'mri_id']
@@ -115,6 +119,7 @@ def _compare(a, b):
 
 def _compare_inverses_approx(inv_1, inv_2, evoked, rtol, atol,
                              check_depth=True):
+    """Compare inverses."""
     # depth prior
     if check_depth:
         if inv_1['depth_prior'] is not None:
@@ -148,6 +153,7 @@ def _compare_inverses_approx(inv_1, inv_2, evoked, rtol, atol,
 
 
 def _compare_io(inv_op, out_file_ext='.fif'):
+    """Compare inverse IO."""
     tempdir = _TempDir()
     if out_file_ext == '.fif':
         out_file = op.join(tempdir, 'test-inv.fif')
@@ -165,8 +171,7 @@ def _compare_io(inv_op, out_file_ext='.fif'):
 
 @testing.requires_testing_data
 def test_warn_inverse_operator():
-    """Test MNE inverse warning without average EEG projection
-    """
+    """Test MNE inverse warning without average EEG projection."""
     bad_info = copy.deepcopy(_get_evoked().info)
     bad_info['projs'] = list()
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
@@ -380,7 +385,7 @@ def test_make_inverse_operator_diag():
     """Test MNE inverse computation with diagonal noise cov
     """
     evoked = _get_evoked()
-    noise_cov = read_cov(fname_cov).as_diag(copy=False)
+    noise_cov = read_cov(fname_cov).as_diag()
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                    loose=0.2, depth=0.8)
@@ -464,11 +469,10 @@ def test_io_inverse_operator():
 
 @testing.requires_testing_data
 def test_apply_mne_inverse_raw():
-    """Test MNE with precomputed inverse operator on Raw
-    """
+    """Test MNE with precomputed inverse operator on Raw."""
     start = 3
     stop = 10
-    raw = Raw(fname_raw)
+    raw = read_raw_fif(fname_raw, add_eeg_ref=False)
     label_lh = read_label(fname_label % 'Aud-lh')
     _, times = raw[0, start:stop]
     inverse_operator = read_inverse_operator(fname_full)
@@ -498,9 +502,8 @@ def test_apply_mne_inverse_raw():
 
 @testing.requires_testing_data
 def test_apply_mne_inverse_fixed_raw():
-    """Test MNE with fixed-orientation inverse operator on Raw
-    """
-    raw = Raw(fname_raw)
+    """Test MNE with fixed-orientation inverse operator on Raw."""
+    raw = read_raw_fif(fname_raw, add_eeg_ref=False)
     start = 3
     stop = 10
     _, times = raw[0, start:stop]
@@ -538,13 +541,12 @@ def test_apply_mne_inverse_fixed_raw():
 
 @testing.requires_testing_data
 def test_apply_mne_inverse_epochs():
-    """Test MNE with precomputed inverse operator on Epochs
-    """
+    """Test MNE with precomputed inverse operator on Epochs."""
     inverse_operator = read_inverse_operator(fname_full)
     label_lh = read_label(fname_label % 'Aud-lh')
     label_rh = read_label(fname_label % 'Aud-rh')
     event_id, tmin, tmax = 1, -0.2, 0.5
-    raw = Raw(fname_raw)
+    raw = read_raw_fif(fname_raw, add_eeg_ref=False)
 
     picks = pick_types(raw.info, meg=True, eeg=False, stim=True, ecg=True,
                        eog=True, include=['STI 014'], exclude='bads')
@@ -553,7 +555,8 @@ def test_apply_mne_inverse_epochs():
 
     events = read_events(fname_event)[:15]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=reject, flat=flat)
+                    baseline=(None, 0), reject=reject, flat=flat,
+                    add_eeg_ref=False)
     stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
                                 label=label_lh, pick_ori="normal")
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
@@ -603,8 +606,7 @@ def test_apply_mne_inverse_epochs():
 
 @testing.requires_testing_data
 def test_make_inverse_operator_bads():
-    """Test MNE inverse computation given a mismatch of bad channels
-    """
+    """Test MNE inverse computation given a mismatch of bad channels."""
     fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)

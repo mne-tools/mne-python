@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from mne.datasets import sample
-from mne.time_frequency import compute_epochs_csd
+from mne.time_frequency import csd_epochs
 from mne.beamformer import dics
 
 print(__doc__)
@@ -57,10 +57,10 @@ forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 # Computing the data and noise cross-spectral density matrices
 # The time-frequency window was chosen on the basis of spectrograms from
 # example time_frequency/plot_time_frequency.py
-data_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
-                              fmin=6, fmax=10)
-noise_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.11, tmax=0.0,
-                               fmin=6, fmax=10)
+data_csd = csd_epochs(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
+                      fmin=6, fmax=10)
+noise_csd = csd_epochs(epochs, mode='multitaper', tmin=-0.11, tmax=0.0,
+                       fmin=6, fmax=10)
 
 evoked = epochs.average()
 
@@ -77,8 +77,8 @@ plt.title('DICS time course of the 30 largest sources.')
 plt.show()
 
 # Plot brain in 3D with PySurfer if available
-brain = stc.plot(hemi='rh', subjects_dir=subjects_dir)
-brain.set_data_time_index(180)
+brain = stc.plot(hemi='rh', subjects_dir=subjects_dir,
+                 initial_time=0.1, time_unit='s')
 brain.show_view('lateral')
 
 # Uncomment to save image

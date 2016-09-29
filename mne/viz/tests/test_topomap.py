@@ -14,16 +14,20 @@ from numpy.testing import assert_raises, assert_array_equal
 from nose.tools import assert_true, assert_equal
 
 
-from mne import io, read_evokeds, read_proj
+from mne import read_evokeds, read_proj
+from mne.io import read_raw_fif
 from mne.io.constants import FIFF
+from mne.io.pick import pick_info, channel_indices_by_type
 from mne.channels import read_layout, make_eeg_layout
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
-from mne.utils import slow_test
+from mne.utils import slow_test, run_tests_if_main
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
-from mne.viz.topomap import (_check_outlines, _onselect, plot_topomap)
-from mne.viz.utils import _find_peaks
+from mne.viz.topomap import (_check_outlines, _onselect, plot_topomap,
+                             plot_psds_topomap)
+from mne.viz.utils import _find_peaks, _fake_click
+
 
 # Set our plotters to test mode
 import matplotlib
@@ -45,14 +49,14 @@ layout = read_layout('Vectorview-all')
 
 
 def _get_raw():
-    return io.read_raw_fif(raw_fname, preload=False)
+    """Get raw data."""
+    return read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
 
 
 @slow_test
 @testing.requires_testing_data
 def test_plot_topomap():
-    """Test topomap plotting
-    """
+    """Test topomap plotting."""
     import matplotlib.pyplot as plt
     from matplotlib.patches import Circle
     # evoked
@@ -151,7 +155,7 @@ def test_plot_topomap():
         warnings.simplefilter('always')
         projs = read_proj(ecg_fname)
     projs = [pp for pp in projs if pp['desc'].lower().find('eeg') < 0]
-    plot_projs_topomap(projs, res=res)
+    plot_projs_topomap(projs, res=res, colorbar=True)
     plt.close('all')
     ax = plt.subplot(111)
     plot_projs_topomap([projs[0]], res=res, axes=ax)  # test axes param
@@ -194,6 +198,27 @@ def test_plot_topomap():
 
     # Pass custom outlines without patch
     evoked.plot_topomap(times, ch_type='eeg', outlines=outlines)
+    plt.close('all')
+
+    # Test interactive cmap
+    fig = plot_evoked_topomap(evoked, times=[0., 0.1], ch_type='eeg',
+                              cmap=('Reds', True), title='title')
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event(' ')
+    fig.canvas.key_press_event('down')
+    cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
+    ax = cbar.cbar.ax
+    _fake_click(fig, ax, (0.1, 0.1))
+    _fake_click(fig, ax, (0.1, 0.2), kind='motion')
+    _fake_click(fig, ax, (0.1, 0.3), kind='release')
+
+    _fake_click(fig, ax, (0.1, 0.1), button=3)
+    _fake_click(fig, ax, (0.1, 0.2), button=3, kind='motion')
+    _fake_click(fig, ax, (0.1, 0.3), kind='release')
+
+    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+
     plt.close('all')
 
     # Pass custom outlines with patch callable
@@ -248,8 +273,7 @@ def test_plot_topomap():
 
 
 def test_plot_tfr_topomap():
-    """Test plotting of TFR data
-    """
+    """Test plotting of TFR data."""
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     raw = _get_raw()
@@ -264,14 +288,29 @@ def test_plot_tfr_topomap():
 
     eclick = mpl.backend_bases.MouseEvent('button_press_event',
                                           plt.gcf().canvas, 0, 0, 1)
-    eclick.xdata = 0.1
-    eclick.ydata = 0.1
+    eclick.xdata = eclick.ydata = 0.1
     eclick.inaxes = plt.gca()
     erelease = mpl.backend_bases.MouseEvent('button_release_event',
                                             plt.gcf().canvas, 0.9, 0.9, 1)
     erelease.xdata = 0.3
     erelease.ydata = 0.2
     pos = [[0.11, 0.11], [0.25, 0.5], [0.0, 0.2], [0.2, 0.39]]
+    _onselect(eclick, erelease, tfr, pos, 'grad', 1, 3, 1, 3, 'RdBu_r', list())
     _onselect(eclick, erelease, tfr, pos, 'mag', 1, 3, 1, 3, 'RdBu_r', list())
+    eclick.xdata = eclick.ydata = 0.
+    erelease.xdata = erelease.ydata = 0.9
     tfr._onselect(eclick, erelease, None, 'mean', None)
     plt.close('all')
+
+    # test plot_psds_topomap
+    info = raw.info.copy()
+    chan_inds = channel_indices_by_type(info)
+    info = pick_info(info, chan_inds['grad'][:4])
+
+    fig, axes = plt.subplots()
+    freqs = np.arange(3., 9.5)
+    bands = [(4, 8, 'Theta')]
+    psd = np.random.rand(len(info['ch_names']), freqs.shape[0])
+    plot_psds_topomap(psd, freqs, info, bands=bands, axes=[axes])
+
+run_tests_if_main()

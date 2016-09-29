@@ -204,8 +204,8 @@ class RawEDF(_BaseRaw):
                     # make sure events without duration get one sample
                     n_stop = n_stop if n_stop > n_start else n_start + 1
                     if any(stim[n_start:n_stop]):
-                        raise NotImplementedError('EDF+ with overlapping '
-                                                  'events not supported.')
+                        warn('EDF+ with overlapping events'
+                             ' are not fully supported')
                     stim[n_start:n_stop] = evid
                 data[stim_channel_idx, :] = stim[start:stop]
             else:
@@ -255,10 +255,13 @@ def _parse_tal_channel(tal_channel_data):
     tals = bytearray()
     for s in tal_channel_data:
         i = int(s)
-        tals.extend([i % 256, i // 256])
+        tals.extend(np.uint8([i % 256, i // 256]))
 
     regex_tal = '([+-]\d+\.?\d*)(\x15(\d+\.?\d*))?(\x14.*?)\x14\x00'
-    tal_list = re.findall(regex_tal, tals.decode('ascii'))
+    # use of latin-1 because characters are only encoded for the first 256
+    # code points and utf-8 can triggers an "invalid continuation byte" error
+    tal_list = re.findall(regex_tal, tals.decode('latin-1'))
+
     events = []
     for ev in tal_list:
         onset = float(ev[0])
@@ -285,10 +288,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
 
     with open(fname, 'rb') as fid:
         assert(fid.tell() == 0)
-        fid.seek(8)
+        fid.seek(168)  # Seek 8 + 80 bytes for Subject id + 80 bytes for rec id
 
-        fid.read(80).strip().decode()  # subject id
-        fid.read(80).strip().decode()  # recording id
         day, month, year = [int(x) for x in re.findall('(\d+)',
                                                        fid.read(8).decode())]
         hour, minute, sec = [int(x) for x in re.findall('(\d+)',
@@ -457,7 +458,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
 
     # Some keys to be consistent with FIF measurement info
     info['description'] = None
-    info['buffer_size_sec'] = 10.
+    info['buffer_size_sec'] = 1.
     edf_info['nsamples'] = int(n_records * max_samp)
 
     # These are the conditions under which a stim channel will be interpolated

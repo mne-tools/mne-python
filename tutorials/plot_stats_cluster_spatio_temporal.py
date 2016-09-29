@@ -17,6 +17,7 @@ permutation test across space and time.
 
 
 import os.path as op
+
 import numpy as np
 from numpy.random import randn
 from scipy import stats as stats
@@ -179,8 +180,7 @@ stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
 #    shows all the clusters, weighted by duration
 subjects_dir = op.join(data_path, 'subjects')
 # blue blobs are for condition A < condition B, red for A > B
-brain = stc_all_cluster_vis.plot(hemi='both', subjects_dir=subjects_dir,
+brain = stc_all_cluster_vis.plot(hemi='both', views='lateral',
+                                 subjects_dir=subjects_dir,
                                  time_label='Duration significant (ms)')
-brain.set_data_time_index(0)
-brain.show_view('lateral')
 brain.save_image('clusters.png')

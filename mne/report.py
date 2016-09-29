@@ -53,10 +53,9 @@ def _fig_to_img(function=None, fig=None, image_format='png',
     from matplotlib.figure import Figure
     if not isinstance(fig, Figure) and function is None:
         from scipy.misc import imread
-        mayavi = None
+        mlab = None
         try:
-            from mayavi import mlab  # noqa, mlab imported
-            import mayavi
+            from mayavi import mlab  # noqa
         except:  # on some systems importing Mayavi raises SystemExit (!)
             warn('Could not import mayavi. Trying to render'
                  '`mayavi.core.scene.Scene` figure instances'
@@ -70,7 +69,7 @@ def _fig_to_img(function=None, fig=None, image_format='png',
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
-        mayavi.mlab.close(fig)
+        mlab.close(fig)
         fig = plt.figure()
         plt.imshow(img)
         plt.axis('off')
@@ -172,6 +171,16 @@ def _is_bad_fname(fname):
         return 'red'
     else:
         return ''
+
+
+def _get_fname(fname):
+    """Get fname without -#-"""
+    if '-#-' in fname:
+        fname = fname.split('-#-')[0]
+    else:
+        fname = op.basename(fname)
+    fname = ' ... %s' % fname
+    return fname
 
 
 def _get_toc_property(fname):
@@ -814,6 +823,25 @@ class Report(object):
 
         self._init_render()  # Initialize the renderer
 
+    def __repr__(self):
+        """Print useful info about report."""
+        s = '<Report | %d items' % len(self.fnames)
+        if self.title is not None:
+            s += ' | %s' % self.title
+        fnames = [_get_fname(f) for f in self.fnames]
+        if len(self.fnames) > 4:
+            s += '\n%s' % '\n'.join(fnames[:2])
+            s += '\n ...\n'
+            s += '\n'.join(fnames[-2:])
+        elif len(self.fnames) > 0:
+            s += '\n%s' % '\n'.join(fnames)
+        s += '\n>'
+        return s
+
+    def __len__(self):
+        """The number of items in report."""
+        return len(self.fnames)
+
     def _get_id(self):
         """Get id of plot.
         """
@@ -1355,7 +1383,7 @@ class Report(object):
                     html.append(this_html)
                     fnames.append(fname)
                     sectionlabels.append(sectionlabel)
-                    logger.info('\t... %s' % fname[-20:])
+                    logger.info(_get_fname(fname))
                     color = _is_bad_fname(fname)
                     div_klass, tooltip, text = _get_toc_property(fname)
 

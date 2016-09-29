@@ -17,7 +17,6 @@ from os import path as op
 import tempfile
 
 from ..externals.six import string_types
-from ..fixes import sparse_block_diag
 from ..io import RawArray, Info
 from ..io.constants import FIFF
 from ..io.open import fiff_open
@@ -41,8 +40,7 @@ from ..source_estimate import VolSourceEstimate
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
-                     run_subprocess, check_fname, logger, verbose,
-                     deprecated)
+                     run_subprocess, check_fname, logger, verbose, deprecated)
 from ..label import Label
 
 
@@ -58,9 +56,9 @@ class Forward(dict):
 
         entr = '<Forward'
 
-        nchan = len(pick_types(self['info'], meg=True, eeg=False))
+        nchan = len(pick_types(self['info'], meg=True, eeg=False, exclude=[]))
         entr += ' | ' + 'MEG channels: %d' % nchan
-        nchan = len(pick_types(self['info'], meg=False, eeg=True))
+        nchan = len(pick_types(self['info'], meg=False, eeg=True, exclude=[]))
         entr += ' | ' + 'EEG channels: %d' % nchan
 
         src_types = np.array([src['type'] for src in self['src']])
@@ -98,6 +96,8 @@ class Forward(dict):
         return entr
 
 
+@deprecated("it will be removed in mne 0.14; use mne.make_bem_solution() "
+            "instead.")
 def prepare_bem_model(bem, sol_fname=None, method='linear'):
     """Wrapper for the mne_prepare_bem_model command line utility
 
@@ -576,7 +576,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
 
     Parameters
     ----------
-    fwd : dict
+    fwd : Forward
         The forward solution to modify.
     surf_ori : bool, optional (default False)
         Use surface-based source coordinate system? Note that force_fixed=True
@@ -590,7 +590,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
 
     Returns
     -------
-    fwd : dict
+    fwd : Forward
         The modified forward solution.
     """
     fwd = fwd.copy() if copy else fwd
@@ -620,7 +620,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
 
             if fwd['sol_grad'] is not None:
-                x = sparse_block_diag([fix_rot] * 3)
+                x = sparse.block_diag([fix_rot] * 3)
                 fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
                 fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
             logger.info('    [done]')
@@ -663,7 +663,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         fwd['sol']['data'] = fwd['_orig_sol'] * surf_rot
         fwd['sol']['ncol'] = 3 * fwd['nsource']
         if fwd['sol_grad'] is not None:
-            x = sparse_block_diag([surf_rot] * 3)
+            x = sparse.block_diag([surf_rot] * 3)
             fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
             fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
         logger.info('[done]')
@@ -693,7 +693,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     fname : str
         File name to save the forward solution to. It should end with -fwd.fif
         or -fwd.fif.gz.
-    fwd : dict
+    fwd : Forward
         Forward solution.
     overwrite : bool
         If True, overwrite destination file (if it exists).
@@ -773,7 +773,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         inv_rot = _inv_block_diag(fwd['source_nn'].T, 3)
         sol = sol * inv_rot
         if sol_grad is not None:
-            sol_grad = sol_grad * sparse_block_diag([inv_rot] * 3)  # dot prod
+            sol_grad = sol_grad * sparse.block_diag([inv_rot] * 3)  # dot prod
 
     #
     # MEG forward solution
@@ -1129,7 +1129,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
 
     Parameters
     ----------
-    fwd : dict
+    fwd : Forward
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
@@ -1189,7 +1189,7 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
 
     Parameters
     ----------
-    fwd : dict
+    fwd : Forward
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
@@ -1239,7 +1239,7 @@ def restrict_forward_to_stc(fwd, stc):
 
     Parameters
     ----------
-    fwd : dict
+    fwd : Forward
         Forward operator.
     stc : SourceEstimate
         Source estimate.
@@ -1286,7 +1286,7 @@ def restrict_forward_to_label(fwd, labels):
 
     Parameters
     ----------
-    fwd : dict
+    fwd : Forward
         Forward operator.
     labels : label object | list
         Label object or list of label objects.
@@ -1361,86 +1361,6 @@ def restrict_forward_to_label(fwd, labels):
     return fwd_out
 
 
-@deprecated('do_forward_solution is deprecated and will be removed in 0.13, '
-            'use make_forward_solution instead')
-@verbose
-def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
-                        mindist=None, bem=None, mri=None, trans=None,
-                        eeg=True, meg=True, fixed=False, grad=False,
-                        mricoord=False, overwrite=False, subjects_dir=None,
-                        verbose=None):
-    """Calculate a forward solution for a subject using MNE-C routines
-
-    This function wraps to mne_do_forward_solution, so the mne
-    command-line tools must be installed and accessible from Python.
-
-    Parameters
-    ----------
-    subject : str
-        Name of the subject.
-    meas : Raw | Epochs | Evoked | str
-        If Raw or Epochs, a temporary evoked file will be created and
-        saved to a temporary directory. If str, then it should be a
-        filename to a file with measurement information the mne
-        command-line tools can understand (i.e., raw or evoked).
-    fname : str | None
-        Destination forward solution filename. If None, the solution
-        will be created in a temporary directory, loaded, and deleted.
-    src : str | None
-        Source space name. If None, the MNE default is used.
-    spacing : str
-        The spacing to use. Can be ``'#'`` for spacing in mm, ``'ico#'`` for a
-        recursively subdivided icosahedron, or ``'oct#'`` for a recursively
-        subdivided octahedron (e.g., ``spacing='ico4'``). Default is 7 mm.
-    mindist : float | str | None
-        Minimum distance of sources from inner skull surface (in mm).
-        If None, the MNE default value is used. If string, 'all'
-        indicates to include all points.
-    bem : str | None
-        Name of the BEM to use (e.g., "sample-5120-5120-5120"). If None
-        (Default), the MNE default will be used.
-    mri : str | None
-        The name of the trans file in FIF format.
-        If None, trans must not be None.
-    trans : dict | str | None
-        File name of the trans file in text format.
-        If None, mri must not be None.
-    eeg : bool
-        If True (Default), include EEG computations.
-    meg : bool
-        If True (Default), include MEG computations.
-    fixed : bool
-        If True, make a fixed-orientation forward solution (Default:
-        False). Note that fixed-orientation inverses can still be
-        created from free-orientation forward solutions.
-    grad : bool
-        If True, compute the gradient of the field with respect to the
-        dipole coordinates as well (Default: False).
-    mricoord : bool
-        If True, calculate in MRI coordinates (Default: False).
-    overwrite : bool
-        If True, the destination file (if it exists) will be overwritten.
-        If False (default), an error will be raised if the file exists.
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    See Also
-    --------
-    forward.make_forward_solution
-
-    Returns
-    -------
-    fwd : dict
-        The generated forward solution.
-    """
-    return _do_forward_solution(subject, meas, fname, src, spacing,
-                                mindist, bem, mri, trans, eeg, meg, fixed,
-                                grad, mricoord, overwrite, subjects_dir,
-                                verbose)
-
-
 def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
                          mindist=None, bem=None, mri=None, trans=None,
                          eeg=True, meg=True, fixed=False, grad=False,
@@ -1511,7 +1431,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
     Returns
     -------
-    fwd : dict
+    fwd : Forward
         The generated forward solution.
     """
     if not has_mne_c():
@@ -1657,7 +1577,7 @@ def average_forward_solutions(fwds, weights=None):
 
     Parameters
     ----------
-    fwds : list of dict
+    fwds : list of Forward
         Forward solutions to average. Each entry (dict) should be a
         forward solution.
     weights : array | None
@@ -1667,7 +1587,7 @@ def average_forward_solutions(fwds, weights=None):
 
     Returns
     -------
-    fwd : dict
+    fwd : Forward
         The averaged forward solution.
     """
     # check for fwds being a list

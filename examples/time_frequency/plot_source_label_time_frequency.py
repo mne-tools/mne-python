@@ -67,13 +67,13 @@ plt.close('all')
 for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
                                               ['evoked + induced',
                                                'induced only'])):
-    # compute the source space power and phase lock
-    power, phase_lock = source_induced_power(
+    # compute the source space power and the inter-trial coherence
+    power, itc = source_induced_power(
         this_epochs, inverse_operator, frequencies, label, baseline=(-0.1, 0),
         baseline_mode='percent', n_cycles=n_cycles, n_jobs=1)
 
     power = np.mean(power, axis=0)  # average over sources
-    phase_lock = np.mean(phase_lock, axis=0)  # average over sources
+    itc = np.mean(itc, axis=0)  # average over sources
     times = epochs.times
 
     ##########################################################################
@@ -89,13 +89,13 @@ for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
     plt.colorbar()
 
     plt.subplot(2, 2, 2 * ii + 2)
-    plt.imshow(phase_lock,
+    plt.imshow(itc,
                extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
                aspect='auto', origin='lower', vmin=0, vmax=0.7,
                cmap='RdBu_r')
     plt.xlabel('Time (s)')
     plt.ylabel('Frequency (Hz)')
-    plt.title('Phase-lock (%s)' % title)
+    plt.title('ITC (%s)' % title)
     plt.colorbar()
 
 plt.show()

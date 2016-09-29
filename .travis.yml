@@ -14,9 +14,6 @@ env:
     # Note that we don't run coverage on Py3k anyway because it slows our tests
     # by a factor of 2 (!), so we make this our "from install dir" run.
     #
-    # If we change the old-version run to be a different Python version
-    # from 2.6, then we need to update mne.utils.clean_warning_registry.
-    #
     # Run one test (3.5) with a non-default stim channel to make sure our
     # tests are explicit about channels.
     #
@@ -24,10 +21,11 @@ env:
     #
     # Conda currently has packaging bug with mayavi/traits/numpy where 1.10 can't be used
     # but breaks sklearn on install; hopefully eventually the NUMPY=1.9 on 2.7 full can be removed
+    # Mayavi=4.3 on old 2.7 installs, but doesn't work properly due to a traits bug
     - PYTHON=2.7 DEPS=full TEST_LOCATION=src NUMPY="=1.9" SCIPY="=0.17"
     - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1  # also runs flake8
     - PYTHON=3.5 DEPS=full TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
-    - PYTHON=2.6 DEPS=full TEST_LOCATION=src NUMPY="=1.7" SCIPY="=0.11" MPL="=1.1" LIBPNG="=1.5" SKLEARN="=0.11" PANDAS="=0.8"
+    - PYTHON=2.7 DEPS=full TEST_LOCATION=src NUMPY="=1.8" SCIPY="=0.12" MPL="=1.3" SKLEARN="=0.14" PANDAS="=0.12"
     - PYTHON=2.7 DEPS=minimal TEST_LOCATION=src
 
 # Setup anaconda
@@ -49,7 +47,7 @@ install:
     # We have to replicate e.g. numpy$NUMPY to ensure the recommended (higher) versions
     # are not automatically installed below with multiple "conda install" calls!
     - if [ "${DEPS}" == "full" ]; then
-        curl http://lester.ilabs.uw.edu/files/minimal_cmds.tar.gz | tar xz;
+        curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz;
         export MNE_ROOT="${PWD}/minimal_cmds";
         export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
         source ${MNE_ROOT}/bin/mne_setup_sh;
@@ -59,22 +57,18 @@ install:
           conda install --yes --quiet $ENSURE_PACKAGES ipython;
         else
           conda install --yes --quiet $ENSURE_PACKAGES ipython==1.1.0 statsmodels pandas$PANDAS;
-          pip install -q nitime;
-          if [ "${PYTHON}" == "2.7" ]; then
-            conda install --yes --quiet $ENSURE_PACKAGES mayavi traits;
-            pip install -q pysurfer faulthandler;
+          pip install nitime faulthandler;
+          if [ "${NUMPY}" != "=1.8" ]; then
+            conda install --yes --quiet $ENSURE_PACKAGES mayavi$MAYAVI;
+            pip install pysurfer;
           fi;
         fi;
       fi;
     - if [ "${DEPS}" == "nodata" ]; then
-        pip install -q flake8;
-        wget -q https://github.com/lucasdemarchi/codespell/archive/v1.8.tar.gz;
-        tar xzf v1.8.tar.gz;
-        cp codespell-1.8/codespell.py ~/miniconda/envs/testenv/bin;
-        rm v1.8.tar.gz;
-        rm -r codespell-1.8;
+        conda install --yes $ENSURE_PACKAGES sphinx;
+        pip install flake8 codespell numpydoc;
       fi;
-    - pip install -q coveralls nose-timer
+    - pip install -q codecov nose-timer
     # check our versions for the major packages
     - NP_VERSION=`python -c 'import numpy; print(numpy.__version__)'`
     - if [ -n "$NUMPY" ] && [ "${NUMPY:(-3)}" != "${NP_VERSION::3}" ]; then
@@ -106,6 +100,7 @@ install:
         python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
         if [ "${DEPS}" == "full" ]; then
           export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
+          export MNE_SKIP_FS_FLASH_CALL=1;
         fi;
       else
         export MNE_SKIP_TESTING_DATASET_TESTS=true;
@@ -126,13 +121,10 @@ install:
         ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg;
         ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc;
         cd ${MNE_DIR}/../;
+        COVERAGE=;
       else
         cd ${SRC_DIR};
-      fi;
-    - if [ "${PYTHON}" != "3.5" ]; then
         COVERAGE=--with-coverage;
-      else
-        COVERAGE=;
       fi;
 
 script:
@@ -146,9 +138,8 @@ script:
 
 after_success:
     # Need to run from source dir to exectue "git" commands
-    # Coverage not collected for 3.5, so don't report it
-    - if [ "${TEST_LOCATION}" == "src" ] && [ "${PYTHON}" != "3.5" ]; then
-        echo "Running coveralls";
+    - if [ "${TEST_LOCATION}" == "src" ]; then
+        echo "Running codecov";
         cd ${SRC_DIR};
-        coveralls;
+        codecov;
       fi;

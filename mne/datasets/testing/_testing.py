@@ -3,10 +3,11 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
+from functools import partial
+
 import numpy as np
 
 from ...utils import verbose, get_config
-from ...fixes import partial
 from ..utils import (has_dataset, _data_path, _data_path_doc,
                      _get_version, _version_doc)
 

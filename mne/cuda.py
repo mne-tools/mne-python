@@ -5,7 +5,7 @@
 import numpy as np
 from scipy.fftpack import fft, ifft, rfft, irfft
 
-from .utils import sizeof_fmt, logger, get_config, warn
+from .utils import sizeof_fmt, logger, get_config, warn, _explain_exception
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
@@ -74,7 +74,7 @@ def init_cuda(ignore_config=False):
         import pycuda.autoinit  # noqa
     except ImportError:
         warn('pycuda.autoinit could not be imported, likely a hardware error, '
-             'CUDA not enabled')
+             'CUDA not enabled%s' % _explain_exception())
         return
     # Make sure scikit-cuda is installed
     cudafft = _get_cudafft()
@@ -94,8 +94,9 @@ def init_cuda(ignore_config=False):
     # Make sure we can use 64-bit FFTs
     try:
         cudafft.Plan(16, np.float64, np.complex128)  # will get auto-GC'ed
-    except:
-        warn('Device does not support 64-bit FFTs, CUDA not enabled')
+    except Exception:
+        warn('Device does not appear to support 64-bit FFTs, CUDA not '
+             'enabled%s' % _explain_exception())
         return
     _cuda_capable = True
     # Figure out limit for CUDA FFT calculations

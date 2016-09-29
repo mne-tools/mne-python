@@ -28,8 +28,9 @@ from matplotlib import pyplot as plt
 
 data_path = mne.datasets.sample.data_path()
 # Load a dataset that contains events
-raw = mne.io.RawFIF(
-    op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif'))
+raw = mne.io.read_raw_fif(
+    op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif'),
+    add_eeg_ref=False)
 
 # If your raw object has a stim channel, you can construct an event array
 # easily
@@ -57,7 +58,7 @@ event_id = {'Auditory/Left': 1, 'Auditory/Right': 2}
 # Expose the raw data as epochs, cut from -0.1 s to 1.0 s relative to the event
 # onsets
 epochs = mne.Epochs(raw, events, event_id, tmin=-0.1, tmax=1,
-                    baseline=(None, 0), preload=True)
+                    baseline=(None, 0), preload=True, add_eeg_ref=False)
 print(epochs)
 
 ###############################################################################

@@ -100,20 +100,21 @@ class RtEpochs(_BaseEpochs):
         (will yield equivalent results but be slower).
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
-        already exists).
+        already exists). The default value of True in 0.13 will change to
+        False in 0.14, and the parameter will be removed in 0.15. Use
+        :func:`mne.set_eeg_reference` instead.
     isi_max : float
         The maximmum time in seconds between epochs. If no epoch
         arrives in the next isi_max seconds the RtEpochs stops.
     find_events : dict
         The arguments to the real-time `find_events` method as a dictionary.
         If `find_events` is None, then default values are used.
-        Valid keys are 'output' | 'consecutive' | 'min_duration' | 'mask'.
         Example (also default values)::
 
             find_events = dict(output='onset', consecutive='increasing',
-                               min_duration=0, mask=0)
+                               min_duration=0, mask=0, mask_type='not_and')
 
-        See mne.find_events for detailed explanation of these options.
+        See :func:`mne.find_events` for detailed explanation of these options.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to client.verbose.
@@ -136,8 +137,7 @@ class RtEpochs(_BaseEpochs):
                  sleep_time=0.1, baseline=(None, 0), picks=None,
                  name='Unknown', reject=None, flat=None, proj=True,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
-                 add_eeg_ref=True, isi_max=2., find_events=None, verbose=None):
-
+                 add_eeg_ref=None, isi_max=2., find_events=None, verbose=None):
         info = client.get_measurement_info()
 
         # the measurement info of the data as we receive it
@@ -169,7 +169,8 @@ class RtEpochs(_BaseEpochs):
         # find_events default options
         self._find_events_kwargs = dict(output='onset',
                                         consecutive='increasing',
-                                        min_duration=0, mask=0)
+                                        min_duration=0, mask=0,
+                                        mask_type='not_and')
         # update default options if dictionary is provided
         if find_events is not None:
             self._find_events_kwargs.update(find_events)

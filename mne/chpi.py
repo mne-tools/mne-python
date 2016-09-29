@@ -2,104 +2,29 @@
 #
 # License: BSD (3-clause)
 
+from functools import partial
+
 import numpy as np
 from scipy import linalg, fftpack
 
 from .io.pick import pick_types, pick_channels
-from .io.base import _BaseRaw
 from .io.constants import FIFF
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
                       _concatenate_coils, _read_coil_defs)
 from .cov import make_ad_hoc_cov, _get_whitener_data
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
-from .utils import (verbose, logger, check_version, use_log_level, deprecated,
+from .utils import (verbose, logger, check_version, use_log_level,
                     _check_fname, warn)
-from .fixes import partial
-from .externals.six import string_types
 
 # Eventually we should add:
 #   hpicons
 #   high-passing of data during fits
+#   parsing cHPI coil information from acq pars, then to PSD if necessary
 
 
 # ############################################################################
 # Reading from text or FIF file
-
-@deprecated('get_chpi_positions will be removed in v0.13, use '
-            'read_head_pos(fname) or raw[pick_types(meg=False, chpi=True), :] '
-            'instead')
-@verbose
-def get_chpi_positions(raw, t_step=None, return_quat=False, verbose=None):
-    """Extract head positions
-
-    Note that the raw instance must have CHPI channels recorded.
-
-    Parameters
-    ----------
-    raw : instance of Raw | str
-        Raw instance to extract the head positions from. Can also be a
-        path to a Maxfilter head position estimation log file (str).
-    t_step : float | None
-        Sampling interval to use when converting data. If None, it will
-        be automatically determined. By default, a sampling interval of
-        1 second is used if processing a raw data. If processing a
-        Maxfilter log file, this must be None because the log file
-        itself will determine the sampling interval.
-    return_quat : bool
-        If True, also return the quaternions.
-
-        .. versionadded:: 0.11
-
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    translation : ndarray, shape (N, 3)
-        Translations at each time point.
-    rotation : ndarray, shape (N, 3, 3)
-        Rotations at each time point.
-    t : ndarray, shape (N,)
-        The time points.
-    quat : ndarray, shape (N, 3)
-        The quaternions. Only returned if ``return_quat`` is True.
-
-    Notes
-    -----
-    The digitized HPI head frame y is related to the frame position X as:
-
-        Y = np.dot(rotation, X) + translation
-
-    Note that if a Maxfilter log file is being processed, the start time
-    may not use the same reference point as the rest of mne-python (i.e.,
-    it could be referenced relative to raw.first_samp or something else).
-    """
-    if isinstance(raw, _BaseRaw):
-        # for simplicity, we'll sample at 1 sec intervals like maxfilter
-        if t_step is None:
-            t_step = 1.0
-        t_step = float(t_step)
-        picks = pick_types(raw.info, meg=False, ref_meg=False,
-                           chpi=True, exclude=[])
-        if len(picks) == 0:
-            raise RuntimeError('raw file has no CHPI channels')
-        time_idx = raw.time_as_index(np.arange(0, raw.times[-1], t_step))
-        data = [raw[picks, ti] for ti in time_idx]
-        t = np.array([d[1] for d in data])
-        data = np.array([d[0][:, 0] for d in data])
-        data = np.c_[t, data]
-    else:
-        if not isinstance(raw, string_types):
-            raise TypeError('raw must be an instance of Raw or string')
-        if t_step is not None:
-            raise ValueError('t_step must be None if processing a log')
-        data = read_head_pos(raw)
-    out = head_pos_to_trans_rot_t(data)
-    if return_quat:
-        out = out + (data[:, 1:4],)
-    return out
-
 
 def read_head_pos(fname):
     """Read MaxFilter-formatted head position parameters
@@ -127,6 +52,9 @@ def read_head_pos(fname):
     _check_fname(fname, must_exist=True, overwrite=True)
     data = np.loadtxt(fname, skiprows=1)  # first line is header, skip it
     data.shape = (-1, 10)  # ensure it's the right size even if empty
+    if np.isnan(data).any():  # make sure we didn't do something dumb
+        raise RuntimeError('positions could not be read properly from %s'
+                           % fname)
     return data
 
 
@@ -193,7 +121,8 @@ def head_pos_to_trans_rot_t(quats):
 # ############################################################################
 # Estimate positions from data
 
-def _get_hpi_info(info):
+@verbose
+def _get_hpi_info(info, adjust=False, verbose=None):
     """Helper to get HPI information from raw"""
     if len(info['hpi_meas']) == 0 or \
             ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
@@ -206,7 +135,6 @@ def _get_hpi_info(info):
                       if d['kind'] == FIFF.FIFFV_POINT_HPI],
                      key=lambda x: x['ident'])  # ascending (dig) order
     pos_order = hpi_result['order'] - 1  # zero-based indexing, dig->info
-    # hpi_result['dig_points'] are in FIFFV_COORD_UNKNOWN coords...?
 
     # this shouldn't happen, eventually we could add the transforms
     # necessary to put it in head coords
@@ -219,10 +147,47 @@ def _get_hpi_info(info):
                  % (len(hpi_result['used']),
                     ' '.join(str(h) for h in hpi_result['used'])))
     hpi_rrs = np.array([d['r'] for d in hpi_dig])[pos_order]
-    # errors = 1000 * np.sqrt((hpi_rrs - hpi_rrs_fit) ** 2).sum(axis=1)
-    # logger.debug('HPIFIT errors:  %s'
-    #              % ', '.join('%0.1f' % e for e in errors))
-    hpi_freqs = np.array([float(x['coil_freq']) for x in hpi_coils])
+
+    # Fitting errors
+    hpi_rrs_fit = sorted([d for d in info['hpi_results'][-1]['dig_points']],
+                         key=lambda x: x['ident'])
+    hpi_rrs_fit = np.array([d['r'] for d in hpi_rrs_fit])
+    # hpi_result['dig_points'] are in FIFFV_COORD_UNKNOWN coords, but this
+    # is probably a misnomer because it should be FIFFV_COORD_DEVICE for this
+    # to work
+    assert hpi_result['coord_trans']['to'] == FIFF.FIFFV_COORD_HEAD
+    hpi_rrs_fit = apply_trans(hpi_result['coord_trans']['trans'], hpi_rrs_fit)
+    if 'moments' in hpi_result:
+        logger.debug('Hpi coil moments (%d %d):'
+                     % hpi_result['moments'].shape[::-1])
+        for moment in hpi_result['moments']:
+            logger.debug("%g %g %g" % tuple(moment))
+    errors = np.sqrt(((hpi_rrs - hpi_rrs_fit) ** 2).sum(axis=1))
+    logger.debug('HPIFIT errors:  %s mm.'
+                 % ', '.join('%0.1f' % (1000. * e) for e in errors))
+    if errors.sum() < len(errors) * hpi_result['dist_limit']:
+        logger.info('HPI consistency of isotrak and hpifit is OK.')
+    elif not adjust and (len(hpi_result['used']) == len(hpi_coils)):
+        warn('HPI consistency of isotrak and hpifit is poor.')
+    else:
+        # adjust HPI coil locations using the hpifit transformation
+        for hi, (r_dig, r_fit) in enumerate(zip(hpi_rrs, hpi_rrs_fit)):
+            # transform to head frame
+            d = 1000 * np.sqrt(((r_dig - r_fit) ** 2).sum())
+            if not adjust:
+                warn('Discrepancy of HPI coil %d isotrak and hpifit is %.1f '
+                     'mm!' % (hi + 1, d))
+            elif hi + 1 not in hpi_result['used']:
+                if hpi_result['goodness'][hi] >= hpi_result['good_limit']:
+                    logger.info('Note: HPI coil %d isotrak is adjusted by '
+                                '%.1f mm!' % (hi + 1, d))
+                    hpi_rrs[hi] = r_fit
+                else:
+                    warn('Discrepancy of HPI coil %d isotrak and hpifit of '
+                         '%.1f mm was not adjusted!' % (hi + 1, d))
+    logger.debug('HP fitting limits: err = %.1f mm, gval = %.3f.'
+                 % (1000 * hpi_result['dist_limit'], hpi_result['good_limit']))
+
     # how cHPI active is indicated in the FIF file
     hpi_sub = info['hpi_subsystem']
     if 'event_channel' in hpi_sub:
@@ -234,6 +199,9 @@ def _get_hpi_info(info):
     # not all HPI coils will actually be used
     hpi_on = np.array([hpi_on[hc['number'] - 1] for hc in hpi_coils])
     assert len(hpi_coils) == len(hpi_on)
+
+    # get frequencies
+    hpi_freqs = np.array([float(x['coil_freq']) for x in hpi_coils])
     logger.info('Using %s HPI coils: %s Hz'
                 % (len(hpi_freqs), ' '.join(str(int(s)) for s in hpi_freqs)))
     return hpi_freqs, hpi_rrs, hpi_pick, hpi_on, pos_order
@@ -544,10 +512,9 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                     % ((use_mask.sum(), n_freqs) + vs))
         # resulting errors in head coil positions
         est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
-        errs = 1000. * np.sqrt(np.sum((hpi['coil_head_rrs'] -
-                                       est_coil_head_rrs) ** 2,
-                                      axis=1))
-        e = 0.  # XXX eventually calculate this -- cumulative error of fit?
+        errs = 1000. * np.sqrt(((hpi['coil_head_rrs'] -
+                                 est_coil_head_rrs) ** 2).sum(axis=-1))
+        e = errs.mean() / 1000.  # mm -> m
         d = 100 * np.sqrt(np.sum(last['quat'][3:] - this_quat[3:]) ** 2)  # cm
         r = _angle_between_quats(last['quat'][:3], this_quat[:3]) / dt
         v = d / dt  # cm/sec
@@ -625,13 +592,13 @@ def filter_chpi(raw, include_line=True, verbose=None):
     t_window = 0.2
     t_step = 0.01
     n_step = int(np.ceil(t_step * raw.info['sfreq']))
-    hpi = _setup_chpi_fits(raw.info, t_window, t_window, exclude=(),
+    hpi = _setup_chpi_fits(raw.info, t_window, t_window, exclude='bads',
                            add_hpi_stim_pick=False, remove_aliased=True,
                            verbose=False)[0]
     fit_idxs = np.arange(0, len(raw.times) + hpi['n_window'] // 2, n_step)
     n_freqs = len(hpi['freqs'])
     n_remove = 2 * n_freqs
-    meg_picks = hpi['picks']
+    meg_picks = pick_types(raw.info, meg=True, exclude=())  # filter all chs
     n_times = len(raw.times)
 
     msg = 'Removing %s cHPI' % n_freqs

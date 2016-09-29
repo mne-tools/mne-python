@@ -12,9 +12,9 @@ from collections import namedtuple
 import numpy as np
 from numpy.testing import assert_raises
 
-from mne import io, read_events, Epochs
-from mne import pick_channels_evoked
+from mne import read_events, Epochs, pick_channels_evoked
 from mne.channels import read_layout
+from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
 
@@ -39,48 +39,58 @@ layout = read_layout('Vectorview-all')
 
 
 def _get_raw():
-    return io.read_raw_fif(raw_fname, preload=False)
+    """Get raw data."""
+    return read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
 
 
 def _get_events():
+    """Get events."""
     return read_events(event_name)
 
 
 def _get_picks(raw):
+    """Get picks."""
     return [0, 1, 2, 6, 7, 8, 306, 340, 341, 342]  # take a only few channels
 
 
 def _get_epochs():
+    """Get epochs."""
     raw = _get_raw()
+    raw.add_proj([], remove_existing=True)
     events = _get_events()
     picks = _get_picks(raw)
-    with warnings.catch_warnings(record=True):  # bad proj
-        epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), verbose='error')
+    # bad proj warning
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), add_eeg_ref=False)
     return epochs
 
 
 def _get_epochs_delayed_ssp():
+    """Get epochs with delayed SSP."""
     raw = _get_raw()
     events = _get_events()
     picks = _get_picks(raw)
     reject = dict(mag=4e-12)
-    epochs_delayed_ssp = Epochs(raw, events[:10], event_id, tmin, tmax,
-                                picks=picks, baseline=(None, 0),
-                                proj='delayed', reject=reject)
+    epochs_delayed_ssp = Epochs(
+        raw, events[:10], event_id, tmin, tmax, picks=picks,
+        baseline=(None, 0), proj='delayed', reject=reject, add_eeg_ref=False)
     return epochs_delayed_ssp
 
 
 def test_plot_topo():
-    """Test plotting of ERP topography
-    """
+    """Test plotting of ERP topography."""
     import matplotlib.pyplot as plt
     # Show topography
     evoked = _get_epochs().average()
-    plot_evoked_topo(evoked)  # should auto-find layout
+    # should auto-find layout
+    plot_evoked_topo([evoked, evoked], merge_grads=True)
     # Test jointplot
     evoked.plot_joint()
-    evoked.plot_joint(title='test', ts_args=dict(spatial_colors=True),
+
+    def return_inds(d):  # to test function kwarg to zorder arg of evoked.plot
+        return list(range(d.shape[0]))
+    ts_args = dict(spatial_colors=True, zorder=return_inds)
+    evoked.plot_joint(title='test', ts_args=ts_args,
                       topomap_args=dict(colorbar=True, times=[0.]))
 
     warnings.simplefilter('always', UserWarning)
@@ -124,8 +134,7 @@ def test_plot_topo():
 
 
 def test_plot_topo_image_epochs():
-    """Test plotting of epochs image topography
-    """
+    """Test plotting of epochs image topography."""
     import matplotlib.pyplot as plt
     title = 'ERF images - MNE sample data'
     epochs = _get_epochs()
@@ -137,8 +146,7 @@ def test_plot_topo_image_epochs():
 
 
 def test_plot_tfr_topo():
-    """Test plotting of TFR data
-    """
+    """Test plotting of TFR data."""
     epochs = _get_epochs()
     n_freqs = 3
     nave = 1

@@ -15,7 +15,7 @@ import os.path as op
 # when data is imported into MNE-Python and contains details such as:
 #
 #  - date, subject information, and other recording details
-#  - the samping rate
+#  - the sampling rate
 #  - information about the data channels (name, type, position, etc.)
 #  - digitized points
 #  - sensor–head coordinate transformation matrices

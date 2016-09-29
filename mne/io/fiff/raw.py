@@ -18,12 +18,11 @@ from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
 from ..tag import read_tag, read_tag_info
 from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
-from ..compensator import get_current_comp, set_current_comp, make_compensator
-from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
+from ..base import (_BaseRaw, _RawShell, _check_raw_compatibility,
+                    _check_maxshield)
 from ..utils import _mult_cal_one
 
 from ...annotations import Annotations, _combine_annotations
-from ...externals.six import string_types
 from ...utils import check_fname, logger, verbose, warn
 
 
@@ -32,17 +31,17 @@ class Raw(_BaseRaw):
 
     Parameters
     ----------
-    fnames : list, or string
-        A list of the raw files to treat as a Raw instance, or a single
-        raw file. For files that have automatically been split, only the
-        name of the first file has to be specified. Filenames should end
+    fname : str
+        The raw file to load. For files that have automatically been split,
+        the split part will be automatically loaded. Filenames should end
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
         raw_tsss.fif or raw_tsss.fif.gz.
     allow_maxshield : bool | str (default False)
-        allow_maxshield if True, allow loading of data that has been
-        processed with Maxshield. Maxshield-processed data should generally
-        not be loaded directly, but should be processed using SSS first.
-        Can also be "yes" to load without eliciting a warning.
+        If True, allow loading of data that has been recorded with internal
+        active compensation (MaxShield). Data recorded with MaxShield should
+        generally not be loaded directly, but should first be processed using
+        SSS/tSSS to remove the compensation signals that may also affect brain
+        activity. Can also be "yes" to load without eliciting a warning.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -50,19 +49,18 @@ class Raw(_BaseRaw):
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     proj : bool
-        Apply the signal space projection (SSP) operators present in
-        the file to the data. Note: Once the projectors have been
-        applied, they can no longer be removed. It is usually not
-        recommended to apply the projectors at this point as they are
-        applied automatically later on (e.g. when computing inverse
-        solutions).
+        Deprecated. Use :meth:`raw.apply_proj() <mne.io.Raw.apply_proj>`
+        instead.
     compensation : None | int
-        If None the compensation in the data is not modified.
-        If set to n, e.g. 3, apply gradient compensation of grade n as
-        for CTF systems.
+        Deprecated. Use :meth:`mne.io.Raw.apply_gradient_compensation`
+        instead.
     add_eeg_ref : bool
-        If True, add average EEG reference projector (if it's not already
-        present).
+        If True, an EEG average reference will be added (unless one
+        already exists). The default value of True in 0.13 will change to
+        False in 0.14, and the parameter will be removed in 0.15. Use
+        :func:`mne.set_eeg_reference` instead.
+    fnames : list or str
+        Deprecated. Use :func:`mne.concatenate_raws` instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -80,12 +78,27 @@ class Raw(_BaseRaw):
         See above.
     """
     @verbose
-    def __init__(self, fnames, allow_maxshield=False, preload=False,
-                 proj=False, compensation=None, add_eeg_ref=True,
-                 verbose=None):
-
+    def __init__(self, fname, allow_maxshield=False, preload=False,
+                 proj=None, compensation=None, add_eeg_ref=None,
+                 fnames=None, verbose=None):
+        if not proj:
+            proj = False
+        else:
+            warn('The proj parameter has been dprecated and will be removed '
+                 'in 0.14. Use raw.apply_proj() instead.', DeprecationWarning)
+        dep = ('Supplying a list of filenames with "fnames" to the Raw class '
+               'has been deprecated and will be removed in 0.13. Use multiple '
+               'calls to read_raw_fif with the "fname" argument followed by '
+               'concatenate_raws instead.')
+        if fnames is not None:
+            warn(dep, DeprecationWarning)
+        else:
+            fnames = fname
+        del fname
         if not isinstance(fnames, list):
             fnames = [fnames]
+        else:
+            warn(dep, DeprecationWarning)
         fnames = [op.realpath(f) for f in fnames]
         split_fnames = []
 
@@ -93,8 +106,7 @@ class Raw(_BaseRaw):
         for ii, fname in enumerate(fnames):
             do_check_fname = fname not in split_fnames
             raw, next_fname = self._read_raw_file(fname, allow_maxshield,
-                                                  preload, compensation,
-                                                  do_check_fname)
+                                                  preload, do_check_fname)
             raws.append(raw)
             if next_fname is not None:
                 if not op.exists(next_fname):
@@ -119,8 +131,10 @@ class Raw(_BaseRaw):
             copy.deepcopy(raws[0].info), False,
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._raw_extras for r in raws],
-            copy.deepcopy(raws[0].comp), raws[0]._orig_comp_grade,
             raws[0].orig_format, None, verbose=verbose)
+        if 'eeg' in self:
+            from ...epochs import _dep_eeg_ref
+            add_eeg_ref = _dep_eeg_ref(add_eeg_ref, True)
 
         # combine information from each raw file to construct self
         if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
@@ -140,6 +154,12 @@ class Raw(_BaseRaw):
                                                         last_samps,
                                                         first_samps,
                                                         r.info['sfreq'])
+        if compensation is not None:
+            warn('The "compensation" argument has been deprecated '
+                 'in favor of the "raw.apply_gradient_compensation" '
+                 'method and will be removed in 0.14',
+                 DeprecationWarning)
+            self.apply_gradient_compensation(compensation)
         if preload:
             self._preload_data(preload)
         else:
@@ -150,7 +170,7 @@ class Raw(_BaseRaw):
             self.apply_proj()
 
     @verbose
-    def _read_raw_file(self, fname, allow_maxshield, preload, compensation,
+    def _read_raw_file(self, fname, allow_maxshield, preload,
                        do_check_fname=True, verbose=None):
         """Read in header information from a raw file"""
         logger.info('Opening raw data file %s...' % fname)
@@ -197,22 +217,10 @@ class Raw(_BaseRaw):
                 raw_node = dir_tree_find(meas, FIFF.FIFFB_CONTINUOUS_DATA)
                 if (len(raw_node) == 0):
                     raw_node = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
-                    msg = ('This file contains raw Internal Active '
-                           'Shielding data. It may be distorted. Elekta '
-                           'recommends it be run through MaxFilter to '
-                           'produce reliable results. Consider closing '
-                           'the file and running MaxFilter on the data.')
                     if (len(raw_node) == 0):
                         raise ValueError('No raw data in %s' % fname)
-                    elif allow_maxshield:
-                        info['maxshield'] = True
-                        if not (isinstance(allow_maxshield, string_types) and
-                                allow_maxshield == 'yes'):
-                            warn(msg)
-                    else:
-                        msg += (' Use allow_maxshield=True if you are sure you'
-                                ' want to load the data despite this warning.')
-                        raise ValueError(msg)
+                    _check_maxshield(allow_maxshield)
+                    info['maxshield'] = True
 
             if len(raw_node) == 1:
                 raw_node = raw_node[0]
@@ -325,22 +333,6 @@ class Raw(_BaseRaw):
 
         raw._cals = cals
         raw._raw_extras = raw_extras
-        raw.comp = None
-        raw._orig_comp_grade = None
-
-        #   Set up the CTF compensator
-        current_comp = get_current_comp(info)
-        if current_comp is not None:
-            logger.info('Current compensation grade : %d' % current_comp)
-
-        if compensation is not None:
-            raw.comp = make_compensator(info, current_comp, compensation)
-            if raw.comp is not None:
-                logger.info('Appropriate compensator added to change to '
-                            'grade %d.' % (compensation))
-                raw._orig_comp_grade = current_comp
-                set_current_comp(info, compensation)
-
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     raw.first_samp, raw.last_samp,
                     float(raw.first_samp) / info['sfreq'],
@@ -460,7 +452,7 @@ class Raw(_BaseRaw):
 
         .. note:: The effect of the difference between the coil sizes on the
                   current estimates computed by the MNE software is very small.
-                  Therefore the use of this function is not mandatory.
+                  Therefore the use of mne_fix_mag_coil_types is not mandatory.
         """
         from ...channels import fix_mag_coil_types
         fix_mag_coil_types(self.info)
@@ -473,23 +465,24 @@ def _check_entry(first, nent):
         raise IOError('Could not read data, perhaps this is a corrupt file')
 
 
-def read_raw_fif(fnames, allow_maxshield=False, preload=False,
-                 proj=False, compensation=None, add_eeg_ref=True,
-                 verbose=None):
+def read_raw_fif(fname, allow_maxshield=False, preload=False,
+                 proj=False, compensation=None, add_eeg_ref=None,
+                 fnames=None, verbose=None):
     """Reader function for Raw FIF data
 
     Parameters
     ----------
-    fnames : list, or string
-        A list of the raw files to treat as a Raw instance, or a single
-        raw file. For files that have automatically been split, only the
-        name of the first file has to be specified. Filenames should end
+    fname : str
+        The raw file to load. For files that have automatically been split,
+        the split part will be automatically loaded. Filenames should end
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
         raw_tsss.fif or raw_tsss.fif.gz.
-    allow_maxshield : bool, (default False)
-        allow_maxshield if True, allow loading of data that has been
-        processed with Maxshield. Maxshield-processed data should generally
-        not be loaded directly, but should be processed using SSS first.
+    allow_maxshield : bool | str (default False)
+        If True, allow loading of data that has been recorded with internal
+        active compensation (MaxShield). Data recorded with MaxShield should
+        generally not be loaded directly, but should first be processed using
+        SSS/tSSS to remove the compensation signals that may also affect brain
+        activity. Can also be "yes" to load without eliciting a warning.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -497,19 +490,18 @@ def read_raw_fif(fnames, allow_maxshield=False, preload=False,
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     proj : bool
-        Apply the signal space projection (SSP) operators present in
-        the file to the data. Note: Once the projectors have been
-        applied, they can no longer be removed. It is usually not
-        recommended to apply the projectors at this point as they are
-        applied automatically later on (e.g. when computing inverse
-        solutions).
+        Deprecated. Use :meth:`raw.apply_proj() <mne.io.Raw.apply_proj>`
+        instead.
     compensation : None | int
-        If None the compensation in the data is not modified.
-        If set to n, e.g. 3, apply gradient compensation of grade n as
-        for CTF systems.
+        Deprecated. Use :meth:`mne.io.Raw.apply_gradient_compensation`
+        instead.
     add_eeg_ref : bool
-        If True, add average EEG reference projector (if it's not already
-        present).
+        If True, an EEG average reference will be added (unless one
+        already exists). The default value of True in 0.13 will change to
+        False in 0.14, and the parameter will be removed in 0.15. Use
+        :func:`mne.set_eeg_reference` instead.
+    fnames : list or str
+        Deprecated. Use :func:`mne.concatenate_raws` instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -522,6 +514,6 @@ def read_raw_fif(fnames, allow_maxshield=False, preload=False,
     -----
     .. versionadded:: 0.9.0
     """
-    return Raw(fnames=fnames, allow_maxshield=allow_maxshield,
+    return Raw(fname=fname, allow_maxshield=allow_maxshield,
                preload=preload, proj=proj, compensation=compensation,
-               add_eeg_ref=add_eeg_ref, verbose=verbose)
+               add_eeg_ref=add_eeg_ref, fnames=fnames, verbose=verbose)

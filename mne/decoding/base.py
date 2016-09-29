@@ -10,6 +10,7 @@ import numpy as np
 
 from ..externals.six import iteritems
 from ..fixes import _get_args
+from ..utils import check_version
 
 
 class BaseEstimator(object):
@@ -368,9 +369,20 @@ class LinearModel(BaseEstimator):
             If None, the maximum absolute value is used. If vmin is None,
             but vmax is not, defaults to np.min(data).
             If callable, the output equals vmax(data).
-        cmap : matplotlib colormap
-            Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
-            'Reds'.
+        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+            Colormap to use. If tuple, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging
+            the colorbar with left and right mouse button. Left mouse button
+            moves the scale up and down and right mouse button adjusts the
+            range. Hitting space bar resets the range. Up and down arrows can
+            be used to change the colormap. If None, 'Reds' is used for all
+            positive data, otherwise defaults to 'RdBu_r'. If 'interactive',
+            translates to (None, True). Defaults to 'RdBu_r'.
+
+            .. warning::  Interactive mode works smoothly only for a small
+                amount of topomaps.
+
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True,
@@ -474,7 +486,7 @@ class LinearModel(BaseEstimator):
                                      mask=mask, outlines=outlines,
                                      contours=contours, title=title,
                                      image_interp=image_interp, show=show,
-                                     head_pos=head_pos)
+                                     head_pos=head_pos, average=average)
 
     def plot_filters(self, info, times=None, ch_type=None, layout=None,
                      vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
@@ -518,9 +530,20 @@ class LinearModel(BaseEstimator):
             If None, the maximum absolute value is used. If vmin is None,
             but vmax is not, defaults to np.min(data).
             If callable, the output equals vmax(data).
-        cmap : matplotlib colormap
-            Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
-            'Reds'.
+        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+            Colormap to use. If tuple, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging
+            the colorbar with left and right mouse button. Left mouse button
+            moves the scale up and down and right mouse button adjusts the
+            range. Hitting space bar resets the range. Up and down arrows can
+            be used to change the colormap. If None, 'Reds' is used for all
+            positive data, otherwise defaults to 'RdBu_r'. If 'interactive',
+            translates to (None, True). Defaults to 'RdBu_r'.
+
+            .. warning::  Interactive mode works smoothly only for a small
+                amount of topomaps.
+
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True,
@@ -624,4 +647,79 @@ class LinearModel(BaseEstimator):
                                     mask=mask, outlines=outlines,
                                     contours=contours, title=title,
                                     image_interp=image_interp, show=show,
-                                    head_pos=head_pos)
+                                    head_pos=head_pos, average=average)
+
+
+def _set_cv(cv, estimator=None, X=None, y=None):
+    """ Set the default cross-validation depending on whether clf is classifier
+        or regressor. """
+
+    from sklearn.base import is_classifier
+
+    # Detect whether classification or regression
+    if estimator in ['classifier', 'regressor']:
+        est_is_classifier = estimator == 'classifier'
+    else:
+        est_is_classifier = is_classifier(estimator)
+    # Setup CV
+    if check_version('sklearn', '0.18'):
+        from sklearn import model_selection as models
+        from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
+        if isinstance(cv, (int, np.int)):
+            XFold = StratifiedKFold if est_is_classifier else KFold
+            cv = XFold(n_splits=cv)
+        elif isinstance(cv, str):
+            if not hasattr(models, cv):
+                raise ValueError('Unknown cross-validation')
+            cv = getattr(models, cv)
+            cv = cv()
+        cv = check_cv(cv=cv, y=y, classifier=est_is_classifier)
+    else:
+        from sklearn import cross_validation as models
+        from sklearn.cross_validation import (check_cv, StratifiedKFold, KFold)
+        if isinstance(cv, (int, np.int)):
+            if est_is_classifier:
+                cv = StratifiedKFold(y=y, n_folds=cv)
+            else:
+                cv = KFold(n=len(y), n_folds=cv)
+        elif isinstance(cv, str):
+            if not hasattr(models, cv):
+                raise ValueError('Unknown cross-validation')
+            cv = getattr(models, cv)
+            if cv.__name__ not in ['KFold', 'LeaveOneOut']:
+                raise NotImplementedError('CV cannot be defined with str for'
+                                          ' sklearn < .017.')
+            cv = cv(len(y))
+        cv = check_cv(cv=cv, X=X, y=y, classifier=est_is_classifier)
+
+    # Extract train and test set to retrieve them at predict time
+    if hasattr(cv, 'split'):
+        cv_splits = [(train, test) for train, test in
+                     cv.split(X=np.zeros_like(y), y=y)]
+    else:
+        # XXX support sklearn.cross_validation cv
+        cv_splits = [(train, test) for train, test in cv]
+
+    if not np.all([len(train) for train, _ in cv_splits]):
+        raise ValueError('Some folds do not have any train epochs.')
+
+    return cv, cv_splits
+
+
+def _check_estimator(estimator, get_params=True):
+    """Check whether an object has the fit, transform, fit_transform and
+    get_params methods required by scikit-learn"""
+    valid_methods = ('predict', 'transform', 'predict_proba',
+                     'decision_function')
+    if (
+        (not hasattr(estimator, 'fit')) or
+        (not any(hasattr(estimator, method) for method in valid_methods))
+    ):
+        raise ValueError('estimator must be a scikit-learn transformer or '
+                         'an estimator with the fit and a predict-like (e.g. '
+                         'predict_proba) or a transform method.')
+
+    if get_params and not hasattr(estimator, 'get_params'):
+        raise ValueError('estimator must be a scikit-learn transformer or an '
+                         'estimator with the get_params method that allows '
+                         'cloning.')

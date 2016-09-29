@@ -20,7 +20,9 @@ import numpy as np
 from scipy import linalg
 
 from ..surface import read_surface
+from ..externals.six import string_types
 from ..io.proj import make_projector
+from ..source_space import read_source_spaces, SourceSpaces
 from ..utils import logger, verbose, get_subjects_dir, warn
 from ..io.pick import pick_types
 from .utils import tight_layout, COLORS, _prepare_trellis, plt_show
@@ -237,7 +239,7 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     return fig
 
 
-def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
+def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                        slices=None, show=True):
     """Plot BEM contours on anatomical slices.
 
@@ -245,9 +247,11 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     ----------
     mri_fname : str
         The name of the file containing anatomical data.
-    surf_fnames : list of str
-        The filenames for the BEM surfaces in the format
-        ['inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf'].
+    surfaces : list of (str, str) tuples
+        A list containing the BEM surfaces to plot as (filename, color) tuples.
+        Colors should be matplotlib-compatible.
+    src : None | SourceSpaces
+        SourceSpaces object for plotting individual sources.
     orientation : str
         'coronal' or 'axial' or 'sagittal'
     slices : list of int
@@ -263,14 +267,24 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     import matplotlib.pyplot as plt
     import nibabel as nib
 
-    if orientation not in ['coronal', 'axial', 'sagittal']:
+    # plot axes (x, y, z) as data axes (0, 1, 2)
+    if orientation == 'coronal':
+        x, y, z = 0, 1, 2
+    elif orientation == 'axial':
+        x, y, z = 2, 0, 1
+    elif orientation == 'sagittal':
+        x, y, z = 2, 1, 0
+    else:
         raise ValueError("Orientation must be 'coronal', 'axial' or "
                          "'sagittal'. Got %s." % orientation)
 
     # Load the T1 data
     nim = nib.load(mri_fname)
     data = nim.get_data()
-    affine = nim.get_affine()
+    try:
+        affine = nim.affine
+    except AttributeError:  # older nibabel
+        affine = nim.get_affine()
 
     n_sag, n_axi, n_cor = data.shape
     orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
@@ -287,12 +301,21 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     # XXX : next line is a hack don't ask why
     trans[:3, -1] = [n_sag // 2, n_axi // 2, n_cor // 2]
 
-    for surf_fname in surf_fnames:
+    for file_name, color in surfaces:
         surf = dict()
-        surf['rr'], surf['tris'] = read_surface(surf_fname)
+        surf['rr'], surf['tris'] = read_surface(file_name)
         # move back surface to MRI coordinate system
         surf['rr'] = nib.affines.apply_affine(trans, surf['rr'])
-        surfs.append(surf)
+        surfs.append((surf, color))
+
+    src_points = list()
+    if isinstance(src, SourceSpaces):
+        for src_ in src:
+            points = src_['rr'][src_['inuse'].astype(bool)] * 1e3
+            src_points.append(nib.affines.apply_affine(trans, points))
+    elif src is not None:
+        raise TypeError("src needs to be None or SourceSpaces instance, not "
+                        "%s" % repr(src))
 
     fig, axs = _prepare_trellis(len(slices), 4)
 
@@ -308,22 +331,21 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
         # First plot the anatomical data
         ax.imshow(dat, cmap=plt.cm.gray)
+        ax.set_autoscale_on(False)
         ax.axis('off')
 
         # and then plot the contours on top
-        for surf in surfs:
-            if orientation == 'coronal':
-                ax.tricontour(surf['rr'][:, 0], surf['rr'][:, 1],
-                              surf['tris'], surf['rr'][:, 2],
-                              levels=[sl], colors='yellow', linewidths=2.0)
-            elif orientation == 'axial':
-                ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 0],
-                              surf['tris'], surf['rr'][:, 1],
-                              levels=[sl], colors='yellow', linewidths=2.0)
-            elif orientation == 'sagittal':
-                ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 1],
-                              surf['tris'], surf['rr'][:, 0],
-                              levels=[sl], colors='yellow', linewidths=2.0)
+        for surf, color in surfs:
+            ax.tricontour(surf['rr'][:, x], surf['rr'][:, y],
+                          surf['tris'], surf['rr'][:, z],
+                          levels=[sl], colors=color, linewidths=2.0,
+                          zorder=1)
+
+        for sources in src_points:
+            in_slice = np.logical_and(sources[:, z] > sl - 0.5,
+                                      sources[:, z] < sl + 0.5)
+            ax.scatter(sources[in_slice, x], sources[in_slice, y], marker='.',
+                       color='#FF00FF', s=1, zorder=2)
 
     plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                         hspace=0.)
@@ -332,7 +354,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
-             slices=None, show=True):
+             slices=None, brain_surfaces=None, src=None, show=True):
     """Plot BEM contours on anatomical slices.
 
     Parameters
@@ -346,6 +368,14 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         'coronal' or 'axial' or 'sagittal'.
     slices : list of int
         Slice indices.
+    brain_surfaces : None | str | list of str
+        One or more brain surface to plot (optional). Entries should correspond
+        to files in the subject's ``surf`` directory (e.g. ``"white"``).
+    src : None | SourceSpaces | str
+        SourceSpaces instance or path to a source space to plot individual
+        sources as scatter-plot. Only sources lying in the shown slices will be
+        visible, sources that lie between visible slices are not shown. Path
+        can be absolute or relative to the subject's ``bem`` folder.
     show : bool
         Show figure if True.
 
@@ -367,21 +397,47 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     if not op.isdir(bem_path):
         raise IOError('Subject bem directory "%s" does not exist' % bem_path)
 
-    surf_fnames = []
-    for surf_name in ['*inner_skull', '*outer_skull', '*outer_skin']:
+    surfaces = []
+    for surf_name, color in (('*inner_skull', '#FF0000'),
+                             ('*outer_skull', '#FFFF00'),
+                             ('*outer_skin', '#FFAA80')):
         surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
         if len(surf_fname) > 0:
             surf_fname = surf_fname[0]
             logger.info("Using surface: %s" % surf_fname)
-            surf_fnames.append(surf_fname)
+            surfaces.append((surf_fname, color))
 
-    if len(surf_fnames) == 0:
+    if brain_surfaces is not None:
+        if isinstance(brain_surfaces, string_types):
+            brain_surfaces = (brain_surfaces,)
+        for surf_name in brain_surfaces:
+            for hemi in ('lh', 'rh'):
+                surf_fname = op.join(subjects_dir, subject, 'surf',
+                                     hemi + '.' + surf_name)
+                if op.exists(surf_fname):
+                    surfaces.append((surf_fname, '#00DD00'))
+                else:
+                    raise IOError("Surface %s does not exist." % surf_fname)
+
+    if isinstance(src, string_types):
+        if not op.exists(src):
+            src_ = op.join(subjects_dir, subject, 'bem', src)
+            if op.exists(src_):
+                src = src_
+            else:
+                raise IOError("%s does not exist" % src)
+        src = read_source_spaces(src)
+    elif src is not None and not isinstance(src, SourceSpaces):
+        raise TypeError("src needs to be None, str or SourceSpaces instance, "
+                        "not %s" % repr(src))
+
+    if len(surfaces) == 0:
         raise IOError('No surface files found. Surface files must end with '
                       'inner_skull.surf, outer_skull.surf or outer_skin.surf')
 
     # Plot the contours
-    return _plot_mri_contours(mri_fname, surf_fnames, orientation=orientation,
-                              slices=slices, show=show)
+    return _plot_mri_contours(mri_fname, surfaces, src, orientation, slices,
+                              show)
 
 
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,

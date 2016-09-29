@@ -4,6 +4,8 @@
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
+#          Phillip Alday <phillip.alday@unisa.edu.au>
 #
 # License: BSD (3-clause)
 
@@ -13,7 +15,7 @@ import time
 
 import numpy as np
 
-from ...utils import verbose, logger, warn, deprecated
+from ...utils import verbose, logger, warn
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import _BaseRaw, _check_update_montage
@@ -38,14 +40,14 @@ class RawBrainVision(_BaseRaw):
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file.
         Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
-    misc : list or tuple
+    misc : list or tuple of str | 'auto'
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
-        in the vhdr file. Default is ``()``.
+        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        misc channels. Default is ``'auto'``.
     scale : float
-        The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1. For microvolts, the scale factor would be 1e-6. This is
-        used when the header file does not specify the scale factor.
+        The scaling factor for EEG data. Unless specified otherwise by
+        header file, units are in microvolts. Default scale factor is 1.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
@@ -56,7 +58,7 @@ class RawBrainVision(_BaseRaw):
         typically another value or None will be necessary.
     event_id : dict | None
         The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('SXXX').
+        follow the normal Brainvision trigger format ('S###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus events are added to the
@@ -70,7 +72,7 @@ class RawBrainVision(_BaseRaw):
     """
     @verbose
     def __init__(self, vhdr_fname, montage=None,
-                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(),
+                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                  scale=1., preload=False, response_trig_shift=0,
                  event_id=None, verbose=None):
         # Channel info and events
@@ -100,20 +102,6 @@ class RawBrainVision(_BaseRaw):
                             dtype=dtype, n_channels=n_data_ch,
                             trigger_ch=self._event_ch)
 
-    @deprecated('get_brainvision_events is deprecated and will be removed '
-                'in 0.13, use mne.find_events(raw, "STI014") to get properly '
-                'formatted events instead')
-    def get_brainvision_events(self):
-        """Retrieve the events associated with the Brain Vision Raw object
-
-        Returns
-        -------
-        events : array, shape (n_events, 3)
-            Events, each row consisting of an (onset, duration, trigger)
-            sequence.
-        """
-        return self._get_brainvision_events()
-
     def _get_brainvision_events(self):
         """Retrieve the events associated with the Brain Vision Raw object
 
@@ -124,19 +112,6 @@ class RawBrainVision(_BaseRaw):
             sequence.
         """
         return self._events.copy()
-
-    @deprecated('set_brainvision_events is deprecated and will be removed '
-                'in 0.13')
-    def set_brainvision_events(self, events):
-        """Set the events and update the synthesized stim channel
-
-        Parameters
-        ----------
-        events : array, shape (n_events, 3)
-            Events, each row consisting of an (onset, duration, trigger)
-            sequence.
-        """
-        return self._set_brainvision_events(events)
 
     def _set_brainvision_events(self, events):
         """Set the events and update the synthesized stim channel
@@ -172,7 +147,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         vmrk file to be read.
     event_id : dict | None
         The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('SXXX').
+        follow the normal Brainvision trigger format ('S###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus events are added to the
@@ -190,13 +165,38 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         event_id = dict()
     # read vmrk file
     with open(fname, 'rb') as fid:
-        txt = fid.read().decode('utf-8')
+        txt = fid.read()
 
-    header = txt.split('\n')[0].strip()
+    # we don't actually need to know the coding for the header line.
+    # the characters in it all belong to ASCII and are thus the
+    # same in Latin-1 and UTF-8
+    header = txt.decode('ascii', 'ignore').split('\n')[0].strip()
     _check_mrk_version(header)
     if (response_trig_shift is not None and
             not isinstance(response_trig_shift, int)):
         raise TypeError("response_trig_shift must be an integer or None")
+
+    # although the markers themselves are guaranteed to be ASCII (they
+    # consist of numbers and a few reserved words), we should still
+    # decode the file properly here because other (currently unused)
+    # blocks, such as that the filename are specifying are not
+    # guaranteed to be ASCII.
+
+    codepage = 'utf-8'
+    try:
+        # if there is an explicit codepage set, use it
+        # we pretend like it's ascii when searching for the codepage
+        cp_setting = re.search('Codepage=(.+)',
+                               txt.decode('ascii', 'ignore'),
+                               re.IGNORECASE & re.MULTILINE)
+        if cp_setting:
+            codepage = cp_setting.group(1).strip()
+        txt = txt.decode(codepage)
+    except UnicodeDecodeError:
+        # if UTF-8 (new standard) or explicit codepage setting fails,
+        # fallback to Latin-1, which is Windows default and implicit
+        # standard in older recordings
+        txt = txt.decode('latin-1')
 
     # extract Marker Infos block
     m = re.search("\[Marker Infos\]", txt)
@@ -239,7 +239,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
             examples += ", ..."
         warn("Currently, {0} trigger(s) will be dropped, such as [{1}]. "
              "Consider using ``event_id`` to parse triggers that "
-             "do not follow the 'SXXX' pattern.".format(
+             "do not follow the 'S###' pattern.".format(
                  len(dropped), examples))
 
     events = np.array(events).reshape(-1, 3)
@@ -268,7 +268,15 @@ _orientation_dict = dict(MULTIPLEXED='F', VECTORIZED='C')
 _fmt_dict = dict(INT_16='short', INT_32='int', IEEE_FLOAT_32='single')
 _fmt_byte_dict = dict(short=2, int=4, single=4)
 _fmt_dtype_dict = dict(short='<i2', int='<i4', single='<f4')
-_unit_dict = {'V': 1., u'µV': 1e-6, 'uV': 1e-6}
+_unit_dict = {'V': 1.,  # V stands for Volt
+              u'µV': 1e-6,
+              'uV': 1e-6,
+              'C': 1,  # C stands for celsius
+              u'µS': 1e-6,  # S stands for Siemens
+              u'uS': 1e-6,
+              u'ARU': 1,  # ARU is the unity for the breathing data
+              'S': 1,
+              'N': 1}  # Newton
 
 
 def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
@@ -281,13 +289,14 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file.
-    misc : list of str
-        Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the vhdr file.
+    misc : list or tuple of str | 'auto'
+        Names of channels or list of indices that should be designated
+        MISC channels. Values should correspond to the electrodes
+        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        misc channels. Default is ``'auto'``.
     scale : float
-        The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1.. For microvolts, the scale factor would be 1e-6. This is
-        used when the header file does not specify the scale factor.
+        The scaling factor for EEG data. Unless specified otherwise by
+        header file, units are in microvolts. Default scale factor is 1.
     montage : str | True | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
@@ -312,9 +321,29 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                       "not the '%s' file." % ext)
     with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
-        header = f.readline().decode('utf-8').strip()
+        header = f.readline()
+        codepage = 'utf-8'
+        # we don't actually need to know the coding for the header line.
+        # the characters in it all belong to ASCII and are thus the
+        # same in Latin-1 and UTF-8
+        header = header.decode('ascii', 'ignore').strip()
         _check_hdr_version(header)
-        settings = f.read().decode('utf-8')
+
+        settings = f.read()
+        try:
+            # if there is an explicit codepage set, use it
+            # we pretend like it's ascii when searching for the codepage
+            cp_setting = re.search('Codepage=(.+)',
+                                   settings.decode('ascii', 'ignore'),
+                                   re.IGNORECASE & re.MULTILINE)
+            if cp_setting:
+                codepage = cp_setting.group(1).strip()
+            settings = settings.decode(codepage)
+        except UnicodeDecodeError:
+            # if UTF-8 (new standard) or explicit codepage setting fails,
+            # fallback to Latin-1, which is Windows default and implicit
+            # standard in older recordings
+            settings = settings.decode('latin-1')
 
     if settings.find('[Comment]') != -1:
         params, settings = settings.split('[Comment]')
@@ -351,11 +380,15 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     ranges = np.empty(nchan)
     cals.fill(np.nan)
     ch_dict = dict()
+    misc_chs = dict()
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0]) - 1
         props = props.split(',')
+        # default to microvolts because that's what the older brainvision
+        # standard explicitly assumed; the unit is only allowed to be
+        # something else if explicitly stated (cf. EEGLAB export below)
         if len(props) < 4:
-            props += ('V',)
+            props += (u'µV',)
         name, _, resolution, unit = props[:4]
         ch_dict[chan] = name
         ch_names[n] = name
@@ -366,7 +399,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 resolution = 1.  # for files with units specified, but not res
         unit = unit.replace(u'\xc2', u'')  # Remove unwanted control characters
         cals[n] = float(resolution)
-        ranges[n] = _unit_dict.get(unit, unit) * scale
+        ranges[n] = _unit_dict.get(unit, 1) * scale
+        if unit not in ('V', u'µV', 'uV'):
+            misc_chs[name] = (FIFF.FIFF_UNIT_CEL if unit == 'C'
+                              else FIFF.FIFF_UNIT_NONE)
+    misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
     # create montage
     if montage is True:
@@ -394,55 +431,161 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     # set to zero.
     settings = settings.splitlines()
     idx = None
+
     if 'Channels' in settings:
         idx = settings.index('Channels')
         settings = settings[idx + 1:]
+        hp_col, lp_col = 4, 5
         for idx, setting in enumerate(settings):
             if re.match('#\s+Name', setting):
                 break
             else:
                 idx = None
 
+    # If software filters are active, then they override the hardware setup
+    # But we still want to be able to double check the channel names
+    # for alignment purposes, we keep track of the hardware setting idx
+    idx_amp = idx
+
+    if 'S o f t w a r e  F i l t e r s' in settings:
+        idx = settings.index('S o f t w a r e  F i l t e r s')
+        for idx, setting in enumerate(settings[idx + 1:], idx + 1):
+            if re.match('#\s+Low Cutoff', setting):
+                hp_col, lp_col = 1, 2
+                warn('Online software filter detected. Using software '
+                     'filter settings and ignoring hardware values')
+                break
+            else:
+                idx = idx_amp
+
     if idx:
         lowpass = []
         highpass = []
+
+        # extract filter units and convert s to Hz if necessary
+        # this cannot be done as post-processing as the inverse t-f
+        # relationship means that the min/max comparisons don't make sense
+        # unless we know the units
+        header = re.split('\s\s+', settings[idx])
+        hp_s = '[s]' in header[hp_col]
+        lp_s = '[s]' in header[lp_col]
+
         for i, ch in enumerate(ch_names[:-1], 1):
-            line = settings[idx + i].split()
-            assert ch in line
-            highpass.append(line[5])
-            lowpass.append(line[6])
+            line = re.split('\s\s+', settings[idx + i])
+            # double check alignment with channel by using the hw settings
+            # the actual divider is multiple spaces -- for newer BV
+            # files, the unit is specified for every channel separated
+            # by a single space, while for older files, the unit is
+            # specified in the column headers
+            if idx == idx_amp:
+                line_amp = line
+            else:
+                line_amp = re.split('\s\s+', settings[idx_amp + i])
+            assert ch in line_amp
+            highpass.append(line[hp_col])
+            lowpass.append(line[lp_col])
         if len(highpass) == 0:
             pass
-        elif all(highpass):
-            if highpass[0] == 'NaN':
+        elif len(set(highpass)) == 1:
+            if highpass[0] in ('NaN', 'Off'):
                 pass  # Placeholder for future use. Highpass set in _empty_info
             elif highpass[0] == 'DC':
                 info['highpass'] = 0.
             else:
                 info['highpass'] = float(highpass[0])
+                if hp_s:
+                    info['highpass'] = 1. / info['highpass']
         else:
-            info['highpass'] = np.min(np.array(highpass, dtype=np.float))
-            warn('Channels contain different highpass filters. Highest filter '
-                 'setting will be stored.')
+            heterogeneous_hp_filter = True
+            if hp_s:
+                # We convert channels with disabled filters to having
+                # highpass relaxed / no filters
+                highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
+                            else np.Inf for filt in highpass]
+                info['highpass'] = np.max(np.array(highpass, dtype=np.float))
+                # Coveniently enough 1 / np.Inf = 0.0, so this works for
+                # DC / no highpass filter
+                info['highpass'] = 1. / info['highpass']
+
+                # not exactly the cleanest use of FP, but this makes us
+                # more conservative in *not* warning.
+                if info['highpass'] == 0.0 and len(set(highpass)) == 1:
+                    # not actually heterogeneous in effect
+                    # ... just heterogeneously disabled
+                    heterogeneous_hp_filter = False
+            else:
+                highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
+                            else 0.0 for filt in highpass]
+                info['highpass'] = np.min(np.array(highpass, dtype=np.float))
+                if info['highpass'] == 0.0 and len(set(highpass)) == 1:
+                    # not actually heterogeneous in effect
+                    # ... just heterogeneously disabled
+                    heterogeneous_hp_filter = False
+
+            if heterogeneous_hp_filter:
+                warn('Channels contain different highpass filters. '
+                     'Lowest (weakest) filter setting (%0.2f Hz) '
+                     'will be stored.' % info['highpass'])
+
         if len(lowpass) == 0:
             pass
-        elif all(lowpass):
-            if lowpass[0] == 'NaN':
+        elif len(set(lowpass)) == 1:
+            if lowpass[0] in ('NaN', 'Off'):
                 pass  # Placeholder for future use. Lowpass set in _empty_info
             else:
                 info['lowpass'] = float(lowpass[0])
+                if lp_s:
+                    info['lowpass'] = 1. / info['lowpass']
         else:
-            info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
-            warn('Channels contain different lowpass filters. Lowest filter '
-                 'setting will be stored.')
+            heterogeneous_lp_filter = True
+            if lp_s:
+                # We convert channels with disabled filters to having
+                # infinitely relaxed / no filters
+                lowpass = [float(filt) if filt not in ('NaN', 'Off')
+                           else 0.0 for filt in lowpass]
+                info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
+                try:
+                    info['lowpass'] = 1. / info['lowpass']
+                except ZeroDivisionError:
+                    if len(set(lowpass)) == 1:
+                        # No lowpass actually set for the weakest setting
+                        # so we set lowpass to the Nyquist frequency
+                        info['lowpass'] = info['sfreq'] / 2.
+                        # not actually heterogeneous in effect
+                        # ... just heterogeneously disabled
+                        heterogeneous_lp_filter = False
+                    else:
+                        # no lowpass filter is the weakest filter,
+                        # but it wasn't the only filter
+                        pass
+            else:
+                # We convert channels with disabled filters to having
+                # infinitely relaxed / no filters
+                lowpass = [float(filt) if filt not in ('NaN', 'Off')
+                           else np.Inf for filt in lowpass]
+                info['lowpass'] = np.max(np.array(lowpass, dtype=np.float))
 
-        # Post process highpass and lowpass to take into account units
-        header = settings[idx].split('  ')
-        header = [h for h in header if len(h)]
-        if '[s]' in header[4] and (info['highpass'] > 0):
-            info['highpass'] = 1. / info['highpass']
-        if '[s]' in header[5]:
-            info['lowpass'] = 1. / info['lowpass']
+                if np.isinf(info['lowpass']):
+                    # No lowpass actually set for the weakest setting
+                    # so we set lowpass to the Nyquist frequency
+                    info['lowpass'] = info['sfreq'] / 2.
+                    if len(set(lowpass)) == 1:
+                        # not actually heterogeneous in effect
+                        # ... just heterogeneously disabled
+                        heterogeneous_lp_filter = False
+
+            if heterogeneous_lp_filter:
+                # this isn't clean FP, but then again, we only want to provide
+                # the Nyquist hint when the lowpass filter was actually
+                # calculated from dividing the sampling frequency by 2, so the
+                # exact/direct comparison (instead of tolerance) makes sense
+                if info['lowpass'] == info['sfreq'] / 2.0:
+                    nyquist = ', Nyquist limit'
+                else:
+                    nyquist = ""
+                warn('Channels contain different lowpass filters. '
+                     'Highest (weakest) filter setting (%0.2f Hz%s) '
+                     'will be stored.' % (info['lowpass'], nyquist))
 
     # locate EEG and marker files
     path = os.path.dirname(vhdr_fname)
@@ -461,7 +604,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         elif ch_name in misc or idx in misc or idx - nchan in misc:
             kind = FIFF.FIFFV_MISC_CH
             coil_type = FIFF.FIFFV_COIL_NONE
-            unit = FIFF.FIFF_UNIT_V
+            if ch_name in misc_chs:
+                unit = misc_chs[ch_name]
+            else:
+                unit = FIFF.FIFF_UNIT_NONE
         elif ch_name == 'STI 014':
             kind = FIFF.FIFFV_STIM_CH
             coil_type = FIFF.FIFFV_COIL_NONE
@@ -484,7 +630,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
 
 def read_raw_brainvision(vhdr_fname, montage=None,
-                         eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(),
+                         eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                          scale=1., preload=False, response_trig_shift=0,
                          event_id=None, verbose=None):
     """Reader for Brain Vision EEG file
@@ -501,14 +647,14 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file
         Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
-    misc : list or tuple of str
+    misc : list or tuple of str | 'auto'
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
-        in the vhdr file. Default is ``()``.
+        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        misc channels. Default is ``'auto'``.
     scale : float
-        The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1. For microvolts, the scale factor would be 1e-6. This is
-        used when the header file does not specify the scale factor.
+        The scaling factor for EEG data. Unless specified otherwise by
+        header file, units are in microvolts. Default scale factor is 1.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
@@ -519,7 +665,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         typically another value or None will be necessary.
     event_id : dict | None
         The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('SXXX').
+        follow the normal Brainvision trigger format ('S###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus events are added to the
@@ -536,8 +682,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    raw = RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
-                         misc=misc, scale=scale,
-                         preload=preload, verbose=verbose, event_id=event_id,
-                         response_trig_shift=response_trig_shift)
-    return raw
+    return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
+                          misc=misc, scale=scale, preload=preload,
+                          response_trig_shift=response_trig_shift,
+                          event_id=event_id, verbose=verbose)

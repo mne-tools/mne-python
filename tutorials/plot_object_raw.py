@@ -13,10 +13,11 @@ import os.path as op
 from matplotlib import pyplot as plt
 
 ###############################################################################
-# Continuous data is stored in objects of type :class:`Raw <mne.io.RawFIF>`.
+# Continuous data is stored in objects of type :class:`Raw <mne.io.Raw>`.
 # The core data structure is simply a 2D numpy array (channels × samples,
-# `._data`) combined with an :class:`Info <mne.Info>` object
-# (`.info`) (:ref:`tut_info_objects`.
+# stored in a private attribute called `._data`) combined with an
+# :class:`Info <mne.Info>` object (`.info` attribute)
+# (see :ref:`tut_info_objects`).
 #
 # The most common way to load continuous data is from a .fif file. For more
 # information on :ref:`loading data from other formats <ch_convert>`, or
@@ -30,7 +31,8 @@ from matplotlib import pyplot as plt
 # Load an example dataset, the preload flag loads the data into memory now
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG',
                     'sample', 'sample_audvis_raw.fif')
-raw = mne.io.RawFIF(data_path, preload=True, verbose=False)
+raw = mne.io.read_raw_fif(data_path, preload=True, add_eeg_ref=False)
+raw.set_eeg_reference()  # set EEG average reference
 
 # Give the sample rate
 print('sample rate:', raw.info['sfreq'], 'Hz')
@@ -38,7 +40,13 @@ print('sample rate:', raw.info['sfreq'], 'Hz')
 print('channels x samples:', raw._data.shape)
 
 ###############################################################################
-# Information about the channels contained in the :class:`Raw <mne.io.RawFIF>`
+# .. note:: Accessing the `._data` attribute is done here for educational
+#           purposes. However this is a private attribute as its name starts
+#           with an `_`. This suggests that you should **not** access this
+#           variable directly but rely on indexing syntax detailed just below.
+
+###############################################################################
+# Information about the channels contained in the :class:`Raw <mne.io.Raw>`
 # object is contained in the :class:`Info <mne.Info>` attribute.
 # This is essentially a dictionary with a number of relevant fields (see
 # :ref:`tut_info_objects`).
@@ -48,21 +56,13 @@ print('channels x samples:', raw._data.shape)
 # Indexing data
 # -------------
 #
-# There are two ways to access the data stored within :class:`Raw
-# <mne.io.RawFIF>` objects. One is by accessing the underlying data array, and
-# the other is to index the :class:`Raw <mne.io.RawFIF>` object directly.
+# To access the data stored within :class:`Raw <mne.io.Raw>` objects,
+# it is possible to index the :class:`Raw <mne.io.Raw>` object.
 #
-# To access the data array of :class:`Raw <mne.io.Raw>` objects, use the
-# `_data` attribute. Note that this is only present if `preload==True`.
-
-print('Shape of data array:', raw._data.shape)
-array_data = raw._data[0, :1000]
-_ = plt.plot(array_data)
-
-###############################################################################
-# You can also pass an index directly to the :class:`Raw <mne.io.RawFIF>`
-# object. This will return an array of times, as well as the data representing
-# those timepoints. This may be used even if the data is not preloaded:
+# Indexing a :class:`Raw <mne.io.Raw>` object will return two arrays: an array
+# of times, as well as the data representing those timepoints. This works
+# even if the data is not preloaded, in which case the data will be read from
+# disk when indexing. The syntax is as follows:
 
 # Extract data from the first 5 channels, from 1 s to 3 s.
 sfreq = raw.info['sfreq']
@@ -114,11 +114,11 @@ print('Number of channels reduced from', nchan, 'to', raw.info['nchan'])
 
 ###############################################################################
 # --------------------------------------------------
-# Concatenating :class:`Raw <mne.io.RawFIF>` objects
+# Concatenating :class:`Raw <mne.io.Raw>` objects
 # --------------------------------------------------
 #
-# :class:`Raw <mne.io.RawFIF>` objects can be concatenated in time by using the
-# :func:`append <mne.io.RawFIF.append>` function. For this to work, they must
+# :class:`Raw <mne.io.Raw>` objects can be concatenated in time by using the
+# :func:`append <mne.io.Raw.append>` function. For this to work, they must
 # have the same number of channels and their :class:`Info
 # <mne.Info>` structures should be compatible.
 

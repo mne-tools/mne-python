@@ -4,9 +4,11 @@
 #
 # License: BSD (3-clause)
 
+from collections import Counter
 from copy import deepcopy
 from datetime import datetime as dt
 import os.path as op
+import re
 
 import numpy as np
 from scipy import linalg
@@ -24,7 +26,6 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_julian, write_float_matrix)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..utils import logger, verbose, warn
-from ..fixes import Counter
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
 
@@ -42,6 +43,8 @@ _kind_dict = dict(
     seeg=(FIFF.FIFFV_SEEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
     bio=(FIFF.FIFFV_BIO_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     ecog=(FIFF.FIFFV_ECOG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
+    hbo=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBO, FIFF.FIFF_UNIT_MOL),
+    hbr=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBR, FIFF.FIFF_UNIT_MOL)
 )
 
 
@@ -202,6 +205,9 @@ class Info(dict):
             elif k == 'meas_date' and np.iterable(v):
                 # first entry in meas_date is meaningful
                 entr = dt.fromtimestamp(v[0]).strftime('%Y-%m-%d %H:%M:%S')
+            elif k == 'kit_system_id' and v is not None:
+                from .kit.constants import SYSNAMES as KIT_SYSNAMES
+                entr = '%i (%s)' % (v, KIT_SYSNAMES.get(v, 'unknown'))
             else:
                 this_len = (len(v) if hasattr(v, '__len__') else
                             ('%s' % v if v is not None else None))
@@ -225,14 +231,6 @@ class Info(dict):
         st += '\n>'
         st %= non_empty
         return st
-
-    def _anonymize(self):
-        if self.get('subject_info') is not None:
-            del self['subject_info']
-        self['meas_date'] = [0, 0]
-        for key_1 in ('file_id', 'meas_id'):
-            for key_2 in ('secs', 'msecs', 'usecs'):
-                self[key_1][key_2] = 0
 
     def _check_consistency(self):
         """Do some self-consistency checks and datatype tweaks"""
@@ -363,10 +361,11 @@ def _read_dig_fif(fid, meas_info):
     return dig
 
 
-def _read_dig_points(fname, comments='%'):
+def _read_dig_points(fname, comments='%', unit='auto'):
     """Read digitizer data from a text file.
 
-    This function can read space-delimited text files of digitizer data.
+    If fname ends in .hsp or .esp, the function assumes digitizer files in [m],
+    otherwise it assumes space-delimited text files in [mm].
 
     Parameters
     ----------
@@ -375,16 +374,44 @@ def _read_dig_points(fname, comments='%'):
     comments : str
         The character used to indicate the start of a comment;
         Default: '%'.
+    unit : 'auto' | 'm' | 'cm' | 'mm'
+        Unit of the digitizer files (hsp and elp). If not 'm', coordinates will
+        be rescaled to 'm'. Default is 'auto', which assumes 'm' for *.hsp and
+        *.elp files and 'mm' for *.txt files, corresponding to the known
+        Polhemus export formats.
 
     Returns
     -------
     dig_points : np.ndarray, shape (n_points, 3)
-        Array of dig points.
+        Array of dig points in [m].
     """
-    dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
+    if unit not in ('auto', 'm', 'mm', 'cm'):
+        raise ValueError('unit must be one of "auto", "m", "mm", or "cm"')
+
+    _, ext = op.splitext(fname)
+    if ext == '.elp' or ext == '.hsp':
+        with open(fname) as fid:
+            file_str = fid.read()
+        value_pattern = "\-?\d+\.?\d*e?\-?\d*"
+        coord_pattern = "({0})\s+({0})\s+({0})\s*$".format(value_pattern)
+        if ext == '.hsp':
+            coord_pattern = '^' + coord_pattern
+        points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
+                                                      re.MULTILINE)]
+        dig_points = np.array(points_str, dtype=float)
+    else:
+        dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
+        if unit == 'auto':
+            unit = 'mm'
+
     if dig_points.shape[-1] != 3:
         err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
         raise ValueError(err)
+
+    if unit == 'mm':
+        dig_points /= 1000.
+    elif unit == 'cm':
+        dig_points /= 100.
 
     return dig_points
 
@@ -614,6 +641,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     line_freq = None
     custom_ref_applied = False
     xplotter_layout = None
+    kit_system_id = None
     for k in range(meas_info['nent']):
         kind = meas_info['directory'][k].kind
         pos = meas_info['directory'][k].pos
@@ -669,6 +697,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         elif kind == FIFF.FIFF_XPLOTTER_LAYOUT:
             tag = read_tag(fid, pos)
             xplotter_layout = str(tag.data)
+        elif kind == FIFF.FIFF_MNE_KIT_SYSTEM_ID:
+            tag = read_tag(fid, pos)
+            kit_system_id = int(tag.data)
 
     # Check that we have everything we need
     if nchan is None:
@@ -949,6 +980,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['acq_stim'] = acq_stim
     info['custom_ref_applied'] = custom_ref_applied
     info['xplotter_layout'] = xplotter_layout
+    info['kit_system_id'] = kit_system_id
     info._check_consistency()
     return info, meas
 
@@ -1163,6 +1195,10 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     #   CTF compensation info
     write_ctf_comp(fid, info['comps'])
 
+    #   KIT system ID
+    if info.get('kit_system_id') is not None:
+        write_int(fid, FIFF.FIFF_MNE_KIT_SYSTEM_ID, info['kit_system_id'])
+
     end_block(fid, FIFF.FIFFB_MEAS_INFO)
 
     #   Processing history
@@ -1204,7 +1240,8 @@ def _is_equal_dict(dicts):
                 is_equal.append((k0 == k) and _is_equal_dict(v))
         else:
             is_equal.append(all(np.all(k == k0) and
-                            np.all(v == v0) for k, v in d))
+                            (np.array_equal(v, v0) if isinstance(v, np.ndarray)
+                             else np.all(v == v0)) for k, v in d))
     return all(is_equal)
 
 
@@ -1350,6 +1387,17 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
             msg = ("Measurement infos provide mutually inconsistent %s" %
                    trans_name)
             raise ValueError(msg)
+
+    # KIT system-IDs
+    kit_sys_ids = [i['kit_system_id'] for i in infos if i['kit_system_id']]
+    if len(kit_sys_ids) == 0:
+        info['kit_system_id'] = None
+    elif len(set(kit_sys_ids)) == 1:
+        info['kit_system_id'] = kit_sys_ids[0]
+    else:
+        raise ValueError("Trying to merge channels from different KIT systems")
+
+    # other fields
     other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
                     'comps', 'custom_ref_applied', 'description', 'dig',
                     'experimenter', 'file_id', 'filename', 'highpass',
@@ -1357,9 +1405,9 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
                     'line_freq', 'lowpass', 'meas_date', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq',
                     'subject_info', 'sfreq', 'xplotter_layout']
-
     for k in other_fields:
         info[k] = _merge_dict_values(infos, k)
+
     info._check_consistency()
     return info
 
@@ -1371,13 +1419,13 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
     ----------
     ch_names : list of str | int
         Channel names. If an int, a list of channel names will be created
-        from range(ch_names)
+        from :func:`range(ch_names) <range>`.
     sfreq : float
         Sample rate of the data.
     ch_types : list of str | str
         Channel types. If None, data are assumed to be misc.
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
-        'seeg', 'ecog', 'mag', 'eeg', 'ref_meg' or 'grad'.
+        'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'hbr' or 'hbo'.
         If str, then all channels are assumed to be of the same type.
     montage : None | str | Montage | DigMontage | list
         A montage containing channel positions. If str or Montage is
@@ -1386,6 +1434,11 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
         digitizer information will be updated. A list of unique montages,
         can be specifed and applied to the info. See also the documentation of
         :func:`mne.channels.read_montage` for more information.
+
+    Returns
+    -------
+    info : instance of Info
+        The measurement info.
 
     Notes
     -----
@@ -1410,7 +1463,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
     if isinstance(ch_types, string_types):
         ch_types = [ch_types] * nchan
     if len(ch_types) != nchan:
-        raise ValueError('ch_types and ch_names must be the same length')
+        raise ValueError('ch_types and ch_names must be the same length '
+                         '(%s != %s)' % (len(ch_types), nchan))
     info = _empty_info(sfreq)
     info['meas_date'] = np.array([0, 0], np.int32)
     loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
@@ -1453,9 +1507,9 @@ RAW_INFO_FIELDS = (
     'comps', 'ctf_head_t', 'custom_ref_applied', 'description', 'dev_ctf_t',
     'dev_head_t', 'dig', 'experimenter', 'events',
     'file_id', 'filename', 'highpass', 'hpi_meas', 'hpi_results',
-    'hpi_subsystem', 'line_freq', 'lowpass', 'meas_date', 'meas_id', 'nchan',
-    'proj_id', 'proj_name', 'projs', 'sfreq', 'subject_info',
-    'xplotter_layout',
+    'hpi_subsystem', 'kit_system_id', 'line_freq', 'lowpass', 'meas_date',
+    'meas_id', 'nchan', 'proj_id', 'proj_name', 'projs', 'sfreq',
+    'subject_info', 'xplotter_layout',
 )
 
 
@@ -1465,8 +1519,8 @@ def _empty_info(sfreq):
     _none_keys = (
         'acq_pars', 'acq_stim', 'buffer_size_sec', 'ctf_head_t', 'description',
         'dev_ctf_t', 'dig', 'experimenter',
-        'file_id', 'filename', 'highpass', 'hpi_subsystem', 'line_freq',
-        'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
+        'file_id', 'filename', 'highpass', 'hpi_subsystem', 'kit_system_id',
+        'line_freq', 'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
         'subject_info', 'xplotter_layout',
     )
     _list_keys = ('bads', 'chs', 'comps', 'events', 'hpi_meas', 'hpi_results',
@@ -1513,3 +1567,34 @@ def _force_update_info(info_base, info_target):
             continue
         for i_targ in info_target:
             i_targ[key] = val
+
+
+def anonymize_info(info):
+    """Anonymize measurement information in place.
+
+    Reset 'subject_info', 'meas_date', 'file_id', and 'meas_id' keys if they
+    exist in ``info``.
+
+    Parameters
+    ----------
+    info : dict, instance of Info
+        Measurement information for the dataset.
+
+    Returns
+    -------
+    info : instance of Info
+        Measurement information for the dataset.
+
+    Notes
+    -----
+    Operates in place.
+    """
+    if not isinstance(info, Info):
+        raise ValueError('self must be an Info instance.')
+    if info.get('subject_info') is not None:
+        del info['subject_info']
+    info['meas_date'] = [0, 0]
+    for key_1 in ('file_id', 'meas_id'):
+        for key_2 in ('secs', 'msecs', 'usecs'):
+            info[key_1][key_2] = 0
+    return info

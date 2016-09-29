@@ -9,6 +9,7 @@
 #
 # License: Simplified BSD
 
+from collections import Iterable
 import os
 import os.path as op
 
@@ -131,9 +132,10 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     Parameters
     ----------
     kind : str
-        The name of the montage file (e.g. kind='easycap-M10' for
-        'easycap-M10.txt'). Files with extensions '.elc', '.txt', '.csd',
-        '.elp', '.hpts', '.sfp' or '.loc' ('.locs' and '.eloc') are supported.
+        The name of the montage file without the file extension (e.g.
+        kind='easycap-M10' for 'easycap-M10.txt'). Files with extensions
+        '.elc', '.txt', '.csd', '.elp', '.hpts', '.sfp' or '.loc' ('.locs' and
+        '.eloc') are supported.
     ch_names : list of str | None
         If not all electrodes defined in the montage are present in the EEG
         data, use this parameter to select subset of electrode positions to
@@ -187,15 +189,32 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
     if ext == '.sfp':
         # EGI geodesic
-        dtype = np.dtype('S4, f8, f8, f8')
-        data = np.loadtxt(fname, dtype=dtype)
-        pos = np.c_[data['f1'], data['f2'], data['f3']]
-        ch_names_ = data['f0'].astype(np.str)
+        with open(fname, 'r') as f:
+            lines = f.read().replace('\t', ' ').splitlines()
+
+        ch_names_, pos = [], []
+        for ii, line in enumerate(lines):
+            line = line.strip().split()
+            if len(line) > 0:  # skip empty lines
+                if len(line) != 4:  # name, x, y, z
+                    raise ValueError("Malformed .sfp file in line " + str(ii))
+                this_name, x, y, z = line
+                ch_names_.append(this_name)
+                pos.append([float(cord) for cord in (x, y, z)])
+        pos = np.asarray(pos)
     elif ext == '.elc':
         # 10-5 system
         ch_names_ = []
         pos = []
         with open(fname) as fid:
+            # Default units are meters
+            for line in fid:
+                if 'UnitPosition' in line:
+                    units = line.split()[1]
+                    scale_factor = dict(m=1., mm=1e-3)[units]
+                    break
+            else:
+                raise RuntimeError('Could not detect units in file %s' % fname)
             for line in fid:
                 if 'Positions\n' in line:
                     break
@@ -208,7 +227,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                 if not line or not set(line) - set([' ']):
                     break
                 ch_names_.append(line.strip(' ').strip('\n'))
-        pos = np.array(pos)
+        pos = np.array(pos) * scale_factor
     elif ext == '.txt':
         # easycap
         try:  # newer version
@@ -421,7 +440,7 @@ def _check_frame(d, frame_str):
 
 
 def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
-                     unit='mm', fif=None, transform=True, dev_head_t=False):
+                     unit='auto', fif=None, transform=True, dev_head_t=False):
     """Read subject-specific digitization montage from a file
 
     Parameters
@@ -430,8 +449,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         If str, this corresponds to the filename of the headshape points.
         This is typically used with the Polhemus FastSCAN system.
         If numpy.array, this corresponds to an array of positions of the
-        headshape points in 3d. These points are in the native
-        digitizer space.
+        headshape points in 3d. These points are assumed to be in the native
+        digitizer space and will be rescaled according to the unit parameter.
     hpi : None | str | array, shape (n_hpi, 3)
         If str, this corresponds to the filename of Head Position Indicator
         (HPI) points. If numpy.array, this corresponds to an array
@@ -441,14 +460,17 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         points. This is typically used with the Polhemus FastSCAN system.
         Fiducials should be listed first: nasion, left periauricular point,
         right periauricular point, then the points corresponding to the HPI.
-        These points are in the native digitizer space.
-        If numpy.array, this corresponds to an array of fids + HPI points.
+        If numpy.array, this corresponds to an array of digitizer points in
+        the same order. These points are assumed to be in the native digitizer
+        space and will be rescaled according to the unit parameter.
     point_names : None | list
         If list, this corresponds to a list of point names. This must be
         specified if elp is defined.
-    unit : 'm' | 'cm' | 'mm'
-        Unit of the input file. If not 'm', coordinates will be rescaled
-        to 'm'. Default is 'mm'. This is applied only for hsp and elp files.
+    unit : 'auto' | 'm' | 'cm' | 'mm'
+        Unit of the digitizer files (hsp and elp). If not 'm', coordinates will
+        be rescaled to 'm'. Default is 'auto', which assumes 'm' for \*.hsp and
+        \*.elp files and 'mm' for \*.txt files, corresponding to the known
+        Polhemus export formats.
     fif : str | None
         FIF file from which to read digitization locations.
         If str (filename), all other arguments are ignored.
@@ -483,11 +505,6 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
     .. versionadded:: 0.9.0
     """
-    if not isinstance(unit, string_types) or unit not in('m', 'mm', 'cm'):
-        raise ValueError('unit must be "m", "mm", or "cm"')
-    scale = dict(m=1., mm=1e-3, cm=1e-2)[unit]
-    dig_ch_pos = None
-    fids = None
     if fif is not None:
         # Use a different code path
         if dev_head_t or not transform:
@@ -525,63 +542,84 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                 dig_ch_pos['EEG%03d' % d['ident']] = d['r']
         fids = np.array([fids[key] for key in ('nasion', 'lpa', 'rpa')])
         hsp = np.array(hsp)
-        hsp /= scale  # will be multiplied later
         elp = np.array(elp)
-        elp /= scale  # will be multiplied later
-        transform = False
-    if isinstance(hsp, string_types):
-        hsp = _read_dig_points(hsp)
-    if hsp is not None:
-        hsp = hsp * scale
-    if isinstance(hpi, string_types):
-        ext = op.splitext(hpi)[-1]
-        if ext == '.txt':
-            hpi = _read_dig_points(hpi)
-        elif ext in ('.sqd', '.mrk'):
-            from ..io.kit import read_mrk
-            hpi = read_mrk(hpi)
+    else:
+        dig_ch_pos = None
+        scale = {'mm': 1e-3, 'cm': 1e-2, 'auto': 1e-3, 'm': None}
+        if unit not in scale:
+            raise ValueError("Unit needs to be one of %s, not %r" %
+                             (tuple(map(repr, scale)), unit))
+
+        # HSP
+        if isinstance(hsp, string_types):
+            hsp = _read_dig_points(hsp, unit=unit)
+        elif hsp is not None and scale[unit]:
+            hsp *= scale[unit]
+
+        # HPI
+        if isinstance(hpi, string_types):
+            ext = op.splitext(hpi)[-1]
+            if ext == '.txt':
+                hpi = _read_dig_points(hpi, unit='m')
+            elif ext in ('.sqd', '.mrk'):
+                from ..io.kit import read_mrk
+                hpi = read_mrk(hpi)
+            else:
+                raise ValueError('HPI file with extension *%s is not '
+                                 'supported. Only *.txt, *.sqd and *.mrk are '
+                                 'supported.' % ext)
+
+        # ELP
+        if isinstance(elp, string_types):
+            elp = _read_dig_points(elp, unit=unit)
+        elif elp is not None and scale[unit]:
+            elp *= scale[unit]
+
+        if elp is not None:
+            if not isinstance(point_names, Iterable):
+                raise TypeError("If elp is specified, point_names must "
+                                "provide a list of str with one entry per ELP "
+                                "point")
+            point_names = list(point_names)
+            if len(point_names) != len(elp):
+                raise ValueError("The elp file contains %i points, but %i "
+                                 "names were specified." %
+                                 (len(elp), len(point_names)))
+
+        # Transform digitizer coordinates to neuromag space
+        if transform:
+            if elp is None:
+                raise ValueError("ELP points are not specified. Points are "
+                                 "needed for transformation.")
+            names_lower = [name.lower() for name in point_names]
+
+            # check that all needed points are present
+            missing = [name for name in ('nasion', 'lpa', 'rpa')
+                       if name not in names_lower]
+            if missing:
+                raise ValueError("The points %s are missing, but are needed "
+                                 "to transform the points to the MNE "
+                                 "coordinate system. Either add the points, "
+                                 "or read the montage with transform=False."
+                                 % str(missing))
+
+            nasion = elp[names_lower.index('nasion')]
+            lpa = elp[names_lower.index('lpa')]
+            rpa = elp[names_lower.index('rpa')]
+
+            # remove fiducials from elp
+            mask = np.ones(len(names_lower), dtype=bool)
+            for fid in ['nasion', 'lpa', 'rpa']:
+                mask[names_lower.index(fid)] = False
+            elp = elp[mask]
+
+            neuromag_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+            fids = apply_trans(neuromag_trans, [nasion, lpa, rpa])
+            elp = apply_trans(neuromag_trans, elp)
+            hsp = apply_trans(neuromag_trans, hsp)
         else:
-            raise TypeError('HPI file is not supported.')
-    if isinstance(elp, string_types):
-        elp = _read_dig_points(elp)
-    if elp is not None:
-        if len(elp) != len(point_names):
-            raise ValueError("The elp file contains %i points, but %i names "
-                             "were specified." % (len(elp), len(point_names)))
-        elp = elp * scale
-    if transform:
-        if elp is None:
-            raise ValueError("ELP points are not specified. Points are needed "
-                             "for transformation.")
-        names_lower = [name.lower() for name in point_names]
+            fids = [None] * 3
 
-        # check that all needed points are present
-        missing = tuple(name for name in ('nasion', 'lpa', 'rpa')
-                        if name not in names_lower)
-        if missing:
-            raise ValueError("The points %s are missing, but are needed "
-                             "to transform the points to the MNE coordinate "
-                             "system. Either add the points, or read the "
-                             "montage with transform=False." % str(missing))
-
-        nasion = elp[names_lower.index('nasion')]
-        lpa = elp[names_lower.index('lpa')]
-        rpa = elp[names_lower.index('rpa')]
-
-        # remove fiducials from elp
-        mask = np.ones(len(names_lower), dtype=bool)
-        for fid in ['nasion', 'lpa', 'rpa']:
-            mask[names_lower.index(fid)] = False
-        elp = elp[mask]
-
-        neuromag_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-
-        fids = np.array([nasion, lpa, rpa])
-        fids = apply_trans(neuromag_trans, fids)
-        elp = apply_trans(neuromag_trans, elp)
-        hsp = apply_trans(neuromag_trans, hsp)
-    elif fids is None:
-        fids = [None] * 3
     if dev_head_t:
         from ..coreg import fit_matched_points
         trans = fit_matched_points(tgt_pts=elp, src_pts=hpi, out='trans')

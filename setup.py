@@ -75,6 +75,7 @@ if __name__ == "__main__":
                     'mne.datasets.brainstorm',
                     'mne.datasets.testing',
                     'mne.datasets.tests',
+                    'mne.datasets.multimodal',
                     'mne.externals',
                     'mne.externals.h5io',
                     'mne.externals.tempita',

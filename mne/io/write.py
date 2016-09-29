@@ -3,18 +3,19 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types, b
-import time
-import numpy as np
-from scipy import linalg
+from gzip import GzipFile
 import os.path as op
 import re
+import time
 import uuid
+
+import numpy as np
+from scipy import linalg
 
 from .constants import FIFF
 from ..utils import logger
 from ..externals.jdcal import jcal2jd
-from ..fixes import gzip_open
+from ..externals.six import string_types, b
 
 
 def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
@@ -247,7 +248,7 @@ def start_file(fname, id_=None):
             logger.debug('Writing using gzip')
             # defaults to compression level 9, which is barely smaller but much
             # slower. 2 offers a good compromise.
-            fid = gzip_open(fname, "wb", compresslevel=2)
+            fid = GzipFile(fname, "wb", compresslevel=2)
         else:
             logger.debug('Writing using normal I/O')
             fid = open(fname, "wb")

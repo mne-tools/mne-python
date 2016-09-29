@@ -13,15 +13,32 @@ from .externals.six import string_types
 class Annotations(object):
     """Annotation object for annotating segments of raw data.
 
+    Annotations are added to instance of :class:`mne.io.Raw` as an attribute
+    named ``annotations``. See the example below. To reject bad epochs using
+    annotations, use annotation description starting with 'bad' keyword. The
+    epochs with overlapping bad segments are then rejected automatically by
+    default.
+
+    To remove epochs with blinks you can do::
+        >>> eog_events = mne.preprocessing.find_eog_events(raw)  # doctest: +SKIP
+        >>> n_blinks = len(eog_events)  # doctest: +SKIP
+        >>> onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25  # doctest: +SKIP
+        >>> duration = np.repeat(0.5, n_blinks)  # doctest: +SKIP
+        >>> description = ['bad blink'] * n_blinks  # doctest: +SKIP
+        >>> annotations = mne.Annotations(onset, duration, description)  # doctest: +SKIP
+        >>> raw.annotations = annotations  # doctest: +SKIP
+        >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax)  # doctest: +SKIP
+
     Parameters
     ----------
     onset : array of float, shape (n_annotations,)
-        Annotation time onsets from the beginning of the recording.
+        Annotation time onsets from the beginning of the recording in seconds.
     duration : array of float, shape (n_annotations,)
-        Durations of the annotations.
+        Durations of the annotations in seconds.
     description : array of str, shape (n_annotations,) | str
         Array of strings containing description for each annotation. If a
-        string, all the annotations are given the same description.
+        string, all the annotations are given the same description. To reject
+        epochs, use description starting with keyword 'bad'. See example above.
     orig_time : float | int | instance of datetime | array of int | None
         A POSIX Timestamp, datetime or an array containing the timestamp as the
         first element and microseconds as the second element. Determines the
@@ -33,10 +50,10 @@ class Annotations(object):
 
     Notes
     -----
-    Annotations are synced to sample 0. ``raw.first_samp`` is taken
-    into account in the same way as with events.
-    """
-
+    If ``orig_time`` is None, the annotations are synced to the start of the
+    data (0 seconds). Otherwise the annotations are synced to sample 0 and
+    ``raw.first_samp`` is taken into account the same way as with events.
+    """  # noqa
     def __init__(self, onset, duration, description, orig_time=None):
 
         if orig_time is not None:
@@ -48,10 +65,10 @@ class Annotations(object):
                 orig_time = float(orig_time)  # np.int not serializable
         self.orig_time = orig_time
 
-        onset = np.array(onset)
+        onset = np.array(onset, dtype=float)
         if onset.ndim != 1:
             raise ValueError('Onset must be a one dimensional array.')
-        duration = np.array(duration)
+        duration = np.array(duration, dtype=float)
         if isinstance(description, string_types):
             description = np.repeat(description, len(onset))
         if duration.ndim != 1:
@@ -84,11 +101,10 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq):
         old_description = annotations[0].description
         old_orig_time = annotations[0].orig_time
 
-    if annotations[1].orig_time is None:
-        onset = (annotations[1].onset +
-                 (sum(last_samps[:-1]) - sum(first_samps[:-1])) / sfreq)
-    else:
-        onset = annotations[1].onset
+    extra_samps = len(first_samps) - 1  # Account for sample 0
+    onset = (annotations[1].onset + (sum(last_samps[:-1]) + extra_samps -
+                                     sum(first_samps[:-1])) / sfreq)
+
     onset = np.concatenate([old_onset, onset])
     duration = np.concatenate([old_duration, annotations[1].duration])
     description = np.concatenate([old_description, annotations[1].description])
@@ -102,12 +118,15 @@ def _onset_to_seconds(raw, onset):
     if meas_date is None:
         meas_date = 0
     elif not np.isscalar(meas_date):
-        meas_date = meas_date[0] + meas_date[1] / 1000000.
+        if len(meas_date) > 1:
+            meas_date = meas_date[0] + meas_date[1] / 1000000.
+        else:
+            meas_date = meas_date[0]
     if raw.annotations.orig_time is None:
         orig_time = meas_date
     else:
-        orig_time = raw.annotations.orig_time
+        orig_time = (raw.annotations.orig_time -
+                     raw.first_samp / raw.info['sfreq'])
 
-    annot_start = (orig_time - meas_date + onset -
-                   raw.first_samp / raw.info['sfreq'])
+    annot_start = orig_time - meas_date + onset
     return annot_start

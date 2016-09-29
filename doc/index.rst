@@ -1,5 +1,7 @@
 .. title:: MNE
 
+.. include:: links.inc
+
 .. raw:: html
 
     <div class="container"><div class="row">
@@ -32,11 +34,10 @@ providing comprehensive tools and workflows for
 6. Applying machine learning algorithms
 7. Visualization of sensor- and source-space data
 
-MNE includes a comprehensive `Python <https://www.python.org/>`_ package
-supplemented by tools compiled from C code for the LINUX and Mac OSX
-operating systems, as well as a MATLAB toolbox.
+MNE includes a comprehensive Python_ package supplemented by tools compiled
+from C code for the LINUX and Mac OSX operating systems, as well as a MATLAB toolbox.
 
-**From raw data to source estimates in about 30 lines of code** (:ref:`try it yourself! <getting_started>`):
+**From raw data to source estimates in about 30 lines of code** (Try it :ref:`by installing it <getting_started>` or `in an experimental online demo <http://mybinder.org/repo/mne-tools/mne-binder/notebooks/plot_introduction.ipynb>`_!):
 
 .. code:: python
 
@@ -82,6 +83,10 @@ Direct financial support for the project has been provided by:
   Institute.
 - (FR) IDEX Paris-Saclay, ANR-11-IDEX-0003-02, via the
   `Center for Data Science <http://www.datascience-paris-saclay.fr/>`_.
+- (FR) European Research Council (ERC) Starting Grant (ERC-YStG-263584).
+- (FR) French National Research Agency (ANR-14-NEUC-0002-01).
+- (FR) European Research Council (ERC) Starting Grant (ERC-YStG-676943).
+- Amazon Web Services - Research Grant issued to Denis A. Engemann
 
 .. raw:: html
 
@@ -123,7 +128,7 @@ Direct financial support for the project has been provided by:
 
    <h2>Community</h2>
 
-* `Analysis talk: join the MNE mailing list <MNE mailing list>`_
+* Analysis talk: join the `MNE mailing list`_
 
 * `Feature requests and bug reports on GitHub <https://github.com/mne-tools/mne-python/issues/>`_
 

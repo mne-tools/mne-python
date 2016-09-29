@@ -3,11 +3,14 @@
 #
 # License: BSD (3-clause)
 
-import numpy as np
+from copy import deepcopy
+from functools import partial
+from gzip import GzipFile
 import os
 import os.path as op
+
+import numpy as np
 from scipy import sparse, linalg
-from copy import deepcopy
 
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
@@ -27,7 +30,6 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
                     check_version, _get_call_line, warn)
-from .fixes import in1d, partial, gzip_open, meshgrid
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
@@ -51,6 +53,13 @@ def _get_lut_id(lut, label, use_lut):
     mask = (lut['name'] == label.encode('utf-8'))
     assert mask.sum() == 1
     return lut['id'][mask]
+
+
+_src_kind_dict = {
+    'vol': 'volume',
+    'surf': 'surface',
+    'discrete': 'discrete',
+}
 
 
 class SourceSpaces(list):
@@ -84,24 +93,26 @@ class SourceSpaces(list):
         ss_repr = []
         for ss in self:
             ss_type = ss['type']
+            r = _src_kind_dict[ss_type]
             if ss_type == 'vol':
                 if 'seg_name' in ss:
-                    r = ("'vol' (%s), n_used=%i"
-                         % (ss['seg_name'], ss['nuse']))
+                    r += " (%s)" % (ss['seg_name'],)
                 else:
-                    r = ("'vol', shape=%s, n_used=%i"
-                         % (repr(ss['shape']), ss['nuse']))
+                    r += ", shape=%s" % (ss['shape'],)
             elif ss_type == 'surf':
-                r = "'surf', n_vertices=%i, n_used=%i" % (ss['np'], ss['nuse'])
-            else:
-                r = "%r" % ss_type
-            coord_frame = ss['coord_frame']
-            if isinstance(coord_frame, np.ndarray):
-                coord_frame = coord_frame[0]
-            r += ', coordinate_frame=%s' % _coord_frame_name(coord_frame)
+                r += (" (%s), n_vertices=%i" % (_get_hemi(ss)[0], ss['np']))
+            r += (', n_used=%i, coordinate_frame=%s'
+                  % (ss['nuse'], _coord_frame_name(int(ss['coord_frame']))))
             ss_repr.append('<%s>' % r)
-        ss_repr = ', '.join(ss_repr)
-        return "<SourceSpaces: [{ss}]>".format(ss=ss_repr)
+        return "<SourceSpaces: [%s]>" % ', '.join(ss_repr)
+
+    @property
+    def kind(self):
+        """The kind of source space (surface, volume, discrete)"""
+        ss_types = list(set([ss['type'] for ss in self]))
+        if len(ss_types) != 1:
+            return 'combined'
+        return _src_kind_dict[ss_types[0]]
 
     def __add__(self, other):
         return SourceSpaces(list.__add__(self, other))
@@ -1174,7 +1185,7 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
 def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
                        overwrite=False, subjects_dir=None, add_dist=True,
                        n_jobs=1, verbose=None):
-    """Setup a source space with subsampling
+    """Setup a bilater hemisphere surface-based source space with subsampling
 
     Parameters
     ----------
@@ -1206,6 +1217,10 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
     -------
     src : list
         The source space for each hemisphere.
+
+    See Also
+    --------
+    setup_volume_source_space
     """
     cmd = ('setup_source_space(%s, fname=%s, spacing=%s, surface=%s, '
            'overwrite=%s, subjects_dir=%s, add_dist=%s, verbose=%s)'
@@ -1364,7 +1379,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     surface : str | dict | None
         Define source space bounds using a FreeSurfer surface file. Can
         also be a dictionary with entries `'rr'` and `'tris'`, such as
-        those returned by `read_surface()`.
+        those returned by :func:`mne.read_surface`.
     mindist : float
         Exclude points closer than this distance (mm) to the bounding surface.
     exclude : float
@@ -1388,6 +1403,10 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         The source space. Note that this list will have length 1 for
         compatibility reasons, as most functions expect source spaces
         to be provided as lists).
+
+    See Also
+    --------
+    setup_source_space
 
     Notes
     -----
@@ -1626,9 +1645,9 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     ncol = ns[1]
     nplane = nrow * ncol
     # x varies fastest, then y, then z (can use unravel to do this)
-    rr = meshgrid(np.arange(minn[2], maxn[2] + 1),
-                  np.arange(minn[1], maxn[1] + 1),
-                  np.arange(minn[0], maxn[0] + 1), indexing='ij')
+    rr = np.meshgrid(np.arange(minn[2], maxn[2] + 1),
+                     np.arange(minn[1], maxn[1] + 1),
+                     np.arange(minn[0], maxn[0] + 1), indexing='ij')
     x, y, z = rr[2].ravel(), rr[1].ravel(), rr[0].ravel()
     rr = np.array([x * grid, y * grid, z * grid]).T
     sp = dict(np=npts, nn=np.zeros((npts, 3)), rr=rr,
@@ -1786,7 +1805,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     old_shape = neigh.shape
     neigh = neigh.ravel()
     checks = np.where(neigh >= 0)[0]
-    removes = np.logical_not(in1d(checks, vertno))
+    removes = np.logical_not(np.in1d(checks, vertno))
     neigh[checks[removes]] = -1
     neigh.shape = old_shape
     neigh = neigh.T
@@ -1826,7 +1845,7 @@ def _get_mgz_header(fname):
                   ('delta', '>f4', (3,)), ('Mdc', '>f4', (3, 3)),
                   ('Pxyz_c', '>f4', (3,))]
     header_dtype = np.dtype(header_dtd)
-    with gzip_open(fname, 'rb') as fid:
+    with GzipFile(fname, 'rb') as fid:
         hdr_str = fid.read(header_dtype.itemsize)
     header = np.ndarray(shape=(), dtype=header_dtype,
                         buffer=hdr_str)
@@ -2479,11 +2498,11 @@ def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
         # some are omitted during fwd calc), so we must do some indexing magic:
 
         # From all vertices, a subset could be chosen by fwd calc:
-        used_vertices = in1d(full_mapping, vertices[ii])
+        used_vertices = np.in1d(full_mapping, vertices[ii])
         from_vertices.append(src_from[ii]['vertno'][used_vertices])
         remaining_mapping = full_mapping[used_vertices]
         if not np.array_equal(np.sort(remaining_mapping), vertices[ii]) or \
-                not in1d(vertices[ii], full_mapping).all():
+                not np.in1d(vertices[ii], full_mapping).all():
             raise RuntimeError('Could not map vertices, perhaps the wrong '
                                'subject "%s" was provided?' % subject_from)
 

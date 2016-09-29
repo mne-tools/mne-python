@@ -22,8 +22,6 @@ from .externals.six import string_types
 # right/anterior/superior:
 als_ras_trans = np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0],
                           [0, 0, 0, 1]])
-# simultaneously convert [m] to [mm]:
-als_ras_trans_mm = als_ras_trans * [0.001, 0.001, 0.001, 1]
 
 
 _str_to_frame = dict(meg=FIFF.FIFFV_COORD_DEVICE,
@@ -103,6 +101,16 @@ class Transform(dict):
     @property
     def to_str(self):
         return _coord_frame_name(self['to'])
+
+    def save(self, fname):
+        """Save the transform as -trans.fif file
+
+        Parameters
+        ----------
+        fname : str
+            The name of the file, which should end in '-trans.fif'.
+        """
+        write_trans(fname, self)
 
 
 def _coord_frame_name(cframe):

@@ -12,7 +12,8 @@ import numpy as np
 
 from mne.epochs import equalize_epoch_counts, concatenate_epochs
 from mne.decoding import GeneralizationAcrossTime
-from mne import io, Epochs, read_events, pick_types
+from mne import Epochs, read_events, pick_types
+from mne.io import read_raw_fif
 from mne.utils import requires_sklearn, run_tests_if_main
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -30,7 +31,7 @@ def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
               event_id_gen=dict(aud_l=2, vis_l=4), test_times=None):
     """Aux function for testing GAT viz"""
     gat = GeneralizationAcrossTime()
-    raw = io.read_raw_fif(raw_fname, preload=False)
+    raw = read_raw_fif(raw_fname, preload=False, add_eeg_ref=False)
     raw.add_proj([], remove_existing=True)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
@@ -40,7 +41,8 @@ def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
     # Test on time generalization within one condition
     with warnings.catch_warnings(record=True):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), preload=True, decim=decim)
+                        baseline=(None, 0), preload=True, decim=decim,
+                        add_eeg_ref=False)
     epochs_list = [epochs[k] for k in event_id]
     equalize_epoch_counts(epochs_list)
     epochs = concatenate_epochs(epochs_list)

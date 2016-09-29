@@ -6,9 +6,16 @@
 
 from os import path
 
+import numpy as np
+
 from .io.meas_info import Info
-from . import pick_types
-from .utils import logger, verbose
+from .io.pick import _pick_data_channels, pick_types
+from .utils import logger, verbose, _get_stim_channel
+
+_SELECTIONS = ['Vertex', 'Left-temporal', 'Right-temporal', 'Left-parietal',
+               'Right-parietal', 'Left-occipital', 'Right-occipital',
+               'Left-frontal', 'Right-frontal']
+_EEG_SELECTIONS = ['EEG 1-32', 'EEG 33-64', 'EEG 65-96', 'EEG 97-128']
 
 
 @verbose
@@ -114,3 +121,68 @@ def read_selection(name, fname=None, info=None, verbose=None):
     if spacing == 'new':  # "new" or "old" by now, "old" is default
         sel = [s.replace('MEG ', 'MEG') for s in sel]
     return sel
+
+
+def _divide_to_regions(info, add_stim=True):
+    """Divides channels to regions by positions."""
+    from scipy.stats import zscore
+    picks = _pick_data_channels(info, exclude=[])
+    chs_in_lobe = len(picks) // 4
+    pos = np.array([ch['loc'][:3] for ch in info['chs']])
+    x, y, z = pos.T
+
+    frontal = picks[np.argsort(y[picks])[-chs_in_lobe:]]
+    picks = np.setdiff1d(picks, frontal)
+
+    occipital = picks[np.argsort(y[picks])[:chs_in_lobe]]
+    picks = np.setdiff1d(picks, occipital)
+
+    temporal = picks[np.argsort(z[picks])[:chs_in_lobe]]
+    picks = np.setdiff1d(picks, temporal)
+
+    lt, rt = _divide_side(temporal, x)
+    lf, rf = _divide_side(frontal, x)
+    lo, ro = _divide_side(occipital, x)
+    lp, rp = _divide_side(picks, x)  # Parietal lobe from the remaining picks.
+
+    # Because of the way the sides are divided, there may be outliers in the
+    # temporal lobes. Here we switch the sides for these outliers. For other
+    # lobes it is not a big problem because of the vicinity of the lobes.
+    zs = np.abs(zscore(x[rt]))
+    outliers = np.array(rt)[np.where(zs > 2.)[0]]
+    rt = list(np.setdiff1d(rt, outliers))
+
+    zs = np.abs(zscore(x[lt]))
+    outliers = np.append(outliers, (np.array(lt)[np.where(zs > 2.)[0]]))
+    lt = list(np.setdiff1d(lt, outliers))
+
+    l_mean = np.mean(x[lt])
+    r_mean = np.mean(x[rt])
+    for outlier in outliers:
+        if abs(l_mean - x[outlier]) < abs(r_mean - x[outlier]):
+            lt.append(outlier)
+        else:
+            rt.append(outlier)
+
+    if add_stim:
+        stim_ch = _get_stim_channel(None, info, raise_error=False)
+        if len(stim_ch) > 0:
+            for region in [lf, rf, lo, ro, lp, rp, lt, rt]:
+                region.append(info['ch_names'].index(stim_ch[0]))
+    return {'Left-frontal': lf, 'Right-frontal': rf, 'Left-parietal': lp,
+            'Right-parietal': rp, 'Left-occipital': lo, 'Right-occipital': ro,
+            'Left-temporal': lt, 'Right-temporal': rt}
+
+
+def _divide_side(lobe, x):
+    """Helper for making a separation between left and right lobe evenly."""
+    lobe = np.asarray(lobe)
+    median = np.median(x[lobe])
+
+    left = lobe[np.where(x[lobe] < median)[0]]
+    right = lobe[np.where(x[lobe] > median)[0]]
+    medians = np.where(x[lobe] == median)[0]
+
+    left = np.sort(np.concatenate([left, lobe[medians[1::2]]]))
+    right = np.sort(np.concatenate([right, lobe[medians[::2]]]))
+    return list(left), list(right)

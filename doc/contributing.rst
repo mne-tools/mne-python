@@ -5,7 +5,7 @@ Contribute to MNE
 
 .. contents:: Contents
    :local:
-   :depth: 2
+   :depth: 1
 
 .. We want to thank all MNE Software users at the Martinos Center and
 .. in other institutions for their collaboration during the creation
@@ -26,12 +26,12 @@ What you will need
 ------------------
 
 #. A good python editor: Atom_ and `Sublime Text`_ are modern general-purpose
-text editors and are available on all three major platforms. Both provide
-plugins that facilitate editing python code and help avoid bugs and style errors.
-See for example linterflake8_ for Atom_.
-The Spyder_ IDE is espectially suitable for those migrating from Matlab.
-EPD_ and Anaconda_ both ship Spyder and all its dependencies.
-As always, Vim or Emacs will suffice as well.
+   text editors and are available on all three major platforms. Both provide
+   plugins that facilitate editing python code and help avoid bugs and style
+   errors. See for example linterflake8_ for Atom_.
+   The Spyder_ IDE is especially suitable for those migrating from Matlab.
+   EPD_ and Anaconda_ both ship Spyder and all its dependencies.
+   As always, Vim or Emacs will suffice as well.
 
 #. Basic scientific tools in python: numpy_, scipy_, matplotlib_
 
@@ -46,6 +46,9 @@ As always, Vim or Emacs will suffice as well.
    system. If you are on Windows, you can install these applications inside a
    Unix virtual machine.
 
+#. Documentation building packages ``numpydoc``, ``sphinx_bootstrap_theme`` and
+   ``sphinx_gallery``.
+
 General code guidelines
 -----------------------
 
@@ -53,17 +56,21 @@ General code guidelines
   `pyflakes`_, such as `Spyder`_. Standard python style guidelines are
   followed, with very few exceptions.
 
-  You can also manually check pyflakes and pep8 warnings as::
+  You can also manually check pyflakes and pep8 warnings as:
 
-       pip install pyflakes
-       pip install pep8
-       pyflakes path/to/module.py
-       pep8 path/to/module.py
+  .. code-block:: bash
 
-  AutoPEP8 can then help you fix some of the easy redundant errors::
+     $ pip install pyflakes
+     $ pip install pep8
+     $ pyflakes path/to/module.py
+     $ pep8 path/to/module.py
 
-       pip install autopep8
-       autopep8 path/to/pep8.py
+  AutoPEP8 can then help you fix some of the easy redundant errors:
+
+  .. code-block:: bash
+
+     $ pip install autopep8
+     $ autopep8 path/to/pep8.py
 
 * mne-python adheres to the same docstring formatting as seen on
   `numpy style`_.
@@ -79,26 +86,34 @@ General code guidelines
   The ambition is to achieve around 85% coverage with tests.
 
 * After changes have been made, **ensure all tests pass**. This can be done
-  by running the following from the ``mne-python`` root directory::
+  by running the following from the ``mne-python`` root directory:
 
-     make
+  .. code-block:: bash
 
-  To run individual tests, you can also run any of the following::
+     $ make
 
-     make clean
-     make inplace
-     make test-doc
-     make inplace
-     nosetests
+  To run individual tests, you can also run any of the following:
+
+  .. code-block:: bash
+
+     $ make clean
+     $ make inplace
+     $ make test-doc
+     $ make inplace
+     $ nosetests
 
   To explicitly download and extract the mne-python testing dataset (~320 MB)
-  run::
+  run:
+
+  .. code-block:: bash
 
      make testing_data
 
-  Alternatively::
+  Alternatively:
 
-     python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+  .. code-block:: bash
+
+     $ python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
 
   downloads the test data as well. Having a complete testing dataset is
   necessary for running the tests. To run the examples you'll need
@@ -113,30 +128,60 @@ General code guidelines
      >>> run_tests_if_main()
 
   For more details see troubleshooting_.
-
+  
 * Update relevant documentation. Update :doc:`whats_new.rst <whats_new>` for new features and :doc:`python_reference.rst <python_reference>` for new classes and standalone functions. :doc:`whats_new.rst <whats_new>` is organized in chronological order with the last feature at the end of the document.
 
- To ensure that these files were rendered correctly, run the following command::
-
-     make html-noplot
-
- This will build the docs without building all the examples, which can save some time.
-
-
-More mne-python specific guidelines
+Checking and building documentation
 -----------------------------------
+
+All changes to the codebase must be properly documented.
+To ensure that documentation is rendered correctly, the best bet is to
+follow the existing examples for class and function docstrings,
+and examples and tutorials.
+
+Our documentation (including docstring in code) uses ReStructuredText format,
+see `Sphinx documentation`_ to learn more about editing them. Our code
+follows the `NumPy docstring standard`_.
+
+To test documentation locally, you will need to install (e.g., via ``pip``):
+
+  * sphinx
+  * sphinx-gallery
+  * sphinx_bootstrap_theme
+  * numpydoc
+
+Then to build the documentation locally, within the ``mne/doc`` directory do:
+
+.. code-block:: bash
+
+    $ make html-noplot
+
+This will build the docs without building all the examples, which can save
+some time. If you are working on examples or tutorials, you can build
+specific examples with e.g.:
+
+.. code-block:: bash
+
+   $ PATTERN=plot_background_filtering.py make html_dev-pattern
+
+Consult the `sphinx gallery documentation`_ for more details.
+
+MNE-Python specific coding guidelines
+-------------------------------------
 
 * Please, ideally address one and only one issue per pull request (PR).
 * Avoid unnecessary cosmetic changes if they are not the goal of the PR, this will help keep the diff clean and facilitate reviewing.
 * Use underscores to separate words in non class names: n_samples rather than nsamples.
 * Use CamelCase for class names.
 * Use relative imports for references inside mne-python.
-* Use nested imports for ``matplotlib``, ``sklearn``, and ``pandas``.
+* Use nested imports (i.e., within a function or method instead of at the top of a file) for ``matplotlib``, ``sklearn``, and ``pandas``.
 * Use ``RdBu_r`` colormap for signed data and ``Reds`` for unsigned data in visualization functions and examples.
 * All visualization functions must accept a ``show`` parameter and return a ``fig`` handle.
-* Efforts to improve test timing without decreasing coverage is well appreciated. To see the top-30 tests in order of decreasing timing, run the following command::
+* Efforts to improve test timing without decreasing coverage is well appreciated. To see the top-30 tests in order of decreasing timing, run the following command:
 
-    nosetests --with-timer --timer-top-n 30
+  .. code-block:: bash
+
+     $ nosetests --with-timer --timer-top-n 30
 
 * Instance methods that update the state of the object should return self.
 * Use single quotes whenever possible.
@@ -165,19 +210,16 @@ improvements to the documentation, or new functionality, can be done via
 adapted for our use here!]
 
 The only absolutely necessary configuration step is identifying yourself and
-your contact info::
+your contact info:
 
-     git config --global user.name "Your Name"
-     git config --global user.email you@yourdomain.example.com
+.. code-block:: bash
+
+   $ git config --global user.name "Your Name"
+   $ git config --global user.email you@yourdomain.example.com
 
 If you are going to :ref:`setup-github` eventually, this email address should
 be the same as the one used to sign up for a GitHub account. For more
-information about configuring your git installation, see:
-
-.. toctree::
-   :maxdepth: 1
-
-   customizing_git
+information about configuring your git installation, see :ref:`customizing-git`.
 
 The following sections cover the installation of the git software, the basic
 configuration, and links to resources to learn more about using git.
@@ -185,7 +227,7 @@ However, you can also directly go to the `GitHub help pages
 <https://help.github.com/>`_ which offer a great introduction to git and
 GitHub.
 
-In the present document, we refer to the mne-python ``master`` branch, as the
+In the present document, we refer to the MNE-Python ``master`` branch, as the
 *trunk*.
 
 .. _forking:
@@ -229,25 +271,33 @@ in principle also fork a different one, such as ``mne-matlab```):
 Setting up the fork and the working directory
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Briefly, this is done using::
+Briefly, this is done using:
 
-    git clone git@github.com:your-user-name/mne-python.git
-    cd mne-python
-    git remote add upstream git://github.com/mne-tools/mne-python.git
+.. code-block:: bash
+
+   $ git clone git@github.com:your-user-name/mne-python.git
+   $ cd mne-python
+   $ git remote add upstream git://github.com/mne-tools/mne-python.git
 
 These steps can be broken out to be more explicit as:
 
-#. Clone your fork to the local computer::
+#. Clone your fork to the local computer:
 
-    git clone git@github.com:your-user-name/mne-python.git
+   .. code-block:: bash
 
-#. Change directory to your new repo::
+      $ git clone git@github.com:your-user-name/mne-python.git
 
-    cd mne-python
+#. Change directory to your new repo:
 
-   Then type::
+   .. code-block:: bash
 
-    git branch -a
+      $ cd mne-python
+
+   Then type:
+
+   .. code-block:: bash
+
+      $ git branch -a
 
    to show you all branches.  You'll get something like::
 
@@ -260,10 +310,12 @@ These steps can be broken out to be more explicit as:
    see the URLs for the remote.  They will point to your GitHub fork.
 
    Now you want to connect to the mne-python repository, so you can
-   merge in changes from the trunk::
+   merge in changes from the trunk:
 
-    cd mne-python
-    git remote add upstream git://github.com/mne-tools/mne-python.git
+   .. code-block:: bash
+
+      $ cd mne-python
+      $ git remote add upstream git://github.com/mne-tools/mne-python.git
 
    ``upstream`` here is just the arbitrary name we're using to refer to the
    main mne-python_ repository.
@@ -286,9 +338,11 @@ These steps can be broken out to be more explicit as:
 #. Install mne with editing permissions to the installed folder:
 
    To be able to conveniently edit your files after installing mne-python,
-   install using the following setting::
+   install using the following setting:
 
-       $ python setup.py develop --user
+   .. code-block:: bash
+
+      $ python setup.py develop --user
 
    To make changes in the code, edit the relevant files and restart the
    ipython kernel for changes to take effect.
@@ -297,9 +351,11 @@ These steps can be broken out to be more explicit as:
 
    Make sure before starting to code that all unit tests pass and the
    html files in the ``doc/`` directory can be built without errors. To build
-   the html files, first go the ``doc/`` directory and then type::
+   the html files, first go the ``doc/`` directory and then type:
 
-       $ make html
+   .. code-block:: bash
+
+      $ make html
 
    Once it is compiled for the first time, subsequent compiles will only
    recompile what has changed. That's it! You are now ready to hack away.
@@ -349,9 +405,11 @@ details.
 Updating the mirror of trunk
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-From time to time you should fetch the upstream (trunk) changes from GitHub::
+From time to time you should fetch the upstream (trunk) changes from GitHub:
 
-   git fetch upstream
+.. code-block:: bash
+
+   $ git fetch upstream
 
 This will pull down any commits you don't have, and set the remote branches to
 point to the right commit. For example, 'trunk' is the branch referred to by
@@ -374,27 +432,31 @@ Choose an informative name for the branch to remind yourself and the rest of
 us what the changes in the branch are for. For example ``add-ability-to-fly``,
 or ``buxfix-for-issue-42``.
 
-::
+.. code-block:: bash
 
-    # Update the mirror of trunk
-    git fetch upstream
+   # Update the mirror of trunk
+   $ git fetch upstream
 
-    # Make new feature branch starting at current trunk
-    git branch my-new-feature upstream/master
-    git checkout my-new-feature
+   # Make new feature branch starting at current trunk
+   $ git branch my-new-feature upstream/master
+   $ git checkout my-new-feature
 
 Generally, you will want to keep your feature branches on your public GitHub_
 fork. To do this, you `git push`_ this new branch up to your
 github repo. Generally (if you followed the instructions in these pages, and
 by default), git will have a link to your GitHub repo, called ``origin``. You
-push up to your own repo on GitHub with::
+push up to your own repo on GitHub with:
 
-   git push origin my-new-feature
+.. code-block:: bash
+
+   $ git push origin my-new-feature
 
 In git > 1.7 you can ensure that the link is correctly set by using the
-``--set-upstream`` option::
+``--set-upstream`` option:
 
-   git push --set-upstream origin my-new-feature
+.. code-block:: bash
+
+   $ git push --set-upstream origin my-new-feature
 
 From now on git will know that ``my-new-feature`` is related to the
 ``my-new-feature`` branch in the GitHub repo.
@@ -407,11 +469,11 @@ The editing workflow
 Overview
 ^^^^^^^^
 
-::
+.. code-block:: bash
 
-   git add my_new_file
-   git commit -am 'FIX: some message'
-   git push
+   $ git add my_new_file
+   $ git commit -am 'FIX: some message'
+   $ git push
 
 In more detail
 ^^^^^^^^^^^^^^
@@ -506,19 +568,19 @@ Some other things you might want to do
 Delete a branch on GitHub
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-::
+.. code-block:: bash
 
    # change to the master branch (if you still have one, otherwise change to another branch)
-   git checkout master
+   $ git checkout master
 
    # delete branch locally
-   git branch -D my-unwanted-branch
+   $ git branch -D my-unwanted-branch
 
    # delete branch on GitHub
-   git push origin :my-unwanted-branch
+   $ git push origin :my-unwanted-branch
 
 (Note the colon ``:`` before ``test-branch``.  See also:
-https://help.github.com/remotes
+https://help.github.com/remotes)
 
 Several people sharing a single repository
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -537,30 +599,38 @@ collaborator:
 
    .. image:: _static/pull_button.png
 
-Now all those people can do::
+Now all those people can do:
 
-    git clone git@githhub.com:your-user-name/mne-python.git
+.. code-block:: bash
+
+   $ git clone git@githhub.com:your-user-name/mne-python.git
 
 Remember that links starting with ``git@`` use the ssh protocol and are
 read-write; links starting with ``git://`` are read-only.
 
 Your collaborators can then commit directly into that repo with the
-usual::
+usual:
 
-     git commit -am 'ENH: much better code'
-     git push origin master # pushes directly into your repo
+.. code-block:: bash
+
+   $ git commit -am 'ENH: much better code'
+   $ git push origin master # pushes directly into your repo
 
 Explore your repository
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 To see a graphical representation of the repository branches and
-commits::
+commits:
 
-   gitk --all
+.. code-block:: bash
 
-To see a linear list of commits for this branch::
+   $ gitk --all
 
-   git log
+To see a linear list of commits for this branch:
+
+.. code-block:: bash
+
+   $ git log
 
 You can also look at the `network graph visualizer`_ for your GitHub
 repo.
@@ -604,28 +674,34 @@ your history will look like this::
 
 See `rebase without tears`_ for more detail.
 
-To do a rebase on trunk::
+To do a rebase on trunk:
+
+.. code-block:: bash
 
     # Update the mirror of trunk
-    git fetch upstream
+    $ git fetch upstream
 
     # Go to the feature branch
-    git checkout cool-feature
+    $ git checkout cool-feature
 
     # Make a backup in case you mess up
-    git branch tmp cool-feature
+    $ git branch tmp cool-feature
 
     # Rebase cool-feature onto trunk
-    git rebase --onto upstream/master upstream/master cool-feature
+    $ git rebase --onto upstream/master upstream/master cool-feature
 
 In this situation, where you are already on branch ``cool-feature``, the last
-command can be written more succinctly as::
+command can be written more succinctly as:
 
-    git rebase upstream/master
+.. code-block:: bash
 
-When all looks good you can delete your backup branch::
+    $ git rebase upstream/master
 
-   git branch -D tmp
+When all looks good you can delete your backup branch:
+
+.. code-block:: bash
+
+   $ git branch -D tmp
 
 If it doesn't look good you may need to have a look at
 :ref:`recovering-from-mess-up`.
@@ -639,9 +715,11 @@ merge`_.
 If your feature branch is already on GitHub and you rebase, you will have to force
 push the branch; a normal push would give an error. If the branch you rebased is
 called ``cool-feature`` and your GitHub fork is available as the remote called ``origin``,
-you use this command to force-push::
+you use this command to force-push:
 
-   git push -f origin cool-feature
+.. code-block:: bash
+
+   $ git push -f origin cool-feature
 
 Note that this will overwrite the branch on GitHub, i.e. this is one of the few ways
 you can actually lose commits with git.
@@ -657,19 +735,25 @@ Recovering from mess-ups
 Sometimes, you mess up merges or rebases. Luckily, in git it is relatively
 straightforward to recover from such mistakes.
 
-If you mess up during a rebase::
+If you mess up during a rebase:
 
-   git rebase --abort
+.. code-block:: bash
 
-If you notice you messed up after the rebase::
+   $ git rebase --abort
+
+If you notice you messed up after the rebase:
+
+.. code-block:: bash
 
    # Reset branch back to the saved point
-   git reset --hard tmp
+   $ git reset --hard tmp
 
-If you forgot to make a backup branch::
+If you forgot to make a backup branch:
+
+.. code-block:: bash
 
    # Look at the reflog of the branch
-   git reflog show cool-feature
+   $ git reflog show cool-feature
 
    8630830 cool-feature@{0}: commit: BUG: io: close file handles immediately
    278dd2a cool-feature@{1}: rebase finished: refs/heads/my-feature-branch onto 11ee694744f2552d
@@ -677,7 +761,7 @@ If you forgot to make a backup branch::
    ...
 
    # Reset the branch to where it was before the botched rebase
-   git reset --hard cool-feature@{2}
+   $ git reset --hard cool-feature@{2}
 
 Otherwise, googling the issue may be helpful (especially links to Stack
 Overflow).
@@ -696,9 +780,11 @@ made several false starts you would like the posterity not to see.
 
 This can be done via *interactive rebasing*.
 
-Suppose that the commit history looks like this::
+Suppose that the commit history looks like this:
 
-    git log --oneline
+.. code-block:: bash
+
+    $ git log --oneline
     eadc391 Fix some remaining bugs
     a815645 Modify it so that it works
     2dec1ac Fix a few bugs + disable
@@ -713,12 +799,14 @@ want to make the following changes:
 * Rewrite the commit message for ``13d7934`` to something more sensible.
 * Combine the commits ``2dec1ac``, ``a815645``, ``eadc391`` into a single one.
 
-We do as follows::
+We do as follows:
+
+.. code-block:: bash
 
     # make a backup of the current state
-    git branch tmp HEAD
+    $ git branch tmp HEAD
     # interactive rebase
-    git rebase -i 6ad92e5
+    $ git rebase -i 6ad92e5
 
 This will open an editor with the following text in it::
 
@@ -773,14 +861,18 @@ Fetching a pull request
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 To fetch a pull request on the main repository to your local working
-directory as a new branch, just do::
+directory as a new branch, just do:
 
- git fetch upstream pull/<pull request number>/head:<local-branch>
+.. code-block:: bash
+
+   $ git fetch upstream pull/<pull request number>/head:<local-branch>
 
 As an example, to pull the realtime pull request which has a url
-``https://github.com/mne-tools/mne-python/pull/615/``, do::
+``https://github.com/mne-tools/mne-python/pull/615/``, do:
 
- git fetch upstream pull/615/head:realtime
+.. code-block:: bash
+
+   $ git fetch upstream pull/615/head:realtime
 
 If you want to fetch a pull request to your own fork, replace
 ``upstream`` with ``origin``. That's it!
@@ -793,33 +885,6 @@ The builds when the pull request is in `WIP` state can be safely skipped. The im
   FIX: some changes [ci skip]
 
 This will help prevent clogging up Travis and Appveyor and also save the environment.
-
-Documentation
--------------
-
-Adding an example to example gallery
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Add the example to the correct subfolder in the ``examples/`` directory and
-prefix the file with ``plot_``. To make sure that the example renders correctly,
-run ``make html`` in the ``doc/`` folder
-
-Building a subset of examples
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-To build only a subset of examples, it is possible to provide a regular expression
-which searches on the full pathname of the file. For example, you can do::
-
-  make html_dev-pattern PATTERN='/decoding/plot_'
-
-It will run only the examples in the ``decoding`` folder. Consult the `sphinx gallery documentation`_
-for more details.
-
-Editing \*.rst files
-^^^^^^^^^^^^^^^^^^^^
-
-These are reStructuredText files. Consult the `Sphinx documentation`_ to learn
-more about editing them.
 
 .. _troubleshooting:
 
@@ -845,12 +910,15 @@ restart the ipython kernel.
 ICE default IO error handler doing an exit()
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If the make test command fails with the error ``ICE default IO error
-handler doing an exit()``, try backing up or removing .ICEauthority::
+If the make test command fails with the error
+``ICE default IO error handler doing an exit()``, try backing up or removing
+.ICEauthority:
 
-    mv ~/.ICEauthority ~/.ICEauthority.bak
+.. code-block:: bash
+
+   $ mv ~/.ICEauthority ~/.ICEauthority.bak
 
 .. include:: links.inc
-
 .. _Sphinx documentation: http://sphinx-doc.org/rest.html
 .. _sphinx gallery documentation: http://sphinx-gallery.readthedocs.org/en/latest/advanced_configuration.html
+.. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt

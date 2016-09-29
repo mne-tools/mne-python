@@ -12,7 +12,6 @@ from mne.utils import run_tests_if_main, slow_test
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
-evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
@@ -92,6 +91,15 @@ def test_interpolation():
         inst.preload = False
         inst.info['bads'] = [inst.ch_names[1]]
         assert_raises(ValueError, inst.interpolate_bads)
+
+    # check that interpolation works when non M/EEG channels are present
+    # before MEG channels
+    with warnings.catch_warnings(record=True):  # change of units
+        raw.rename_channels({'MEG 0113': 'TRIGGER'})
+        raw.set_channel_types({'TRIGGER': 'stim'})
+        raw.info['bads'] = [raw.info['ch_names'][1]]
+        raw.load_data()
+        raw.interpolate_bads()
 
     # check that interpolation works for MEG
     epochs_meg.info['bads'] = ['MEG 0141']

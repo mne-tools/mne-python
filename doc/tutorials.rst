@@ -43,12 +43,24 @@ For further reading:
   .. raw:: html
 
     <h2>Introduction to MNE and Python</h2>
- 
+
   .. toctree::
     :maxdepth: 1
 
     auto_tutorials/plot_python_intro.rst
     tutorials/seven_stories_about_mne.rst
+    auto_tutorials/plot_introduction.rst
+
+.. container:: span box
+
+  .. raw:: html
+
+    <h2>Background information</h2>
+
+  .. toctree::
+    :maxdepth: 1
+
+    auto_tutorials/plot_background_filtering.rst
 
 .. container:: span box
 
@@ -104,6 +116,7 @@ For further reading:
     :maxdepth: 1
 
     auto_tutorials/plot_object_raw.rst
+    auto_tutorials/plot_modifying_data_inplace.rst
     auto_tutorials/plot_object_epochs.rst
     auto_tutorials/plot_object_evoked.rst
     auto_tutorials/plot_creating_data_structures.rst
@@ -123,6 +136,9 @@ For further reading:
     auto_tutorials/plot_mne_dspm_source_localization.rst
     auto_tutorials/plot_dipole_fit.rst
     auto_tutorials/plot_brainstorm_auditory.rst
+    auto_tutorials/plot_brainstorm_phantom_ctf.rst
+    auto_tutorials/plot_brainstorm_phantom_elekta.rst
+    auto_tutorials/plot_point_spread.rst
 
 .. container:: span box
 

@@ -9,10 +9,13 @@ import numpy as np
 from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
 from ..utils import check_random_state, warn
+
+from ..externals.six import string_types
 from ..externals.six.moves import zip
 
 
-def select_source_in_label(src, label, random_state=None):
+def select_source_in_label(src, label, random_state=None, location='random',
+                           subject=None, subjects_dir=None, surf='sphere'):
     """Select source positions using a label
 
     Parameters
@@ -23,6 +26,34 @@ def select_source_in_label(src, label, random_state=None):
         the label (read with mne.read_label)
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
+    location : str
+        The label location to choose. Can be 'random' (default) or 'center'
+        to use :func:`mne.Label.center_of_mass` (restricting to vertices
+        both in the label and in the source space). Note that for 'center'
+        mode the label values are used as weights.
+
+        .. versionadded:: 0.13
+
+    subject : string | None
+        The subject the label is defined for.
+        Only used with ``location='center'``.
+
+        .. versionadded:: 0.13
+
+    subjects_dir : str, or None
+        Path to the SUBJECTS_DIR. If None, the path is obtained by using
+        the environment variable SUBJECTS_DIR.
+        Only used with ``location='center'``.
+
+        .. versionadded:: 0.13
+
+    surf : str
+        The surface to use for Euclidean distance center of mass
+        finding. The default here is "sphere", which finds the center
+        of mass on the spherical surface to help avoid potential issues
+        with cortical folding.
+
+        .. versionadded:: 0.13
 
     Returns
     -------
@@ -33,29 +64,39 @@ def select_source_in_label(src, label, random_state=None):
     """
     lh_vertno = list()
     rh_vertno = list()
+    if not isinstance(location, string_types) or \
+            location not in ('random', 'center'):
+        raise ValueError('location must be "random" or "center", got %s'
+                         % (location,))
 
     rng = check_random_state(random_state)
-
     if label.hemi == 'lh':
-        src_sel_lh = np.intersect1d(src[0]['vertno'], label.vertices)
-        idx_select = rng.randint(0, len(src_sel_lh), 1)
-        lh_vertno.append(src_sel_lh[idx_select][0])
+        vertno = lh_vertno
+        hemi_idx = 0
     else:
-        src_sel_rh = np.intersect1d(src[1]['vertno'], label.vertices)
-        idx_select = rng.randint(0, len(src_sel_rh), 1)
-        rh_vertno.append(src_sel_rh[idx_select][0])
-
+        vertno = rh_vertno
+        hemi_idx = 1
+    src_sel = np.intersect1d(src[hemi_idx]['vertno'], label.vertices)
+    if location == 'random':
+        idx = src_sel[rng.randint(0, len(src_sel), 1)[0]]
+    else:  # 'center'
+        idx = label.center_of_mass(
+            subject, restrict_vertices=src_sel, subjects_dir=subjects_dir,
+            surf=surf)
+    vertno.append(idx)
     return lh_vertno, rh_vertno
 
 
 def simulate_sparse_stc(src, n_dipoles, times,
                         data_fun=lambda t: 1e-7 * np.sin(20 * np.pi * t),
-                        labels=None, random_state=None):
+                        labels=None, random_state=None, location='random',
+                        subject=None, subjects_dir=None, surf='sphere'):
     """Generate sparse (n_dipoles) sources time courses from data_fun
 
-    This function randomly selects n_dipoles vertices in the whole cortex
-    or one single vertex in each label if labels is not None. It uses data_fun
-    to generate waveforms for each vertex.
+    This function randomly selects ``n_dipoles`` vertices in the whole
+    cortex or one single vertex (randomly in or in the center of) each
+    label if ``labels is not None``. It uses ``data_fun`` to generate
+    waveforms for each vertex.
 
     Parameters
     ----------
@@ -74,11 +115,44 @@ def simulate_sparse_stc(src, n_dipoles, times,
         The labels. The default is None, otherwise its size must be n_dipoles.
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
+    location : str
+        The label location to choose. Can be 'random' (default) or 'center'
+        to use :func:`mne.Label.center_of_mass`. Note that for 'center'
+        mode the label values are used as weights.
+
+        .. versionadded:: 0.13
+
+    subject : string | None
+        The subject the label is defined for.
+        Only used with ``location='center'``.
+
+        .. versionadded:: 0.13
+
+    subjects_dir : str, or None
+        Path to the SUBJECTS_DIR. If None, the path is obtained by using
+        the environment variable SUBJECTS_DIR.
+        Only used with ``location='center'``.
+
+        .. versionadded:: 0.13
+
+    surf : str
+        The surface to use for Euclidean distance center of mass
+        finding. The default here is "sphere", which finds the center
+        of mass on the spherical surface to help avoid potential issues
+        with cortical folding.
+
+        .. versionadded:: 0.13
 
     Returns
     -------
     stc : SourceEstimate
         The generated source time courses.
+
+    See Also
+    --------
+    simulate_raw
+    simulate_evoked
+    simulate_stc
 
     Notes
     -----
@@ -86,6 +160,12 @@ def simulate_sparse_stc(src, n_dipoles, times,
     """
     rng = check_random_state(random_state)
     src = _ensure_src(src, verbose=False)
+    subject_src = src[0].get('subject_his_id')
+    if subject is None:
+        subject = subject_src
+    elif subject_src is not None and subject != subject_src:
+        raise ValueError('subject argument (%s) did not match the source '
+                         'space subject_his_id (%s)' % (subject, subject_src))
     data = np.zeros((n_dipoles, len(times)))
     for i_dip in range(n_dipoles):
         data[i_dip, :] = data_fun(times)
@@ -109,7 +189,8 @@ def simulate_sparse_stc(src, n_dipoles, times,
         lh_data = [np.empty((0, data.shape[1]))]
         rh_data = [np.empty((0, data.shape[1]))]
         for i, label in enumerate(labels):
-            lh_vertno, rh_vertno = select_source_in_label(src, label, rng)
+            lh_vertno, rh_vertno = select_source_in_label(
+                src, label, rng, location, subject, subjects_dir, surf)
             vertno[0] += lh_vertno
             vertno[1] += rh_vertno
             if len(lh_vertno) != 0:
@@ -131,7 +212,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
     tmin, tstep = times[0], np.diff(times[:2])[0]
     assert datas.shape == data.shape
     cls = SourceEstimate if len(vs) == 2 else VolSourceEstimate
-    stc = cls(datas, vertices=vs, tmin=tmin, tstep=tstep)
+    stc = cls(datas, vertices=vs, tmin=tmin, tstep=tstep, subject=subject)
     return stc
 
 
@@ -141,20 +222,9 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
     This function generates a source estimate with extended sources by
     filling the labels with the waveforms given in stc_data.
 
-    By default, the vertices within a label are assigned the same waveform.
-    The waveforms can be scaled for each vertex by using the label values
-    and value_fun. E.g.,
-
-    # create a source label where the values are the distance from the center
-    labels = circular_source_labels('sample', 0, 10, 0)
-
-    # sources with decaying strength (x will be the distance from the center)
-    fun = lambda x: exp(- x / 10)
-    stc = generate_stc(fwd, labels, stc_data, tmin, tstep, fun)
-
     Parameters
     ----------
-    src : list of dict
+    src : instance of SourceSpaces
         The source space
     labels : list of Labels
         The labels
@@ -164,13 +234,21 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
         The beginning of the timeseries
     tstep : float
         The time step (1 / sampling frequency)
-    value_fun : function
-        Function to apply to the label values
+    value_fun : function | None
+        Function to apply to the label values to obtain the waveform
+        scaling for each vertex in the label. If None (default), uniform
+        scaling is used.
 
     Returns
     -------
     stc : SourceEstimate
         The generated source time courses.
+
+    See Also
+    --------
+    simulate_raw
+    simulate_evoked
+    simulate_sparse_stc
     """
     if len(labels) != len(stc_data):
         raise ValueError('labels and stc_data must have the same length')
@@ -201,6 +279,11 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
         elif len(vertno[idx]) == 1:
             vertno[idx] = vertno[idx][0]
     vertno = [np.array(v) for v in vertno]
+    for v, hemi in zip(vertno, ('left', 'right')):
+        d = len(v) - len(np.unique(v))
+        if d > 0:
+            raise RuntimeError('Labels had %s overlaps in the %s hemisphere, '
+                               'they must be non-overlapping' % (d, hemi))
 
     # the data is in the order left, right
     data = list()
@@ -216,5 +299,7 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
 
     data = np.concatenate(data)
 
-    stc = SourceEstimate(data, vertices=vertno, tmin=tmin, tstep=tstep)
+    subject = src[0].get('subject_his_id')
+    stc = SourceEstimate(data, vertices=vertno, tmin=tmin, tstep=tstep,
+                         subject=subject)
     return stc

@@ -20,7 +20,7 @@ from ..bem import fit_sphere_to_headshape
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import Info
-from ..utils import _clean_names
+from ..utils import _clean_names, warn
 from ..externals.six.moves import map
 
 
@@ -101,9 +101,7 @@ class Layout(object):
 
         Notes
         -----
-
         .. versionadded:: 0.12.0
-
         """
         from ..viz.topomap import plot_layout
         return plot_layout(self, show=show)
@@ -387,7 +385,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
                          '`ch_type` must be %s' % (ch_type, our_types))
 
     chs = info['chs']
-    coil_types = set([ch['coil_type'] for ch in chs])
+    # Only take first 16 bits, as higher bits store CTF comp order
+    coil_types = set([ch['coil_type'] & 0xFFFF for ch in chs])
     channel_types = set([ch['kind'] for ch in chs])
 
     has_vv_mag = any(k in coil_types for k in
@@ -409,7 +408,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
                     (FIFF.FIFFV_MEG_CH in channel_types and
                      any(k in ctf_other_types for k in coil_types)))
     # hack due to MNE-C bug in IO of CTF
-    n_kit_grads = sum(ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD
+    # only take first 16 bits, as higher bits store CTF comp order
+    n_kit_grads = sum(ch['coil_type'] & 0xFFFF == FIFF.FIFFV_COIL_KIT_GRAD
                       for ch in chs)
 
     has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad,
@@ -445,10 +445,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
         layout_name = 'magnesWH3600'
     elif has_CTF_grad:
         layout_name = 'CTF-275'
-    elif n_kit_grads <= 157:
-        layout_name = 'KIT-157'
-    elif n_kit_grads > 157:
-        layout_name = 'KIT-AD'
+    elif n_kit_grads > 0:
+        layout_name = _find_kit_layout(info, n_kit_grads)
     else:
         return None
 
@@ -459,6 +457,56 @@ def find_layout(info, ch_type=None, exclude='bads'):
         layout.names = _clean_names(layout.names, before_dash=True)
 
     return layout
+
+
+def _find_kit_layout(info, n_grads):
+    """Determine the KIT layout
+
+    Parameters
+    ----------
+    info : Info
+        Info object.
+    n_grads : int
+        Number of KIT-gradiometers in the info.
+
+    Returns
+    -------
+    kit_layout : str
+        One of 'KIT-AD', 'KIT-157' or 'KIT-UMD'.
+    """
+    if info['kit_system_id'] is not None:
+        # avoid circular import
+        from ..io.kit.constants import KIT_LAYOUT
+
+        if info['kit_system_id'] in KIT_LAYOUT:
+            kit_layout = KIT_LAYOUT[info['kit_system_id']]
+            if kit_layout is not None:
+                return kit_layout
+        raise NotImplementedError("The layout for the KIT system with ID %i "
+                                  "is missing. Please contact the developers "
+                                  "about adding it." % info['kit_system_id'])
+    elif n_grads > 157:
+        return 'KIT-AD'
+
+    # channels which are on the left hemisphere for NY and right for UMD
+    test_chs = ('MEG  13', 'MEG  14', 'MEG  15', 'MEG  16', 'MEG  25',
+                'MEG  26', 'MEG  27', 'MEG  28', 'MEG  29', 'MEG  30',
+                'MEG  31', 'MEG  32', 'MEG  57', 'MEG  60', 'MEG  61',
+                'MEG  62', 'MEG  63', 'MEG  64', 'MEG  73', 'MEG  90',
+                'MEG  93', 'MEG  95', 'MEG  96', 'MEG 105', 'MEG 112',
+                'MEG 120', 'MEG 121', 'MEG 122', 'MEG 123', 'MEG 124',
+                'MEG 125', 'MEG 126', 'MEG 142', 'MEG 144', 'MEG 153',
+                'MEG 154', 'MEG 155', 'MEG 156')
+    x = [ch['loc'][0] < 0 for ch in info['chs'] if ch['ch_name'] in test_chs]
+    if np.all(x):
+        return 'KIT-157'  # KIT-NY
+    elif np.all(np.invert(x)):
+        raise NotImplementedError("Guessing sensor layout for legacy UMD "
+                                  "files is not implemented. Please convert "
+                                  "your files using MNE-Python 0.13 or "
+                                  "higher.")
+    else:
+        raise RuntimeError("KIT system could not be determined for data")
 
 
 def _box_size(points, width=None, height=None, padding=0.0):
@@ -705,7 +753,8 @@ def _topo_to_sphere(pos, eegs):
     return np.column_stack([xs, ys, zs])
 
 
-def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
+def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads',
+                       raise_error=True):
     """Find the picks for pairing grad channels
 
     Parameters
@@ -720,6 +769,9 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any (default).
         If 'bads', exclude channels in info['bads']. Defaults to 'bads'.
+    raise_error : bool
+        Whether to raise an error when no pairs are found. If False, raises a
+        warning.
 
     Returns
     -------
@@ -741,7 +793,11 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
                 pairs[key].append(ch)
     pairs = [p for p in pairs.values() if len(p) == 2]
     if len(pairs) == 0:
-        raise ValueError("No 'grad' channel pairs found.")
+        if raise_error:
+            raise ValueError("No 'grad' channel pairs found.")
+        else:
+            warn("No 'grad' channel pairs found.")
+            return list()
 
     # find the picks corresponding to the grad channels
     grad_chs = sum(pairs, [])

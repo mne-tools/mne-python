@@ -57,7 +57,10 @@ def test_convert_forward():
     """Test converting forward solution between different representations
     """
     fwd = read_forward_solution(fname_meeg_grad)
-    assert_true(repr(fwd))
+    fwd_repr = repr(fwd)
+    assert_true('306' in fwd_repr)
+    assert_true('60' in fwd_repr)
+    assert_true(fwd_repr)
     assert_true(isinstance(fwd, Forward))
     # look at surface orientation
     fwd_surf = convert_forward_solution(fwd, surf_ori=True)

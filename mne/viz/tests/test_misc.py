@@ -13,9 +13,10 @@ import warnings
 import numpy as np
 from numpy.testing import assert_raises
 
-from mne import (io, read_events, read_cov, read_source_spaces, read_evokeds,
+from mne import (read_events, read_cov, read_source_spaces, read_evokeds,
                  read_dipole, SourceEstimate)
 from mne.datasets import testing
+from mne.io import read_raw_fif
 from mne.minimum_norm import read_inverse_operator
 from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
                      plot_snr_estimate)
@@ -29,6 +30,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
+src_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 inv_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
 evoked_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
@@ -41,16 +43,17 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 
 
 def _get_raw():
-    return io.read_raw_fif(raw_fname, preload=True)
+    """Get raw data."""
+    return read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
 
 
 def _get_events():
+    """Get events."""
     return read_events(event_fname)
 
 
 def test_plot_cov():
-    """Test plotting of covariances
-    """
+    """Test plotting of covariances."""
     raw = _get_raw()
     cov = read_cov(cov_fname)
     with warnings.catch_warnings(record=True):  # bad proj
@@ -60,19 +63,22 @@ def test_plot_cov():
 @testing.requires_testing_data
 @requires_nibabel()
 def test_plot_bem():
-    """Test plotting of BEM contours
-    """
+    """Test plotting of BEM contours."""
     assert_raises(IOError, plot_bem, subject='bad-subject',
                   subjects_dir=subjects_dir)
     assert_raises(ValueError, plot_bem, subject='sample',
                   subjects_dir=subjects_dir, orientation='bad-ori')
     plot_bem(subject='sample', subjects_dir=subjects_dir,
              orientation='sagittal', slices=[25, 50])
+    plot_bem(subject='sample', subjects_dir=subjects_dir,
+             orientation='coronal', slices=[25, 50],
+             brain_surfaces='white')
+    plot_bem(subject='sample', subjects_dir=subjects_dir,
+             orientation='coronal', slices=[25, 50], src=src_fname)
 
 
 def test_plot_events():
-    """Test plotting events
-    """
+    """Test plotting events."""
     event_labels = {'aud_l': 1, 'aud_r': 2, 'vis_l': 3, 'vis_r': 4}
     color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c'}
     raw = _get_raw()
@@ -97,8 +103,7 @@ def test_plot_events():
 
 @testing.requires_testing_data
 def test_plot_source_spectrogram():
-    """Test plotting of source spectrogram
-    """
+    """Test plotting of source spectrogram."""
     sample_src = read_source_spaces(op.join(subjects_dir, 'sample',
                                             'bem', 'sample-oct-6-src.fif'))
 
@@ -119,8 +124,7 @@ def test_plot_source_spectrogram():
 @slow_test
 @testing.requires_testing_data
 def test_plot_snr():
-    """Test plotting SNR estimate
-    """
+    """Test plotting SNR estimate."""
     inv = read_inverse_operator(inv_fname)
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     plot_snr_estimate(evoked, inv)
@@ -128,8 +132,7 @@ def test_plot_snr():
 
 @testing.requires_testing_data
 def test_plot_dipole_amplitudes():
-    """Test plotting dipole amplitudes
-    """
+    """Test plotting dipole amplitudes."""
     dipoles = read_dipole(dip_fname)
     dipoles.plot_amplitudes(show=False)
 

@@ -21,10 +21,10 @@ import numpy as np
 from mne import pick_types
 from mne.datasets import testing
 from mne.externals.six import iterbytes
-from mne.utils import _TempDir, run_tests_if_main, requires_pandas
-from mne.io import read_raw_edf, Raw
+from mne.utils import run_tests_if_main, requires_pandas
+from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
-import mne.io.edf.edf as edfmodule
+from mne.io.edf.edf import _parse_tal_channel
 from mne.event import find_events
 
 warnings.simplefilter('always')
@@ -43,6 +43,8 @@ edf_txt_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.txt')
 
 data_path = testing.data_path(download=False)
 edf_stim_resamp_path = op.join(data_path, 'EDF', 'test_edf_stim_resamp.edf')
+edf_overlap_annot_path = op.join(data_path, 'EDF',
+                                 'test_edf_overlapping_annotations.edf')
 
 
 eog = ['REOG', 'LEOG', 'IEOG']
@@ -50,7 +52,7 @@ misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
 
 
 def test_bdf_data():
-    """Test reading raw bdf files"""
+    """Test reading raw bdf files."""
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
                               montage=montage_path, eog=eog, misc=misc)
     assert_true('RawEDF' in repr(raw_py))
@@ -70,16 +72,21 @@ def test_bdf_data():
     assert_true((raw_py.info['chs'][63]['loc']).any())
 
 
+@testing.requires_testing_data
+def test_edf_overlapping_annotations():
+    """Test EDF with overlapping annotations."""
+    n_warning = 2
+    with warnings.catch_warnings(record=True) as w:
+        read_raw_edf(edf_overlap_annot_path, preload=True, verbose=True)
+        assert_equal(sum('overlapping' in str(ww.message) for ww in w),
+                     n_warning)
+
+
 def test_edf_data():
-    """Test edf files"""
+    """Test edf files."""
     _test_raw_reader(read_raw_edf, input_fname=edf_path, stim_channel=None)
     raw_py = read_raw_edf(edf_path, preload=True)
     # Test saving and loading when annotations were parsed.
-    tempdir = _TempDir()
-    raw_file = op.join(tempdir, 'test-raw.fif')
-    raw_py.save(raw_file, overwrite=True, buffer_size_sec=1)
-    Raw(raw_file, preload=True)
-
     edf_events = find_events(raw_py, output='step', shortest_event=0,
                              stim_channel='STI 014')
 
@@ -107,7 +114,7 @@ def test_edf_data():
 
 @testing.requires_testing_data
 def test_stim_channel():
-    """Test reading raw edf files with stim channel"""
+    """Test reading raw edf files with stim channel."""
     raw_py = read_raw_edf(edf_path, misc=range(-4, 0), stim_channel=139,
                           preload=True)
 
@@ -152,8 +159,7 @@ def test_stim_channel():
 
 
 def test_parse_annotation():
-    """Test parsing the tal channel"""
-
+    """Test parsing the tal channel."""
     # test the parser
     annot = (b'+180\x14Lights off\x14Close door\x14\x00\x00\x00\x00\x00'
              b'+180\x14Lights off\x14\x00\x00\x00\x00\x00\x00\x00\x00'
@@ -164,18 +170,14 @@ def test_parse_annotation():
     annot = [a for a in iterbytes(annot)]
     annot[1::2] = [a * 256 for a in annot[1::2]]
     tal_channel = map(sum, zip(annot[0::2], annot[1::2]))
-    events = edfmodule._parse_tal_channel(tal_channel)
-    assert_equal(events, [[180.0, 0, 'Lights off'],
-                          [180.0, 0, 'Close door'],
-                          [180.0, 0, 'Lights off'],
-                          [180.0, 0, 'Close door'],
-                          [3.14, 4.2, 'nothing'],
-                          [1800.2, 25.5, 'Apnea']])
+    assert_equal(_parse_tal_channel(tal_channel),
+                 [[180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
+                  [180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
+                  [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
 
 
 def test_edf_annotations():
     """Test if events are detected correctly in a typical MNE workflow."""
-
     # test an actual file
     raw = read_raw_edf(edf_path, preload=True)
     edf_events = find_events(raw, output='step', shortest_event=0,
@@ -204,7 +206,7 @@ def test_edf_annotations():
 
 
 def test_edf_stim_channel():
-    """Test stim channel for edf file"""
+    """Test stim channel for edf file."""
     raw = read_raw_edf(edf_stim_channel_path, preload=True,
                        stim_channel=-1)
     true_data = np.loadtxt(edf_txt_stim_channel_path).T
@@ -222,7 +224,7 @@ def test_edf_stim_channel():
 
 @requires_pandas
 def test_to_data_frame():
-    """Test edf Raw Pandas exporter"""
+    """Test edf Raw Pandas exporter."""
     for path in [edf_path, bdf_path]:
         raw = read_raw_edf(path, stim_channel=None, preload=True)
         _, times = raw[0, :10]

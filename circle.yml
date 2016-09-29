@@ -2,15 +2,21 @@ machine:
   environment:
     # We need to set this variable to let Anaconda take precedence
     PATH: "/home/ubuntu/miniconda/envs/circleenv/bin:/home/ubuntu/miniconda/bin:$PATH"
-    MNE_DATA: "/home/ubuntu/mne_data"
     DISPLAY: ":99.0"
 
 dependencies:
   cache_directories:
-    - "/home/ubuntu/miniconda"
-    - "/home/ubuntu/.mne"
-    - "/home/ubuntu/mne_data"
-    - "/home/ubuntu/mne-tools.github.io"
+    - "~/miniconda"
+    - "~/.mne"
+    - "~/mne_data/MNE-sample-data"
+    - "~/mne_data/MNE-testing-data"
+    - "~/mne_data/MNE-misc-data"
+    - "~/mne_data/MNE-spm-face"
+    - "~/mne_data/MNE-somato-data"
+    - "~/mne_data/MNE-brainstorm-data"
+    - "~/mne_data/MEGSIM"
+    - "~/mne_data/MNE-eegbci-data"
+    - "~/mne-tools.github.io"
   # Various dependencies
   pre:
     # Get a running Python
@@ -26,27 +32,72 @@ dependencies:
         chmod +x ~/miniconda.sh;
         ~/miniconda.sh -b -p /home/ubuntu/miniconda;
         conda update --yes --quiet conda;
-        conda create -n circleenv --yes pip python=2.7 pip numpy scipy scikit-learn mayavi matplotlib sphinx pillow six IPython pandas;
+        conda create -n circleenv --yes pip python=2.7 pip;
         sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
       else
         echo "Conda already set up.";
       fi
+    - conda install -n circleenv --yes numpy scipy scikit-learn mayavi matplotlib sphinx pillow six IPython pandas;
     - ls -al /home/ubuntu/miniconda;
     - ls -al /home/ubuntu/miniconda/bin;
     - echo $PATH;
+    - echo $CIRCLE_BRANCH
     - which python;
     - which pip;
+    - pip install --upgrade pyface;
     - git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
     - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
-    - cd /home/ubuntu && git clone https://github.com/enthought/pyface.git && cd pyface && python setup.py develop;
-    - pip install sphinx_bootstrap_theme PySurfer nilearn neo;
+    - pip install sphinx_bootstrap_theme git+git://github.com/nipy/PySurfer.git nilearn neo numpydoc;
 
   override:
+    # Figure out if we should run a full, pattern, or noplot version
     - cd /home/ubuntu/mne-python && python setup.py develop;
-    - if [ "$CIRCLE_BRANCH" == "master" ]; then
-        mkdir -p ~/mne_data;
+    - git branch -a
+    - PATTERN="";
+      if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
+        echo html_dev > build.txt;
+      elif [ "$CIRCLE_BRANCH" == "maint/0.13" ]; then
+        echo html_stable > build.txt;
+      else
+        FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH origin/master));
+        echo FNAMES="$FNAMES";
+        for FNAME in $FNAMES; do
+          if [[ `expr match $FNAME "\(tutorials\|examples\)/.*plot_.*\.py"` ]] ; then
+            echo "Checking example $FNAME ...";
+            PATTERN=`basename $FNAME`"\\|"$PATTERN;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.sample.data_path())";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_auditory.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path())" --accept-brainstorm-license;
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_raw.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path())" --accept-brainstorm-license;
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_ctf.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_ctf.data_path())" --accept-brainstorm-license;
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_elekta.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path())" --accept-brainstorm-license;
+            fi;
+          fi;
+        done;
+        echo PATTERN="$PATTERN";
+        echo NEED_SAMPLE="$NEED_SAMPLE";
+        if [[ $PATTERN ]]; then
+          PATTERN="\(${PATTERN::-2}\)";
+          echo html_dev-pattern > build.txt;
+        else
+          echo html_dev-noplot > build.txt;
+        fi;
+      fi;
+      echo "$PATTERN" > pattern.txt;
+    - echo BUILD="$(cat build.txt)"
+    - mkdir -p ~/mne_data;
+    - ls -al ~/mne_data;
+    - if [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
         python -c "import mne; mne.datasets._download_all_example_data()";
-      fi
+      fi;
     - python -c "import mne; mne.sys_info()";
     - >
       if [ ! -d "/home/ubuntu/mne-tools.github.io" ]; then
@@ -56,12 +107,7 @@ dependencies:
 
 test:
   override:
-    - if [ "$CIRCLE_BRANCH" == "master" ]; then
-        make test-doc;
-      else
-        cd doc && make html_dev-noplot;
-      fi
-    - if [ "$CIRCLE_BRANCH" == "master" ]; then cd doc && make html_dev; fi:
+    - if [[ $(cat build.txt) == "html_dev-noplot" ]]; then cd doc && make html_dev-noplot; elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then cd doc && PATTERN=$(cat ../pattern.txt) make html_dev-pattern; else make test-doc; cd doc; make $(cat ../build.txt); fi:
           timeout: 1500
 
 general:
@@ -81,3 +127,11 @@ deployment:
       - cd ../mne-tools.github.io && git checkout master && git pull origin master
       - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
+  stable:
+    branch: maint/0.12
+    commands:
+      - git config --global user.email "circle@mne.com"
+      - git config --global user.name "Circle Ci"
+      - cd ../mne-tools.github.io && git checkout master && git pull origin master
+      - cd doc/_build/html_stable && cp -rf * ~/mne-tools.github.io/stable
+      - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of stable docs.' && git push origin master

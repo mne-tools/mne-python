@@ -384,8 +384,6 @@ ways:
   stationary with respect to background brain activity. This can also
   use :func:`mne.compute_raw_covariance`.
 
-See :ref:`covariance` for more information.
-
 .. _CIHCFJEI:
 
 Calculating the inverse operator

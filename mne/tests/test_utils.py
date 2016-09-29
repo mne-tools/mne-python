@@ -8,8 +8,11 @@ import os
 import warnings
 
 from mne import read_evokeds
+from mne.datasets import testing
 from mne.externals.six.moves import StringIO
-from mne.io import show_fiff
+from mne.io import show_fiff, read_raw_fif
+from mne.epochs import _segment_raw
+from mne.time_frequency import tfr_morlet
 from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
                        sum_squared, estimate_rank,
@@ -21,7 +24,9 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
                        create_slices, _time_mask, random_permutation,
                        _get_call_line, compute_corr, sys_info, verbose,
-                       check_fname, requires_ftp)
+                       check_fname, requires_ftp, get_config_path,
+                       object_size, buggy_mkl_svd, _get_inst_data,
+                       copy_doc, copy_function_doc_to_method_doc)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -32,10 +37,31 @@ fname_raw = op.join(base_dir, 'test_raw.fif')
 fname_log = op.join(base_dir, 'test-ave.log')
 fname_log_2 = op.join(base_dir, 'test-ave-2.log')
 
+data_path = testing.data_path(download=False)
+fname_fsaverage_trans = op.join(data_path, 'subjects', 'fsaverage', 'bem',
+                                'fsaverage-trans.fif')
+
 
 def clean_lines(lines=[]):
     # Function to scrub filenames for checking logging output (in test_logging)
     return [l if 'Reading ' not in l else 'Reading test file' for l in lines]
+
+
+def test_buggy_mkl():
+    """Test decorator for buggy MKL issues"""
+    from nose.plugins.skip import SkipTest
+
+    @buggy_mkl_svd
+    def foo(a, b):
+        raise np.linalg.LinAlgError('SVD did not converge')
+    with warnings.catch_warnings(record=True) as w:
+        assert_raises(SkipTest, foo, 1, 2)
+    assert_true(all('convergence error' in str(ww.message) for ww in w))
+
+    @buggy_mkl_svd
+    def bar(c, d, e):
+        raise RuntimeError('SVD did not converge')
+    assert_raises(RuntimeError, bar, 1, 2, 3)
 
 
 def test_sys_info():
@@ -63,6 +89,49 @@ def test_get_call_line():
 
     my_line = bar()  # testing more
     assert_equal(my_line, 'my_line = bar()  # testing more')
+
+
+def test_object_size():
+    """Test object size estimation"""
+    assert_true(object_size(np.ones(10, np.float32)) <
+                object_size(np.ones(10, np.float64)))
+    for lower, upper, obj in ((0, 60, ''),
+                              (0, 30, 1),
+                              (0, 30, 1.),
+                              (0, 60, 'foo'),
+                              (0, 150, np.ones(0)),
+                              (0, 150, np.int32(1)),
+                              (150, 500, np.ones(20)),
+                              (100, 400, dict()),
+                              (400, 1000, dict(a=np.ones(50))),
+                              (200, 900, sparse.eye(20, format='csc')),
+                              (200, 900, sparse.eye(20, format='csr'))):
+        size = object_size(obj)
+        assert_true(lower < size < upper,
+                    msg='%s < %s < %s:\n%s' % (lower, size, upper, obj))
+
+
+def test_get_inst_data():
+    """Test _get_inst_data"""
+    raw = read_raw_fif(fname_raw, add_eeg_ref=False)
+    raw.crop(tmax=1.)
+    assert_equal(_get_inst_data(raw), raw._data)
+    raw.pick_channels(raw.ch_names[:2])
+
+    epochs = _segment_raw(raw, 0.5)
+    assert_equal(_get_inst_data(epochs), epochs._data)
+
+    evoked = epochs.average()
+    assert_equal(_get_inst_data(evoked), evoked.data)
+
+    evoked.crop(tmax=0.1)
+    picks = list(range(2))
+    freqs = np.array([50., 55.])
+    n_cycles = 3
+    tfr = tfr_morlet(evoked, freqs, n_cycles, return_itc=False, picks=picks)
+    assert_equal(_get_inst_data(tfr), tfr.data)
+
+    assert_raises(TypeError, _get_inst_data, 'foo')
 
 
 def test_misc():
@@ -250,13 +319,6 @@ def test_logging():
         old_lines = clean_lines(old_log_file.readlines())
     with open(fname_log_2, 'r') as old_log_file_2:
         old_lines_2 = clean_lines(old_log_file_2.readlines())
-    # we changed our logging a little bit
-    old_lines = [o.replace('No baseline correction applied...',
-                           'No baseline correction applied')
-                 for o in old_lines]
-    old_lines_2 = [o.replace('No baseline correction applied...',
-                             'No baseline correction applied')
-                   for o in old_lines_2]
 
     if op.isfile(test_name):
         os.remove(test_name)
@@ -298,8 +360,7 @@ def test_logging():
     evoked = read_evokeds(fname_evoked, condition=1)
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())
-    with open(fname_log, 'r') as old_log_file:
-        assert_equal(new_lines, old_lines)
+    assert_equal(new_lines, old_lines)
     # check to make sure appending works (and as default, raises a warning)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -336,15 +397,20 @@ def test_config():
     assert_true(len(set_config(None, None)) > 10)  # tuple of valid keys
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        set_config(key, None, home_dir=tempdir)
+        set_config(key, None, home_dir=tempdir, set_env=False)
     assert_true(len(w) == 1)
     assert_true(get_config(key, home_dir=tempdir) is None)
     assert_raises(KeyError, get_config, key, raise_error=True)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        set_config(key, value, home_dir=tempdir)
+        assert_true(key not in os.environ)
+        set_config(key, value, home_dir=tempdir, set_env=True)
+        assert_true(key in os.environ)
         assert_true(get_config(key, home_dir=tempdir) == value)
-        set_config(key, None, home_dir=tempdir)
+        set_config(key, None, home_dir=tempdir, set_env=True)
+        assert_true(key not in os.environ)
+        set_config(key, None, home_dir=tempdir, set_env=True)
+        assert_true(key not in os.environ)
     if old_val is not None:
         os.environ[key] = old_val
     # Check if get_config with no input returns all config
@@ -354,8 +420,18 @@ def test_config():
         warnings.simplefilter('always')
         set_config(key, value, home_dir=tempdir)
     assert_equal(get_config(home_dir=tempdir), config)
+    # Check what happens when we use a corrupted file
+    json_fname = get_config_path(home_dir=tempdir)
+    with open(json_fname, 'w') as fid:
+        fid.write('foo{}')
+    with warnings.catch_warnings(record=True) as w:
+        assert_equal(get_config(home_dir=tempdir), dict())
+    assert_true(any('not a valid JSON' in str(ww.message) for ww in w))
+    with warnings.catch_warnings(record=True) as w:  # non-standard key
+        assert_raises(RuntimeError, set_config, key, 'true', home_dir=tempdir)
 
 
+@testing.requires_testing_data
 def test_show_fiff():
     """Test show_fiff
     """
@@ -366,6 +442,7 @@ def test_show_fiff():
             'FIFF_EPOCH']
     assert_true(all(key in info for key in keys))
     info = show_fiff(fname_raw, read_limit=1024)
+    assert_true('COORD_TRANS' in show_fiff(fname_fsaverage_trans))
 
 
 @deprecated('message')
@@ -561,5 +638,123 @@ def test_random_permutation():
 
     assert_array_equal(python_randperm, matlab_randperm - 1)
 
+
+def test_copy_doc():
+    '''Test decorator for copying docstrings'''
+    class A:
+        def m1():
+            """Docstring for m1"""
+            pass
+
+    class B:
+        def m1():
+            pass
+
+    class C (A):
+        @copy_doc(A.m1)
+        def m1():
+            pass
+
+    assert_equal(C.m1.__doc__, 'Docstring for m1')
+    assert_raises(ValueError, copy_doc(B.m1), C.m1)
+
+
+def test_copy_function_doc_to_method_doc():
+    '''Test decorator for re-using function docstring as method docstrings'''
+    def f1(object, a, b, c):
+        """Docstring for f1
+
+        Parameters
+        ----------
+        object : object
+            Some object. This description also has
+
+            blank lines in it.
+        a : int
+            Parameter a
+        b : int
+            Parameter b
+        """
+        pass
+
+    def f2(object):
+        """Docstring for f2
+
+        Parameters
+        ----------
+        object : object
+            Only one parameter
+
+        Returns
+        -------
+        nothing.
+        """
+        pass
+
+    def f3(object):
+        """Docstring for f3
+
+        Parameters
+        ----------
+        object : object
+            Only one parameter
+        """
+        pass
+
+    def f4(object):
+        """Docstring for f4"""
+        pass
+
+    def f5(object):
+        """Docstring for f5
+
+        Parameters
+        ----------
+        Returns
+        -------
+        nothing.
+        """
+        pass
+
+    class A:
+        @copy_function_doc_to_method_doc(f1)
+        def method_f1(self, a, b, c):
+            pass
+
+        @copy_function_doc_to_method_doc(f2)
+        def method_f2(self):
+            "method_f3 own docstring"
+            pass
+
+        @copy_function_doc_to_method_doc(f3)
+        def method_f3(self):
+            pass
+
+    assert_equal(
+        A.method_f1.__doc__,
+        """Docstring for f1
+
+        Parameters
+        ----------
+        a : int
+            Parameter a
+        b : int
+            Parameter b
+        """
+    )
+
+    assert_equal(
+        A.method_f2.__doc__,
+        """Docstring for f2
+
+        Returns
+        -------
+        nothing.
+        method_f3 own docstring"""
+    )
+
+    assert_equal(A.method_f3.__doc__, 'Docstring for f3\n\n        ')
+    assert_raises(ValueError, copy_function_doc_to_method_doc(f4), A.method_f1)
+    assert_raises(ValueError, copy_function_doc_to_method_doc(f5), A.method_f1)
 
 run_tests_if_main()

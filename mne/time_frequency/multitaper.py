@@ -7,7 +7,7 @@ import numpy as np
 from scipy import fftpack, linalg
 
 from ..parallel import parallel_func
-from ..utils import verbose, sum_squared, deprecated, warn
+from ..utils import sum_squared, warn
 
 
 def tridisolve(d, e, b, overwrite_b=True):
@@ -494,7 +494,7 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, csd_epochs
 
     Notes
     -----
@@ -559,59 +559,3 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     if ndim_in == 1:
         psd = psd[0]
     return psd, freqs
-
-
-@deprecated('This will be deprecated in release v0.12, see psd_multitaper.')
-@verbose
-def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                   adaptive=False, low_bias=True, n_jobs=1,
-                   normalization='length', verbose=None):
-    """Compute power spectrum density (PSD) using a multi-taper method
-
-    Parameters
-    ----------
-    x : array, shape=(n_signals, n_times) or (n_times,)
-        The data to compute PSD from.
-    sfreq : float
-        The sampling frequency.
-    fmin : float
-        The lower frequency of interest.
-    fmax : float
-        The upper frequency of interest.
-    bandwidth : float
-        The bandwidth of the multi taper windowing function in Hz.
-    adaptive : bool
-        Use adaptive weights to combine the tapered spectra into PSD
-        (slow, use n_jobs >> 1 to speed up computation).
-    low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
-        bandwidth.
-    n_jobs : int
-        Number of parallel jobs to use (only used if adaptive=True).
-    normalization : str
-        Either "full" or "length" (default). If "full", the PSD will
-        be normalized by the sampling rate as well as the length of
-        the signal (as in nitime).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    psd : array, shape=(n_signals, len(freqs)) or (len(freqs),)
-        The computed PSD.
-    freqs : array
-        The frequency points in Hz of the PSD.
-
-    See Also
-    --------
-    mne.io.Raw.plot_psd
-    mne.Epochs.plot_psd
-
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-    """
-    return _psd_multitaper(x=x, sfreq=sfreq, fmin=fmin, fmax=fmax,
-                           bandwidth=bandwidth, adaptive=adaptive,
-                           low_bias=low_bias,
-                           normalization=normalization, n_jobs=n_jobs)

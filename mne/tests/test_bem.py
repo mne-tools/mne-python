@@ -3,7 +3,9 @@
 # License: BSD 3 clause
 
 from copy import deepcopy
+from os import remove
 import os.path as op
+from shutil import copy
 import warnings
 
 import numpy as np
@@ -17,11 +19,16 @@ from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, _TempDir, slow_test, catch_logging
+from mne.utils import (run_tests_if_main, _TempDir, slow_test, catch_logging,
+                       requires_freesurfer)
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
-                     _check_surface_size, _bem_find_surface)
+                     _check_surface_size, _bem_find_surface, make_flash_bem)
+from mne.surface import read_surface
 from mne.io import read_info
+
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')
 
@@ -66,8 +73,7 @@ def _compare_bem_solutions(sol_a, sol_b):
 
 @testing.requires_testing_data
 def test_io_bem():
-    """Test reading and writing of bem surfaces and solutions
-    """
+    """Test reading and writing of bem surfaces and solutions"""
     tempdir = _TempDir()
     temp_bem = op.join(tempdir, 'temp-bem.fif')
     assert_raises(ValueError, read_bem_surfaces, fname_raw)
@@ -237,11 +243,8 @@ def test_fit_sphere_to_headshape():
     info = Info(dig=dig, dev_head_t=dev_head_t)
 
     # Degenerate conditions
-    with warnings.catch_warnings(record=True) as w:
-        assert_raises(ValueError, fit_sphere_to_headshape, info,
-                      dig_kinds=(FIFF.FIFFV_POINT_HPI,))
-    assert_equal(len(w), 1)
-    assert_true(w[0].category == DeprecationWarning)
+    assert_raises(ValueError, fit_sphere_to_headshape, info,
+                  dig_kinds=(FIFF.FIFFV_POINT_HPI,))
     assert_raises(ValueError, fit_sphere_to_headshape, info,
                   dig_kinds='foo', units='m')
     info['dig'][0]['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
@@ -334,6 +337,43 @@ def test_fit_sphere_to_headshape():
     info = Info(dig=dig[:6], dev_head_t=dev_head_t)
     assert_raises(ValueError, fit_sphere_to_headshape, info, units='m')
     assert_raises(TypeError, fit_sphere_to_headshape, 1, units='m')
+
+
+@requires_freesurfer
+@testing.requires_testing_data
+def test_make_flash_bem():
+    """Test computing bem from flash images."""
+    import matplotlib.pyplot as plt
+    tmp = _TempDir()
+    bemdir = op.join(subjects_dir, 'sample', 'bem')
+    flash_path = op.join(subjects_dir, 'sample', 'mri', 'flash')
+
+    for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
+        copy(op.join(bemdir, surf + '.surf'), tmp)
+        copy(op.join(bemdir, surf + '.tri'), tmp)
+    copy(op.join(bemdir, 'inner_skull_tmp.tri'), tmp)
+    copy(op.join(bemdir, 'outer_skin_from_testing.surf'), tmp)
+
+    # This function deletes the tri files at the end.
+    try:
+        make_flash_bem('sample', overwrite=True, subjects_dir=subjects_dir,
+                       flash_path=flash_path)
+        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
+            coords, faces = read_surface(op.join(bemdir, surf + '.surf'))
+            surf = 'outer_skin_from_testing' if surf == 'outer_skin' else surf
+            coords_c, faces_c = read_surface(op.join(tmp, surf + '.surf'))
+            assert_equal(0, faces.min())
+            assert_equal(coords.shape[0], faces.max() + 1)
+            assert_allclose(coords, coords_c)
+            assert_allclose(faces, faces_c)
+    finally:
+        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
+            remove(op.join(bemdir, surf + '.surf'))  # delete symlinks
+            copy(op.join(tmp, surf + '.tri'), bemdir)  # return deleted tri
+            copy(op.join(tmp, surf + '.surf'), bemdir)  # return moved surf
+        copy(op.join(tmp, 'inner_skull_tmp.tri'), bemdir)
+        copy(op.join(tmp, 'outer_skin_from_testing.surf'), bemdir)
+    plt.close('all')
 
 
 run_tests_if_main()

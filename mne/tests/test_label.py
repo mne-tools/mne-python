@@ -3,7 +3,6 @@ import os.path as op
 import shutil
 import glob
 import warnings
-import sys
 
 import numpy as np
 from scipy import sparse
@@ -19,7 +18,7 @@ from mne import (read_label, stc_to_label, read_source_estimate,
 from mne.label import Label, _blend_colors, label_sign_flip
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
                        run_tests_if_main, slow_test)
-from mne.fixes import digitize, in1d, assert_is, assert_is_not
+from mne.fixes import assert_is, assert_is_not
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
@@ -264,21 +263,21 @@ def test_label_in_src():
 
     # construct label from source space vertices
     vert_in_src = np.intersect1d(label.vertices, src[0]['vertno'], True)
-    where = in1d(label.vertices, vert_in_src)
+    where = np.in1d(label.vertices, vert_in_src)
     pos_in_src = label.pos[where]
     values_in_src = label.values[where]
     label_src = Label(vert_in_src, pos_in_src, values_in_src,
                       hemi='lh').fill(src)
 
     # check label vertices
-    vertices_status = in1d(src[0]['nearest'], label.vertices)
+    vertices_status = np.in1d(src[0]['nearest'], label.vertices)
     vertices_in = np.nonzero(vertices_status)[0]
     vertices_out = np.nonzero(np.logical_not(vertices_status))[0]
     assert_array_equal(label_src.vertices, vertices_in)
-    assert_array_equal(in1d(vertices_out, label_src.vertices), False)
+    assert_array_equal(np.in1d(vertices_out, label_src.vertices), False)
 
     # check values
-    value_idx = digitize(src[0]['nearest'][vertices_in], vert_in_src, True)
+    value_idx = np.digitize(src[0]['nearest'][vertices_in], vert_in_src, True)
     assert_array_equal(label_src.values, values_in_src[value_idx])
 
     # test exception
@@ -397,9 +396,7 @@ def test_read_labels_from_annot():
     for label in labels_lh:
         assert_true(label.name.endswith('-lh'))
         assert_true(label.hemi == 'lh')
-        # XXX fails on 2.6 for some reason...
-        if sys.version_info[:2] > (2, 6):
-            assert_is_not(label.color, None)
+        assert_is_not(label.color, None)
 
     # read labels using annot_fname
     annot_fname = op.join(subjects_dir, 'sample', 'label', 'rh.aparc.annot')
@@ -571,7 +568,7 @@ def test_write_labels_to_annot():
     label0 = labels_lh[0]
     label1 = labels_reloaded[-1]
     assert_equal(label1.name, "unknown-lh")
-    assert_true(np.all(in1d(label0.vertices, label1.vertices)))
+    assert_true(np.all(np.in1d(label0.vertices, label1.vertices)))
 
     # unnamed labels
     labels4 = labels[:]
@@ -713,7 +710,7 @@ def test_morph():
         label.values.fill(1)
         label = label.morph(None, 'fsaverage', 5, grade, subjects_dir, 1)
         label = label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2)
-        assert_true(np.mean(in1d(label_orig.vertices, label.vertices)) == 1.0)
+        assert_true(np.in1d(label_orig.vertices, label.vertices).all())
         assert_true(len(label.vertices) < 3 * len(label_orig.vertices))
         vals.append(label.vertices)
     assert_array_equal(vals[0], vals[1])
@@ -746,7 +743,7 @@ def test_grow_labels():
     for label, seed, hemi, sh, name in zip(labels, seeds, tgt_hemis,
                                            should_be_in, tgt_names):
         assert_true(np.any(label.vertices == seed))
-        assert_true(np.all(in1d(sh, label.vertices)))
+        assert_true(np.all(np.in1d(sh, label.vertices)))
         assert_equal(label.hemi, hemi)
         assert_equal(label.name, name)
 
@@ -775,6 +772,7 @@ def test_grow_labels():
 
 @testing.requires_testing_data
 def test_label_sign_flip():
+    """Test label sign flip computation"""
     src = read_source_spaces(src_fname)
     label = Label(vertices=src[0]['vertno'][:5], hemi='lh')
     src[0]['nn'][label.vertices] = np.array(
@@ -790,5 +788,56 @@ def test_label_sign_flip():
     assert_array_almost_equal(np.abs(np.dot(flip[idx], known_flips[idx])),
                               len(idx))
 
+
+@testing.requires_testing_data
+def test_label_center_of_mass():
+    """Test computing the center of mass of a label"""
+    stc = read_source_estimate(stc_fname)
+    stc.lh_data[:] = 0
+    vertex_stc = stc.center_of_mass('sample', subjects_dir=subjects_dir)[0]
+    assert_equal(vertex_stc, 124791)
+    label = Label(stc.vertices[1], pos=None, values=stc.rh_data.mean(axis=1),
+                  hemi='rh', subject='sample')
+    vertex_label = label.center_of_mass(subjects_dir=subjects_dir)
+    assert_equal(vertex_label, vertex_stc)
+
+    labels = read_labels_from_annot('sample', parc='aparc.a2009s',
+                                    subjects_dir=subjects_dir)
+    src = read_source_spaces(src_fname)
+    # Try a couple of random ones, one from left and one from right
+    # Visually verified in about the right place using mne_analyze
+    for label, expected in zip([labels[2], labels[3], labels[-5]],
+                               [141162, 145221, 55979]):
+        label.values[:] = -1
+        assert_raises(ValueError, label.center_of_mass,
+                      subjects_dir=subjects_dir)
+        label.values[:] = 1
+        assert_equal(label.center_of_mass(subjects_dir=subjects_dir), expected)
+        assert_equal(label.center_of_mass(subjects_dir=subjects_dir,
+                                          restrict_vertices=label.vertices),
+                     expected)
+        # restrict to source space
+        idx = 0 if label.hemi == 'lh' else 1
+        # this simple nearest version is not equivalent, but is probably
+        # close enough for many labels (including the test ones):
+        pos = label.pos[np.where(label.vertices == expected)[0][0]]
+        pos = (src[idx]['rr'][src[idx]['vertno']] - pos)
+        pos = np.argmin(np.sum(pos * pos, axis=1))
+        src_expected = src[idx]['vertno'][pos]
+        # see if we actually get the same one
+        src_restrict = np.intersect1d(label.vertices, src[idx]['vertno'])
+        assert_equal(label.center_of_mass(subjects_dir=subjects_dir,
+                                          restrict_vertices=src_restrict),
+                     src_expected)
+        assert_equal(label.center_of_mass(subjects_dir=subjects_dir,
+                                          restrict_vertices=src),
+                     src_expected)
+    # degenerate cases
+    assert_raises(ValueError, label.center_of_mass, subjects_dir=subjects_dir,
+                  restrict_vertices='foo')
+    assert_raises(TypeError, label.center_of_mass, subjects_dir=subjects_dir,
+                  surf=1)
+    assert_raises(IOError, label.center_of_mass, subjects_dir=subjects_dir,
+                  surf='foo')
 
 run_tests_if_main()
