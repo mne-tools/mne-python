@@ -171,6 +171,8 @@ class FieldTripClient(object):
                     this_info['kind'] = FIFF.FIFFV_ECG_CH
                 elif ch.startswith('MISC'):
                     this_info['kind'] = FIFF.FIFFV_MISC_CH
+                elif ch.startswith('SYS'):
+                    this_info['kind'] = FIFF.FIFFV_SYST_CH
 
                 # Fieldtrip already does calibration
                 this_info['range'] = 1.0
