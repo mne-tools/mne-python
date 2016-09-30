@@ -139,14 +139,13 @@ from scipy import signal, fftpack
 import matplotlib.pyplot as plt
 
 from mne.time_frequency.tfr import morlet
+from mne.viz import plot_filter, plot_ideal_filter
 
 import mne
 
 sfreq = 1000.
 f_p = 40.
-ylim = [-60, 10]  # for dB plots
-xlim = [2, sfreq / 2.]
-blue = '#1f77b4'
+flim = (1., sfreq / 2.)  # limits for plotting
 
 ###############################################################################
 # Take for example an ideal low-pass filter, which would give a value of 1 in
@@ -158,45 +157,9 @@ nyq = sfreq / 2.  # the Nyquist frequency is half our sample rate
 freq = [0, f_p, f_p, nyq]
 gain = [1, 1, 0, 0]
 
-
-def box_off(ax):
-    ax.grid(zorder=0)
-    for key in ('top', 'right'):
-        ax.spines[key].set_visible(False)
-
-
-def plot_ideal(freq, gain, ax):
-    freq = np.maximum(freq, xlim[0])
-    xs, ys = list(), list()
-    my_freq, my_gain = list(), list()
-    for ii in range(len(freq)):
-        xs.append(freq[ii])
-        ys.append(ylim[0])
-        if ii < len(freq) - 1 and gain[ii] != gain[ii + 1]:
-            xs += [freq[ii], freq[ii + 1]]
-            ys += [ylim[1]] * 2
-            my_freq += np.linspace(freq[ii], freq[ii + 1], 20,
-                                   endpoint=False).tolist()
-            my_gain += np.linspace(gain[ii], gain[ii + 1], 20,
-                                   endpoint=False).tolist()
-        else:
-            my_freq.append(freq[ii])
-            my_gain.append(gain[ii])
-    my_gain = 10 * np.log10(np.maximum(my_gain, 10 ** (ylim[0] / 10.)))
-    ax.fill_between(xs, ylim[0], ys, color='r', alpha=0.1)
-    ax.semilogx(my_freq, my_gain, 'r--', alpha=0.5, linewidth=4, zorder=3)
-    xticks = [1, 2, 4, 10, 20, 40, 100, 200, 400]
-    ax.set(xlim=xlim, ylim=ylim, xticks=xticks, xlabel='Frequency (Hz)',
-           ylabel='Amplitude (dB)')
-    ax.set(xticklabels=xticks)
-    box_off(ax)
-
-half_height = np.array(plt.rcParams['figure.figsize']) * [1, 0.5]
-ax = plt.subplots(1, figsize=half_height)[1]
-plot_ideal(freq, gain, ax)
-ax.set(title='Ideal %s Hz lowpass' % f_p)
-mne.viz.tight_layout()
-plt.show()
+third_height = np.array(plt.rcParams['figure.figsize']) * [1, 1. / 3.]
+ax = plt.subplots(1, figsize=third_height)[1]
+plot_ideal_filter(freq, gain, ax, title='Ideal %s Hz lowpass' % f_p, flim=flim)
 
 ###############################################################################
 # This filter hypothetically achieves zero ripple in the frequency domain,
@@ -214,46 +177,19 @@ plt.show()
 n = int(round(0.1 * sfreq)) + 1
 t = np.arange(-n // 2, n // 2) / sfreq  # center our sinc
 h = np.sinc(2 * f_p * t) / (4 * np.pi)
-
-
-def plot_filter(h, title, freq, gain, show=True):
-    if h.ndim == 2:  # second-order sections
-        sos = h
-        n = mne.filter.estimate_ringing_samples(sos)
-        h = np.zeros(n)
-        h[0] = 1
-        h = signal.sosfilt(sos, h)
-        H = np.ones(512, np.complex128)
-        for section in sos:
-            f, this_H = signal.freqz(section[:3], section[3:])
-            H *= this_H
-    else:
-        f, H = signal.freqz(h)
-    fig, axs = plt.subplots(2)
-    t = np.arange(len(h)) / sfreq
-    axs[0].plot(t, h, color=blue)
-    axs[0].set(xlim=t[[0, -1]], xlabel='Time (sec)',
-               ylabel='Amplitude h(n)', title=title)
-    box_off(axs[0])
-    f *= sfreq / (2 * np.pi)
-    axs[1].semilogx(f, 10 * np.log10((H * H.conj()).real), color=blue,
-                    linewidth=2, zorder=4)
-    plot_ideal(freq, gain, axs[1])
-    mne.viz.tight_layout()
-    if show:
-        plt.show()
-
-plot_filter(h, 'Sinc (0.1 sec)', freq, gain)
+plot_filter(h, sfreq, freq, gain, 'Sinc (0.1 sec)', flim=flim)
 
 ###############################################################################
 # This is not so good! Making the filter 10 times longer (1 sec) gets us a
 # bit better stop-band suppression, but still has a lot of ringing in
-# the time domain. Note the x-axis is an order of magnitude longer here:
+# the time domain. Note the x-axis is an order of magnitude longer here,
+# and the filter has a correspondingly much longer group delay (again equal
+# to half the filter length, or 0.5 seconds):
 
 n = int(round(1. * sfreq)) + 1
 t = np.arange(-n // 2, n // 2) / sfreq
 h = np.sinc(2 * f_p * t) / (4 * np.pi)
-plot_filter(h, 'Sinc (1.0 sec)', freq, gain)
+plot_filter(h, sfreq, freq, gain, 'Sinc (1.0 sec)', flim=flim)
 
 ###############################################################################
 # Let's make the stop-band tighter still with a longer filter (10 sec),
@@ -262,7 +198,7 @@ plot_filter(h, 'Sinc (1.0 sec)', freq, gain)
 n = int(round(10. * sfreq)) + 1
 t = np.arange(-n // 2, n // 2) / sfreq
 h = np.sinc(2 * f_p * t) / (4 * np.pi)
-plot_filter(h, 'Sinc (10.0 sec)', freq, gain)
+plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 sec)', flim=flim)
 
 ###############################################################################
 # Now we have very sharp frequency suppression, but our filter rings for the
@@ -299,11 +235,9 @@ f_s = f_p + trans_bandwidth  # = 50 Hz
 
 freq = [0., f_p, f_s, nyq]
 gain = [1., 1., 0., 0.]
-ax = plt.subplots(1, figsize=half_height)[1]
-plot_ideal(freq, gain, ax)
-ax.set(title='%s Hz lowpass with a %s Hz transition' % (f_p, trans_bandwidth))
-mne.viz.tight_layout()
-plt.show()
+ax = plt.subplots(1, figsize=third_height)[1]
+title = '%s Hz lowpass with a %s Hz transition' % (f_p, trans_bandwidth)
+plot_ideal_filter(freq, gain, ax, title=title, flim=flim)
 
 ###############################################################################
 # Accepting a shallower roll-off of the filter in the frequency domain makes
@@ -312,7 +246,8 @@ plt.show()
 # domain signal. Here again for the 1 sec filter:
 
 h = signal.firwin2(n, freq, gain, nyq=nyq)
-plot_filter(h, 'Windowed 10-Hz transition (1.0 sec)', freq, gain)
+plot_filter(h, sfreq, freq, gain, 'Windowed 10-Hz transition (1.0 sec)',
+            flim=flim)
 
 ###############################################################################
 # Since our lowpass is around 40 Hz with a 10 Hz transition, we can actually
@@ -321,7 +256,8 @@ plot_filter(h, 'Windowed 10-Hz transition (1.0 sec)', freq, gain)
 
 n = int(round(sfreq * 0.5)) + 1
 h = signal.firwin2(n, freq, gain, nyq=nyq)
-plot_filter(h, 'Windowed 10-Hz transition (0.5 sec)', freq, gain)
+plot_filter(h, sfreq, freq, gain, 'Windowed 10-Hz transition (0.5 sec)',
+            flim=flim)
 
 ###############################################################################
 # But then if we shorten the filter too much (2 cycles of 10 Hz = 0.2 sec),
@@ -329,7 +265,8 @@ plot_filter(h, 'Windowed 10-Hz transition (0.5 sec)', freq, gain)
 
 n = int(round(sfreq * 0.2)) + 1
 h = signal.firwin2(n, freq, gain, nyq=nyq)
-plot_filter(h, 'Windowed 10-Hz transition (0.2 sec)', freq, gain)
+plot_filter(h, sfreq, freq, gain, 'Windowed 10-Hz transition (0.2 sec)',
+            flim=flim)
 
 ###############################################################################
 # If we want a filter that is only 0.1 seconds long, we should probably use
@@ -339,7 +276,8 @@ trans_bandwidth = 25
 f_s = f_p + trans_bandwidth
 freq = [0, f_p, f_s, nyq]
 h = signal.firwin2(n, freq, gain, nyq=nyq)
-plot_filter(h, 'Windowed 50-Hz transition (0.2 sec)', freq, gain)
+plot_filter(h, sfreq, freq, gain, 'Windowed 50-Hz transition (0.2 sec)',
+            flim=flim)
 
 ###############################################################################
 # .. _tut_effect_on_signals:
@@ -373,8 +311,8 @@ x += rng.randn(len(x)) / 1000.
 x += np.sin(2. * np.pi * 60. * np.arange(len(x)) / sfreq) / 2000.
 
 ###############################################################################
-# Filter it with a shallow cutoff, linear-phase FIR and compensate for
-# the delay:
+# Filter it with a shallow cutoff, linear-phase FIR (which allows us to
+# compensate for the constant filter delay):
 
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
@@ -382,10 +320,12 @@ filter_dur = 6.6 / transition_band  # sec
 n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
-h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
+# This would be equivalent:
+# h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
+h = mne.filter.create_filter(None, f_p, sfreq)
 x_shallow = np.convolve(h, x)[len(h) // 2:]
 
-plot_filter(h, 'MNE-Python 0.14 default', freq, gain)
+plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default', flim=flim)
 
 ###############################################################################
 # This is actually set to become the default type of filter used in MNE-Python
@@ -400,10 +340,14 @@ filter_dur = 10.  # sec
 n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
-h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
+# This would be equivalent
+# h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
+h = mne.filter.create_filter(None, f_p, sfreq,
+                             h_trans_bandwidth=transition_band,
+                             filter_length='%ss' % filter_dur)
 x_steep = np.convolve(np.convolve(h, x)[::-1], h)[::-1][len(h) - 1:-len(h) - 1]
 
-plot_filter(h, 'MNE-Python 0.13 default', freq, gain)
+plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.13 default', flim=flim)
 
 ###############################################################################
 # Finally, Let's also filter it with the
@@ -417,7 +361,7 @@ transition_band = 5  # Hz (default in MNE-C)
 f_s = f_p + transition_band
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
-plot_filter(h, 'MNE-C default', freq, gain)
+plot_filter(h, sfreq, freq, gain, 'MNE-C default', flim=flim)
 
 ###############################################################################
 # Both the MNE-Python 0.13 and MNE-C filhters have excellent frequency
@@ -428,21 +372,20 @@ plot_filter(h, 'MNE-C default', freq, gain)
 # and the time-domain ringing is thus more pronounced for the steep-slope,
 # long-duration filter than the shorter, shallower-slope filter:
 
-axs = plt.subplots(1, 2)[1]
+axes = plt.subplots(1, 2)[1]
 
 
 def plot_signal(x, offset):
     t = np.arange(len(x)) / sfreq
-    axs[0].plot(t, x + offset)
-    axs[0].set(xlabel='Time (sec)', xlim=t[[0, -1]])
-    box_off(axs[0])
+    axes[0].plot(t, x + offset)
+    axes[0].set(xlabel='Time (sec)', xlim=t[[0, -1]])
     X = fftpack.fft(x)
     freqs = fftpack.fftfreq(len(x), 1. / sfreq)
     mask = freqs >= 0
     X = X[mask]
     freqs = freqs[mask]
-    axs[1].plot(freqs, 20 * np.log10(np.abs(X)))
-    axs[1].set(xlim=xlim)
+    axes[1].plot(freqs, 20 * np.log10(np.abs(X)))
+    axes[1].set(xlim=flim)
 
 yticks = np.arange(5) / -30.
 yticklabels = ['Original', 'Noisy', 'FIR-shallow (0.14)', 'FIR-steep (0.13)',
@@ -452,14 +395,12 @@ plot_signal(x, offset=yticks[1])
 plot_signal(x_shallow, offset=yticks[2])
 plot_signal(x_steep, offset=yticks[3])
 plot_signal(x_mne_c, offset=yticks[4])
-axs[0].set(xlim=tlim, title='FIR, Lowpass=%d Hz' % f_p, xticks=tticks,
-           ylim=[-0.150, 0.025], yticks=yticks, yticklabels=yticklabels,)
-for text in axs[0].get_yticklabels():
+axes[0].set(xlim=tlim, title='FIR, Lowpass=%d Hz' % f_p, xticks=tticks,
+            ylim=[-0.150, 0.025], yticks=yticks, yticklabels=yticklabels,)
+for text in axes[0].get_yticklabels():
     text.set(rotation=45, size=8)
-axs[1].set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)',
-           ylabel='Magnitude (dB)')
-box_off(axs[0])
-box_off(axs[1])
+axes[1].set(xlim=flim, ylim=(-60, 10), xlabel='Frequency (Hz)',
+            ylabel='Magnitude (dB)')
 mne.viz.tight_layout()
 plt.show()
 
@@ -482,9 +423,20 @@ plt.show()
 # to have a *maximally flat pass-band*. Let's look at a few orders of filter,
 # i.e., a few different number of coefficients used and therefore steepness
 # of the filter:
+#
+# .. note:: Notice that the group delay (which is related to the phase) of
+#           the IIR filters below are not constant. In the FIR case, we can
+#           design so-called linear-phase filters that have a constant group
+#           delay, and thus compensate for the delay (making the filter
+#           acausal) if necessary. This cannot be done with IIR filters, as
+#           they have a non-linear phase (non-constant group delay). As the
+#           filter order increases, the phase distortion near and in the
+#           transition band worsens. However, if acausal (forward-backward)
+#           filtering can be used, e.g. with :func:`scipy.signal.filtfilt`,
+#           these phase issues can theoretically be mitigated.
 
 sos = signal.iirfilter(2, f_p / nyq, btype='low', ftype='butter', output='sos')
-plot_filter(sos, 'Butterworth order=2', freq, gain)
+plot_filter(sos, sfreq, freq, gain, 'Butterworth order=2', flim=flim)
 
 # Eventually this will just be from scipy signal.sosfiltfilt, but 0.18 is
 # not widely adopted yet (as of June 2016), so we use our wrapper...
@@ -493,17 +445,6 @@ x_shallow = sosfiltfilt(sos, x)
 
 ###############################################################################
 # The falloff of this filter is not very steep.
-#
-# .. warning:: For brevity, we do not show the phase of these filters here.
-#              In the FIR case, we can design linear-phase filters, and
-#              compensate for the delay (making the filter acausal) if
-#              necessary. This cannot be done
-#              with IIR filters, as they have a non-linear phase.
-#              As the filter order increases, the
-#              phase distortion near and in the transition band worsens.
-#              However, if acausal (forward-backward) filtering can be used,
-#              e.g. with :func:`scipy.signal.filtfilt`, these phase issues
-#              can be mitigated.
 #
 # .. note:: Here we have made use of second-order sections (SOS)
 #           by using :func:`scipy.signal.sosfilt` and, under the
@@ -522,7 +463,7 @@ x_shallow = sosfiltfilt(sos, x)
 # with a longer impulse response:
 
 sos = signal.iirfilter(8, f_p / nyq, btype='low', ftype='butter', output='sos')
-plot_filter(sos, 'Butterworth order=8', freq, gain)
+plot_filter(sos, sfreq, freq, gain, 'Butterworth order=8', flim=flim)
 x_steep = sosfiltfilt(sos, x)
 
 ###############################################################################
@@ -533,7 +474,8 @@ x_steep = sosfiltfilt(sos, x)
 
 sos = signal.iirfilter(8, f_p / nyq, btype='low', ftype='cheby1', output='sos',
                        rp=1)  # dB of acceptable pass-band ripple
-plot_filter(sos, 'Chebychev-1 order=8, ripple=1 dB', freq, gain)
+plot_filter(sos, sfreq, freq, gain, 'Chebychev-1 order=8, ripple=1 dB',
+            flim=flim)
 
 ###############################################################################
 # And if we can live with even more ripple, we can get it slightly steeper,
@@ -542,7 +484,8 @@ plot_filter(sos, 'Chebychev-1 order=8, ripple=1 dB', freq, gain)
 
 sos = signal.iirfilter(8, f_p / nyq, btype='low', ftype='cheby1', output='sos',
                        rp=6)
-plot_filter(sos, 'Chebychev-1 order=8, ripple=6 dB', freq, gain)
+plot_filter(sos, sfreq, freq, gain, 'Chebychev-1 order=8, ripple=6 dB',
+            flim=flim)
 
 ###############################################################################
 # Applying IIR filters
@@ -551,21 +494,20 @@ plot_filter(sos, 'Chebychev-1 order=8, ripple=6 dB', freq, gain)
 # Now let's look at how our shallow and steep Butterworth IIR filters
 # perform on our Morlet signal from before:
 
-axs = plt.subplots(1, 2)[1]
+axes = plt.subplots(1, 2)[1]
 yticks = np.arange(4) / -30.
 yticklabels = ['Original', 'Noisy', 'Butterworth-2', 'Butterworth-8']
 plot_signal(x_orig, offset=yticks[0])
 plot_signal(x, offset=yticks[1])
 plot_signal(x_shallow, offset=yticks[2])
 plot_signal(x_steep, offset=yticks[3])
-axs[0].set(xlim=tlim, title='IIR, Lowpass=%d Hz' % f_p, xticks=tticks,
-           ylim=[-0.125, 0.025], yticks=yticks, yticklabels=yticklabels,)
-for text in axs[0].get_yticklabels():
+axes[0].set(xlim=tlim, title='IIR, Lowpass=%d Hz' % f_p, xticks=tticks,
+            ylim=[-0.125, 0.025], yticks=yticks, yticklabels=yticklabels,)
+for text in axes[0].get_yticklabels():
     text.set(rotation=45, size=8)
-axs[1].set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)',
-           ylabel='Magnitude (dB)')
-box_off(axs[0])
-box_off(axs[1])
+axes[1].set(xlim=flim, ylim=(-60, 10), xlabel='Frequency (Hz)',
+            ylabel='Magnitude (dB)')
+mne.viz.adjust_axes(axes)
 mne.viz.tight_layout()
 plt.show()
 
@@ -658,14 +600,14 @@ ylim = [-2, 6]
 xlabel = 'Time (sec)'
 ylabel = 'Amplitude ($\mu$V)'
 tticks = [0, 0.5, 1.3, t[-1]]
-axs = plt.subplots(2, 2)[1].ravel()
-for ax, x_f, title in zip(axs, [x_lp_2, x_lp_30, x_hp_2, x_hp_p1],
+axes = plt.subplots(2, 2)[1].ravel()
+for ax, x_f, title in zip(axes, [x_lp_2, x_lp_30, x_hp_2, x_hp_p1],
                           ['LP$_2$', 'LP$_{30}$', 'HP$_2$', 'LP$_{0.1}$']):
     ax.plot(t, x, color='0.5')
     ax.plot(t, x_f, color='k', linestyle='--')
     ax.set(ylim=ylim, xlim=xlim, xticks=tticks,
            title=title, xlabel=xlabel, ylabel=ylabel)
-    box_off(ax)
+mne.viz.adjust_axes(axes)
 mne.viz.tight_layout()
 plt.show()
 
@@ -703,9 +645,9 @@ plt.show()
 
 
 def baseline_plot(x):
-    all_axs = plt.subplots(3, 2)[1]
-    for ri, (axs, freq) in enumerate(zip(all_axs, [0.1, 0.3, 0.5])):
-        for ci, ax in enumerate(axs):
+    all_axes = plt.subplots(3, 2)[1]
+    for ri, (axes, freq) in enumerate(zip(all_axes, [0.1, 0.3, 0.5])):
+        for ci, ax in enumerate(axes):
             if ci == 0:
                 iir_hp = signal.iirfilter(4, freq / sfreq, btype='highpass',
                                           output='sos')
@@ -717,10 +659,10 @@ def baseline_plot(x):
             if ri == 0:
                 ax.set(title=('No ' if ci == 0 else '') +
                        'Baseline Correction')
-            box_off(ax)
             ax.set(xticks=tticks, ylim=ylim, xlim=xlim, xlabel=xlabel)
             ax.set_ylabel('%0.1f Hz' % freq, rotation=0,
                           horizontalalignment='right')
+        mne.viz.adjust_axes(axes)
     mne.viz.tight_layout()
     plt.suptitle(title)
     plt.show()
