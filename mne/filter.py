@@ -261,7 +261,7 @@ def _filter_attenuation(h, freq, gain):
     filt_resp = np.abs(filt_resp)  # use amplitude response
     filt_resp[np.where(gain == 1)] = 0
     idx = np.argmax(filt_resp)
-    att_db = -20 * np.log10(filt_resp[idx])
+    att_db = -20 * np.log10(np.maximum(filt_resp[idx], 1e-20))
     att_freq = freq[idx]
     return att_db, att_freq
 
@@ -770,8 +770,8 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
     See Also
     --------
-    mne.filter.construct_iir_filter
-    mne.filter.create_filter
+    construct_iir_filter
+    create_filter
     mne.io.Raw.filter
     notch_filter
     resample
@@ -779,31 +779,183 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     Notes
     -----
     For more information, see the tutorials :ref:`tut_background_filtering`
-    and :ref:`tut_artifacts_filter`.
+    and :ref:`tut_artifacts_filter`, and :func:`mne.filter.create_filter`.
     """
     if not isinstance(data, np.ndarray):
         raise ValueError('data must be an array')
     filt = create_filter(
-        data, sfreq, l_freq, h_freq, picks, filter_length, l_trans_bandwidth,
-        h_trans_bandwidth, method, iir_params, copy, phase, fir_window)
+        data, sfreq, l_freq, h_freq, filter_length, l_trans_bandwidth,
+        h_trans_bandwidth, method, iir_params, phase, fir_window)
     if method == 'fir':
-        xf = _overlap_add_filter(data, filt, None, phase, picks, n_jobs, copy)
+        data = _overlap_add_filter(data, filt, None, phase, picks, n_jobs,
+                                   copy)
     else:
-        xf = _filtfilt(data, filt, picks, n_jobs, copy)
-    return xf
+        data = _filtfilt(data, filt, picks, n_jobs, copy)
+    return data
 
 
 @verbose
-def create_filter(data, sfreq, l_freq, h_freq, picks=None,
-                  filter_length='auto', l_trans_bandwidth='auto',
-                  h_trans_bandwidth='auto', method='fir',
-                  iir_params=None, copy=True, phase='zero',
+def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
+                  l_trans_bandwidth='auto', h_trans_bandwidth='auto',
+                  method='fir', iir_params=None, phase='zero',
                   fir_window='hamming', verbose=None):
     """Create a FIR or IIR filter.
 
+    ``l_freq`` and ``h_freq`` are the frequencies below which and above
+    which, respectively, to filter out of the data. Thus the uses are:
+
+        * ``l_freq < h_freq``: band-pass filter
+        * ``l_freq > h_freq``: band-stop filter
+        * ``l_freq is not None and h_freq is None``: high-pass filter
+        * ``l_freq is None and h_freq is not None``: low-pass filter
+
     Parameters
     ----------
-    XXX
+    data : ndarray, shape (..., n_times)
+        The data that will be filtered. This is used for sanity checking
+        only.
+    sfreq : float
+        The sample frequency in Hz.
+    l_freq : float | None
+        Low cut-off frequency in Hz. If None the data are only low-passed.
+    h_freq : float | None
+        High cut-off frequency in Hz. If None the data are only
+        high-passed.
+    filter_length : str | int
+        Length of the FIR filter to use (if applicable):
+
+            * int: specified length in samples.
+            * 'auto' (default): the filter length is chosen based
+              on the size of the transition regions (6.6 times the reciprocal
+              of the shortest transition band for fir_window='hamming').
+            * str: a human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
+
+    l_trans_bandwidth : float | str
+        Width of the transition band at the low cut-off frequency in Hz
+        (high pass or cutoff 1 in bandpass). Can be "auto"
+        (default) to use a multiple of ``l_freq``::
+
+            min(max(l_freq * 0.25, 2), l_freq)
+
+        Only used for ``method='fir'``.
+    h_trans_bandwidth : float | str
+        Width of the transition band at the high cut-off frequency in Hz
+        (low pass or cutoff 2 in bandpass). Can be "auto"
+        (default in 0.14) to use a multiple of ``h_freq``::
+
+            min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+        Only used for ``method='fir'``.
+    method : str
+        'fir' will use overlap-add FIR filtering, 'iir' will use IIR
+        forward-backward filtering (via filtfilt).
+    iir_params : dict | None
+        Dictionary of parameters to use for IIR filtering.
+        See mne.filter.construct_iir_filter for details. If iir_params
+        is None and method="iir", 4th order Butterworth will be used.
+    phase : str
+        Phase of the filter, only used if ``method='fir'``.
+        By default, a symmetric linear-phase FIR filter is constructed.
+        If ``phase='zero'`` (default), the delay of this filter
+        is compensated for. If ``phase=='zero-double'``, then this filter
+        is applied twice, once forward, and once backward.
+
+        .. versionadded:: 0.13
+
+    fir_window : str
+        The window to use in FIR design, can be "hamming" (default),
+        "hann", or "blackman".
+
+        .. versionadded:: 0.13
+
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to self.verbose.
+
+    Returns
+    -------
+    filt : array or dict
+        Will be an array of FIR coefficients for method='fir', and dict
+        with IIR parameters for method='iir'.
+
+    See Also
+    --------
+    filter_data
+
+    Notes
+    -----
+    Band-pass filter
+    ^^^^^^^^^^^^^^^^
+    The frequency response is (approximately) given by::
+
+       1-|               ----------
+         |             /|         | \
+     |H| |            / |         |  \
+         |           /  |         |   \
+         |          /   |         |    \
+       0-|----------    |         |     --------------
+         |         |    |         |     |            |
+         0        Fs1  Fp1       Fp2   Fs2          Nyq
+
+    Where:
+
+        * Fs1 = Fp1 - l_trans_bandwidth in Hz
+        * Fs2 = Fp2 + h_trans_bandwidth in Hz
+
+    Band-stop filter
+    ^^^^^^^^^^^^^^^^
+    The frequency response is (approximately) given by::
+
+        1-|---------                   ----------
+          |         \                 /
+      |H| |          \               /
+          |           \             /
+          |            \           /
+        0-|             -----------
+          |        |    |         |    |        |
+          0       Fp1  Fs1       Fs2  Fp2      Nyq
+
+    Where ``Fs1 = Fp1 + l_trans_bandwidth`` and
+    ``Fs2 = Fp2 - h_trans_bandwidth``.
+
+    Multiple stop bands can be specified using arrays.
+
+
+    Low-pass filter
+    ^^^^^^^^^^^^^^^
+    The frequency response is (approximately) given by::
+
+        1-|------------------------
+          |                        \
+      |H| |                         \
+          |                          \
+          |                           \
+        0-|                            ----------------
+          |                       |    |              |
+          0                      Fp  Fstop           Nyq
+
+    Where ``Fstop = Fp + trans_bandwidth``.
+
+    High-pass filter
+    ^^^^^^^^^^^^^^^^
+    The frequency response is (approximately) given by::
+
+        1-|             -----------------------
+          |            /
+      |H| |           /
+          |          /
+          |         /
+        0-|---------
+          |        |    |                     |
+          0      Fstop  Fp                   Nyq
+
+    Where ``Fstop = Fp - trans_bandwidth``.
+
+    .. versionadded:: 0.14
     """
     sfreq = float(sfreq)
     if sfreq < 0:
@@ -818,6 +970,17 @@ def create_filter(data, sfreq, l_freq, h_freq, picks=None,
         if (l_freq == 0).all():
             l_freq = None
     iir_params, method = _check_method(method, iir_params, [])
+    if l_freq is None and h_freq is None:
+        data, sfreq, _, _, _, _, filter_length, phase, fir_window = \
+            _triage_filter_params(
+                data, sfreq, None, None, None, None,
+                filter_length, method, phase, fir_window)
+        if method == 'iir':
+            filt = dict() if iir_params is None else deepcopy(iir_params)
+            filt.update(b=np.array([1.]), a=np.array([1.]))
+        else:
+            freq = [0, sfreq / 2.]
+            gain = [1., 1.]
     if l_freq is None and h_freq is not None:
         logger.info('Setting up low-pass filter at %0.2g Hz' % (h_freq,))
         data, sfreq, _, f_p, _, f_s, filter_length, phase, fir_window = \
@@ -832,7 +995,7 @@ def create_filter(data, sfreq, l_freq, h_freq, picks=None,
             if f_s != sfreq / 2.:
                 freq += [sfreq / 2.]
                 gain += [0]
-    if l_freq is not None and h_freq is None:
+    elif l_freq is not None and h_freq is None:
         logger.info('Setting up high-pass filter at %0.2g Hz' % (l_freq,))
         data, sfreq, pass_, _, stop, _, filter_length, phase, fir_window = \
             _triage_filter_params(
@@ -847,7 +1010,7 @@ def create_filter(data, sfreq, l_freq, h_freq, picks=None,
             if stop != 0:
                 freq = [0] + freq
                 gain = [0] + gain
-    if l_freq is not None and h_freq is not None:
+    elif l_freq is not None and h_freq is not None:
         if (l_freq < h_freq).any():
             logger.info('Setting up band-pass filter from %0.2g - %0.2g Hz'
                         % (l_freq, h_freq))

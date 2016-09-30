@@ -322,7 +322,7 @@ freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent:
 # h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
-h = mne.filter.create_filter(None, f_p, sfreq)
+h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p)
 x_shallow = np.convolve(h, x)[len(h) // 2:]
 
 plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default', flim=flim)
@@ -342,7 +342,7 @@ freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent
 # h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
-h = mne.filter.create_filter(None, f_p, sfreq,
+h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                              h_trans_bandwidth=transition_band,
                              filter_length='%ss' % filter_dur)
 x_steep = np.convolve(np.convolve(h, x)[::-1], h)[::-1][len(h) - 1:-len(h) - 1]
