@@ -642,9 +642,9 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     return iir_params
 
 
-def _check_method(method, iir_params, extra_types):
+def _check_method(method, iir_params, extra_types=()):
     """Helper to parse method arguments"""
-    allowed_types = ['iir', 'fir', 'fft'] + extra_types
+    allowed_types = ['iir', 'fir', 'fft'] + list(extra_types)
     if not isinstance(method, string_types):
         raise TypeError('method must be a string')
     if method not in allowed_types:
@@ -783,6 +783,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     """
     if not isinstance(data, np.ndarray):
         raise ValueError('data must be an array')
+    iir_params, method = _check_method(method, iir_params)
     filt = create_filter(
         data, sfreq, l_freq, h_freq, filter_length, l_trans_bandwidth,
         h_trans_bandwidth, method, iir_params, phase, fir_window)
@@ -969,7 +970,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
         l_freq = np.array(l_freq, float).ravel()
         if (l_freq == 0).all():
             l_freq = None
-    iir_params, method = _check_method(method, iir_params, [])
+    iir_params, method = _check_method(method, iir_params)
     if l_freq is None and h_freq is None:
         data, sfreq, _, _, _, _, filter_length, phase, fir_window = \
             _triage_filter_params(

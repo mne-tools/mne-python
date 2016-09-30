@@ -297,8 +297,8 @@ def test_filters():
     # > Nyq/2
     assert_raises(ValueError, filter_data, a, sfreq, 4, sfreq / 2., None,
                   100, 1.0, 1.0)
-    assert_raises(ValueError, low_pass_filter, a, sfreq, sfreq / 2.,
-                  100, 1.0)
+    assert_raises(ValueError, filter_data, a, sfreq, -1, None, None,
+                  100, 1.0, 1.0)
     # check our short-filter warning:
     with warnings.catch_warnings(record=True) as w:
         # Warning for low attenuation

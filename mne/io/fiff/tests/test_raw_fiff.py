@@ -760,8 +760,7 @@ def test_filter():
 
     trans = 2.0
     filter_params = dict(picks=picks, filter_length='auto',
-                         h_trans_bandwidth=trans, l_trans_bandwidth=trans,
-                         phase='zero', fir_window='hamming')
+                         h_trans_bandwidth=trans, l_trans_bandwidth=trans)
     raw_lp = raw.copy().filter(None, 8.0, **filter_params)
     raw_hp = raw.copy().filter(16.0, None, **filter_params)
     raw_bp = raw.copy().filter(8.0 + trans, 16.0 - trans, **filter_params)
@@ -811,8 +810,8 @@ def test_filter():
         raw_bs = raw.copy().filter(60.0 + trans, 60.0 - trans, **filter_params)
         data_bs, _ = raw_bs[picks, :]
         raw_notch = raw.copy().notch_filter(
-            60.0, picks=picks, n_jobs=2, method='fir', filter_length='auto',
-            trans_bandwidth=2 * trans, phase='zero', fir_window='hamming')
+            60.0, picks=picks, n_jobs=2, method='fir',
+	    trans_bandwidth=2 * trans)
     data_notch, _ = raw_notch[picks, :]
     assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
 
@@ -872,9 +871,7 @@ def test_filter_picks():
         picks['meg'] = ch_type if ch_type in ('mag', 'grad') else False
         picks['fnirs'] = ch_type if ch_type in ('hbo', 'hbr') else False
         raw_ = raw.copy().pick_types(**picks)
-        raw_.filter(10, 30, l_trans_bandwidth='auto',
-                    h_trans_bandwidth='auto', filter_length='auto',
-                    phase='zero', fir_window='hamming')
+        raw_.filter(10, 30)
 
     # -- Error if no data channel
     for ch_type in ('misc', 'stim'):
