@@ -3,6 +3,8 @@
 
 |Travis|_ |Appveyor|_ |Codecov|_ |Zenodo|_
 
+|MNE|_
+
 .. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
 .. _Travis: https://travis-ci.org/mne-tools/mne-python
 
@@ -14,6 +16,9 @@
 
 .. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
 .. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
+
+.. |MNE| image:: http://mne-tools.github.io/dev/_static/mne_logo.png
+.. _MNE: https://mne-tools.github.io
 
 `MNE-Python <http://mne-tools.github.io/>`_
 =======================================================
