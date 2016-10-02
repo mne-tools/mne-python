@@ -670,6 +670,8 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     h : tuple or ndarray
         Can be a (b, a) tuple, 1D ndarray (for FIR filter) or 2D ndarray
         for SOS filter.
+    sfreq : float
+        Sample rate of the data (Hz).
     freq : array-like or None
         The ideal response frequencies to plot.
         If None, do not plot the ideal response.
@@ -746,7 +748,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     return fig
 
 
-def plot_ideal_filter(freq, gain, ax, title='', flim=None, alim=(-60, 10),
+def plot_ideal_filter(freq, gain, axes, title='', flim=None, alim=(-60, 10),
                       color='r', alpha=0.5, linestyle='--', show=True):
     """Plot an ideal filter response.
 
@@ -804,14 +806,14 @@ def plot_ideal_filter(freq, gain, ax, title='', flim=None, alim=(-60, 10),
             my_freq.append(freq[ii])
             my_gain.append(gain[ii])
     my_gain = 10 * np.log10(np.maximum(my_gain, 10 ** (alim[0] / 10.)))
-    ax.fill_between(xs, alim[0], ys, color=color, alpha=0.1)
-    ax.semilogx(my_freq, my_gain, color=color, linestyle=linestyle,
-                alpha=0.5, linewidth=4, zorder=3)
-    xticks = _log_ticks(flim if flim is not None else ax.get_ylim())
-    ax.set(xlim=flim, ylim=alim, xticks=xticks, xlabel='Frequency (Hz)',
-           ylabel='Amplitude (dB)')
-    ax.set(xticklabels=xticks)
-    adjust_axes(ax)
+    axes.fill_between(xs, alim[0], ys, color=color, alpha=0.1)
+    axes.semilogx(my_freq, my_gain, color=color, linestyle=linestyle,
+                  alpha=0.5, linewidth=4, zorder=3)
+    xticks = _log_ticks(flim if flim is not None else axes.get_ylim())
+    axes.set(xlim=flim, ylim=alim, xticks=xticks, xlabel='Frequency (Hz)',
+             ylabel='Amplitude (dB)')
+    axes.set(xticklabels=xticks)
+    adjust_axes(axes)
     tight_layout()
     plt_show(show)
-    return ax.figure
+    return axes.figure

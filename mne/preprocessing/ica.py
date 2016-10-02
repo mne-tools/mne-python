@@ -48,7 +48,7 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      _get_fast_dot, compute_corr, _get_inst_data,
                      copy_function_doc_to_method_doc)
 from ..fixes import _get_args
-from ..filter import band_pass_filter
+from ..filter import filter_data
 from .bads import find_outliers
 from .ctps_ import ctps
 from ..externals.six import string_types, text_type
@@ -2130,19 +2130,17 @@ def run_ica(raw, n_components, max_pca_components=100,
 
 @verbose
 def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
+    """Optionally band-pass filter the data."""
     if l_freq is not None and h_freq is not None:
         logger.info('... filtering ICA sources')
-        # use fft, here, steeper is better here.
-        sources = band_pass_filter(sources, ica.info['sfreq'],
-                                   l_freq, h_freq, method='fft',
-                                   verbose=verbose)
+        # use FIR here, steeper is better
+        kw = dict(phase='zero-double', filter_length='10s', fir_window='hann',
+                  l_trans_bandwidth=0.5, h_trans_bandwidth=0.5)
+        sources = filter_data(sources, ica.info['sfreq'], l_freq, h_freq, **kw)
         logger.info('... filtering target')
-        target = band_pass_filter(target, ica.info['sfreq'],
-                                  l_freq, h_freq, method='fft',
-                                  verbose=verbose)
+        target = filter_data(target, ica.info['sfreq'], l_freq, h_freq, **kw)
     elif l_freq is not None or h_freq is not None:
         raise ValueError('Must specify both pass bands')
-
     return sources, target
 
 
@@ -2150,7 +2148,7 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
 # CORRMAP
 
 def _get_ica_map(ica, components=None):
-    """Get ICA topomap for components"""
+    """Get ICA topomap for components."""
     fast_dot = _get_fast_dot()
     if components is None:
         components = list(range(ica.n_components_))

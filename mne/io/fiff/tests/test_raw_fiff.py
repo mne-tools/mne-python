@@ -811,7 +811,7 @@ def test_filter():
         data_bs, _ = raw_bs[picks, :]
         raw_notch = raw.copy().notch_filter(
             60.0, picks=picks, n_jobs=2, method='fir',
-	    trans_bandwidth=2 * trans)
+            trans_bandwidth=2 * trans)
     data_notch, _ = raw_notch[picks, :]
     assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
 

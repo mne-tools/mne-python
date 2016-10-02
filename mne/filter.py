@@ -787,7 +787,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     filt = create_filter(
         data, sfreq, l_freq, h_freq, filter_length, l_trans_bandwidth,
         h_trans_bandwidth, method, iir_params, phase, fir_window)
-    if method == 'fir':
+    if method in ('fir', 'fft'):
         data = _overlap_add_filter(data, filt, None, phase, picks, n_jobs,
                                    copy)
     else:
@@ -1074,7 +1074,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
     return out
 
 
-@deprecated('band_stop_filter is deprecated and will be removed in 0.15, '
+@deprecated('band_pass_filter is deprecated and will be removed in 0.15, '
             'use filter_data instead.')
 @verbose
 def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='auto',
@@ -1168,9 +1168,6 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='auto',
     See Also
     --------
     filter_data
-    band_stop_filter
-    high_pass_filter
-    low_pass_filter
     notch_filter
     resample
 
@@ -1292,9 +1289,6 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='auto',
     See Also
     --------
     filter_data
-    band_pass_filter
-    high_pass_filter
-    low_pass_filter
     notch_filter
     resample
 
@@ -1404,9 +1398,6 @@ def low_pass_filter(x, Fs, Fp, filter_length='auto', trans_bandwidth='auto',
     See Also
     --------
     filter_data
-    band_pass_filter
-    band_stop_filter
-    high_pass_filter
     notch_filter
     resample
 
@@ -1513,9 +1504,6 @@ def high_pass_filter(x, Fs, Fp, filter_length='auto', trans_bandwidth='auto',
     See Also
     --------
     filter_data
-    band_pass_filter
-    band_stop_filter
-    low_pass_filter
     notch_filter
     resample
 
@@ -1633,10 +1621,6 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     See Also
     --------
     filter_data
-    band_pass_filter
-    band_stop_filter
-    high_pass_filter
-    low_pass_filter
     resample
 
     Notes
@@ -1684,7 +1668,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
                 raise ValueError('notch_widths must be None, scalar, or the '
                                  'same length as freqs')
 
-    if method in ['fir', 'iir']:
+    if method in ('fir', 'iir'):
         # Speed this up by computing the fourier coefficients once
         tb_2 = trans_bandwidth / 2.0
         lows = [freq - nw / 2.0 - tb_2
