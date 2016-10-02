@@ -15,6 +15,7 @@ import copy
 from glob import glob
 from itertools import cycle
 import os.path as op
+import warnings
 
 import numpy as np
 from scipy import linalg
@@ -651,7 +652,7 @@ def adjust_axes(axes, remove_spines=('top', 'right'), grid=True):
 def _log_ticks(lims):
     """Create approximately logarithmically spaced ticks between lims."""
     lims = np.array(lims)
-    lims[0] = 0.01 if lims[0] == 0 else lims[0]
+    lims[0] = 0.01 if lims[0] <= 0 else lims[0]
     ticks = list()
     for exp in range(int(np.floor(np.log10(lims[0]))),
                      int(np.floor(np.log10(lims[1]))) + 1):
@@ -667,9 +668,8 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
 
     Parameters
     ----------
-    h : tuple or ndarray
-        Can be a (b, a) tuple, 1D ndarray (for FIR filter) or 2D ndarray
-        for SOS filter.
+    h : dict or ndarray
+        Can be an IIR dict or 1D ndarray of coefficients (for FIR filter).
     sfreq : float
         Sample rate of the data (Hz).
     freq : array-like or None
@@ -701,22 +701,35 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     """
     from scipy.signal import freqz, group_delay
     import matplotlib.pyplot as plt
-    if h.ndim == 2:  # second-order sections
-        from scipy.signal import sosfilt
-        H = np.ones(512, np.complex128)
-        gd = np.zeros(512)
-        for section in h:
-            f, this_H = freqz(section[:3], section[3:])
-            H *= this_H
-            gd += group_delay((section[:3], section[3:]))[1]
-        n = estimate_ringing_samples(h)
-        delta = np.zeros(n)
-        delta[0] = 1
-        h = sosfilt(h, delta)
+    if isinstance(h, dict):  # IIR h.ndim == 2:  # second-order sections
+        if 'sos' in h:
+            from scipy.signal import sosfilt
+            h = h['sos']
+            H = np.ones(512, np.complex128)
+            gd = np.zeros(512)
+            for section in h:
+                f, this_H = freqz(section[:3], section[3:])
+                H *= this_H
+                with warnings.catch_warnings(record=True):  # singular GD
+                    gd += group_delay((section[:3], section[3:]))[1]
+            n = estimate_ringing_samples(h)
+            delta = np.zeros(n)
+            delta[0] = 1
+            h = sosfilt(h, delta)
+        else:
+            from scipy.signal import lfilter
+            n = estimate_ringing_samples((h['b'], h['a']))
+            delta = np.zeros(n)
+            delta[0] = 1
+            f, H = freqz(h['b'], h['a'])
+            with warnings.catch_warnings(record=True):  # singular GD
+                gd = group_delay((h['b'], h['a']))[1]
+            h = lfilter(h['b'], h['a'], delta)
         title = 'SOS (IIR) filter' if title is None else title
     else:
         f, H = freqz(h)
-        gd = group_delay((h, [1.]))[1]
+        with warnings.catch_warnings(record=True):  # singular GD
+            gd = group_delay((h, [1.]))[1]
         title = 'FIR filter' if title is None else title
     gd /= sfreq
     fig, axes = plt.subplots(3)  # eventually axes could be a parameter
@@ -725,8 +738,8 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     axes[0].set(xlim=t[[0, -1]], xlabel='Time (sec)',
                 ylabel='Amplitude h(n)', title=title)
     f *= sfreq / (2 * np.pi)
-    axes[1].semilogx(f, 10 * np.log10((H * H.conj()).real), color=color,
-                     linewidth=2, zorder=4)
+    mag = 10 * np.log10(np.maximum((H * H.conj()).real, 1e-20))
+    axes[1].semilogx(f, mag, color=color, linewidth=2, zorder=4)
     if freq is not None and gain is not None:
         # can't show gain @ idx=0 (DC) b/c it's semilogx
         plot_ideal_filter(freq, gain, axes[1], title=None, show=False,
