@@ -436,7 +436,7 @@ plt.show()
 #           these phase issues can theoretically be mitigated.
 
 sos = signal.iirfilter(2, f_p / nyq, btype='low', ftype='butter', output='sos')
-plot_filter(sos, sfreq, freq, gain, 'Butterworth order=2', flim=flim)
+plot_filter(dict(sos=sos), sfreq, freq, gain, 'Butterworth order=2', flim=flim)
 
 # Eventually this will just be from scipy signal.sosfiltfilt, but 0.18 is
 # not widely adopted yet (as of June 2016), so we use our wrapper...
@@ -463,7 +463,7 @@ x_shallow = sosfiltfilt(sos, x)
 # with a longer impulse response:
 
 sos = signal.iirfilter(8, f_p / nyq, btype='low', ftype='butter', output='sos')
-plot_filter(sos, sfreq, freq, gain, 'Butterworth order=8', flim=flim)
+plot_filter(dict(sos=sos), sfreq, freq, gain, 'Butterworth order=8', flim=flim)
 x_steep = sosfiltfilt(sos, x)
 
 ###############################################################################
@@ -474,8 +474,8 @@ x_steep = sosfiltfilt(sos, x)
 
 sos = signal.iirfilter(8, f_p / nyq, btype='low', ftype='cheby1', output='sos',
                        rp=1)  # dB of acceptable pass-band ripple
-plot_filter(sos, sfreq, freq, gain, 'Chebychev-1 order=8, ripple=1 dB',
-            flim=flim)
+plot_filter(dict(sos=sos), sfreq, freq, gain,
+            'Chebychev-1 order=8, ripple=1 dB', flim=flim)
 
 ###############################################################################
 # And if we can live with even more ripple, we can get it slightly steeper,
@@ -484,8 +484,8 @@ plot_filter(sos, sfreq, freq, gain, 'Chebychev-1 order=8, ripple=1 dB',
 
 sos = signal.iirfilter(8, f_p / nyq, btype='low', ftype='cheby1', output='sos',
                        rp=6)
-plot_filter(sos, sfreq, freq, gain, 'Chebychev-1 order=8, ripple=6 dB',
-            flim=flim)
+plot_filter(dict(sos=sos), sfreq, freq, gain,
+            'Chebychev-1 order=8, ripple=6 dB', flim=flim)
 
 ###############################################################################
 # Applying IIR filters

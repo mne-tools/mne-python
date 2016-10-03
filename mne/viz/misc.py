@@ -744,7 +744,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
             h = lfilter(h['b'], h['a'], delta)
         title = 'SOS (IIR) filter' if title is None else title
     else:
-        H = freqz(h, [1.], omega)[1]
+        H = freqz(h, worN=omega)[1]
         with warnings.catch_warnings(record=True):  # singular GD
             gd = group_delay((h, [1.]), omega)[1]
         title = 'FIR filter' if title is None else title
@@ -766,7 +766,6 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     for ax in axes[1:]:
         ax.set(xticks=xticks)
         ax.set(xticklabels=xticklabels, xlim=flim)
-    print(xticks, xticklabels)
     axes[1].set(ylim=alim,  ylabel='Amplitude (dB)')
     dlim = [0, 1.05 * gd[1:].max()]
     axes[2].set(ylim=dlim, ylabel='Delay (sec)', xlabel='Frequency (Hz)')
