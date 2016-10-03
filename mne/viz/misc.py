@@ -652,14 +652,26 @@ def adjust_axes(axes, remove_spines=('top', 'right'), grid=True):
 def _log_ticks(lims):
     """Create approximately logarithmically spaced ticks between lims."""
     lims = np.array(lims)
-    lims[0] = 0.01 if lims[0] <= 0 else lims[0]
     ticks = list()
     for exp in range(int(np.floor(np.log10(lims[0]))),
                      int(np.floor(np.log10(lims[1]))) + 1):
         ticks += (np.array([1, 2, 4]) * (10 ** exp)).tolist()
-    ticks = np.round(np.array(ticks)).astype(int)
+    ticks = np.array(ticks)
     ticks = ticks[(ticks >= lims[0]) & (ticks <= lims[1])]
-    return ticks
+    ticklabels = [('%g' if t < 1 else '%d') % t for t in ticks]
+    return ticks, ticklabels
+
+
+def _get_flim(flim, freq, sfreq=None):
+    """Get reasonable frequency limits."""
+    if flim is None:
+        if freq is None:
+            flim = [0.1, sfreq / 2.]
+        else:
+            flim = [freq[0] if freq[0] > 0 else 0.1 * freq[1], freq[-1]]
+    if flim[0] <= 0:
+        raise ValueError('flim[0] must be positive, got %s' % flim[0])
+    return flim
 
 
 def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
@@ -685,6 +697,8 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         The color to use.
     flim : tuple or None
         If not None, the x-axis frequency limits (Hz) to use.
+        If None, freq will be used. If None and freq is None,
+        ``(0.1, sfreq / 2.)`` will be used.
     alim : tuple
         The y-axis amplitude limits (dB) to use.
     show : bool
@@ -701,17 +715,20 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     """
     from scipy.signal import freqz, group_delay
     import matplotlib.pyplot as plt
+    flim = _get_flim(flim, freq, sfreq)
+    omega = np.logspace(np.log10(flim[0]), np.log10(flim[1]), 1000)
+    omega /= sfreq / (2 * np.pi)
     if isinstance(h, dict):  # IIR h.ndim == 2:  # second-order sections
         if 'sos' in h:
             from scipy.signal import sosfilt
             h = h['sos']
-            H = np.ones(512, np.complex128)
-            gd = np.zeros(512)
+            H = np.ones(len(omega), np.complex128)
+            gd = np.zeros(len(omega))
             for section in h:
-                f, this_H = freqz(section[:3], section[3:])
+                this_H = freqz(section[:3], section[3:], omega)[1]
                 H *= this_H
                 with warnings.catch_warnings(record=True):  # singular GD
-                    gd += group_delay((section[:3], section[3:]))[1]
+                    gd += group_delay((section[:3], section[3:]), omega)[1]
             n = estimate_ringing_samples(h)
             delta = np.zeros(n)
             delta[0] = 1
@@ -721,40 +738,38 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
             n = estimate_ringing_samples((h['b'], h['a']))
             delta = np.zeros(n)
             delta[0] = 1
-            f, H = freqz(h['b'], h['a'])
+            H = freqz(h['b'], h['a'], omega)[1]
             with warnings.catch_warnings(record=True):  # singular GD
-                gd = group_delay((h['b'], h['a']))[1]
+                gd = group_delay((h['b'], h['a']), omega)[1]
             h = lfilter(h['b'], h['a'], delta)
         title = 'SOS (IIR) filter' if title is None else title
     else:
-        f, H = freqz(h)
+        H = freqz(h, [1.], omega)[1]
         with warnings.catch_warnings(record=True):  # singular GD
-            gd = group_delay((h, [1.]))[1]
+            gd = group_delay((h, [1.]), omega)[1]
         title = 'FIR filter' if title is None else title
     gd /= sfreq
     fig, axes = plt.subplots(3)  # eventually axes could be a parameter
     t = np.arange(len(h)) / sfreq
+    f = omega * sfreq / (2 * np.pi)
     axes[0].plot(t, h, color=color)
     axes[0].set(xlim=t[[0, -1]], xlabel='Time (sec)',
                 ylabel='Amplitude h(n)', title=title)
-    f *= sfreq / (2 * np.pi)
     mag = 10 * np.log10(np.maximum((H * H.conj()).real, 1e-20))
     axes[1].semilogx(f, mag, color=color, linewidth=2, zorder=4)
     if freq is not None and gain is not None:
-        # can't show gain @ idx=0 (DC) b/c it's semilogx
-        plot_ideal_filter(freq, gain, axes[1], title=None, show=False,
-                          flim=flim, alim=alim)
-    axes[1].set(xlim=f[[1, -1]], ylabel='Magnitude (dB)', xlabel='')
+        plot_ideal_filter(freq, gain, axes[1], title=None, show=False)
+    axes[1].set(xlim=flim, ylabel='Magnitude (dB)', xlabel='')
     axes[2].semilogx(f[1:], gd[1:], color=color, linewidth=2, zorder=4)
-    axes[2].set(xlim=f[[1, -1]], ylabel='Group delay (sec)',
-                xlabel='Frequency (Hz)')
-    xticks = _log_ticks(flim if flim is not None else axes[1].get_xlim())
-    axes[1].set(xticks=xticks, ylim=alim,  ylabel='Amplitude (dB)')
-    axes[1].set(xlim=flim, xticklabels=xticks)
+    axes[2].set(xlim=flim, ylabel='Group delay (sec)', xlabel='Frequency (Hz)')
+    xticks, xticklabels = _log_ticks(flim)
+    for ax in axes[1:]:
+        ax.set(xticks=xticks)
+        ax.set(xticklabels=xticklabels, xlim=flim)
+    print(xticks, xticklabels)
+    axes[1].set(ylim=alim,  ylabel='Amplitude (dB)')
     dlim = [0, 1.05 * gd[1:].max()]
-    axes[2].set(xticks=xticks, ylim=dlim, ylabel='Delay (sec)',
-                xlabel='Frequency (Hz)')
-    axes[1].set(xlim=flim, xticklabels=xticks)
+    axes[2].set(ylim=dlim, ylabel='Delay (sec)', xlabel='Frequency (Hz)')
     adjust_axes(axes)
     tight_layout()
     plt_show(show)
@@ -777,6 +792,7 @@ def plot_ideal_filter(freq, gain, axes, title='', flim=None, alim=(-60, 10),
         The title to use.
     flim : tuple or None
         If not None, the x-axis frequency limits (Hz) to use.
+        If None, freq used.
     alim : tuple
         If not None, the y-axis limits (dB) to use.
     color : color object
@@ -819,13 +835,14 @@ def plot_ideal_filter(freq, gain, axes, title='', flim=None, alim=(-60, 10),
             my_freq.append(freq[ii])
             my_gain.append(gain[ii])
     my_gain = 10 * np.log10(np.maximum(my_gain, 10 ** (alim[0] / 10.)))
+    flim = _get_flim(flim, freq)
     axes.fill_between(xs, alim[0], ys, color=color, alpha=0.1)
     axes.semilogx(my_freq, my_gain, color=color, linestyle=linestyle,
                   alpha=0.5, linewidth=4, zorder=3)
-    xticks = _log_ticks(flim if flim is not None else axes.get_ylim())
-    axes.set(xlim=flim, ylim=alim, xticks=xticks, xlabel='Frequency (Hz)',
+    xticks, xticklabels = _log_ticks(flim)
+    axes.set(ylim=alim, xticks=xticks, xlabel='Frequency (Hz)',
              ylabel='Amplitude (dB)')
-    axes.set(xticklabels=xticks)
+    axes.set(xticklabels=xticklabels, xlim=flim)
     adjust_axes(axes)
     tight_layout()
     plt_show(show)
