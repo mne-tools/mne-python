@@ -60,13 +60,13 @@ def test_generalization_across_time():
     y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
     if check_version('sklearn', '0.18'):
         from sklearn.model_selection import (KFold, StratifiedKFold,
-                                             ShuffleSplit, LeaveOneLabelOut)
+                                             ShuffleSplit, LeaveOneGroupOut)
         cv_shuffle = ShuffleSplit()
-        cv = LeaveOneLabelOut()
+        cv = LeaveOneGroupOut()
         # XXX we cannot pass any other parameters than X and y to cv.split
         # so we have to build it before hand
         cv_lolo = [(train, test) for train, test in cv.split(
-                   X=y_4classes, y=y_4classes, labels=y_4classes)]
+                   y_4classes, y_4classes, y_4classes)]
 
         # With sklearn >= 0.17, `clf` can be identified as a regressor, and
         # the scoring metrics can therefore be automatically assigned.
