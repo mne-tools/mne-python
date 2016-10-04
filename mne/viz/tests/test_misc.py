@@ -11,7 +11,7 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_raises, assert_allclose
+from numpy.testing import assert_raises
 
 from mne import (read_events, read_cov, read_source_spaces, read_evokeds,
                  read_dipole, SourceEstimate)
