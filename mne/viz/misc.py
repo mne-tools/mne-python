@@ -685,7 +685,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     sfreq : float
         Sample rate of the data (Hz).
     freq : array-like or None
-        The ideal response frequencies to plot.
+        The ideal response frequencies to plot (must be in ascending order).
         If None, do not plot the ideal response.
     gain : array-like or None
         The ideal response gains to plot.
@@ -715,6 +715,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     """
     from scipy.signal import freqz, group_delay
     import matplotlib.pyplot as plt
+    sfreq = float(sfreq)
     flim = _get_flim(flim, freq, sfreq)
     omega = np.logspace(np.log10(flim[0]), np.log10(flim[1]), 1000)
     omega /= sfreq / (2 * np.pi)
@@ -765,28 +766,29 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     xticks, xticklabels = _log_ticks(flim)
     for ax in axes[1:]:
         ax.set(xticks=xticks)
-        ax.set(xticklabels=xticklabels, xlim=flim)
+        ax.set(xticklabels=xticklabels, xlim=flim, xlabel='Frequency (Hz)')
     axes[1].set(ylim=alim,  ylabel='Amplitude (dB)')
     dlim = [0, 1.05 * gd[1:].max()]
-    axes[2].set(ylim=dlim, ylabel='Delay (sec)', xlabel='Frequency (Hz)')
+    axes[2].set(ylim=dlim, ylabel='Delay (sec)')
     adjust_axes(axes)
     tight_layout()
     plt_show(show)
     return fig
 
 
-def plot_ideal_filter(freq, gain, axes, title='', flim=None, alim=(-60, 10),
-                      color='r', alpha=0.5, linestyle='--', show=True):
+def plot_ideal_filter(freq, gain, axes=None, title='', flim=None,
+                      alim=(-60, 10), color='r', alpha=0.5, linestyle='--',
+                      show=True):
     """Plot an ideal filter response.
 
     Parameters
     ----------
     freq : array-like
-        Frequencies in Hz (must be in ascending order).
-    gain : array-like
-        Gains at each frequency.
-    axes : instance of matplotlib.axes.AxesSubplot
-        The subplot handle.
+        The ideal response frequencies to plot (must be in ascending order).
+    gain : array-like or None
+        The ideal response gains to plot.
+    axes : instance of matplotlib.axes.AxesSubplot | None
+        The subplot handle. With None, axes are created.
     title : str
         The title to use.
     flim : tuple or None
@@ -811,7 +813,19 @@ def plot_ideal_filter(freq, gain, axes, title='', flim=None, alim=(-60, 10),
     Notes
     -----
     .. versionadded:: 0.13
+
+    Examples
+    --------
+    Plot a simple ideal band-pass filter::
+
+        >>> from mne.viz import plot_ideal_filter
+        >>> freq = [0, 1, 40, 50]
+        >>> gain = [0, 1, 1, 0]
+        >>> plot_ideal_filter(freq, gain, flim=(0.1, 100))  #doctest: +ELLIPSIS
+        <matplotlib.figure.Figure object at ...>
+
     """
+    import matplotlib.pyplot as plt
     xs, ys = list(), list()
     my_freq, my_gain = list(), list()
     if freq[0] != 0:
@@ -835,6 +849,9 @@ def plot_ideal_filter(freq, gain, axes, title='', flim=None, alim=(-60, 10),
             my_gain.append(gain[ii])
     my_gain = 10 * np.log10(np.maximum(my_gain, 10 ** (alim[0] / 10.)))
     flim = _get_flim(flim, freq)
+    if axes is None:
+        axes = plt.subplots(1)[1]
+    xs = np.maximum(xs, flim[0])
     axes.fill_between(xs, alim[0], ys, color=color, alpha=0.1)
     axes.semilogx(my_freq, my_gain, color=color, linestyle=linestyle,
                   alpha=0.5, linewidth=4, zorder=3)

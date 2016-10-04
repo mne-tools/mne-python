@@ -15,7 +15,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - Add filter plotting function :func:`mne.viz.plot_filter` and creation function :func:`mne.filter.create_filter` by `Eric Larson`_
+    - Add filter plotting functions :func:`mne.viz.plot_filter` and :func:`mne.viz.plot_ideal_filter` as well as filter creation function :func:`mne.filter.create_filter` by `Eric Larson`_
 
 BUG
 ~~~
