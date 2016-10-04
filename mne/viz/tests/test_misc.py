@@ -11,7 +11,7 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_raises
+from numpy.testing import assert_raises, assert_allclose
 
 from mne import (read_events, read_cov, read_source_spaces, read_evokeds,
                  read_dipole, SourceEstimate)
@@ -62,20 +62,21 @@ def test_plot_filter():
     data = np.zeros(5000)
     freq = [0, 2, 40, 50, 500]
     gain = [0, 1, 1, 0, 0]
-    plot_filter(create_filter(data, sfreq, l_freq, h_freq), sfreq)
+    h = create_filter(data, sfreq, l_freq, h_freq)
+    plot_filter(h, sfreq)
     plt.close('all')
-    plot_filter(create_filter(data, sfreq, l_freq, h_freq), sfreq,
-                freq, gain)
+    plot_filter(h, sfreq, freq, gain)
     plt.close('all')
-    plot_filter(create_filter(data, sfreq, l_freq, h_freq, method='iir'),
-                sfreq)
+    iir = create_filter(data, sfreq, l_freq, h_freq, method='iir')
+    plot_filter(iir, sfreq)
     plt.close('all')
-    plot_filter(create_filter(data, sfreq, l_freq, h_freq, method='iir'),
-                sfreq,  freq, gain)
+    plot_filter(iir, sfreq,  freq, gain)
     plt.close('all')
-    plot_filter(create_filter(data, sfreq, l_freq, h_freq, method='iir',
-                              iir_params=dict(output='ba')),
-                sfreq,  freq, gain)
+    iir_ba = create_filter(data, sfreq, l_freq, h_freq, method='iir',
+                           iir_params=dict(output='ba'))
+    plot_filter(iir_ba, sfreq,  freq, gain)
+    plt.close('all')
+    plot_filter(h, sfreq, freq, gain, fscale='linear')
     plt.close('all')
 
 

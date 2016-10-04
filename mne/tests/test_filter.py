@@ -12,7 +12,7 @@ from mne.io import RawArray, read_raw_fif
 from mne.filter import (filter_data, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
                         _overlap_add_filter, _smart_pad, design_mne_c_filter,
-                        estimate_ringing_samples)
+                        estimate_ringing_samples, create_filter)
 
 from mne.utils import (sum_squared, run_tests_if_main, slow_test,
                        catch_logging, requires_version, _TempDir,
@@ -299,6 +299,10 @@ def test_filters():
                   100, 1.0, 1.0)
     assert_raises(ValueError, filter_data, a, sfreq, -1, None, None,
                   100, 1.0, 1.0)
+    # these should work
+    create_filter(a, sfreq, None, None)
+    create_filter(a, sfreq, None, None, method='iir')
+
     # check our short-filter warning:
     with warnings.catch_warnings(record=True) as w:
         # Warning for low attenuation

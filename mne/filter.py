@@ -977,8 +977,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                 data, sfreq, None, None, None, None,
                 filter_length, method, phase, fir_window)
         if method == 'iir':
-            filt = dict() if iir_params is None else deepcopy(iir_params)
-            filt.update(b=np.array([1.]), a=np.array([1.]))
+            out = dict() if iir_params is None else deepcopy(iir_params)
+            out.update(b=np.array([1.]), a=np.array([1.]))
         else:
             freq = [0, sfreq / 2.]
             gain = [1., 1.]
@@ -1033,6 +1033,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                     freq = [0] + freq
                     gain = [0] + gain
         else:
+            # This could possibly be removed after 0.14 release, but might
+            # as well leave it in to sanity check notch_filter
             if len(l_freq) != len(h_freq):
                 raise ValueError('l_freq and h_freq must be the same length')
             msg = 'Setting up band-stop filter'
