@@ -44,6 +44,13 @@ def _get_lut():
     return np.genfromtxt(lut_fname, dtype=None,
                          usecols=(0, 1), names=['id', 'name'])
 
+def _get_lut_AP():
+    """Helper to get the FreeSurfer LUT"""
+    data_dir = op.join(op.dirname(__file__), 'data')
+    lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
+    return np.genfromtxt(lut_fname, dtype=None,
+                         usecols=(0, 1, 2, 3, 4, 5),
+                         names=['id', 'name', 'R', 'G', 'B', 'A'])
 
 def _get_lut_id(lut, label, use_lut):
     """Convert a label to a LUT ID number."""
@@ -2350,6 +2357,56 @@ def get_volume_labels_from_aseg(mgz_fname):
     label_names = sorted(label_names, key=lambda n: n.lower())
     return label_names
 
+def get_volume_labels_from_aseg_AP(mgz_fname):
+    """Returns a list of names and colors of segmented volumes.
+
+    Parameters
+    ----------
+    mgz_fname : str
+        Filename to read. Typically aseg.mgz or some variant in the freesurfer
+        pipeline.
+
+    Returns
+    -------
+    label_names : list of str
+        The names of segmented volumes included in this mgz file.
+    label_colors : list of str
+        The RGB colors of the labels included in this mgz file.
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+    """
+    import nibabel as nib
+    import pandas as pd
+    
+    # Read the mgz file using nibabel
+    mgz_data = nib.load(mgz_fname).get_data()
+
+    # Get the unique label names
+    lut = _get_lut_AP()
+    lut
+    label_names = [lut[lut['id'] == ii]['name'][0].decode('utf-8')
+                   for ii in np.unique(mgz_data)]
+    label_colors = [[lut[lut['id'] == ii]['R'][0],
+                     lut[lut['id'] == ii]['G'][0],
+                     lut[lut['id'] == ii]['B'][0],
+                     lut[lut['id'] == ii]['A'][0]]
+                    for ii in np.unique(mgz_data)]
+    label_names_sorted = sorted(label_names, key=lambda n: n.lower())
+
+#    indices = np.zeros(len(label_names), dtype=np.int)
+#    for i, l2 in enumerate(label_names_sorted):
+#        a = [j for j, l in enumerate(label_names) if l == l2]
+#        indices[i] = np.array(a)
+#    labels_colors_sorted = [label_colors[i] for i in indices]
+
+    p = pd.DataFrame({'label_names': label_names,
+                     'label_colors': label_colors}).sort('label_names')
+
+    label_names_sorted = list(p['label_names'])
+    labels_colors_sorted = list(p['label_colors'])
+
+    return label_names_sorted, labels_colors_sorted
 
 def _get_hemi(s):
     """Get a hemisphere from a given source space."""
