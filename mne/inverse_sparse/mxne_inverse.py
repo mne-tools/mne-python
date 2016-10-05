@@ -166,7 +166,7 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
         n_lh_points = len(src[0]['vertno'])
         lh_vertno = src[0]['vertno'][active_idx[active_idx < n_lh_points]]
         rh_vertno = src[1]['vertno'][active_idx[active_idx >= n_lh_points] -
-                                    n_lh_points]
+                                     n_lh_points]
         vertices = [lh_vertno, rh_vertno]
     else:
         vertices = src[0]['vertno'][active_idx]
@@ -195,6 +195,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     Improved MEG/EEG source localization with reweighted mixed-norms,
     4th International Workshop on Pattern Recognition in Neuroimaging,
     Tuebingen, 2014
+
+    .. note:: The applied depth weighting by normializing the gain matrix
+              can be insufficient for non-cortical source spaces and might
+              be replaced in the future.
 
     Parameters
     ----------
@@ -406,6 +410,10 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     Lecture Notes in Computer Science, 2011, Volume 6801/2011,
     600-611, DOI: 10.1007/978-3-642-22092-0_49
     http://dx.doi.org/10.1007/978-3-642-22092-0_49
+
+    .. note:: The applied depth weighting by normializing the gain matrix
+              can be insufficient for non-cortical source spaces and might
+              be replaced in the future.
 
     Parameters
     ----------

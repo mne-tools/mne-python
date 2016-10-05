@@ -61,8 +61,8 @@ evoked.plot(ylim=ylim, proj=True)
 ###############################################################################
 # Run solver
 alpha = 50.  # regularization parameter between 0 and 100 (100 is high)
-loose, depth = 1.0, 1.0  # loose orientation & depth weighting
-n_mxne_iter = 10  # if > 1 use L0.5/L2 reweighted mixed norm solver
+loose, depth = 1.0, 0.3  # loose orientation & depth weighting
+n_mxne_iter = 50  # if > 1 use L0.5/L2 reweighted mixed norm solver
 # if n_mxne_iter > 1 dSPM weighting can be avoided.
 
 # Compute dSPM solution to be used as weights in MxNE
@@ -75,7 +75,7 @@ stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
 stc, residual = mixed_norm(evoked, forward, cov, alpha, loose=loose,
                            depth=depth, maxit=3000, tol=1e-6,
                            active_set_size=10, debias=True, weights=stc_dspm,
-                           weights_min=8., n_mxne_iter=n_mxne_iter,
+                           weights_min=4., n_mxne_iter=n_mxne_iter,
                            return_residual=True)
 
 # Show residual

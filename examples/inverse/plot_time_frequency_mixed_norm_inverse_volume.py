@@ -83,7 +83,7 @@ alpha_space = 30.  # spatial regularization parameter
 # (0 means no temporal regularization)
 alpha_time = 5.  # temporal regularization parameter
 
-loose, depth = 1.0, 1.0  # loose orientation & depth weighting
+loose, depth = 1.0, 0.3  # loose orientation & depth weighting
 
 # Compute dSPM solution to be used as weights in MxNE
 inverse_operator = make_inverse_operator(evoked.info, forward, cov,

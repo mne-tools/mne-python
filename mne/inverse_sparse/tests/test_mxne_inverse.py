@@ -13,7 +13,7 @@ from mne.label import read_label
 from mne import read_cov, read_forward_solution, read_evokeds
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.minimum_norm import apply_inverse, make_inverse_operator
-from mne.utils import  _TempDir, run_tests_if_main, slow_test
+from mne.utils import _TempDir, run_tests_if_main, slow_test
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 
 data_path = testing.data_path(download=False)
@@ -23,7 +23,7 @@ fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-vol-7-fwd.fif')
+                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
 label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
