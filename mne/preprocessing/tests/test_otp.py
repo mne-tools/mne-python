@@ -14,6 +14,7 @@ erm_fname = op.join(data_path, 'SSS', 'test_move_anon_erm_raw.fif')
 triux_fname = op.join(data_path, 'SSS', 'TRIUX', 'triux_bmlhus_erm_raw.fif')
 
 
+@mne.datasets.testing.requires_testing_data
 def test_otp():
     """Test oversampled temporal projection."""
     for fname in (erm_fname, triux_fname):
