@@ -8,17 +8,19 @@ L0.5/L2 is done with irMxNE which allows for sparser
 source estimates with less amplitude bias due to the non-convexity
 of the L0.5/L2 mixed norm penalty.
 
-See
-Gramfort A., Kowalski M. and Hamalainen, M.:
-Mixed-norm estimates for the M/EEG inverse problem using accelerated
-gradient methods, Physics in Medicine and Biology, 2012
-http://dx.doi.org/10.1088/0031-9155/57/7/1937
+References
+----------
+.. [1] Gramfort A., Kowalski M. and Hamalainen, M.,
+       Mixed-norm estimates for the M/EEG inverse problem using
+       accelerated gradient methods,
+       Physics in Medicine and Biology, 2012
+       http://dx.doi.org/10.1088/0031-9155/57/7/1937
 
-Strohmeier D., Haueisen J., and Gramfort A.:
-The iterative reweighted Mixed-Norm Estimate for
-spatio-temporal MEG/EEG source reconstruction,
-IEEE Transactions on Medical Imaging, 2016
-DOI: 10.1109/TMI.2016.2553445
+.. [2] Strohmeier D., Bekhti Y., Haueisen J., and Gramfort A.:
+       The iterative reweighted Mixed-Norm Estimate for
+       spatio-temporal MEG/EEG source reconstruction,
+       IEEE Transactions on Medical Imaging, Volume 35, Number 10,
+       pp. 2218-2228, 2016
 """
 # Author: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
@@ -50,7 +52,7 @@ cov = mne.read_cov(cov_fname)
 condition = 'Left Auditory'
 evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
 evoked.pick_types(meg=True, eeg=False)
-evoked.crop(tmin=0, tmax=0.2)
+evoked.crop(tmin=0, tmax=0.3)
 
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname)

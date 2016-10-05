@@ -8,17 +8,19 @@ L0.5/L2 is done with irMxNE which allows for sparser
 source estimates with less amplitude bias due to the non-convexity
 of the L0.5/L2 mixed norm penalty.
 
-See
-Gramfort A., Kowalski M. and Hamalainen, M,
-Mixed-norm estimates for the M/EEG inverse problem using accelerated
-gradient methods, Physics in Medicine and Biology, 2012
-http://dx.doi.org/10.1088/0031-9155/57/7/1937
+References
+----------
+.. [1] Gramfort A., Kowalski M. and Hamalainen, M.,
+       Mixed-norm estimates for the M/EEG inverse problem using
+       accelerated gradient methods,
+       Physics in Medicine and Biology, 2012
+       http://dx.doi.org/10.1088/0031-9155/57/7/1937
 
-Strohmeier D., Haueisen J., and Gramfort A.:
-Improved MEG/EEG source localization with reweighted mixed-norms,
-4th International Workshop on Pattern Recognition in Neuroimaging,
-Tuebingen, 2014
-DOI: 10.1109/PRNI.2014.6858545
+.. [2] Strohmeier D., Bekhti Y., Haueisen J., and Gramfort A.:
+       The iterative reweighted Mixed-Norm Estimate for
+       spatio-temporal MEG/EEG source reconstruction,
+       IEEE Transactions on Medical Imaging, Volume 35, Number 10,
+       pp. 2218-2228, 2016
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #

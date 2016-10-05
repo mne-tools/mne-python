@@ -33,7 +33,7 @@ def _check_stc(stc, evoked, idx, ratio=50.):
     order = np.argsort(amps)[::-1]
     amps = amps[order]
     verts = np.concatenate(stc.vertices)[order]
-    print verts[0]
+    print(verts[0])
     assert_equal(idx, verts[0], err_msg=str(list(verts)))
     assert_true(amps[0] > ratio * amps[1], msg=str(amps[0] / amps[1]))
 
