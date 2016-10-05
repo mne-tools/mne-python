@@ -466,12 +466,10 @@ EEG referencing:
    :toctree: generated/
    :template: function.rst
 
-   band_pass_filter
    construct_iir_filter
+   create_filter
    estimate_ringing_samples
    filter_data
-   high_pass_filter
-   low_pass_filter
    notch_filter
 
 Head position estimation:

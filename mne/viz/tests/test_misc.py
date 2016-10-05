@@ -16,11 +16,13 @@ from numpy.testing import assert_raises
 from mne import (read_events, read_cov, read_source_spaces, read_evokeds,
                  read_dipole, SourceEstimate)
 from mne.datasets import testing
+from mne.filter import create_filter
 from mne.io import read_raw_fif
 from mne.minimum_norm import read_inverse_operator
 from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
-                     plot_snr_estimate)
-from mne.utils import requires_nibabel, run_tests_if_main, slow_test
+                     plot_snr_estimate, plot_filter)
+from mne.utils import (requires_nibabel, run_tests_if_main, slow_test,
+                       requires_version)
 
 # Set our plotters to test mode
 import matplotlib
@@ -50,6 +52,32 @@ def _get_raw():
 def _get_events():
     """Get events."""
     return read_events(event_fname)
+
+
+@requires_version('scipy', '0.16')
+def test_plot_filter():
+    """Test filter plotting."""
+    import matplotlib.pyplot as plt
+    l_freq, h_freq, sfreq = 2., 40., 1000.
+    data = np.zeros(5000)
+    freq = [0, 2, 40, 50, 500]
+    gain = [0, 1, 1, 0, 0]
+    h = create_filter(data, sfreq, l_freq, h_freq)
+    plot_filter(h, sfreq)
+    plt.close('all')
+    plot_filter(h, sfreq, freq, gain)
+    plt.close('all')
+    iir = create_filter(data, sfreq, l_freq, h_freq, method='iir')
+    plot_filter(iir, sfreq)
+    plt.close('all')
+    plot_filter(iir, sfreq,  freq, gain)
+    plt.close('all')
+    iir_ba = create_filter(data, sfreq, l_freq, h_freq, method='iir',
+                           iir_params=dict(output='ba'))
+    plot_filter(iir_ba, sfreq,  freq, gain)
+    plt.close('all')
+    plot_filter(h, sfreq, freq, gain, fscale='linear')
+    plt.close('all')
 
 
 def test_plot_cov():

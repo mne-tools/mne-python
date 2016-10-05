@@ -10,8 +10,7 @@ from .mixin import TransformerMixin
 from .base import BaseEstimator
 
 from .. import pick_types
-from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
-                      band_stop_filter, filter_data, _triage_filter_params)
+from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import _psd_multitaper
 from ..externals import six
 from ..utils import _check_type_picks
@@ -483,52 +482,13 @@ class FilterEstimator(TransformerMixin):
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
-
         epochs_data = np.atleast_3d(epochs_data)
-
-        if self.l_freq is None and self.h_freq is not None:
-            epochs_data = \
-                low_pass_filter(epochs_data, self.info['sfreq'], self.h_freq,
-                                filter_length=self.filter_length,
-                                trans_bandwidth=self.l_trans_bandwidth,
-                                method=self.method, iir_params=self.iir_params,
-                                picks=self.picks, n_jobs=self.n_jobs,
-                                copy=False, verbose=False)
-
-        if self.l_freq is not None and self.h_freq is None:
-            epochs_data = \
-                high_pass_filter(epochs_data, self.info['sfreq'], self.l_freq,
-                                 filter_length=self.filter_length,
-                                 trans_bandwidth=self.h_trans_bandwidth,
-                                 method=self.method,
-                                 iir_params=self.iir_params,
-                                 picks=self.picks, n_jobs=self.n_jobs,
-                                 copy=False, verbose=False)
-
-        if self.l_freq is not None and self.h_freq is not None:
-            if self.l_freq < self.h_freq:
-                epochs_data = \
-                    band_pass_filter(epochs_data, self.info['sfreq'],
-                                     self.l_freq, self.h_freq,
-                                     filter_length=self.filter_length,
-                                     l_trans_bandwidth=self.l_trans_bandwidth,
-                                     h_trans_bandwidth=self.h_trans_bandwidth,
-                                     method=self.method,
-                                     iir_params=self.iir_params,
-                                     picks=self.picks, n_jobs=self.n_jobs,
-                                     copy=False, verbose=False)
-            else:
-                epochs_data = \
-                    band_stop_filter(epochs_data, self.info['sfreq'],
-                                     self.h_freq, self.l_freq,
-                                     filter_length=self.filter_length,
-                                     l_trans_bandwidth=self.h_trans_bandwidth,
-                                     h_trans_bandwidth=self.l_trans_bandwidth,
-                                     method=self.method,
-                                     iir_params=self.iir_params,
-                                     picks=self.picks, n_jobs=self.n_jobs,
-                                     copy=False, verbose=False)
-        return epochs_data
+        return filter_data(
+            epochs_data, self.info['sfreq'], self.l_freq, self.h_freq,
+            self.picks, self.filter_length, self.l_trans_bandwidth,
+            self.h_trans_bandwidth, method=self.method,
+            iir_params=self.iir_params, n_jobs=self.n_jobs, copy=False,
+            verbose=False)
 
 
 class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
@@ -690,10 +650,7 @@ class TemporalFilter(TransformerMixin):
     --------
     FilterEstimator
     Vectorizer
-    mne.filter.band_pass_filter
-    mne.filter.band_stop_filter
-    mne.filter.low_pass_filter
-    mne.filter.high_pass_filter
+    mne.filter.filter_data
     """
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
                  filter_length='auto', l_trans_bandwidth='auto',

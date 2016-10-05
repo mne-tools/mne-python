@@ -41,7 +41,7 @@ from mne import combine_evoked
 from mne.minimum_norm import apply_inverse
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
-from mne.filter import notch_filter, low_pass_filter
+from mne.filter import notch_filter, filter_data
 
 print(__doc__)
 
@@ -254,17 +254,10 @@ del epochs_standard, epochs_deviant
 # of this tutorial, we do it at evoked stage.
 if use_precomputed:
     sfreq = evoked_std.info['sfreq']
-    nchan = evoked_std.info['nchan']
     notches = [60, 120, 180]
-    for ch_idx in range(nchan):
-        evoked_std.data[ch_idx] = notch_filter(evoked_std.data[ch_idx], sfreq,
-                                               notches, verbose='ERROR')
-        evoked_dev.data[ch_idx] = notch_filter(evoked_dev.data[ch_idx], sfreq,
-                                               notches, verbose='ERROR')
-        evoked_std.data[ch_idx] = low_pass_filter(evoked_std.data[ch_idx],
-                                                  sfreq, 100, verbose='ERROR')
-        evoked_dev.data[ch_idx] = low_pass_filter(evoked_dev.data[ch_idx],
-                                                  sfreq, 100, verbose='ERROR')
+    for evoked in (evoked_std, evoked_dev):
+        evoked.data[:] = notch_filter(evoked.data, sfreq, notches)
+        evoked.data[:] = filter_data(evoked_std.data, sfreq, None, 100)
 
 ###############################################################################
 # Here we plot the ERF of standard and deviant conditions. In both conditions

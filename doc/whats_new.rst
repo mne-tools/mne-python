@@ -15,7 +15,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - ...
+    - Add filter plotting functions :func:`mne.viz.plot_filter` and :func:`mne.viz.plot_ideal_filter` as well as filter creation function :func:`mne.filter.create_filter` by `Eric Larson`_
 
 BUG
 ~~~
@@ -25,7 +25,7 @@ BUG
 API
 ~~~
 
-    - ...
+    - The filtering functions ``band_pass_filter``, ``band_stop_filter``, ``low_pass_filter``, and ``high_pass_filter`` have been deprecated in favor of :func:`mne.filter.filter_data` by `Eric Larson`_
 
 .. _changes_0_13:
 

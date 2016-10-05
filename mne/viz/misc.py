@@ -15,6 +15,7 @@ import copy
 from glob import glob
 from itertools import cycle
 import os.path as op
+import warnings
 
 import numpy as np
 from scipy import linalg
@@ -25,6 +26,7 @@ from ..io.proj import make_projector
 from ..source_space import read_source_spaces, SourceSpaces
 from ..utils import logger, verbose, get_subjects_dir, warn
 from ..io.pick import pick_types
+from ..filter import estimate_ringing_samples
 from .utils import tight_layout, COLORS, _prepare_trellis, plt_show
 
 
@@ -625,3 +627,281 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
     if show:
         fig.show(warn=False)
     return fig
+
+
+def adjust_axes(axes, remove_spines=('top', 'right'), grid=True):
+    """Adjust some properties of axes
+
+    Parameters
+    ----------
+    axes : list
+        List of axes to process.
+    remove_spines : list of str
+        Which axis spines to remove.
+    grid : bool
+        Turn grid on (True) or off (False).
+    """
+    axes = [axes] if not isinstance(axes, (list, tuple, np.ndarray)) else axes
+    for ax in axes:
+        if grid:
+            ax.grid(zorder=0)
+        for key in remove_spines:
+            ax.spines[key].set_visible(False)
+
+
+def _filter_ticks(lims, fscale):
+    """Create approximately spaced ticks between lims."""
+    if fscale == 'linear':
+        return None, None  # let matplotlib handle it
+    lims = np.array(lims)
+    ticks = list()
+    for exp in range(int(np.floor(np.log10(lims[0]))),
+                     int(np.floor(np.log10(lims[1]))) + 1):
+        ticks += (np.array([1, 2, 4]) * (10 ** exp)).tolist()
+    ticks = np.array(ticks)
+    ticks = ticks[(ticks >= lims[0]) & (ticks <= lims[1])]
+    ticklabels = [('%g' if t < 1 else '%d') % t for t in ticks]
+    return ticks, ticklabels
+
+
+def _get_flim(flim, fscale, freq, sfreq=None):
+    """Get reasonable frequency limits."""
+    if flim is None:
+        if freq is None:
+            flim = [0.1 if fscale == 'log' else 0., sfreq / 2.]
+        else:
+            if fscale == 'linear':
+                flim = [freq[0]]
+            else:
+                flim = [freq[0] if freq[0] > 0 else 0.1 * freq[1]]
+            flim += [freq[-1]]
+    if fscale == 'log':
+        if flim[0] <= 0:
+            raise ValueError('flim[0] must be positive, got %s' % flim[0])
+    elif flim[0] < 0:
+        raise ValueError('flim[0] must be non-negative, got %s' % flim[0])
+    return flim
+
+
+def _check_fscale(fscale):
+    """Check for valid fscale."""
+    if not isinstance(fscale, string_types) or fscale not in ('log', 'linear'):
+        raise ValueError('fscale must be "log" or "linear", got %s'
+                         % (fscale,))
+
+
+def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
+                flim=None, fscale='log', alim=(-60, 10), show=True):
+    """Plot properties of a filter
+
+    Parameters
+    ----------
+    h : dict or ndarray
+        An IIR dict or 1D ndarray of coefficients (for FIR filter).
+    sfreq : float
+        Sample rate of the data (Hz).
+    freq : array-like or None
+        The ideal response frequencies to plot (must be in ascending order).
+        If None (default), do not plot the ideal response.
+    gain : array-like or None
+        The ideal response gains to plot.
+        If None (default), do not plot the ideal response.
+    title : str | None
+        The title to use. If None (default), deteremine the title based
+        on the type of the system.
+    color : color object
+        The color to use (default '#1f77b4').
+    flim : tuple or None
+        If not None, the x-axis frequency limits (Hz) to use.
+        If None, freq will be used. If None (default) and freq is None,
+        ``(0.1, sfreq / 2.)`` will be used.
+    fscale : str
+        Frequency scaling to use, can be "log" (default) or "linear".
+    alim : tuple
+        The y-axis amplitude limits (dB) to use (default: (-60, 10)).
+    show : bool
+        Show figure if True (default).
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The figure containing the plots.
+
+    See Also
+    --------
+    mne.filter.create_filter
+    plot_ideal_filter
+
+    Notes
+    -----
+    .. versionadded:: 0.14
+    """
+    from scipy.signal import freqz, group_delay
+    import matplotlib.pyplot as plt
+    sfreq = float(sfreq)
+    _check_fscale(fscale)
+    flim = _get_flim(flim, fscale, freq, sfreq)
+    if fscale == 'log':
+        omega = np.logspace(np.log10(flim[0]), np.log10(flim[1]), 1000)
+    else:
+        omega = np.linspace(flim[0], flim[1], 1000)
+    omega /= sfreq / (2 * np.pi)
+    if isinstance(h, dict):  # IIR h.ndim == 2:  # second-order sections
+        if 'sos' in h:
+            from scipy.signal import sosfilt
+            h = h['sos']
+            H = np.ones(len(omega), np.complex128)
+            gd = np.zeros(len(omega))
+            for section in h:
+                this_H = freqz(section[:3], section[3:], omega)[1]
+                H *= this_H
+                with warnings.catch_warnings(record=True):  # singular GD
+                    gd += group_delay((section[:3], section[3:]), omega)[1]
+            n = estimate_ringing_samples(h)
+            delta = np.zeros(n)
+            delta[0] = 1
+            h = sosfilt(h, delta)
+        else:
+            from scipy.signal import lfilter
+            n = estimate_ringing_samples((h['b'], h['a']))
+            delta = np.zeros(n)
+            delta[0] = 1
+            H = freqz(h['b'], h['a'], omega)[1]
+            with warnings.catch_warnings(record=True):  # singular GD
+                gd = group_delay((h['b'], h['a']), omega)[1]
+            h = lfilter(h['b'], h['a'], delta)
+        title = 'SOS (IIR) filter' if title is None else title
+    else:
+        H = freqz(h, worN=omega)[1]
+        with warnings.catch_warnings(record=True):  # singular GD
+            gd = group_delay((h, [1.]), omega)[1]
+        title = 'FIR filter' if title is None else title
+    gd /= sfreq
+    fig, axes = plt.subplots(3)  # eventually axes could be a parameter
+    t = np.arange(len(h)) / sfreq
+    f = omega * sfreq / (2 * np.pi)
+    axes[0].plot(t, h, color=color)
+    axes[0].set(xlim=t[[0, -1]], xlabel='Time (sec)',
+                ylabel='Amplitude h(n)', title=title)
+    mag = 10 * np.log10(np.maximum((H * H.conj()).real, 1e-20))
+    axes[1].plot(f, mag, color=color, linewidth=2, zorder=4)
+    if freq is not None and gain is not None:
+        plot_ideal_filter(freq, gain, axes[1], fscale=fscale,
+                          title=None, show=False)
+    axes[1].set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
+    sl = slice(0 if fscale == 'linear' else 1, None, None)
+    axes[2].plot(f[sl], gd[sl], color=color, linewidth=2, zorder=4)
+    axes[2].set(xlim=flim, ylabel='Group delay (sec)', xlabel='Frequency (Hz)',
+                xscale=fscale)
+    xticks, xticklabels = _filter_ticks(flim, fscale)
+    dlim = [0, 1.05 * gd[1:].max()]
+    for ax, ylim, ylabel in zip(axes[1:], (alim, dlim),
+                                ('Amplitude (dB)', 'Delay (sec)')):
+        if xticks is not None:
+            ax.set(xticks=xticks)
+            ax.set(xticklabels=xticklabels)
+        ax.set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)', ylabel=ylabel)
+    adjust_axes(axes)
+    tight_layout()
+    plt_show(show)
+    return fig
+
+
+def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
+                      alim=(-60, 10), color='r', alpha=0.5, linestyle='--',
+                      show=True):
+    """Plot an ideal filter response.
+
+    Parameters
+    ----------
+    freq : array-like
+        The ideal response frequencies to plot (must be in ascending order).
+    gain : array-like or None
+        The ideal response gains to plot.
+    axes : instance of matplotlib.axes.AxesSubplot | None
+        The subplot handle. With None (default), axes are created.
+    title : str
+        The title to use, (default: '').
+    flim : tuple or None
+        If not None, the x-axis frequency limits (Hz) to use.
+        If None (default), freq used.
+    fscale : str
+        Frequency scaling to use, can be "log" (default) or "linear".
+    alim : tuple
+        If not None (default), the y-axis limits (dB) to use.
+    color : color object
+        The color to use (default: 'r').
+    alpha : float
+        The alpha to use (default: 0.5).
+    linestyle : str
+        The line style to use (default: '--').
+    show : bool
+        Show figure if True (default).
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        The figure.
+
+    See Also
+    --------
+    plot_filter
+
+    Notes
+    -----
+    .. versionadded:: 0.14
+
+    Examples
+    --------
+    Plot a simple ideal band-pass filter::
+
+        >>> from mne.viz import plot_ideal_filter
+        >>> freq = [0, 1, 40, 50]
+        >>> gain = [0, 1, 1, 0]
+        >>> plot_ideal_filter(freq, gain, flim=(0.1, 100))  #doctest: +ELLIPSIS
+        <matplotlib.figure.Figure object at ...>
+
+    """
+    import matplotlib.pyplot as plt
+    xs, ys = list(), list()
+    my_freq, my_gain = list(), list()
+    if freq[0] != 0:
+        raise ValueError('freq should start with DC (zero) and end with '
+                         'Nyquist, but got %s for DC' % (freq[0],))
+    freq = np.array(freq)
+    # deal with semilogx problems @ x=0
+    _check_fscale(fscale)
+    if fscale == 'log':
+        freq[0] = 0.1 * freq[1] if flim is None else min(flim[0], freq[1])
+    flim = _get_flim(flim, fscale, freq)
+    for ii in range(len(freq)):
+        xs.append(freq[ii])
+        ys.append(alim[0])
+        if ii < len(freq) - 1 and gain[ii] != gain[ii + 1]:
+            xs += [freq[ii], freq[ii + 1]]
+            ys += [alim[1]] * 2
+            my_freq += np.linspace(freq[ii], freq[ii + 1], 20,
+                                   endpoint=False).tolist()
+            my_gain += np.linspace(gain[ii], gain[ii + 1], 20,
+                                   endpoint=False).tolist()
+        else:
+            my_freq.append(freq[ii])
+            my_gain.append(gain[ii])
+    my_gain = 10 * np.log10(np.maximum(my_gain, 10 ** (alim[0] / 10.)))
+    if axes is None:
+        axes = plt.subplots(1)[1]
+    xs = np.maximum(xs, flim[0])
+    axes.fill_between(xs, alim[0], ys, color=color, alpha=0.1)
+    axes.plot(my_freq, my_gain, color=color, linestyle=linestyle, alpha=0.5,
+              linewidth=4, zorder=3)
+    xticks, xticklabels = _filter_ticks(flim, fscale)
+    axes.set(ylim=alim, xlabel='Frequency (Hz)', ylabel='Amplitude (dB)',
+             xscale=fscale)
+    if xticks is not None:
+        axes.set(xticks=xticks)
+        axes.set(xticklabels=xticklabels)
+    axes.set(xlim=flim)
+    adjust_axes(axes)
+    tight_layout()
+    plt_show(show)
+    return axes.figure

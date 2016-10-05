@@ -9,7 +9,7 @@ import numpy as np
 from .. import pick_types, pick_channels
 from ..externals.six import string_types
 from ..utils import logger, verbose, sum_squared, warn
-from ..filter import band_pass_filter
+from ..filter import filter_data
 from ..epochs import Epochs, _BaseEpochs
 from ..io.base import _BaseRaw
 from ..evoked import Evoked
@@ -52,10 +52,8 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     """
     win_size = int(round((60.0 * sfreq) / 120.0))
 
-    filtecg = band_pass_filter(ecg, sfreq, l_freq, h_freq,
-                               filter_length=filter_length,
-                               l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                               phase='zero-double', fir_window='hann')
+    filtecg = filter_data(ecg, sfreq, l_freq, h_freq, None, filter_length,
+                          0.5, 0.5, phase='zero-double', fir_window='hann')
 
     ecg_abs = np.abs(filtecg)
     init = int(sfreq)
