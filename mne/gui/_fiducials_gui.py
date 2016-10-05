@@ -28,7 +28,7 @@ except Exception:
         NoButtons = error = trait_wraith
 
 from ..coreg import (fid_fname, head_bem_fname, _find_fiducials_files,
-                     _find_high_res_head)
+                     _find_head_bem)
 from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
@@ -168,20 +168,23 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         if not subjects_dir or not subject:
             return
 
-        path = None
+        # find head model
         if self.use_high_res_head:
-            path = _find_high_res_head(subjects_dir=subjects_dir,
-                                       subject=subject)
+            path = _find_head_bem(subject, subjects_dir, high_res=True)
             if not path:
                 error(None, "No high resolution head model was found for "
                       "subject {0}, using standard head instead. In order to "
                       "generate a high resolution head model, run:\n\n"
                       "    $ mne make_scalp_surfaces -s {0}"
                       "\n\n".format(subject), "No High Resolution Head")
-
-        if not path:
-            path = head_bem_fname.format(subjects_dir=subjects_dir,
-                                         subject=subject)
+                path = _find_head_bem(subject, subjects_dir)
+        else:
+            path = _find_head_bem(subject, subjects_dir)
+            if not path:
+                error(None, "No standard head model was found for subject {0}, "
+                      "using high resolution head model instead."
+                      .format(subject), "No Standard Resolution Head")
+                path = _find_head_bem(subject, subjects_dir, high_res=True)
         self.bem.file = path
 
         # find fiducials file
