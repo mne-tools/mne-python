@@ -20,7 +20,7 @@ Changelog
 BUG
 ~~~
 
-    - ...
+    - Fix computation of AR coefficients across channels in :func:`mne.time_frequency.fit_iir_model_raw` by `Eric Larson`_
 
 API
 ~~~

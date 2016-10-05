@@ -6,7 +6,7 @@ sudo: false
 env:
     # Enable python 2 and python 3 builds
     # DEPS=full: build optional dependencies: pandas, nitime, statsmodels,
-    #            scikit-learn, patsy, nibabel pillow;
+    #            scikit-learn, nibabel pillow;
     #            in the case of Python 2, also mayavi, traits, pysurfer
     # DEPS=minimal: don't build optional dependencies; tests that require those
     #               dependencies are supposed to be skipped
@@ -51,7 +51,7 @@ install:
         export MNE_ROOT="${PWD}/minimal_cmds";
         export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
         source ${MNE_ROOT}/bin/mne_setup_sh;
-        conda install --yes --quiet $ENSURE_PACKAGES pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow;
+        conda install --yes --quiet $ENSURE_PACKAGES pandas$PANDAS scikit-learn$SKLEARN h5py pillow;
         pip install -q joblib nibabel;
         if [ "${PYTHON}" == "3.5" ]; then
           conda install --yes --quiet $ENSURE_PACKAGES ipython;
