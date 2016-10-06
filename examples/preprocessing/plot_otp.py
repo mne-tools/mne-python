@@ -11,6 +11,7 @@ with noise arising predominantly from sensors (not the environment).
 # License: BSD (3-clause)
 
 import os.path as op
+import matplotlib.pyplot as plt
 import mne
 
 print(__doc__)
@@ -29,7 +30,19 @@ raw_clean = mne.preprocessing.oversampled_temporal_projection(
     raw, duration=10., verbose=True)
 
 ###############################################################################
-# Plot the resulting data
+# Plot the resulting raw data
 
 raw.plot(events=events)
 raw_clean.plot(events=events)
+
+###############################################################################
+# Plot the PSDs
+
+fig, axes = plt.subplots(2)
+raw.plot_psd(ax=axes, area_mode=None, color='k', show=False)
+raw_clean.plot_psd(ax=axes, area_mode=None, color='#CA5310', show=False)
+for ax, ylabel in zip(axes, ['Magnetometers (dB)', 'Gradiometers (dB)']):
+    ax.set(xlim=[1., raw.info['sfreq'] / 2.], ylabel=ylabel)
+axes[0].set(xlabel='Frequency (Hz)')
+axes[0].legend(['Original', 'OTP'])
+plt.show()
