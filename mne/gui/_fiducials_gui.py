@@ -27,8 +27,7 @@ except Exception:
         Property = View = Item = HGroup = VGroup = SceneEditor = \
         NoButtons = error = trait_wraith
 
-from ..coreg import (fid_fname, head_bem_fname, _find_fiducials_files,
-                     _find_head_bem)
+from ..coreg import fid_fname, _find_fiducials_files, _find_head_bem
 from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
@@ -181,8 +180,8 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         else:
             path = _find_head_bem(subject, subjects_dir)
             if not path:
-                error(None, "No standard head model was found for subject {0}, "
-                      "using high resolution head model instead."
+                error(None, "No standard head model was found for subject "
+                      "{0}, using high resolution head model instead."
                       .format(subject), "No Standard Resolution Head")
                 path = _find_head_bem(subject, subjects_dir, high_res=True)
         self.bem.file = path
