@@ -48,9 +48,8 @@ raw.pick_channels([raw.ch_names[pick] for pick in picks])
 raw.info.normalize_proj()
 
 # Read epochs
-proj = False  # already applied
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                    baseline=(None, 0), preload=True, proj=proj,
+                    baseline=(None, 0), preload=True, proj=True,
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 evoked = epochs.average()
 
