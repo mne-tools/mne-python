@@ -175,6 +175,7 @@ class FieldTripClient(object):
                     this_info['kind'] = FIFF.FIFFV_SYST_CH
                 else:
                     # unknown channel type, do not include
+                    warn('Unknown channel type in FieldTrip header: %s' % ch)
                     continue
 
                 # Fieldtrip already does calibration
