@@ -323,7 +323,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         meg_ch_names = [info['ch_names'][p] for p in meg_picks]
         # checking for extra space ambiguity in channel names
         # between old and new fif files
-        if meg_ch_names[0][3] != ctc_chs[0][3]:
+        if meg_ch_names[0] not in ctc_chs:
             ctc_chs = _clean_names(ctc_chs, remove_whitespace=True)
         missing = sorted(list(set(meg_ch_names) - set(ctc_chs)))
         if len(missing) != 0:

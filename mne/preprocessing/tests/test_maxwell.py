@@ -970,9 +970,9 @@ def test_triux():
                             st_duration=4., verbose=True)
     assert_meg_snr(sss_py, read_crop(tri_sss_st4_fname), 700., 1600)
 
+
 @testing.requires_testing_data
 def test_MGH_cross_talk():
-    """Test Maxwell filter with MGH cross-talk cancellation."""
     raw = read_crop(raw_fname, (0., 1.))
     print(raw_fname)
     raw_sss = maxwell_filter(raw, cross_talk=ctc_mgh_fname)
