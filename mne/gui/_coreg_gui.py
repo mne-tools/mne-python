@@ -14,29 +14,17 @@ import warnings
 import numpy as np
 from scipy.spatial.distance import cdist
 
-# allow import without traits
-try:
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from mayavi.tools.mlab_scene_model import MlabSceneModel
-    from pyface.api import (error, confirm, OK, YES, NO, CANCEL,
-                            information, FileDialog, GUI)
-    from traits.api import (Bool, Button, cached_property, DelegatesTo,
-                            Directory, Enum, Float, HasTraits,
-                            HasPrivateTraits, Instance, Int, on_trait_change,
-                            Property, Str)
-    from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid,
-                              EnumEditor, Handler, Label, TextEditor)
-    from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
-    from tvtk.pyface.scene_editor import SceneEditor
-except Exception:
-    from ..utils import trait_wraith
-    HasTraits = HasPrivateTraits = Handler = object
-    cached_property = on_trait_change = MayaviScene = MlabSceneModel =\
-        Bool = Button = DelegatesTo = Directory = Enum = Float = Instance =\
-        Int = Property = Str = View = Item = Group = HGroup = VGroup = VGrid =\
-        EnumEditor = Label = TextEditor = Action = UndoButton = CancelButton =\
-        NoButtons = SceneEditor = trait_wraith
-
+from mayavi.core.ui.mayavi_scene import MayaviScene
+from mayavi.tools.mlab_scene_model import MlabSceneModel
+from pyface.api import (error, confirm, OK, YES, NO, CANCEL, information,
+                        FileDialog, GUI)
+from traits.api import (Bool, Button, cached_property, DelegatesTo, Directory,
+                        Enum, Float, HasTraits, HasPrivateTraits, Instance,
+                        Int, on_trait_change, Property, Str)
+from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid, EnumEditor,
+                          Handler, Label, TextEditor)
+from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
+from tvtk.pyface.scene_editor import SceneEditor
 
 from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import bem_fname, trans_fname

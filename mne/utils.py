@@ -547,12 +547,6 @@ def pformat(temp, **fmt):
     return formatter.vformat(temp, (), mapping)
 
 
-def trait_wraith(*args, **kwargs):
-    # Stand in for traits to allow importing traits based modules when the
-    # traits library is not installed
-    return lambda x: x
-
-
 ###############################################################################
 # DECORATORS
 

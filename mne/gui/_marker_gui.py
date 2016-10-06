@@ -8,24 +8,15 @@ import os
 
 import numpy as np
 
-# allow import without traits
-try:
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from mayavi.tools.mlab_scene_model import MlabSceneModel
-    from pyface.api import confirm, error, FileDialog, OK, YES
-    from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
-                            cached_property, Instance, Property, Array, Bool,
-                            Button, Enum, File, Float, List, Str)
-    from traitsui.api import View, Item, HGroup, VGroup, CheckListEditor
-    from traitsui.menu import NoButtons
-    from tvtk.pyface.scene_editor import SceneEditor
-except Exception:
-    from ..utils import trait_wraith
-    HasTraits = HasPrivateTraits = object
-    cached_property = on_trait_change = MayaviScene = MlabSceneModel = \
-        Array = Bool = Button = Enum = File = Float = Instance = Int = \
-        List = Property = Str = View = Item = HGroup = VGroup = \
-        CheckListEditor = NoButtons = SceneEditor = trait_wraith
+from mayavi.core.ui.mayavi_scene import MayaviScene
+from mayavi.tools.mlab_scene_model import MlabSceneModel
+from pyface.api import confirm, error, FileDialog, OK, YES
+from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
+                        cached_property, Instance, Property, Array, Bool,
+                        Button, Enum, File, Float, List, Str)
+from traitsui.api import View, Item, HGroup, VGroup, CheckListEditor
+from traitsui.menu import NoButtons
+from tvtk.pyface.scene_editor import SceneEditor
 
 from ..transforms import apply_trans, rotation, translation
 from ..coreg import fit_matched_points
