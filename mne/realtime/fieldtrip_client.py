@@ -173,6 +173,9 @@ class FieldTripClient(object):
                     this_info['kind'] = FIFF.FIFFV_MISC_CH
                 elif ch.startswith('SYS'):
                     this_info['kind'] = FIFF.FIFFV_SYST_CH
+                else:
+                    # unknown channel type, do not include
+                    continue
 
                 # Fieldtrip already does calibration
                 this_info['range'] = 1.0
