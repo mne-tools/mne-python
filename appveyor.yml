@@ -2,7 +2,7 @@ environment:
   global:
       PYTHON: "C:\\conda"
       MINICONDA_VERSION: "latest"
-      CONDA_DEPENDENCIES: "setuptools numpy scipy matplotlib scikit-learn nose mayavi pandas h5py PIL patsy pyside"
+      CONDA_DEPENDENCIES: "setuptools numpy scipy matplotlib scikit-learn nose mayavi pandas h5py PIL pyside"
   matrix:
       - PYTHON_VERSION: "2.7"
         PYTHON_ARCH: "64"

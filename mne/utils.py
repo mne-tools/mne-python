@@ -1043,7 +1043,6 @@ requires_fs_or_nibabel = partial(requires_module, name='nibabel or Freesurfer',
 requires_tvtk = partial(requires_module, name='TVTK',
                         call='from tvtk.api import tvtk')
 requires_statsmodels = partial(requires_module, name='statsmodels')
-requires_patsy = partial(requires_module, name='patsy')
 requires_pysurfer = partial(requires_module, name='PySurfer',
                             call='from surfer import Brain')
 requires_PIL = partial(requires_module, name='PIL',
