@@ -974,7 +974,6 @@ def test_triux():
 @testing.requires_testing_data
 def test_MGH_cross_talk():
     raw = read_crop(raw_fname, (0., 1.))
-    print(raw_fname)
     raw_sss = maxwell_filter(raw, cross_talk=ctc_mgh_fname)
     py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
     assert_true(len(py_ctc) > 0)

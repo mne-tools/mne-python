@@ -20,7 +20,7 @@ Changelog
 BUG
 ~~~
 
-    - ...
+    - FIX: maxfilter channel names extra space bug :func:``maxwell.py`` and func:``test_maxwell.py`` are updated
 
 API
 ~~~
