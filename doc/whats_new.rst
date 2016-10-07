@@ -158,6 +158,8 @@ BUG
 
     - Fixed bug in padding of Stockwell transform for signal of length a power of 2 by `Johannes Niediek`_
 
+    - Fixed maxfilter channel names extra space bug :func:``maxwell.py`` and func:``test_maxwell.py`` are updated by `Sheraz Khan`_
+
 API
 ~~~
 
