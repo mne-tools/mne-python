@@ -788,11 +788,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         else:
             data = stc.data[len(stc.vertices[0]):]
         vertices = stc.vertices[hemi_idx]
-        with warnings.catch_warnings(record=True):  # traits warnings
-            brain.add_data(data, colormap=colormap, vertices=vertices,
-                           smoothing_steps=smoothing_steps, time=times,
-                           time_label=time_label, alpha=alpha, hemi=hemi,
-                           colorbar=colorbar, **kwargs)
+        if len(data) > 0:
+            with warnings.catch_warnings(record=True):  # traits warnings
+                brain.add_data(data, colormap=colormap, vertices=vertices,
+                               smoothing_steps=smoothing_steps, time=times,
+                               time_label=time_label, alpha=alpha, hemi=hemi,
+                               colorbar=colorbar, **kwargs)
 
         # scale colormap and set time (index) to display
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],

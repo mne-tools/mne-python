@@ -148,5 +148,5 @@ stc_feat = mne.SourceEstimate(feature_weights, vertices=vertices,
                               tmin=stc.tmin, tstep=stc.tstep,
                               subject='sample')
 
-brain = stc_feat.plot(hemi='split', views=['lat', 'med'], transparent=True,
+brain = stc_feat.plot(views=['lat'], transparent=True,
                       initial_time=0.1, time_unit='s')
