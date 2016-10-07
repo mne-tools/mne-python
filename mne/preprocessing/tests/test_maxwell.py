@@ -970,4 +970,12 @@ def test_triux():
                             st_duration=4., verbose=True)
     assert_meg_snr(sss_py, read_crop(tri_sss_st4_fname), 700., 1600)
 
+
+@testing.requires_testing_data
+def test_MGH_cross_talk():
+    raw = read_crop(raw_fname, (0., 1.))
+    raw_sss = maxwell_filter(raw, cross_talk=ctc_mgh_fname)
+    py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
+    assert_true(len(py_ctc) > 0)
+
 run_tests_if_main()

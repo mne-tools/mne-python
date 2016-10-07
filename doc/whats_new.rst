@@ -22,6 +22,8 @@ BUG
 
     - Fix computation of AR coefficients across channels in :func:`mne.time_frequency.fit_iir_model_raw` by `Eric Larson`_
 
+    - Fixed maxfilter channel names extra space bug :func:``maxwell.py`` and func:``test_maxwell.py`` are updated by `Sheraz Khan`_
+
 API
 ~~~
 
