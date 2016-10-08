@@ -15,7 +15,7 @@ import os.path as op
 
 import numpy as np
 
-from ..transforms import _polar_to_cartesian, _cartesian_to_sphere
+from ..transforms import _pol_to_cart, _cart_to_sph
 from ..bem import fit_sphere_to_headshape
 from ..io.pick import pick_types
 from ..io.constants import FIFF
@@ -721,11 +721,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
         raise ValueError('The following electrodes have overlapping positions:'
                          '\n    ' + str(problematic_electrodes) + '\nThis '
                          'causes problems during visualization.')
-
-    x, y, z = locs3d.T
-    az, el, r = _cartesian_to_sphere(x, y, z)
-    locs2d = np.c_[_polar_to_cartesian(az, np.pi / 2 - el)]
-    return locs2d
+    return _pol_to_cart(_cart_to_sph(locs3d)[:, :2])
 
 
 def _topo_to_sphere(pos, eegs):

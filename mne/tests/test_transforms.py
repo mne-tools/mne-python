@@ -15,8 +15,7 @@ from mne.tests.common import assert_naming
 from mne.transforms import (invert_transform, _get_trans,
                             rotation, rotation3d, rotation_angles, _find_trans,
                             combine_transforms, apply_trans, translation,
-                            get_ras_to_neuromag_trans, _sphere_to_cartesian,
-                            _polar_to_cartesian, _cartesian_to_sphere,
+                            get_ras_to_neuromag_trans, _pol_to_cart,
                             quat_to_rot, rot_to_quat, _angle_between_quats,
                             _find_vector_rotation)
 
@@ -98,20 +97,6 @@ def test_get_ras_to_neuromag_trans():
     assert_array_almost_equal(pts_restored, pts, 6, err)
 
 
-def test_sphere_to_cartesian():
-    """Test helper transform function from sphere to cartesian"""
-    phi, theta, r = (np.pi, np.pi, 1)
-    # expected value is (1, 0, 0)
-    z = r * np.sin(phi)
-    rcos_phi = r * np.cos(phi)
-    x = rcos_phi * np.cos(theta)
-    y = rcos_phi * np.sin(theta)
-    coord = _sphere_to_cartesian(phi, theta, r)
-    # np.pi is an approx since pi is irrational
-    assert_almost_equal(coord, (x, y, z), 10)
-    assert_almost_equal(coord, (1, 0, 0), 10)
-
-
 def test_polar_to_cartesian():
     """Test helper transform function from polar to cartesian"""
     r = 1
@@ -119,23 +104,10 @@ def test_polar_to_cartesian():
     # expected values are (-1, 0)
     x = r * np.cos(theta)
     y = r * np.sin(theta)
-    coord = _polar_to_cartesian(theta, r)
+    coord = _pol_to_cart(np.array([[r, theta]]))[0]
     # np.pi is an approx since pi is irrational
     assert_almost_equal(coord, (x, y), 10)
     assert_almost_equal(coord, (-1, 0), 10)
-
-
-def test_cartesian_to_sphere():
-    """Test helper transform function from cartesian to sphere"""
-    x, y, z = (1, 0, 0)
-    # expected values are (0, 0, 1)
-    hypotxy = np.hypot(x, y)
-    r = np.hypot(hypotxy, z)
-    elev = np.arctan2(z, hypotxy)
-    az = np.arctan2(y, x)
-    coord = _cartesian_to_sphere(x, y, z)
-    assert_equal(coord, (az, elev, r))
-    assert_equal(coord, (0, 0, 1))
 
 
 def test_rotation():

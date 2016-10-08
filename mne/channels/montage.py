@@ -17,9 +17,8 @@ import numpy as np
 
 from ..viz import plot_montage
 from .channels import _contains_ch_type
-from ..transforms import (_sphere_to_cartesian, apply_trans,
-                          get_ras_to_neuromag_trans, _topo_to_sphere,
-                          _str_to_frame, _frame_to_str)
+from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
+                          _topo_to_sph, _str_to_frame, _frame_to_str)
 from ..io.meas_info import _make_dig_points, _read_dig_points, _read_dig_fif
 from ..io.pick import pick_types
 from ..io.open import fiff_open
@@ -250,10 +249,10 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         except TypeError:
             table = np.loadtxt(fname, skiprows=2, dtype=dtype)
         ch_names_ = table['label']
-        theta = (2 * np.pi * table['theta']) / 360.
-        phi = (2 * np.pi * table['phi']) / 360.
-        pos = _sphere_to_cartesian(theta, phi, r=1.0)
-        pos = np.asarray(pos).T
+        sph = np.array([[np.ones_like(table['phi']),
+                         np.deg2rad(table['theta']),
+                         np.deg2rad(90. - table['phi'])]]).T
+        pos = np.asarray(_sph_to_cart(sph))
     elif ext == '.elp':
         # standard BESA spherical
         dtype = np.dtype('S8, S8, f8, f8, f8')
@@ -272,13 +271,10 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         sph_phi = (0.5 - radius) * 180.
         sph_theta = angles
 
-        azimuth = sph_theta / 180.0 * np.pi
-        elevation = sph_phi / 180.0 * np.pi
-        r = 85.
-
-        y, x, z = _sphere_to_cartesian(azimuth, elevation, r)
-
-        pos = np.c_[x, y, z]
+        sph = np.array([np.ones_like(sph_theta) * 85.,
+                        np.deg2rad(sph_theta),
+                        np.deg2rad(90 - sph_phi)])
+        pos = _sph_to_cart(sph)
         ch_names_ = data['f1'].astype(np.str)
     elif ext == '.hpts':
         # MNE-C specified format for generic digitizer data
@@ -291,17 +287,10 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         ch_names_ = np.loadtxt(fname, dtype='S4',
                                usecols=[3]).astype(np.str).tolist()
         dtype = {'names': ('angle', 'radius'), 'formats': ('f4', 'f4')}
-        angle, radius = np.loadtxt(fname, dtype=dtype, usecols=[1, 2],
-                                   unpack=True)
-
-        sph_phi, sph_theta = _topo_to_sphere(angle, radius)
-
-        azimuth = sph_theta / 180.0 * np.pi
-        elevation = sph_phi / 180.0 * np.pi
-        r = np.ones((len(ch_names_), ))
-
-        x, y, z = _sphere_to_cartesian(azimuth, elevation, r)
-        pos = np.c_[-y, x, z]
+        sph = _topo_to_sph(np.loadtxt(fname, dtype=dtype, usecols=[1, 2]))
+        # instead of doing pos = [-y, x, z], we can just modify theta by 90 deg
+        sph[1] += np.pi / 4.
+        pos = _sph_to_cart(sph)
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)

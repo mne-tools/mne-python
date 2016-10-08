@@ -26,7 +26,6 @@ from .io.write import (start_file, start_block, write_float, write_int,
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.open import fiff_open
-from .fixes import _get_sph_harm
 from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
 from .externals.six import string_types
 
@@ -850,7 +849,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     """
     if not isinstance(units, string_types) or units not in ('m', 'mm'):
         raise ValueError('units must be a "m" or "mm"')
-    radius, origin_head, origin_device = _fit_sph_harm_to_headshape(
+    radius, origin_head, origin_device = _fit_sphere_to_headshape(
         info, dig_kinds, order=0)[:3]
     if units == 'mm':
         radius *= 1e3
@@ -860,7 +859,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
 
 
 @verbose
-def _fit_sph_harm_to_headshape(info, dig_kinds, order=0, verbose=None):
+def _fit_sphere_to_headshape(info, dig_kinds, order=0, verbose=None):
     """Fit spherical harmonics to the given head shape"""
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info not %s' % type(info))
@@ -871,10 +870,10 @@ def _fit_sph_harm_to_headshape(info, dig_kinds, order=0, verbose=None):
         if dig_kinds == 'auto':
             # try "extra" first
             try:
-                return _fit_sph_harm_to_headshape(info, 'extra')
+                return _fit_sphere_to_headshape(info, 'extra')
             except ValueError:
                 pass
-            return _fit_sph_harm_to_headshape(info, ('extra', 'eeg'))
+            return _fit_sphere_to_headshape(info, ('extra', 'eeg'))
         else:
             dig_kinds = (dig_kinds,)
     # convert string args to ints (first make dig_kinds mutable in case tuple)
@@ -924,58 +923,7 @@ def _fit_sph_harm_to_headshape(info, dig_kinds, order=0, verbose=None):
                 '%0.1f %0.1f %0.1f mm' % tuple(1e3 * origin_head))
     logger.info('Origin device coordinates:'.ljust(30) +
                 '%0.1f %0.1f %0.1f mm' % tuple(1e3 * origin_device))
-
-    #
-    # fit spherical harmonics
-    #
-
-    # This code is adapted from hsdig2fv, with permission:
-    # Copyright (c) 1995-2009 by John C. Mosher
-    # Permission is granted to modify and re-distribute this code in any manner
-    # as long as this notice is preserved.  All standard disclaimers apply.
-    logger.info('Fitting spherical harmonics with order %d' % order)
-    # center the coords and convert to spherical
-    rad, az, pol = _cart_to_sph(hsp - origin_head).T
-    # compute spherical harmonics and fit the actual sdistances
-    coeffs = linalg.lstsq(_compute_sph_harm(order, az, pol), rad,
-                          overwrite_a=True, overwrite_b=True)[0]
-    return radius, origin_head, origin_device, coeffs, hsp.copy()
-
-
-def _compute_sph_harm(order, az, pol):
-    """Compute complex spherical harmonics of spherical coordinates."""
-    sph_harm = _get_sph_harm()
-    out = np.empty((len(az), _get_n_moments(order) + 1))
-    # _deg_ord_idx(0, 0) = -1 so we're actually okay to use it here
-    for degree in range(order + 1):
-        for order_ in range(degree + 1):
-            sph = sph_harm(order_, degree, az, pol)
-            out[:, _deg_ord_idx(degree, order_)] = \
-                _sh_complex_to_real(sph, order_)
-            if order_ > 0:
-                out[:, _deg_ord_idx(degree, -order_)] = \
-                    _sh_complex_to_real(_sh_negate(sph, order_), -order_)
-    return out
-
-
-def _transform_sph(rr, coeffs, origin):
-    """Transform Cartesion coordinates based on a spherical harmonic fit."""
-    order = int(np.round(np.sqrt(len(coeffs)))) - 1
-    assert (order + 1) ** 2 == len(coeffs)
-    hsp = np.array([p for p in rr if not (p[2] < 0 and p[1] > 0)])
-    origin_surrogate = _fit_sphere(hsp, disp=False)[1]
-    rr = rr - origin_surrogate
-    sph = _cart_to_sph(rr)
-    p_sph = _compute_sph_harm(order, sph[:, 1], sph[:, 2])
-    # we could look at how our radii differ in the current surface fit...
-    # rr_coeffs = linalg.lstsq(p_sph, sph[:, 0])[0]
-    # rad_miss = sph[:, 0] / np.dot(p_sph, rr_coeffs)
-    # refit using destination coefficients
-    sph[:, 0] = np.abs(np.dot(p_sph, coeffs))
-    # and then scale by original miss factor (but we don't here)
-    # sph[:, 0] *= rad_miss
-    rr = _sph_to_cart(sph) + origin
-    return rr
+    return radius, origin_head, origin_device
 
 
 def _fit_sphere(points, disp='auto'):
