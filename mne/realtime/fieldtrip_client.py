@@ -146,6 +146,9 @@ class FieldTripClient(object):
 
             # channel dictionary list
             info['chs'] = []
+            
+            # unrecognized channels
+            chs_unknown = []
 
             for idx, ch in enumerate(self.ft_header.labels):
                 this_info = dict()
@@ -174,9 +177,8 @@ class FieldTripClient(object):
                 elif ch.startswith('SYS'):
                     this_info['kind'] = FIFF.FIFFV_SYST_CH
                 else:
-                    # unknown channel type, do not include
-                    warn('Unknown channel type in FieldTrip header: %s' % ch)
-                    continue
+                    this_info['kind'] = FIFF.FIFFV_MISC_CH
+                    chs_unknown.append(ch)
 
                 # Fieldtrip already does calibration
                 this_info['range'] = 1.0
@@ -205,6 +207,13 @@ class FieldTripClient(object):
                 info['chs'].append(this_info)
                 info._update_redundant()
                 info._check_consistency()
+
+            if chs_unknown:
+                w = ('Following channels in the FieldTrip header were '
+                     'unrecognized and marked as MISC: ')
+                for ch_ in chs_unknown:
+                    w += ch_ + ' '
+                warn(w)
 
         else:
 
