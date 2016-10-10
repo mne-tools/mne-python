@@ -177,6 +177,7 @@ class FieldTripClient(object):
                 elif ch.startswith('SYS'):
                     this_info['kind'] = FIFF.FIFFV_SYST_CH
                 else:
+                    # cannot guess channel type, mark as MISC and warn later
                     this_info['kind'] = FIFF.FIFFV_MISC_CH
                     chs_unknown.append(ch)
 
