@@ -146,7 +146,7 @@ class FieldTripClient(object):
 
             # channel dictionary list
             info['chs'] = []
-            
+
             # unrecognized channels
             chs_unknown = []
 
