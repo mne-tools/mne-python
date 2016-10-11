@@ -15,9 +15,8 @@ Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
 Realistic Simulated and Empirical Data. Neuroinformatics 10:141-158
 """
 
-from mne import read_evokeds
+from mne import read_evokeds, combine_evoked
 from mne.datasets.megsim import load_data
-from mne import combine_evoked
 
 print(__doc__)
 
