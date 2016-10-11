@@ -83,7 +83,7 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
     force = '--force' if force else '--check'
     subj_path = op.join(subjects_dir, subject)
     if not op.exists(subj_path):
-        raise RuntimeError('%s does not exits. Please check your subject '
+        raise RuntimeError('%s does not exist. Please check your subject '
                            'directory path.' % subj_path)
 
     if op.exists(op.join(subj_path, 'mri', 'T1.mgz')):
