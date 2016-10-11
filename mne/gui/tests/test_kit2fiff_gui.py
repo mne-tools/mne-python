@@ -13,6 +13,7 @@ import mne
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io import read_raw_fif
 from mne.utils import _TempDir, requires_traits, run_tests_if_main
+from mne.utils import requires_mayavi
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
@@ -25,6 +26,7 @@ warnings.simplefilter('always')
 
 
 @requires_traits
+@requires_mayavi
 def test_kit2fiff_model():
     """Test CombineMarkersModel Traits Model."""
     from mne.gui._kit2fiff_gui import Kit2FiffModel, Kit2FiffPanel

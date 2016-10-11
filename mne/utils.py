@@ -796,14 +796,11 @@ def requires_module(function, name, call=None):
 
     @wraps(function)
     def dec(*args, **kwargs):
-        skip = False
         try:
             exec(call) in globals(), locals()
-        except Exception:
-            skip = True
-        if skip is True:
-            raise SkipTest('Test %s skipped, requires %s'
-                           % (function.__name__, name))
+        except Exception as exc:
+            raise SkipTest('Test %s skipped, requires %s. Got exception (%s)'
+                           % (function.__name__, name, exc))
         return function(*args, **kwargs)
     return dec
 
