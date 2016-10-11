@@ -74,7 +74,7 @@ with FieldTripClient(host='localhost', port=1972,
         if ii == 0:
             evoked = ev
         else:
-            evoked += ev
+            evoked = mne.combine_evoked([evoked, ev], weights='nave')
 
         ax[0].cla()
         ax[1].cla()  # clear axis
