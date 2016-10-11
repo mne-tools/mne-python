@@ -80,6 +80,10 @@ dependencies:
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_elekta.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path())" --accept-brainstorm-license;
             fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*megsim.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.megsim.load_data(condition='visual', data_format='single-trial', data_type='simulation', update_path=True))";
+              python -c "import mne; print(mne.datasets.megsim.load_data(condition='visual', data_format='raw', data_type='experimental', update_path=True))";
+            fi;
           fi;
         done;
         echo PATTERN="$PATTERN";
@@ -128,7 +132,7 @@ deployment:
       - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
   stable:
-    branch: maint/0.12
+    branch: maint/0.13
     commands:
       - git config --global user.email "circle@mne.com"
       - git config --global user.name "Circle Ci"
