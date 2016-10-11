@@ -15,7 +15,7 @@ Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
 Realistic Simulated and Empirical Data. Neuroinformatics 10:141-158
 """
 
-from mne import read_evokeds
+from mne import read_evokeds, combine_evoked
 from mne.datasets.megsim import load_data
 
 print(__doc__)
@@ -30,7 +30,7 @@ epochs_fnames = load_data(condition=condition, data_format='single-trial',
 epochs_fnames = [f for f in epochs_fnames if 'sim6_trial_' in f][:10]
 
 evokeds = [read_evokeds(f)[0] for f in epochs_fnames]
-mean_evoked = sum(evokeds[1:], evokeds[0])
+mean_evoked = combine_evoked(evokeds, weights='nave')
 
 # Visualize the average
 mean_evoked.plot()
