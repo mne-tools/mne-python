@@ -456,6 +456,15 @@ def find_layout(info, ch_type=None, exclude='bads'):
     if has_CTF_grad:
         layout.names = _clean_names(layout.names, before_dash=True)
 
+    # Apply mask for excluded channels.
+    if exclude == 'bads':
+        exclude = info['bads']
+    mask = np.ones(len(layout.names), dtype=bool)
+    mask[[layout.names.index(c) for c in exclude if c in layout.names]] = False
+    layout.names = list(np.array(layout.names)[mask])
+    layout.pos = layout.pos[mask]
+    layout.ids = list(np.array(layout.ids)[mask])
+
     return layout
 
 
