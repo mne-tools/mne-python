@@ -6,6 +6,10 @@ In this example, we warp data from one subject (sample) to another (fsaverage)
 using a spherical harmonic approximation of surfaces, followed by thin-plate
 spline (TPS) warping of the surface coordinates.
 """
+# Author: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
+
 import os.path as op
 
 import mne
@@ -14,6 +18,13 @@ from mne.transforms import SphericalHarmonicTPSWarp
 fsaverage_path = op.join(op.dirname(mne.__file__), 'data', 'fsaverage')
 data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
+
+###############################################################################
+# Load the source digitization
+
+info = mne.io.read_info(op.join(data_path, 'MEG', 'sample',
+                                'sample_audvis_raw.fif'))
+hsp = mne.bem.get_fitting_dig(info, ('cardinal', 'extra'))
 
 ###############################################################################
 # Load the destination head surface
@@ -27,16 +38,7 @@ for surf in fsaverage_surfs:
     mne.surface.transform_surface_to(surf, 'head', fsaverage_trans)
 
 ###############################################################################
-# Load the source digitization
-
-info = mne.io.read_info(op.join(data_path, 'MEG', 'sample',
-                                'sample_audvis_raw.fif'))
-hsp = mne.bem.get_fitting_dig(info, ('cardinal', 'extra'))
-warp = SphericalHarmonicTPSWarp()
-warp.fit(source=hsp, destination=fsaverage_surfs[0]['rr'])
-
-###############################################################################
-# Load example source surfaces to transform
+# Load some source surfaces to transform
 
 sample_surfs = mne.read_bem_surfaces(
     op.join(subjects_dir, 'sample', 'bem', 'sample-5120-bem.fif'))
@@ -46,15 +48,18 @@ for surf in sample_surfs:
     mne.surface.transform_surface_to(surf, 'head', sample_trans)
 
 ###############################################################################
-# Transform surfaces using TPS warping
+# Transform surfaces using TPS warping (with everything in head coordinates)
 
+warp = SphericalHarmonicTPSWarp()
+warp.fit(source=hsp, destination=fsaverage_surfs[0]['rr'])
 for surf in sample_surfs:
     surf['rr'] = warp.transform(surf['rr'])
+    # recompute our normals (only used for viz here)
+    mne.surface.complete_surface_info(surf)
 hsp = warp.transform(hsp)
 
 ###############################################################################
 # Plot transformed surfaces and digitization (blue) on template (black).
-# It'
 
 from mayavi import mlab  # noqa
 

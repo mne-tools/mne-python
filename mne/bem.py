@@ -246,9 +246,9 @@ def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
 def _fwd_bem_linear_collocation_solution(m):
     """Compute the linear collocation potential solution"""
     # first, add surface geometries
-    from .surface import _complete_surface_info
+    from .surface import complete_surface_info
     for surf in m['surfs']:
-        _complete_surface_info(surf, verbose=False)
+        complete_surface_info(surf, verbose=False)
 
     logger.info('Computing the linear collocation solution...')
     logger.info('    Matrix coefficients...')
@@ -848,7 +848,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     if not isinstance(units, string_types) or units not in ('m', 'mm'):
         raise ValueError('units must be a "m" or "mm"')
     radius, origin_head, origin_device = _fit_sphere_to_headshape(
-        info, dig_kinds, order=0)[:3]
+        info, dig_kinds)
     if units == 'mm':
         radius *= 1e3
         origin_head *= 1e3
@@ -912,7 +912,7 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
                            'contact mne-python developers')
 
     # exclude some frontal points (nose etc.)
-    hsp = np.array([p for p in hsp if not (p[2] < 1e-6 and p[1] > -1e-6)])
+    hsp = np.array([p for p in hsp if not (p[2] < -1e-6 and p[1] > 1e-6)])
 
     if len(hsp) <= 10:
         kinds_str = ', '.join(['"%s"' % _dig_kind_rev[d]
@@ -927,8 +927,8 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
 
 
 @verbose
-def _fit_sphere_to_headshape(info, dig_kinds, order=0, verbose=None):
-    """Fit spherical harmonics to the given head shape"""
+def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
+    """Fit a sphere to the given head shape."""
     hsp = get_fitting_dig(info, dig_kinds)
     radius, origin_head = _fit_sphere(np.array(hsp), disp=False)
     # compute origin in device coordinates
@@ -954,7 +954,7 @@ def _fit_sphere_to_headshape(info, dig_kinds, order=0, verbose=None):
 
 
 def _fit_sphere(points, disp='auto'):
-    """Aux function to fit a sphere to an arbitrary set of points"""
+    """Fit a sphere to an arbitrary set of points."""
     from scipy.optimize import fmin_cobyla
     if isinstance(disp, string_types) and disp == 'auto':
         disp = True if logger.level <= 20 else False
@@ -983,7 +983,7 @@ def _fit_sphere(points, disp='auto'):
 
 
 def _check_origin(origin, info, coord_frame='head', disp=False):
-    """Helper to check or auto-determine the origin"""
+    """Check or auto-determine the origin."""
     if isinstance(origin, string_types):
         if origin != 'auto':
             raise ValueError('origin must be a numerical array, or "auto", '
@@ -1204,7 +1204,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
     --------
     write_bem_surfaces, write_bem_solution, make_bem_model
     """
-    from .surface import _complete_surface_info
+    from .surface import complete_surface_info
     # Default coordinate frame
     coord_frame = FIFF.FIFFV_COORD_MRI
     # Open the file, create directory
@@ -1243,7 +1243,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
             logger.info('    %d BEM surfaces read' % len(surf))
         if patch_stats:
             for this in surf:
-                _complete_surface_info(this)
+                complete_surface_info(this)
     return surf[0] if s_id is not None else surf
 
 

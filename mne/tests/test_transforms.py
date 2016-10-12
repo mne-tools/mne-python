@@ -17,7 +17,7 @@ from mne.transforms import (invert_transform, _get_trans,
                             get_ras_to_neuromag_trans, _pol_to_cart,
                             quat_to_rot, rot_to_quat, _angle_between_quats,
                             _find_vector_rotation, _sph_to_cart, _cart_to_sph,
-                            _topo_to_sph)
+                            _topo_to_sph, SphericalHarmonicTPSWarp)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -31,6 +31,23 @@ fname_trans = op.join(base_dir, 'sample-audvis-raw-trans.txt')
 test_fif_fname = op.join(base_dir, 'test_raw.fif')
 ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
+
+
+def test_tps():
+    """Test TPS warping."""
+    az = np.linspace(0., 2 * np.pi, 20, endpoint=False)
+    pol = np.linspace(0, np.pi, 12)[1:-1]
+    sph = np.array(np.meshgrid(1, az, pol, indexing='ij'))
+    sph.shape = (3, -1)
+    assert_equal(sph.shape[1], 200)
+    source = _sph_to_cart(sph.T)
+    destination = source.copy()
+    destination *= 2
+    destination[:, 0] += 1
+    # fit with 100 points
+    warp = SphericalHarmonicTPSWarp().fit(source[::2], destination[::2])
+    destination_est = warp.transform(source)
+    assert_allclose(destination_est, destination, atol=1e-2)
 
 
 @testing.requires_testing_data

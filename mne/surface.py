@@ -242,52 +242,67 @@ def _triangle_coords(r, geom, best):
 
 
 @verbose
-def _complete_surface_info(this, do_neighbor_vert=False, verbose=None):
-    """Complete surface info"""
+def complete_surface_info(surf, do_neighbor_vert=False, verbose=None):
+    """Complete surface information
+
+    Parameters
+    ----------
+    surf : dict
+        The surface.
+    do_neighbor_vert : bool
+        If True, add neighbor vertex information.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    surf : dict
+        The surface (operates in place).
+    """
     # based on mne_source_space_add_geometry_info() in mne_add_geometry_info.c
 
     #   Main triangulation [mne_add_triangle_data()]
-    this['tri_area'] = np.zeros(this['ntri'])
-    r1 = this['rr'][this['tris'][:, 0], :]
-    r2 = this['rr'][this['tris'][:, 1], :]
-    r3 = this['rr'][this['tris'][:, 2], :]
-    this['tri_cent'] = (r1 + r2 + r3) / 3.0
-    this['tri_nn'] = fast_cross_3d((r2 - r1), (r3 - r1))
+    surf['tri_area'] = np.zeros(surf['ntri'])
+    r1 = surf['rr'][surf['tris'][:, 0], :]
+    r2 = surf['rr'][surf['tris'][:, 1], :]
+    r3 = surf['rr'][surf['tris'][:, 2], :]
+    surf['tri_cent'] = (r1 + r2 + r3) / 3.0
+    surf['tri_nn'] = fast_cross_3d((r2 - r1), (r3 - r1))
 
     #   Triangle normals and areas
-    size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
-    this['tri_area'] = size / 2.0
+    size = np.sqrt(np.sum(surf['tri_nn'] ** 2, axis=1))
+    surf['tri_area'] = size / 2.0
     zidx = np.where(size == 0)[0]
     for idx in zidx:
         logger.info('    Warning: zero size triangle # %s' % idx)
     size[zidx] = 1.0  # prevent ugly divide-by-zero
-    this['tri_nn'] /= size[:, None]
+    surf['tri_nn'] /= size[:, None]
 
     #    Find neighboring triangles, accumulate vertex normals, normalize
     logger.info('    Triangle neighbors and vertex normals...')
-    this['neighbor_tri'] = _triangle_neighbors(this['tris'], this['np'])
-    this['nn'] = _accumulate_normals(this['tris'], this['tri_nn'], this['np'])
-    _normalize_vectors(this['nn'])
+    surf['neighbor_tri'] = _triangle_neighbors(surf['tris'], surf['np'])
+    surf['nn'] = _accumulate_normals(surf['tris'], surf['tri_nn'], surf['np'])
+    _normalize_vectors(surf['nn'])
 
     #   Check for topological defects
-    idx = np.where([len(n) == 0 for n in this['neighbor_tri']])[0]
+    idx = np.where([len(n) == 0 for n in surf['neighbor_tri']])[0]
     if len(idx) > 0:
         logger.info('    Vertices [%s] do not have any neighboring'
                     'triangles!' % ','.join([str(ii) for ii in idx]))
-    idx = np.where([len(n) < 3 for n in this['neighbor_tri']])[0]
+    idx = np.where([len(n) < 3 for n in surf['neighbor_tri']])[0]
     if len(idx) > 0:
         logger.info('    Vertices [%s] have fewer than three neighboring '
                     'tris, omitted' % ','.join([str(ii) for ii in idx]))
     for k in idx:
-        this['neighbor_tri'] = np.array([], int)
+        surf['neighbor_tri'] = np.array([], int)
 
     #   Determine the neighboring vertices and fix errors
     if do_neighbor_vert is True:
         logger.info('    Vertex neighbors...')
-        this['neighbor_vert'] = [_get_surf_neighbors(this, k)
-                                 for k in range(this['np'])]
+        surf['neighbor_vert'] = [_get_surf_neighbors(surf, k)
+                                 for k in range(surf['np'])]
 
-    return this
+    return surf
 
 
 def _get_surf_neighbors(surf, k):
@@ -524,7 +539,7 @@ def _read_surface_geom(fname, patch_stats=True, norm_rr=False,
     else:
         raise RuntimeError('fname cannot be understood as str or dict')
     if patch_stats is True:
-        s = _complete_surface_info(s)
+        complete_surface_info(s)
     if norm_rr is True:
         _normalize_vectors(s['rr'])
     if read_metadata:

@@ -112,6 +112,7 @@ if __name__ == "__main__":
                                 op.join('data', 'FreeSurferColorLUT.txt'),
                                 op.join('data', 'image', '*gif'),
                                 op.join('data', 'image', '*lout'),
+                                op.join('data', 'fsaverage', '*.fif'),
                                 op.join('channels', 'data', 'layouts', '*.lout'),
                                 op.join('channels', 'data', 'layouts', '*.lay'),
                                 op.join('channels', 'data', 'montages', '*.sfp'),

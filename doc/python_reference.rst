@@ -489,12 +489,6 @@ Head position estimation:
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
-
-   SphericalHarmonicTPSWarp
-
-.. autosummary::
-   :toctree: generated/
    :template: function.rst
 
    quat_to_rot
@@ -670,6 +664,22 @@ Functions:
 
    restrict_forward_to_label
    restrict_forward_to_stc
+
+.. currentmodule:: mne.transforms
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   SphericalHarmonicTPSWarp
+
+.. currentmodule:: mne.surface
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   complete_surface_info
 
 Inverse Solutions
 =================
