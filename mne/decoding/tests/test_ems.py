@@ -79,7 +79,7 @@ def test_ems():
     assert_equal(ems.__repr__(), '<EMS: not fitted.>')
     # manual leave-one-out to avoid sklearn version problem
     for test in range(len(y)):
-        train = np.setdiff1d(range(len(y)), test)
+        train = np.setdiff1d(range(len(y)), np.atleast_1d(test))
         ems.fit(X[train], y[train])
         coefs.append(ems.filters_)
         Xt.append(ems.transform(X[[test]]))
