@@ -21,12 +21,9 @@ class SubsetEstimator(BaseEstimator):
         The value that will be removed from the dataset. If a callable,
         it should return a boolean mask of length n_samples that takes
         X an array of shape (n_samples, n_features) as input.
-    samples_train : array, shape (n_samples,) | None
-        An optional array of indices for manually specifying which samples
-        to keep during training. Defaults to None.
-    samples_pred : array, shape (n_samples,) | None
-        An optional array of indices for manually specifying which samples
-        to keep during prediction. Defaults to None.
+    samples : array, shape (n_samples,) | None
+        Sample indices to keep before passing data to model fitting.
+        If None, all samples will be used. Defaults to None.
     remove_condition : 'all', 'any'
         Whether only one `remove_value` will trigger removal of a row, or if
         all values per row must be `remove_value` for removal.
@@ -36,24 +33,21 @@ class SubsetEstimator(BaseEstimator):
         prediction. If `same`, will use the strategy used in estimator fitting.
         Defaults is 'same'.
     """
-    def __init__(self, base_estimator, samples_train=None, samples_pred=None,
+    def __init__(self, base_estimator, samples=None,
                  remove_value=None, remove_condition='all',
                  remove_condition_pred='same'):
-        if all(ii is not None for ii in [remove_value, samples_train]):
+        if all(ii is not None for ii in [remove_value, samples]):
             raise ValueError('Supply at least one of remove_value | '
-                             'samples_train')
+                             'samples')
         if remove_condition not in ['all', 'any']:
             raise ValueError('removal condition must be one of "all" or "any"')
         if remove_condition_pred not in ['same', 'none']:
             raise ValueError('prediction removal condition must be one of'
                              ' "same", "none"')
 
-        if samples_train is not None:
-            samples_train = np.asarray(samples_train).astype(int)
-        if samples_pred is not None:
-            samples_pred = np.asarray(samples_pred).astype(int)
-        self.samples_train = samples_train
-        self.samples_pred = samples_pred
+        if samples is not None:
+            samples = np.asarray(samples).astype(int)
+        self.samples = samples
         self.remove_value = remove_value
         self.remove_condition = remove_condition
         self.remove_condition_pred = remove_condition_pred
@@ -67,18 +61,18 @@ class SubsetEstimator(BaseEstimator):
         X : array, shape (n_samples, n_features)
             The input array for the model. Samples will be
             removed prior to fit according to `remove_value` and
-            `samples_train`.
+            `samples`.
         y : array, shape (n_samples, n_targets)
             The output array for the model. Samples will be
             removed prior to fit according to `remove_value` and
-            `samples_train`.
+            `samples`.
 
         Returns
         -------
         self : an instance of SubsetEstimator
             The instance with modified attributes corresponding to masks.
         """
-        X, y = self._mask_data(X, y, ixs=self.samples_train,
+        X, y = self._mask_data(X, y, ixs=self.samples,
                                remove_value=self.remove_value,
                                remove_condition=self.remove_condition,
                                kind='train')
@@ -104,9 +98,9 @@ class SubsetEstimator(BaseEstimator):
         else:
             remove_value = None
             remove_condition = None
-        X = self._mask_data(X, ixs=self.samples_pred,
-                            remove_value=remove_value,
-                            remove_condition=remove_condition, kind='predict')
+        X = self._mask_data(X, remove_value=remove_value,
+                            remove_condition=remove_condition,
+                            kind='predict')
         return self.base_estimator.predict(X)
 
     def transform(self, X, y=None):
@@ -129,11 +123,11 @@ class SubsetEstimator(BaseEstimator):
         X : array, shape (n_samples, n_features)
             The input array for the model. Samples (rows) will be
             removed prior to fit according to `remove_value` and
-            `samples_train`.
+            `samples`.
         y : array, shape (n_samples, n_targets)
             The output array for the model. Samples (rows) will be
             removed prior to fit according to `remove_value` and
-            `samples_train`.
+            `samples`.
 
         Returns
         -------
@@ -161,15 +155,14 @@ class SubsetEstimator(BaseEstimator):
         else:
             remove_value = None
             remove_condition = None
-        X, y = self._mask_data(
-            X, y, ixs=self.samples_pred, remove_value=remove_value,
-            remove_condition=remove_condition, kind='predict')
+        X, y = self._mask_data(X, y, remove_value=remove_value,
+                               remove_condition=remove_condition,
+                               kind='predict')
         return self.base_estimator.score(X, y)
 
     def get_params(self, deep=True):
         """Return base_estimator parameters."""
-        params = dict(samples_train=self.samples_train,
-                      samples_pred=self.samples_pred,
+        params = dict(samples=self.samples,
                       remove_value=self.remove_value,
                       remove_condition=self.remove_condition,
                       remove_condition_pred=self.remove_condition_pred,
