@@ -15,9 +15,7 @@ import sys
 import numpy as np
 from scipy import linalg
 
-from .transforms import (_ensure_trans, apply_trans, _cart_to_sph,
-                         _sph_to_cart, _sh_complex_to_real, _sh_negate,
-                         _deg_ord_idx, _get_n_moments)
+from .transforms import _ensure_trans, apply_trans
 from .io import Info
 from .io.constants import FIFF
 from .io.write import (start_file, start_block, write_float, write_int,
@@ -859,8 +857,31 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
 
 
 @verbose
-def _fit_sphere_to_headshape(info, dig_kinds, order=0, verbose=None):
-    """Fit spherical harmonics to the given head shape"""
+def get_fitting_dig(info, dig_kinds='auto', verbose=None):
+    """Get digitization points suitable for sphere fitting.
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement info.
+    dig_kinds : list of str | str
+        Kind of digitization points to use in the fitting. These can be any
+        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
+        be 'auto' (default), which will use only the 'extra' points if
+        enough are available, and if not, uses 'extra' and 'eeg' points.
+    verbose : bool, str or None
+        If not None, override default verbose level
+
+    Returns
+    -------
+    dig : array, shape (n_pts, 3)
+        The digitization points (in head coordinates) to use for fitting.
+
+    Notes
+    -----
+    This will exclude digitization locations that have ``z < 0 and y > 0``,
+    i.e. points on the nose and below the nose on the face.
+    """
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info not %s' % type(info))
     if info['dig'] is None:
@@ -870,10 +891,10 @@ def _fit_sphere_to_headshape(info, dig_kinds, order=0, verbose=None):
         if dig_kinds == 'auto':
             # try "extra" first
             try:
-                return _fit_sphere_to_headshape(info, 'extra')
+                return get_fitting_dig(info, 'extra')
             except ValueError:
                 pass
-            return _fit_sphere_to_headshape(info, ('extra', 'eeg'))
+            return get_fitting_dig(info, ('extra', 'eeg'))
         else:
             dig_kinds = (dig_kinds,)
     # convert string args to ints (first make dig_kinds mutable in case tuple)
@@ -891,7 +912,7 @@ def _fit_sphere_to_headshape(info, dig_kinds, order=0, verbose=None):
                            'contact mne-python developers')
 
     # exclude some frontal points (nose etc.)
-    hsp = np.array([p for p in hsp if not (p[2] < 0 and p[1] > 0)])
+    hsp = np.array([p for p in hsp if not (p[2] < 1e-6 and p[1] > -1e-6)])
 
     if len(hsp) <= 10:
         kinds_str = ', '.join(['"%s"' % _dig_kind_rev[d]
@@ -902,7 +923,13 @@ def _fit_sphere_to_headshape(info, dig_kinds, order=0, verbose=None):
             raise ValueError(msg + ', at least 4 required')
         else:
             warn(msg + ', fitting may be inaccurate')
+    return hsp
 
+
+@verbose
+def _fit_sphere_to_headshape(info, dig_kinds, order=0, verbose=None):
+    """Fit spherical harmonics to the given head shape"""
+    hsp = get_fitting_dig(info, dig_kinds)
     radius, origin_head = _fit_sphere(np.array(hsp), disp=False)
     # compute origin in device coordinates
     head_to_dev = _ensure_trans(info['dev_head_t'], 'head', 'meg')

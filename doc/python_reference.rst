@@ -489,6 +489,12 @@ Head position estimation:
 
 .. autosummary::
    :toctree: generated/
+   :template: class.rst
+
+   SphericalHarmonicTPSWarp
+
+.. autosummary::
+   :toctree: generated/
    :template: function.rst
 
    quat_to_rot
@@ -651,6 +657,7 @@ Functions:
    :toctree: generated/
    :template: function.rst
 
+   get_fitting_dig
    make_watershed_bem
    make_flash_bem
    convert_flash_mris

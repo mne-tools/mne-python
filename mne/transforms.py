@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -831,8 +832,29 @@ def _tps(distsq):
 ###############################################################################
 # Spherical harmonic approximation + TPS warp
 
-class _SphericalHarmonicTPSWarp(object):
-    """TPS warping after a spherical harmonic approximation."""
+class SphericalHarmonicTPSWarp(object):
+    """TPS warping of surfaces with spherical harmonic approximation.
+
+    Notes
+    -----
+    This class can be used to warp data from a source subject to
+    a destination subject, as described in [1]_. The procedure is:
+
+        1. Perform a spherical harmonic approximation to the source and
+           destination surfaces, which smooths them and allows arbitrary
+           interpolation.
+        2. Create matched points on the two surfaces.
+        3. Use thin-plate spline warping (common in 2D image manipulation)
+           to generate transformation coefficients.
+        4. Warp points from the source subject (which should be inside the
+           original surface) to the destination subject.
+
+    References
+    ----------
+    .. [1] Darvas F, Ermer JJ, Mosher JC, Leahy RM (2006). "Generic head
+           models for atlas-based EEG source analysis."
+           Hum Brain Mapp 27:129–143
+    """
     @verbose
     def fit(self, source, destination, order=4, reg=1e-3, center=True,
             verbose=None):
@@ -853,6 +875,11 @@ class _SphericalHarmonicTPSWarp(object):
             that are in a reasonable region for head digitization.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose)
+
+        Returns
+        -------
+        inst : instance of SphericalHarmonicTPSWarp
+            The warping object (for chaining).
         """
         from .bem import _fit_sphere
         logger.info('Computing TPS warp')
@@ -910,13 +937,18 @@ class _SphericalHarmonicTPSWarp(object):
 
         Parameters
         ----------
-        source : ndarray, shape (n_transform, 3)
+        source : ndarray, shape (n_pts, 3)
             Source points to transform. They do not need to be the same
             points that were used to generate the model, although ideally
             they will be inside the convex hull formed by the original
             source points.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose)
+
+        Returns
+        -------
+        destination : ndarray, shape (n_pts, 3)
+            The points transformed to the destination space.
         """
         logger.info('Transforming %s source points' % (len(source),))
         return self._warp.transform(source)
