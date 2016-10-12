@@ -853,7 +853,7 @@ class SphericalHarmonicTPSWarp(object):
     ----------
     .. [1] Darvas F, Ermer JJ, Mosher JC, Leahy RM (2006). "Generic head
            models for atlas-based EEG source analysis."
-           Hum Brain Mapp 27:129–143
+           Human Brain Mapping 27:129–143
     """
     @verbose
     def fit(self, source, destination, order=4, reg=1e-3, center=True,
