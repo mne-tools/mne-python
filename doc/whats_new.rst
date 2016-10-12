@@ -24,6 +24,8 @@ BUG
 
     - Fixed maxfilter channel names extra space bug in :func:`mne.preprocessing.maxwell_filter` by `Sheraz Khan`_
 
+    - :func:`mne.find_layout` now leaves out the excluded channels by `Jaakko Leppakangas`_
+
 API
 ~~~
 
