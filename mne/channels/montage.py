@@ -234,11 +234,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         except TypeError:
             data = np.genfromtxt(fname, dtype='str', skiprows=1)
         ch_names_ = list(data[:, 0])
-        theta, phi = data[:, 1].astype(float), data[:, 2].astype(float)
-        x = 85. * np.cos(np.deg2rad(phi)) * np.sin(np.deg2rad(theta))
-        y = 85. * np.sin(np.deg2rad(theta)) * np.sin(np.deg2rad(phi))
-        z = 85. * np.cos(np.deg2rad(theta))
-        pos = np.c_[x, y, z]
+        az = np.deg2rad(data[:, 2].astype(float))
+        pol = np.deg2rad(data[:, 1].astype(float))
+        pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
     elif ext == '.csd':
         # CSD toolbox
         dtype = [('label', 'S4'), ('theta', 'f8'), ('phi', 'f8'),
@@ -249,10 +247,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         except TypeError:
             table = np.loadtxt(fname, skiprows=2, dtype=dtype)
         ch_names_ = table['label']
-        sph = np.array([[np.ones_like(table['phi']),
-                         np.deg2rad(table['theta']),
-                         np.deg2rad(90. - table['phi'])]]).T
-        pos = np.asarray(_sph_to_cart(sph))
+        az = np.deg2rad(table['theta'])
+        pol = np.deg2rad(90. - table['phi'])
+        pos = _sph_to_cart(np.array([np.ones(len(az)), az, pol]).T)
     elif ext == '.elp':
         # standard BESA spherical
         dtype = np.dtype('S8, S8, f8, f8, f8')
@@ -261,36 +258,29 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         except TypeError:
             data = np.loadtxt(fname, dtype=dtype, skiprows=1)
 
+        ch_names_ = data['f1'].astype(np.str)
         az = data['f2']
         horiz = data['f3']
-
         radius = np.abs(az / 180.)
-        angles = np.array([90. - h if a >= 0. else -90. - h
-                           for h, a in zip(horiz, az)])
-
-        sph_phi = (0.5 - radius) * 180.
-        sph_theta = angles
-
-        sph = np.array([np.ones_like(sph_theta) * 85.,
-                        np.deg2rad(sph_theta),
-                        np.deg2rad(90 - sph_phi)])
-        pos = _sph_to_cart(sph)
-        ch_names_ = data['f1'].astype(np.str)
+        az = np.deg2rad(np.array([90. - h if a >= 0. else -90. - h
+                                  for h, a in zip(horiz, az)]))
+        pol = radius * np.pi
+        pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol])).T
     elif ext == '.hpts':
         # MNE-C specified format for generic digitizer data
         dtype = [('type', 'S8'), ('name', 'S8'),
                  ('x', 'f8'), ('y', 'f8'), ('z', 'f8')]
         data = np.loadtxt(fname, dtype=dtype)
-        pos = np.vstack((data['x'], data['y'], data['z'])).T
         ch_names_ = data['name'].astype(np.str)
+        pos = np.vstack((data['x'], data['y'], data['z'])).T
     elif ext in ('.loc', '.locs', '.eloc'):
         ch_names_ = np.loadtxt(fname, dtype='S4',
                                usecols=[3]).astype(np.str).tolist()
         dtype = {'names': ('angle', 'radius'), 'formats': ('f4', 'f4')}
-        sph = _topo_to_sph(np.loadtxt(fname, dtype=dtype, usecols=[1, 2]))
-        # instead of doing pos = [-y, x, z], we can just modify theta by 90 deg
-        sph[1] += np.pi / 4.
+        topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
+        sph = _topo_to_sph(topo)
         pos = _sph_to_cart(sph)
+        pos[:, [0, 1]] = pos[:, [1, 0]] * [-1, 1]
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)

@@ -721,7 +721,8 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
         raise ValueError('The following electrodes have overlapping positions:'
                          '\n    ' + str(problematic_electrodes) + '\nThis '
                          'causes problems during visualization.')
-    return _pol_to_cart(_cart_to_sph(locs3d)[:, :2])
+    # use spherical (theta, pol) as (r, theta) for polar->cartesian
+    return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
 
 
 def _topo_to_sphere(pos, eegs):

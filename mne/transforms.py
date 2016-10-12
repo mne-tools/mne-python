@@ -565,7 +565,7 @@ def _cart_to_sph(cart):
     sph_pts : ndarray, shape (n_points, 3)
         Array containing points in spherical coordinates (rad, azimuth, polar)
     """
-    # XXX should de-duplicate with _cartesion_to_sphere!
+    assert cart.ndim == 2 and cart.shape[1] == 3
     cart = np.atleast_2d(cart)
     out = np.empty((len(cart), 3))
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
@@ -576,6 +576,7 @@ def _cart_to_sph(cart):
 
 def _sph_to_cart(sph):
     """Convert spherical coordinates to Cartesion coordinates."""
+    assert sph.ndim == 2 and sph.shape[1] == 3
     sph = np.atleast_2d(sph)
     out = np.empty((len(sph), 3))
     out[:, 2] = sph[:, 0] * np.cos(sph[:, 2])
@@ -932,11 +933,12 @@ def _pol_to_cart(pol):
     return out
 
 
-def _topo_to_sph(theta, radius):
+def _topo_to_sph(topo):
     """Convert 2D topo coordinates to spherical coordinates."""
-    sph = np.ones((len(theta, 3)))
-    sph[1] = -np.deg2rad(theta)
-    sph[2] = -np.pi / 2. * radius
+    assert topo.ndim == 2 and topo.shape[1] == 2
+    sph = np.ones((len(topo), 3))
+    sph[:, 1] = -np.deg2rad(topo[:, 0])
+    sph[:, 2] = np.pi * topo[:, 1]
     return sph
 
 

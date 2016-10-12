@@ -148,12 +148,14 @@ def _divide_to_regions(info, add_stim=True):
     # Because of the way the sides are divided, there may be outliers in the
     # temporal lobes. Here we switch the sides for these outliers. For other
     # lobes it is not a big problem because of the vicinity of the lobes.
-    zs = np.abs(zscore(x[rt]))
-    outliers = np.array(rt)[np.where(zs > 2.)[0]]
+    with np.errstate(invalid='ignore'):  # invalid division, greater compare
+        zs = np.abs(zscore(x[rt]))
+        outliers = np.array(rt)[np.where(zs > 2.)[0]]
     rt = list(np.setdiff1d(rt, outliers))
 
-    zs = np.abs(zscore(x[lt]))
-    outliers = np.append(outliers, (np.array(lt)[np.where(zs > 2.)[0]]))
+    with np.errstate(invalid='ignore'):  # invalid division, greater compare
+        zs = np.abs(zscore(x[lt]))
+        outliers = np.append(outliers, (np.array(lt)[np.where(zs > 2.)[0]]))
     lt = list(np.setdiff1d(lt, outliers))
 
     l_mean = np.mean(x[lt])

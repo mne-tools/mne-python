@@ -26,6 +26,7 @@ from mne.datasets import testing
 
 data_path = testing.data_path(download=False)
 fif_dig_montage_fname = op.join(data_path, 'montage', 'eeganes07.fif')
+locs_montage_fname = op.join(data_path, 'EEGLAB', 'test_chans.locs')
 evoked_fname = op.join(data_path, 'montage', 'level2_raw-ave.fif')
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
@@ -37,7 +38,7 @@ bv_fname = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 
 
 def test_montage():
-    """Test making montages"""
+    """Test making montages."""
     tempdir = _TempDir()
     # no pep8
     input_str = [
@@ -153,6 +154,17 @@ def test_montage():
                            ['eeg'] * (len(montage.ch_names) + 2))
         _set_montage(info, montage)
         assert_true(len(w) == 1)
+
+
+@testing.requires_testing_data
+def test_read_locs():
+    """Test reading EEGLAB locs."""
+    pos = read_montage(locs_montage_fname).pos
+    expected = [[0., 9.99779165e-01, -2.10157875e-02],
+                [3.08738197e-01, 7.27341573e-01, -6.12907052e-01],
+                [-5.67059636e-01, 6.77066318e-01, 4.69067752e-01],
+                [0., 7.14575231e-01, 6.99558616e-01]]
+    assert_allclose(pos[:4], expected, atol=1e-7)
 
 
 def test_read_dig_montage():
