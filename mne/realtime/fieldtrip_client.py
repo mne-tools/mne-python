@@ -210,11 +210,9 @@ class FieldTripClient(object):
                 info._check_consistency()
 
             if chs_unknown:
-                w = ('Following channels in the FieldTrip header were '
-                     'unrecognized and marked as MISC: ')
-                for ch_ in chs_unknown:
-                    w += ch_ + ' '
-                warn(w)
+                msg = ('Following channels in the FieldTrip header were '
+                       'unrecognized and marked as MISC: ')
+                warn(msg + ', '.join(chs_unknown))
 
         else:
 
