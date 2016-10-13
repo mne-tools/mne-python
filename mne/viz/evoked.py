@@ -1406,7 +1406,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             raise ValueError("A GFP with less than 2 channels doesn't work, "
                              "please pick more channels.")
     else:
-        if not isinstance(picks[0], int):
+        if not isinstance(picks[0], (int, np.integer)):
             msg = "'picks' must be int or a list of int, not {0}."
             raise ValueError(msg.format(type(picks)))
         ch_names = [example.ch_names[pick] for pick in picks]
