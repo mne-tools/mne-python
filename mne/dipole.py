@@ -1100,10 +1100,6 @@ def get_phantom_dipoles(kind='vectorview'):
             ``vectorview`` (default)
               The Neuromag VectorView phantom.
 
-            ``122``
-              The Neuromag-122 phantom. This has the same dipoles
-              as the VectorView phantom, but in a different order.
-
     Returns
     -------
     pos : ndarray, shape (n_dipoles, 3)
@@ -1111,11 +1107,11 @@ def get_phantom_dipoles(kind='vectorview'):
     ori : ndarray, shape (n_dipoles, 3)
         The dipole orientations.
     """
-    _valid_types = ('122', 'vectorview')
+    _valid_types = ('vectorview',)
     if not isinstance(kind, string_types) or kind not in _valid_types:
         raise ValueError('kind must be one of %s, got %s'
                          % (_valid_types, kind,))
-    if kind in ('122', 'vectorview'):
+    if kind == 'vectorview':
         a = np.array([59.7, 48.6, 35.8, 24.8, 37.2, 27.5, 15.8, 7.9])
         b = np.array([46.1, 41.9, 38.3, 31.5, 13.9, 16.2, 20, 19.3])
         x = np.concatenate((a, [0] * 8, -b, [0] * 8))
@@ -1124,10 +1120,6 @@ def get_phantom_dipoles(kind='vectorview'):
         d = [44.4, 34, 21.6, 12.7, 62.4, 51.5, 39.1, 27.9]
         z = np.concatenate((c, c, d, d))
         pos = np.vstack((x, y, z)).T / 1000.
-        if kind == 122:
-            reorder = (list(range(8, 16)) + list(range(0, 8)) +
-                       list(range(24, 32) + list(range(16, 24))))
-            pos = pos[reorder]
         # Locs are always in XZ or YZ, and so are the oris. The oris are
         # also in the same plane and tangential, so it's easy to determine
         # the orientation.
