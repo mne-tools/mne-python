@@ -39,6 +39,7 @@ head_bem_fname = pformat(bem_fname, name='head')
 fid_fname = pformat(bem_fname, name='fiducials')
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
+_head_fnames = (head_bem_fname, pformat(bem_fname, name='head-medium'))
 _high_res_head_fnames = (os.path.join(bem_dirname, '{subject}-head-dense.fif'),
                          os.path.join(surf_dirname, 'lh.seghead'),
                          os.path.join(surf_dirname, 'lh.smseghead'))
@@ -57,8 +58,9 @@ def _make_writable_recursive(path):
             _make_writable(os.path.join(root, f))
 
 
-def _find_high_res_head(subject, subjects_dir):
-    for fname in _high_res_head_fnames:
+def _find_head_bem(subject, subjects_dir, high_res=False):
+    fnames = _high_res_head_fnames if high_res else _head_fnames
+    for fname in fnames:
         path = fname.format(subjects_dir=subjects_dir, subject=subject)
         if os.path.exists(path):
             return path
@@ -729,8 +731,8 @@ def _is_mri_subject(subject, subjects_dir=None):
         Whether ``subject`` is an mri subject.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    fname = head_bem_fname.format(subjects_dir=subjects_dir, subject=subject)
-    return os.path.exists(fname)
+    return bool(_find_head_bem(subject, subjects_dir) or
+                _find_head_bem(subject, subjects_dir, high_res=True))
 
 
 def _is_scaled_mri_subject(subject, subjects_dir=None):
