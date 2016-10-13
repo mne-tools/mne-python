@@ -850,6 +850,8 @@ class SphericalHarmonicTPSWarp(object):
         4. Warp points from the source subject (which should be inside the
            original surface) to the destination subject.
 
+    .. versionadded:: 0.14
+
     References
     ----------
     .. [1] Darvas F, Ermer JJ, Mosher JC, Leahy RM (2006). "Generic head

@@ -881,6 +881,8 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
     -----
     This will exclude digitization locations that have ``z < 0 and y > 0``,
     i.e. points on the nose and below the nose on the face.
+
+    .. versionadded:: 0.14
     """
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info not %s' % type(info))
