@@ -772,7 +772,8 @@ class _TPSWarp(object):
         from scipy.spatial.distance import cdist
         assert source.shape[1] == destination.shape[1] == 3
         assert source.shape[0] == destination.shape[0]
-        assert source.shape[0] > 10
+        logger.info('Computing TPS warp coefficients using %d matched points'
+                    % (len(source),))
         # Forward warping, different from image warping, use |dist|**2
         dists = _tps(cdist(source, destination, 'sqeuclidean'))
         # Y = L * w
@@ -886,7 +887,7 @@ class SphericalHarmonicTPSWarp(object):
         if center:
             logger.info('    Centering data')
             hsp = np.array([p for p in source
-                            if not (p[2] < 0 and p[1] > 0)])
+                            if not (p[2] < -1e-6 and p[1] > 1e-6)])
             src_center = _fit_sphere(hsp, disp=False)[1]
             source = source - src_center
             hsp = np.array([p for p in destination
@@ -917,7 +918,8 @@ class SphericalHarmonicTPSWarp(object):
         else:
             use_sph = dest_sph
             src_rad_az_pol = dest_rad_az_pol.copy()
-        logger.info('    Matching points on smoothed surfaces')
+        logger.info('    Matching %d points on smoothed surfaces'
+                    % (len(use_sph),))
         src_rad_az_pol[0] = np.abs(np.dot(use_sph, src_coeffs))
         dest_rad_az_pol[0] = np.abs(np.dot(use_sph, dest_coeffs))
         # 5. Convert matched points to Cartesion coordinates and put back
@@ -926,7 +928,6 @@ class SphericalHarmonicTPSWarp(object):
         destination = _sph_to_cart(dest_rad_az_pol.T)
         destination += dest_center
         # 6. Compute TPS warp of matched points from smoothed surfaces
-        logger.info('    Computing warp coefficients')
         self._warp = _TPSWarp().fit(source, destination, reg)
         self._matched = np.array([source, destination])
         return self
@@ -950,7 +951,6 @@ class SphericalHarmonicTPSWarp(object):
         destination : ndarray, shape (n_pts, 3)
             The points transformed to the destination space.
         """
-        logger.info('Transforming %s source points' % (len(source),))
         return self._warp.transform(source)
 
 

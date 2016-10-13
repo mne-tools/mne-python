@@ -889,8 +889,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
 
     Notes
     -----
-    Band-pass filter
-    ^^^^^^^^^^^^^^^^
+    **Band-pass filter**
+
     The frequency response is (approximately) given by::
 
        1-|               ----------
@@ -907,8 +907,9 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
         * Fs1 = Fp1 - l_trans_bandwidth in Hz
         * Fs2 = Fp2 + h_trans_bandwidth in Hz
 
-    Band-stop filter
-    ^^^^^^^^^^^^^^^^
+
+    **Band-stop filter**
+
     The frequency response is (approximately) given by::
 
         1-|---------                   ----------
@@ -925,9 +926,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
 
     Multiple stop bands can be specified using arrays.
 
+    **Low-pass filter**
 
-    Low-pass filter
-    ^^^^^^^^^^^^^^^
     The frequency response is (approximately) given by::
 
         1-|------------------------
@@ -941,8 +941,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
 
     Where ``Fstop = Fp + trans_bandwidth``.
 
-    High-pass filter
-    ^^^^^^^^^^^^^^^^
+    **High-pass filter**
+
     The frequency response is (approximately) given by::
 
         1-|             -----------------------

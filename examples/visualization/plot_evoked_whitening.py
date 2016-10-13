@@ -7,13 +7,13 @@ Evoked data are loaded and then whitened using a given noise covariance
 matrix. It's an excellent quality check to see if baseline signals match
 the assumption of Gaussian white noise from which we expect values around
 0 with less than 2 standard deviations. Covariance estimation and diagnostic
-plots are based on [1].
+plots are based on [1]_.
 
 References
 ----------
-[1] Engemann D. and Gramfort A. (2015) Automated model selection in covariance
-    estimation and spatial whitening of MEG and EEG signals, vol. 108,
-    328-342, NeuroImage.
+.. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+    covariance estimation and spatial whitening of MEG and EEG signals, vol.
+    108, 328-342, NeuroImage.
 
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
