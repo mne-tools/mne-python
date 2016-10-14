@@ -547,12 +547,6 @@ def pformat(temp, **fmt):
     return formatter.vformat(temp, (), mapping)
 
 
-def trait_wraith(*args, **kwargs):
-    # Stand in for traits to allow importing traits based modules when the
-    # traits library is not installed
-    return lambda x: x
-
-
 ###############################################################################
 # DECORATORS
 
@@ -1053,7 +1047,6 @@ requires_ftp = partial(
     call='if int(os.environ.get("MNE_SKIP_FTP_TESTS", 0)):\n'
          '    raise ImportError')
 requires_nitime = partial(requires_module, name='nitime')
-requires_traits = partial(requires_module, name='traits')
 requires_h5py = partial(requires_module, name='h5py')
 requires_numpydoc = partial(requires_module, name='numpydoc')
 

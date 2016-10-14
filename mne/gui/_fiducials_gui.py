@@ -7,25 +7,16 @@
 import os
 from ..externals.six.moves import map
 
-# allow import without traits
-try:
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from mayavi.tools.mlab_scene_model import MlabSceneModel
-    import numpy as np
-    from pyface.api import confirm, error, FileDialog, OK, YES
-    from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
-                            cached_property, DelegatesTo, Event, Instance,
-                            Property, Array, Bool, Button, Enum)
-    from traitsui.api import HGroup, Item, VGroup, View
-    from traitsui.menu import NoButtons
-    from tvtk.pyface.scene_editor import SceneEditor
-except Exception:
-    from ..utils import trait_wraith
-    HasTraits = HasPrivateTraits = object
-    cached_property = on_trait_change = MayaviScene = MlabSceneModel = \
-        Array = Bool = Button = DelegatesTo = Enum = Event = Instance = \
-        Property = View = Item = HGroup = VGroup = SceneEditor = \
-        NoButtons = error = trait_wraith
+from mayavi.core.ui.mayavi_scene import MayaviScene
+from mayavi.tools.mlab_scene_model import MlabSceneModel
+import numpy as np
+from pyface.api import confirm, error, FileDialog, OK, YES
+from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
+                        cached_property, DelegatesTo, Event, Instance,
+                        Property, Array, Bool, Button, Enum)
+from traitsui.api import HGroup, Item, VGroup, View
+from traitsui.menu import NoButtons
+from tvtk.pyface.scene_editor import SceneEditor
 
 from ..coreg import fid_fname, _find_fiducials_files, _find_head_bem
 from ..io import write_fiducials

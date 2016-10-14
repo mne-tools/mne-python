@@ -15,27 +15,17 @@ from ..externals.six.moves import queue
 from ..io.meas_info import _read_dig_points, _make_dig_points
 from ..utils import logger
 
-
-# allow import without traits
-try:
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from mayavi.tools.mlab_scene_model import MlabSceneModel
-    from pyface.api import (confirm, error, FileDialog, OK, YES, information,
-                            ProgressDialog)
-    from traits.api import (HasTraits, HasPrivateTraits, cached_property,
-                            Instance, Property, Bool, Button, Enum, File,
-                            Float, Int, List, Str, Array, DelegatesTo)
-    from traitsui.api import (View, Item, HGroup, VGroup, spring, TextEditor,
-                              CheckListEditor, EnumEditor, Handler)
-    from traitsui.menu import NoButtons
-    from tvtk.pyface.scene_editor import SceneEditor
-except Exception:
-    from ..utils import trait_wraith
-    HasTraits = HasPrivateTraits = Handler = object
-    cached_property = MayaviScene = MlabSceneModel = Bool = Button = Float = \
-        DelegatesTo = Enum = File = Instance = Int = List = Property = \
-        Str = Array = spring = View = Item = HGroup = VGroup = EnumEditor = \
-        NoButtons = CheckListEditor = SceneEditor = TextEditor = trait_wraith
+from mayavi.core.ui.mayavi_scene import MayaviScene
+from mayavi.tools.mlab_scene_model import MlabSceneModel
+from pyface.api import (confirm, error, FileDialog, OK, YES, information,
+                        ProgressDialog)
+from traits.api import (HasTraits, HasPrivateTraits, cached_property, Instance,
+                        Property, Bool, Button, Enum, File, Float, Int, List,
+                        Str, Array, DelegatesTo)
+from traitsui.api import (View, Item, HGroup, VGroup, spring, TextEditor,
+                          CheckListEditor, EnumEditor, Handler)
+from traitsui.menu import NoButtons
+from tvtk.pyface.scene_editor import SceneEditor
 
 from ..io.constants import FIFF
 from ..io.kit.kit import RawKIT, KIT, _make_stim_channel, _default_stim_chs

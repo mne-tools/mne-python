@@ -24,7 +24,6 @@ public_modules = [
     'mne.datasets.spm_face',
     'mne.decoding',
     'mne.filter',
-    'mne.gui',
     'mne.inverse_sparse',
     'mne.io',
     'mne.io.kit',
@@ -102,8 +101,17 @@ def check_parameters_match(func, doc=None):
 def test_docstring_parameters():
     """Test module docsting formatting"""
     from numpydoc import docscrape
+
+    # skip modules that require mayavi if mayavi is not installed
+    public_modules_ = public_modules[:]
+    try:
+        import mayavi  # noqa: F401
+        public_modules_.append('mne.gui')
+    except ImportError:
+        pass
+
     incorrect = []
-    for name in public_modules:
+    for name in public_modules_:
         module = __import__(name, globals())
         for submod in name.split('.')[1:]:
             module = getattr(module, submod)
@@ -135,8 +143,17 @@ def test_docstring_parameters():
 
 def test_tabs():
     """Test that there are no tabs in our source files"""
+    # avoid importing modules that require mayavi if mayavi is not installed
+    ignore = _tab_ignores[:]
+    try:
+        import mayavi  # noqa: F401
+    except ImportError:
+        ignore.extend('mne.gui.' + name for name in
+                      ('_coreg_gui', '_fiducials_gui', '_file_traits', '_help',
+                       '_kit2fiff_gui', '_marker_gui', '_viewer'))
+
     for importer, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
-        if not ispkg and modname not in _tab_ignores:
+        if not ispkg and modname not in ignore:
             # mod = importlib.import_module(modname)  # not py26 compatible!
             __import__(modname)  # because we don't import e.g. mne.tests w/mne
             mod = sys.modules[modname]

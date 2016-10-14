@@ -7,25 +7,16 @@
 import os
 import numpy as np
 
-# allow import without traits
-try:
-    from mayavi.mlab import pipeline, text3d
-    from mayavi.modules.glyph import Glyph
-    from mayavi.modules.surface import Surface
-    from mayavi.sources.vtk_data_source import VTKDataSource
-    from mayavi.tools.mlab_scene_model import MlabSceneModel
-    from pyface.api import error
-    from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
-                            cached_property, Instance, Property, Array, Bool,
-                            Button, Color, Enum, Float, Int, List, Range, Str)
-    from traitsui.api import View, Item, Group, HGroup, VGrid, VGroup
-except Exception:
-    from ..utils import trait_wraith
-    HasTraits = HasPrivateTraits = object
-    cached_property = on_trait_change = MlabSceneModel = Array = Bool = \
-        Button = Color = Enum = Float = Instance = Int = List = Property = \
-        Range = Str = View = Item = Group = HGroup = VGrid = VGroup = \
-        Glyph = Surface = VTKDataSource = trait_wraith
+from mayavi.mlab import pipeline, text3d
+from mayavi.modules.glyph import Glyph
+from mayavi.modules.surface import Surface
+from mayavi.sources.vtk_data_source import VTKDataSource
+from mayavi.tools.mlab_scene_model import MlabSceneModel
+from pyface.api import error
+from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
+                        cached_property, Instance, Property, Array, Bool,
+                        Button, Color, Enum, Float, Int, List, Range, Str)
+from traitsui.api import View, Item, HGroup, VGrid, VGroup
 
 from ..transforms import apply_trans
 
