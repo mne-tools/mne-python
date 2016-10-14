@@ -2750,7 +2750,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 
         label_vertidx.append(this_vertidx)
 
-    # mode-dependent initalization
+    # mode-dependent initialization
     if mode == 'mean':
         pass  # we have this here to catch invalid values for mode
     elif mode == 'mean_flip':

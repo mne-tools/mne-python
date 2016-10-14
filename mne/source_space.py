@@ -2385,7 +2385,7 @@ def get_volume_labels_from_aseg_AP(mgz_fname):
 
     # Get the unique label names
     lut = _get_lut_AP()
-    print lut
+
     label_names = [lut[lut['id'] == ii]['name'][0].decode('utf-8')
                    for ii in np.unique(mgz_data)]
     label_colors = [[lut[lut['id'] == ii]['R'][0],
