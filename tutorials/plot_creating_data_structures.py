@@ -122,8 +122,7 @@ info = mne.create_info(
 # the transition is made from (only used when the new value is bigger than the
 # old one), and the third column is the new event value.
 
-# Create an event matrix: 10 events with a duration of 1 sample, alternating
-# event codes
+# Create an event matrix: 10 events with alternating event codes
 events = np.array([
     [0, 0, 1],
     [1, 0, 2],
