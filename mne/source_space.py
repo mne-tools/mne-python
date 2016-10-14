@@ -2443,7 +2443,7 @@ def get_volume_labels_from_src(src, sbj_dir, sbj_id):
         roi_str = src[nr]['seg_name']
         try:
             ind = all_labels_aseg[0].index(roi_str)
-            color = np.array(all_labels_aseg[1][ind])/255
+            color = np.array(all_labels_aseg[1][ind]) / 255
         except ValueError:
             pass
 
