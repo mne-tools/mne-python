@@ -459,11 +459,10 @@ def find_layout(info, ch_type=None, exclude='bads'):
     # Apply mask for excluded channels.
     if exclude == 'bads':
         exclude = info['bads']
-    mask = np.ones(len(layout.names), dtype=bool)
-    mask[[layout.names.index(c) for c in exclude if c in layout.names]] = False
-    layout.names = list(np.array(layout.names)[mask])
-    layout.pos = layout.pos[mask]
-    layout.ids = list(np.array(layout.ids)[mask])
+    idx = [ii for ii, name in enumerate(layout.names) if name not in exclude]
+    layout.names = [layout.names[ii] for ii in idx]
+    layout.pos = layout.pos[idx]
+    layout.ids = [layout.ids[ii] for ii in idx]
 
     return layout
 
