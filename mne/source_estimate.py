@@ -2694,111 +2694,12 @@ def _get_label_flip(labels, label_vertidx, src):
 @verbose
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, verbose=None):
-    """Generator for extract_label_time_course."""
-    n_labels = len(labels)
-
-    # get vertices from source space, they have to be the same as in the stcs
-    vertno = [s['vertno'] for s in src]
-    nvert = [len(vn) for vn in vertno]
-
-    # do the initialization
-    label_vertidx = list()
-    for label in labels:
-        if label.hemi == 'both':
-            # handle BiHemiLabel
-            sub_labels = [label.lh, label.rh]
-        else:
-            sub_labels = [label]
-        this_vertidx = list()
-        for slabel in sub_labels:
-            if slabel.hemi == 'lh':
-                this_vertno = np.intersect1d(vertno[0], slabel.vertices)
-                vertidx = np.searchsorted(vertno[0], this_vertno)
-            elif slabel.hemi == 'rh':
-                this_vertno = np.intersect1d(vertno[1], slabel.vertices)
-                vertidx = nvert[0] + np.searchsorted(vertno[1], this_vertno)
-            else:
-                raise ValueError('label %s has invalid hemi' % label.name)
-            this_vertidx.append(vertidx)
-
-        # convert it to an array
-        this_vertidx = np.concatenate(this_vertidx)
-        if len(this_vertidx) == 0:
-            msg = ('source space does not contain any vertices for label %s'
-                   % label.name)
-            if not allow_empty:
-                raise ValueError(msg)
-            else:
-                warn_(msg + '. Assigning all-zero time series to label.')
-            this_vertidx = None  # to later check if label is empty
-
-        label_vertidx.append(this_vertidx)
-
-    # mode-dependent initialization
-    if mode == 'mean':
-        pass  # we have this here to catch invalid values for mode
-    elif mode == 'mean_flip':
-        # get the sign-flip vector for every label
-        label_flip = _get_label_flip(labels, label_vertidx, src)
-    elif mode == 'pca_flip':
-        # get the sign-flip vector for every label
-        label_flip = _get_label_flip(labels, label_vertidx, src)
-    elif mode == 'max':
-        pass  # we calculate the maximum value later
-    else:
-        raise ValueError('%s is an invalid mode' % mode)
-
-    # loop through source estimates and extract time series
-    for stc in stcs:
-        # make sure the stc is compatible with the source space
-        if len(stc.vertices[0]) != nvert[0] or \
-                len(stc.vertices[1]) != nvert[1]:
-            raise ValueError('stc not compatible with source space')
-        if any(np.any(svn != vn) for svn, vn in zip(stc.vertices, vertno)):
-            raise ValueError('stc not compatible with source space')
-
-        logger.info('Extracting time courses for %d labels (mode: %s)'
-                    % (n_labels, mode))
-
-        # do the extraction
-        label_tc = np.zeros((n_labels, stc.data.shape[1]),
-                            dtype=stc.data.dtype)
-        if mode == 'mean':
-            for i, vertidx in enumerate(label_vertidx):
-                if vertidx is not None:
-                    label_tc[i] = np.mean(stc.data[vertidx, :], axis=0)
-        elif mode == 'mean_flip':
-            for i, (vertidx, flip) in enumerate(zip(label_vertidx,
-                                                    label_flip)):
-                if vertidx is not None:
-                    label_tc[i] = np.mean(flip * stc.data[vertidx, :], axis=0)
-        elif mode == 'pca_flip':
-            for i, (vertidx, flip) in enumerate(zip(label_vertidx,
-                                                    label_flip)):
-                if vertidx is not None:
-                    U, s, V = linalg.svd(stc.data[vertidx, :],
-                                         full_matrices=False)
-                    # determine sign-flip
-                    sign = np.sign(np.dot(U[:, 0], flip))
-
-                    # use average power in label for scaling
-                    scale = linalg.norm(s) / np.sqrt(len(vertidx))
-
-                    label_tc[i] = sign * scale * V[0]
-        elif mode == 'max':
-            for i, vertidx in enumerate(label_vertidx):
-                if vertidx is not None:
-                    label_tc[i] = np.max(np.abs(stc.data[vertidx, :]), axis=0)
-        else:
-            raise ValueError('%s is an invalid mode' % mode)
-
-        # this is a generator!
-        yield label_tc
-
-@verbose
-def _gen_extract_label_time_course_AP(stcs, labels, src, mode='mean',
-                                      allow_empty=False, verbose=None):
     """Generator for extract_label_time_course"""
+
+    # if src is a mixed src space, the first 2 src spaces are surf type and
+    # the other ones are vol type. For mixed source space n_labels will be the
+    # given by the number of ROIs of the cortical parcellation plus the number
+    # of vol src space
 
     if len(src) > 2:
         if src[0]['type'] != 'surf' or src[1]['type'] != 'surf':
@@ -2913,12 +2814,8 @@ def _gen_extract_label_time_course_AP(stcs, labels, src, mode='mean',
         if len(src) > 2:
             v1 = nvert[0]+nvert[1]
             for i, nv in enumerate(nvert[2:]):
-                print i
-                print nv
 
                 v2 = v1 + nv
-                print v1
-                print v2
                 v = range(v1, v2)
                 if nv != 0:
                     label_tc[n_aparc + i] = np.mean(stc.data[v, :], axis=0)
@@ -2927,6 +2824,7 @@ def _gen_extract_label_time_course_AP(stcs, labels, src, mode='mean',
 
         # this is a generator!
         yield label_tc
+
 
 @verbose
 def extract_label_time_course(stcs, labels, src, mode='mean_flip',
@@ -2993,35 +2891,6 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
 
     label_tc = _gen_extract_label_time_course(stcs, labels, src, mode=mode,
                                               allow_empty=allow_empty)
-
-    if not return_generator:
-        # do the extraction and return a list
-        label_tc = list(label_tc)
-
-    if not return_several:
-        # input was a single SoureEstimate, return single array
-        label_tc = label_tc[0]
-
-    return label_tc
-
-def extract_label_time_course_AP(stcs, labels, src, mode='mean_flip',
-                                 allow_empty=False, return_generator=False,
-                                 verbose=None):
-
-    # convert inputs to lists
-    if isinstance(stcs, SourceEstimate) or \
-       isinstance(stcs, MixedSourceEstimate):
-        stcs = [stcs]
-        return_several = False
-        return_generator = False
-    else:
-        return_several = True
-
-    if not isinstance(labels, list):
-        labels = [labels]
-
-    label_tc = _gen_extract_label_time_course_AP(stcs, labels, src, mode=mode,
-                                                 allow_empty=allow_empty)
 
     if not return_generator:
         # do the extraction and return a list
