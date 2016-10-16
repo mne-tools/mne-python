@@ -48,17 +48,17 @@ sample_surfs = mne.read_bem_surfaces(
 sample_trans = mne.read_trans(op.join(data_path, 'MEG', 'sample',
                                       'sample_audvis_raw-trans.fif'))
 for surf in sample_surfs:
-    mne.surface.transform_surface_to(surf, 'head', sample_trans)
+    mne.surface.transform_surface_to(surf, 'head', sample_trans, copy=False)
 
 ###############################################################################
 # Transform surfaces using TPS warping:
 
-warp = mne.transforms.SphericalHarmonicTPSWarp()
+warp = mne.transforms.SphericalSplineWarp()
 warp.fit(source=hsp, destination=fsaverage_surfs[0]['rr'])
 for surf in sample_surfs:
     surf['rr'] = warp.transform(surf['rr'])
     # recompute our normals (only used for viz here)
-    mne.surface.complete_surface_info(surf)
+    mne.surface.complete_surface_info(surf, copy=False)
 hsp = warp.transform(hsp)
 
 ###############################################################################

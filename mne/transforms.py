@@ -465,7 +465,7 @@ def invert_transform(trans):
     return Transform(trans['to'], trans['from'], linalg.inv(trans['trans']))
 
 
-def transform_surface_to(surf, dest, trans):
+def transform_surface_to(surf, dest, trans, copy=False):
     """Transform surface to the desired coordinate system
 
     Parameters
@@ -477,11 +477,13 @@ def transform_surface_to(surf, dest, trans):
         FIFF types.
     trans : dict
         Transformation.
+    copy : bool
+        If False (default), operate in-place.
 
     Returns
     -------
     res : dict
-        Transformed source space. Data are modified in-place.
+        Transformed source space.
     """
     if isinstance(dest, string_types):
         if dest not in _str_to_frame:
@@ -833,7 +835,7 @@ def _tps(distsq):
 ###############################################################################
 # Spherical harmonic approximation + TPS warp
 
-class SphericalHarmonicTPSWarp(object):
+class SphericalSplineWarp(object):
     """TPS warping of surfaces with spherical harmonic approximation.
 
     Notes
@@ -881,7 +883,7 @@ class SphericalHarmonicTPSWarp(object):
 
         Returns
         -------
-        inst : instance of SphericalHarmonicTPSWarp
+        inst : instance of SphericalSplineWarp
             The warping object (for chaining).
         """
         from .bem import _fit_sphere

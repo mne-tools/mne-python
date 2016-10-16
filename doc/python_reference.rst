@@ -672,7 +672,7 @@ Functions:
    :toctree: generated/
    :template: class.rst
 
-   SphericalHarmonicTPSWarp
+   SphericalSplineWarp
 
 .. currentmodule:: mne.surface
 

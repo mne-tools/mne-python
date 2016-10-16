@@ -4,12 +4,13 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
+from distutils.version import LooseVersion
+from glob import glob
 import os
 from os import path as op
 import sys
 from struct import pack
-from glob import glob
-from distutils.version import LooseVersion
 
 import numpy as np
 from scipy.sparse import coo_matrix, csr_matrix, eye as speye
@@ -242,7 +243,8 @@ def _triangle_coords(r, geom, best):
 
 
 @verbose
-def complete_surface_info(surf, do_neighbor_vert=False, verbose=None):
+def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
+                          verbose=None):
     """Complete surface information
 
     Parameters
@@ -251,14 +253,18 @@ def complete_surface_info(surf, do_neighbor_vert=False, verbose=None):
         The surface.
     do_neighbor_vert : bool
         If True, add neighbor vertex information.
+    copy : bool
+        If True (default), make a copy. If False, operate in-place.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     surf : dict
-        The surface (operates in place).
+        The transformed surface.
     """
+    if copy:
+        surf = deepcopy(surf)
     # based on mne_source_space_add_geometry_info() in mne_add_geometry_info.c
 
     #   Main triangulation [mne_add_triangle_data()]
@@ -539,7 +545,7 @@ def _read_surface_geom(fname, patch_stats=True, norm_rr=False,
     else:
         raise RuntimeError('fname cannot be understood as str or dict')
     if patch_stats is True:
-        complete_surface_info(s)
+        complete_surface_info(s, copy=False)
     if norm_rr is True:
         _normalize_vectors(s['rr'])
     if read_metadata:

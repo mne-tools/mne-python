@@ -1528,7 +1528,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             # normalize to sphere (in MRI coord frame)
             surf['rr'] *= sphere[3] / 1000.0  # scale by radius
             surf['rr'] += sphere[:3] / 1000.0  # move by center
-            complete_surface_info(surf, True)
+            complete_surface_info(surf, do_neighbor_vert=True, copy=False)
         # Make the grid of sources in MRI space
         sp = _make_volume_source_space(surf, pos, exclude, mindist, mri,
                                        volume_label)
@@ -2426,7 +2426,7 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
         to = op.join(subjects_dir, subject_to, 'surf', '%s.%s' % (hemi, surf,))
         logger.info('Reading destination surface %s' % (to,))
         to = _read_surface_geom(to, patch_stats=False, verbose=False)
-        complete_surface_info(to)
+        complete_surface_info(to, copy=False)
         # Now we morph the vertices to the destination
         # The C code does something like this, but with a nearest-neighbor
         # mapping instead of the weighted one::

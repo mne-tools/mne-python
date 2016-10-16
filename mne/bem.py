@@ -248,7 +248,7 @@ def _fwd_bem_linear_collocation_solution(m):
     # first, add surface geometries
     from .surface import complete_surface_info
     for surf in m['surfs']:
-        complete_surface_info(surf, verbose=False)
+        complete_surface_info(surf, copy=False, verbose=False)
 
     logger.info('Computing the linear collocation solution...')
     logger.info('    Matrix coefficients...')
@@ -822,7 +822,8 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
         Kind of digitization points to use in the fitting. These can be any
         combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
         be 'auto' (default), which will use only the 'extra' points if
-        enough are available, and if not, uses 'extra' and 'eeg' points.
+        enough (more than 10) are available, and if not, uses 'extra' and
+        'eeg' points.
     units : str
         Can be "m" (default) or "mm".
 
@@ -868,7 +869,8 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
         Kind of digitization points to use in the fitting. These can be any
         combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
         be 'auto' (default), which will use only the 'extra' points if
-        enough are available, and if not, uses 'extra' and 'eeg' points.
+        enough (more than 10) are available, and if not, uses 'extra' and
+        'eeg' points.
     verbose : bool, str or None
         If not None, override default verbose level
 
@@ -1245,7 +1247,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
             logger.info('    %d BEM surfaces read' % len(surf))
         if patch_stats:
             for this in surf:
-                complete_surface_info(this)
+                complete_surface_info(this, copy=False)
     return surf[0] if s_id is not None else surf
 
 
