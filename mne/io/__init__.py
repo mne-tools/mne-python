@@ -40,6 +40,7 @@ from .kit import read_raw_kit, read_epochs_kit
 from .fiff import read_raw_fif
 from .nicolet import read_raw_nicolet
 from .eeglab import read_raw_eeglab, read_epochs_eeglab
+from .eximia import read_raw_eximia
 
 # for backward compatibility
 from .fiff import Raw

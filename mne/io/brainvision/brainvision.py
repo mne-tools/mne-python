@@ -9,7 +9,7 @@
 #
 # License: BSD (3-clause)
 
-import os
+import os.path as op
 import re
 import time
 
@@ -19,14 +19,14 @@ from ...utils import verbose, logger, warn
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import _BaseRaw, _check_update_montage
-from ..utils import _read_segments_file, _synthesize_stim_channel
+from ..utils import _read_segments_file, _synthesize_stim_channel, _file_size
 
 from ...externals.six import StringIO
 from ...externals.six.moves import configparser
 
 
 class RawBrainVision(_BaseRaw):
-    """Raw object from Brain Vision EEG file
+    """Raw object from a Brain Vision EEG file
 
     Parameters
     ----------
@@ -50,7 +50,6 @@ class RawBrainVision(_BaseRaw):
         header file, units are in microvolts. Default scale factor is 1.
     preload : bool
         If True, all data are loaded at initialization.
-        If False, data are not read until save.
     response_trig_shift : int | None
         An integer that will be added to all response triggers when reading
         events (stimulus triggers will be unaffected). If None, response
@@ -77,14 +76,12 @@ class RawBrainVision(_BaseRaw):
                  event_id=None, verbose=None):
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
-        vhdr_fname = os.path.abspath(vhdr_fname)
+        vhdr_fname = op.abspath(vhdr_fname)
         info, fmt, self._order, mrk_fname, montage = _get_vhdr_info(
             vhdr_fname, eog, misc, scale, montage)
         events = _read_vmrk_events(mrk_fname, event_id, response_trig_shift)
         _check_update_montage(info, montage)
-        with open(info['filename'], 'rb') as f:
-            f.seek(0, os.SEEK_END)
-            n_samples = f.tell()
+        n_samples = _file_size(info['filename'])
         dtype_bytes = _fmt_byte_dict[fmt]
         self.preload = False  # so the event-setting works
         last_samps = [(n_samples // (dtype_bytes * (info['nchan'] - 1))) - 1]
@@ -201,7 +198,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     # extract Marker Infos block
     m = re.search("\[Marker Infos\]", txt)
     if not m:
-        return np.zeros(0)
+        return np.zeros((0, 3))
     mk_txt = txt[m.end():]
     m = re.search("\[.*\]", mk_txt)
     if m:
@@ -315,7 +312,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     """
     scale = float(scale)
 
-    ext = os.path.splitext(vhdr_fname)[-1]
+    ext = op.splitext(vhdr_fname)[-1]
     if ext != '.vhdr':
         raise IOError("The header file must be given to read the data, "
                       "not the '%s' file." % ext)
@@ -588,8 +585,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                      'will be stored.' % (info['lowpass'], nyquist))
 
     # locate EEG and marker files
-    path = os.path.dirname(vhdr_fname)
-    info['filename'] = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
+    path = op.dirname(vhdr_fname)
+    info['filename'] = op.join(path, cfg.get('Common Infos', 'DataFile'))
     info['meas_date'] = int(time.time())
     info['buffer_size_sec'] = 1.  # reasonable default
 
@@ -623,7 +620,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     # for stim channel
-    mrk_fname = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
+    mrk_fname = op.join(path, cfg.get('Common Infos', 'MarkerFile'))
     info._update_redundant()
     info._check_consistency()
     return info, fmt, order, mrk_fname, montage

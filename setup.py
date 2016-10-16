@@ -87,6 +87,7 @@ if __name__ == "__main__":
                     'mne.io.ctf', 'mne.io.ctf.tests',
                     'mne.io.edf', 'mne.io.edf.tests',
                     'mne.io.egi', 'mne.io.egi.tests',
+                    'mne.io.eximia', 'mne.io.eximia.tests',
                     'mne.io.fiff', 'mne.io.fiff.tests',
                     'mne.io.kit', 'mne.io.kit.tests',
                     'mne.io.nicolet', 'mne.io.nicolet.tests',

@@ -81,19 +81,21 @@ Changelog
 
     - Add new class :class:`mne.decoding.EMS` to transform epochs with the event-matched spatial filters and add 'cv' parameter to :func:`mne.decoding.compute_ems`, by `Jean-Remi King`_
 
-    - Added :class:`mne.time_frequency.EpochsTFR` and average parameter in :func:`mne.time_frequency.tfr_morlet` and :func:`mne.time_frequency.tfr_multitaper` to compute time-frequency transforms on single trial epochs without averaging, by `Jean-Remi King`_ and `Alex Gramfort`_
+    - Add :class:`mne.time_frequency.EpochsTFR` and average parameter in :func:`mne.time_frequency.tfr_morlet` and :func:`mne.time_frequency.tfr_multitaper` to compute time-frequency transforms on single trial epochs without averaging, by `Jean-Remi King`_ and `Alex Gramfort`_
 
-    - Added :class:`mne.decoding.TimeFrequency` to transform signals in scikit-learn pipelines, by `Jean-Remi King`_
+    - Add :class:`mne.decoding.TimeFrequency` to transform signals in scikit-learn pipelines, by `Jean-Remi King`_
 
-    - Added :class:`mne.decoding.UnsupervisedSpatialFilter` providing interface for scikit-learn decomposition algorithms to be used with MNE data, by `Jean-Remi King`_ and `Asish Panda`_
+    - Add :class:`mne.decoding.UnsupervisedSpatialFilter` providing interface for scikit-learn decomposition algorithms to be used with MNE data, by `Jean-Remi King`_ and `Asish Panda`_
 
-    - Added support for multiclass decoding in :class:`mne.decoding.CSP`, by `Jean-Remi King`_ and `Alexandre Barachant`_
+    - Add support for multiclass decoding in :class:`mne.decoding.CSP`, by `Jean-Remi King`_ and `Alexandre Barachant`_
 
     - Components obtained from :class:`mne.preprocessing.ICA` are now sorted by explained variance, by `Mikołaj Magnuski`_
 
     - Adding an EEG reference channel using :func:`mne.io.add_reference_channels` will now use its digitized location from the FIFF file, if present, by `Chris Bailey`_
 
-    - Added interactivity to :func:`mne.preprocessing.ICA.plot_components` - passing an instance of :class:`io.Raw` or :class:`Epochs` in ``inst`` argument allows to open component properties by clicking on component topomaps, by `Mikołaj Magnuski`_
+    - Add interactivity to :func:`mne.preprocessing.ICA.plot_components` - passing an instance of :class:`io.Raw` or :class:`Epochs` in ``inst`` argument allows to open component properties by clicking on component topomaps, by `Mikołaj Magnuski`_
+
+    - Add support for reading eXimia EEG data with :func:`mne.io.read_raw_eximia` by `Eric Larson`_
 
     - Adds new function :func:`mne.viz.plot_compare_evokeds` to show multiple evoked time courses at a single location, or the mean over a ROI, or the GFP, automatically averaging and calculating a CI if multiple subjects are given, by `Jona Sassenhagen`_
 
