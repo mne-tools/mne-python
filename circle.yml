@@ -52,7 +52,7 @@ dependencies:
   override:
     # Figure out if we should run a full, pattern, or noplot version
     - cd /home/ubuntu/mne-python && python setup.py develop;
-    - git remote add upstream git://github.com/mne-tools/mne-python.git;
+    - if ! git remote -v | grep upstream ; then git remote add upstream git://github.com/mne-tools/mne-python.git; fi;
     - git fetch upstream;
     - git branch -a;
     - mkdir -p ~/mne_data;
