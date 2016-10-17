@@ -40,7 +40,7 @@ fsaverage_surfs = [mne.read_bem_surfaces(op.join(fsaverage_path,
 fsaverage_trans = mne.read_trans(op.join(fsaverage_path,
                                          'fsaverage-trans.fif'))
 for surf in fsaverage_surfs:
-    mne.surface.transform_surface_to(surf, 'head', fsaverage_trans)
+    mne.surface.transform_surface_to(surf, 'head', fsaverage_trans, copy=False)
 
 # Some source surfaces to transform as examples
 sample_surfs = mne.read_bem_surfaces(
