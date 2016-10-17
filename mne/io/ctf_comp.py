@@ -18,7 +18,7 @@ from ..utils import logger, verbose
 
 
 def _add_kind(one):
-    """Convert CTF kind to MNE kind"""
+    """Convert CTF kind to MNE kind."""
     if one['ctfkind'] == int('47314252', 16):
         one['kind'] = 1
     elif one['ctfkind'] == int('47324252', 16):
@@ -31,7 +31,7 @@ def _add_kind(one):
 
 def _calibrate_comp(comp, chs, row_names, col_names,
                     mult_keys=('range', 'cal'), flip=False):
-    """Helper to get row and column cals"""
+    """Get row and column cals."""
     ch_names = [c['ch_name'] for c in chs]
     row_cals = np.zeros(len(row_names))
     col_cals = np.zeros(len(col_names))
@@ -55,7 +55,7 @@ def _calibrate_comp(comp, chs, row_names, col_names,
 
 @verbose
 def read_ctf_comp(fid, node, chs, verbose=None):
-    """Read the CTF software compensation data from the given node
+    """Read the CTF software compensation data from the given node.
 
     Parameters
     ----------
@@ -124,7 +124,7 @@ def read_ctf_comp(fid, node, chs, verbose=None):
 # Writing
 
 def write_ctf_comp(fid, comps):
-    """Write the CTF compensation data into a fif file
+    """Write the CTF compensation data into a fif file.
 
     Parameters
     ----------

@@ -19,7 +19,6 @@ from ..externals.FieldTrip import Client as FtClient
 
 def _buffer_recv_worker(ft_client):
     """Worker thread that constantly receives buffers."""
-
     try:
         for raw_buffer in ft_client.iter_raw_buffers():
             ft_client._push_raw_buffer(raw_buffer)
@@ -30,7 +29,7 @@ def _buffer_recv_worker(ft_client):
 
 
 class FieldTripClient(object):
-    """ Realtime FieldTrip client
+    """Realtime FieldTrip client.
 
     Parameters
     ----------
@@ -53,8 +52,10 @@ class FieldTripClient(object):
     verbose : bool, str, int, or None
         Log verbosity see mne.verbose.
     """
+
     def __init__(self, info=None, host='localhost', port=1972, wait_max=30,
-                 tmin=None, tmax=np.inf, buffer_size=1000, verbose=None):
+                 tmin=None, tmax=np.inf, buffer_size=1000,
+                 verbose=None):  # noqa: D102
         self.verbose = verbose
 
         self.info = info
@@ -69,7 +70,7 @@ class FieldTripClient(object):
         self._recv_thread = None
         self._recv_callbacks = list()
 
-    def __enter__(self):
+    def __enter__(self):  # noqa: D105
         # instantiate Fieldtrip client and connect
         self.ft_client = FtClient()
 
@@ -125,14 +126,11 @@ class FieldTripClient(object):
 
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type, value, traceback):  # noqa: D105
         self.ft_client.disconnect()
 
     def _guess_measurement_info(self):
-        """
-        Creates a minimal Info dictionary required for epoching, averaging
-        et al.
-        """
+        """Create a minimal Info dictionary for epoching, averaging, etc."""
         if self.info is None:
             warn('Info dictionary not provided. Trying to guess it from '
                  'FieldTrip Header object')
@@ -231,7 +229,7 @@ class FieldTripClient(object):
         return info
 
     def get_measurement_info(self):
-        """Returns the measurement info.
+        """Return the measurement info.
 
         Returns
         -------
@@ -241,7 +239,7 @@ class FieldTripClient(object):
         return self.info
 
     def get_data_as_epoch(self, n_samples=1024, picks=None):
-        """Returns last n_samples from current time.
+        """Return last n_samples from current time.
 
         Parameters
         ----------
@@ -292,7 +290,7 @@ class FieldTripClient(object):
             self._recv_callbacks.append(callback)
 
     def unregister_receive_callback(self, callback):
-        """Unregister a raw buffer receive callback
+        """Unregister a raw buffer receive callback.
 
         Parameters
         ----------
@@ -317,7 +315,6 @@ class FieldTripClient(object):
         nchan : int
             The number of channels in the data.
         """
-
         if self._recv_thread is None:
 
             self._recv_thread = threading.Thread(target=_buffer_recv_worker,
@@ -326,7 +323,7 @@ class FieldTripClient(object):
             self._recv_thread.start()
 
     def stop_receive_thread(self, stop_measurement=False):
-        """Stop the receive thread
+        """Stop the receive thread.
 
         Parameters
         ----------
@@ -338,14 +335,13 @@ class FieldTripClient(object):
             self._recv_thread = None
 
     def iter_raw_buffers(self):
-        """Return an iterator over raw buffers
+        """Return an iterator over raw buffers.
 
         Returns
         -------
         raw_buffer : generator
             Generator for iteration over raw buffers.
         """
-
         iter_times = zip(range(self.tmin_samp, self.tmax_samp,
                                self.buffer_size),
                          range(self.tmin_samp + self.buffer_size - 1,

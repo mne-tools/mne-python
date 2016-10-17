@@ -1,5 +1,4 @@
-"""Functions to plot ICA specific data (besides topographies)
-"""
+"""Functions to plot ICA specific data (besides topographies)."""
 from __future__ import print_function
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
@@ -78,7 +77,6 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
 
     .. versionadded:: 0.10.0
     """
-
     from ..io.base import _BaseRaw
     from ..evoked import Evoked
     from ..epochs import _BaseEpochs
@@ -109,7 +107,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
 
 
 def _create_properties_layout(figsize=None):
-    """creates main figure and axes layout used by plot_ica_properties"""
+    """Create main figure and axes layout used by plot_ica_properties."""
     import matplotlib.pyplot as plt
     if figsize is None:
         figsize = [7., 6.]
@@ -126,8 +124,10 @@ def _create_properties_layout(figsize=None):
 def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
                         psd_args=None, figsize=None, show=True):
-    """Display component properties: topography, epochs image, ERP/ERF,
-    power spectrum and epoch variance.
+    """Display component properties.
+
+    Properties include the topography, epochs image, ERP/ERF, power
+    spectrum, and epoch variance.
 
     Parameters
     ----------
@@ -358,7 +358,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
 
 def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
-    """Plot average over epochs in ICA space
+    """Plot average over epochs in ICA space.
 
     Parameters
     ----------
@@ -646,7 +646,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
 
 
 def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
-    """Plot evoked after and before ICA cleaning
+    """Plot evoked after and before ICA cleaning.
 
     Parameters
     ----------
@@ -694,7 +694,7 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
 
 
 def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
-    """Plot evoked after and before ICA cleaning
+    """Plot evoked after and before ICA cleaning.
 
     Parameters
     ----------
@@ -739,7 +739,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                       block):
-    """Function for plotting the ICA components as raw array."""
+    """Plot the ICA components as raw array."""
     color = _handle_default('color', (0., 0., 0.))
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
     if picks is None:
@@ -823,7 +823,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
 
 
 def _update_data(params):
-    """Function for preparing the data on horizontal shift of the viewport."""
+    """Prepare the data on horizontal shift of the viewport."""
     sfreq = params['info']['sfreq']
     start = int(params['t_start'] * sfreq)
     end = int((params['t_start'] + params['duration']) * sfreq)
@@ -832,7 +832,7 @@ def _update_data(params):
 
 
 def _pick_bads(event, params):
-    """Function for selecting components on click."""
+    """Select components on click."""
     bads = params['info']['bads']
     params['info']['bads'] = _select_bads(event, params, bads)
     params['update_fun']()
@@ -840,7 +840,7 @@ def _pick_bads(event, params):
 
 
 def _close_event(events, params):
-    """Function for excluding the selected components on close."""
+    """Exclude the selected components on close."""
     info = params['info']
     c_names = ['IC #%03d' % x for x in range(params['ica'].n_components_)]
     exclude = [c_names.index(x) for x in info['bads'] if x.startswith('IC')]
@@ -849,7 +849,7 @@ def _close_event(events, params):
 
 def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                          title, block):
-    """Function for plotting the components as epochs."""
+    """Plot the components as epochs."""
     data = ica._transform_epochs(epochs, concatenate=True)
     eog_chs = pick_types(epochs.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(epochs.info, meg=False, ecg=True, ref_meg=False)
@@ -911,7 +911,7 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
 
 
 def _update_epoch_data(params):
-    """Function for preparing the data on horizontal shift."""
+    """Prepare the data on horizontal shift."""
     start = params['t_start']
     n_epochs = params['n_epochs']
     end = start + n_epochs * len(params['epochs'].times)
@@ -923,7 +923,7 @@ def _update_epoch_data(params):
 
 
 def _close_epochs_event(events, params):
-    """Function for excluding the selected components on close."""
+    """Exclude the selected components on close."""
     info = params['info']
     exclude = [info['ch_names'].index(x) for x in info['bads']
                if x.startswith('IC')]
@@ -931,7 +931,7 @@ def _close_epochs_event(events, params):
 
 
 def _label_clicked(pos, params):
-    """Function for plotting independent components on click to label."""
+    """Plot independent components on click to label."""
     import matplotlib.pyplot as plt
     offsets = np.array(params['offsets']) + params['offsets'][0]
     line_idx = np.searchsorted(offsets, pos[1]) + params['ch_start']

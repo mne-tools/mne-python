@@ -1,4 +1,4 @@
-"""Mayavi/traits GUI for converting data from KIT systems"""
+"""Mayavi/traits GUI for converting data from KIT systems."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -56,13 +56,13 @@ tooltips = read_tooltips('kit2fiff')
 
 
 class Kit2FiffModel(HasPrivateTraits):
-    """Data Model for Kit2Fiff conversion
+    """Data Model for Kit2Fiff conversion.
 
-     - Markers are transformed into RAS coordinate system (as are the sensor
-       coordinates).
-     - Head shape digitizer data is transformed into neuromag-like space.
-
+    - Markers are transformed into RAS coordinate system (as are the sensor
+      coordinates).
+    - Head shape digitizer data is transformed into neuromag-like space.
     """
+
     # Input Traits
     markers = Instance(CombineMarkersModel, ())
     sqd_file = File(exists=True, filter=kit_con_wildcard)
@@ -116,7 +116,7 @@ class Kit2FiffModel(HasPrivateTraits):
 
     @cached_property
     def _get_can_save(self):
-        "Only allow saving when either all or no head shape elements are set."
+        """Only allow saving when all or no head shape elements are set."""
         if not self.stim_chs_ok:
             return False
 
@@ -350,12 +350,12 @@ class Kit2FiffModel(HasPrivateTraits):
         return self.stim_chs_array is not None
 
     def clear_all(self):
-        """Clear all specified input parameters"""
+        """Clear all specified input parameters."""
         self.markers.clear = True
         self.reset_traits(['sqd_file', 'hsp_file', 'fid_file', 'use_mrk'])
 
     def get_event_info(self):
-        """Count events with current stim channel settings
+        """Count events with current stim channel settings.
 
         Returns
         -------
@@ -378,8 +378,7 @@ class Kit2FiffModel(HasPrivateTraits):
         return Counter(events[:, 2])
 
     def get_raw(self, preload=False):
-        """Create a raw object based on the current model settings
-        """
+        """Create a raw object based on the current model settings."""
         if not self.can_save:
             raise ValueError("Not all necessary parameters are set")
 
@@ -408,9 +407,9 @@ class Kit2FiffModel(HasPrivateTraits):
 
 
 class Kit2FiffFrameHandler(Handler):
-    """Handler that checks for unfinished processes before closing its window
-    """
-    def close(self, info, is_ok):
+    """Check for unfinished processes before closing its window."""
+
+    def close(self, info, is_ok):  # noqa: D102
         if info.object.kit2fiff_panel.queue.unfinished_tasks:
             msg = ("Can not close the window while saving is still in "
                    "progress. Please wait until all files are processed.")
@@ -422,7 +421,8 @@ class Kit2FiffFrameHandler(Handler):
 
 
 class Kit2FiffPanel(HasPrivateTraits):
-    """Control panel for kit2fiff conversion"""
+    """Control panel for kit2fiff conversion."""
+
     model = Instance(Kit2FiffModel)
 
     # model copies for view
@@ -517,11 +517,11 @@ class Kit2FiffPanel(HasPrivateTraits):
                )
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: D102
         super(Kit2FiffPanel, self).__init__(*args, **kwargs)
 
         # setup save worker
-        def worker():
+        def worker():  # noqa: D102
             while True:
                 raw, fname = self.queue.get()
                 basename = os.path.basename(fname)
@@ -632,7 +632,8 @@ class Kit2FiffPanel(HasPrivateTraits):
 
 
 class Kit2FiffFrame(HasTraits):
-    """GUI for interpolating between two KIT marker files"""
+    """GUI for interpolating between two KIT marker files."""
+
     model = Instance(Kit2FiffModel, kw={'show_gui': True})
     scene = Instance(MlabSceneModel, ())
     headview = Instance(HeadViewController)

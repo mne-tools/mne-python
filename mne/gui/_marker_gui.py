@@ -1,4 +1,4 @@
-"""Mayavi/traits GUI for averaging two sets of KIT marker points"""
+"""Mayavi/traits GUI for averaging two sets of KIT marker points."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -70,7 +70,8 @@ mrk_view_edit = View(VGroup('points'))
 
 
 class MarkerPoints(HasPrivateTraits):
-    """Represent 5 marker points"""
+    """Represent 5 marker points."""
+
     points = Array(float, (5, 3))
 
     can_save = Property(depends_on='points')
@@ -104,7 +105,7 @@ class MarkerPoints(HasPrivateTraits):
         self.save(path)
 
     def save(self, path):
-        """Save the marker points
+        """Save the marker points.
 
         Parameters
         ----------
@@ -116,8 +117,9 @@ class MarkerPoints(HasPrivateTraits):
         _write_dig_points(path, self.points)
 
 
-class MarkerPointSource(MarkerPoints):
-    """MarkerPoints subclass for source files"""
+class MarkerPointSource(MarkerPoints):  # noqa: D401
+    """MarkerPoints subclass for source files."""
+
     file = File(filter=mrk_wildcard, exists=True)
     name = Property(Str, depends_on='file')
     dir = Property(Str, depends_on='file')
@@ -165,8 +167,9 @@ class MarkerPointSource(MarkerPoints):
         self.edit_traits(view=mrk_view_edit)
 
 
-class MarkerPointDest(MarkerPoints):
-    """MarkerPoints subclass that serves for derived points"""
+class MarkerPointDest(MarkerPoints):  # noqa: D401
+    """MarkerPoints subclass that serves for derived points."""
+
     src1 = Instance(MarkerPointSource)
     src2 = Instance(MarkerPointSource)
 
@@ -279,6 +282,8 @@ class MarkerPointDest(MarkerPoints):
 
 
 class CombineMarkersModel(HasPrivateTraits):
+    """Combine markers model."""
+
     mrk1_file = Instance(File)
     mrk2_file = Instance(File)
     mrk1 = Instance(MarkerPointSource)
@@ -325,8 +330,9 @@ class CombineMarkersModel(HasPrivateTraits):
         return desc
 
 
-class CombineMarkersPanel(HasTraits):
-    """Has two marker points sources and interpolates to a third one"""
+class CombineMarkersPanel(HasTraits):  # noqa: D401
+    """Has two marker points sources and interpolates to a third one."""
+
     model = Instance(CombineMarkersModel, ())
 
     # model references for UI
@@ -368,7 +374,7 @@ class CombineMarkersPanel(HasTraits):
     def _mrk3_default(self):
         return self.model.mrk3
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: D102
         super(CombineMarkersPanel, self).__init__(*args, **kwargs)
 
         m = self.model
@@ -396,13 +402,14 @@ class CombineMarkersPanel(HasTraits):
 
 
 class CombineMarkersFrame(HasTraits):
-    """GUI for interpolating between two KIT marker files
+    """GUI for interpolating between two KIT marker files.
 
     Parameters
     ----------
     mrk1, mrk2 : str
         Path to pre- and post measurement marker files (*.sqd) or empty string.
     """
+
     model = Instance(CombineMarkersModel, ())
     scene = Instance(MlabSceneModel, ())
     headview = Instance(HeadViewController)

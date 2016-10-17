@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Conversion tool from Brain Vision EEG to FIF"""
+"""Conversion tool from Brain Vision EEG to FIF."""
 
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
@@ -26,7 +26,7 @@ from ...externals.six.moves import configparser
 
 
 class RawBrainVision(_BaseRaw):
-    """Raw object from Brain Vision EEG file
+    """Raw object from Brain Vision EEG file.
 
     Parameters
     ----------
@@ -70,11 +70,12 @@ class RawBrainVision(_BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                  scale=1., preload=False, response_trig_shift=0,
-                 event_id=None, verbose=None):
+                 event_id=None, verbose=None):  # noqa: D102
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
@@ -94,7 +95,7 @@ class RawBrainVision(_BaseRaw):
             orig_format=fmt, preload=preload, verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a chunk of raw data"""
+        """Read a chunk of raw data."""
         # read data
         dtype = _fmt_dtype_dict[self.orig_format]
         n_data_ch = len(self.ch_names) - 1
@@ -103,7 +104,7 @@ class RawBrainVision(_BaseRaw):
                             trigger_ch=self._event_ch)
 
     def _get_brainvision_events(self):
-        """Retrieve the events associated with the Brain Vision Raw object
+        """Retrieve the events associated with the Brain Vision Raw object.
 
         Returns
         -------
@@ -114,7 +115,7 @@ class RawBrainVision(_BaseRaw):
         return self._events.copy()
 
     def _set_brainvision_events(self, events):
-        """Set the events and update the synthesized stim channel
+        """Set the events and update the synthesized stim channel.
 
         Parameters
         ----------
@@ -125,7 +126,7 @@ class RawBrainVision(_BaseRaw):
         self._create_event_ch(events)
 
     def _create_event_ch(self, events, n_samp=None):
-        """Create the event channel"""
+        """Create the event channel."""
         if n_samp is None:
             n_samp = self.last_samp - self.first_samp + 1
         events = np.array(events, int)
@@ -139,7 +140,7 @@ class RawBrainVision(_BaseRaw):
 
 
 def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
-    """Read events from a vmrk file
+    """Read events from a vmrk file.
 
     Parameters
     ----------
@@ -247,6 +248,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
 
 
 def _check_hdr_version(header):
+    """Check the header version."""
     tags = ['Brain Vision Data Exchange Header File Version 1.0',
             'Brain Vision Data Exchange Header File Version 2.0']
     if header not in tags:
@@ -256,6 +258,7 @@ def _check_hdr_version(header):
 
 
 def _check_mrk_version(header):
+    """Check the marker version."""
     tags = ['Brain Vision Data Exchange Marker File, Version 1.0',
             'Brain Vision Data Exchange Marker File, Version 2.0']
     if header not in tags:
@@ -280,7 +283,7 @@ _unit_dict = {'V': 1.,  # V stands for Volt
 
 
 def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
-    """Extracts all the information from the header file.
+    """Extract all the information from the header file.
 
     Parameters
     ----------
@@ -633,7 +636,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                          scale=1., preload=False, response_trig_shift=0,
                          event_id=None, verbose=None):
-    """Reader for Brain Vision EEG file
+    """Reader for Brain Vision EEG file.
 
     Parameters
     ----------

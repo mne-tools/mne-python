@@ -41,7 +41,8 @@ from .externals.six import string_types
 
 class ConductorModel(dict):
     """BEM or sphere model."""
-    def __repr__(self):
+
+    def __repr__(self):  # noqa: D105
         if self['is_sphere']:
             center = ', '.join('%0.1f' % (x * 1000.) for x in self['r0'])
             pl = '' if len(self['layers']) == 1 else 's'
@@ -58,6 +59,7 @@ class ConductorModel(dict):
 
     @property
     def radius(self):
+        """Sphere radius if an EEG sphere model."""
         if not self['is_sphere']:
             raise RuntimeError('radius undefined for BEM')
         return None if len(self['layers']) == 0 else self['layers'][-1]['rad']
@@ -193,11 +195,10 @@ def _fwd_bem_lin_pot_coeff(surfs):
 def _fwd_bem_multi_solution(solids, gamma, nps):
     """Do multi surface solution.
 
-      * Invert I - solids/(2*M_PI)
-      * Take deflation into account
-      * The matrix is destroyed after inversion
-      * This is the general multilayer case
-
+    * Invert I - solids/(2*M_PI)
+    * Take deflation into account
+    * The matrix is destroyed after inversion
+    * This is the general multilayer case
     """
     pi2 = 1.0 / (2 * np.pi)
     n_tot = np.sum(nps)

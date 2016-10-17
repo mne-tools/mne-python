@@ -26,14 +26,8 @@ class _SearchLight(BaseEstimator, TransformerMixin):
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
     """
-    def __repr__(self):
-        repr_str = '<' + super(_SearchLight, self).__repr__()
-        if hasattr(self, 'estimators_'):
-            repr_str = repr_str[:-1]
-            repr_str += ', fitted with %i estimators' % len(self.estimators_)
-        return repr_str + '>'
 
-    def __init__(self, base_estimator, scoring=None, n_jobs=1):
+    def __init__(self, base_estimator, scoring=None, n_jobs=1):  # noqa: D102
         _check_estimator(base_estimator)
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
@@ -42,9 +36,15 @@ class _SearchLight(BaseEstimator, TransformerMixin):
         if not isinstance(self.n_jobs, int):
             raise ValueError('n_jobs must be int, got %s' % n_jobs)
 
+    def __repr__(self):  # noqa: D105
+        repr_str = '<' + super(_SearchLight, self).__repr__()
+        if hasattr(self, 'estimators_'):
+            repr_str = repr_str[:-1]
+            repr_str += ', fitted with %i estimators' % len(self.estimators_)
+        return repr_str + '>'
+
     def fit_transform(self, X, y):
-        """
-        Fit and transform a series of independent estimators to the dataset.
+        """Fit and transform a series of independent estimators to the dataset.
 
         Parameters
         ----------
@@ -208,7 +208,7 @@ class _SearchLight(BaseEstimator, TransformerMixin):
             raise ValueError('X must have at least 3 dimensions.')
 
     def score(self, X, y):
-        """Returns the score obtained for each estimators/data slice couple.
+        """Score each estimator/data slice couple.
 
         Parameters
         ----------
@@ -378,7 +378,8 @@ def _sl_score(estimators, scoring, X, y):
 
 
 def _check_method(estimator, method):
-    """Checks that an estimator has the method attribute.
+    """Check that an estimator has the method attribute.
+
     If method == 'transform'  and estimator does not have 'transform', use
     'predict' instead.
     """
@@ -390,7 +391,7 @@ def _check_method(estimator, method):
 
 
 class _GeneralizationLight(_SearchLight):
-    """Generalization Light
+    """Generalization Light.
 
     Fit a search-light along the last dimension and use them to apply a
     systematic cross-feature generalization.
@@ -406,7 +407,8 @@ class _GeneralizationLight(_SearchLight):
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
     """
-    def __repr__(self):
+
+    def __repr__(self):  # noqa: D105
         repr_str = super(_GeneralizationLight, self).__repr__()
         if hasattr(self, 'estimators_'):
             repr_str = repr_str[:-1]
@@ -414,7 +416,7 @@ class _GeneralizationLight(_SearchLight):
         return repr_str
 
     def _transform(self, X, method):
-        """Aux. function to make parallel predictions/transformation"""
+        """Aux. function to make parallel predictions/transformation."""
         self._check_Xy(X)
         method = _check_method(self.base_estimator, method)
         parallel, p_func, n_jobs = parallel_func(_gl_transform, self.n_jobs)
@@ -463,8 +465,7 @@ class _GeneralizationLight(_SearchLight):
         return self._transform(X, 'predict')
 
     def predict_proba(self, X):
-        """Estimate probabilistic estimates of each data slice with all
-        possible estimators.
+        """Estimate probabilistic estimates of each data slice with all possible estimators.
 
         Parameters
         ----------
@@ -482,7 +483,7 @@ class _GeneralizationLight(_SearchLight):
         Notes
         -----
         This requires base_estimator to have a `predict_proba` method.
-        """
+        """  # noqa: E501
         return self._transform(X, 'predict_proba')
 
     def decision_function(self, X):
@@ -543,8 +544,9 @@ class _GeneralizationLight(_SearchLight):
 
 
 def _gl_transform(estimators, X, method):
-    """Transform the dataset by applying each estimator to all slices of
-    the data.
+    """Transform the dataset.
+
+    This will apply each estimator to all slices of the data.
 
     Parameters
     ----------
@@ -579,7 +581,7 @@ def _gl_transform(estimators, X, method):
 
 
 def _gl_init_pred(y_pred, X, n_train):
-    """Aux. function to _GeneralizationLight to initialize y_pred"""
+    """Aux. function to _GeneralizationLight to initialize y_pred."""
     n_sample, n_iter = X.shape[0], X.shape[-1]
     if y_pred.ndim == 3:
         y_pred = np.zeros((n_sample, n_train, n_iter, y_pred.shape[-1]),
@@ -590,7 +592,8 @@ def _gl_init_pred(y_pred, X, n_train):
 
 
 def _gl_score(estimators, X, y):
-    """Aux. function to score _GeneralizationLight in parallel.
+    """Score _GeneralizationLight in parallel.
+
     Predict and score each slice of data.
 
     Parameters

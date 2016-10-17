@@ -1,4 +1,4 @@
-"""Nicolet module for conversion to FIF"""
+"""Nicolet module for conversion to FIF."""
 
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #

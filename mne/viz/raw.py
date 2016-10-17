@@ -1,5 +1,4 @@
-"""Functions to plot raw M/EEG data
-"""
+"""Functions to plot raw M/EEG data."""
 from __future__ import print_function
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
@@ -31,7 +30,7 @@ from ..annotations import _onset_to_seconds
 
 
 def _plot_update_raw_proj(params, bools):
-    """Helper only needs to be called when proj is changed"""
+    """Deal with changed proj."""
     if bools is not None:
         inds = np.where(bools)[0]
         params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
@@ -44,7 +43,7 @@ def _plot_update_raw_proj(params, bools):
 
 
 def _update_raw_data(params):
-    """Helper only needs to be called when time or proj is changed"""
+    """Deal with time or proj changed."""
     from scipy.signal import filtfilt
     start = params['t_start']
     stop = params['raw'].time_as_index(start + params['duration'])[0]
@@ -76,7 +75,7 @@ def _update_raw_data(params):
 
 
 def _pick_bad_channels(event, params):
-    """Helper for selecting / dropping bad channels onpick"""
+    """Selecting / drop bad channels onpick."""
     # Both bad lists are updated. params['info'] used for colors.
     bads = params['raw'].info['bads']
     params['info']['bads'] = _select_bads(event, params, bads)
@@ -88,7 +87,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None):
-    """Plot raw data
+    """Plot raw data.
 
     Parameters
     ----------
@@ -433,7 +432,7 @@ def _close_event(event, params):
 
 
 def _label_clicked(pos, params):
-    """Helper function for selecting bad channels."""
+    """Select bad channels."""
     labels = params['ax'].yaxis.get_ticklabels()
     offsets = np.array(params['offsets']) + params['offsets'][0]
     line_idx = np.searchsorted(offsets, pos[1])
@@ -462,7 +461,7 @@ def _label_clicked(pos, params):
 
 
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
-    """Aux function"""
+    """Set PSD plot params."""
     import matplotlib.pyplot as plt
     if area_mode not in [None, 'std', 'range']:
         raise ValueError('"area_mode" must be "std", "range", or None')
@@ -519,7 +518,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=2048, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33,
                  n_overlap=0, dB=True, show=True, n_jobs=1, verbose=None):
-    """Plot the power spectral density across channels
+    """Plot the power spectral density across channels.
 
     Parameters
     ----------
@@ -619,7 +618,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
 
 def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels):
-    """Helper for setting up the mne_browse_raw window."""
+    """Set up the mne_browse_raw window."""
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     size = get_config('MNE_BROWSE_RAW_SIZE')
@@ -714,7 +713,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
 def _plot_raw_traces(params, color, bad_color, event_lines=None,
                      event_color=None):
-    """Helper for plotting raw"""
+    """Plot raw traces."""
     lines = params['lines']
     info = params['info']
     inds = params['inds']
@@ -825,7 +824,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
                       show=True, block=False, n_jobs=1, verbose=None):
-    """Function for plotting channel wise frequency spectra as topography.
+    """Plot channel-wise frequency spectra as topography.
 
     Parameters
     ----------
@@ -908,7 +907,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
 
 
 def _set_custom_selection(params):
-    """Callback for setting custom selection by lasso selector."""
+    """Set custom selection by lasso selector."""
     chs = params['fig_selection'].lasso.selection
     if len(chs) == 0:
         return
@@ -920,7 +919,7 @@ def _set_custom_selection(params):
 
 
 def _setup_browser_selection(raw, kind):
-    """Helper for organizing browser selections."""
+    """Organize browser selections."""
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons
     from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,

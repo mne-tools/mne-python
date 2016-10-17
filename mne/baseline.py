@@ -1,5 +1,4 @@
-"""Util function to baseline correct data
-"""
+"""Util function to baseline correct data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -11,7 +10,7 @@ from .utils import logger, verbose
 
 
 def _log_rescale(baseline, mode='mean'):
-    """Helper to log the rescaling method."""
+    """Log the rescaling method."""
     if baseline is not None:
         valid_modes = ('logratio', 'ratio', 'zscore', 'mean', 'percent',
                        'zlogratio')

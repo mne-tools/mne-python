@@ -13,6 +13,7 @@ import mne
 
 
 def run():
+    """Run command."""
     parser = mne.commands.utils.get_optparser(
         __file__, usage='mne show_info <file>')
     options, args = parser.parse_args()

@@ -1,5 +1,4 @@
-"""Conversion tool from CTF to FIF
-"""
+"""Conversion tool from CTF to FIF."""
 
 # Author: Eric Larson <larson.eric.d<gmail.com>
 #
@@ -26,7 +25,7 @@ from .constants import CTF
 
 def read_raw_ctf(directory, system_clock='truncate', preload=False,
                  verbose=None):
-    """Raw object from CTF directory
+    """Raw object from CTF directory.
 
     Parameters
     ----------
@@ -63,7 +62,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
 
 
 class RawCTF(_BaseRaw):
-    """Raw object from CTF directory
+    """Raw object from CTF directory.
 
     Parameters
     ----------
@@ -87,9 +86,10 @@ class RawCTF(_BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+
     @verbose
     def __init__(self, directory, system_clock='truncate', preload=False,
-                 verbose=None):
+                 verbose=None):  # noqa: D102
         # adapted from mne_ctf2fiff.c
         if not isinstance(directory, string_types) or \
                 not directory.endswith('.ds'):
@@ -141,7 +141,7 @@ class RawCTF(_BaseRaw):
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a chunk of raw data"""
+        """Read a chunk of raw data."""
         si = self._raw_extras[fi]
         offset = 0
         trial_start_idx, r_lims, d_lims = _blk_read_lims(start, stop,
@@ -164,7 +164,7 @@ class RawCTF(_BaseRaw):
 
 
 def _get_sample_info(fname, res4, system_clock):
-    """Helper to determine the number of valid samples"""
+    """Helper to determine the number of valid samples."""
     logger.info('Finding samples for %s: ' % (fname,))
     if CTF.SYSTEM_CLOCK_CH in res4['ch_names']:
         clock_ch = res4['ch_names'].index(CTF.SYSTEM_CLOCK_CH)

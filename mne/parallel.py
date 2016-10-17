@@ -1,5 +1,4 @@
-"""Parallel util function
-"""
+"""Parallel util function."""
 
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -21,7 +20,7 @@ else:
 
 @verbose
 def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
-    """Return parallel instance with delayed function
+    """Return parallel instance with delayed function.
 
     Util function to use joblib only if available
 
@@ -104,7 +103,7 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
 
 
 def check_n_jobs(n_jobs, allow_cuda=False):
-    """Check n_jobs in particular for negative values
+    """Check n_jobs in particular for negative values.
 
     Parameters
     ----------

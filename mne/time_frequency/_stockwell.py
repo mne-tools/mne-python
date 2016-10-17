@@ -16,7 +16,7 @@ from .tfr import AverageTFR, _get_data
 
 
 def _check_input_st(x_in, n_fft):
-    """Aux function"""
+    """Aux function."""
     # flatten to 2 D and memorize original shape
     n_times = x_in.shape[-1]
 
@@ -41,7 +41,7 @@ def _check_input_st(x_in, n_fft):
 
 
 def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
-    """Precompute stockwell gausian windows (in the freq domain)"""
+    """Precompute stockwell gausian windows (in the freq domain)."""
     tw = fftpack.fftfreq(n_samp, 1. / sfreq) / n_samp
     tw = np.r_[tw[:1], tw[1:][::-1]]
 
@@ -60,7 +60,7 @@ def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
 
 
 def _st(x, start_f, windows):
-    """Implementation based on Ali Moukadem Matlab code (only used in tests)"""
+    """Implementation based on Ali Moukadem Matlab code (used in tests)."""
     n_samp = x.shape[-1]
     ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex)
     # do the work
@@ -73,7 +73,7 @@ def _st(x, start_f, windows):
 
 
 def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
-    """Aux function"""
+    """Aux function."""
     n_samp = x.shape[-1]
     n_out = (n_samp - zero_pad)
     n_out = n_out // decim + bool(n_out % decim)
@@ -99,7 +99,7 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
 
 def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
                              decim=1, return_itc=False, n_jobs=1):
-    """Computes power and intertrial coherence using Stockwell (S) transform
+    """Compute power and intertrial coherence using Stockwell (S) transform.
 
     Parameters
     ----------
@@ -192,7 +192,7 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
 def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
                   width=1.0, decim=1, return_itc=False, n_jobs=1,
                   verbose=None):
-    """Time-Frequency Representation (TFR) using Stockwell Transform
+    """Time-Frequency Representation (TFR) using Stockwell Transform.
 
     Parameters
     ----------

@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # Authors: Lorenzo De Santis
-"""
-
-    Create BEM surfaces using the watershed algorithm included with
-        FreeSurfer
-
-"""
+"""Create BEM surfaces using the watershed algorithm included with FreeSurfer."""  # noqa: E501
 
 from __future__ import print_function
 import sys
@@ -14,6 +9,7 @@ from mne.bem import make_watershed_bem
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)

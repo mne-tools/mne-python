@@ -41,7 +41,7 @@ DEFAULTS = dict(
 
 
 def _handle_default(k, v=None):
-    """Helper to avoid dicts as default keyword arguments
+    """Avoid dicts as default keyword arguments.
 
     Use this function instead to resolve default dict values. Example usage::
 

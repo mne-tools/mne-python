@@ -8,7 +8,7 @@ from ..utils import _check_mayavi_version
 
 
 def combine_kit_markers():
-    """Create a new KIT marker file by interpolating two marker files
+    """Create a new KIT marker file by interpolating two marker files.
 
     Notes
     -----
@@ -25,7 +25,7 @@ def combine_kit_markers():
 
 def coregistration(tabbed=False, split=True, scene_width=500, inst=None,
                    subject=None, subjects_dir=None):
-    """Coregister an MRI with a subject's head shape
+    """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with::
 
@@ -70,7 +70,7 @@ def coregistration(tabbed=False, split=True, scene_width=500, inst=None,
 
 
 def fiducials(subject=None, fid_file=None, subjects_dir=None):
-    """Set the fiducials for an MRI subject
+    """Set the fiducials for an MRI subject.
 
     Parameters
     ----------
@@ -97,7 +97,7 @@ def fiducials(subject=None, fid_file=None, subjects_dir=None):
 
 
 def kit2fiff():
-    """Convert KIT files to the fiff format
+    """Convert KIT files to the fiff format.
 
     The recommended way to use the GUI is through bash with::
 

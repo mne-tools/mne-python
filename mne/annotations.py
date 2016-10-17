@@ -55,8 +55,8 @@ class Annotations(object):
     ``raw.first_samp`` is taken into account the same way as with events.
     """  # noqa: E501
 
-    def __init__(self, onset, duration, description, orig_time=None):
-
+    def __init__(self, onset, duration, description,
+                 orig_time=None):  # noqa: D102
         if orig_time is not None:
             if isinstance(orig_time, datetime):
                 orig_time = float(time.mktime(orig_time.timetuple()))

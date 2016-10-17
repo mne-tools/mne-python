@@ -1,4 +1,4 @@
-"""File data sources for traits GUIs"""
+"""File data sources for traits GUIs."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -36,7 +36,7 @@ def _expand_path(p):
 
 
 def get_fs_home():
-    """Get the FREESURFER_HOME directory
+    """Get the FREESURFER_HOME directory.
 
     Returns
     -------
@@ -53,7 +53,7 @@ def get_fs_home():
 
 
 def get_mne_root():
-    """Get the MNE_ROOT directory
+    """Get the MNE_ROOT directory.
 
     Returns
     -------
@@ -90,7 +90,7 @@ def _get_root_home(cfg, name, check_fun):
 
 
 def set_fs_home():
-    """Set the FREESURFER_HOME environment variable
+    """Set the FREESURFER_HOME environment variable.
 
     Returns
     -------
@@ -113,7 +113,7 @@ def set_fs_home():
 
 
 def _fs_home_problem(fs_home):
-    """Check FREESURFER_HOME path
+    """Check FREESURFER_HOME path.
 
     Return str describing problem or None if the path is okay.
     """
@@ -129,7 +129,7 @@ def _fs_home_problem(fs_home):
 
 
 def set_mne_root(set_mne_bin=False):
-    """Set the MNE_ROOT environment variable
+    """Set the MNE_ROOT environment variable.
 
     Parameters
     ----------
@@ -161,7 +161,7 @@ def set_mne_root(set_mne_bin=False):
 
 
 def _mne_root_problem(mne_root):
-    """Check MNE_ROOT path
+    """Check MNE_ROOT path.
 
     Return str describing problem or None if the path is okay.
     """
@@ -177,7 +177,7 @@ def _mne_root_problem(mne_root):
 
 
 class SurfaceSource(HasTraits):
-    """Expose points and tris of a file storing a surface
+    """Expose points and tris of a file storing a surface.
 
     Parameters
     ----------
@@ -196,6 +196,7 @@ class SurfaceSource(HasTraits):
     tri is always updated after pts, so in case downstream objects depend on
     both, they should sync to a change in tris.
     """
+
     file = File(exists=True, filter=['*.fif', '*.*'])
     points = Array(shape=(None, 3), value=np.empty((0, 3)))
     norms = Array
@@ -229,7 +230,7 @@ class SurfaceSource(HasTraits):
 
 
 class FiducialsSource(HasTraits):
-    """Expose points of a given fiducials fif file
+    """Expose points of a given fiducials fif file.
 
     Parameters
     ----------
@@ -241,6 +242,7 @@ class FiducialsSource(HasTraits):
     points : Array, shape = (n_points, 3)
         Fiducials file points.
     """
+
     file = File(filter=[fid_wildcard])
     fname = Property(depends_on='file')
     points = Property(depends_on='file')
@@ -276,7 +278,7 @@ class FiducialsSource(HasTraits):
 
 
 class InstSource(HasPrivateTraits):
-    """Expose measurement information from a inst file
+    """Expose measurement information from a inst file.
 
     Parameters
     ----------
@@ -289,6 +291,7 @@ class InstSource(HasPrivateTraits):
         Each row contains the coordinates for one fiducial point, in the order
         Nasion, RAP, LAP. If no file is set all values are 0.
     """
+
     file = File(exists=True, filter=['*.fif'])
 
     inst_fname = Property(Str, depends_on='file')
@@ -367,8 +370,8 @@ class InstSource(HasPrivateTraits):
             return self.inst_points[self.points_filter]
 
     @cached_property
-    def _get_fid_dig(self):
-        """Fiducials for info['dig']"""
+    def _get_fid_dig(self):  # noqa: D401
+        """Fiducials for info['dig']."""
         if not self.inst:
             return []
         dig = self.inst['dig']
@@ -408,7 +411,7 @@ class InstSource(HasPrivateTraits):
 
 
 class MRISubjectSource(HasPrivateTraits):
-    """Find subjects in SUBJECTS_DIR and select one
+    """Find subjects in SUBJECTS_DIR and select one.
 
     Parameters
     ----------
@@ -417,6 +420,7 @@ class MRISubjectSource(HasPrivateTraits):
     subject : str
         Subject, corresponding to a folder in SUBJECTS_DIR.
     """
+
     refresh = Event(desc="Refresh the subject list based on the directory "
                     "structure of subjects_dir.")
 
@@ -471,7 +475,7 @@ class MRISubjectSource(HasPrivateTraits):
             return False
         return _mri_subject_has_bem(self.subject, self.subjects_dir)
 
-    def create_fsaverage(self):
+    def create_fsaverage(self):  # noqa: D102
         if not self.subjects_dir:
             err = ("No subjects directory is selected. Please specify "
                    "subjects_dir first.")
@@ -495,6 +499,8 @@ class MRISubjectSource(HasPrivateTraits):
 
 
 class SubjectSelectorPanel(HasPrivateTraits):
+    """Subject selector panel."""
+
     model = Instance(MRISubjectSource)
 
     can_create_fsaverage = DelegatesTo('model')

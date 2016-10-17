@@ -271,7 +271,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
 
         if op.exists(folder_path):
             def onerror(func, path, exc_info):
-                """Deal with access errors (e.g. testing dataset read-only)"""
+                """Deal with access errors (e.g. testing dataset read-only)."""
                 # Is the error an access error ?
                 do = False
                 if not os.access(path, os.W_OK):

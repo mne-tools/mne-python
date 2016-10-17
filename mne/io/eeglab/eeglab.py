@@ -111,7 +111,7 @@ def _get_info(eeg, montage, eog=()):
 def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
                     event_id_func='strip_to_integer', preload=False,
                     verbose=None, uint16_codec=None):
-    """Read an EEGLAB .set file
+    r"""Read an EEGLAB .set file.
 
     Parameters
     ----------
@@ -181,7 +181,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
 
 def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
                        eog=(), verbose=None, uint16_codec=None):
-    """Reader function for EEGLAB epochs files
+    r"""Reader function for EEGLAB epochs files.
 
     Parameters
     ----------
@@ -243,7 +243,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
 
 
 class RawEEGLAB(_BaseRaw):
-    """Raw object from EEGLAB .set file.
+    r"""Raw object from EEGLAB .set file.
 
     Parameters
     ----------
@@ -304,12 +304,11 @@ class RawEEGLAB(_BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+
     @verbose
     def __init__(self, input_fname, montage, eog=(), event_id=None,
                  event_id_func='strip_to_integer', preload=False,
-                 verbose=None, uint16_codec=None):
-        """Read EEGLAB .set file.
-        """
+                 verbose=None, uint16_codec=None):  # noqa: D102
         from scipy import io
         basedir = op.dirname(input_fname)
         _check_mat_struct(input_fname)
@@ -364,7 +363,7 @@ class RawEEGLAB(_BaseRaw):
                 verbose=verbose)
 
     def _create_event_ch(self, events, n_samples=None):
-        """Create the event channel"""
+        """Create the event channel."""
         if n_samples is None:
             n_samples = self.last_samp - self.first_samp + 1
         events = np.array(events, int)
@@ -374,14 +373,14 @@ class RawEEGLAB(_BaseRaw):
         self._event_ch = _synthesize_stim_channel(events, n_samples)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a chunk of raw data"""
+        """Read a chunk of raw data."""
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                             dtype=np.float32, trigger_ch=self._event_ch,
                             n_channels=self.info['nchan'] - 1)
 
 
 class EpochsEEGLAB(_BaseEpochs):
-    """Epochs from EEGLAB .set file
+    r"""Epochs from EEGLAB .set file.
 
     Parameters
     ----------
@@ -459,11 +458,12 @@ class EpochsEEGLAB(_BaseEpochs):
     --------
     mne.Epochs : Documentation of attribute and methods.
     """
+
     @verbose
     def __init__(self, input_fname, events=None, event_id=None, tmin=0,
                  baseline=None,  reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, montage=None, eog=(), verbose=None,
-                 uint16_codec=None):
+                 uint16_codec=None):  # noqa: D102
         from scipy import io
         _check_mat_struct(input_fname)
         eeg = io.loadmat(input_fname, struct_as_record=False,
@@ -555,12 +555,13 @@ class EpochsEEGLAB(_BaseEpochs):
 
 
 def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
-    """Create events array from EEGLAB structure
+    """Create events array from EEGLAB structure.
 
     An event array is constructed by looking up events in the
     event_id, trying to reduce them to their integer part otherwise, and
     entirely dropping them (with a warning) if this is impossible.
-    Returns a 1x3 array of zeros if no events are found."""
+    Returns a 1x3 array of zeros if no events are found.
+    """
     if event_id_func is 'strip_to_integer':
         event_id_func = _strip_to_integer
     if event_id is None:

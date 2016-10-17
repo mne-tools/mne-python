@@ -55,7 +55,7 @@ class _EpochMeanConEstBase(_AbstractConEstBase):
 
         self.con_scores = None
 
-    def start_epoch(self):
+    def start_epoch(self):  # noqa: D401
         """This method is called at the start of each epoch."""
         pass  # for this type of con. method we don't do anything
 

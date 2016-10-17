@@ -12,7 +12,7 @@ from scipy.linalg import norm
 
 
 def _check_stc(stc1, stc2):
-    """Helper for checking that stcs are compatible"""
+    """Check that stcs are compatible."""
     if stc1.data.shape != stc2.data.shape:
         raise ValueError('Data in stcs must have the same size')
     if np.all(stc1.times != stc2.times):
@@ -20,7 +20,7 @@ def _check_stc(stc1, stc2):
 
 
 def source_estimate_quantification(stc1, stc2, metric='rms'):
-    """Helper function to calculate matrix similarities.
+    """Calculate matrix similarities.
 
     Parameters
     ----------

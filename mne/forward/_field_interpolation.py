@@ -22,6 +22,7 @@ from ..utils import logger, verbose
 
 
 def _is_axial_coil(coil):
+    """Determine if the coil is axial."""
     is_ax = coil['coil_class'] in (FIFF.FWD_COILC_MAG,
                                    FIFF.FWD_COILC_AXIAL_GRAD,
                                    FIFF.FWD_COILC_AXIAL_GRAD2)
@@ -29,6 +30,8 @@ def _is_axial_coil(coil):
 
 
 def _ad_hoc_noise(coils, ch_type='meg'):
+    """Create ad-hoc noise covariance."""
+    # XXX should de-duplicate with make_ad_hoc_cov
     v = np.empty(len(coils))
     if ch_type == 'meg':
         axs = np.array([_is_axial_coil(coil) for coil in coils], dtype=bool)
@@ -41,7 +44,7 @@ def _ad_hoc_noise(coils, ch_type='meg'):
 
 
 def _setup_dots(mode, coils, ch_type):
-    """Setup dot products"""
+    """Setup dot products."""
     int_rad = 0.06
     noise = _ad_hoc_noise(coils, ch_type)
     if mode == 'fast':
@@ -58,7 +61,7 @@ def _setup_dots(mode, coils, ch_type):
 
 
 def _compute_mapping_matrix(fmd, info):
-    """Do the hairy computations"""
+    """Do the hairy computations."""
     logger.info('    Preparing the mapping matrix...')
     # assemble a projector and apply it to the data
     ch_names = fmd['ch_names']
@@ -220,7 +223,7 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
 @verbose
 def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
                           n_jobs=1, origin=(0., 0., 0.04), verbose=None):
-    """Re-map M/EEG data to a surface
+    """Re-map M/EEG data to a surface.
 
     Parameters
     ----------
@@ -333,7 +336,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
                    ch_type=None, mode='fast', meg_surf='helmet',
                    origin=(0., 0., 0.04), n_jobs=1, verbose=None):
-    """Compute surface maps used for field display in 3D
+    """Compute surface maps used for field display in 3D.
 
     Parameters
     ----------
@@ -373,7 +376,6 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         If not None, override default verbose level (see mne.verbose).
 
         .. versionadded:: 0.11
-
 
     Returns
     -------

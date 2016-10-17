@@ -45,7 +45,9 @@ from ..annotations import Annotations, _combine_annotations, _onset_to_seconds
 
 class ToDataFrameMixin(object):
     """Class to add to_data_frame capabilities to certain classes."""
+
     def _get_check_picks(self, picks, picks_check):
+        """Get and check picks."""
         if picks is None:
             picks = list(range(self.info['nchan']))
         else:
@@ -204,7 +206,7 @@ class TimeMixin(object):
     """Class to add sfreq and time_as_index capabilities to certain classes."""
 
     def time_as_index(self, times, use_rounding=False):
-        """Convert time to indices
+        """Convert time to indices.
 
         Parameters
         ----------
@@ -231,6 +233,7 @@ class TimeMixin(object):
 
 
 def _check_fun(fun, d, *args, **kwargs):
+    """Check shapes."""
     want_shape = d.shape
     d = fun(d, *args, **kwargs)
     if not isinstance(d, np.ndarray):
@@ -244,7 +247,7 @@ def _check_fun(fun, d, *args, **kwargs):
 class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                SetChannelsMixin, InterpolationMixin, ToDataFrameMixin,
                TimeMixin, SizeMixin):
-    """Base class for Raw data
+    """Base class for Raw data.
 
     Subclasses must provide the following methods:
 
@@ -255,11 +258,13 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     such on-demand reads. For `RawFIF` this means a list of variables formerly
     known as ``_rawdirs``.
     """
+
     @verbose
     def __init__(self, info, preload=False,
                  first_samps=(0,), last_samps=None,
                  filenames=(None,), raw_extras=(None,),
-                 orig_format='double', dtype=np.float64, verbose=None):
+                 orig_format='double', dtype=np.float64,
+                 verbose=None):  # noqa: D102
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -316,7 +321,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @verbose
     def apply_gradient_compensation(self, grade, verbose=None):
-        """Apply CTF gradient compensation
+        """Apply CTF gradient compensation.
 
         .. warning:: The compensation matrices are stored with single
                      precision, so repeatedly switching between different
@@ -364,13 +369,13 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @property
     def _dtype(self):
-        """dtype for loading data (property so subclasses can override)"""
+        """Datatype for loading data (property so subclasses can override)."""
         # most classes only store real data, they won't need anything special
         return self._dtype_
 
     def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
                       projector=None, verbose=None):
-        """Read a chunk of raw data
+        """Read a chunk of raw data.
 
         Parameters
         ----------
@@ -465,7 +470,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return data
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a segment of data from a file
+        """Read a segment of data from a file.
 
         Only needs to be implemented for readers that support
         ``preload=False``.
@@ -531,7 +536,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @verbose
     def load_data(self, verbose=None):
-        """Load raw data
+        """Load raw data.
 
         Parameters
         ----------
@@ -556,7 +561,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @verbose
     def _preload_data(self, preload, verbose=None):
-        """This function actually preloads the data"""
+        """Actually preload the data."""
         data_buffer = preload if isinstance(preload, (string_types,
                                                       np.ndarray)) else None
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
@@ -568,17 +573,19 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.close()
 
     def _update_times(self):
-        """Helper to update times"""
+        """Update times."""
         self._times = np.arange(self.n_times) / float(self.info['sfreq'])
         # make it immutable
         self._times.flags.writeable = False
 
     @property
     def first_samp(self):
+        """The first data sample."""
         return self._first_samps[0]
 
     @property
     def last_samp(self):
+        """The last data sample."""
         return self.first_samp + sum(self._raw_lengths) - 1
 
     @property
@@ -586,13 +593,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return [l - f + 1 for f, l in zip(self._first_samps, self._last_samps)]
 
     @property
-    def annotations(self):
+    def annotations(self):  # noqa: D401
         """Annotations for marking segments of data."""
         return self._annotations
 
     @annotations.setter
     def annotations(self, annotations):
-        """Setter for annotations. Checks if they are inside the data range.
+        """Setter for annotations.
+
+        This setter checks if they are inside the data range.
 
         Parameters
         ----------
@@ -641,7 +650,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         self._annotations = annotations
 
-    def __del__(self):
+    def __del__(self):  # noqa: D105
         # remove file for memmap
         if hasattr(self, '_data') and hasattr(self._data, 'filename'):
             # First, close the file out; happens automatically on del
@@ -654,17 +663,18 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 pass  # ignore file that no longer exists
 
     def __enter__(self):
-        """ Entering with block """
+        """Entering with block."""
         return self
 
     def __exit__(self, exception_type, exception_val, trace):
-        """ Exiting with block """
+        """Exiting with block."""
         try:
             self.close()
         except:
             return exception_type, exception_val, trace
 
     def _parse_get_set_params(self, item):
+        """Parse the __getitem__ / __setitem__ tuples."""
         # make sure item is a tuple
         if not isinstance(item, tuple):  # only channel selection passed
             item = (item, slice(None, None, None))
@@ -714,7 +724,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return sel, start, stop
 
     def __getitem__(self, item):
-        """Get raw data and times
+        """Get raw data and times.
 
         Parameters
         ----------
@@ -760,7 +770,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return data, times
 
     def __setitem__(self, item, value):
-        """setting raw data content with python slicing"""
+        """Set raw data content."""
         _check_preload(self, 'Modifying data of Raw')
         sel, start, stop = self._parse_get_set_params(item)
         # set the data
@@ -768,7 +778,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @verbose
     def apply_function(self, fun, picks, dtype, n_jobs, *args, **kwargs):
-        """ Apply a function to a subset of channels.
+        """Apply a function to a subset of channels.
 
         The function "fun" is applied to the channels defined in "picks". The
         data of the Raw object is modified inplace. If the function returns
@@ -837,7 +847,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def apply_hilbert(self, picks, envelope=False, n_jobs=1, n_fft='auto',
                       verbose=None):
-        """ Compute analytic signal or envelope for a subset of channels.
+        """Compute analytic signal or envelope for a subset of channels.
 
         If envelope=False, the analytic signal for the channels defined in
         "picks" is computed and the data of the Raw object is converted to
@@ -1386,7 +1396,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=None,
              drop_small_buffer=False, proj=False, fmt='single',
              overwrite=False, split_size='2GB', verbose=None):
-        """Save raw data to file
+        """Save raw data to file.
 
         Parameters
         ----------
@@ -1551,7 +1561,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
                       return_singular=False, picks=None, scalings='norm'):
-        """Estimate rank of the raw data
+        """Estimate rank of the raw data.
 
         This function is meant to provide a reasonable estimate of the rank.
         The true rank of the data depends on many factors, so use at your
@@ -1629,21 +1639,21 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @property
     def ch_names(self):
-        """Channel names"""
+        """Channel names."""
         return self.info['ch_names']
 
     @property
     def times(self):
-        """Time points"""
+        """Time points."""
         return self._times
 
     @property
     def n_times(self):
-        """Number of time points"""
+        """Number of time points."""
         return self.last_samp - self.first_samp + 1
 
     def __len__(self):
-        """The number of time points
+        """The number of time points.
 
         Returns
         -------
@@ -1661,8 +1671,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self.n_times
 
     def load_bad_channels(self, bad_file=None, force=False):
-        """
-        Mark channels as bad from a text file
+        """Mark channels as bad from a text file.
 
         This function operates mostly in the style of the C function
         ``mne_mark_bad_channels``.
@@ -1678,7 +1687,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             that exist) if channels are not found, instead of
             raising an error.
         """
-
         if bad_file is not None:
             # Check to make sure bad channels are there
             names = frozenset(self.info['ch_names'])
@@ -1700,7 +1708,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self.info['bads'] = []
 
     def append(self, raws, preload=None):
-        """Concatenate raw instances as if they were continuous
+        """Concatenate raw instances as if they were continuous.
 
         Parameters
         ----------
@@ -1794,11 +1802,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         pass
 
     def copy(self):
-        """ Return copy of Raw instance
-        """
+        """Return copy of Raw instance."""
         return deepcopy(self)
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         name = self._filenames[0]
         name = 'None' if name is None else op.basename(name)
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
@@ -1809,7 +1816,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return "<%s  |  %s>" % (self.__class__.__name__, s)
 
     def add_events(self, events, stim_channel=None):
-        """Add events to stim channel
+        """Add events to stim channel.
 
         Parameters
         ----------
@@ -1847,14 +1854,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._data[pick, idx - self.first_samp] += events[:, 2]
 
     def _get_buffer_size(self, buffer_size_sec=None):
-        """Helper to get the buffer size"""
+        """Get the buffer size."""
         if buffer_size_sec is None:
             buffer_size_sec = self.info.get('buffer_size_sec', 1.)
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
 
 def _check_preload(raw, msg):
-    """Helper to ensure data are preloaded"""
+    """Ensure data are preloaded."""
     if not raw.preload:
         raise RuntimeError(msg + ' requires raw data to be loaded. Use '
                            'preload=True (or string) in the constructor or '
@@ -1862,7 +1869,7 @@ def _check_preload(raw, msg):
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):
-    """Helper to data in memory or in memmap for preloading"""
+    """Allocate data in memory or in memmap for preloading."""
     if data is None:
         # if not already done, allocate array with right type
         if isinstance(data_buffer, string_types):
@@ -1875,7 +1882,7 @@ def _allocate_data(data, data_buffer, data_shape, dtype):
 
 
 def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
-    """Convert indices to time
+    """Convert indices to time.
 
     Parameters
     ----------
@@ -1895,9 +1902,9 @@ def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
 
 
 class _RawShell():
-    """Used for creating a temporary raw object"""
+    """Create a temporary raw object."""
 
-    def __init__(self):
+    def __init__(self):  # noqa: D102
         self.first_samp = None
         self.last_samp = None
         self._cals = None
@@ -1905,7 +1912,7 @@ class _RawShell():
         self._projector = None
 
     @property
-    def n_times(self):
+    def n_times(self):  # noqa: D102
         return self.last_samp - self.first_samp + 1
 
 
@@ -1914,8 +1921,7 @@ class _RawShell():
 def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                stop, buffer_size, projector, drop_small_buffer,
                split_size, part_idx, prev_fname):
-    """Write raw file with splitting
-    """
+    """Write raw file with splitting."""
     # we've done something wrong if we hit this
     n_times_max = len(raw.times)
     if start >= stop or stop > n_times_max:
@@ -2019,9 +2025,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
 def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
                        reset_range=True, annotations=None):
-    """Start write raw data in file
-
-    Data will be written in float
+    """Start write raw data in file.
 
     Parameters
     ----------
@@ -2099,7 +2103,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
 
 
 def _write_raw_buffer(fid, buf, cals, fmt):
-    """Write raw buffer
+    """Write raw buffer.
 
     Parameters
     ----------
@@ -2143,7 +2147,7 @@ def _write_raw_buffer(fid, buf, cals, fmt):
 
 
 def _my_hilbert(x, n_fft=None, envelope=False):
-    """ Compute Hilbert transform of signals w/ zero padding.
+    """Compute Hilbert transform of signals w/ zero padding.
 
     Parameters
     ----------
@@ -2170,8 +2174,7 @@ def _my_hilbert(x, n_fft=None, envelope=False):
 
 
 def _check_raw_compatibility(raw):
-    """Check to make sure all instances of Raw
-    in the input list raw have compatible parameters"""
+    """Ensure all instances of Raw have compatible parameters."""
     for ri in range(1, len(raw)):
         if not isinstance(raw[ri], type(raw[0])):
             raise ValueError('raw[%d] type must match' % ri)
@@ -2197,8 +2200,9 @@ def _check_raw_compatibility(raw):
 
 
 def concatenate_raws(raws, preload=None, events_list=None):
-    """Concatenate raw instances as if they were continuous. Note that raws[0]
-    is modified in-place to achieve the concatenation.
+    """Concatenate raw instances as if they were continuous.
+
+    .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
 
     Parameters
     ----------
@@ -2233,7 +2237,7 @@ def concatenate_raws(raws, preload=None, events_list=None):
 
 
 def _check_update_montage(info, montage, path=None, update_ch_names=False):
-    """ Helper function for eeg readers to add montage"""
+    """Help eeg readers to add montage."""
     if montage is not None:
         if not isinstance(montage, (string_types, Montage)):
             err = ("Montage must be str, None, or instance of Montage. "

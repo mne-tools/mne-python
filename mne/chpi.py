@@ -250,7 +250,7 @@ def _unit_quat_constraint(x):
 
 
 def _fit_chpi_pos(coil_dev_rrs, coil_head_rrs, x0):
-    """Fit rotation and translation parameters for cHPI coils"""
+    """Fit rotation and translation parameters for cHPI coils."""
     from scipy.optimize import fmin_cobyla
     denom = np.sum((coil_head_rrs - np.mean(coil_head_rrs, axis=0)) ** 2)
     objective = partial(_chpi_objective, coil_dev_rrs=coil_dev_rrs,
@@ -347,7 +347,7 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
 
 
 def _time_prefix(fit_time):
-    """Helper to format log messages"""
+    """Helper to format log messages."""
     return ('    t=%0.3f:' % fit_time).ljust(17)
 
 

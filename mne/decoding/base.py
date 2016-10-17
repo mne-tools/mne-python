@@ -1,4 +1,4 @@
-"""Base class copy from sklearn.base"""
+"""Base class copy from sklearn.base."""
 # Authors: Gael Varoquaux <gael.varoquaux@normalesup.org>
 #          Romain Trachel <trachelr@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -14,7 +14,8 @@ from ..utils import check_version
 
 
 class BaseEstimator(object):
-    """Base class for all estimators in scikit-learn
+    """Base class for all estimators in scikit-learn.
+
     Notes
     -----
     All estimators should specify all the parameters that can be set
@@ -24,7 +25,7 @@ class BaseEstimator(object):
 
     @classmethod
     def _get_param_names(cls):
-        """Get parameter names for the estimator"""
+        """Get parameter names for the estimator."""
         # fetch the constructor or the original constructor before
         # deprecation wrapping if any
         init = getattr(cls.__init__, 'deprecated_original', cls.__init__)
@@ -87,6 +88,7 @@ class BaseEstimator(object):
 
     def set_params(self, **params):
         """Set the parameters of this estimator.
+
         The method works on simple estimators as well as on nested objects
         (such as pipelines). The former have parameters of the form
         ``<component>__<parameter>`` so that it's possible to update each
@@ -121,7 +123,7 @@ class BaseEstimator(object):
                 setattr(self, key, value)
         return self
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         class_name = self.__class__.__name__
         return '%s(%s)' % (class_name, _pprint(self.get_params(deep=False),
                                                offset=len(class_name),),)
@@ -129,7 +131,7 @@ class BaseEstimator(object):
 
 ###############################################################################
 def _pprint(params, offset=0, printer=repr):
-    """Pretty print the dictionary 'params'
+    """Pretty print the dictionary 'params'.
 
     Parameters
     ----------
@@ -141,6 +143,10 @@ def _pprint(params, offset=0, printer=repr):
         The function to convert entries to strings, typically
         the builtin str or repr
 
+    Returns
+    -------
+    out : str
+        The string.
     """
     # Do a multi-line justified repr:
     options = np.get_printoptions()
@@ -177,9 +183,9 @@ def _pprint(params, offset=0, printer=repr):
 
 
 class LinearModel(BaseEstimator):
-    """
-    This object clones a Linear Model from scikit-learn
-    and updates the attributes for each fit. The linear model coefficients
+    """Clone a Linear Model from sklearn and update attributes for each fit.
+
+    The linear model coefficients
     (filters) are used to extract discriminant neural sources from
     the measured data. This class implements the computation of patterns
     which provides neurophysiologically interpretable information [1],
@@ -217,7 +223,8 @@ class LinearModel(BaseEstimator):
     weight vectors of linear models in multivariate neuroimaging.
     NeuroImage, 87, 96-110.
     """
-    def __init__(self, model=None):
+
+    def __init__(self, model=None):  # noqa: D102
         if model is None:
             from sklearn.linear_model import LogisticRegression
             model = LogisticRegression()
@@ -228,6 +235,7 @@ class LinearModel(BaseEstimator):
 
     def fit(self, X, y):
         """Estimate the coefficients of the linear model.
+
         Save the coefficients in the attribute filters_ and
         computes the attribute patterns_ using [1].
 
@@ -293,7 +301,7 @@ class LinearModel(BaseEstimator):
         return self.fit(X, y).transform(X)
 
     def predict(self, X):
-        """Computes predictions of y from X.
+        """Compute predictions of y from X.
 
         Parameters
         ----------
@@ -308,9 +316,7 @@ class LinearModel(BaseEstimator):
         return self.model.predict(X)
 
     def score(self, X, y):
-        """
-        Returns the score of the linear model computed
-        on the given test data.
+        """Score the linear model computed on the given test data.
 
         Parameters
         ----------
@@ -323,7 +329,6 @@ class LinearModel(BaseEstimator):
         -------
         score : float
             Score of the linear model
-
         """
         return self.model.score(X, y)
 
@@ -335,8 +340,8 @@ class LinearModel(BaseEstimator):
                       show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
                       image_interp='bilinear', average=None, head_pos=None):
-        """
-        Plot topographic patterns of the linear model.
+        """Plot topographic patterns of the linear model.
+
         The patterns explain how the measured data was generated
         from the neural sources (a.k.a. the forward model).
 
@@ -462,7 +467,6 @@ class LinearModel(BaseEstimator):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-
         from .. import EvokedArray
 
         if times is None:
@@ -496,8 +500,8 @@ class LinearModel(BaseEstimator):
                      show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
                      image_interp='bilinear', average=None, head_pos=None):
-        """
-        Plot topographic filters of the linear model.
+        """Plot topographic filters of the linear model.
+
         The filters are used to extract discriminant neural sources from
         the measured data (a.k.a. the backward model).
 
@@ -623,7 +627,6 @@ class LinearModel(BaseEstimator):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-
         from .. import EvokedArray
 
         if times is None:
@@ -651,9 +654,7 @@ class LinearModel(BaseEstimator):
 
 
 def _set_cv(cv, estimator=None, X=None, y=None):
-    """ Set the default cross-validation depending on whether clf is classifier
-        or regressor. """
-
+    """Set the default CV depending on whether clf is classifier/regressor."""
     from sklearn.base import is_classifier
 
     # Detect whether classification or regression
@@ -707,8 +708,7 @@ def _set_cv(cv, estimator=None, X=None, y=None):
 
 
 def _check_estimator(estimator, get_params=True):
-    """Check whether an object has the fit, transform, fit_transform and
-    get_params methods required by scikit-learn"""
+    """Check whether an object has the methods required by sklearn."""
     valid_methods = ('predict', 'transform', 'predict_proba',
                      'decision_function')
     if (

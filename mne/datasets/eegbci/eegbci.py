@@ -14,7 +14,7 @@ EEGMI_URL = 'http://www.physionet.org/physiobank/database/eegmmidb/'
 @verbose
 def data_path(url, path=None, force_update=False, update_path=None,
               verbose=None):
-    """Get path to local copy of EEGMMI dataset URL
+    """Get path to local copy of EEGMMI dataset URL.
 
     This is a low-level function useful for getting a local copy of a
     remote EEGBCI dataet.
@@ -67,7 +67,6 @@ def data_path(url, path=None, force_update=False, update_path=None,
         PhysioToolkit, and PhysioNet: Components of a New Research Resource for
         Complex Physiologic Signals. Circulation 101(23):e215-e220
     """  # noqa: E501
-
     key = 'MNE_DATASETS_EEGBCI_PATH'
     name = 'EEGBCI'
     path = _get_path(path, key, name)
@@ -90,7 +89,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
 @verbose
 def load_data(subject, runs, path=None, force_update=False, update_path=None,
               base_url=EEGMI_URL, verbose=None):
-    """Get paths to local copy of EEGBCI dataset files
+    r"""Get paths to local copy of EEGBCI dataset files.
 
     Parameters
     ----------

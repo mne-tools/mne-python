@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""Clean a raw file from EOG and ECG artifacts with PCA (ie SSP)
-"""
+"""Clean a raw file from EOG and ECG artifacts with PCA (ie SSP)."""
 from __future__ import print_function
 
 # Authors : Dr Engr. Sheraz Khan,  P.Eng, Ph.D.
@@ -17,7 +16,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
                   ecg_proj_fname=None, eog_proj_fname=None,
                   ecg_event_fname=None, eog_event_fname=None, in_path='.',
                   quiet=False):
-    """Clean ECG from raw fif file
+    """Clean ECG from raw fif file.
 
     Parameters
     ----------
@@ -101,6 +100,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)

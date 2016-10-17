@@ -51,7 +51,7 @@ class Montage(object):
     .. versionadded:: 0.9.0
     """
 
-    def __init__(self, pos, ch_names, kind, selection):
+    def __init__(self, pos, ch_names, kind, selection):  # noqa: D102
         self.pos = pos
         self.ch_names = ch_names
         self.kind = kind
@@ -365,7 +365,7 @@ class DigMontage(object):
 
     def __init__(self, hsp, hpi, elp, point_names,
                  nasion=None, lpa=None, rpa=None, dev_head_t=None,
-                 dig_ch_pos=None):
+                 dig_ch_pos=None):  # noqa: D102
         self.hsp = hsp
         self.hpi = hpi
         self.elp = elp

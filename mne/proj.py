@@ -118,7 +118,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
 @verbose
 def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
                         desc_prefix=None, verbose=None):
-    """Compute SSP (spatial space projection) vectors on Epochs
+    """Compute SSP (spatial space projection) vectors on Epochs.
 
     Parameters
     ----------
@@ -162,7 +162,7 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
 
 
 def _compute_cov_epochs(epochs, n_jobs):
-    """Helper function for computing epochs covariance"""
+    """Helper function for computing epochs covariance."""
     parallel, p_fun, _ = parallel_func(np.dot, n_jobs)
     data = parallel(p_fun(e, e.T) for e in epochs)
     n_epochs = len(data)
@@ -177,7 +177,7 @@ def _compute_cov_epochs(epochs, n_jobs):
 
 @verbose
 def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=None):
-    """Compute SSP (spatial space projection) vectors on Evoked
+    """Compute SSP (spatial space projection) vectors on Evoked.
 
     Parameters
     ----------
@@ -209,7 +209,7 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=None):
 @verbose
 def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
                      n_eeg=0, reject=None, flat=None, n_jobs=1, verbose=None):
-    """Compute SSP (spatial space projection) vectors on Raw
+    """Compute SSP (spatial space projection) vectors on Raw.
 
     Parameters
     ----------
@@ -277,7 +277,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
 
 def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
                     verbose=None):
-    """Compute sensitivity map
+    """Compute sensitivity map.
 
     Such maps are used to know how much sources are visible by a type
     of sensor, and how much projections shadow some sources.

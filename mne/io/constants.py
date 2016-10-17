@@ -5,18 +5,17 @@
 
 
 class Bunch(dict):
-    """ Container object for datasets: dictionnary-like object that
-        exposes its keys as attributes.
-    """
+    """Dictionnary-like object thatexposes its keys as attributes."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs):  # noqa: D102
         dict.__init__(self, kwargs)
         self.__dict__ = self
 
 
 class BunchConst(Bunch):
-    """Class to prevent us from re-defining constants (DRY)"""
-    def __setattr__(self, attr, val):
+    """Class to prevent us from re-defining constants (DRY)."""
+
+    def __setattr__(self, attr, val):  # noqa: D105
         if attr != '__dict__' and hasattr(self, attr):
             raise AttributeError('Attribute "%s" already set' % attr)
         super(BunchConst, self).__setattr__(attr, val)

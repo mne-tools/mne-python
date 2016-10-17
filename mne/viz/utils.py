@@ -1,5 +1,4 @@
-"""Utility functions for plotting M/EEG data
-"""
+"""Utility functions for plotting M/EEG data."""
 from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -871,9 +870,7 @@ def _setup_browser_offsets(params, n_channels):
 
 
 class ClickableImage(object):
-
-    """
-    Display an image so you can click on it and store x/y positions.
+    """Display an image so you can click on it and store x/y positions.
 
     Takes as input an image array (can be any array that works with imshow,
     but will work best with images.  Displays the image and lets you
@@ -896,7 +893,7 @@ class ClickableImage(object):
 
     """
 
-    def __init__(self, imdata, **kwargs):
+    def __init__(self, imdata, **kwargs):  # noqa: D102
         """Display the image for clicking."""
         from matplotlib.pyplot import figure
         self.coords = []
@@ -1028,7 +1025,8 @@ def add_background_image(fig, im, set_ratios=None):
 
 
 def _find_peaks(evoked, npeaks):
-    """Helper function for finding peaks from evoked data.
+    """Find peaks from evoked data.
+
     Returns ``npeaks`` biggest peaks as a list of time points.
     """
     from scipy.signal import argrelmax
@@ -1384,9 +1382,11 @@ def _compute_scalings(scalings, inst):
 
 class DraggableColorbar(object):
     """Class for enabling interactive colorbar.
+
     See http://www.ster.kuleuven.be/~pieterd/python/html/plotting/interactive_colorbar.html
     """  # noqa: E501
-    def __init__(self, cbar, mappable):
+
+    def __init__(self, cbar, mappable):  # noqa: D102
         import matplotlib.pyplot as plt
         self.cbar = cbar
         self.mappable = mappable
@@ -1499,7 +1499,8 @@ class SelectFromCollection(object):
         Defaults to 0.3.
     """
 
-    def __init__(self, ax, collection, ch_names, alpha_other=0.3):
+    def __init__(self, ax, collection, ch_names,
+                 alpha_other=0.3):  # noqa: D102
         import matplotlib as mpl
         if LooseVersion(mpl.__version__) < LooseVersion('1.2.1'):
             raise ImportError('Interactive selection not possible for '

@@ -39,7 +39,7 @@ class EMS(TransformerMixin, EstimatorMixin):
         The target classes.
     """
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         if hasattr(self, 'filters_'):
             return '<EMS: fitted with %i filters on %i classes.>' % (
                 len(self.filters_), len(self.classes_))
@@ -207,12 +207,12 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
 
 
 def _ems_diff(data0, data1):
-    """Aux. function to compute_ems that computes the default diff
-    objective function."""
+    """Compute the default diff objective function."""
     return np.mean(data0, axis=0) - np.mean(data1, axis=0)
 
 
 def _run_ems(objective_function, data, cond_idx, train, test):
+    """Run EMS."""
     d = objective_function(*(data[np.intersect1d(c, train)] for c in cond_idx))
     d /= np.sqrt(np.sum(d ** 2, axis=0))[None, :]
     # compute surrogates

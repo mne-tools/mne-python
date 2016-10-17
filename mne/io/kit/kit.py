@@ -1,7 +1,6 @@
-"""Conversion tool from SQD to FIF
+"""Conversion tool from SQD to FIF.
 
-RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
-
+RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 """
 
 # Author: Teon Brooks <teon.brooks@gmail.com>
@@ -32,7 +31,7 @@ from ...event import read_events
 
 
 class RawKIT(_BaseRaw):
-    """Raw object from KIT SQD file
+    """Raw object from KIT SQD file.
 
     Parameters
     ----------
@@ -86,10 +85,11 @@ class RawKIT(_BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+
     @verbose
     def __init__(self, input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, stim_code='binary',
-                 verbose=None):
+                 verbose=None):  # noqa: D102
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
         self.preload = False
@@ -124,7 +124,7 @@ class RawKIT(_BaseRaw):
         logger.info('Ready.')
 
     def read_stim_ch(self, buffer_size=1e5):
-        """Read events from data
+        """Read events from data.
 
         Parameter
         ---------
@@ -217,7 +217,7 @@ class RawKIT(_BaseRaw):
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a chunk of raw data"""
+        """Read a chunk of raw data."""
         nchan = self._raw_extras[fi]['nchan']
         data_left = (stop - start) * nchan
         # amplifier applies only to the sensor channels
@@ -262,14 +262,14 @@ class RawKIT(_BaseRaw):
 
 
 def _default_stim_chs(info):
-    """Default stim channels for SQD files"""
+    """Default stim channels for SQD files."""
     return pick_types(info, meg=False, ref_meg=False, misc=True,
                       exclude=[])[:8]
 
 
 def _make_stim_channel(trigger_chs, slope, threshold, stim_code,
                        trigger_values):
-    """Create synthetic stim channel from multiple trigger channels"""
+    """Create synthetic stim channel from multiple trigger channels."""
     if slope == '+':
         trig_chs_bin = trigger_chs > threshold
     elif slope == '-':
@@ -287,7 +287,7 @@ def _make_stim_channel(trigger_chs, slope, threshold, stim_code,
 
 
 class EpochsKIT(_BaseEpochs):
-    """Epochs Array object from KIT SQD file
+    """Epochs Array object from KIT SQD file.
 
     Parameters
     ----------
@@ -364,10 +364,12 @@ class EpochsKIT(_BaseEpochs):
     --------
     mne.Epochs : Documentation of attribute and methods.
     """
+
     @verbose
     def __init__(self, input_fname, events, event_id=None, tmin=0,
                  baseline=None,  reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, mrk=None, elp=None, hsp=None, verbose=None):
+                 reject_tmax=None, mrk=None, elp=None, hsp=None,
+                 verbose=None):  # noqa: D102
 
         if isinstance(events, string_types):
             events = read_events(events)
@@ -424,7 +426,7 @@ class EpochsKIT(_BaseEpochs):
         logger.info('Ready.')
 
     def _read_kit_data(self):
-        """Read epochs data
+        """Read epochs data.
 
         Returns
         -------
@@ -468,7 +470,7 @@ class EpochsKIT(_BaseEpochs):
 
 
 def _set_dig_kit(mrk, elp, hsp):
-    """Add landmark points and head shape data to the KIT instance
+    """Add landmark points and head shape data to the KIT instance.
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
     ALS coordinate system.
@@ -540,7 +542,7 @@ def _set_dig_kit(mrk, elp, hsp):
 
 
 def get_kit_info(rawfile):
-    """Extracts all the information from the sqd file.
+    """Extract all the information from the sqd file.
 
     Parameters
     ----------
@@ -757,7 +759,7 @@ def get_kit_info(rawfile):
 def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, stim_code='binary',
                  verbose=None):
-    """Reader function for KIT conversion to FIF
+    """Reader function for KIT conversion to FIF.
 
     Parameters
     ----------
@@ -813,7 +815,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
 
 def read_epochs_kit(input_fname, events, event_id=None,
                     mrk=None, elp=None, hsp=None, verbose=None):
-    """Reader function for KIT epochs files
+    """Reader function for KIT epochs files.
 
     Parameters
     ----------

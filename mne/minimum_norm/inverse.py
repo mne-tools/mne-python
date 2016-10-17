@@ -36,16 +36,14 @@ from functools import reduce
 
 
 class InverseOperator(dict):
-    """InverseOperator class to represent info from inverse operator
-    """
+    """InverseOperator class to represent info from inverse operator."""
 
     def copy(self):
-        """Return a copy of the InverseOperator"""
+        """Return a copy of the InverseOperator."""
         return InverseOperator(deepcopy(self))
 
-    def __repr__(self):
-        """Summarize inverse info instead of printing all"""
-
+    def __repr__(self):  # noqa: D105
+        """Summarize inverse info instead of printing all."""
         entr = '<InverseOperator'
 
         nchan = len(pick_types(self['info'], meg=True, eeg=False))
@@ -75,9 +73,7 @@ class InverseOperator(dict):
 
 
 def _pick_channels_inverse_operator(ch_names, inv):
-    """Gives the indices of the data channel to be used knowing
-    an inverse operator
-    """
+    """Data channel indices to be used knowing an inverse operator."""
     sel = []
     for name in inv['noise_cov'].ch_names:
         if name in ch_names:
@@ -93,7 +89,7 @@ def _pick_channels_inverse_operator(ch_names, inv):
 
 @verbose
 def read_inverse_operator(fname, verbose=None):
-    """Read the inverse operator decomposition from a FIF file
+    """Read the inverse operator decomposition from a FIF file.
 
     Parameters
     ----------
@@ -314,7 +310,7 @@ def read_inverse_operator(fname, verbose=None):
 
 @verbose
 def write_inverse_operator(fname, inv, verbose=None):
-    """Write an inverse operator to a FIF file
+    """Write an inverse operator to a FIF file.
 
     Parameters
     ----------
@@ -436,7 +432,7 @@ def write_inverse_operator(fname, inv, verbose=None):
 
 
 def combine_xyz(vec, square=False):
-    """Compute the three Cartesian components of a vector or matrix together
+    """Compute the three Cartesian components of a vector or matrix together.
 
     Parameters
     ----------
@@ -466,8 +462,7 @@ def combine_xyz(vec, square=False):
 
 
 def _check_ch_names(inv, info):
-    """Check that channels in inverse operator are measurements"""
-
+    """Check that channels in inverse operator are measurements."""
     inv_ch_names = inv['eigen_fields']['col_names']
 
     if inv['noise_cov'].ch_names != inv_ch_names:
@@ -487,7 +482,7 @@ def _check_ch_names(inv, info):
 
 @verbose
 def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
-    """Prepare an inverse operator for actually computing the inverse
+    """Prepare an inverse operator for actually computing the inverse.
 
     Parameters
     ----------
@@ -628,6 +623,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
 
 @verbose
 def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
+    """Assemble the kernel."""
     #
     #   Simple matrix multiplication followed by combination of the
     #   current components
@@ -699,6 +695,7 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
 
 
 def _check_method(method):
+    """Check the method."""
     if method not in ["MNE", "dSPM", "sLORETA"]:
         raise ValueError('method parameter should be "MNE" or "dSPM" '
                          'or "sLORETA".')
@@ -706,6 +703,7 @@ def _check_method(method):
 
 
 def _check_ori(pick_ori):
+    """Check pick_ori."""
     if pick_ori is not None and pick_ori != 'normal':
         raise RuntimeError('pick_ori must be None or "normal", not %s'
                            % pick_ori)
@@ -713,7 +711,7 @@ def _check_ori(pick_ori):
 
 
 def _check_reference(inst):
-    """Aux funcion"""
+    """Check for EEG ref."""
     if _needs_eeg_average_ref_proj(inst.info):
         raise ValueError('EEG average reference is mandatory for inverse '
                          'modeling, use set_eeg_reference method.')
@@ -723,7 +721,7 @@ def _check_reference(inst):
 
 
 def _subject_from_inverse(inverse_operator):
-    """Get subject id from inverse operator"""
+    """Get subject id from inverse operator."""
     return inverse_operator['src'][0].get('subject_his_id', None)
 
 
@@ -731,7 +729,7 @@ def _subject_from_inverse(inverse_operator):
 def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
                   method="dSPM", pick_ori=None,
                   prepared=False, label=None, verbose=None):
-    """Apply inverse operator to evoked data
+    """Apply inverse operator to evoked data.
 
     Parameters
     ----------
@@ -816,7 +814,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
                       time_func=None, pick_ori=None, buffer_size=None,
                       prepared=False, verbose=None):
-    """Apply inverse operator to Raw data
+    """Apply inverse operator to Raw data.
 
     Parameters
     ----------
@@ -937,7 +935,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
                               prepared=False, verbose=None):
-    """ see apply_inverse_epochs """
+    """Generator for apply_inverse_epochs."""
     method = _check_method(method)
     pick_ori = _check_ori(pick_ori)
 
@@ -1000,7 +998,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_ori=None,
                          return_generator=False,
                          prepared=False, verbose=None):
-    """Apply inverse operator to Epochs
+    """Apply inverse operator to Epochs.
 
     Parameters
     ----------
@@ -1106,8 +1104,7 @@ def _xyz2lf(Lf_xyz, normals):
 @verbose
 def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
                      verbose=None):
-    """Util function to prepare forward solution for inverse solvers
-    """
+    """Prepare forward solution for inverse solvers."""
     # fwd['sol']['row_names'] may be different order from fwd['info']['chs']
     fwd_sol_ch_names = forward['sol']['row_names']
     ch_names = [c['ch_name'] for c in info['chs']
@@ -1164,7 +1161,7 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
 def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
                           fixed=False, limit_depth_chs=True, rank=None,
                           verbose=None):
-    """Assemble inverse operator
+    """Assemble inverse operator.
 
     Parameters
     ----------
@@ -1437,7 +1434,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
 
 
 def compute_rank_inverse(inv):
-    """Compute the rank of a linear inverse operator (MNE, dSPM, etc.)
+    """Compute the rank of a linear inverse operator (MNE, dSPM, etc.).
 
     Parameters
     ----------
@@ -1464,7 +1461,7 @@ def compute_rank_inverse(inv):
 
 @verbose
 def estimate_snr(evoked, inv, verbose=None):
-    """Estimate the SNR as a function of time for evoked data
+    r"""Estimate the SNR as a function of time for evoked data.
 
     Parameters
     ----------

@@ -1,5 +1,4 @@
-"""Read .hc files
-"""
+"""Read .hc files."""
 
 # Author: Eric Larson <larson.eric.d<gmail.com>
 #
@@ -21,7 +20,7 @@ _coord_dict = {'relative to dewar': FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
 
 
 def _read_one_coil_point(fid):
-    """Read coil coordinate information from the hc file"""
+    """Read coil coordinate information from the hc file."""
     # Descriptor
     one = '#'
     while len(one) > 0 and one[0] == '#':
@@ -64,7 +63,7 @@ def _read_one_coil_point(fid):
 
 
 def _read_hc(directory):
-    """Read the hc file to get the HPI info and to prepare for coord transs"""
+    """Read the hc file to get the HPI info and to prepare for coord trans."""
     fname = _make_ctf_name(directory, 'hc', raise_error=False)
     if fname is None:
         logger.info('    hc data not present')

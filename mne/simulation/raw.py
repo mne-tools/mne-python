@@ -31,7 +31,7 @@ from ..externals.six import string_types
 
 
 def _log_ch(start, info, ch):
-    """Helper to log channel information"""
+    """Log channel information."""
     if ch is not None:
         extra, just, ch = ' stored on channel:', 50, info['ch_names'][ch]
     else:
@@ -44,7 +44,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                  blink=False, ecg=False, chpi=False, head_pos=None,
                  mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
                  random_state=None, verbose=None):
-    """Simulate raw data
+    u"""Simulate raw data.
 
     Head movements can optionally be simulated using the ``head_pos``
     parameter.
@@ -471,7 +471,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
 def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
                             mindist, hpi_rrs, blink_rrs, ecg_rrs, n_jobs):
-    """Calculate a forward solution for a subject"""
+    """Calculate a forward solution for a subject."""
     mri_head_t, trans = _get_trans(trans)
     logger.info('Setting up forward solutions')
     megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
@@ -549,7 +549,7 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
 
 
 def _restrict_source_space_to(src, vertices):
-    """Helper to trim down a source space"""
+    """Trim down a source space."""
     assert len(src) == len(vertices)
     src = deepcopy(src)
     for s, v in zip(src, vertices):
@@ -565,7 +565,7 @@ def _restrict_source_space_to(src, vertices):
 
 
 def _interp(data_1, data_2, stc_data, interps):
-    """Helper to interpolate"""
+    """Interpolate."""
     out_data = np.dot(data_1, stc_data)
     if interps is not None:
         out_data *= interps[0]

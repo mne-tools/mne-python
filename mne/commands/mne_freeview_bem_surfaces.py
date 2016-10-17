@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-"""View the 3-Layers BEM model using Freeview
-
-"""
+"""View the 3-Layers BEM model using Freeview."""
 from __future__ import print_function
 
 # Authors:  Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -14,7 +12,7 @@ from mne.utils import run_subprocess, get_subjects_dir
 
 
 def freeview_bem_surfaces(subject, subjects_dir, method):
-    """View 3-Layers BEM model with Freeview
+    """View 3-Layers BEM model with Freeview.
 
     Parameters
     ----------
@@ -63,6 +61,7 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)

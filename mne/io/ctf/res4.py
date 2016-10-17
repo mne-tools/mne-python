@@ -1,5 +1,4 @@
-"""Read .res4 files
-"""
+"""Read .res4 files."""
 
 # Author: Eric Larson <larson.eric.d<gmail.com>
 #
@@ -14,7 +13,7 @@ from .constants import CTF
 
 
 def _make_ctf_name(directory, extra, raise_error=True):
-    """Helper to make a CTF name"""
+    """Make a CTF name."""
     fname = op.join(directory, op.basename(directory)[:-3] + '.' + extra)
     if not op.isfile(fname):
         if raise_error:
@@ -25,34 +24,34 @@ def _make_ctf_name(directory, extra, raise_error=True):
 
 
 def _read_double(fid, n=1):
-    """Read a double"""
+    """Read a double."""
     return np.fromfile(fid, '>f8', n)
 
 
 def _read_string(fid, n_bytes, decode=True):
-    """Read string"""
+    """Read string."""
     s0 = fid.read(n_bytes)
     s = s0.split(b'\x00')[0]
     return s.decode('utf-8') if decode else s
 
 
 def _read_ustring(fid, n_bytes):
-    """Read unsigned character string"""
+    """Read unsigned character string."""
     return np.fromfile(fid, '>B', n_bytes)
 
 
 def _read_int2(fid):
-    """Read int from short"""
+    """Read int from short."""
     return np.fromfile(fid, '>i2', 1)[0]
 
 
 def _read_int(fid):
-    """Read a 32-bit integer"""
+    """Read a 32-bit integer."""
     return np.fromfile(fid, '>i4', 1)[0]
 
 
 def _move_to_next(fid, byte=8):
-    """Move to next byte boundary"""
+    """Move to next byte boundary."""
     now = fid.tell()
     if now % byte != 0:
         now = now - (now % byte) + byte
@@ -60,7 +59,7 @@ def _move_to_next(fid, byte=8):
 
 
 def _read_filter(fid):
-    """Read filter information"""
+    """Read filter information."""
     f = dict()
     f['freq'] = _read_double(fid)[0]
     f['class'] = _read_int(fid)
@@ -71,7 +70,7 @@ def _read_filter(fid):
 
 
 def _read_channel(fid):
-    """Read channel information"""
+    """Read channel information."""
     ch = dict()
     ch['sensor_type_index'] = _read_int2(fid)
     ch['original_run_no'] = _read_int2(fid)
@@ -105,7 +104,7 @@ def _read_channel(fid):
 
 
 def _read_comp_coeff(fid, d):
-    """Read compensation coefficients"""
+    """Read compensation coefficients."""
     # Read the coefficients and initialize
     d['ncomp'] = _read_int2(fid)
     d['comp'] = list()
@@ -129,7 +128,7 @@ def _read_comp_coeff(fid, d):
 
 
 def _read_res4(dsdir):
-    """Read the magical res4 file"""
+    """Read the magical res4 file."""
     # adapted from read_res4.c
     name = _make_ctf_name(dsdir, 'res4')
     res = dict()

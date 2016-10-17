@@ -1,4 +1,4 @@
-"""IIR and FIR filtering functions"""
+"""IIR and FIR filtering and resampling functions."""
 
 from copy import deepcopy
 from functools import partial
@@ -20,7 +20,7 @@ _length_factors = dict(hann=6.2, hamming=6.6, blackman=11.0)
 
 
 def is_power2(num):
-    """Test if number is a power of 2
+    """Test if number is a power of 2.
 
     Parameters
     ----------
@@ -219,7 +219,7 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
 
 
 def _1d_overlap_filter(x, h_fft, n_h, n_edge, phase, cuda_dict):
-    """Do one-dimensional overlap-add FFT FIR filtering"""
+    """Do one-dimensional overlap-add FFT FIR filtering."""
     # pad to reduce ringing
     if cuda_dict['use_cuda']:
         n_fft = cuda_dict['x'].size  # account for CUDA's modification of h_fft
@@ -255,7 +255,7 @@ def _1d_overlap_filter(x, h_fft, n_h, n_edge, phase, cuda_dict):
 
 
 def _filter_attenuation(h, freq, gain):
-    """Compute minimum attenuation at stop frequency"""
+    """Compute minimum attenuation at stop frequency."""
     from scipy.signal import freqz
     _, filt_resp = freqz(h.ravel(), worN=np.pi * freq)
     filt_resp = np.abs(filt_resp)  # use amplitude response
@@ -267,7 +267,7 @@ def _filter_attenuation(h, freq, gain):
 
 
 def _prep_for_filtering(x, copy, picks=None):
-    """Set up array as 2D for filtering ease"""
+    """Set up array as 2D for filtering ease."""
     if x.dtype != np.float64:
         raise TypeError("Arrays passed for filtering must have a dtype of "
                         "np.float64")
@@ -366,7 +366,7 @@ def _check_zero_phase_length(N, phase, gain_nyq=0):
 
 
 def _check_coefficients(system):
-    """Check for filter stability"""
+    """Check for filter stability."""
     if isinstance(system, tuple):
         from scipy.signal import tf2zpk
         z, p, k = tf2zpk(*system)
@@ -380,7 +380,7 @@ def _check_coefficients(system):
 
 
 def _filtfilt(x, iir_params, picks, n_jobs, copy):
-    """Helper to more easily call filtfilt"""
+    """Helper to more easily call filtfilt."""
     # set up array for filtering, reshape to 2D, operate on last axis
     from scipy.signal import filtfilt
     padlen = min(iir_params['padlen'], len(x))
@@ -407,7 +407,7 @@ def _filtfilt(x, iir_params, picks, n_jobs, copy):
 
 
 def estimate_ringing_samples(system, max_try=100000):
-    """Estimate filter ringing
+    """Estimate filter ringing.
 
     Parameters
     ----------
@@ -459,7 +459,7 @@ def estimate_ringing_samples(system, max_try=100000):
 
 def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
                          btype=None, return_copy=True):
-    """Use IIR parameters to get filtering coefficients
+    """Use IIR parameters to get filtering coefficients.
 
     This function works like a wrapper for iirdesign and iirfilter in
     scipy.signal to make filter coefficients for IIR filtering. It also
@@ -643,7 +643,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
 
 
 def _check_method(method, iir_params, extra_types=()):
-    """Helper to parse method arguments"""
+    """Helper to parse method arguments."""
     allowed_types = ['iir', 'fir', 'fft'] + list(extra_types)
     if not isinstance(method, string_types):
         raise TypeError('method must be a string')
@@ -800,7 +800,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                   l_trans_bandwidth='auto', h_trans_bandwidth='auto',
                   method='fir', iir_params=None, phase='zero',
                   fir_window='hamming', verbose=None):
-    """Create a FIR or IIR filter.
+    r"""Create a FIR or IIR filter.
 
     ``l_freq`` and ``h_freq`` are the frequencies below which and above
     which, respectively, to filter out of the data. Thus the uses are:
@@ -1535,7 +1535,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
                  mt_bandwidth=None, p_value=0.05, picks=None, n_jobs=1,
                  copy=True, phase='zero', fir_window='hamming',
                  verbose=None):
-    """Notch filter for the signal x.
+    r"""Notch filter for the signal x.
 
     Applies a zero-phase notch filter to the signal x, operating on the last
     dimension.
@@ -1688,7 +1688,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
 
 def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                       p_value, picks, n_jobs, copy):
-    """Helper to more easily call _mt_spectrum_remove"""
+    """Helper to more easily call _mt_spectrum_remove."""
     from scipy import stats
     # set up array for filtering, reshape to 2D, operate on last axis
     n_jobs = check_n_jobs(n_jobs)
@@ -1751,7 +1751,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
 
 def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
                         window_fun, threshold):
-    """Use MT-spectrum to remove line frequencies
+    """Use MT-spectrum to remove line frequencies.
 
     Based on Chronux. If line_freqs is specified, all freqs within notch_width
     of each line_freq is set to zero.
@@ -1827,7 +1827,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
 @verbose
 def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
              verbose=None):
-    """Resample the array x
+    """Resample an array.
 
     Operates along the last dimension of the array.
 
@@ -2056,7 +2056,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                           l_trans_bandwidth, h_trans_bandwidth,
                           filter_length, method, phase, fir_window,
                           bands='scalar', reverse=False):
-    """Helper to validate and automate filter parameter selection"""
+    """Helper to validate and automate filter parameter selection."""
     if not isinstance(phase, string_types) or phase not in \
             ('linear', 'zero', 'zero-double', ''):
         raise ValueError('phase must be "linear", "zero", or "zero-double", '
@@ -2187,10 +2187,10 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
 
 
 class FilterMixin(object):
-    """Object for Epoch/Evoked filtering"""
+    """Object for Epoch/Evoked filtering."""
 
     def savgol_filter(self, h_freq, copy=False):
-        """Filter the data using Savitzky-Golay polynomial method
+        """Filter the data using Savitzky-Golay polynomial method.
 
         Parameters
         ----------
@@ -2268,7 +2268,7 @@ class FilterMixin(object):
 def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
                         l_trans_bandwidth=None, h_trans_bandwidth=5.,
                         verbose=None):
-    """Create a FIR filter like that used by MNE-C
+    """Create a FIR filter like that used by MNE-C.
 
     Parameters
     ----------

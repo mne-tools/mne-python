@@ -1,6 +1,4 @@
-"""Conversion tool from EDF, EDF+, BDF to FIF
-
-"""
+"""Conversion tool from EDF, EDF+, BDF to FIF."""
 
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Martin Billinger <martin.billinger@tugraz.at>
@@ -24,7 +22,7 @@ from ...externals.six.moves import zip
 
 
 class RawEDF(_BaseRaw):
-    """Raw object from EDF, EDF+, BDF file
+    """Raw object from EDF, EDF+, BDF file.
 
     Parameters
     ----------
@@ -66,10 +64,11 @@ class RawEDF(_BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
                  stim_channel=-1, annot=None, annotmap=None,
-                 preload=False, verbose=None):
+                 preload=False, verbose=None):  # noqa: D102
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, edf_info = _get_edf_info(input_fname, stim_channel,
@@ -93,7 +92,7 @@ class RawEDF(_BaseRaw):
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a chunk of raw data"""
+        """Read a chunk of raw data."""
         from scipy.interpolate import interp1d
         if mult is not None:
             # XXX "cals" here does not function the same way as in RawFIF,
@@ -216,7 +215,7 @@ class RawEDF(_BaseRaw):
 
 
 def _read_ch(fid, subtype, samp, data_size):
-    """Helper to read a number of samples for a single channel"""
+    """Read a number of samples for a single channel."""
     if subtype in ('24BIT', 'bdf'):
         ch_data = np.fromfile(fid, dtype=np.uint8,
                               count=samp * data_size)
@@ -233,8 +232,7 @@ def _read_ch(fid, subtype, samp, data_size):
 
 
 def _parse_tal_channel(tal_channel_data):
-    """Parse time-stamped annotation lists (TALs) in stim_channel
-    and return list of events.
+    """Parse time-stamped annotation lists (TALs) in stim_channel.
 
     Parameters
     ----------
@@ -250,7 +248,6 @@ def _parse_tal_channel(tal_channel_data):
     ----------
     http://www.edfplus.info/specs/edfplus.html#tal
     """
-
     # convert tal_channel to an ascii string
     tals = bytearray()
     for s in tal_channel_data:
@@ -274,8 +271,7 @@ def _parse_tal_channel(tal_channel_data):
 
 
 def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
-    """Extracts all the information from the EDF+,BDF file"""
-
+    """Extract all the information from the EDF+,BDF file."""
     if eog is None:
         eog = []
     if misc is None:
@@ -470,7 +466,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
 
 
 def _read_annot(annot, annotmap, sfreq, data_length):
-    """Annotation File Reader
+    """Annotation File Reader.
 
     Parameters
     ----------
@@ -512,7 +508,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel=-1, annot=None, annotmap=None,
                  preload=False, verbose=None):
-    """Reader function for EDF+, BDF conversion to FIF
+    """Reader function for EDF+, BDF conversion to FIF.
 
     Parameters
     ----------

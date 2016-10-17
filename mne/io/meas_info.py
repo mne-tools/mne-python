@@ -49,7 +49,7 @@ _kind_dict = dict(
 
 
 def _summarize_str(st):
-    """Aux function"""
+    """Make summary string."""
     return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
 
 
@@ -158,7 +158,7 @@ class Info(dict):
     """
 
     def copy(self):
-        """Copy the instance
+        """Copy the instance.
 
         Returns
         -------
@@ -168,7 +168,7 @@ class Info(dict):
         return Info(deepcopy(self))
 
     def normalize_proj(self):
-        """(Re-)Normalize projection vectors after subselection
+        """(Re-)Normalize projection vectors after subselection.
 
         Applying projection after sub-selecting a set of channels that
         were originally used to compute the original projection vectors
@@ -184,7 +184,7 @@ class Info(dict):
         _normalize_proj(self)
 
     def __repr__(self):
-        """Summarize info instead of printing all"""
+        """Summarize info instead of printing all."""
         strs = ['<Info | %s non-empty fields']
         non_empty = 0
         for k, v in self.items():
@@ -233,7 +233,7 @@ class Info(dict):
         return st
 
     def _check_consistency(self):
-        """Do some self-consistency checks and datatype tweaks"""
+        """Do some self-consistency checks and datatype tweaks."""
         missing = [bad for bad in self['bads'] if bad not in self['ch_names']]
         if len(missing) > 0:
             raise RuntimeError('bad channel(s) %s marked do not exist in info'
@@ -260,13 +260,13 @@ class Info(dict):
                                'duplicates for: %s' % dups)
 
     def _update_redundant(self):
-        """Update the redundant entries"""
+        """Update the redundant entries."""
         self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
         self['nchan'] = len(self['chs'])
 
 
 def read_fiducials(fname):
-    """Read fiducials from a fiff file
+    """Read fiducials from a fiff file.
 
     Parameters
     ----------
@@ -310,7 +310,7 @@ def read_fiducials(fname):
 
 
 def write_fiducials(fname, pts, coord_frame=0):
-    """Write fiducials to a fiff file
+    """Write fiducials to a fiff file.
 
     Parameters
     ----------
@@ -341,7 +341,7 @@ def write_fiducials(fname, pts, coord_frame=0):
 
 
 def _read_dig_fif(fid, meas_info):
-    """Helper to read digitizer data from a FIFF file"""
+    """Helper to read digitizer data from a FIFF file."""
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
     dig = None
     if len(isotrak) == 0:
@@ -417,7 +417,7 @@ def _read_dig_points(fname, comments='%', unit='auto'):
 
 
 def _write_dig_points(fname, dig_points):
-    """Write points to text file
+    """Write points to text file.
 
     Parameters
     ----------
@@ -451,7 +451,7 @@ def _write_dig_points(fname, dig_points):
 
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                      dig_points=None, dig_ch_pos=None):
-    """Constructs digitizer info for the info.
+    """Construct digitizer info for the info.
 
     Parameters
     ----------
@@ -537,7 +537,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
 
 @verbose
 def read_info(fname, verbose=None):
-    """Read measurement info from a file
+    """Read measurement info from a file.
 
     Parameters
     ----------
@@ -558,7 +558,7 @@ def read_info(fname, verbose=None):
 
 
 def read_bad_channels(fid, node):
-    """Read bad channels
+    """Read bad channels.
 
     Parameters
     ----------
@@ -586,7 +586,7 @@ def read_bad_channels(fid, node):
 
 @verbose
 def read_meas_info(fid, tree, clean_bads=False, verbose=None):
-    """Read the measurement info
+    """Read the measurement info.
 
     Parameters
     ----------
@@ -608,7 +608,6 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     meas : dict
         Node in tree that contains the info.
     """
-
     #   Find the desired blocks
     meas = dir_tree_find(tree, FIFF.FIFFB_MEAS)
     if len(meas) == 0:
@@ -986,7 +985,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
 
 
 def write_meas_info(fid, info, data_type=None, reset_range=True):
-    """Write measurement info into a file id (from a fif file)
+    """Write measurement info into a file id (from a fif file).
 
     Parameters
     ----------
@@ -1229,7 +1228,7 @@ def write_info(fname, info, data_type=None, reset_range=True):
 
 
 def _is_equal_dict(dicts):
-    """Aux function"""
+    """Check if dicts are equal."""
     tests = zip(*[d.items() for d in dicts])
     is_equal = []
     for d in tests:
@@ -1247,7 +1246,7 @@ def _is_equal_dict(dicts):
 
 @verbose
 def _merge_dict_values(dicts, key, verbose=None):
-    """Merge things together
+    """Merge things together.
 
     Fork for {'dict', 'list', 'array', 'other'}
     and consider cases where one or all are of the same type.
@@ -1263,7 +1262,7 @@ def _merge_dict_values(dicts, key, verbose=None):
         return func([isinstance(v, kind) for v in values])
 
     def _where_isinstance(values, kind):
-        """Aux function"""
+        """Get indices of instances."""
         return np.where([isinstance(v, type) for v in values])[0]
 
     # list
@@ -1413,7 +1412,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
 
 
 def create_info(ch_names, sfreq, ch_types=None, montage=None):
-    """Create a basic Info instance suitable for use with create_raw
+    """Create a basic Info instance suitable for use with create_raw.
 
     Parameters
     ----------
@@ -1514,7 +1513,7 @@ RAW_INFO_FIELDS = (
 
 
 def _empty_info(sfreq):
-    """Create an empty info dictionary"""
+    """Create an empty info dictionary."""
     from ..transforms import Transform
     _none_keys = (
         'acq_pars', 'acq_stim', 'buffer_size_sec', 'ctf_head_t', 'description',

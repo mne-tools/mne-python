@@ -1,4 +1,4 @@
-"""Coregistration between different coordinate frames"""
+"""Coregistration between different coordinate frames."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -947,7 +947,7 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
 
 def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
                  scale=None, subjects_dir=None):
-    """Scale labels to match a brain that was previously created by scaling.
+    r"""Scale labels to match a brain that was previously created by scaling.
 
     Parameters
     ----------

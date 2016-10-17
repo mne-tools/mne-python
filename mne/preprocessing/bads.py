@@ -6,7 +6,7 @@ import numpy as np
 
 
 def find_outliers(X, threshold=3.0, max_iter=2):
-    """Find outliers based on iterated Z-scoring
+    """Find outliers based on iterated Z-scoring.
 
     This procedure compares the absolute z-score against the threshold.
     After excluding local outliers, the comparison is repeated until no
