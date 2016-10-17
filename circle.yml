@@ -52,7 +52,9 @@ dependencies:
   override:
     # Figure out if we should run a full, pattern, or noplot version
     - cd /home/ubuntu/mne-python && python setup.py develop;
-    - git branch -a
+    - git remote add upstream git://github.com/mne-tools/mne-python.git;
+    - git fetch upstream;
+    - git branch -a;
     - mkdir -p ~/mne_data;
     - PATTERN="";
       if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
@@ -60,7 +62,7 @@ dependencies:
       elif [ "$CIRCLE_BRANCH" == "maint/0.13" ]; then
         echo html_stable > build.txt;
       else
-        FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH origin/master));
+        FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
         echo FNAMES="$FNAMES";
         for FNAME in $FNAMES; do
           if [[ `expr match $FNAME "\(tutorials\|examples\)/.*plot_.*\.py"` ]] ; then
