@@ -1,7 +1,7 @@
 .. -*- mode: rst -*-
 
 
-|Travis|_ |Appveyor|_ |Codecov|_ |Zenodo|_
+|Travis|_ |Appveyor|_ |Circle|_ |Codecov|_ |Zenodo|_
 
 |MNE|_
 
@@ -10,6 +10,9 @@
 
 .. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/reccwk3filrasumg/branch/master?svg=true
 .. _Appveyor: https://ci.appveyor.com/project/Eric89GXL/mne-python/branch/master
+
+.. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=svg
+.. _Circle: https://circleci.com/gh/mne-tools/mne-python
 
 .. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/master/graph/badge.svg
 .. _Codecov: https://codecov.io/gh/mne-tools/mne-python
