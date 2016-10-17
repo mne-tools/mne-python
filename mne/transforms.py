@@ -835,8 +835,8 @@ def _tps(distsq):
 ###############################################################################
 # Spherical harmonic approximation + TPS warp
 
-class SphericalSplineWarp(object):
-    """TPS warping of surfaces with spherical harmonic approximation.
+class SphericalSurfaceWarp(object):
+    """Warp surfaces via spherical harmonic smoothing and thin-plate splines.
 
     Notes
     -----
@@ -846,7 +846,7 @@ class SphericalSplineWarp(object):
         1. Perform a spherical harmonic approximation to the source and
            destination surfaces, which smooths them and allows arbitrary
            interpolation.
-        2. Create matched points on the two surfaces.
+        2. Choose matched points on the two surfaces.
         3. Use thin-plate spline warping (common in 2D image manipulation)
            to generate transformation coefficients.
         4. Warp points from the source subject (which should be inside the
@@ -883,7 +883,7 @@ class SphericalSplineWarp(object):
 
         Returns
         -------
-        inst : instance of SphericalSplineWarp
+        inst : instance of SphericalSurfaceWarp
             The warping object (for chaining).
         """
         from .bem import _fit_sphere

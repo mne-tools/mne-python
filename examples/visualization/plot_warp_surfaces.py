@@ -53,7 +53,7 @@ for surf in sample_surfs:
 ###############################################################################
 # Transform surfaces using TPS warping:
 
-warp = mne.transforms.SphericalSplineWarp()
+warp = mne.transforms.SphericalSurfaceWarp()
 warp.fit(source=hsp, destination=fsaverage_surfs[0]['rr'])
 for surf in sample_surfs:
     surf['rr'] = warp.transform(surf['rr'])
