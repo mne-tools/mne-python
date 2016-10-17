@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""Clean a raw file from EOG and ECG artifacts with PCA (ie SSP)."""
+"""Clean a raw file from EOG and ECG artifacts with PCA (ie SSP).
+
+You can do for example:
+
+$ mne clean_eog_ecg -i in_raw.fif -o clean_raw.fif -e -c
+"""
 from __future__ import print_function
 
 # Authors : Dr Engr. Sheraz Khan,  P.Eng, Ph.D.

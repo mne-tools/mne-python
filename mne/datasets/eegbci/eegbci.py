@@ -88,8 +88,8 @@ def data_path(url, path=None, force_update=False, update_path=None,
 
 @verbose
 def load_data(subject, runs, path=None, force_update=False, update_path=None,
-              base_url=EEGMI_URL, verbose=None):
-    r"""Get paths to local copy of EEGBCI dataset files.
+              base_url=EEGMI_URL, verbose=None):  # noqa: D301
+    """Get paths to local copy of EEGBCI dataset files.
 
     Parameters
     ----------
