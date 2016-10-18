@@ -1727,7 +1727,7 @@ of commits):
 
 .. _Eric Larson: http://larsoner.com
 
-.. _Denis Engemann: https://github.com/dengemann
+.. _Denis Engemann: http://denis-engemann.de
 
 .. _Christian Brodbeck: https://github.com/christianbrodbeck
 
