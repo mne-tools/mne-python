@@ -2060,13 +2060,15 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         raise ValueError('All times must be inside the evoked time series.')
     frames = [np.abs(evoked.times - time).argmin() for time in times]
 
-    if blit and plt.isinteractive():
-        logger.info('blit not supported with matplotlib in interactive mode. '
-                    'Disabling blit.')
-        blit = False
-    elif plt.get_backend() == 'MacOSX':
-        logger.info('blit not supported for MacOSX backend. Disabling blit.')
-        blit = False
+    if blit:
+        if plt.isinteractive():
+            logger.info('blit not supported with matplotlib in interactive '
+                        'mode. Disabling blit.')
+            blit = False
+        elif plt.get_backend() == 'MacOSX':
+            logger.info('blit not supported for MacOSX backend. '
+                        'Disabling blit.')
+            blit = False
     picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
                                                              ch_type=ch_type,
                                                              layout=None)
