@@ -127,4 +127,4 @@ build-doc-stable:
 	cd doc; DISPLAY=:1.0 xvfb-run -n 1 -s "-screen 0 1280x1024x24 -noreset -ac +extension GLX +render" make html_stable
 
 docstyle:
-	pydocstyle
+	@pydocstyle
