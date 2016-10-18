@@ -1,5 +1,4 @@
-"""Functions to make 3D plots with M/EEG data
-"""
+"""Functions to make 3D plots with M/EEG data."""
 from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -36,7 +35,7 @@ from ..externals.six import BytesIO
 
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                       n_jobs=1):
-    """Plot MEG/EEG fields on head surface and helmet in 3D
+    """Plot MEG/EEG fields on head surface and helmet in 3D.
 
     Parameters
     ----------
@@ -463,7 +462,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
 
 
 def _make_tris_fan(n_vert):
-    """Helper to make tris given a number of vertices of a circle-like obj"""
+    """Make tris given a number of vertices of a circle-like obj."""
     tris = np.zeros((n_vert - 2, 3), int)
     tris[:, 2] = np.arange(2, n_vert)
     tris[:, 1] = tris[:, 2] - 1
@@ -471,7 +470,7 @@ def _make_tris_fan(n_vert):
 
 
 def _sensor_shape(coil):
-    """Get the sensor shape vertices"""
+    """Get the sensor shape vertices."""
     rrs = np.empty([0, 2])
     tris = np.empty([0, 3], int)
     id_ = coil['type'] & 0xFFFF
@@ -524,8 +523,7 @@ def _sensor_shape(coil):
 
 
 def _limits_to_control_points(clim, stc_data, colormap):
-    """Private helper function to convert limits (values or percentiles)
-    to control points.
+    """Convert limits (values or percentiles) to control points.
 
     Note: If using 'mne', generate cmap control points for a directly
     mirrored cmap for simplicity (i.e., no normalization is computed to account
@@ -543,7 +541,6 @@ def _limits_to_control_points(clim, stc_data, colormap):
     colormap : str
         The colormap.
     """
-
     # Based on type of limits specified, get cmap control points
     if colormap == 'auto':
         if clim == 'auto':
@@ -604,7 +601,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           cortex="classic", size=800, background="black",
                           foreground="white", initial_time=None,
                           time_unit='s'):
-    """Plot SourceEstimates with PySurfer
+    """Plot SourceEstimates with PySurfer.
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
     which will automatically be set by this function. Plotting multiple
@@ -814,7 +811,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                                  modes=('cone', 'sphere'),
                                  scale_factors=(1, 0.6),
                                  verbose=None, **kwargs):
-    """Plot source estimates obtained with sparse solver
+    """Plot source estimates obtained with sparse solver.
 
     Active dipoles are represented in a "Glass" brain.
     If the same source is active in multiple source estimates it is
@@ -977,7 +974,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
                           brain_color=(1, 1, 0), fig_name=None,
                           fig_size=(600, 600), mode='cone',
                           scale_factor=0.1e-1, colors=None, verbose=None):
-    """Plot dipole locations
+    """Plot dipole locations.
 
     Only the location of the first time point of each dipole is shown.
 

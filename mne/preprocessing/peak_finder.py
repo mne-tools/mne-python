@@ -6,7 +6,7 @@ from .. utils import logger, verbose
 
 @verbose
 def peak_finder(x0, thresh=None, extrema=1, verbose=None):
-    """Noise tolerant fast peak finding algorithm
+    """Noise-tolerant fast peak-finding algorithm.
 
     Parameters
     ----------
@@ -42,7 +42,6 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     x(1250:1255) = max(x);
     peak_finder(x)
     """
-
     x0 = np.asanyarray(x0)
 
     if x0.ndim >= 2:

@@ -1,4 +1,4 @@
-"""Deal with pyface backend issues"""
+"""Deal with pyface backend issues."""
 # Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)

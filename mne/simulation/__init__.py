@@ -1,5 +1,4 @@
-"""Data simulation code
-"""
+"""Data simulation code."""
 
 from .evoked import add_noise_evoked, simulate_evoked, simulate_noise_evoked
 from .raw import simulate_raw

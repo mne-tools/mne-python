@@ -1,5 +1,4 @@
-"""Time frequency analysis tools
-"""
+"""Time frequency analysis tools."""
 
 from .tfr import (morlet, tfr_morlet, AverageTFR, tfr_multitaper,
                   read_tfrs, write_tfrs, EpochsTFR)

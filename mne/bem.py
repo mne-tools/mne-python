@@ -40,8 +40,9 @@ from .externals.six import string_types
 
 
 class ConductorModel(dict):
-    """BEM or sphere model"""
-    def __repr__(self):
+    """BEM or sphere model."""
+
+    def __repr__(self):  # noqa: D105
         if self['is_sphere']:
             center = ', '.join('%0.1f' % (x * 1000.) for x in self['r0'])
             pl = '' if len(self['layers']) == 1 else 's'
@@ -58,13 +59,14 @@ class ConductorModel(dict):
 
     @property
     def radius(self):
+        """Sphere radius if an EEG sphere model."""
         if not self['is_sphere']:
             raise RuntimeError('radius undefined for BEM')
         return None if len(self['layers']) == 0 else self['layers'][-1]['rad']
 
 
 def _calc_beta(rk, rk_norm, rk1, rk1_norm):
-    """These coefficients are used to calculate the magic vector omega"""
+    """These coefficients are used to calculate the magic vector omega."""
     rkk1 = rk1[0] - rk[0]
     size = np.sqrt(np.dot(rkk1, rkk1))
     rkk1 /= size
@@ -75,7 +77,7 @@ def _calc_beta(rk, rk_norm, rk1, rk1_norm):
 
 
 def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
-    """The linear potential matrix element computations"""
+    """Compute the linear potential matrix element computations."""
     from .source_space import _fast_cross_nd_sum
     omega = np.zeros((len(fros), 3))
 
@@ -128,7 +130,7 @@ def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
 
 
 def _correct_auto_elements(surf, mat):
-    """Improve auto-element approximation..."""
+    """Improve auto-element approximation."""
     pi2 = 2.0 * np.pi
     tris_flat = surf['tris'].ravel()
     misses = pi2 - mat.sum(axis=1)
@@ -151,7 +153,7 @@ def _correct_auto_elements(surf, mat):
 
 
 def _fwd_bem_lin_pot_coeff(surfs):
-    """Calculate the coefficients for linear collocation approach"""
+    """Calculate the coefficients for linear collocation approach."""
     # taken from fwd_bem_linear_collocation.c
     nps = [surf['np'] for surf in surfs]
     np_tot = sum(nps)
@@ -191,13 +193,12 @@ def _fwd_bem_lin_pot_coeff(surfs):
 
 
 def _fwd_bem_multi_solution(solids, gamma, nps):
-    """Do multi surface solution
+    """Do multi surface solution.
 
-      * Invert I - solids/(2*M_PI)
-      * Take deflation into account
-      * The matrix is destroyed after inversion
-      * This is the general multilayer case
-
+    * Invert I - solids/(2*M_PI)
+    * Take deflation into account
+    * The matrix is destroyed after inversion
+    * This is the general multilayer case
     """
     pi2 = 1.0 / (2 * np.pi)
     n_tot = np.sum(nps)
@@ -217,12 +218,12 @@ def _fwd_bem_multi_solution(solids, gamma, nps):
 
 
 def _fwd_bem_homog_solution(solids, nps):
-    """Helper to make a homogeneous solution"""
+    """Helper to make a homogeneous solution."""
     return _fwd_bem_multi_solution(solids, None, nps)
 
 
 def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
-    """Modify the solution according to the IP approach"""
+    """Modify the solution according to the IP approach."""
     n_last = n_tri[-1]
     mult = (1.0 + ip_mult) / ip_mult
 
@@ -244,7 +245,7 @@ def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
 
 
 def _fwd_bem_linear_collocation_solution(m):
-    """Compute the linear collocation potential solution"""
+    """Compute the linear collocation potential solution."""
     # first, add surface geometries
     from .surface import complete_surface_info
     for surf in m['surfs']:
@@ -276,7 +277,7 @@ def _fwd_bem_linear_collocation_solution(m):
 
 @verbose
 def make_bem_solution(surfs, verbose=None):
-    """Create a BEM solution using the linear collocation approach
+    """Create a BEM solution using the linear collocation approach.
 
     Parameters
     ----------
@@ -325,7 +326,7 @@ def make_bem_solution(surfs, verbose=None):
 # Make BEM model
 
 def _ico_downsample(surf, dest_grade):
-    """Downsample the surface if isomorphic to a subdivided icosahedron"""
+    """Downsample the surface if isomorphic to a subdivided icosahedron."""
     from .surface import _get_ico_surface
     n_tri = surf['ntri']
     found = -1
@@ -361,7 +362,7 @@ def _ico_downsample(surf, dest_grade):
 
 
 def _get_ico_map(fro, to):
-    """Helper to get a mapping between ico surfaces"""
+    """Helper to get a mapping between ico surfaces."""
     from .surface import _compute_nearest
     nearest, dists = _compute_nearest(fro['rr'], to['rr'], return_dists=True)
     n_bads = (dists > 5e-3).sum()
@@ -372,7 +373,7 @@ def _get_ico_map(fro, to):
 
 
 def _order_surfaces(surfs):
-    """Reorder the surfaces"""
+    """Reorder the surfaces."""
     if len(surfs) != 3:
         return surfs
     # we have three surfaces
@@ -388,7 +389,7 @@ def _order_surfaces(surfs):
 
 
 def _assert_complete_surface(surf):
-    """Check the sum of solid angles as seen from inside"""
+    """Check the sum of solid angles as seen from inside."""
     # from surface_checks.c
     from .source_space import _get_solids
     tot_angle = 0.
@@ -413,7 +414,7 @@ _surf_name = {
 
 
 def _assert_inside(fro, to):
-    """Helper to check one set of points is inside a surface"""
+    """Helper to check one set of points is inside a surface."""
     # this is "is_inside" in surface_checks.c
     from .source_space import _get_solids
     tot_angle = _get_solids(to['rr'][to['tris']], fro['rr'])
@@ -423,7 +424,7 @@ def _assert_inside(fro, to):
 
 
 def _check_surfaces(surfs):
-    """Check that the surfaces are complete and non-intersecting"""
+    """Check that the surfaces are complete and non-intersecting."""
     for surf in surfs:
         _assert_complete_surface(surf)
     # Then check the topology
@@ -434,7 +435,7 @@ def _check_surfaces(surfs):
 
 
 def _check_surface_size(surf):
-    """Check that the coordinate limits are reasonable"""
+    """Check that the coordinate limits are reasonable."""
     sizes = surf['rr'].max(axis=0) - surf['rr'].min(axis=0)
     if (sizes < 0.05).any():
         raise RuntimeError('Dimensions of the surface %s seem too small '
@@ -444,7 +445,7 @@ def _check_surface_size(surf):
 
 
 def _check_thicknesses(surfs):
-    """How close are we?"""
+    """Compute how close we are."""
     from .surface import _compute_nearest
     for surf_1, surf_2 in zip(surfs[:-1], surfs[1:]):
         min_dist = _compute_nearest(surf_1['rr'], surf_2['rr'],
@@ -459,8 +460,7 @@ def _check_thicknesses(surfs):
 
 
 def _surfaces_to_bem(fname_surfs, ids, sigmas, ico=None):
-    """Convert surfaces to a BEM
-    """
+    """Convert surfaces to a BEM."""
     from .surface import _read_surface_geom
     # equivalent of mne_surf2bem
     surfs = list()
@@ -495,7 +495,7 @@ def _surfaces_to_bem(fname_surfs, ids, sigmas, ico=None):
 @verbose
 def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
                    subjects_dir=None, verbose=None):
-    """Create a BEM model for a subject
+    """Create a BEM model for a subject.
 
     .. note:: To get a single layer bem corresponding to the --homog flag in
               the command line tool set the ``conductivity`` parameter
@@ -563,7 +563,7 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
 # Compute EEG sphere model
 
 def _fwd_eeg_get_multi_sphere_model_coeffs(m, n_terms):
-    """Get the model depended weighting factor for n"""
+    """Get the model depended weighting factor for n."""
     nlayer = len(m['layers'])
     if nlayer in (0, 1):
         return 1.
@@ -598,6 +598,7 @@ def _fwd_eeg_get_multi_sphere_model_coeffs(m, n_terms):
 
 
 def _compose_linear_fitting_data(mu, u):
+    """Get the linear fitting data."""
     # y is the data to be fitted (nterms-1 x 1)
     # M is the model matrix      (nterms-1 x nfit-1)
     for k in range(u['nterms'] - 1):
@@ -609,7 +610,7 @@ def _compose_linear_fitting_data(mu, u):
 
 
 def _compute_linear_parameters(mu, u):
-    """Compute the best-fitting linear parameters"""
+    """Compute the best-fitting linear parameters."""
     _compose_linear_fitting_data(mu, u)
     uu, sing, vv = linalg.svd(u['M'], full_matrices=False)
 
@@ -635,7 +636,7 @@ def _compute_linear_parameters(mu, u):
 
 
 def _one_step(mu, u):
-    """Evaluate the residual sum of squares fit for one set of mu values"""
+    """Evaluate the residual sum of squares fit for one set of mu values."""
     if np.abs(mu).max() > 1.0:
         return 1.0
 
@@ -653,7 +654,7 @@ def _one_step(mu, u):
 
 
 def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
-    """Fit the Berg-Scherg equivalent spherical model dipole parameters"""
+    """Fit the Berg-Scherg equivalent spherical model dipole parameters."""
     from scipy.optimize import fmin_cobyla
     assert nfit >= 2
     u = dict(y=np.zeros(nterms - 1), resi=np.zeros(nterms - 1),
@@ -695,7 +696,7 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
 def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
                       relative_radii=(0.90, 0.92, 0.97, 1.0),
                       sigmas=(0.33, 1.0, 0.004, 0.33), verbose=None):
-    """Create a spherical model for forward solution calculation
+    """Create a spherical model for forward solution calculation.
 
     Parameters
     ----------
@@ -812,7 +813,7 @@ _dig_kind_ints = tuple(_dig_kind_dict.values())
 
 @verbose
 def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
-    """Fit a sphere to the headshape points to determine head center
+    """Fit a sphere to the headshape points to determine head center.
 
     Parameters
     ----------
@@ -1017,8 +1018,7 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
                        show=False, verbose=None):
-    """
-    Create BEM surfaces using the watershed algorithm included with FreeSurfer
+    """Create BEM surfaces using the FreeSurfer watershed algorithm.
 
     Parameters
     ----------
@@ -1183,7 +1183,7 @@ def _extract_volume_info(mgz, raise_error=True):
 
 @verbose
 def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
-    """Read the BEM surfaces from a FIF file
+    """Read the BEM surfaces from a FIF file.
 
     Parameters
     ----------
@@ -1252,8 +1252,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
 
 
 def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
-    """Read one bem surface
-    """
+    """Read one bem surface."""
     # fid should be open as a context manager here
     res = dict()
     # Read all the interesting stuff
@@ -1323,7 +1322,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
 
 @verbose
 def read_bem_solution(fname, verbose=None):
-    """Read the BEM solution from a file
+    """Read the BEM solution from a file.
 
     Parameters
     ----------
@@ -1417,7 +1416,7 @@ def read_bem_solution(fname, verbose=None):
 
 
 def _add_gamma_multipliers(bem):
-    """Helper to add gamma and multipliers in-place"""
+    """Helper to add gamma and multipliers in-place."""
     bem['sigma'] = np.array([surf['sigma'] for surf in bem['surfs']])
     # Dirty trick for the zero conductivity outside
     sigma = np.r_[0.0, bem['sigma']]
@@ -1435,7 +1434,7 @@ _surf_dict = {'inner_skull': FIFF.FIFFV_BEM_SURF_ID_BRAIN,
 
 
 def _bem_find_surface(bem, id_):
-    """Find surface from already-loaded BEM"""
+    """Find surface from already-loaded BEM."""
     if isinstance(id_, string_types):
         name = id_
         id_ = _surf_dict[id_]
@@ -1449,7 +1448,7 @@ def _bem_find_surface(bem, id_):
 
 
 def _bem_explain_surface(id_):
-    """Return a string corresponding to the given surface ID"""
+    """Return a string corresponding to the given surface ID."""
     _rev_dict = dict((val, key) for key, val in _surf_dict.items())
     return _rev_dict[id_]
 
@@ -1458,7 +1457,7 @@ def _bem_explain_surface(id_):
 # Write
 
 def write_bem_surfaces(fname, surfs):
-    """Write BEM surfaces to a fiff file
+    """Write BEM surfaces to a fiff file.
 
     Parameters
     ----------
@@ -1478,7 +1477,7 @@ def write_bem_surfaces(fname, surfs):
 
 
 def _write_bem_surfaces_block(fid, surfs):
-    """Helper to actually write bem surfaces"""
+    """Helper to actually write bem surfaces."""
     for surf in surfs:
         start_block(fid, FIFF.FIFFB_BEM_SURF)
         write_float(fid, FIFF.FIFF_BEM_SIGMA, surf['sigma'])
@@ -1496,7 +1495,7 @@ def _write_bem_surfaces_block(fid, surfs):
 
 
 def write_bem_solution(fname, bem):
-    """Write a BEM model with solution
+    """Write a BEM model with solution.
 
     Parameters
     ----------
@@ -1532,7 +1531,7 @@ def write_bem_solution(fname, bem):
 # Create 3-Layers BEM model from Flash MRI images
 
 def _prepare_env(subject, subjects_dir, requires_freesurfer, requires_mne):
-    """Helper to prepare an env object for subprocess calls"""
+    """Helper to prepare an env object for subprocess calls."""
     env = os.environ.copy()
     if requires_freesurfer and not os.environ.get('FREESURFER_HOME'):
         raise RuntimeError('I cannot find freesurfer. The FREESURFER_HOME '
@@ -1562,7 +1561,7 @@ def _prepare_env(subject, subjects_dir, requires_freesurfer, requires_mne):
 @verbose
 def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
                        subjects_dir=None, verbose=None):
-    """Convert DICOM files for use with make_flash_bem
+    """Convert DICOM files for use with make_flash_bem.
 
     Parameters
     ----------
@@ -1708,7 +1707,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                    flash_path=None, verbose=None):
-    """Create 3-Layer BEM model from prepared flash MRI images
+    """Create 3-Layer BEM model from prepared flash MRI images.
 
     Parameters
     -----------
@@ -1890,6 +1889,7 @@ def _check_bem_size(surfs):
 
 
 def _symlink(src, dest):
+    """Create a symlink."""
     try:
         os.symlink(src, dest)
     except OSError:

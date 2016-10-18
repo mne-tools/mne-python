@@ -16,7 +16,7 @@ from ..externals.six.moves import zip
 
 def select_source_in_label(src, label, random_state=None, location='random',
                            subject=None, subjects_dir=None, surf='sphere'):
-    """Select source positions using a label
+    """Select source positions using a label.
 
     Parameters
     ----------
@@ -91,7 +91,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
                         data_fun=lambda t: 1e-7 * np.sin(20 * np.pi * t),
                         labels=None, random_state=None, location='random',
                         subject=None, subjects_dir=None, surf='sphere'):
-    """Generate sparse (n_dipoles) sources time courses from data_fun
+    """Generate sparse (n_dipoles) sources time courses from data_fun.
 
     This function randomly selects ``n_dipoles`` vertices in the whole
     cortex or one single vertex (randomly in or in the center of) each
@@ -217,7 +217,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
 
 
 def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
-    """Simulate sources time courses from waveforms and labels
+    """Simulate sources time courses from waveforms and labels.
 
     This function generates a source estimate with extended sources by
     filling the labels with the waveforms given in stc_data.

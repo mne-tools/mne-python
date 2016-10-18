@@ -87,7 +87,7 @@ def test_permutation_step_down_p():
         try:
             from sklearn.feature_extraction.image import grid_to_graph
         except ImportError:
-            from scikits.learn.feature_extraction.image import grid_to_graph  # noqa
+            from scikits.learn.feature_extraction.image import grid_to_graph  # noqa: F401
     except ImportError:
         return
     rng = np.random.RandomState(0)

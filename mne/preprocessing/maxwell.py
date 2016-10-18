@@ -45,7 +45,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    regularize='in', ignore_ref=False, bad_condition='error',
                    head_pos=None, st_fixed=True, st_only=False, mag_scale=100.,
                    verbose=None):
-    """Apply Maxwell filter to data using multipole moments
+    u"""Apply Maxwell filter to data using multipole moments.
 
     .. warning:: Automatic bad channel detection is not currently implemented.
                  It is critical to mark bad channels before running Maxwell
@@ -527,7 +527,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
 
 def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
-    """Helper to get the magnetometer scale factor"""
+    """Get the magnetometer scale factor."""
     if isinstance(mag_scale, string_types):
         if mag_scale != 'auto':
             raise ValueError('mag_scale must be a float or "auto", got "%s"'
@@ -558,7 +558,7 @@ def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
 
 
 def _remove_meg_projs(inst):
-    """Helper to remove inplace existing MEG projectors (assumes inactive)"""
+    """Remove inplace existing MEG projectors (assumes inactive)."""
     meg_picks = pick_types(inst.info, meg=True, exclude=[])
     meg_channels = [inst.ch_names[pi] for pi in meg_picks]
     non_meg_proj = list()
@@ -569,7 +569,7 @@ def _remove_meg_projs(inst):
 
 
 def _check_destination(destination, info, head_frame):
-    """Helper to triage our reconstruction trans"""
+    """Triage our reconstruction trans."""
     if destination is None:
         return info['dev_head_t']
     if not head_frame:
@@ -595,7 +595,7 @@ def _check_destination(destination, info, head_frame):
 
 
 def _prep_mf_coils(info, ignore_ref=True):
-    """Helper to get all coil integration information loaded and sorted"""
+    """Get all coil integration information loaded and sorted."""
     coils, comp_coils = _prep_meg_channels(
         info, accurate=True, elekta_defs=True, head_frame=False,
         ignore_ref=ignore_ref, verbose=False)[:2]
@@ -628,7 +628,7 @@ def _prep_mf_coils(info, ignore_ref=True):
 
 
 def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
-    """Helper to get all trans and limits we need"""
+    """Get all trans and limits we need."""
     pos_idx = np.arange(*np.searchsorted(pos[1], [start, stop]))
     used = np.zeros(stop - start, bool)
     trans = list()
@@ -680,7 +680,7 @@ def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
 
 def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
              n_positions, t_str):
-    """Compute and apply SSP-like projection vectors based on min corr"""
+    """Compute and apply SSP-like projection vectors based on min corr."""
     np.asarray_chkfinite(resid)
     t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
     # Apply projector according to Eq. 12 in [2]_
@@ -693,7 +693,7 @@ def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
 
 
 def _copy_preload_add_channels(raw, add_channels):
-    """Helper to load data for processing and (maybe) add cHPI pos channels"""
+    """Load data for processing and (maybe) add cHPI pos channels."""
     raw = raw.copy()
     if add_channels:
         kinds = [FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2, FIFF.FIFFV_QUAT_3,
@@ -736,7 +736,7 @@ def _copy_preload_add_channels(raw, add_channels):
 
 
 def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
-    """Check for a valid pos array and transform it to a more usable form"""
+    """Check for a valid pos array and transform it to a more usable form."""
     if pos is None:
         return [None, np.array([-1])]
     if not head_frame:
@@ -773,7 +773,7 @@ def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
 def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
                 coil_scale, grad_picks, mag_picks, good_picks, mag_or_fine,
                 bad_condition, t, mag_scale):
-    """Helper to get a decomposition matrix and pseudoinverse matrices"""
+    """Get a decomposition matrix and pseudoinverse matrices."""
     #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
@@ -805,7 +805,7 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
 
 def _get_s_decomp(exp, all_coils, trans, coil_scale, cal, ignore_ref,
                   grad_picks, mag_picks, good_picks, mag_scale):
-    """Helper to get S_decomp"""
+    """Get S_decomp."""
     S_decomp = _trans_sss_basis(exp, all_coils, trans, coil_scale)
     if cal is not None:
         # Compute point-like mags to incorporate gradiometer imbalance
@@ -821,7 +821,7 @@ def _get_s_decomp(exp, all_coils, trans, coil_scale, cal, ignore_ref,
 
 @verbose
 def _regularize(regularize, exp, S_decomp, mag_or_fine, t, verbose=None):
-    """Regularize a decomposition matrix"""
+    """Regularize a decomposition matrix."""
     # ALWAYS regularize the out components according to norm, since
     # gradiometer-only setups (e.g., KIT) can have zero first-order
     # components
@@ -852,7 +852,7 @@ def _regularize(regularize, exp, S_decomp, mag_or_fine, t, verbose=None):
 
 
 def _get_mf_picks(info, int_order, ext_order, ignore_ref=False):
-    """Helper to pick types for Maxwell filtering"""
+    """Pick types for Maxwell filtering."""
     # Check for T1/T2 mag types
     mag_inds_T1T2 = _get_T1T2_mag_inds(info)
     if len(mag_inds_T1T2) > 0:
@@ -897,14 +897,14 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False):
 
 
 def _check_regularize(regularize):
-    """Helper to ensure regularize is valid"""
+    """Ensure regularize is valid."""
     if not (regularize is None or (isinstance(regularize, string_types) and
                                    regularize in ('in',))):
         raise ValueError('regularize must be None or "in"')
 
 
 def _check_usable(inst):
-    """Helper to ensure our data are clean"""
+    """Ensure our data are clean."""
     if inst.proj:
         raise RuntimeError('Projectors cannot be applied to data.')
     current_comp = inst.compensation_grade
@@ -915,7 +915,7 @@ def _check_usable(inst):
 
 
 def _col_norm_pinv(x):
-    """Compute the pinv with column-normalization to stabilize calculation
+    """Compute the pinv with column-normalization to stabilize calculation.
 
     Note: will modify/overwrite x.
     """
@@ -933,13 +933,13 @@ def _sq(x):
 
 
 def _check_finite(data):
-    """Helper to ensure data is finite"""
+    """Ensure data is finite."""
     if not np.isfinite(data).all():
         raise RuntimeError('data contains non-finite numbers')
 
 
 def _sph_harm_norm(order, degree):
-    """Normalization factor for spherical harmonics"""
+    """Normalization factor for spherical harmonics."""
     # we could use scipy.special.poch(degree + order + 1, -2 * order)
     # here, but it's slower for our fairly small degree
     norm = np.sqrt((2 * degree + 1.) / (4 * np.pi))
@@ -950,7 +950,7 @@ def _sph_harm_norm(order, degree):
 
 
 def _concatenate_sph_coils(coils):
-    """Helper to concatenate MEG coil parameters for spherical harmoncs."""
+    """Concatenate MEG coil parameters for spherical harmoncs."""
     rs = np.concatenate([coil['r0_exey'] for coil in coils])
     wcoils = np.concatenate([coil['w'] for coil in coils])
     ezs = np.concatenate([np.tile(coil['ez'][np.newaxis, :],
@@ -965,13 +965,13 @@ _mu_0 = 4e-7 * np.pi  # magnetic permeability
 
 
 def _get_mag_mask(coils):
-    """Helper to get the coil_scale for Maxwell filtering"""
+    """Get the coil_scale for Maxwell filtering."""
     return np.array([coil['coil_class'] == FIFF.FWD_COILC_MAG
                      for coil in coils])
 
 
 def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
-    """Compute SSS basis using non-optimized (but more readable) algorithms"""
+    """Compute SSS basis using non-optimized (but more readable) algorithms."""
     int_order, ext_order = exp['int_order'], exp['ext_order']
     origin = exp['origin']
     # Compute vector between origin and coil, convert to spherical coords
@@ -1218,14 +1218,14 @@ def _sss_basis(exp, all_coils):
 
 def _integrate_points(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
                       cosmags, bins, n_coils):
-    """Helper to integrate points in spherical coords"""
+    """Integrate points in spherical coords."""
     grads = _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol).T
     grads = np.einsum('ij,ij->i', grads, cosmags)
     return np.bincount(bins, grads, n_coils)
 
 
 def _tabular_legendre(r, nind):
-    """Helper to compute associated Legendre polynomials"""
+    """Compute associated Legendre polynomials."""
     r_n = np.sqrt(np.sum(r * r, axis=1))
     x = r[:, 2] / r_n  # cos(theta)
     L = list()
@@ -1251,7 +1251,7 @@ def _tabular_legendre(r, nind):
 
 
 def _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol):
-    """Helper to convert spherical coords to cartesian"""
+    """Convert spherical coords to cartesian."""
     return np.array([(sin_pol * cos_az * b_r +
                       cos_pol * cos_az * b_pol - sin_az * b_az),
                      (sin_pol * sin_az * b_r +
@@ -1260,7 +1260,7 @@ def _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol):
 
 
 def _get_degrees_orders(order):
-    """Helper to get the set of degrees used in our basis functions"""
+    """Get the set of degrees used in our basis functions."""
     degrees = np.zeros(_get_n_moments(order), int)
     orders = np.zeros_like(degrees)
     for degree in range(1, order + 1):
@@ -1301,7 +1301,7 @@ def _alegendre_deriv(order, degree, val):
 
 
 def _bases_complex_to_real(complex_tot, int_order, ext_order):
-    """Convert complex spherical harmonics to real"""
+    """Convert complex spherical harmonics to real."""
     n_in, n_out = _get_n_moments([int_order, ext_order])
     complex_in = complex_tot[:, :n_in]
     complex_out = complex_tot[:, n_in:]
@@ -1326,7 +1326,7 @@ def _bases_complex_to_real(complex_tot, int_order, ext_order):
 
 
 def _bases_real_to_complex(real_tot, int_order, ext_order):
-    """Convert real spherical harmonics to complex"""
+    """Convert real spherical harmonics to complex."""
     n_in, n_out = _get_n_moments([int_order, ext_order])
     real_in = real_tot[:, :n_in]
     real_out = real_tot[:, n_in:]
@@ -1349,7 +1349,7 @@ def _bases_real_to_complex(real_tot, int_order, ext_order):
 
 
 def _check_info(info, sss=True, tsss=True, calibration=True, ctc=True):
-    """Ensure that Maxwell filtering has not been applied yet"""
+    """Ensure that Maxwell filtering has not been applied yet."""
     for ent in info.get('proc_history', []):
         for msg, key, doing in (('SSS', 'sss_info', sss),
                                 ('tSSS', 'max_st', tsss),
@@ -1364,7 +1364,7 @@ def _check_info(info, sss=True, tsss=True, calibration=True, ctc=True):
 
 def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
                      sss_ctc, sss_cal, max_st, reg_moments, st_only):
-    """Helper function to update info inplace after Maxwell filtering
+    """Update info inplace after Maxwell filtering.
 
     Parameters
     ----------
@@ -1415,7 +1415,7 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
 
 
 def _reset_meg_bads(info):
-    """Helper to reset MEG bads"""
+    """Reset MEG bads."""
     meg_picks = pick_types(info, meg=True, exclude=[])
     info['bads'] = [bad for bad in info['bads']
                     if info['ch_names'].index(bad) not in meg_picks]
@@ -1427,7 +1427,7 @@ if 'check_finite' in _get_args(linalg.svd):
 
 
 def _orth_overwrite(A):
-    """Helper to create a slightly more efficient 'orth'"""
+    """Create a slightly more efficient 'orth'."""
     # adapted from scipy/linalg/decomp_svd.py
     u, s = _safe_svd(A, full_matrices=False, **check_disable)[:2]
     M, N = A.shape
@@ -1438,7 +1438,7 @@ def _orth_overwrite(A):
 
 
 def _overlap_projector(data_int, data_res, corr):
-    """Calculate projector for removal of subspace intersection in tSSS"""
+    """Calculate projector for removal of subspace intersection in tSSS."""
     # corr necessary to deal with noise when finding identical signal
     # directions in the subspace. See the end of the Results section in [2]_
 
@@ -1479,7 +1479,6 @@ def _overlap_projector(data_int, data_res, corr):
 
 def _read_fine_cal(fine_cal):
     """Read sensor locations and calib. coeffs from fine calibration file."""
-
     # Read new sensor locations
     cal_chs = list()
     cal_ch_numbers = list()
@@ -1507,7 +1506,7 @@ def _read_fine_cal(fine_cal):
 
 
 def _update_sensor_geometry(info, fine_cal, ignore_ref):
-    """Helper to replace sensor geometry information and reorder cal_chs"""
+    """Replace sensor geometry information and reorder cal_chs."""
     from ._fine_cal import read_fine_calibration
     logger.info('    Using fine calibration %s' % op.basename(fine_cal))
     fine_cal = read_fine_calibration(fine_cal)  # filename -> dict
@@ -1607,7 +1606,7 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
 
 
 def _get_grad_point_coilsets(info, n_types, ignore_ref):
-    """Helper to get point-type coilsets for gradiometers"""
+    """Get point-type coilsets for gradiometers."""
     grad_coilsets = list()
     grad_info = pick_info(
         info, pick_types(info, meg='grad', exclude=[]), copy=True)
@@ -1624,7 +1623,7 @@ def _get_grad_point_coilsets(info, n_types, ignore_ref):
 
 
 def _sss_basis_point(exp, trans, cal, ignore_ref=False, mag_scale=100.):
-    """Compute multipolar moments for point-like magnetometers (in fine cal)"""
+    """Compute multipolar moments for point-like mags (in fine cal)."""
     # Loop over all coordinate directions desired and create point mags
     S_tot = 0.
     # These are magnetometers, so use a uniform coil_scale of 100.
@@ -1640,14 +1639,14 @@ def _sss_basis_point(exp, trans, cal, ignore_ref=False, mag_scale=100.):
 
 
 def _regularize_out(int_order, ext_order, mag_or_fine):
-    """Helper to regularize out components based on norm"""
+    """Regularize out components based on norm."""
     n_in = _get_n_moments(int_order)
     out_removes = list(np.arange(0 if mag_or_fine.any() else 3) + n_in)
     return list(out_removes)
 
 
 def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine):
-    """Regularize basis set using idealized SNR measure"""
+    """Regularize basis set using idealized SNR measure."""
     n_in, n_out = _get_n_moments([int_order, ext_order])
 
     # The "signal" terms depend only on the inner expansion order
@@ -1742,7 +1741,7 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine):
 
 
 def _compute_sphere_activation_in(degrees):
-    """Helper to compute the "in" power from random currents in a sphere
+    u"""Compute the "in" power from random currents in a sphere.
 
     Parameters
     ----------
@@ -1786,7 +1785,7 @@ def _compute_sphere_activation_in(degrees):
 
 
 def _trans_sss_basis(exp, all_coils, trans=None, coil_scale=100.):
-    """SSS basis (optionally) using a dev<->head trans"""
+    """Compute SSS basis (optionally) using a dev<->head trans."""
     if trans is not None:
         if not isinstance(trans, Transform):
             trans = Transform('meg', 'head', trans)

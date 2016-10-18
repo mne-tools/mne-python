@@ -46,19 +46,20 @@ DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
 
 
 class _bytes_io_mock_context():
+    """Make a context for BytesIO."""
 
-    def __init__(self, target):
+    def __init__(self, target):  # noqa: D102
         self.target = target
 
-    def __enter__(self):
+    def __enter__(self):  # noqa: D105
         return self.target
 
-    def __exit__(self, type, value, tb):
+    def __exit__(self, type, value, tb):  # noqa: D105
         pass
 
 
 def _bti_open(fname, *args, **kwargs):
-    """Handle bytes io"""
+    """Handle BytesIO."""
     if isinstance(fname, six.string_types):
         return open(fname, *args, **kwargs)
     elif isinstance(fname, six.BytesIO):
@@ -68,7 +69,7 @@ def _bti_open(fname, *args, **kwargs):
 
 
 def _get_bti_dev_t(adjust=0., translation=(0.0, 0.02, 0.11)):
-    """Get the general Magnes3600WH to Neuromag coordinate transform
+    """Get the general Magnes3600WH to Neuromag coordinate transform.
 
     Parameters
     ----------
@@ -98,7 +99,7 @@ def _get_bti_dev_t(adjust=0., translation=(0.0, 0.02, 0.11)):
 
 
 def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
-    """Renames appropriately ordered list of channel names
+    """Rename appropriately ordered list of channel names.
 
     Parameters
     ----------
@@ -140,8 +141,7 @@ def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
 
 
 def _read_head_shape(fname):
-    """ Helper Function """
-
+    """Read the head shape."""
     with _bti_open(fname, 'rb') as fid:
         fid.seek(BTI.FILE_HS_N_DIGPOINTS)
         _n_dig_points = read_int32(fid)
@@ -152,8 +152,7 @@ def _read_head_shape(fname):
 
 
 def _get_ctf_head_to_head_t(idx_points):
-    """ Helper function """
-
+    """Get the CTF head transform."""
     fp = idx_points.astype('>f8')
     dp = np.sum(fp[2] * (fp[0] - fp[1]))
     tmp1, tmp2 = sum_squared(fp[2]), sum_squared(fp[0] - fp[1])
@@ -170,14 +169,14 @@ def _get_ctf_head_to_head_t(idx_points):
 
 
 def _flip_fiducials(idx_points_nm):
-    # adjust order of fiducials to Neuromag
+    """Adjust order of fiducials to Neuromag."""
     # XXX presumably swap LPA and RPA
     idx_points_nm[[1, 2]] = idx_points_nm[[2, 1]]
     return idx_points_nm
 
 
 def _process_bti_headshape(fname, convert=True, use_hpi=True):
-    """Read index points and dig points from BTi head shape file
+    """Read index points and dig points from BTi head shape file.
 
     Parameters
     ----------
@@ -215,14 +214,14 @@ def _process_bti_headshape(fname, convert=True, use_hpi=True):
 
 
 def _convert_hs_points(points, t):
-    """convert to Neuromag"""
+    """Convert headshape points to Neuromag."""
     points = apply_trans(t['trans'], points)
     points = _flip_fiducials(points).astype(np.float32)
     return points
 
 
 def _points_to_dig(points, n_idx_points, use_hpi):
-    """Put points in info dig structure"""
+    """Put points in info dig structure."""
     idx_idents = list(range(1, 4)) + list(range(1, (n_idx_points + 1) - 3))
     dig = []
     for idx in range(points.shape[0]):
@@ -247,7 +246,7 @@ def _points_to_dig(points, n_idx_points, use_hpi):
 
 
 def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
-    """ Helper Function """
+    """Convert the coil trans."""
     t = combine_transforms(invert_transform(dev_ctf_t), bti_dev_t,
                            'ctf_head', 'meg')
     t = np.dot(t['trans'], coil_trans)
@@ -255,7 +254,7 @@ def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
 
 
 def _correct_offset(fid):
-    """ Align fid pointer """
+    """Align fid pointer."""
     current = fid.tell()
     if ((current % BTI.FILE_CURPOS) != 0):
         offset = current % BTI.FILE_CURPOS
@@ -263,7 +262,7 @@ def _correct_offset(fid):
 
 
 def _read_config(fname):
-    """Read BTi system config file
+    """Read BTi system config file.
 
     Parameters
     ----------
@@ -274,9 +273,7 @@ def _read_config(fname):
     -------
     cfg : dict
         The config blocks found.
-
     """
-
     with _bti_open(fname, 'rb') as fid:
         cfg = dict()
         cfg['hdr'] = {'version': read_int16(fid),
@@ -541,6 +538,7 @@ def _read_config(fname):
 
         # prepare reading channels
         def dev_header(x):
+            """Create a dev header."""
             return dict(size=read_int32(x), checksum=read_int32(x),
                         reserved=read_str(x, 32))
 
@@ -618,7 +616,7 @@ def _read_config(fname):
 
 
 def _read_epoch(fid):
-    """Read BTi PDF epoch"""
+    """Read BTi PDF epoch."""
     out = {'pts_in_epoch': read_int32(fid),
            'epoch_duration': read_float(fid),
            'expected_iti': read_float(fid),
@@ -633,7 +631,7 @@ def _read_epoch(fid):
 
 
 def _read_channel(fid):
-    """Read BTi PDF channel"""
+    """Read BTi PDF channel."""
     out = {'chan_label': read_str(fid, 16),
            'chan_no': read_int16(fid),
            'attributes': read_int16(fid),
@@ -655,7 +653,7 @@ def _read_channel(fid):
 
 
 def _read_event(fid):
-    """Read BTi PDF event"""
+    """Read BTi PDF event."""
     out = {'event_name': read_str(fid, 16),
            'start_lat': read_float(fid),
            'end_lat': read_float(fid),
@@ -670,8 +668,7 @@ def _read_event(fid):
 
 
 def _read_process(fid):
-    """Read BTi PDF process"""
-
+    """Read BTi PDF process."""
     out = {'nbytes': read_int32(fid),
            'process_type': read_str(fid, 20),
            'checksum': read_int32(fid),
@@ -716,8 +713,7 @@ def _read_process(fid):
 
 
 def _read_assoc_file(fid):
-    """Read BTi PDF assocfile"""
-
+    """Read BTi PDF assocfile."""
     out = {'file_id': read_int16(fid),
            'length': read_int16(fid)}
 
@@ -728,8 +724,7 @@ def _read_assoc_file(fid):
 
 
 def _read_pfid_ed(fid):
-    """Read PDF ed file"""
-
+    """Read PDF ed file."""
     out = {'comment_size': read_int32(fid),
            'name': read_str(fid, 17)}
 
@@ -750,7 +745,7 @@ def _read_pfid_ed(fid):
 
 
 def _read_coil_def(fid):
-    """ Read coil definition """
+    """Read coil definition."""
     coildef = {'position': read_double_matrix(fid, 1, 3),
                'orientation': read_double_matrix(fid, 1, 3),
                'radius': read_double(fid),
@@ -763,8 +758,7 @@ def _read_coil_def(fid):
 
 
 def _read_ch_config(fid):
-    """Read BTi channel config"""
-
+    """Read BTi channel config."""
     cfg = {'name': read_str(fid, BTI.FILE_CONF_CH_NAME),
            'chan_no': read_int16(fid),
            'ch_type': read_uint16(fid),
@@ -814,7 +808,7 @@ def _read_ch_config(fid):
 
 
 def _read_bti_header_pdf(pdf_fname):
-    """Read header from pdf file"""
+    """Read header from pdf file."""
     with _bti_open(pdf_fname, 'rb') as fid:
         fid.seek(-8, 2)
         start = fid.tell()
@@ -892,9 +886,7 @@ def _read_bti_header_pdf(pdf_fname):
 
 
 def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
-    """ Read bti PDF header
-    """
-
+    """Read bti PDF header."""
     info = _read_bti_header_pdf(pdf_fname) if pdf_fname is not None else dict()
     cfg = _read_config(config_fname)
     info['bti_transform'] = cfg['transforms']
@@ -963,7 +955,7 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
 
 
 def _correct_trans(t):
-    """Helper to convert to a transformation matrix"""
+    """Convert to a transformation matrix."""
     t = np.array(t, np.float64)
     t[:3, :3] *= t[3, :3][:, np.newaxis]  # apply scalings
     t[3, :3] = 0.  # remove them
@@ -972,7 +964,7 @@ def _correct_trans(t):
 
 
 class RawBTi(_BaseRaw):
-    """ Raw object from 4D Neuroimaging MagnesWH3600 data
+    """Raw object from 4D Neuroimaging MagnesWH3600 data.
 
     Parameters
     ----------
@@ -1013,13 +1005,14 @@ class RawBTi(_BaseRaw):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
+
     @verbose
     def __init__(self, pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=0.,
                  translation=(0.0, 0.02, 0.11), convert=True,
                  rename_channels=True, sort_by_ch_name=True,
                  ecg_ch='E31', eog_ch=('E63', 'E64'),
-                 preload=False, verbose=None):
+                 preload=False, verbose=None):  # noqa: D102
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname, config_fname=config_fname,
             head_shape_fname=head_shape_fname, rotation_x=rotation_x,
@@ -1035,7 +1028,7 @@ class RawBTi(_BaseRaw):
             last_samps=[bti_info['total_slices'] - 1], verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a segment of data from a file"""
+        """Read a segment of data from a file."""
         bti_info = self._raw_extras[fi]
         fname = bti_info['pdf_fname']
         dtype = bti_info['dtype']
@@ -1072,7 +1065,7 @@ class RawBTi(_BaseRaw):
 def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                   translation, convert, ecg_ch, eog_ch, rename_channels=True,
                   sort_by_ch_name=True):
-    """Helper to read BTI info
+    """Read BTI info.
 
     Note. This helper supports partial construction of infos when `pdf_fname`
     is None. Some datasets, such as the HCP, are shipped as a large collection
@@ -1322,7 +1315,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
                  rename_channels=True, sort_by_ch_name=True,
                  ecg_ch='E31', eog_ch=('E63', 'E64'), preload=False,
                  verbose=None):
-    """ Raw object from 4D Neuroimaging MagnesWH3600 data
+    """Raw object from 4D Neuroimaging MagnesWH3600 data.
 
     .. note::
         1. Currently direct inclusion of reference channel weights

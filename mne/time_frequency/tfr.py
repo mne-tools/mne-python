@@ -59,7 +59,6 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     -------
     Ws : list of array
         The wavelets time series.
-
     """
     Ws = list()
     n_cycles = np.atleast_1d(n_cycles)
@@ -93,8 +92,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
 
 def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
-    """Compute discrete prolate spheroidal sequences (DPSS) tapers for the
-    given frequency range.
+    """Compute DPSS tapers for the given frequency range.
 
     Parameters
     ----------
@@ -162,7 +160,6 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
 
 def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     """Compute cwt with fft based convolutions or temporal convolutions.
-    Return a generator over signals.
 
     Parameters
     ----------
@@ -255,7 +252,7 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
                  n_cycles=7.0, zero_mean=None, time_bandwidth=None,
                  use_fft=True, decim=1, output='complex', n_jobs=1,
                  verbose=None):
-    """Computes time-frequency transforms.
+    """Compute time-frequency transforms.
 
     Parameters
     ----------
@@ -538,7 +535,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
 
 
 def cwt(X, Ws, use_fft=True, mode='same', decim=1):
-    """Compute time freq decomposition with continuous wavelet transform
+    """Compute time freq decomposition with continuous wavelet transform.
 
     Parameters
     ----------
@@ -583,10 +580,9 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     return tfrs
 
 
-# Aux function to reduce redundancy between tfr_morlet and tfr_multitaper
-
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
              **tfr_params):
+    """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
     info = inst.info
@@ -631,7 +627,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
 def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
                n_jobs=1, picks=None, zero_mean=True, average=True,
                verbose=None):
-    """Compute Time-Frequency Representation (TFR) using Morlet wavelets
+    """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
     Parameters
     ----------
@@ -759,12 +755,15 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 # TFR(s) class
 
 class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
+    """Base TFR class."""
+
     @property
     def ch_names(self):
+        """Channel names."""
         return self.info['ch_names']
 
     def crop(self, tmin=None, tmax=None):
-        """Crop data to a given time interval in place
+        """Crop data to a given time interval in place.
 
         Parameters
         ----------
@@ -789,7 +788,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
 
     @verbose
     def apply_baseline(self, baseline, mode='mean', verbose=None):
-        """Baseline correct the data
+        """Baseline correct the data.
 
         Parameters
         ----------
@@ -819,14 +818,14 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         inst : instance of AverageTFR
             The modified instance.
 
-        """  # noqa
+        """  # noqa: E501
         self.data = rescale(self.data, self.times, baseline, mode,
                             copy=False)
         return self
 
 
 class AverageTFR(_BaseTFR):
-    """Container for Time-Frequency data
+    """Container for Time-Frequency data.
 
     Can for example store induced power at sensor level or inter-trial
     coherence.
@@ -855,9 +854,10 @@ class AverageTFR(_BaseTFR):
     ch_names : list
         The names of the channels.
     """
+
     @verbose
     def __init__(self, info, data, times, freqs, nave, comment=None,
-                 method=None, verbose=None):
+                 method=None, verbose=None):  # noqa: D102
         self.info = info
         if data.ndim != 3:
             raise ValueError('data should be 3d. Got %d.' % data.ndim)
@@ -883,7 +883,7 @@ class AverageTFR(_BaseTFR):
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=False, colorbar=True, show=True,
              title=None, axes=None, layout=None, verbose=None):
-        """Plot TFRs in a topography with images
+        """Plot TFRs in a topography with images.
 
         Parameters
         ----------
@@ -963,7 +963,7 @@ class AverageTFR(_BaseTFR):
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
-        """  # noqa
+        """  # noqa: E501
         from ..viz.topo import _imshow_tfr
         import matplotlib.pyplot as plt
         times, freqs = self.times.copy(), self.freqs.copy()
@@ -1059,7 +1059,7 @@ class AverageTFR(_BaseTFR):
                   colorbar=True, layout_scale=0.945, show=True,
                   border='none', fig_facecolor='k', fig_background=None,
                   font_color='w'):
-        """Plot TFRs in a topography with images
+        """Plot TFRs in a topography with images.
 
         Parameters
         ----------
@@ -1132,7 +1132,7 @@ class AverageTFR(_BaseTFR):
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
-        """  # noqa
+        """  # noqa: E501
         from ..viz.topo import _imshow_tfr, _plot_topo, _imshow_tfr_unified
         from ..viz import add_background_image
         times = self.times.copy()
@@ -1176,7 +1176,7 @@ class AverageTFR(_BaseTFR):
                      sensors=True, colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head', head_pos=None):
-        """Plot topographic maps of time-frequency intervals of TFR data
+        """Plot topographic maps of time-frequency intervals of TFR data.
 
         Parameters
         ----------
@@ -1288,7 +1288,7 @@ class AverageTFR(_BaseTFR):
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
-        """  # noqa
+        """  # noqa: E501
         from ..viz import plot_tfr_topomap
         return plot_tfr_topomap(self, tmin=tmin, tmax=tmax, fmin=fmin,
                                 fmax=fmax, ch_type=ch_type, baseline=baseline,
@@ -1300,33 +1300,33 @@ class AverageTFR(_BaseTFR):
                                 outlines=outlines, head_pos=head_pos)
 
     def _check_compat(self, tfr):
-        """checks that self and tfr have the same time-frequency ranges"""
+        """Check that self and tfr have the same time-frequency ranges."""
         assert np.all(tfr.times == self.times)
         assert np.all(tfr.freqs == self.freqs)
 
-    def __add__(self, tfr):
+    def __add__(self, tfr):  # noqa: D105
         self._check_compat(tfr)
         out = self.copy()
         out.data += tfr.data
         return out
 
-    def __iadd__(self, tfr):
+    def __iadd__(self, tfr):  # noqa: D105
         self._check_compat(tfr)
         self.data += tfr.data
         return self
 
-    def __sub__(self, tfr):
+    def __sub__(self, tfr):  # noqa: D105
         self._check_compat(tfr)
         out = self.copy()
         out.data -= tfr.data
         return out
 
-    def __isub__(self, tfr):
+    def __isub__(self, tfr):  # noqa: D105
         self._check_compat(tfr)
         self.data -= tfr.data
         return self
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         s = "time : [%f, %f]" % (self.times[0], self.times[-1])
         s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])
         s += ", nave : %d" % self.nave
@@ -1335,7 +1335,7 @@ class AverageTFR(_BaseTFR):
         return "<AverageTFR  |  %s>" % s
 
     def save(self, fname, overwrite=False):
-        """Save TFR object to hdf5 file
+        """Save TFR object to hdf5 file.
 
         Parameters
         ----------
@@ -1348,7 +1348,7 @@ class AverageTFR(_BaseTFR):
 
 
 class EpochsTFR(_BaseTFR):
-    """Container for Time-Frequency data on epochs
+    """Container for Time-Frequency data on epochs.
 
     Can for example store induced power at sensor level.
 
@@ -1378,9 +1378,10 @@ class EpochsTFR(_BaseTFR):
     -----
     .. versionadded:: 0.13.0
     """
+
     @verbose
     def __init__(self, info, data, times, freqs, comment=None,
-                 method=None, verbose=None):
+                 method=None, verbose=None):  # noqa: D102
         self.info = info
         if data.ndim != 4:
             raise ValueError('data should be 4d. Got %d.' % data.ndim)
@@ -1400,7 +1401,7 @@ class EpochsTFR(_BaseTFR):
         self.comment = comment
         self.method = method
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         s = "time : [%f, %f]" % (self.times[0], self.times[-1])
         s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])
         s += ", epochs : %d" % self.data.shape[0]
@@ -1409,6 +1410,13 @@ class EpochsTFR(_BaseTFR):
         return "<EpochsTFR  |  %s>" % s
 
     def average(self):
+        """Average the data across epochs.
+
+        Returns
+        -------
+        ave : instance of AverageTFR
+            The averaged data.
+        """
         data = np.mean(self.data, axis=0)
         return AverageTFR(info=self.info.copy(), data=data,
                           times=self.times.copy(), freqs=self.freqs.copy(),
@@ -1481,7 +1489,7 @@ def combine_tfr(all_tfr, weights='nave'):
 
 
 def _get_data(inst, return_itc):
-    """Get data from Epochs or Evoked instance as epochs x ch x time"""
+    """Get data from Epochs or Evoked instance as epochs x ch x time."""
     from ..epochs import _BaseEpochs
     from ..evoked import Evoked
     if not isinstance(inst, (_BaseEpochs, Evoked)):
@@ -1496,6 +1504,7 @@ def _get_data(inst, return_itc):
 
 
 def _prepare_picks(info, data, picks):
+    """Prepare the picks."""
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
@@ -1508,7 +1517,7 @@ def _prepare_picks(info, data, picks):
 
 
 def _centered(arr, newsize):
-    """Aux Function to center data"""
+    """Aux Function to center data."""
     # Return the center newsize portion of the array.
     newsize = np.asarray(newsize)
     currsize = np.array(arr.shape)
@@ -1520,7 +1529,7 @@ def _centered(arr, newsize):
 
 def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
                  baseline, vmin, vmax, dB, sfreq):
-    """Aux Function to prepare tfr computation"""
+    """Aux Function to prepare tfr computation."""
     from ..viz.utils import _setup_vmin_vmax
 
     copy = baseline is not None
@@ -1558,7 +1567,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
 
 
 def _check_decim(decim):
-    """ aux function checking the decim parameter """
+    """Aux function checking the decim parameter."""
     if isinstance(decim, int):
         decim = slice(None, None, decim)
     elif not isinstance(decim, slice):
@@ -1602,7 +1611,7 @@ def write_tfrs(fname, tfr, overwrite=False):
 
 
 def _prepare_write_tfr(tfr, condition):
-    """Aux function"""
+    """Aux function."""
     return (condition, dict(times=tfr.times, freqs=tfr.freqs,
                             data=tfr.data, info=tfr.info,
                             nave=tfr.nave, comment=tfr.comment,
@@ -1610,8 +1619,7 @@ def _prepare_write_tfr(tfr, condition):
 
 
 def read_tfrs(fname, condition=None):
-    """
-    Read TFR datasets from hdf5 file.
+    """Read TFR datasets from hdf5 file.
 
     Parameters
     ----------
@@ -1635,7 +1643,6 @@ def read_tfrs(fname, condition=None):
     -----
     .. versionadded:: 0.9.0
     """
-
     check_fname(fname, 'tfr', ('-tfr.h5',))
 
     logger.info('Reading %s ...' % fname)

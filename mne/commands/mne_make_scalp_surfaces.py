@@ -21,13 +21,14 @@ from mne.utils import run_subprocess, _TempDir, verbose, logger, ETSContext
 
 
 def _check_file(fname, overwrite):
-    """Helper to prevent overwrites"""
+    """Prevent overwrites."""
     if op.isfile(fname) and not overwrite:
         raise IOError('File %s exists, use --overwrite to overwrite it'
                       % fname)
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)

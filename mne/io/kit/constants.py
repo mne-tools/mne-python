@@ -1,4 +1,4 @@
-"""KIT constants"""
+"""KIT constants."""
 
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #

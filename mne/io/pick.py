@@ -15,7 +15,7 @@ from ..externals.six import string_types
 
 
 def channel_type(info, idx):
-    """Get channel type
+    """Get channel type.
 
     Parameters
     ----------
@@ -83,7 +83,7 @@ def channel_type(info, idx):
 
 
 def pick_channels(ch_names, include, exclude=[]):
-    """Pick channels by names
+    """Pick channels by names.
 
     Returns the indices of the good channels in ch_names.
 
@@ -123,7 +123,7 @@ def pick_channels(ch_names, include, exclude=[]):
 
 
 def pick_channels_regexp(ch_names, regexp):
-    """Pick channels using regular expression
+    """Pick channels using regular expression.
 
     Returns the indices of the good channels in ch_names.
 
@@ -157,7 +157,7 @@ def pick_channels_regexp(ch_names, regexp):
 
 
 def _triage_meg_pick(ch, meg):
-    """Helper to triage an MEG pick type"""
+    """Triage an MEG pick type."""
     if meg is True:
         return True
     elif ch['unit'] == FIFF.FIFF_UNIT_T_M:
@@ -173,7 +173,7 @@ def _triage_meg_pick(ch, meg):
 
 
 def _triage_fnirs_pick(ch, fnirs):
-    """Helper to triage an fNIRS pick type."""
+    """Triage an fNIRS pick type."""
     if fnirs is True:
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO and fnirs == 'hbo':
@@ -184,7 +184,7 @@ def _triage_fnirs_pick(ch, fnirs):
 
 
 def _check_meg_type(meg, allow_auto=False):
-    """Helper to ensure a valid meg type"""
+    """Ensure a valid meg type."""
     if isinstance(meg, string_types):
         allowed_types = ['grad', 'mag', 'planar1', 'planar2']
         allowed_types += ['auto'] if allow_auto else []
@@ -198,7 +198,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
                gof=False, bio=False, ecog=False, fnirs=False, include=[],
                exclude='bads', selection=None):
-    """Pick channels by type and names
+    """Pick channels by type and names.
 
     Parameters
     ----------
@@ -347,7 +347,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         # the selection only restricts these types of channels
         sel_kind = [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH,
                     FIFF.FIFFV_EEG_CH]
-        for k in np.where(pick == True)[0]:  # noqa
+        for k in np.where(pick)[0]:
             if (info['chs'][k]['kind'] in sel_kind and
                     info['ch_names'][k] not in selection):
                 pick[k] = False
@@ -364,7 +364,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
 
 
 def pick_info(info, sel=(), copy=True):
-    """Restrict an info structure to a selection of channels
+    """Restrict an info structure to a selection of channels.
 
     Parameters
     ----------
@@ -408,7 +408,7 @@ def pick_info(info, sel=(), copy=True):
 
 
 def _has_kit_refs(info, picks):
-    """Helper to determine if KIT ref channels are chosen
+    """Determine if KIT ref channels are chosen.
 
     This is currently only used by make_forward_solution, which cannot
     run when KIT reference channels are included.
@@ -420,7 +420,7 @@ def _has_kit_refs(info, picks):
 
 
 def pick_channels_evoked(orig, include=[], exclude='bads'):
-    """Pick channels from evoked data
+    """Pick channels from evoked data.
 
     Parameters
     ----------
@@ -464,7 +464,7 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
 
 @verbose
 def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
-    """Pick channels from forward operator
+    """Pick channels from forward operator.
 
     Parameters
     ----------
@@ -539,7 +539,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
 
 def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
                        ecog=False, include=[], exclude=[]):
-    """Pick by channel type and names from a forward operator
+    """Pick by channel type and names from a forward operator.
 
     Parameters
     ----------
@@ -579,8 +579,7 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
 
 
 def channel_indices_by_type(info):
-    """Get indices of channels by type
-    """
+    """Get indices of channels by type."""
     idx = dict((key, list()) for key in _PICK_TYPES_KEYS if
                key not in ('meg', 'fnirs'))
     idx.update(mag=list(), grad=list(), hbo=list(), hbr=list())
@@ -593,7 +592,7 @@ def channel_indices_by_type(info):
 
 
 def pick_channels_cov(orig, include=[], exclude='bads'):
-    """Pick channels from covariance matrix
+    """Pick channels from covariance matrix.
 
     Parameters
     ----------
@@ -625,7 +624,8 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
 
 
 def _picks_by_type(info, meg_combined=False, ref_meg=False):
-    """Get data channel indices as separate list of tuples
+    """Get data channel indices as separate list of tuples.
+
     Parameters
     ----------
     info : instance of mne.measuerment_info.Info
@@ -708,13 +708,13 @@ _DATA_CH_TYPES_SPLIT = ['mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr']
 
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
-    """Convenience function for picking only data channels."""
+    """Pick only data channels."""
     return pick_types(info, ref_meg=with_ref_meg, include=[], exclude=exclude,
                       selection=None, **_PICK_TYPES_DATA_DICT)
 
 
 def _pick_aux_channels(info, exclude='bads'):
-    """Convenience function for picking only auxiliary channels
+    """Pick only auxiliary channels.
 
     Corresponds to EOG, ECG, EMG and BIO
     """
@@ -723,7 +723,7 @@ def _pick_aux_channels(info, exclude='bads'):
 
 
 def _pick_data_or_ica(info):
-    """Convenience function for picking only data or ICA channels."""
+    """Pick only data or ICA channels."""
     ch_names = [c['ch_name'] for c in info['chs']]
     if 'ICA ' in ','.join(ch_names):
         picks = pick_types(info, exclude=[], misc=True)

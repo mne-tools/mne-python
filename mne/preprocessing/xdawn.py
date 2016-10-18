@@ -61,7 +61,6 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
     toeplitz : array, shape (n_class * n_components, n_channels)
         An concatenated array of toeplitz matrix for each event type.
     """
-
     n_epochs, n_channels, n_times = epochs_data.shape
     tmax = tmin + n_times / float(sfreq)
 
@@ -416,6 +415,7 @@ class Xdawn(_XdawnTransformer):
     efficient sensor selection in a P300 BCI. In Signal Processing Conference,
     2011 19th European (pp. 1382-1386). IEEE.
     """
+
     def __init__(self, n_components=2, signal_cov=None, correct_overlap='auto',
                  reg=None):
         """Init."""
@@ -651,7 +651,6 @@ class Xdawn(_XdawnTransformer):
         return data
 
     def inverse_transform(self):
-        """Not implemented, see Xdawn.apply() instead.
-        """
+        """Not implemented, see Xdawn.apply() instead."""
         # Exists because of _XdawnTransformer
         raise NotImplementedError('See Xdawn.apply()')

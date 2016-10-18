@@ -1,5 +1,4 @@
-"""IO with fif files containing events
-"""
+"""IO with fif files containing events."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
@@ -23,7 +22,7 @@ from .externals.six import string_types
 
 
 def pick_events(events, include=None, exclude=None, step=False):
-    """Select some events
+    """Select some events.
 
     Parameters
     ----------
@@ -76,7 +75,7 @@ def pick_events(events, include=None, exclude=None, step=False):
 
 def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
                          new_id=None, fill_na=None):
-    """Define new events by co-occurrence of existing events
+    """Define new events by co-occurrence of existing events.
 
     This function can be used to evaluate events depending on the
     temporal lag to another event. For example, this can be used to
@@ -111,7 +110,6 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
     lag : ndarray
         time lag between reference and target in milliseconds.
     """
-
     if new_id is None:
         new_id = reference_id
 
@@ -149,7 +147,7 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
 
 
 def _read_events_fif(fid, tree):
-    """Aux function"""
+    """Aux function."""
     #   Find the desired block
     events = dir_tree_find(tree, FIFF.FIFFB_MNE_EVENTS)
 
@@ -192,7 +190,7 @@ def _read_events_fif(fid, tree):
 
 def read_events(filename, include=None, exclude=None, mask=None,
                 mask_type='not_and'):
-    """Reads events from fif or text file
+    """Read events from fif or text file.
 
     Parameters
     ----------
@@ -281,7 +279,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
 
 
 def write_events(filename, event_list):
-    """Write events to file
+    """Write events to file.
 
     Parameters
     ----------
@@ -367,7 +365,7 @@ def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
 
 def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
                     stim_channel=None):
-    """Find all steps in data from a stim channel
+    """Find all steps in data from a stim channel.
 
     Parameters
     ----------
@@ -403,7 +401,6 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
     --------
     find_events : More sophisticated options for finding events in a Raw file.
     """
-
     # pull stim channel from config if necessary
     stim_channel = _get_stim_channel(stim_channel, raw.info)
 
@@ -423,7 +420,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
 def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0, mask=0,
                  uint_cast=False, mask_type='not_and'):
-    """Helper function for find events"""
+    """Helper function for find events."""
     if min_samples > 0:
         merge = int(min_samples // 1)
         if merge == min_samples:
@@ -496,7 +493,7 @@ def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
                 shortest_event=2, mask=None, uint_cast=False,
                 mask_type='not_and', verbose=None):
-    """Find events from raw file
+    """Find events from raw file.
 
     Parameters
     ----------
@@ -669,7 +666,7 @@ def find_events(raw, stim_channel=None, output='onset',
 
 
 def _mask_trigs(events, mask, mask_type):
-    """Helper function for masking digital trigger values"""
+    """Mask digital trigger values."""
     if not isinstance(mask_type, string_types) or \
             mask_type not in ('not_and', 'and'):
         raise ValueError('mask_type must be "not_and" or "and", got %s'
@@ -696,7 +693,7 @@ def _mask_trigs(events, mask, mask_type):
 
 
 def merge_events(events, ids, new_id, replace_events=True):
-    """Merge a set of events
+    """Merge a set of events.
 
     Parameters
     ----------
@@ -757,7 +754,7 @@ def merge_events(events, ids, new_id, replace_events=True):
 
 
 def shift_time_events(events, ids, tshift, sfreq):
-    """Shift an event
+    """Shift an event.
 
     Parameters
     ----------
@@ -784,7 +781,7 @@ def shift_time_events(events, ids, tshift, sfreq):
 
 def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
                              first_samp=True):
-    """Make a set of events separated by a fixed duration
+    """Make a set of events separated by a fixed duration.
 
     Parameters
     ----------
@@ -844,22 +841,19 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
 
 
 def concatenate_events(events, first_samps, last_samps):
-    """Concatenate event lists in a manner compatible with
-    concatenate_raws
+    """Concatenate event lists to be compatible with concatenate_raws.
 
     This is useful, for example, if you processed and/or changed
     events in raw files separately before combining them using
-    concatenate_raws.
+    :func:`mne.concatenate_raws`.
 
     Parameters
     ----------
     events : list of arrays
         List of event arrays, typically each extracted from a
         corresponding raw file that is being concatenated.
-
     first_samps : list or array of int
         First sample numbers of the raw files concatenated.
-
     last_samps : list or array of int
         Last sample numbers of the raw files concatenated.
 
@@ -867,6 +861,10 @@ def concatenate_events(events, first_samps, last_samps):
     -------
     events : array
         The concatenated events.
+
+    See Also
+    --------
+    mne.concatenate_raws
     """
     if not isinstance(events, list):
         raise ValueError('events must be a list of arrays')
@@ -890,7 +888,7 @@ def concatenate_events(events, first_samps, last_samps):
 
 
 class AcqParserFIF(object):
-    """ Parser for Elekta data acquisition settings.
+    """Parser for Elekta data acquisition settings.
 
     This class parses parameters (e.g. events and averaging categories) that
     are defined in the Elekta TRIUX/VectorView data acquisition software (DACQ)
@@ -947,7 +945,7 @@ class AcqParserFIF(object):
     _event_vars = _event_vars_compat + ('Name', 'Channel', 'NewBits',
                                         'OldBits', 'NewMask', 'OldMask')
 
-    def __init__(self, info):
+    def __init__(self, info):  # noqa: D102
         acq_pars = info['acq_pars']
         if not acq_pars:
             raise ValueError('No acquisition parameters')
@@ -991,7 +989,7 @@ class AcqParserFIF(object):
         self.flat = {k: float(v) for k, v in self.flat.items()
                      if float(v) > 0}
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         s = '<AcqParserFIF | '
         s += 'categories: %d ' % self.ncateg
         cats_in_use = len(self._categories_in_use)
@@ -1007,7 +1005,7 @@ class AcqParserFIF(object):
         return s
 
     def __getitem__(self, item):
-        """ Return an averaging category, or list of categories.
+        """Return an averaging category, or list of categories.
 
         Parameters
         ----------
@@ -1065,15 +1063,16 @@ class AcqParserFIF(object):
         return cats[0] if len(cats) == 1 else cats
 
     def __len__(self):
-        """ Return number of averaging categories marked active in DACQ. """
+        """Return number of averaging categories marked active in DACQ."""
         return len(self.categories)
 
     def _events_from_acq_pars(self):
-        """ Collect DACQ events into a dict.
+        """Collect DACQ events into a dict.
 
         Events are keyed by number starting from 1 (DACQ index of event).
         Each event is itself represented by a dict containing the event
-        parameters. """
+        parameters.
+        """
         # lookup table for event number -> bits for old DACQ versions
         _compat_event_lookup = {1: 1, 2: 2, 3: 4, 4: 8, 5: 16, 6: 32, 7: 3,
                                 8: 5, 9: 6, 10: 7, 11: 9, 12: 10, 13: 11,
@@ -1108,11 +1107,11 @@ class AcqParserFIF(object):
         return events
 
     def _acqpars_dict(self, acq_pars):
-        """ Parse `` info['acq_pars']`` into a dict. """
+        """Parse `` info['acq_pars']`` into a dict."""
         return dict(self._acqpars_gen(acq_pars))
 
     def _acqpars_gen(self, acq_pars):
-        """ Yields key/value pairs from ``info['acq_pars'])``. """
+        """Yield key/value pairs from ``info['acq_pars'])``."""
         # DACQ variable names always start with one of these
         key, val = '', ''
         for line in acq_pars.split():
@@ -1127,10 +1126,11 @@ class AcqParserFIF(object):
             yield key, val
 
     def _categories_from_acq_pars(self):
-        """ Collect DACQ averaging categories into a dict.
+        """Collect DACQ averaging categories into a dict.
 
         Categories are keyed by the comment field in DACQ. Each category is
-        itself represented a dict containing the category parameters. """
+        itself represented a dict containing the category parameters.
+        """
         cats = dict()
         for catnum in [str(x).zfill(2) for x in range(1, self.nevent + 1)]:
             catdi = dict()
@@ -1153,14 +1153,15 @@ class AcqParserFIF(object):
         return cats
 
     def _events_mne_to_dacq(self, mne_events):
-        """ Creates list of DACQ events based on mne trigger transitions list.
+        """Create list of DACQ events based on mne trigger transitions list.
 
         mne_events is typically given by mne.find_events (use consecutive=True
         to get all transitions). Output consists of rows in the form
         [t, 0, event_codes] where t is time in samples and event_codes is all
         DACQ events compatible with the transition, bitwise ORed together:
         e.g. [t1, 0, 5] means that events 1 and 3 occurred at time t1,
-        as 2**(1 - 1) + 2**(3 - 1) = 5. """
+        as 2**(1 - 1) + 2**(3 - 1) = 5.
+        """
         events_ = mne_events.copy()
         events_[:, 1:3] = 0
         for n, ev in self._events.items():
@@ -1176,13 +1177,12 @@ class AcqParserFIF(object):
         return events_
 
     def _mne_events_to_category_t0(self, cat, mne_events, sfreq):
-        """ Translate mne_events to epoch zero times (t0).
+        """Translate mne_events to epoch zero times (t0).
 
         First mne events (trigger transitions) are converted into DACQ events.
         Then the zero times for the epochs are obtained by considering the
         reference and conditional (required) events and the delay to stimulus.
         """
-
         cat_ev = cat['event']
         cat_reqev = cat['reqevent']
         # first convert mne events to dacq event list
@@ -1217,7 +1217,7 @@ class AcqParserFIF(object):
 
     @property
     def categories(self):
-        """ Return list of averaging categories ordered by DACQ index.
+        """Return list of averaging categories ordered by DACQ index.
 
         Only returns categories marked active in DACQ.
         """
@@ -1227,7 +1227,7 @@ class AcqParserFIF(object):
 
     @property
     def events(self):
-        """ Return events ordered by DACQ index.
+        """Return events ordered by DACQ index.
 
         Only returns events that are in use (referred to by a category).
         """
@@ -1244,7 +1244,7 @@ class AcqParserFIF(object):
 
     def get_condition(self, raw, condition=None, stim_channel=None, mask=None,
                       uint_cast=None, mask_type='and', delayed_lookup=True):
-        """ Get averaging parameters for a condition (averaging category).
+        """Get averaging parameters for a condition (averaging category).
 
         Output is designed to be used with the Epochs class to extract the
         corresponding epochs.
@@ -1287,7 +1287,6 @@ class AcqParserFIF(object):
             synchronous. If you have accurate hardware and want to detect
             transitions with a resolution of one sample, use
             delayed_lookup=False.
-
 
         Returns
         -------

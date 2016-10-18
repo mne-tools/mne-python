@@ -1,4 +1,4 @@
-"""Mayavi/traits GUI visualization elements"""
+"""Mayavi/traits GUI visualization elements."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -32,13 +32,12 @@ defaults = {'mri_fid_scale': 1e-2, 'hsp_fid_scale': 3e-2,
 
 
 def _testing_mode():
-    """Helper to determine if we're running tests"""
+    """Helper to determine if we're running tests."""
     return (os.getenv('_MNE_GUI_TESTING_MODE', '') == 'true')
 
 
 class HeadViewController(HasTraits):
-    """
-    Set head views for Anterior-Left-Superior coordinate system
+    """Set head views for Anterior-Left-Superior coordinate system.
 
     Parameters
     ----------
@@ -47,6 +46,7 @@ class HeadViewController(HasTraits):
         the x, y, and z axes. Relevant terms are: Anterior, Right, Left,
         Superior, Inferior.
     """
+
     system = Enum("RAS", "ALS", "ARI", desc="Coordinate system: directions of "
                   "the x, y, and z axis.")
 
@@ -120,7 +120,8 @@ class HeadViewController(HasTraits):
 
 
 class Object(HasPrivateTraits):
-    """Represents a 3d object in a mayavi scene"""
+    """Represent a 3d object in a mayavi scene."""
+
     points = Array(float, shape=(None, 3))
     trans = Array()
     name = Str
@@ -169,7 +170,8 @@ class Object(HasPrivateTraits):
 
 
 class PointObject(Object):
-    """Represents a group of individual points in a mayavi scene"""
+    """Represent a group of individual points in a mayavi scene."""
+
     label = Bool(False, enabled_when='visible')
     text3d = List
 
@@ -177,7 +179,8 @@ class PointObject(Object):
     resolution = Int(8)
 
     def __init__(self, view='points', *args, **kwargs):
-        """
+        """Init.
+
         Parameters
         ----------
         view : 'points' | 'cloud'
@@ -187,7 +190,7 @@ class PointObject(Object):
         self._view = view
         super(PointObject, self).__init__(*args, **kwargs)
 
-    def default_traits_view(self):
+    def default_traits_view(self):  # noqa: D102
         color = Item('color', show_label=False)
         scale = Item('point_scale', label='Size')
         if self._view == 'points':
@@ -263,15 +266,15 @@ class PointObject(Object):
 
 
 class SurfaceObject(Object):
-    """Represents a solid object in a mayavi scene
+    """Represent a solid object in a mayavi scene.
 
     Notes
     -----
     Doesn't automatically update plot because update requires both
     :attr:`points` and :attr:`tri`. Call :meth:`plot` after updateing both
     attributes.
-
     """
+
     rep = Enum("Surface", "Wireframe")
     tri = Array(int, shape=(None, 3))
 
@@ -280,7 +283,7 @@ class SurfaceObject(Object):
     view = View(HGroup(Item('visible', show_label=False),
                        Item('color', show_label=False), Item('opacity')))
 
-    def clear(self):
+    def clear(self):  # noqa: D102
         if hasattr(self.src, 'remove'):
             self.src.remove()
         if hasattr(self.surf, 'remove'):

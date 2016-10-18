@@ -1,3 +1,5 @@
+"""Decoding analysis utilities."""
+
 from .transformer import Scaler, FilterEstimator
 from .transformer import (PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)

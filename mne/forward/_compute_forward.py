@@ -347,8 +347,9 @@ def _bem_inf_pots(mri_rr, bem_rr, mri_Q=None):
 
 
 def _bem_inf_fields(rr, rmag, cosmag):
-    """Compute infinite-medium magnetic field at one MEG sensor from all
-    dipoles in all 3 basis directions.
+    """Compute infinite-medium magnetic field at one MEG sensor.
+
+    This operates on all dipoles in all 3 basis directions.
 
     Parameters
     ----------
@@ -481,7 +482,6 @@ def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
     B : ndarray, (n_dipoles * 3, n_sensors)
         Forward solution for sensors due to volume currents
     """
-
     # Doing work of 'fwd_bem_pot_calc' in MNE-C
     # The following code is equivalent to this, but saves memory
     # v0s = _bem_inf_pots(rr, bem_rr, Q)  # n_rr x 3 x n_bem_rr
@@ -687,7 +687,6 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
     """
-
     bem_rr = mults = mri_Q = head_mri_t = None
     if not bem['is_sphere']:
         if bem['bem_method'] != FIFF.FWD_BEM_LINEAR_COLL:
@@ -778,7 +777,6 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
         Each element contains ndarray, shape (3 * n_dipoles, n_sensors) where
         n_sensors depends on which channel types are requested (MEG and/or EEG)
     """
-
     n_jobs = max(min(n_jobs, len(rr)), 1)
     Bs = list()
     # The dipole location and orientation must be transformed to mri coords
@@ -852,7 +850,6 @@ def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
         Each element contains ndarray, shape (3 * n_dipoles, n_sensors) where
         n_sensors depends on which channel types are requested (MEG and/or EEG)
     """
-
     # Split calculation into two steps to save (potentially) a lot of time
     # when e.g. dipole fitting
     fwd_data = dict(coils_list=coils_list, ccoils_list=ccoils_list,

@@ -1,5 +1,4 @@
-"""Functions to plot M/EEG data on topo (one axes per channel)
-"""
+"""Functions to plot M/EEG data on topo (one axes per channel)."""
 from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -27,7 +26,7 @@ from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
 def iter_topography(info, layout=None, on_pick=None, fig=None,
                     fig_facecolor='k', axis_facecolor='k',
                     axis_spinecolor='k', layout_scale=None):
-    """ Create iterator over channel positions
+    """Create iterator over channel positions.
 
     This function returns a generator that unpacks into
     a series of matplotlib axis objects and data / channel
@@ -77,7 +76,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
                      axis_facecolor='k', axis_spinecolor='k',
                      layout_scale=None, unified=False, img=False):
-    """Private helper to iterate over topography
+    """Iterate over topography.
 
     Has the same parameters as iter_topography, plus:
 
@@ -150,7 +149,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
                y_label=None, font_color='w', unified=False, img=False):
-    """Helper function to plot on sensor layout"""
+    """Helper function to plot on sensor layout."""
     import matplotlib.pyplot as plt
 
     # prepare callbacks
@@ -194,8 +193,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
 
 
 def _plot_topo_onpick(event, show_func):
-    """Onpick callback that shows a single channel in a new figure"""
-
+    """Onpick callback that shows a single channel in a new figure."""
     # make sure that the swipe gesture in OS-X doesn't open many figures
     orig_ax = event.inaxes
     if event.inaxes is None or (not hasattr(orig_ax, '_mne_ch_idx') and
@@ -233,7 +231,7 @@ def _plot_topo_onpick(event, show_func):
 
 
 def _compute_scalings(bn, xlim, ylim):
-    """Compute scale factors for a unified plot"""
+    """Compute scale factors for a unified plot."""
     if isinstance(ylim[0], (tuple, list, np.ndarray)):
         ylim = (ylim[0][0], ylim[1][0])
     pos = bn.pos
@@ -244,7 +242,7 @@ def _compute_scalings(bn, xlim, ylim):
 
 
 def _check_vlim(vlim):
-    """AUX function"""
+    """Check the vlim."""
     return not np.isscalar(vlim) and vlim is not None
 
 
@@ -252,7 +250,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, vline=None, x_label=None, y_label=None,
                 colorbar=False, picker=True, cmap=('RdBu_r', True), title=None,
                 hline=None):
-    """ Aux function to show time-freq map on topo """
+    """Show time-freq map on topo."""
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
 
@@ -289,7 +287,7 @@ def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
                         ylim=None, tfr=None, freq=None, vline=None,
                         x_label=None, y_label=None, colorbar=False,
                         picker=True, cmap='RdBu_r', title=None, hline=None):
-    """Aux function to show multiple tfrs on topo using a single axes"""
+    """Show multiple tfrs on topo using a single axes."""
     _compute_scalings(bn, (tmin, tmax), (freq[0], freq[-1]))
     ax = bn.ax
     data_lines = bn.data_lines
@@ -303,7 +301,7 @@ def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
                      times, vline=None, x_label=None, y_label=None,
                      colorbar=False, hline=None):
-    """Aux function to show time series on topo split across multiple axes"""
+    """Show time series on topo split across multiple axes."""
     import matplotlib.pyplot as plt
     picker_flag = False
     for data_, color_ in zip(data, color):
@@ -333,7 +331,7 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
 def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
                              color, times, vline=None, x_label=None,
                              y_label=None, colorbar=False, hline=None):
-    """Aux function to show multiple time series on topo using a single axes"""
+    """Show multiple time series on topo using a single axes."""
     import matplotlib.pyplot as plt
     if not (ylim and not any(v is None for v in ylim)):
         ylim = np.array([np.min(data), np.max(data)])
@@ -369,7 +367,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
                      epochs=None, sigma=None, order=None, scalings=None,
                      vline=None, x_label=None, y_label=None, colorbar=False,
                      cmap='RdBu_r'):
-    """Aux function to plot erfimage on sensor topography"""
+    """Plot erfimage on sensor topography."""
     from scipy import ndimage
     import matplotlib.pyplot as plt
     this_data = data[:, ch_idx, :].copy()
@@ -400,7 +398,7 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                              data=None, epochs=None, sigma=None, order=None,
                              scalings=None, vline=None, x_label=None,
                              y_label=None, colorbar=False, cmap='RdBu_r'):
-    """Aux function to plot erfimage topography using a single axis"""
+    """Plot erfimage topography using a single axis."""
     from scipy import ndimage
     _compute_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
     ax = bn.ax
@@ -621,7 +619,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
 
 def _plot_update_evoked_topo_proj(params, bools):
-    """Helper function to update topo sensor plots"""
+    """Update topo sensor plots."""
     evokeds = [e.copy() for e in params['evokeds']]
     fig = params['fig']
     projs = [proj for proj, b in zip(params['projs'], bools) if b]
@@ -643,7 +641,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
                            layout_scale=.95, title=None, scalings=None,
                            border='none', fig_facecolor='k',
                            fig_background=None, font_color='w', show=True):
-    """Plot Event Related Potential / Fields image on topographies
+    """Plot Event Related Potential / Fields image on topographies.
 
     Parameters
     ----------

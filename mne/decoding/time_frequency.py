@@ -61,7 +61,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
 
     def __init__(self, frequencies, sfreq=1.0, method='morlet', n_cycles=7.0,
                  time_bandwidth=None, use_fft=True, decim=1, output='complex',
-                 n_jobs=1, verbose=None):
+                 n_jobs=1, verbose=None):  # noqa: D102
         """Init TimeFrequency transformer."""
         frequencies, sfreq, _, n_cycles, time_bandwidth, decim = \
             _check_tfr_param(frequencies, sfreq, method, True, n_cycles,
@@ -82,8 +82,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self.verbose = verbose
 
     def fit_transform(self, X, y=None):
-        """
-        Time-frequency transform of times series along the last axis.
+        """Time-frequency transform of times series along the last axis.
 
         Parameters
         ----------
@@ -101,8 +100,8 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         """
         return self.fit(X, y).transform(X)
 
-    def fit(self, X, y=None):
-        """ Does nothing, for scikit-learn compatibility purposes.
+    def fit(self, X, y=None):  # noqa: D401
+        """Do nothing (for scikit-learn compatibility purposes).
 
         Parameters
         ----------

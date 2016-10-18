@@ -56,7 +56,7 @@ _verbose_frames = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
 
 
 def _to_const(cf):
-    """Helper to convert string or int coord frame into int"""
+    """Convert string or int coord frame into int."""
     if isinstance(cf, string_types):
         if cf not in _str_to_frame:
             raise ValueError('Unknown cf %s' % cf)
@@ -67,7 +67,7 @@ def _to_const(cf):
 
 
 class Transform(dict):
-    """A transform
+    """A transform.
 
     Parameters
     ----------
@@ -78,7 +78,8 @@ class Transform(dict):
     trans : array-like, shape (4, 4)
         The transformation matrix.
     """
-    def __init__(self, fro, to, trans):
+
+    def __init__(self, fro, to, trans):  # noqa: D102
         super(Transform, self).__init__()
         # we could add some better sanity checks here
         fro = _to_const(fro)
@@ -91,21 +92,23 @@ class Transform(dict):
         self['to'] = to
         self['trans'] = trans
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         return ('<Transform  |  %s->%s>\n%s'
                 % (_coord_frame_name(self['from']),
                    _coord_frame_name(self['to']), self['trans']))
 
     @property
     def from_str(self):
+        """The "from" frame as a string."""
         return _coord_frame_name(self['from'])
 
     @property
     def to_str(self):
+        """The "to" frame as a string."""
         return _coord_frame_name(self['to'])
 
     def save(self, fname):
-        """Save the transform as -trans.fif file
+        """Save the transform as -trans.fif file.
 
         Parameters
         ----------
@@ -116,7 +119,7 @@ class Transform(dict):
 
 
 def _coord_frame_name(cframe):
-    """Map integers to human-readable (verbose) names"""
+    """Map integers to human-readable (verbose) names."""
     return _verbose_frames.get(int(cframe), 'unknown')
 
 
@@ -149,7 +152,7 @@ def _find_trans(subject, subjects_dir=None):
 
 
 def apply_trans(trans, pts, move=True):
-    """Apply a transform matrix to an array of points
+    """Apply a transform matrix to an array of points.
 
     Parameters
     ----------
@@ -184,7 +187,7 @@ def apply_trans(trans, pts, move=True):
 
 
 def rotation(x=0, y=0, z=0):
-    """Create an array with a 4 dimensional rotation matrix
+    """Create an array with a 4 dimensional rotation matrix.
 
     Parameters
     ----------
@@ -212,7 +215,7 @@ def rotation(x=0, y=0, z=0):
 
 
 def rotation3d(x=0, y=0, z=0):
-    """Create an array with a 3 dimensional rotation matrix
+    """Create an array with a 3 dimensional rotation matrix.
 
     Parameters
     ----------
@@ -239,7 +242,7 @@ def rotation3d(x=0, y=0, z=0):
 
 
 def rotation_angles(m):
-    """Find rotation angles from a transformation matrix
+    """Find rotation angles from a transformation matrix.
 
     Parameters
     ----------
@@ -261,7 +264,7 @@ def rotation_angles(m):
 
 
 def scaling(x=1, y=1, z=1):
-    """Create an array with a scaling matrix
+    """Create an array with a scaling matrix.
 
     Parameters
     ----------
@@ -281,7 +284,7 @@ def scaling(x=1, y=1, z=1):
 
 
 def translation(x=0, y=0, z=0):
-    """Create an array with a translation matrix
+    """Create an array with a translation matrix.
 
     Parameters
     ----------
@@ -301,7 +304,7 @@ def translation(x=0, y=0, z=0):
 
 
 def _ensure_trans(trans, fro='mri', to='head'):
-    """Helper to ensure we have the proper transform"""
+    """Ensure we have the proper transform."""
     if isinstance(fro, string_types):
         from_str = fro
         from_const = _str_to_frame[fro]
@@ -329,7 +332,7 @@ def _ensure_trans(trans, fro='mri', to='head'):
 
 
 def _get_trans(trans, fro='mri', to='head'):
-    """Get mri_head_t (from=mri, to=head) from mri filename"""
+    """Get mri_head_t (from=mri, to=head) from mri filename."""
     if isinstance(trans, string_types):
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
@@ -358,7 +361,7 @@ def _get_trans(trans, fro='mri', to='head'):
 
 
 def combine_transforms(t_first, t_second, fro, to):
-    """Combine two transforms
+    """Combine two transforms.
 
     Parameters
     ----------
@@ -398,7 +401,7 @@ def combine_transforms(t_first, t_second, fro, to):
 
 
 def read_trans(fname):
-    """Read a -trans.fif file
+    """Read a -trans.fif file.
 
     Parameters
     ----------
@@ -430,7 +433,7 @@ def read_trans(fname):
 
 
 def write_trans(fname, trans):
-    """Write a -trans.fif file
+    """Write a -trans.fif file.
 
     Parameters
     ----------
@@ -450,7 +453,7 @@ def write_trans(fname, trans):
 
 
 def invert_transform(trans):
-    """Invert a transformation between coordinate systems
+    """Invert a transformation between coordinate systems.
 
     Parameters
     ----------
@@ -466,7 +469,7 @@ def invert_transform(trans):
 
 
 def transform_surface_to(surf, dest, trans, copy=False):
-    """Transform surface to the desired coordinate system
+    """Transform surface to the desired coordinate system.
 
     Parameters
     ----------
@@ -501,7 +504,7 @@ def transform_surface_to(surf, dest, trans, copy=False):
 
 
 def get_ras_to_neuromag_trans(nasion, lpa, rpa):
-    """Construct a transformation matrix to the MNE head coordinate system
+    """Construct a transformation matrix to the MNE head coordinate system.
 
     Construct a transformation matrix from an arbitrary RAS coordinate system
     to the MNE head coordinate system, in which the x axis passes through the
@@ -653,7 +656,7 @@ def _deg_ord_idx(deg, order):
 
 
 def _sh_negate(sh, order):
-    """Helper to get the negative spherical harmonic from a positive one"""
+    """Helper to get the negative spherical harmonic from a positive one."""
     assert order >= 0
     return sh.conj() * (-1. if order % 2 else 1.)  # == (-1) ** order
 
@@ -678,7 +681,6 @@ def _sh_complex_to_real(sh, order):
     -----
     This does not include the Condon-Shortely phase.
     """
-
     if order == 0:
         return np.real(sh)
     else:
@@ -686,7 +688,7 @@ def _sh_complex_to_real(sh, order):
 
 
 def _sh_real_to_complex(shs, order):
-    """Convert real spherical harmonic pair to complex
+    """Convert real spherical harmonic pair to complex.
 
     Parameters
     ----------
@@ -758,7 +760,7 @@ def _compute_sph_harm(order, az, pol):
 # POSSIBILITY OF SUCH DAMAGE.
 
 class _TPSWarp(object):
-    """Transform points using thin-plate spline (TPS) warping
+    """Transform points using thin-plate spline (TPS) warping.
 
     Notes
     -----
@@ -770,6 +772,7 @@ class _TPSWarp(object):
            Decomposition of Deformations." IEEE Trans. Pattern Anal. Mach.
            Intell. 11, 567-585, 1989.
     """
+
     def fit(self, source, destination, reg=1e-3):
         from scipy.spatial.distance import cdist
         assert source.shape[1] == destination.shape[1] == 3
@@ -858,8 +861,9 @@ class SphericalSurfaceWarp(object):
     ----------
     .. [1] Darvas F, Ermer JJ, Mosher JC, Leahy RM (2006). "Generic head
            models for atlas-based EEG source analysis."
-           Human Brain Mapping 27:129–143
+           Human Brain Mapping 27:129-143
     """
+
     @verbose
     def fit(self, source, destination, order=4, reg=1e-3, center=True,
             verbose=None):
@@ -962,7 +966,7 @@ class SphericalSurfaceWarp(object):
 # Other transforms
 
 def _pol_to_cart(pol):
-    """Transform polar coordinates to cartesian"""
+    """Transform polar coordinates to cartesian."""
     out = np.empty_like(pol)
     out[:, 0] = pol[:, 0] * np.cos(pol[:, 1])
     out[:, 1] = pol[:, 0] * np.sin(pol[:, 1])
@@ -982,7 +986,7 @@ def _topo_to_sph(topo):
 # Quaternions
 
 def quat_to_rot(quat):
-    """Convert a set of quaternions to rotations
+    """Convert a set of quaternions to rotations.
 
     Parameters
     ----------
@@ -1021,7 +1025,7 @@ def quat_to_rot(quat):
 
 
 def _one_rot_to_quat(rot):
-    """Convert a rotation matrix to quaternions"""
+    """Convert a rotation matrix to quaternions."""
     # see e.g. http://www.euclideanspace.com/maths/geometry/rotations/
     #                 conversions/matrixToQuaternion/
     t = 1. + rot[0] + rot[4] + rot[8]
@@ -1053,7 +1057,7 @@ def _one_rot_to_quat(rot):
 
 
 def rot_to_quat(rot):
-    """Convert a set of rotations to quaternions
+    """Convert a set of rotations to quaternions.
 
     Parameters
     ----------
@@ -1075,7 +1079,7 @@ def rot_to_quat(rot):
 
 
 def _angle_between_quats(x, y):
-    """Compute the angle between two quaternions w/3-element representations"""
+    """Compute the ang between two quaternions w/3-element representations."""
     # convert to complete quaternion representation
     # use max() here to be safe in case roundoff errs put us over
     x0 = np.sqrt(np.maximum(1. - x[..., 0] ** 2 -
@@ -1088,12 +1092,12 @@ def _angle_between_quats(x, y):
 
 
 def _skew_symmetric_cross(a):
-    """The skew-symmetric cross product of a vector"""
+    """The skew-symmetric cross product of a vector."""
     return np.array([[0., -a[2], a[1]], [a[2], 0., -a[0]], [-a[1], a[0], 0.]])
 
 
 def _find_vector_rotation(a, b):
-    """Find the rotation matrix that maps unit vector a to b"""
+    """Find the rotation matrix that maps unit vector a to b."""
     # Rodrigues' rotation formula:
     #   https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
     #   http://math.stackexchange.com/a/476311

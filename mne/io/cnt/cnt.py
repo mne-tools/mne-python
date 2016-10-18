@@ -1,5 +1,4 @@
-"""Conversion tool from Neuroscan CNT to FIF
-"""
+"""Conversion tool from Neuroscan CNT to FIF."""
 
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
@@ -96,7 +95,7 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
 
 
 def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
-    """Helper for reading the cnt header."""
+    """Read the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
     # Reading only the fields of interest. Structure of the whole header at
@@ -350,9 +349,10 @@ class RawCNT(_BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+
     def __init__(self, input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
                  data_format='auto', date_format='mm/dd/yy', preload=False,
-                 verbose=None):
+                 verbose=None):  # noqa: D102
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
                                        data_format, date_format)
@@ -365,7 +365,7 @@ class RawCNT(_BaseRaw):
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Take a chunk of raw data, multiply by mult or cals, and store"""
+        """Take a chunk of raw data, multiply by mult or cals, and store."""
         n_channels = self.info['nchan'] - 1  # Stim channel already read.
         channel_offset = self._raw_extras[0]['channel_offset']
         baselines = self._raw_extras[0]['baselines']

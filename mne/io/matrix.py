@@ -11,7 +11,7 @@ from ..utils import logger, verbose
 
 
 def _transpose_named_matrix(mat):
-    """Transpose mat inplace (no copy)"""
+    """Transpose mat inplace (no copy)."""
     mat['nrow'], mat['ncol'] = mat['ncol'], mat['nrow']
     mat['row_names'], mat['col_names'] = mat['col_names'], mat['row_names']
     mat['data'] = mat['data'].T
@@ -20,7 +20,7 @@ def _transpose_named_matrix(mat):
 @verbose
 def _read_named_matrix(fid, node, matkind, indent='    ', transpose=False,
                        verbose=None):
-    """Read named matrix from the given node
+    """Read named matrix from the given node.
 
     Parameters
     ----------
@@ -89,7 +89,7 @@ def _read_named_matrix(fid, node, matkind, indent='    ', transpose=False,
 
 
 def write_named_matrix(fid, kind, mat):
-    """Write named matrix from the given node
+    """Write named matrix from the given node.
 
     Parameters
     ----------

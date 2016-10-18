@@ -27,7 +27,7 @@ from ...utils import check_fname, logger, verbose, warn
 
 
 class Raw(_BaseRaw):
-    """Raw data in FIF format
+    """Raw data in FIF format.
 
     Parameters
     ----------
@@ -68,9 +68,10 @@ class Raw(_BaseRaw):
     verbose : bool, str, int, or None
         See above.
     """
+
     @verbose
     def __init__(self, fname, allow_maxshield=False, preload=False,
-                 add_eeg_ref=False, verbose=None):
+                 add_eeg_ref=False, verbose=None):  # noqa: D102
         fnames = [op.realpath(fname)]
         del fname
         split_fnames = []
@@ -126,7 +127,7 @@ class Raw(_BaseRaw):
     @verbose
     def _read_raw_file(self, fname, allow_maxshield, preload,
                        do_check_fname=True, verbose=None):
-        """Read in header information from a raw file"""
+        """Read in header information from a raw file."""
         logger.info('Opening raw data file %s...' % fname)
 
         if do_check_fname:
@@ -306,7 +307,7 @@ class Raw(_BaseRaw):
 
     @property
     def _dtype(self):
-        """Get the dtype to use to store data from disk"""
+        """Get the dtype to use to store data from disk."""
         if self._dtype_ is not None:
             return self._dtype_
         dtype = None
@@ -332,7 +333,7 @@ class Raw(_BaseRaw):
         return dtype
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a segment of data from a file"""
+        """Read a segment of data from a file."""
         stop -= 1
         offset = 0
         with _fiff_get_fid(self._filenames[fi]) as fid:
@@ -381,7 +382,7 @@ class Raw(_BaseRaw):
                     break
 
     def fix_mag_coil_types(self):
-        """Fix Elekta magnetometer coil types
+        """Fix Elekta magnetometer coil types.
 
         Returns
         -------
@@ -414,14 +415,14 @@ class Raw(_BaseRaw):
 
 
 def _check_entry(first, nent):
-    """Helper to sanity check entries"""
+    """Sanity check entries."""
     if first >= nent:
         raise IOError('Could not read data, perhaps this is a corrupt file')
 
 
 def read_raw_fif(fname, allow_maxshield=False, preload=False,
                  add_eeg_ref=False, verbose=None):
-    """Reader function for Raw FIF data
+    """Reader function for Raw FIF data.
 
     Parameters
     ----------

@@ -16,7 +16,9 @@ from ..utils import warn, check_version
 
 
 class _DecodingTime(dict):
-    """A dictionary to configure the training times that has the following keys:
+    """Dictionary to configure the training times.
+
+    It has the following keys:
 
     'slices' : ndarray, shape (n_clfs,)
         Array of time slices (in indices) used for each classifier.
@@ -32,9 +34,11 @@ class _DecodingTime(dict):
         seconds). Defaults to one time sample.
     'length' : float
         Duration of each classifier (in seconds). Defaults to one time sample.
-    If None, empty dict. """
 
-    def __repr__(self):
+    If None, empty dict.
+    """
+
+    def __repr__(self):  # noqa: D105
         s = ""
         if "start" in self:
             s += "start: %0.3f (s)" % (self["start"])
@@ -62,13 +66,12 @@ class _DecodingTime(dict):
 
 
 class _GeneralizationAcrossTime(object):
-    """Generic object to train and test a series of classifiers at and across
-    different time samples.
-    """  # noqa
+    """Object to train and test classifiers at and acrosstime samples."""
+
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
                  test_times=None, predict_method='predict',
                  predict_mode='cross-validation', scorer=None,
-                 score_mode='mean-fold-wise', n_jobs=1):
+                 score_mode='mean-fold-wise', n_jobs=1):  # noqa: D102
 
         from sklearn.preprocessing import StandardScaler
         from sklearn.linear_model import LogisticRegression
@@ -166,7 +169,7 @@ class _GeneralizationAcrossTime(object):
         return self
 
     def predict(self, epochs):
-        """Classifiers' predictions on each specified testing time slice.
+        """Get predictions of classifiers on each specified testing time slice.
 
         .. note::
             This function sets the ``y_pred_`` and ``test_times_`` attributes.
@@ -184,8 +187,7 @@ class _GeneralizationAcrossTime(object):
             time. Note that the number of testing times per training time need
             not be regular; else
             ``np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs)``.
-        """  # noqa
-
+        """  # noqa: E501
         # Check that classifier has predict_method (e.g. predict_proba is not
         # always available):
         if not hasattr(self.clf, self.predict_method):
@@ -309,7 +311,7 @@ class _GeneralizationAcrossTime(object):
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
-        """Score Epochs
+        """Score Epochs.
 
         Estimate scores across trials by comparing the prediction estimated for
         each trial to its true value.
@@ -443,7 +445,7 @@ _warn_once = dict()
 
 def _predict_slices(X, train_times, estimators, cv_splits, predict_mode,
                     predict_method, n_orig_epochs, test_epochs):
-    """Aux function of GeneralizationAcrossTime
+    """Aux function of GeneralizationAcrossTime.
 
     Run classifiers predictions loop across time samples.
 
@@ -478,7 +480,6 @@ def _predict_slices(X, train_times, estimators, cv_splits, predict_mode,
     test_epochs : list of slices
         List of slices to select the tested epoched in the cv.
     """
-
     # Check inputs
     n_epochs, _, n_times = X.shape
     n_train = len(estimators)
@@ -595,9 +596,7 @@ def _init_ypred(n_train, n_test, n_orig_epochs, n_dim):
 
 
 def _score_slices(y_true, list_y_pred, scorer, score_mode, cv):
-    """Aux function of GeneralizationAcrossTime that loops across chunks of
-    testing slices.
-    """
+    """Loop across chunks of testing slices."""
     scores_list = list()
     for y_pred in list_y_pred:
         scores = list()
@@ -620,7 +619,7 @@ def _score_slices(y_true, list_y_pred, scorer, score_mode, cv):
 
 
 def _check_epochs_input(epochs, y, picks=None):
-    """Aux function of GeneralizationAcrossTime
+    """Aux function of GeneralizationAcrossTime.
 
     Format MNE data into scikit-learn X and y.
 
@@ -667,7 +666,7 @@ def _check_epochs_input(epochs, y, picks=None):
 
 
 def _fit_slices(clf, x_chunk, y, slices, cv_splits):
-    """Aux function of GeneralizationAcrossTime
+    """Aux function of GeneralizationAcrossTime.
 
     Fit each classifier.
 
@@ -717,7 +716,7 @@ def _fit_slices(clf, x_chunk, y, slices, cv_splits):
 
 
 def _sliding_window(times, window, sfreq):
-    """Aux function of GeneralizationAcrossTime
+    """Aux function of GeneralizationAcrossTime.
 
     Define the slices on which to train each classifier. The user either define
     the time slices manually in window['slices'] or s/he passes optional params
@@ -791,13 +790,13 @@ def _sliding_window(times, window, sfreq):
 
 
 def _set_window_time(slices, times):
-    """Aux function to define time as the last training time point"""
+    """Aux function to define time as the last training time point."""
     t_idx_ = [t[-1] for t in slices]
     return times[t_idx_]
 
 
 def _predict(X, estimators, vectorize_times, predict_method):
-    """Aux function of GeneralizationAcrossTime
+    """Aux function of GeneralizationAcrossTime.
 
     Predict each classifier. If multiple classifiers are passed, average
     prediction across all classifiers to result in a single prediction per
@@ -867,7 +866,7 @@ def _predict(X, estimators, vectorize_times, predict_method):
 
 
 class GeneralizationAcrossTime(_GeneralizationAcrossTime):
-    """Generalize across time and conditions
+    """Generalize across time and conditions.
 
     Creates an estimator object used to 1) fit a series of classifiers on
     multidimensional time-resolved data, and 2) test the ability of each
@@ -1015,18 +1014,19 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
        DOI: 10.1371/journal.pone.0085791
 
     .. versionadded:: 0.9.0
-    """  # noqa
+    """  # noqa: E501
+
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
                  test_times=None, predict_method='predict',
                  predict_mode='cross-validation', scorer=None,
-                 score_mode='mean-fold-wise', n_jobs=1):
+                 score_mode='mean-fold-wise', n_jobs=1):  # noqa: D102
         super(GeneralizationAcrossTime, self).__init__(
             picks=picks, cv=cv, clf=clf, train_times=train_times,
             test_times=test_times, predict_method=predict_method,
             predict_mode=predict_mode, scorer=scorer, score_mode=score_mode,
             n_jobs=n_jobs)
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         s = ''
         if hasattr(self, "estimators_"):
             s += "fitted, start : %0.3f (s), stop : %0.3f (s)" % (
@@ -1054,7 +1054,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     def plot(self, title=None, vmin=None, vmax=None, tlim=None, ax=None,
              cmap='RdBu_r', show=True, colorbar=True,
              xlabel=True, ylabel=True):
-        """Plotting function of GeneralizationAcrossTime object
+        """Plot GeneralizationAcrossTime object.
 
         Plot the score of each classifier at each tested time window.
 
@@ -1094,7 +1094,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
                       ymax=None, ax=None, show=True, color=None,
                       xlabel=True, ylabel=True, legend=True, chance=True,
                       label='Classif. score'):
-        """Plotting function of GeneralizationAcrossTime object
+        """Plot GeneralizationAcrossTime object.
 
         Plot each classifier score trained and tested at identical time
         windows.
@@ -1144,7 +1144,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
                    ymin=None, ymax=None, ax=None, show=True, color=None,
                    xlabel=True, ylabel=True, legend=True, chance=True,
                    label='Classif. score'):
-        """Plotting function of GeneralizationAcrossTime object
+        """Plot GeneralizationAcrossTime object.
 
         Plot the scores of the classifier trained at specific training time(s).
 
@@ -1197,8 +1197,9 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
 
 
 class TimeDecoding(_GeneralizationAcrossTime):
-    """Train and test a series of classifiers at each time point to obtain a
-    score across time.
+    """Train and test a series of classifiers at each time point.
+
+    This will result in a score across time.
 
     Parameters
     ----------
@@ -1316,11 +1317,12 @@ class TimeDecoding(_GeneralizationAcrossTime):
     The function is equivalent to the diagonal of GeneralizationAcrossTime()
 
     .. versionadded:: 0.10
-    """  # noqa
+    """  # noqa: E501
 
     def __init__(self, picks=None, cv=5, clf=None, times=None,
                  predict_method='predict', predict_mode='cross-validation',
-                 scorer=None, score_mode='mean-fold-wise', n_jobs=1):
+                 scorer=None, score_mode='mean-fold-wise',
+                 n_jobs=1):  # noqa: D102
         super(TimeDecoding, self).__init__(picks=picks, cv=cv, clf=clf,
                                            train_times=times,
                                            test_times='diagonal',
@@ -1331,7 +1333,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
                                            n_jobs=n_jobs)
         self._clean_times()
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         s = ''
         if hasattr(self, "estimators_"):
             s += "fitted, start : %0.3f (s), stop : %0.3f (s)" % (
@@ -1404,14 +1406,14 @@ class TimeDecoding(_GeneralizationAcrossTime):
         -------
         y_pred : list of lists of arrays of floats, shape (n_times, n_epochs, n_prediction_dims)
             The single-trial predictions at each time sample.
-        """  # noqa
+        """  # noqa: E501
         self._prep_times()
         super(TimeDecoding, self).predict(epochs)
         self._clean_times()
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
-        """Score Epochs
+        """Score Epochs.
 
         Estimate scores across trials by comparing the prediction estimated for
         each trial to its true value.
@@ -1457,7 +1459,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     def plot(self, title=None, xmin=None, xmax=None, ymin=None, ymax=None,
              ax=None, show=True, color=None, xlabel=True, ylabel=True,
              legend=True, chance=True, label='Classif. score'):
-        """Plotting function
+        """Plotting function.
 
         Predict each classifier. If multiple classifiers are passed, average
         prediction across all classifiers to result in a single prediction per
@@ -1509,7 +1511,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
         return fig
 
     def _prep_times(self):
-        """Auxiliary function to allow compatibility with GAT"""
+        """Auxiliary function to allow compatibility with GAT."""
         self.test_times = 'diagonal'
         if hasattr(self, 'times'):
             self.train_times = self.times
@@ -1526,7 +1528,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
             self.y_pred_ = [[y_pred] for y_pred in self.y_pred_]
 
     def _clean_times(self):
-        """Auxiliary function to allow compatibility with GAT"""
+        """Auxiliary function to allow compatibility with GAT."""
         if hasattr(self, 'train_times'):
             self.times = self.train_times
         if hasattr(self, 'train_times_'):
@@ -1550,7 +1552,6 @@ def _chunk_data(X, slices):
     samples that are required by each job. The indices of the training times
     must be adjusted accordingly.
     """
-
     # from object array to list
     slices = [sl for sl in slices if len(sl)]
     selected_times = np.hstack([np.ravel(sl) for sl in slices])

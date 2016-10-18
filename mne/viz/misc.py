@@ -1,5 +1,5 @@
-"""Functions to make simple plots with M/EEG data
-"""
+"""Functions to make simple plots with M/EEG data."""
+
 from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -33,7 +33,7 @@ from .utils import tight_layout, COLORS, _prepare_trellis, plt_show
 @verbose
 def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
              show=True, verbose=None):
-    """Plot Covariance data
+    """Plot Covariance data.
 
     Parameters
     ----------
@@ -444,7 +444,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
                 axes=None, equal_spacing=True, show=True):
-    """Plot events to get a visual display of the paradigm
+    """Plot events to get a visual display of the paradigm.
 
     Parameters
     ----------
@@ -482,7 +482,6 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     -----
     .. versionadded:: 0.9.0
     """
-
     if sfreq is None:
         sfreq = 1.0
         xlabel = 'samples'
@@ -580,7 +579,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
 
 
 def _get_presser(fig):
-    """Helper to get our press callback"""
+    """Get our press callback."""
     callbacks = fig.canvas.callbacks.callbacks['button_press_event']
     func = None
     for key, val in callbacks.items():
@@ -592,7 +591,7 @@ def _get_presser(fig):
 
 
 def plot_dipole_amplitudes(dipoles, colors=None, show=True):
-    """Plot the amplitude traces of a set of dipoles
+    """Plot the amplitude traces of a set of dipoles.
 
     Parameters
     ----------
@@ -630,7 +629,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
 
 
 def adjust_axes(axes, remove_spines=('top', 'right'), grid=True):
-    """Adjust some properties of axes
+    """Adjust some properties of axes.
 
     Parameters
     ----------
@@ -692,7 +691,7 @@ def _check_fscale(fscale):
 
 def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
                 flim=None, fscale='log', alim=(-60, 10), show=True):
-    """Plot properties of a filter
+    """Plot properties of a filter.
 
     Parameters
     ----------

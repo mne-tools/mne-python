@@ -27,7 +27,7 @@ urls = ['/empdata/neuromag/visual/subject1_day1_vis_raw.fif',
         '/simdata/neuromag/visual/M87174545_vis_sim5_4mm_30na_neuro_rn.fif',
 
         '/simdata_singleTrials/subject1_singleTrials_VisWorkingMem_fif.zip',
-        '/simdata_singleTrials/subject1_singleTrials_VisWorkingMem_withOsc_fif.zip',  # noqa
+        '/simdata_singleTrials/subject1_singleTrials_VisWorkingMem_withOsc_fif.zip',  # noqa: E501
         '/simdata_singleTrials/4545_sim_oscOnly_v1_IPS_ILOG_30hzAdded.fif',
 
         '/index.html',
@@ -158,7 +158,7 @@ conditions = np.atleast_1d(conditions)
 
 
 def url_match(condition, data_format, data_type):
-    """Function to match MEGSIM data files"""
+    """Function to match MEGSIM data files."""
     inds = np.logical_and(conditions == condition, data_formats == data_format)
     inds = np.logical_and(inds, data_types == data_type)
     inds = np.logical_and(inds, data_formats == data_format)

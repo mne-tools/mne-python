@@ -1,4 +1,4 @@
-"""Mayavi/traits GUI for setting MRI fiducials"""
+"""Mayavi/traits GUI for setting MRI fiducials."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -29,7 +29,7 @@ from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
 
 
 class MRIHeadWithFiducialsModel(HasPrivateTraits):
-    """Represent an MRI head shape with fiducials
+    """Represent an MRI head shape with fiducials.
 
     Attributes
     ----------
@@ -44,6 +44,7 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     rpa : array (1, 3)
         Right peri-auricular point coordinates.
     """
+
     subject_source = Instance(MRISubjectSource, ())
     bem = Instance(SurfaceSource, ())
     fid = Instance(FiducialsSource, ())
@@ -80,14 +81,14 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
                           "model.")
 
     @on_trait_change('fid_points')
-    def reset_fiducials(self):
+    def reset_fiducials(self):  # noqa: D102
         if self.fid_points is not None:
             self.lpa = self.fid_points[0:1]
             self.nasion = self.fid_points[1:2]
             self.rpa = self.fid_points[2:3]
 
     def save(self, fname=None):
-        """Save the current fiducials to a file
+        """Save the current fiducials to a file.
 
         Parameters
         ----------
@@ -192,7 +193,8 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 
 
 class FiducialsPanel(HasPrivateTraits):
-    """Set fiducials on an MRI surface"""
+    """Set fiducials on an MRI surface."""
+
     model = Instance(MRIHeadWithFiducialsModel)
 
     fid_file = DelegatesTo('model')
@@ -232,7 +234,7 @@ class FiducialsPanel(HasPrivateTraits):
                               show_labels=False),
                        enabled_when="locked==False"))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: D102
         super(FiducialsPanel, self).__init__(*args, **kwargs)
         self.sync_trait('lpa', self, 'current_pos', mutual=True)
 
@@ -343,7 +345,7 @@ view2 = View(VGroup(Item('fid_file', label='Fiducials File'),
 
 
 class FiducialsFrame(HasTraits):
-    """GUI for interpolating between two KIT marker files
+    """GUI for interpolating between two KIT marker files.
 
     Parameters
     ----------
@@ -352,6 +354,7 @@ class FiducialsFrame(HasTraits):
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
+
     model = Instance(MRIHeadWithFiducialsModel, ())
 
     scene = Instance(MlabSceneModel, ())
@@ -392,7 +395,8 @@ class FiducialsFrame(HasTraits):
                 resizable=True,
                 buttons=NoButtons)
 
-    def __init__(self, subject=None, subjects_dir=None, **kwargs):
+    def __init__(self, subject=None, subjects_dir=None,
+                 **kwargs):  # noqa: D102
         super(FiducialsFrame, self).__init__(**kwargs)
 
         subjects_dir = get_subjects_dir(subjects_dir)

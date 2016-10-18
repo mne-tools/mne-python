@@ -1,4 +1,4 @@
-"""Coordinate Point Extractor for KIT system"""
+"""Coordinate Point Extractor for KIT system."""
 
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
@@ -14,7 +14,7 @@ from ...externals.six.moves import cPickle as pickle
 
 
 def read_mrk(fname):
-    """Marker Point Extraction in MEG space directly from sqd
+    r"""Marker Point Extraction in MEG space directly from sqd.
 
     Parameters
     ----------
@@ -66,7 +66,7 @@ def read_mrk(fname):
 
 
 def read_sns(fname):
-    """Sensor coordinate extraction in MEG space
+    """Sensor coordinate extraction in MEG space.
 
     Parameters
     ----------

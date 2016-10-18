@@ -36,7 +36,7 @@ from .utils import logger, verbose, _time_mask, warn, _check_fname, check_fname
 
 
 class Dipole(object):
-    """Dipole class for sequential dipole fits
+    """Dipole class for sequential dipole fits.
 
     .. note:: This class should usually not be instantiated directly,
               instead :func:`mne.read_dipole` should be used.
@@ -72,7 +72,9 @@ class Dipole(object):
     changes as a function of time. For fixed dipole fits, where the
     position is fixed as a function of time, use :class:`mne.DipoleFixed`.
     """
-    def __init__(self, times, pos, amplitude, ori, gof, name=None):
+
+    def __init__(self, times, pos, amplitude, ori, gof,
+                 name=None):  # noqa: D102
         self.times = np.array(times)
         self.pos = np.array(pos)
         self.amplitude = np.array(amplitude)
@@ -80,14 +82,14 @@ class Dipole(object):
         self.gof = np.array(gof)
         self.name = name
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         s = "n_times : %s" % len(self.times)
         s += ", tmin : %s" % np.min(self.times)
         s += ", tmax : %s" % np.max(self.times)
         return "<Dipole  |  %s>" % s
 
     def save(self, fname):
-        """Save dipole in a .dip file
+        """Save dipole in a .dip file.
 
         Parameters
         ----------
@@ -112,7 +114,7 @@ class Dipole(object):
                            % self.name).encode('utf-8'))
 
     def crop(self, tmin=None, tmax=None):
-        """Crop data to a given time interval
+        """Crop data to a given time interval.
 
         Parameters
         ----------
@@ -129,7 +131,7 @@ class Dipole(object):
             setattr(self, attr, getattr(self, attr)[mask])
 
     def copy(self):
-        """Copy the Dipoles object
+        """Copy the Dipoles object.
 
         Returns
         -------
@@ -144,7 +146,7 @@ class Dipole(object):
                        brain_color=(1, 1, 0), fig_name=None,
                        fig_size=(600, 600), mode='cone',
                        scale_factor=0.1e-1, colors=None, verbose=None):
-        """Plot dipole locations as arrows
+        """Plot dipole locations as arrows.
 
         Parameters
         ----------
@@ -193,7 +195,7 @@ class Dipole(object):
             colors)
 
     def plot_amplitudes(self, color='k', show=True):
-        """Plot the dipole amplitudes as a function of time
+        """Plot the dipole amplitudes as a function of time.
 
         Parameters
         ----------
@@ -211,7 +213,7 @@ class Dipole(object):
         return plot_dipole_amplitudes([self], [color], show)
 
     def __getitem__(self, item):
-        """Get a time slice
+        """Get a time slice.
 
         Parameters
         ----------
@@ -237,7 +239,7 @@ class Dipole(object):
             selected_gof, selected_name)
 
     def __len__(self):
-        """The number of dipoles
+        """The number of dipoles.
 
         Returns
         -------
@@ -256,7 +258,7 @@ class Dipole(object):
 
 
 def _read_dipole_fixed(fname):
-    """Helper to read a fixed dipole FIF file"""
+    """Helper to read a fixed dipole FIF file."""
     logger.info('Reading %s ...' % fname)
     _check_fname(fname, overwrite=True, must_exist=True)
     info, nave, aspect_kind, first, last, comment, times, data = \
@@ -266,7 +268,7 @@ def _read_dipole_fixed(fname):
 
 
 class DipoleFixed(object):
-    """Dipole class for fixed-position dipole fits
+    """Dipole class for fixed-position dipole fits.
 
     .. note:: This class should usually not be instantiated directly,
               instead :func:`mne.read_dipole` should be used.
@@ -305,9 +307,10 @@ class DipoleFixed(object):
 
     .. versionadded:: 0.12
     """
+
     @verbose
     def __init__(self, info, data, times, nave, aspect_kind, first, last,
-                 comment, verbose=None):
+                 comment, verbose=None):  # noqa: D102
         self.info = info
         self.nave = nave
         self._aspect_kind = aspect_kind
@@ -321,11 +324,12 @@ class DipoleFixed(object):
 
     @property
     def ch_names(self):
+        """Channel names."""
         return self.info['ch_names']
 
     @verbose
     def save(self, fname, verbose=None):
-        """Save dipole in a .fif file
+        """Save dipole in a .fif file.
 
         Parameters
         ----------
@@ -341,7 +345,7 @@ class DipoleFixed(object):
         _write_evokeds(fname, self, check=False)
 
     def plot(self, show=True):
-        """Plot dipole data
+        """Plot dipole data.
 
         Parameters
         ----------
@@ -364,7 +368,7 @@ class DipoleFixed(object):
 # IO
 @verbose
 def read_dipole(fname, verbose=None):
-    """Read .dip file from Neuromag/xfit or MNE
+    """Read .dip file from Neuromag/xfit or MNE.
 
     Parameters
     ----------
@@ -467,7 +471,7 @@ def _read_dipole_text(fname):
 # Fitting
 
 def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
-    """Compute the forward solution and do other nice stuff"""
+    """Compute the forward solution and do other nice stuff."""
     B = _compute_forwards_meeg(rr, fwd_data, n_jobs, verbose=False)
     B = np.concatenate(B, axis=1)
     B_orig = B.copy()
@@ -485,7 +489,7 @@ def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
 
 
 def _make_guesses(surf_or_rad, r0, grid, exclude, mindist, n_jobs):
-    """Make a guess space inside a sphere or BEM surface"""
+    """Make a guess space inside a sphere or BEM surface."""
     if isinstance(surf_or_rad, dict):
         surf = surf_or_rad
         logger.info('Guess surface (%s) is in %s coordinates'
@@ -510,7 +514,7 @@ def _make_guesses(surf_or_rad, r0, grid, exclude, mindist, n_jobs):
 
 
 def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None):
-    """Calculate the residual sum of squares"""
+    """Calculate the residual sum of squares."""
     if fwd_svd is None:
         fwd = _dipole_forwards(fwd_data, whitener, rd[np.newaxis, :])[0]
         uu, sing, vv = linalg.svd(fwd, overwrite_a=True, full_matrices=False)
@@ -522,7 +526,7 @@ def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None):
 
 
 def _dipole_gof(uu, sing, vv, B, B2):
-    """Calculate the goodness of fit from the forward SVD"""
+    """Calculate the goodness of fit from the forward SVD."""
     ncomp = 3 if sing[2] / sing[0] > 0.2 else 2
     one = np.dot(vv[:ncomp], B)
     Bm2 = np.sum(one * one)
@@ -531,7 +535,7 @@ def _dipole_gof(uu, sing, vv, B, B2):
 
 
 def _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig, rd, ori=None):
-    """Fit the dipole moment once the location is known"""
+    """Fit the dipole moment once the location is known."""
     if 'fwd' in fwd_data:
         # should be a single precomputed "guess" (i.e., fixed position)
         assert rd is None
@@ -566,14 +570,14 @@ def _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig, rd, ori=None):
 
 
 def _compute_residual(proj_op, B_orig, fwd_orig, Q):
-    """Compute the residual"""
+    """Compute the residual."""
     # apply the projector to both elements
     return np.dot(proj_op, B_orig) - np.dot(np.dot(Q, fwd_orig), proj_op.T)
 
 
 def _fit_dipoles(fun, min_dist_to_inner_skull, data, times, guess_rrs,
                  guess_data, fwd_data, whitener, proj_op, ori, n_jobs):
-    """Fit a single dipole to the given whitened, projected data"""
+    """Fit a single dipole to the given whitened, projected data."""
     from scipy.optimize import fmin_cobyla
     parallel, p_fun, _ = parallel_func(fun, n_jobs)
     # parallel over time points
@@ -684,7 +688,7 @@ def _simplex_minimize(p, ftol, stol, fun, max_eval=1000):
 
 
 def _surface_constraint(rd, surf, min_dist_to_inner_skull):
-    """Surface fitting constraint"""
+    """Surface fitting constraint."""
     dist = _compute_nearest(surf['rr'], rd[np.newaxis, :],
                             return_dists=True)[1][0]
     if _points_outside_surface(rd[np.newaxis, :], surf, 1)[0]:
@@ -698,14 +702,14 @@ def _surface_constraint(rd, surf, min_dist_to_inner_skull):
 
 
 def _sphere_constraint(rd, r0, R_adj):
-    """Sphere fitting constraint"""
+    """Sphere fitting constraint."""
     return R_adj - np.sqrt(np.sum((rd - r0) ** 2))
 
 
 def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
                 guess_data, fwd_data, whitener, proj_op,
                 fmin_cobyla, ori):
-    """Fit a single bit of data"""
+    """Fit a single bit of data."""
     B = np.dot(whitener, B_orig)
 
     # make constraint function to keep the solver within the inner skull
@@ -764,7 +768,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
 def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
                       guess_data, fwd_data, whitener, proj_op,
                       fmin_cobyla, ori):
-    """Fit a data using a fixed position"""
+    """Fit a data using a fixed position."""
     B = np.dot(whitener, B_orig)
     B2 = np.dot(B, B)
     if B2 == 0:
@@ -786,7 +790,7 @@ def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
 @verbose
 def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
                pos=None, ori=None, verbose=None):
-    """Fit a dipole
+    """Fit a dipole.
 
     Parameters
     ----------
@@ -1090,7 +1094,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
 
 
 def get_phantom_dipoles(kind='vectorview'):
-    """Get standard phantom dipole locations and orientations
+    """Get standard phantom dipole locations and orientations.
 
     Parameters
     ----------

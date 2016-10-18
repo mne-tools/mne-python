@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-"""Convert surface to BEM FIF file
+r"""Convert surface to BEM FIF file.
 
 Example usage
 
 mne surf2bem --surf ${SUBJECTS_DIR}/${SUBJECT}/surf/lh.seghead --fif \
 ${SUBJECTS_DIR}/${SUBJECT}/bem/${SUBJECT}-head.fif --id=4
-
 """
 from __future__ import print_function
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -18,6 +17,7 @@ import mne
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)

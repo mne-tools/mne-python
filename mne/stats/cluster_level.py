@@ -21,7 +21,7 @@ from ..source_estimate import SourceEstimate
 
 
 def _get_clusters_spatial(s, neighbors):
-    """Helper function to form spatial clusters using neighbor lists
+    """Form spatial clusters using neighbor lists.
 
     This is equivalent to _get_components with n_times = 1, with a properly
     reconfigured connectivity matrix (formed as "neighbors" list)
@@ -57,7 +57,7 @@ def _get_clusters_spatial(s, neighbors):
 
 
 def _reassign(check, clusters, base, num):
-    """Helper function to reassign cluster numbers"""
+    """Reassign cluster numbers."""
     # reconfigure check matrix
     check[check == num] = base
     # concatenate new values into clusters array
@@ -67,7 +67,9 @@ def _reassign(check, clusters, base, num):
 
 
 def _get_clusters_st_1step(keepers, neighbors):
-    """Directly calculate connectivity based on knowledge that time points are
+    """Directly calculate connectivity.
+
+    This uses knowledge that time points are
     only connected to adjacent neighbors for data organized as time x space.
 
     This algorithm time increases linearly with the number of time points,
@@ -75,7 +77,8 @@ def _get_clusters_st_1step(keepers, neighbors):
 
     This algorithm creates clusters for each time point using a method more
     efficient than the standard graph method (but otherwise equivalent), then
-    combines these clusters across time points in a reasonable way."""
+    combines these clusters across time points in a reasonable way.
+    """
     n_src = len(neighbors)
     n_times = len(keepers)
     # start cluster numbering at 1 for diffing convenience
@@ -112,11 +115,14 @@ def _get_clusters_st_1step(keepers, neighbors):
 
 
 def _get_clusters_st_multistep(keepers, neighbors, max_step=1):
-    """Directly calculate connectivity based on knowledge that time points are
+    """Directly calculate connectivity.
+
+    This uses knowledge that time points are
     only connected to adjacent neighbors for data organized as time x space.
 
     This algorithm time increases linearly with the number of time points,
-    compared to with the square for the standard (graph) algorithm."""
+    compared to with the square for the standard (graph) algorithm.
+    """
     n_src = len(neighbors)
     n_times = len(keepers)
     t_border = list()
@@ -169,7 +175,7 @@ def _get_clusters_st_multistep(keepers, neighbors, max_step=1):
 
 
 def _get_clusters_st(x_in, neighbors, max_step=1):
-    """Helper function to choose the most efficient version"""
+    """Choose the most efficient version."""
     n_src = len(neighbors)
     n_times = x_in.size // n_src
     cl_goods = np.where(x_in)[0]
@@ -199,7 +205,7 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
 
 
 def _get_components(x_in, connectivity, return_list=True):
-    """get connected components from a mask and a connectivity matrix"""
+    """Get connected components from a mask and a connectivity matrix."""
     try:
         from sklearn.utils._csgraph import cs_graph_components
     except ImportError:
@@ -243,8 +249,7 @@ def _get_components(x_in, connectivity, return_list=True):
 
 def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                    include=None, partitions=None, t_power=1, show_info=False):
-    """For a given 1d-array (test statistic), find all clusters which
-    are above/below a certain threshold. Returns a list of 2-tuples.
+    """Find all clusters which are above/below a certain threshold.
 
     When doing a two-tailed test (tail == 0), only points with the same
     sign will be clustered together.
@@ -405,8 +410,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
 
 def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
                               t_power, ndimage):
-    """Deal with partitions, and pass the work to _find_clusters_1dir
-    """
+    """Deal with partitions, and pass the work to _find_clusters_1dir."""
     if partitions is None:
         clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_step,
                                              t_power, ndimage)
@@ -425,7 +429,7 @@ def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
 
 
 def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
-    """Actually call the clustering algorithm"""
+    """Actually call the clustering algorithm."""
     if connectivity is None:
         labels, n_labels = ndimage.label(x_in)
 
@@ -474,7 +478,7 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
 
 
 def _cluster_indices_to_mask(components, n_tot):
-    """Convert to the old format of clusters, which were bool arrays"""
+    """Convert to the old format of clusters, which were bool arrays."""
     for ci, c in enumerate(components):
         components[ci] = np.zeros((n_tot), dtype=bool)
         components[ci][c] = True
@@ -482,7 +486,7 @@ def _cluster_indices_to_mask(components, n_tot):
 
 
 def _cluster_mask_to_indices(components):
-    """Convert to the old format of clusters, which were bool arrays"""
+    """Convert to the old format of clusters, which were bool arrays."""
     for ci, c in enumerate(components):
         if not isinstance(c, slice):
             components[ci] = np.where(c)[0]
@@ -490,7 +494,7 @@ def _cluster_mask_to_indices(components):
 
 
 def _pval_from_histogram(T, H0, tail):
-    """Get p-values from stats values given an H0 distribution
+    """Get p-values from stats values given an H0 distribution.
 
     For each stat compute a p-value as percentile of its statistics
     within all statistics in surrogate data
@@ -528,7 +532,6 @@ def _setup_connectivity(connectivity, n_vertices, n_times):
 def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
                      max_step, include, partitions, t_power, seeds,
                      sample_shape, buffer_size, progress_bar):
-
     n_samp, n_vars = X_full.shape
 
     if buffer_size is not None and n_vars <= buffer_size:
@@ -678,7 +681,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                               exclude, step_down_p, t_power, out_type,
                               check_disjoint, buffer_size):
     n_jobs = check_n_jobs(n_jobs)
-    """ Aux Function
+    """Aux Function.
 
     Note. X is required to be a list. Depending on the length of X
     either a 1 sample t-test or an f-test / more sample permutation scheme
@@ -852,7 +855,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
 
 
 def ttest_1samp_no_p(X, sigma=0, method='relative'):
-    """t-test with variance adjustment and no p-value calculation
+    """Perform t-test with variance adjustment and no p-value calculation.
 
     Parameters
     ----------
@@ -902,7 +905,7 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
                              seed=None, max_step=1, exclude=None,
                              step_down_p=0, t_power=1, out_type='mask',
                              check_disjoint=False, buffer_size=1000):
-    """Cluster-level statistical permutation test
+    """Cluster-level statistical permutation test.
 
     For a list of nd-arrays of data, e.g. 2d for time series or 3d for
     time-frequency power values, calculate some statistics corrected for
@@ -1037,7 +1040,7 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
                                    seed=None, max_step=1, exclude=None,
                                    step_down_p=0, t_power=1, out_type='mask',
                                    check_disjoint=False, buffer_size=1000):
-    """Non-parametric cluster-level 1 sample T-test
+    """Non-parametric cluster-level 1 sample T-test.
 
     From a array of observations, e.g. signal amplitudes or power spectrum
     estimates etc., calculate if the observed mean significantly deviates
@@ -1176,7 +1179,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
                                        spatial_exclude=None, step_down_p=0,
                                        t_power=1, out_type='indices',
                                        check_disjoint=False, buffer_size=1000):
-    """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
+    """Non-parametric cluster-level 1 sample T-test for spatio-temporal data.
 
     This function provides a convenient wrapper for data organized in the form
     (observations x time x space) to use permutation_cluster_1samp_test.
@@ -1310,7 +1313,7 @@ def spatio_temporal_cluster_test(X, threshold=1.67, n_permutations=1024,
                                  seed=None, max_step=1, spatial_exclude=None,
                                  step_down_p=0, t_power=1, out_type='indices',
                                  check_disjoint=False, buffer_size=1000):
-    """Non-parametric cluster-level test for spatio-temporal data
+    """Non-parametric cluster-level test for spatio-temporal data.
 
     This function provides a convenient wrapper for data organized in the form
     (observations x time x space) to use permutation_cluster_test.
@@ -1421,10 +1424,11 @@ spatio_temporal_cluster_test.__test__ = False
 
 
 def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
-    """This function returns a boolean mask vector to apply to a spatio-
-    temporal connectivity matrix (n_times * n_vertices square) to include (or
-    exclude) certain spatial coordinates. This is useful for excluding certain
-    regions from analysis (e.g., medial wall vertices).
+    """Compute mask to apply to a spatio-temporal connectivity matrix.
+
+    This can be used to include (or exclude) certain spatial coordinates.
+    This is useful for excluding certain regions from analysis (e.g.,
+    medial wall vertices).
 
     Parameters
     ----------
@@ -1453,8 +1457,7 @@ def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
 
 @verbose
 def _get_partitions_from_connectivity(connectivity, n_times, verbose=None):
-    """Use indices to specify disjoint subsets (e.g., hemispheres) based on
-    connectivity"""
+    """Specify disjoint subsets (e.g., hemispheres) based on connectivity."""
     if isinstance(connectivity, list):
         test = np.ones(len(connectivity))
         test_conn = np.zeros((len(connectivity), len(connectivity)),
@@ -1483,7 +1486,7 @@ def _get_partitions_from_connectivity(connectivity, n_times, verbose=None):
 
 
 def _reshape_clusters(clusters, sample_shape):
-    """Reshape cluster masks or indices to be of the correct shape"""
+    """Reshape cluster masks or indices to be of the correct shape."""
     # format of the bool mask and indices are ndarrays
     if len(clusters) > 0 and isinstance(clusters[0], np.ndarray):
         if clusters[0].dtype == bool:  # format of mask
@@ -1495,10 +1498,10 @@ def _reshape_clusters(clusters, sample_shape):
 
 def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
                            subject='fsaverage', vertices=None):
-    """ Assemble summary SourceEstimate from spatiotemporal cluster results
+    """Assemble summary SourceEstimate from spatiotemporal cluster results.
 
     This helps visualizing results from spatio-temporal-clustering
-    permutation tests
+    permutation tests.
 
     Parameters
     ----------

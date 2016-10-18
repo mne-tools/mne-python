@@ -1,5 +1,4 @@
-"""Generate html report from MNE database
-"""
+"""Generate html report from MNE database."""
 
 # Authors: Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Mainak Jas <mainak@neuro.hut.fi>
@@ -47,15 +46,14 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 
 def _fig_to_img(function=None, fig=None, image_format='png',
                 scale=None, **kwargs):
-    """Wrapper function to plot figure and create a binary image"""
-
+    """Wrapper function to plot figure and create a binary image."""
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     if not isinstance(fig, Figure) and function is None:
         from scipy.misc import imread
         mlab = None
         try:
-            from mayavi import mlab  # noqa
+            from mayavi import mlab  # noqa: F401
         except:  # on some systems importing Mayavi raises SystemExit (!)
             warn('Could not import mayavi. Trying to render'
                  '`mayavi.core.scene.Scene` figure instances'
@@ -89,7 +87,7 @@ def _fig_to_img(function=None, fig=None, image_format='png',
 
 
 def _scale_mpl_figure(fig, scale):
-    """Magic scaling helper
+    """Magic scaling helper.
 
     Keeps font-size and artist sizes constant
     0.5 : current font - 4pt
@@ -128,8 +126,7 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 
 
 def _iterate_trans_views(function, **kwargs):
-    """Auxiliary function to iterate over views in trans fig.
-    """
+    """Auxiliary function to iterate over views in trans fig."""
     from scipy.misc import imread
     import matplotlib.pyplot as plt
     import mayavi
@@ -161,9 +158,7 @@ def _iterate_trans_views(function, **kwargs):
 
 
 def _is_bad_fname(fname):
-    """Auxiliary function for identifying bad file naming patterns
-       and highlighting them in red in the TOC.
-    """
+    """Identify bad file naming patterns and highlight them in the TOC."""
     if fname.endswith('(whitened)'):
         fname = fname[:-11]
 
@@ -174,7 +169,7 @@ def _is_bad_fname(fname):
 
 
 def _get_fname(fname):
-    """Get fname without -#-"""
+    """Get fname without -#-."""
     if '-#-' in fname:
         fname = fname.split('-#-')[0]
     else:
@@ -184,9 +179,7 @@ def _get_fname(fname):
 
 
 def _get_toc_property(fname):
-    """Auxiliary function to assign class names to TOC
-       list elements to allow toggling with buttons.
-    """
+    """Assign class names to TOC elements to allow toggling with buttons."""
     if fname.endswith(('-eve.fif', '-eve.fif.gz')):
         div_klass = 'events'
         tooltip = fname
@@ -241,8 +234,7 @@ def _get_toc_property(fname):
 
 
 def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error):
-    """Auxiliary function to parallel process in batch mode.
-    """
+    """Parallel process in batch mode."""
     htmls, report_fnames, report_sectionlabels = [], [], []
 
     def _update_html(html, report_fname, report_sectionlabel):
@@ -321,9 +313,7 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error):
 
 
 def _build_image(data, cmap='gray'):
-    """Build an image encoded in base64.
-    """
-
+    """Build an image encoded in base64."""
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -342,8 +332,7 @@ def _build_image(data, cmap='gray'):
 
 
 def _iterate_sagittal_slices(array, limits=None):
-    """Iterate sagittal slice.
-    """
+    """Iterate sagittal slices."""
     shape = array.shape[0]
     for ind in range(shape):
         if limits and ind not in limits:
@@ -352,8 +341,7 @@ def _iterate_sagittal_slices(array, limits=None):
 
 
 def _iterate_axial_slices(array, limits=None):
-    """Iterate axial slice.
-    """
+    """Iterate axial slices."""
     shape = array.shape[1]
     for ind in range(shape):
         if limits and ind not in limits:
@@ -362,8 +350,7 @@ def _iterate_axial_slices(array, limits=None):
 
 
 def _iterate_coronal_slices(array, limits=None):
-    """Iterate coronal slice.
-    """
+    """Iterate coronal slices."""
     shape = array.shape[2]
     for ind in range(shape):
         if limits and ind not in limits:
@@ -373,8 +360,7 @@ def _iterate_coronal_slices(array, limits=None):
 
 def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap,
                         image_format='png'):
-    """Auxiliary function for parallel processing of mri slices.
-    """
+    """Auxiliary function for parallel processing of mri slices."""
     img_klass = 'slideimg-%s' % name
 
     caption = u'Slice %s %s' % (name, ind)
@@ -391,8 +377,7 @@ def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap,
 # HTML functions
 
 def _build_html_image(img, id, div_klass, img_klass, caption=None, show=True):
-    """Build a html image from a slice array.
-    """
+    """Build a html image from a slice array."""
     html = []
     add_style = u'' if show else u'style="display: none"'
     html.append(u'<li class="%s" id="%s" %s>' % (div_klass, id, add_style))
@@ -446,8 +431,7 @@ slider_full_template = Template(u"""
 
 def _build_html_slider(slices_range, slides_klass, slider_id,
                        start_value=None):
-    """Build an html slider for a given slices range and a slices klass.
-    """
+    """Build an html slider for a given slices range and a slices klass."""
     if start_value is None:
         start_value = slices_range[len(slices_range) // 2]
     return slider_template.substitute(slider_id=slider_id,
@@ -758,13 +742,13 @@ toc_list = Template(u"""
 
 
 def _check_scale(scale):
-    """Helper to ensure valid scale value is passed"""
+    """Ensure valid scale value is passed."""
     if np.isscalar(scale) and scale <= 0:
         raise ValueError('scale must be positive, not %s' % scale)
 
 
 class Report(object):
-    """Object for rendering HTML
+    """Object for rendering HTML.
 
     Parameters
     ----------
@@ -801,8 +785,7 @@ class Report(object):
 
     def __init__(self, info_fname=None, subjects_dir=None,
                  subject=None, title=None, cov_fname=None, baseline=None,
-                 verbose=None):
-
+                 verbose=None):  # noqa: D102
         self.info_fname = info_fname
         self.cov_fname = cov_fname
         self.baseline = baseline
@@ -843,14 +826,12 @@ class Report(object):
         return len(self.fnames)
 
     def _get_id(self):
-        """Get id of plot.
-        """
+        """Get id of plot."""
         self.initial_id += 1
         return self.initial_id
 
     def _validate_input(self, items, captions, section, comments=None):
-        """Validate input.
-        """
+        """Validate input."""
         if not isinstance(items, (list, tuple)):
             items = [items]
         if not isinstance(captions, (list, tuple)):
@@ -876,9 +857,7 @@ class Report(object):
 
     def _add_figs_to_section(self, figs, captions, section='custom',
                              image_format='png', scale=None, comments=None):
-        """Auxiliary method for `add_section` and `add_figs_to_section`.
-        """
-
+        """Auxiliary method for `add_section` and `add_figs_to_section`."""
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
         _check_scale(scale)
@@ -1025,7 +1004,7 @@ class Report(object):
 
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None):
-        """Renders a bem slider html str.
+        """Render a bem slider html str.
 
         Parameters
         ----------
@@ -1062,7 +1041,7 @@ class Report(object):
 
     def add_slider_to_section(self, figs, captions=None, section='custom',
                               title='Slider', scale=None, image_format='png'):
-        """Renders a slider of figs to the report.
+        """Render a slider of figs to the report.
 
         Parameters
         ----------
@@ -1092,7 +1071,6 @@ class Report(object):
         -----
         .. versionadded:: 0.10.0
         """
-
         _check_scale(scale)
         if not isinstance(figs[0], list):
             figs = [figs]
@@ -1155,8 +1133,7 @@ class Report(object):
     # HTML rendering
     def _render_one_axis(self, slices_iter, name, global_id, cmap,
                          n_elements, n_jobs):
-        """Render one axis of the array.
-        """
+        """Render one axis of the array."""
         global_id = global_id or name
         html = []
         slices, slices_range = [], []
@@ -1184,9 +1161,7 @@ class Report(object):
     # global rendering functions
     @verbose
     def _init_render(self, verbose=None):
-        """Initialize the renderer.
-        """
-
+        """Initialize the renderer."""
         inc_fnames = ['jquery-1.10.2.min.js', 'jquery-ui.min.js',
                       'bootstrap.min.js', 'jquery-ui.min.css',
                       'bootstrap.min.css']
@@ -1209,7 +1184,7 @@ class Report(object):
     @verbose
     def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, mri_decim=2,
                      sort_sections=True, on_error='warn', verbose=None):
-        """Renders all the files in the folder.
+        r"""Render all the files in the folder.
 
         Parameters
         ----------
@@ -1311,7 +1286,6 @@ class Report(object):
         overwrite : bool
             If True, overwrite report if it already exists.
         """
-
         if fname is None:
             if not hasattr(self, 'data_path'):
                 self.data_path = op.dirname(__file__)
@@ -1354,9 +1328,7 @@ class Report(object):
 
     @verbose
     def _render_toc(self, verbose=None):
-        """Render the Table of Contents.
-        """
-
+        """Render the Table of Contents."""
         logger.info('Rendering : Table of Contents')
 
         html_toc = u'<div id="container">'
@@ -1434,8 +1406,7 @@ class Report(object):
 
     def _render_array(self, array, global_id=None, cmap='gray',
                       limits=None, n_jobs=1):
-        """Render mri without bem contours.
-        """
+        """Render mri without bem contours."""
         html = []
         html.append(u'<div class="row">')
         # Axial
@@ -1465,8 +1436,7 @@ class Report(object):
 
     def _render_one_bem_axis(self, mri_fname, surf_fnames, global_id,
                              shape, orientation='coronal', decim=2, n_jobs=1):
-        """Render one axis of bem contours.
-        """
+        """Render one axis of bem contours."""
         orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
         orientation_axis = orientation_name2axis[orientation]
         n_slices = shape[orientation_axis]
@@ -1503,8 +1473,7 @@ class Report(object):
         return '\n'.join(html)
 
     def _render_image(self, image, cmap='gray', n_jobs=1):
-        """Render one slice of mri without bem.
-        """
+        """Render one slice of mri without bem."""
         import nibabel as nib
 
         global_id = self._get_id()
@@ -1529,8 +1498,7 @@ class Report(object):
         return html
 
     def _render_raw(self, raw_fname):
-        """Render raw.
-        """
+        """Render raw."""
         global_id = self._get_id()
         div_klass = 'raw'
         caption = u'Raw : %s' % raw_fname
@@ -1567,8 +1535,7 @@ class Report(object):
         return html
 
     def _render_forward(self, fwd_fname):
-        """Render forward.
-        """
+        """Render forward."""
         div_klass = 'forward'
         caption = u'Forward: %s' % fwd_fname
         fwd = read_forward_solution(fwd_fname)
@@ -1581,8 +1548,7 @@ class Report(object):
         return html
 
     def _render_inverse(self, inv_fname):
-        """Render inverse.
-        """
+        """Render inverse."""
         div_klass = 'inverse'
         caption = u'Inverse: %s' % inv_fname
         inv = read_inverse_operator(inv_fname)
@@ -1595,8 +1561,7 @@ class Report(object):
         return html
 
     def _render_evoked(self, evoked_fname, baseline=None, figsize=None):
-        """Render evoked.
-        """
+        """Render evoked."""
         evokeds = read_evokeds(evoked_fname, baseline=baseline, verbose=False)
 
         html = []
@@ -1635,8 +1600,7 @@ class Report(object):
         return '\n'.join(html)
 
     def _render_eve(self, eve_fname, sfreq=None):
-        """Render events.
-        """
+        """Render events."""
         global_id = self._get_id()
         events = read_events(eve_fname)
 
@@ -1656,8 +1620,7 @@ class Report(object):
         return html
 
     def _render_epochs(self, epo_fname):
-        """Render epochs.
-        """
+        """Render epochs."""
         global_id = self._get_id()
 
         epochs = read_epochs(epo_fname)
@@ -1675,8 +1638,7 @@ class Report(object):
         return html
 
     def _render_cov(self, cov_fname, info_fname):
-        """Render cov.
-        """
+        """Render cov."""
         global_id = self._get_id()
         cov = read_cov(cov_fname)
         fig, _ = plot_cov(cov, info_fname, show=False)
@@ -1693,8 +1655,7 @@ class Report(object):
         return html
 
     def _render_whitened_evoked(self, evoked_fname, noise_cov, baseline):
-        """Show whitened evoked.
-        """
+        """Render whitened evoked."""
         global_id = self._get_id()
 
         evokeds = read_evokeds(evoked_fname, verbose=False)
@@ -1723,8 +1684,7 @@ class Report(object):
 
     def _render_trans(self, trans, path, info, subject,
                       subjects_dir, image_format='png'):
-        """Render trans.
-        """
+        """Render trans."""
         kwargs = dict(info=info, trans=trans, subject=subject,
                       subjects_dir=subjects_dir)
         try:
@@ -1749,8 +1709,7 @@ class Report(object):
 
     def _render_bem(self, subject, subjects_dir, decim, n_jobs,
                     section='mri', caption='BEM'):
-        """Render mri+bem.
-        """
+        """Render mri+bem."""
         import nibabel as nib
 
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -1810,7 +1769,6 @@ class Report(object):
 
 
 def _clean_varnames(s):
-
     # Remove invalid characters
     s = re.sub('[^0-9a-zA-Z_]', '', s)
 
@@ -1820,8 +1778,7 @@ def _clean_varnames(s):
 
 
 def _recursive_search(path, pattern):
-    """Auxiliary function for recursive_search of the directory.
-    """
+    """Auxiliary function for recursive_search of the directory."""
     filtered_files = list()
     for dirpath, dirnames, files in os.walk(path):
         for f in fnmatch.filter(files, pattern):
@@ -1834,9 +1791,7 @@ def _recursive_search(path, pattern):
 
 
 def _fix_global_ids(html):
-    """Auxiliary function for fixing the global_ids after reordering in
-       _render_toc().
-    """
+    """Fix the global_ids after reordering in _render_toc()."""
     html = re.sub('id="\d+"', 'id="###"', html)
     global_id = 1
     while len(re.findall('id="###"', html)) > 0:

@@ -12,7 +12,7 @@ from ..io.pick import pick_channels
 
 
 def _get_window(start, end):
-    """Return window which has length as much as parameter start - end"""
+    """Return window which has length as much as parameter start - end."""
     from scipy.signal import hann
     window = 1 - np.r_[hann(4)[:2],
                        np.ones(np.abs(end - start) - 4),
@@ -21,7 +21,7 @@ def _get_window(start, end):
 
 
 def _check_preload(inst):
-    """Check if inst.preload is False. If it is False, raising error"""
+    """Check if inst.preload is False. If it is False, raising error."""
     if inst.preload is False:
         raise RuntimeError('Modifying data of Instance is only supported '
                            'when preloading is used. Use preload=True '
@@ -29,7 +29,7 @@ def _check_preload(inst):
 
 
 def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
-    """Modify original data by using parameter data"""
+    """Modify original data by using parameter data."""
     from scipy.interpolate import interp1d
     if mode == 'linear':
         x = np.array([first_samp, last_samp])
@@ -44,7 +44,7 @@ def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
 
 def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
                       tmax=0.01, mode='linear', stim_channel=None):
-    """Eliminate stimulation's artifacts from instance
+    """Eliminate stimulation's artifacts from instance.
 
     .. note:: This function operates in-place, consider passing
               ``inst.copy()`` if this is not desired.

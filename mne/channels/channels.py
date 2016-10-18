@@ -23,7 +23,7 @@ from ..io.pick import (channel_type, pick_info, pick_types,
 
 
 def _get_meg_system(info):
-    """Educated guess for the helmet type based on channels"""
+    """Educated guess for the helmet type based on channels."""
     system = '306m'
     for ch in info['chs']:
         if ch['kind'] == FIFF.FIFFV_MEG_CH:
@@ -54,7 +54,7 @@ def _get_meg_system(info):
 
 
 def _contains_ch_type(info, ch_type):
-    """Check whether a certain channel type is in an info object
+    """Check whether a certain channel type is in an info object.
 
     Parameters
     ---------
@@ -86,7 +86,7 @@ def _contains_ch_type(info, ch_type):
 
 
 def _get_ch_type(inst, ch_type):
-    """Helper to choose a single channel type (usually for plotting)
+    """Helper to choose a single channel type (usually for plotting).
 
     Usually used in plotting to plot a single datatype, e.g. look for mags,
     then grads, then ... to plot.
@@ -103,7 +103,7 @@ def _get_ch_type(inst, ch_type):
 
 @verbose
 def equalize_channels(candidates, verbose=None):
-    """Equalize channel picks for a collection of MNE-Python objects
+    """Equalize channel picks for a collection of MNE-Python objects.
 
     Parameters
     ----------
@@ -145,10 +145,10 @@ def equalize_channels(candidates, verbose=None):
 
 
 class ContainsMixin(object):
-    """Mixin class for Raw, Evoked, Epochs
-    """
+    """Mixin class for Raw, Evoked, Epochs."""
+
     def __contains__(self, ch_type):
-        """Check channel type membership
+        """Check channel type membership.
 
         Parameters
         ----------
@@ -179,7 +179,7 @@ class ContainsMixin(object):
 
     @property
     def compensation_grade(self):
-        """The current gradient compensation grade"""
+        """The current gradient compensation grade."""
         return get_current_comp(self.info)
 
 
@@ -222,7 +222,7 @@ _unit2human = {FIFF.FIFF_UNIT_V: 'V',
 
 
 def _check_set(ch, projs, ch_type):
-    """Helper to make sure type change is compatible with projectors"""
+    """Helper to make sure type change is compatible with projectors."""
     new_kind = _human2fiff[ch_type]
     if ch['kind'] != new_kind:
         for proj in projs:
@@ -281,7 +281,7 @@ class SetChannelsMixin(object):
         return set_eeg_reference(self, ref_channels, copy=False)[0]
 
     def _get_channel_positions(self, picks=None):
-        """Gets channel locations from info
+        """Get channel locations from info.
 
         Parameters
         ----------
@@ -304,7 +304,7 @@ class SetChannelsMixin(object):
         return pos
 
     def _set_channel_positions(self, pos, names):
-        """Update channel locations in info
+        """Update channel locations in info.
 
         Parameters
         ----------
@@ -406,7 +406,7 @@ class SetChannelsMixin(object):
 
     @verbose
     def set_montage(self, montage, verbose=None):
-        """Set EEG sensor configuration
+        """Set EEG sensor configuration.
 
         Parameters
         ----------
@@ -427,8 +427,7 @@ class SetChannelsMixin(object):
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
                      show_names=False, ch_groups=None, axes=None, block=False,
                      show=True):
-        """
-        Plot sensors positions.
+        """Plot sensor positions.
 
         Parameters
         ----------
@@ -506,14 +505,14 @@ class SetChannelsMixin(object):
 
 
 class UpdateChannelsMixin(object):
-    """Mixin class for Raw, Evoked, Epochs, AverageTFR
-    """
+    """Mixin class for Raw, Evoked, Epochs, AverageTFR."""
+
     def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
                    fnirs=False, include=[], exclude='bads', selection=None):
-        """Pick some channels by type and names
+        """Pick some channels by type and names.
 
         Parameters
         ----------
@@ -591,7 +590,7 @@ class UpdateChannelsMixin(object):
         return self
 
     def pick_channels(self, ch_names):
-        """Pick some channels
+        """Pick some channels.
 
         Parameters
         ----------
@@ -617,7 +616,7 @@ class UpdateChannelsMixin(object):
         return self
 
     def drop_channels(self, ch_names):
-        """Drop some channels
+        """Drop some channels.
 
         Parameters
         ----------
@@ -761,8 +760,7 @@ class UpdateChannelsMixin(object):
 
 
 class InterpolationMixin(object):
-    """Mixin class for Raw, Evoked, Epochs
-    """
+    """Mixin class for Raw, Evoked, Epochs."""
 
     def interpolate_bads(self, reset_bads=True, mode='accurate'):
         """Interpolate bad MEG and EEG channels.
@@ -858,14 +856,14 @@ def rename_channels(info, mapping):
 
 
 def _recursive_flatten(cell, dtype):
-    """Helper to unpack mat files in Python"""
+    """Helper to unpack mat files in Python."""
     while not isinstance(cell[0], dtype):
         cell = [c for d in cell for c in d]
     return cell
 
 
 def read_ch_connectivity(fname, picks=None):
-    """Parse FieldTrip neighbors .mat file
+    """Parse FieldTrip neighbors .mat file.
 
     More information on these neighbor definitions can be found on the
     related FieldTrip documentation pages:
@@ -924,7 +922,7 @@ def read_ch_connectivity(fname, picks=None):
 
 
 def _ch_neighbor_connectivity(ch_names, neighbors):
-    """Compute sensor connectivity matrix
+    """Compute sensor connectivity matrix.
 
     Parameters
     ----------
@@ -963,7 +961,7 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
 
 
 def fix_mag_coil_types(info):
-    """Fix magnetometer coil types
+    """Fix magnetometer coil types.
 
     Parameters
     ----------
@@ -1000,7 +998,7 @@ def fix_mag_coil_types(info):
 
 
 def _get_T1T2_mag_inds(info):
-    """Helper to find T1/T2 magnetometer coil types"""
+    """Helper to find T1/T2 magnetometer coil types."""
     picks = pick_types(info, meg='mag')
     old_mag_inds = []
     for ii in picks:

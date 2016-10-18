@@ -1,4 +1,4 @@
-"""Non-Linear sparse inverse solvers"""
+"""Non-Linear sparse inverse solvers."""
 
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #

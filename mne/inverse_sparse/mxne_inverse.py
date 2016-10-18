@@ -166,7 +166,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
                debias=True, time_pca=True, weights=None, weights_min=None,
                solver='auto', n_mxne_iter=1, return_residual=False,
                verbose=None):
-    """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE)
+    """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
     Compute L1/L2 mixed-norm solution or L0.5/L2 mixed-norm solution
     on evoked data.
@@ -348,7 +348,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
 
 def _window_evoked(evoked, size):
-    """Window evoked (size in seconds)"""
+    """Window evoked (size in seconds)."""
     if isinstance(size, (float, int)):
         lsize = rsize = float(size)
     else:
@@ -372,7 +372,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                   weights=None, weights_min=None, pca=True, debias=True,
                   wsize=64, tstep=4, window=0.02, return_residual=False,
                   verbose=None):
-    """Time-Frequency Mixed-norm estimate (TF-MxNE)
+    """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
     dictionary. Works with evoked data.

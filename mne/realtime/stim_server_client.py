@@ -13,7 +13,7 @@ from ..utils import logger, verbose
 
 
 class _ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
-    """Creates a threaded TCP server
+    """Create a threaded TCP server.
 
     Parameters
     ----------
@@ -26,7 +26,7 @@ class _ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     """
 
     def __init__(self, server_address, request_handler_class,
-                 stim_server):
+                 stim_server):  # noqa: D102
 
         # Basically, this server is the same as a normal TCPServer class
         # except that it has an additional attribute stim_server
@@ -43,8 +43,7 @@ class _TriggerHandler(socketserver.BaseRequestHandler):
     """Request handler on the server side."""
 
     def handle(self):
-        """Method to handle requests on the server side."""
-
+        """Handle requests on the server side."""
         self.request.settimeout(None)
 
         while self.server.stim_server._running:
@@ -82,7 +81,7 @@ class _TriggerHandler(socketserver.BaseRequestHandler):
 
 
 class StimServer(object):
-    """Stimulation Server
+    """Stimulation Server.
 
     Server to communicate with StimClient(s).
 
@@ -98,14 +97,14 @@ class StimServer(object):
     StimClient
     """
 
-    def __init__(self, port=4218, n_clients=1):
+    def __init__(self, port=4218, n_clients=1):  # noqa: D102
 
         # Start a threaded TCP server, binding to localhost on specified port
         self._data = _ThreadedTCPServer(('', port),
                                         _TriggerHandler, self)
         self.n_clients = n_clients
 
-    def __enter__(self):
+    def __enter__(self):  # noqa: D105
         # This is done to avoid "[Errno 98] Address already in use"
         self._data.allow_reuse_address = True
         self._data.server_bind()
@@ -123,12 +122,12 @@ class StimServer(object):
         self._clients = list()
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type, value, traceback):  # noqa: D105
         self.shutdown()
 
     @verbose
     def start(self, timeout=np.inf, verbose=None):
-        """Method to start the server.
+        """Start the server.
 
         Parameters
         ----------
@@ -137,7 +136,6 @@ class StimServer(object):
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-
         # Start server
         if not self._running:
             logger.info('RtServer: Start')
@@ -167,7 +165,6 @@ class StimServer(object):
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-
         logger.info("Adding client with ip = %s" % ip)
 
         client = dict(ip=ip, id=len(self._clients), running=False, socket=sock)
@@ -177,14 +174,13 @@ class StimServer(object):
 
     @verbose
     def shutdown(self, verbose=None):
-        """Method to shutdown the client and server.
+        """Shutdown the client and server.
 
         Parameters
         ----------
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-
         logger.info("Shutting down ...")
 
         # stop running all the clients
@@ -200,7 +196,7 @@ class StimServer(object):
 
     @verbose
     def add_trigger(self, trigger, verbose=None):
-        """Method to add a trigger.
+        """Add a trigger.
 
         Parameters
         ----------
@@ -213,7 +209,6 @@ class StimServer(object):
         --------
         StimClient.get_trigger
         """
-
         for client in self._clients:
             client_id = client['id']
             logger.info("Sending trigger %d to client %d"
@@ -222,7 +217,7 @@ class StimServer(object):
 
 
 class StimClient(object):
-    """Stimulation Client
+    """Stimulation Client.
 
     Client to communicate with StimServer
 
@@ -243,8 +238,8 @@ class StimClient(object):
     """
 
     @verbose
-    def __init__(self, host, port=4218, timeout=5.0, verbose=None):
-
+    def __init__(self, host, port=4218, timeout=5.0,
+                 verbose=None):  # noqa: D102
         try:
             logger.info("Setting up client socket")
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -270,12 +265,12 @@ class StimClient(object):
                                'is running.' % (host, port))
 
     def close(self):
-        """Close the socket object"""
+        """Close the socket object."""
         self._sock.close()
 
     @verbose
     def get_trigger(self, timeout=5.0, verbose=None):
-        """Method to get triggers from StimServer.
+        """Get triggers from StimServer.
 
         Parameters
         ----------

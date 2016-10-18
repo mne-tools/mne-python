@@ -18,7 +18,7 @@ from ..utils import logger, verbose, _get_extra_data_path
 # FAST LEGENDRE (DERIVATIVE) POLYNOMIALS USING LOOKUP TABLE
 
 def _next_legen_der(n, x, p0, p01, p0d, p0dd):
-    """Compute the next Legendre polynomial and its derivatives"""
+    """Compute the next Legendre polynomial and its derivatives."""
     # only good for n > 1 !
     help_ = p0
     helpd = p0d
@@ -30,12 +30,12 @@ def _next_legen_der(n, x, p0, p01, p0d, p0dd):
 
 
 def _get_legen(x, n_coeff=100):
-    """Get Legendre polynomials expanded about x"""
+    """Get Legendre polynomials expanded about x."""
     return legendre.legvander(x, n_coeff - 1)
 
 
 def _get_legen_der(xx, n_coeff=100):
-    """Get Legendre polynomial derivatives expanded about x"""
+    """Get Legendre polynomial derivatives expanded about x."""
     coeffs = np.empty((len(xx), n_coeff, 3))
     for c, x in zip(coeffs, xx):
         p0s, p0ds, p0dds = c[:, 0], c[:, 1], c[:, 2]
@@ -51,7 +51,7 @@ def _get_legen_der(xx, n_coeff=100):
 @verbose
 def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
                      n_interp=20000, force_calc=False, verbose=None):
-    """Return a (generated) LUT of Legendre (derivative) polynomial coeffs"""
+    """Return a (generated) LUT of Legendre (derivative) polynomial coeffs."""
     if n_interp % 2 != 0:
         raise RuntimeError('n_interp must be even')
     fname = op.join(_get_extra_data_path(), 'tables')
@@ -107,7 +107,7 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
 
 
 def _get_legen_lut_fast(x, lut, block=None):
-    """Return Legendre coefficients for given x values in -1<=x<=1"""
+    """Return Legendre coefficients for given x values in -1<=x<=1."""
     # map into table vals (works for both vals and deriv tables)
     n_interp = (lut.shape[0] - 1.0)
     # equiv to "(x + 1.0) / 2.0) * n_interp" but faster
@@ -123,7 +123,7 @@ def _get_legen_lut_fast(x, lut, block=None):
 
 
 def _get_legen_lut_accurate(x, lut, block=None):
-    """Return Legendre coefficients for given x values in -1<=x<=1"""
+    """Return Legendre coefficients for given x values in -1<=x<=1."""
     # map into table vals (works for both vals and deriv tables)
     n_interp = (lut.shape[0] - 1.0)
     # equiv to "(x + 1.0) / 2.0) * n_interp" but faster
@@ -143,7 +143,7 @@ def _get_legen_lut_accurate(x, lut, block=None):
 
 
 def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
-    """Lead field dot products using Legendre polynomial (P_n) series"""
+    """Lead field dot products using Legendre polynomial (P_n) series."""
     # Compute the sum occurring in the evaluation.
     # The result is
     #   sums[:]    (2n+1)^2/n beta^n P_n
@@ -366,7 +366,7 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
 
 def _do_self_dots_subset(intrad, rmags, rlens, cosmags, ws, volume, lut,
                          n_fact, ch_type, idx):
-    """Helper for parallelization"""
+    """Helper for parallelization."""
     # all possible combinations of two magnetometers
     products = np.zeros((len(rmags), len(rmags)))
     for ci1 in idx:
@@ -438,7 +438,7 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
 
 def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
                      lut, n_fact, n_jobs):
-    """Compute the map construction products
+    """Compute the map construction products.
 
     Parameters
     ----------

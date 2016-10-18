@@ -1,5 +1,4 @@
-"""Functions to make simple plot on evoked M/EEG data (besides topographies)
-"""
+"""Functions to plot evoked M/EEG data (besides topographies)."""
 from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -32,7 +31,7 @@ from ..channels.layout import (_pair_grad_sensors, generate_2d_layout,
 
 
 def _butterfly_onpick(event, params):
-    """Helper to add a channel name on click"""
+    """Add a channel name on click."""
     params['need_draw'] = True
     ax = event.artist.axes
     ax_idx = np.where([ax is a for a in params['axes']])[0]
@@ -58,7 +57,7 @@ def _butterfly_onpick(event, params):
 
 
 def _butterfly_on_button_press(event, params):
-    """Helper to only draw once for picking"""
+    """Only draw once for picking."""
     if params['need_draw']:
         event.canvas.draw()
     else:
@@ -72,7 +71,7 @@ def _butterfly_on_button_press(event, params):
 
 
 def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
-    """Function for drawing topomaps from the selected area."""
+    """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
     ch_types = [type_ for type_ in ch_types if type_ in ('eeg', 'grad', 'mag')]
     if ('grad' in ch_types and
@@ -129,7 +128,7 @@ def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
 
 
 def _topo_closed(events, ax, lines, fill):
-    """Callback for removing lines from evoked plot as topomap is closed."""
+    """Remove lines from evoked plot as topomap is closed."""
     for line in lines:
         ax.lines.remove(line[0])
     ax.collections.remove(fill)
@@ -137,7 +136,7 @@ def _topo_closed(events, ax, lines, fill):
 
 
 def _rgb(info, x, y, z):
-    """Helper to transform x, y, z values into RGB colors"""
+    """Transform x, y, z values into RGB colors."""
     all_pos = np.array([ch['loc'][:3] for ch in info['chs']])
     for idx, dim in enumerate([x, y, z]):
         this_pos = all_pos[:, idx]
@@ -149,8 +148,7 @@ def _rgb(info, x, y, z):
 
 
 def _plot_legend(pos, colors, axis, bads, outlines):
-    """Helper function to plot color/channel legends for butterfly plots
-    with spatial colors"""
+    """Plot color/channel legends for butterfly plots with spatial colors."""
     from mpl_toolkits.axes_grid.inset_locator import inset_axes
     bbox = axis.get_window_extent()  # Determine the correct size.
     ratio = bbox.width / bbox.height
@@ -171,7 +169,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                  cmap=None, gfp=False, window_title=None,
                  spatial_colors=False, set_tight_layout=True,
                  selectable=True, zorder='unsorted'):
-    """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
+    """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
 
@@ -448,12 +446,12 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 scalings=None, titles=None, axes=None, gfp=False,
                 window_title=None, spatial_colors=False, zorder='unsorted',
                 selectable=True):
-    """Plot evoked data using butteryfly plots
+    """Plot evoked data using butteryfly plots.
 
     Left click to a line shows the channel name. Selecting an area by clicking
     and holding left mouse button plots a topographic map of the painted area.
 
-    Note: If bad channels are not excluded they are shown in red.
+    .. note:: If bad channels are not excluded they are shown in red.
 
     Parameters
     ----------
@@ -617,9 +615,11 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
 def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
                             butterfly=False, blit=True, show=True):
-    """Make animation of evoked data as topomap timeseries. Animation can be
-    paused/resumed with left mouse button. Left and right arrow keys can be
-    used to move backward or forward in time
+    """Make animation of evoked data as topomap timeseries.
+
+    The animation can be paused/resumed with left mouse button.
+    Left and right arrow keys can be used to move backward or forward in
+    time.
 
     Parameters
     ----------
@@ -664,7 +664,7 @@ def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
                       clim=None, xlim='tight', proj=False, units=None,
                       scalings=None, titles=None, axes=None, cmap='RdBu_r'):
-    """Plot evoked data as images
+    """Plot evoked data as images.
 
     Parameters
     ----------
@@ -726,8 +726,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
 
 
 def _plot_update_evoked(params, bools):
-    """ update the plot evoked lines
-    """
+    """Update the plot evoked lines."""
     picks, evoked = [params[k] for k in ('picks', 'evoked')]
     times = evoked.times * 1e3
     projs = [proj for ii, proj in enumerate(params['projs'])
@@ -750,7 +749,7 @@ def _plot_update_evoked(params, bools):
 
 
 def plot_evoked_white(evoked, noise_cov, show=True):
-    """Plot whitened evoked response
+    """Plot whitened evoked response.
 
     Plots the whitened evoked response and the whitened GFP as described in
     [1]_. If one single covariance object is passed, the GFP panel (bottom)
@@ -788,7 +787,7 @@ def plot_evoked_white(evoked, noise_cov, show=True):
 
 
 def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
-    """helper to plot_evoked_white
+    """Help plot_evoked_white.
 
     Additional Parameters
     ---------------------
@@ -807,9 +806,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         the rank is detected automatically. Defaults to None. Note.
         The rank estimation will be printed by the logger for each noise
         covariance estimator that is passed.
-
     """
-
     from ..cov import whiten_evoked, read_cov  # recursive import
     from ..cov import _estimate_rank_meeg_cov
     import matplotlib.pyplot as plt
@@ -879,7 +876,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     axes_evoked = None
 
     def whitened_gfp(x, rank=None):
-        """Whitened Global Field Power
+        """Whitened Global Field Power.
 
         The MNE inverse solver assumes zero mean whitened data as input.
         Therefore, a chi^2 statistic will be best to detect model violations.
@@ -981,7 +978,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
 
 def plot_snr_estimate(evoked, inv, show=True):
-    """Plot a data SNR estimate
+    """Plot a data SNR estimate.
 
     Parameters
     ----------
@@ -1024,7 +1021,7 @@ def plot_snr_estimate(evoked, inv, show=True):
 
 
 def _connection_line(x, fig, sourceax, targetax):
-    """Helper function to connect time series and topolots"""
+    """Connect time series and topolots."""
     from matplotlib.lines import Line2D
     transFigure = fig.transFigure.inverted()
     tf = fig.transFigure
@@ -1039,8 +1036,7 @@ def _connection_line(x, fig, sourceax, targetax):
 def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                       exclude=None,
                       show=True, ts_args=None, topomap_args=None):
-    """Plot evoked data as butterfly plot and add topomaps for selected
-    time points.
+    """Plot evoked data as butterfly plot and add topomaps for time points.
 
     Parameters
     ----------
@@ -1206,7 +1202,9 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
 def _ci(arr, ci):
     """Calculate the `ci`% parametric confidence interval for `arr`.
-    Aux function for plot_compare_evokeds."""
+
+    Aux function for plot_compare_evokeds.
+    """
     from scipy import stats
     mean, sigma = arr.mean(0), stats.sem(arr, 0)
     # This is highly convoluted to support 17th century Scipy
@@ -1219,8 +1217,7 @@ def _ci(arr, ci):
 
 
 def _setup_styles(conditions, style_dict, style, default):
-    """Aux function for plot_compare_evokeds to set linestyles and colors"""
-
+    """Set linestyles and colors for plot_compare_evokeds."""
     # check user-supplied style to condition matching
     tags = set([tag for cond in conditions for tag in cond.split("/")])
     msg = ("Can't map between conditions and the provided {0}. Make sure "
@@ -1251,7 +1248,7 @@ def _setup_styles(conditions, style_dict, style, default):
 
 def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
                     any_positive, any_negative):
-    """Aux function for truncating the y axis in plot_compare_evokeds"""
+    """Truncate the y axis in plot_compare_evokeds."""
     abs_lims = (orig_ymax if orig_ymax > np.abs(orig_ymin)
                 else np.abs(orig_ymin))
     ymin_, ymax_ = (-(abs_lims // fraction), abs_lims // fraction)
@@ -1281,7 +1278,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          linestyles=['-'], styles=None, vlines=[0.], ci=0.95,
                          truncate_yaxis=True, ylim=dict(), invert_y=False,
                          axes=None, title=None, show=True):
-    """Plot evoked time courses for one or multiple channels and conditions
+    """Plot evoked time courses for one or multiple channels and conditions.
 
     This function is useful for comparing ER[P/F]s at a specific location. It
     plots Evoked data or, if supplied with a list/dict of lists of evoked

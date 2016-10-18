@@ -13,7 +13,7 @@ from ..utils import logger, verbose
 
 
 def dir_tree_find(tree, kind):
-    """Find nodes of the given kind from a directory tree structure
+    """Find nodes of the given kind from a directory tree structure.
 
     Parameters
     ----------
@@ -45,8 +45,7 @@ def dir_tree_find(tree, kind):
 
 @verbose
 def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
-    """Create the directory tree structure
-    """
+    """Create the directory tree structure."""
     FIFF_BLOCK_START = 104
     FIFF_BLOCK_END = 105
     FIFF_FILE_ID = 100
@@ -118,8 +117,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
 # Writing
 
 def copy_tree(fidin, in_id, nodes, fidout):
-    """Copies directory subtrees from fidin to fidout"""
-
+    """Copy directory subtrees from fidin to fidout."""
     if len(nodes) <= 0:
         return
 

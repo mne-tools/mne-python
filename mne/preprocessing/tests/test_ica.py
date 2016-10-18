@@ -32,7 +32,6 @@ from mne.utils import (catch_logging, _TempDir, requires_sklearn, slow_test,
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -270,6 +269,7 @@ def test_ica_core():
 @requires_sklearn
 def test_ica_additional():
     """Test additional ICA functionality."""
+    import matplotlib.pyplot as plt
     tempdir = _TempDir()
     stop2 = 500
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()

@@ -2,10 +2,10 @@ from ..externals import six
 
 
 class TransformerMixin(object):
-    """Mixin class for all transformers in scikit-learn"""
+    """Mixin class for all transformers in scikit-learn."""
 
     def fit_transform(self, X, y=None, **fit_params):
-        """Fit to data, then transform it
+        """Fit to data, then transform it.
 
         Fits transformer to X and y with optional parameters fit_params
         and returns a transformed version of X.
@@ -36,7 +36,7 @@ class TransformerMixin(object):
 class EstimatorMixin(object):
     """Mixin class for estimators."""
 
-    def get_params(self):
+    def get_params(self):  # noqa: D102
         pass
 
     def set_params(self, **params):

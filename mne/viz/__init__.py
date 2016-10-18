@@ -1,5 +1,4 @@
-"""Visualization routines
-"""
+"""Visualization routines."""
 
 from .topomap import (plot_evoked_topomap, plot_projs_topomap,
                       plot_ica_components, plot_tfr_topomap, plot_topomap,

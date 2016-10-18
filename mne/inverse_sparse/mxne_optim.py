@@ -17,13 +17,13 @@ from ..externals.six.moves import xrange as range
 
 
 def groups_norm2(A, n_orient):
-    """compute squared L2 norms of groups inplace"""
+    """Compute squared L2 norms of groups inplace."""
     n_positions = A.shape[0] // n_orient
     return np.sum(np.power(A, 2, A).reshape(n_positions, -1), axis=1)
 
 
 def norm_l2inf(A, n_orient, copy=True):
-    """L2-inf norm"""
+    """L2-inf norm."""
     if A.size == 0:
         return 0.0
     if copy:
@@ -32,7 +32,7 @@ def norm_l2inf(A, n_orient, copy=True):
 
 
 def norm_l21(A, n_orient, copy=True):
-    """L21 norm"""
+    """L21 norm."""
     if A.size == 0:
         return 0.0
     if copy:
@@ -41,7 +41,7 @@ def norm_l21(A, n_orient, copy=True):
 
 
 def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
-    """proximity operator for l21 norm
+    """Proximity operator for l21 norm.
 
     L2 over columns and L1 over rows => groups contain n_orient rows.
 
@@ -92,7 +92,7 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
 
 
 def prox_l1(Y, alpha, n_orient):
-    """proximity operator for l1 norm with multiple orientation support
+    """Proximity operator for l1 norm with multiple orientation support.
 
     L2 over orientation and L1 over position (space + time)
 
@@ -129,7 +129,7 @@ def prox_l1(Y, alpha, n_orient):
 
 
 def dgap_l21(M, G, X, active_set, alpha, n_orient):
-    """Duality gaps for the mixed norm inverse problem
+    """Duality gaps for the mixed norm inverse problem.
 
     For details see:
     Gramfort A., Kowalski M. and Hamalainen, M,
@@ -179,7 +179,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
 @verbose
 def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
                             tol=1e-8, verbose=None, init=None, n_orient=1):
-    """Solves L21 inverse problem with proximal iterations and FISTA"""
+    """Solve L21 inverse problem with proximal iterations and FISTA."""
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
 
@@ -240,7 +240,7 @@ def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
 @verbose
 def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
                           tol=1e-8, verbose=None, init=None, n_orient=1):
-    """Solves L21 inverse problem with coordinate descent"""
+    """Solve L21 inverse problem with coordinate descent."""
     from sklearn.linear_model.coordinate_descent import MultiTaskLasso
 
     n_sensors, n_times = M.shape
@@ -265,7 +265,7 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
 @verbose
 def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                            tol=1e-8, verbose=None, init=None, n_orient=1):
-    """Solves L21 inverse problem with block coordinate descent"""
+    """Solve L21 inverse problem with block coordinate descent."""
     # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
 
@@ -330,7 +330,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       active_set_size=50, debias=True, n_orient=1,
                       solver='auto'):
-    """Solves L1/L2 mixed-norm inverse problem with active set strategy
+    """Solve L1/L2 mixed-norm inverse problem with active set strategy.
 
     Algorithm is detailed in:
     Gramfort A., Kowalski M. and Hamalainen, M,
@@ -380,7 +380,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     has_sklearn = True
     try:
-        from sklearn.linear_model.coordinate_descent import MultiTaskLasso  # noqa
+        from sklearn.linear_model.coordinate_descent import MultiTaskLasso  # noqa: F401
     except ImportError:
         has_sklearn = False
 
@@ -491,7 +491,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
                                 tol=1e-8, verbose=None, active_set_size=50,
                                 debias=True, n_orient=1, solver='auto'):
-    """Solves L0.5/L2 mixed-norm inverse problem with active set strategy
+    """Solve L0.5/L2 mixed-norm inverse problem with active set strategy.
 
     Algorithm is detailed in:
 
@@ -605,7 +605,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
 
 @verbose
 def tf_lipschitz_constant(M, G, phi, phiT, tol=1e-3, verbose=None):
-    """Compute lipschitz constant for FISTA
+    """Compute lipschitz constant for FISTA.
 
     It uses a power iteration method.
     """
@@ -629,7 +629,7 @@ def tf_lipschitz_constant(M, G, phi, phiT, tol=1e-3, verbose=None):
 
 
 def safe_max_abs(A, ia):
-    """Compute np.max(np.abs(A[ia])) possible with empty A"""
+    """Compute np.max(np.abs(A[ia])) possible with empty A."""
     if np.sum(ia):  # ia is not empty
         return np.max(np.abs(A[ia]))
     else:
@@ -637,40 +637,41 @@ def safe_max_abs(A, ia):
 
 
 def safe_max_abs_diff(A, ia, B, ib):
-    """Compute np.max(np.abs(A)) possible with empty A"""
+    """Compute np.max(np.abs(A)) possible with empty A."""
     A = A[ia] if np.sum(ia) else 0.0
     B = B[ib] if np.sum(ia) else 0.0
     return np.max(np.abs(A - B))
 
 
 class _Phi(object):
-    """Util class to have phi stft as callable without using
-    a lambda that does not pickle"""
-    def __init__(self, wsize, tstep, n_coefs):
+    """Have phi stft as callable w/o using a lambda that does not pickle."""
+
+    def __init__(self, wsize, tstep, n_coefs):  # noqa: D102
         self.wsize = wsize
         self.tstep = tstep
         self.n_coefs = n_coefs
 
-    def __call__(self, x):
+    def __call__(self, x):  # noqa: D105
         return stft(x, self.wsize, self.tstep,
                     verbose=False).reshape(-1, self.n_coefs)
 
 
 class _PhiT(object):
-    """Util class to have phi.T istft as callable without using
-    a lambda that does not pickle"""
-    def __init__(self, tstep, n_freq, n_step, n_times):
+    """Have phi.T istft as callable w/o using a lambda that does not pickle."""
+
+    def __init__(self, tstep, n_freq, n_step, n_times):  # noqa: D102
         self.tstep = tstep
         self.n_freq = n_freq
         self.n_step = n_step
         self.n_times = n_times
 
-    def __call__(self, z):
+    def __call__(self, z):  # noqa: D105
         return istft(z.reshape(-1, self.n_freq, self.n_step), self.tstep,
                      self.n_times)
 
 
 def norm_l21_tf(Z, shape, n_orient):
+    """L21 norm for TF."""
     if Z.shape[0]:
         Z2 = Z.reshape(*shape)
         l21_norm = np.sqrt(stft_norm2(Z2).reshape(-1, n_orient).sum(axis=1))
@@ -681,6 +682,7 @@ def norm_l21_tf(Z, shape, n_orient):
 
 
 def norm_l1_tf(Z, shape, n_orient):
+    """L1 norm for TF."""
     if Z.shape[0]:
         n_positions = Z.shape[0] // n_orient
         Z_ = np.sqrt(np.sum((np.abs(Z) ** 2.).reshape((n_orient, -1),
@@ -823,7 +825,7 @@ def _tf_mixed_norm_solver_bcd_active_set(
         M, G, alpha_space, alpha_time, lipschitz_constant, phi, phiT,
         Z_init=None, wsize=64, tstep=4, n_orient=1, maxit=200, tol=1e-8,
         log_objective=True, perc=None, verbose=None):
-    """Solves TF L21+L1 inverse solver with BCD and active set approach
+    """Solve TF L21+L1 inverse solver with BCD and active set approach.
 
     Algorithm is detailed in:
 
@@ -955,7 +957,7 @@ def _tf_mixed_norm_solver_bcd_active_set(
 def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
                          n_orient=1, maxit=200, tol=1e-8, log_objective=True,
                          debias=True, verbose=None):
-    """Solves TF L21+L1 inverse solver with BCD and active set approach
+    """Solve TF L21+L1 inverse solver with BCD and active set approach.
 
     Algorithm is detailed in:
 

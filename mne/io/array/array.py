@@ -1,4 +1,4 @@
-"""Tools for creating Raw objects from numpy arrays"""
+"""Tools for creating Raw objects from numpy arrays."""
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -12,7 +12,7 @@ from ...utils import verbose, logger
 
 
 class RawArray(_BaseRaw):
-    """Raw object from numpy array
+    """Raw object from numpy array.
 
     Parameters
     ----------
@@ -33,8 +33,9 @@ class RawArray(_BaseRaw):
     --------
     EpochsArray, EvokedArray, create_info
     """
+
     @verbose
-    def __init__(self, data, info, first_samp=0, verbose=None):
+    def __init__(self, data, info, first_samp=0, verbose=None):  # noqa: D102
         if not isinstance(info, Info):
             raise TypeError('info must be an instance of Info, got %s'
                             % type(info))

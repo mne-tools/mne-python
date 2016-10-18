@@ -17,7 +17,7 @@ from .eog import find_eog_events
 
 
 def _safe_del_key(dict_, key):
-    """ Aux function
+    """Aux function.
 
     Use this function when preparing rejection parameters
     instead of directly deleting keys.
@@ -33,7 +33,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       reject, flat, bads, avg_ref, no_proj, event_id,
                       exg_l_freq, exg_h_freq, tstart, qrs_threshold,
                       filter_method, iir_params=None, verbose=None):
-    """Compute SSP/PCA projections for ECG or EOG artifacts
+    """Compute SSP/PCA projections for ECG or EOG artifacts.
 
     .. note:: raw data must be preloaded.
 
@@ -220,7 +220,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      no_proj=False, event_id=999, ecg_l_freq=5, ecg_h_freq=35,
                      tstart=0., qrs_threshold='auto', filter_method='fft',
                      iir_params=None, copy=True, verbose=None):
-    """Compute SSP/PCA projections for ECG artifacts
+    """Compute SSP/PCA projections for ECG artifacts.
 
     .. note:: raw data must be preloaded.
 
@@ -315,7 +315,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      avg_ref=False, no_proj=False, event_id=998, eog_l_freq=1,
                      eog_h_freq=10, tstart=0., filter_method='fft',
                      iir_params=None, ch_name=None, copy=True, verbose=None):
-    """Compute SSP/PCA projections for EOG artifacts
+    """Compute SSP/PCA projections for EOG artifacts.
 
     .. note:: raw data must be preloaded.
 

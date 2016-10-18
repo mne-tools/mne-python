@@ -1,5 +1,4 @@
-"""Functions to plot M/EEG data e.g. topographies
-"""
+"""Functions to plot M/EEG data e.g. topographies."""
 from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -32,7 +31,7 @@ from ..io.meas_info import Info
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
-    """"Aux Function"""
+    """"Prepare topo plot."""
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
 
     if layout is None and ch_type is not 'eeg':
@@ -90,7 +89,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
 
 
 def _plot_update_evoked_topomap(params, bools):
-    """ Helper to update topomaps """
+    """Update topomaps."""
     projs = [proj for ii, proj in enumerate(params['projs'])
              if ii in np.where(bools)[0]]
 
@@ -126,7 +125,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear',
                        axes=None):
-    """Plot topographic maps of SSP projections
+    """Plot topographic maps of SSP projections.
 
     Parameters
     ----------
@@ -263,8 +262,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
 
 
 def _check_outlines(pos, outlines, head_pos=None):
-    """Check or create outlines for topoplot
-    """
+    """Check or create outlines for topoplot."""
     pos = np.array(pos, float)[:, :2]  # ensure we have a copy
     head_pos = dict() if head_pos is None else head_pos
     if not isinstance(head_pos, dict):
@@ -341,7 +339,7 @@ def _check_outlines(pos, outlines, head_pos=None):
 
 
 def _draw_outlines(ax, outlines):
-    """Helper for drawing the outlines for a topomap."""
+    """Draw the outlines for a topomap."""
     outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
                       ['patch', 'autoshrink']])
     for key, (x_coord, y_coord) in outlines_.items():
@@ -352,7 +350,7 @@ def _draw_outlines(ax, outlines):
 
 
 def _griddata(x, y, v, xi, yi):
-    """Aux function"""
+    """Make griddata."""
     xy = x.ravel() + y.ravel() * -1j
     d = xy[None, :] * np.ones((len(xy), 1))
     d = np.abs(d - d.T)
@@ -384,7 +382,7 @@ def _griddata(x, y, v, xi, yi):
 
 
 def _plot_sensors(pos_x, pos_y, sensors, ax):
-    """Aux function"""
+    """Plot sensors."""
     from matplotlib.patches import Circle
     if sensors is True:
         for x, y in zip(pos_x, pos_y):
@@ -398,7 +396,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  mask_params=None, outlines='head', image_mask=None,
                  contours=6, image_interp='bilinear', show=True,
                  head_pos=None, onselect=None):
-    """Plot a topographic map as image
+    """Plot a topographic map as image.
 
     Parameters
     ----------
@@ -666,9 +664,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
 
 def _make_image_mask(outlines, pos, res):
-    """Aux function
-    """
-
+    """Make an image mask."""
     mask_ = np.c_[outlines['mask_pos']]
     xmin, xmax = (np.min(np.r_[np.inf, mask_[:, 0]]),
                   np.max(np.r_[-np.inf, mask_[:, 0]]))
@@ -698,7 +694,7 @@ def _make_image_mask(outlines, pos, res):
 
 
 def _inside_contour(pos, contour):
-    """Aux function"""
+    """Check if points are inside a contour."""
     npos = len(pos)
     x, y = pos[:, :2].T
 
@@ -723,7 +719,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       vmin=None, vmax=None, cmap='RdBu_r', colorbar=False,
                       title=None, show=True, outlines='head', contours=6,
                       image_interp='bilinear', head_pos=None, axes=None):
-    """plot single ica map to axes"""
+    """Plot single ica map to axes."""
     import matplotlib as mpl
     from ..channels import _get_ch_type
     from ..preprocessing.ica import _get_ica_map
@@ -956,7 +952,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head', head_pos=None):
-    """Plot topographic maps of specific time-frequency intervals of TFR data
+    """Plot topographic maps of specific time-frequency intervals of TFR data.
 
     Parameters
     ----------
@@ -1154,7 +1150,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
                         axes=None):
-    """Plot topographic maps of specific time points of evoked data
+    """Plot topographic maps of specific time points of evoked data.
 
     Parameters
     ----------
@@ -1283,7 +1279,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(evoked, ch_type)
     import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa
+    from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
 
     mask_params = _handle_default('mask_params', mask_params)
     mask_params['markersize'] *= size / 2.
@@ -1451,7 +1447,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
                              vmax=None, cmap=None, outlines='head',
                              colorbar=False, cbar_fmt='%3.3f'):
-    """Aux Function"""
+    """Plot topomap multi cbar."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -1490,7 +1486,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                             normalize=False, cbar_fmt='%0.3f',
                             outlines='head', axes=None, show=True,
                             verbose=None):
-    """Plot the topomap of the power spectral density across epochs
+    """Plot the topomap of the power spectral density across epochs.
 
     Parameters
     ----------
@@ -1616,7 +1612,7 @@ def plot_psds_topomap(
         psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
         cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
         axes=None, show=True):
-    """Plot spatial maps of PSDs
+    """Plot spatial maps of PSDs.
 
     Parameters
     ----------
@@ -1685,7 +1681,6 @@ def plot_psds_topomap(
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
-
     import matplotlib.pyplot as plt
 
     if bands is None:
@@ -1936,7 +1931,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
 
 
 def _animate(frame, ax, ax_line, params):
-    """Updates animated topomap."""
+    """Update animated topomap."""
     if params['pause']:
         frame = params['frame']
     time_idx = params['frames'][frame]
@@ -1987,7 +1982,7 @@ def _animate(frame, ax, ax_line, params):
 
 
 def _pause_anim(event, params):
-    """Function for pausing and continuing the animation on mouse click"""
+    """Pause or continue the animation on mouse click."""
     params['pause'] = not params['pause']
 
 
@@ -2003,9 +1998,11 @@ def _key_press(event, params):
 
 def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
                        butterfly=False, blit=True, show=True):
-    """Make animation of evoked data as topomap timeseries. Animation can be
-    paused/resumed with left mouse button. Left and right arrow keys can be
-    used to move backward or forward in time.
+    """Make animation of evoked data as topomap timeseries.
+
+    Animation can be paused/resumed with left mouse button.
+    Left and right arrow keys can be used to move backward or forward in
+    time.
 
     Parameters
     ----------

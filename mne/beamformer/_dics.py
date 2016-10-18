@@ -1,5 +1,4 @@
-"""Dynamic Imaging of Coherent Sources (DICS).
-"""
+"""Dynamic Imaging of Coherent Sources (DICS)."""
 
 # Authors: Roman Goj <roman.goj@gmail.com>
 #
@@ -61,7 +60,6 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
     stc : SourceEstimate | VolSourceEstimate
         Source time courses
     """
-
     is_free_ori, _, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
@@ -316,7 +314,6 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
     Gross et al. Dynamic imaging of coherent sources: Studying neural
     interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
     """
-
     if isinstance(data_csds, CrossSpectralDensity):
         data_csds = [data_csds]
 

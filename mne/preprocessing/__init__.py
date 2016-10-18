@@ -1,4 +1,4 @@
-"""Preprocessing with artifact detection, SSP, and ICA"""
+"""Preprocessing with artifact detection, SSP, and ICA."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
