@@ -651,6 +651,8 @@ Functions:
    :toctree: generated/
    :template: function.rst
 
+   fit_sphere_to_headshape
+   get_fitting_dig
    make_watershed_bem
    make_flash_bem
    convert_flash_mris
@@ -663,6 +665,22 @@ Functions:
 
    restrict_forward_to_label
    restrict_forward_to_stc
+
+.. currentmodule:: mne.transforms
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   SphericalSurfaceWarp
+
+.. currentmodule:: mne.surface
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   complete_surface_info
 
 Inverse Solutions
 =================

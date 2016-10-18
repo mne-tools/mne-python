@@ -5,12 +5,9 @@
 import os.path as op
 import warnings
 import numpy as np
-import sys
-import scipy
+
 from numpy.testing import assert_equal, assert_allclose
 from nose.tools import assert_true, assert_raises
-from nose.plugins.skip import SkipTest
-from distutils.version import LooseVersion
 
 from mne import compute_raw_covariance, pick_types
 from mne.chpi import read_head_pos, filter_chpi
@@ -22,11 +19,11 @@ from mne.io import (read_raw_fif, proc_history, read_info, read_raw_bti,
 from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
-    _bases_real_to_complex, _sph_harm, _prep_mf_coils)
+    _bases_real_to_complex, _prep_mf_coils)
+from mne.fixes import _get_sph_harm
 from mne.tests.common import assert_meg_snr
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, catch_logging,
                        requires_version, object_diff, buggy_mkl_svd)
-from mne.externals.six import PY3
 
 warnings.simplefilter('always')  # Always throw warnings
 
@@ -287,26 +284,6 @@ def test_other_systems():
     assert_allclose(raw_sss._data, raw_sss_auto._data)
 
 
-def test_spherical_harmonics():
-    """Test spherical harmonic functions."""
-    from scipy.special import sph_harm
-    az, pol = np.meshgrid(np.linspace(0, 2 * np.pi, 30),
-                          np.linspace(0, np.pi, 20))
-    # As of Oct 16, 2015, Anancoda has a bug in scipy due to old compilers (?):
-    # https://github.com/ContinuumIO/anaconda-issues/issues/479
-    if (PY3 and
-            LooseVersion(scipy.__version__) >= LooseVersion('0.15') and
-            'Continuum Analytics' in sys.version):
-        raise SkipTest('scipy sph_harm bad in Py3k on Anaconda')
-
-    # Test our basic spherical harmonics
-    for degree in range(1, int_order):
-        for order in range(0, degree + 1):
-            sph = _sph_harm(order, degree, az, pol)
-            sph_scipy = sph_harm(order, degree, az, pol)
-            assert_allclose(sph, sph_scipy, atol=1e-7)
-
-
 def test_spherical_conversions():
     """Test spherical harmonic conversions."""
     # Test our real<->complex conversion functions
@@ -314,10 +291,10 @@ def test_spherical_conversions():
                           np.linspace(0, np.pi, 20))
     for degree in range(1, int_order):
         for order in range(0, degree + 1):
-            sph = _sph_harm(order, degree, az, pol)
+            sph = _get_sph_harm()(order, degree, az, pol)
             # ensure that we satisfy the conjugation property
             assert_allclose(_sh_negate(sph, order),
-                            _sph_harm(-order, degree, az, pol))
+                            _get_sph_harm()(-order, degree, az, pol))
             # ensure our conversion functions work
             sph_real_pos = _sh_complex_to_real(sph, order)
             sph_real_neg = _sh_complex_to_real(sph, -order)

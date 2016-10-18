@@ -24,7 +24,7 @@ from .bem import read_bem_surfaces
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
                       _read_surface_geom, _normalize_vectors,
-                      _complete_surface_info, _compute_nearest,
+                      complete_surface_info, _compute_nearest,
                       fast_cross_3d, _fast_cross_nd_sum, mesh_dist,
                       _triangle_neighbors)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
@@ -1528,7 +1528,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             # normalize to sphere (in MRI coord frame)
             surf['rr'] *= sphere[3] / 1000.0  # scale by radius
             surf['rr'] += sphere[:3] / 1000.0  # move by center
-            _complete_surface_info(surf, True)
+            complete_surface_info(surf, do_neighbor_vert=True, copy=False)
         # Make the grid of sources in MRI space
         sp = _make_volume_source_space(surf, pos, exclude, mindist, mri,
                                        volume_label)
@@ -2426,7 +2426,7 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
         to = op.join(subjects_dir, subject_to, 'surf', '%s.%s' % (hemi, surf,))
         logger.info('Reading destination surface %s' % (to,))
         to = _read_surface_geom(to, patch_stats=False, verbose=False)
-        _complete_surface_info(to)
+        complete_surface_info(to, copy=False)
         # Now we morph the vertices to the destination
         # The C code does something like this, but with a nearest-neighbor
         # mapping instead of the weighted one::

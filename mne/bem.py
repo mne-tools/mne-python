@@ -15,7 +15,6 @@ import sys
 import numpy as np
 from scipy import linalg
 
-from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
 from .transforms import _ensure_trans, apply_trans
 from .io import Info
 from .io.constants import FIFF
@@ -25,14 +24,12 @@ from .io.write import (start_file, start_block, write_float, write_int,
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.open import fiff_open
+from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
 from .externals.six import string_types
 
 
 # ############################################################################
 # Compute BEM solution
-
-# define VEC_DIFF(from,to,diff) {\
-# (diff)[X] = (to)[X] - (from)[X];\
 
 # The following approach is based on:
 #
@@ -249,9 +246,9 @@ def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
 def _fwd_bem_linear_collocation_solution(m):
     """Compute the linear collocation potential solution"""
     # first, add surface geometries
-    from .surface import _complete_surface_info
+    from .surface import complete_surface_info
     for surf in m['surfs']:
-        _complete_surface_info(surf, verbose=False)
+        complete_surface_info(surf, copy=False, verbose=False)
 
     logger.info('Computing the linear collocation solution...')
     logger.info('    Matrix coefficients...')
@@ -801,7 +798,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
 
 
 # #############################################################################
-# Helpers
+# Sphere fitting
 
 _dig_kind_dict = {
     'cardinal': FIFF.FIFFV_POINT_CARDINAL,
@@ -825,7 +822,8 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
         Kind of digitization points to use in the fitting. These can be any
         combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
         be 'auto' (default), which will use only the 'extra' points if
-        enough are available, and if not, uses 'extra' and 'eeg' points.
+        enough (more than 10) are available, and if not, uses 'extra' and
+        'eeg' points.
     units : str
         Can be "m" (default) or "mm".
 
@@ -850,6 +848,44 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     """
     if not isinstance(units, string_types) or units not in ('m', 'mm'):
         raise ValueError('units must be a "m" or "mm"')
+    radius, origin_head, origin_device = _fit_sphere_to_headshape(
+        info, dig_kinds)
+    if units == 'mm':
+        radius *= 1e3
+        origin_head *= 1e3
+        origin_device *= 1e3
+    return radius, origin_head, origin_device
+
+
+@verbose
+def get_fitting_dig(info, dig_kinds='auto', verbose=None):
+    """Get digitization points suitable for sphere fitting.
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement info.
+    dig_kinds : list of str | str
+        Kind of digitization points to use in the fitting. These can be any
+        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
+        be 'auto' (default), which will use only the 'extra' points if
+        enough (more than 10) are available, and if not, uses 'extra' and
+        'eeg' points.
+    verbose : bool, str or None
+        If not None, override default verbose level
+
+    Returns
+    -------
+    dig : array, shape (n_pts, 3)
+        The digitization points (in head coordinates) to use for fitting.
+
+    Notes
+    -----
+    This will exclude digitization locations that have ``z < 0 and y > 0``,
+    i.e. points on the nose and below the nose on the face.
+
+    .. versionadded:: 0.14
+    """
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info not %s' % type(info))
     if info['dig'] is None:
@@ -859,10 +895,10 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
         if dig_kinds == 'auto':
             # try "extra" first
             try:
-                return fit_sphere_to_headshape(info, 'extra', units=units)
+                return get_fitting_dig(info, 'extra')
             except ValueError:
                 pass
-            return fit_sphere_to_headshape(info, ('extra', 'eeg'), units=units)
+            return get_fitting_dig(info, ('extra', 'eeg'))
         else:
             dig_kinds = (dig_kinds,)
     # convert string args to ints (first make dig_kinds mutable in case tuple)
@@ -880,7 +916,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
                            'contact mne-python developers')
 
     # exclude some frontal points (nose etc.)
-    hsp = [p for p in hsp if not (p[2] < 0 and p[1] > 0)]
+    hsp = np.array([p for p in hsp if not (p[2] < -1e-6 and p[1] > 1e-6)])
 
     if len(hsp) <= 10:
         kinds_str = ', '.join(['"%s"' % _dig_kind_rev[d]
@@ -891,40 +927,38 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
             raise ValueError(msg + ', at least 4 required')
         else:
             warn(msg + ', fitting may be inaccurate')
+    return hsp
 
+
+@verbose
+def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
+    """Fit a sphere to the given head shape."""
+    hsp = get_fitting_dig(info, dig_kinds)
     radius, origin_head = _fit_sphere(np.array(hsp), disp=False)
     # compute origin in device coordinates
     head_to_dev = _ensure_trans(info['dev_head_t'], 'head', 'meg')
     origin_device = apply_trans(head_to_dev, origin_head)
-    radius *= 1e3
-    origin_head *= 1e3
-    origin_device *= 1e3
-
-    logger.info('Fitted sphere radius:'.ljust(30) + '%0.1f mm' % radius)
+    logger.info('Fitted sphere radius:'.ljust(30) + '%0.1f mm'
+                % (radius * 1e3,))
     # 99th percentile on Wikipedia for Giabella to back of head is 21.7cm,
     # i.e. 108mm "radius", so let's go with 110mm
     # en.wikipedia.org/wiki/Human_head#/media/File:HeadAnthropometry.JPG
-    if radius > 110.:
+    if radius > 0.110:
         warn('Estimated head size (%0.1f mm) exceeded 99th '
-             'percentile for adult head size' % (radius,))
+             'percentile for adult head size' % (1e3 * radius,))
     # > 2 cm away from head center in X or Y is strange
-    if np.sqrt(np.sum(origin_head[:2] ** 2)) > 20:
+    if np.sqrt(np.sum(origin_head[:2] ** 2)) > 0.02:
         warn('(X, Y) fit (%0.1f, %0.1f) more than 20 mm from '
-             'head frame origin' % tuple(origin_head[:2]))
+             'head frame origin' % tuple(1e3 * origin_head[:2]))
     logger.info('Origin head coordinates:'.ljust(30) +
-                '%0.1f %0.1f %0.1f mm' % tuple(origin_head))
+                '%0.1f %0.1f %0.1f mm' % tuple(1e3 * origin_head))
     logger.info('Origin device coordinates:'.ljust(30) +
-                '%0.1f %0.1f %0.1f mm' % tuple(origin_device))
-    if units == 'm':
-        radius /= 1e3
-        origin_head /= 1e3
-        origin_device /= 1e3
-
+                '%0.1f %0.1f %0.1f mm' % tuple(1e3 * origin_device))
     return radius, origin_head, origin_device
 
 
 def _fit_sphere(points, disp='auto'):
-    """Aux function to fit a sphere to an arbitrary set of points"""
+    """Fit a sphere to an arbitrary set of points."""
     from scipy.optimize import fmin_cobyla
     if isinstance(disp, string_types) and disp == 'auto':
         disp = True if logger.level <= 20 else False
@@ -953,7 +987,7 @@ def _fit_sphere(points, disp='auto'):
 
 
 def _check_origin(origin, info, coord_frame='head', disp=False):
-    """Helper to check or auto-determine the origin"""
+    """Check or auto-determine the origin."""
     if isinstance(origin, string_types):
         if origin != 'auto':
             raise ValueError('origin must be a numerical array, or "auto", '
@@ -1174,7 +1208,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
     --------
     write_bem_surfaces, write_bem_solution, make_bem_model
     """
-    from .surface import _complete_surface_info
+    from .surface import complete_surface_info
     # Default coordinate frame
     coord_frame = FIFF.FIFFV_COORD_MRI
     # Open the file, create directory
@@ -1213,7 +1247,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
             logger.info('    %d BEM surfaces read' % len(surf))
         if patch_stats:
             for this in surf:
-                _complete_surface_info(this)
+                complete_surface_info(this, copy=False)
     return surf[0] if s_id is not None else surf
 
 
