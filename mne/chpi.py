@@ -193,8 +193,7 @@ def _get_hpi_info(info, adjust=False, verbose=None):
     if 'event_channel' in hpi_sub:
         hpi_pick = pick_channels(info['ch_names'],
                                  [hpi_sub['event_channel']])
-        if len(hpi_pick) > 0:
-            hpi_pick = hpi_pick[0]
+        hpi_pick = hpi_pick[0] if len(hpi_pick) > 0 else None
     else:
         hpi_pick = None  # there is no pick!
     hpi_on = [coil['event_bits'][0] for coil in hpi_sub['hpi_coils']]
