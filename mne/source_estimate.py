@@ -2615,7 +2615,15 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     shape3d = (shape[2], shape[1], shape[0])
     shape = (n_times, shape[2], shape[1], shape[0])
     vol = np.zeros(shape)
-    mask3d = src[0]['inuse'].reshape(shape3d).astype(np.bool)
+    if np.array_equal(stc.vertices, src[0]['vertno']):
+        # set mask3d for non-sparse source estimate
+        mask3d = src[0]['inuse'].reshape(shape3d).astype(np.bool)
+    else:
+        # set mask3d for sparse source estimate
+        # set zeros for all sources, which are not in the active set
+        mask3d = np.zeros_like(src[0]['inuse'])
+        mask3d[stc.vertices] = True
+        mask3d = mask3d.reshape(shape3d).astype(np.bool)
 
     if mri_resolution:
         mri_shape3d = (src[0]['mri_height'], src[0]['mri_depth'],

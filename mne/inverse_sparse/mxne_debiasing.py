@@ -55,7 +55,7 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
 
 
 @verbose
-def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
+def compute_bias(M, G, X, max_iter=10000, tol=1e-6, n_orient=1, verbose=None):
     """Compute scaling to correct amplitude bias
 
     It solves the following optimization problem using FISTA:

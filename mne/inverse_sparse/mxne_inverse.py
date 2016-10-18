@@ -7,7 +7,7 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg, signal
 
-from ..source_estimate import SourceEstimate
+from ..source_estimate import SourceEstimate, VolSourceEstimate, _make_stc
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
 from ..minimum_norm.inverse import _check_reference
 from ..forward import compute_orient_prior, is_fixed_orient, _to_fixed_ori
@@ -23,7 +23,7 @@ from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver,
 @verbose
 def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     mask = None
-    if isinstance(weights, SourceEstimate):
+    if isinstance(weights, (SourceEstimate, VolSourceEstimate)):
         # weights = np.sqrt(np.sum(weights.data ** 2, axis=1))
         weights = np.max(np.abs(weights.data), axis=1)
     weights_max = np.max(weights)
@@ -92,6 +92,24 @@ def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
         raise ValueError('Depth parameter must be positive (got %s).'
                          % depth)
 
+    src_types = np.array([src['type'] for src in forward['src']])
+    if (len(src_types) == 1) and (src_types == 'vol').all():
+        loose = 1.0
+        logger.info('Setting loose = 1. for volume-based source spaces!')
+        if weights is not None:
+            if not isinstance(weights, VolSourceEstimate):
+                raise ValueError('Weights must be a volume-based '
+                                 'source estimate.')
+    elif (len(src_types) == 2) and (src_types == 'surf').all():
+        if weights is not None:
+            if not isinstance(weights, SourceEstimate):
+                raise ValueError('Weights must be a cortically constrained '
+                                 'source estimate.')
+    else:
+        raise Exception('Currently, this function supports only '
+                        'one volume-based source space or '
+                        'two surface-based source spaces.')
+
     gain, gain_info, whitener, source_weighting, mask = \
         _prepare_gain_column(forward, info, noise_cov, pca, depth,
                              loose, weights, weights_min)
@@ -151,12 +169,15 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 
     src = forward['src']
 
-    n_lh_points = len(src[0]['vertno'])
-    lh_vertno = src[0]['vertno'][active_idx[active_idx < n_lh_points]]
-    rh_vertno = src[1]['vertno'][active_idx[active_idx >= n_lh_points] -
-                                 n_lh_points]
-    vertices = [lh_vertno, rh_vertno]
-    stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
+    n_points = 0
+    vertices = list()
+    for src in forward['src']:
+        n_points_new = len(src['vertno'])
+        idx_ = (active_idx >= n_points)
+        idx_ = idx_ & (active_idx < (n_points + n_points_new))
+        vertices.append(src['vertno'][active_idx[idx_] - n_points])
+        n_points += n_points_new
+    stc = _make_stc(X, vertices, tmin=tmin, tstep=tstep)
     return stc
 
 
@@ -171,16 +192,27 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     Compute L1/L2 mixed-norm solution or L0.5/L2 mixed-norm solution
     on evoked data.
 
-    References:
-    Gramfort A., Kowalski M. and Hamalainen, M.,
-    Mixed-norm estimates for the M/EEG inverse problem using accelerated
-    gradient methods, Physics in Medicine and Biology, 2012
-    http://dx.doi.org/10.1088/0031-9155/57/7/1937
+    References
+    ----------
+    .. [1] Gramfort A., Kowalski M. and Hamalainen, M.,
+           Mixed-norm estimates for the M/EEG inverse problem using
+           accelerated gradient methods, 
+           Physics in Medicine and Biology, 2012
+           http://dx.doi.org/10.1088/0031-9155/57/7/1937
 
-    Strohmeier D., Haueisen J., and Gramfort A.,
-    Improved MEG/EEG source localization with reweighted mixed-norms,
-    4th International Workshop on Pattern Recognition in Neuroimaging,
-    Tuebingen, 2014
+    .. [2] Strohmeier D., Bekhti Y., Haueisen J., and Gramfort A.:
+           The iterative reweighted Mixed-Norm Estimate for
+           spatio-temporal MEG/EEG source reconstruction,
+           IEEE Transactions on Medical Imaging, 2016
+           DOI: 10.1109/TMI.2016.2553445
+           http://dx.doi.org/10.1109/TMI.2016.2553445
+
+    .. note:: The applied depth weighting by normalizing the gain matrix
+              can be insufficient for non-cortical source spaces and might
+              be replaced in the future.
+
+    .. note:: Currently this function supports only one volume-based
+              source space or two surface-based source spaces.
 
     Parameters
     ----------
@@ -377,21 +409,28 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
     dictionary. Works with evoked data.
 
-    References:
+    References
+    ----------
+    .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+           Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
+           non-stationary source activations
+           Neuroimage, Volume 70, 15 April 2013, Pages 410-422,
+           ISSN 1053-8119, DOI: 10.1016/j.neuroimage.2012.12.051.
 
-    A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
-    Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
-    non-stationary source activations
-    Neuroimage, Volume 70, 15 April 2013, Pages 410-422, ISSN 1053-8119,
-    DOI: 10.1016/j.neuroimage.2012.12.051.
+    .. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+           Functional Brain Imaging with M/EEG Using Structured Sparsity in
+           Time-Frequency Dictionaries
+           Proceedings Information Processing in Medical Imaging
+           Lecture Notes in Computer Science, 2011, Volume 6801/2011,
+           600-611, DOI: 10.1007/978-3-642-22092-0_49
+           http://dx.doi.org/10.1007/978-3-642-22092-0_49
 
-    A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
-    Functional Brain Imaging with M/EEG Using Structured Sparsity in
-    Time-Frequency Dictionaries
-    Proceedings Information Processing in Medical Imaging
-    Lecture Notes in Computer Science, 2011, Volume 6801/2011,
-    600-611, DOI: 10.1007/978-3-642-22092-0_49
-    http://dx.doi.org/10.1007/978-3-642-22092-0_49
+    .. note:: The applied depth weighting by normalizing the gain matrix
+              can be insufficient for non-cortical source spaces and might
+              be replaced in the future.
+
+    .. note:: Currently this function supports only one volume-based
+              source space or two surface-based source spaces.
 
     Parameters
     ----------

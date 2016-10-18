@@ -13,8 +13,8 @@ from mne.label import read_label
 from mne import read_cov, read_forward_solution, read_evokeds
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.minimum_norm import apply_inverse, make_inverse_operator
-from mne.utils import run_tests_if_main, slow_test
-
+from mne.utils import _TempDir, run_tests_if_main, slow_test
+from mne.source_estimate import read_source_estimate, VolSourceEstimate
 
 data_path = testing.data_path(download=False)
 # NOTE: These use the ave and cov from sample dataset (no _trunc)
@@ -22,6 +22,8 @@ fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
+                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
 label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
@@ -110,5 +112,76 @@ def test_mxne_inverse():
     assert_array_almost_equal(stc.times, evoked.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
 
+
+@slow_test
+@testing.requires_testing_data
+def test_mxne_inverse_volume():
+    """Test (TF-)MxNE inverse computation"""
+    # Read noise covariance matrix
+
+    cov = read_cov(fname_cov)
+    tempdir = _TempDir()
+
+    # Handling average file
+    loose = 1.0
+    depth = 0.9
+
+    evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
+    evoked.crop(tmin=-0.05, tmax=0.2)
+
+    evoked_l21 = evoked.copy()
+    evoked_l21.crop(tmin=0.081, tmax=0.1)
+
+    forward = read_forward_solution(fname_fwd_vol)
+
+    # Reduce source space to make test computation faster
+    inverse_operator = make_inverse_operator(evoked_l21.info, forward, cov,
+                                             loose=loose, depth=depth)
+    stc_dspm = apply_inverse(evoked_l21, inverse_operator, lambda2=1. / 9.,
+                             method='dSPM')
+    stc_dspm.data[np.abs(stc_dspm.data) < 12] = 0.0
+    stc_dspm.data[np.abs(stc_dspm.data) >= 12] = 1.
+    weights_min = 0.5
+
+    # MxNE tests
+    alpha = 70  # spatial regularization parameter
+
+    stc = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                     depth=depth, maxit=500, tol=1e-8,
+                     active_set_size=10, weights=stc_dspm,
+                     weights_min=weights_min, solver='bcd')
+    assert_true(isinstance(stc, VolSourceEstimate))
+    assert_array_almost_equal(stc.times, evoked_l21.times, 5)
+    assert_true(stc.subject is None)
+    stc.save(op.join(tempdir, 'tmp-vl.stc'))
+    stc2 = read_source_estimate(op.join(tempdir, 'tmp-vl.stc'))
+    assert_array_almost_equal(stc.data, stc2.data)
+    assert_array_almost_equal(stc.times, stc2.times)
+
+    stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=0.1,
+                        depth=depth, maxit=500, tol=1e-8,
+                        active_set_size=10, return_residual=True,
+                        solver='bcd')
+    assert_true(isinstance(stc, VolSourceEstimate))
+    assert_array_almost_equal(stc.times, evoked_l21.times, 5)
+
+    # irMxNE tests
+    stc = mixed_norm(evoked_l21, forward, cov, alpha,
+                     n_mxne_iter=5, loose=loose, depth=depth,
+                     maxit=500, tol=1e-8, active_set_size=10,
+                     solver='bcd')
+    assert_true(isinstance(stc, VolSourceEstimate))
+    assert_array_almost_equal(stc.times, evoked_l21.times, 5)
+
+    # Do with TF-MxNE for test memory savings
+    alpha_space = 60.  # spatial regularization parameter
+    alpha_time = 1.  # temporal regularization parameter
+
+    stc, _ = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
+                           loose=loose, depth=depth, maxit=100, tol=1e-4,
+                           tstep=4, wsize=16, window=0.1, weights=stc_dspm,
+                           weights_min=weights_min, return_residual=True)
+    assert_true(isinstance(stc, VolSourceEstimate))
+    assert_array_almost_equal(stc.times, evoked.times, 5)
 
 run_tests_if_main()

@@ -21,6 +21,8 @@ fname_evoked = op.join(data_path, 'MEG', 'sample',
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
+                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
 subjects_dir = op.join(data_path, 'subjects')
 
 
@@ -31,6 +33,7 @@ def _check_stc(stc, evoked, idx, ratio=50.):
     order = np.argsort(amps)[::-1]
     amps = amps[order]
     verts = np.concatenate(stc.vertices)[order]
+    print(verts[0])
     assert_equal(idx, verts[0], err_msg=str(list(verts)))
     assert_true(amps[0] > ratio * amps[1], msg=str(amps[0] / amps[1]))
 
@@ -65,5 +68,28 @@ def test_gamma_map():
                     loose=None, return_residual=False)
     _check_stc(stc, evoked, 85739, 20)
 
+
+@slow_test
+@testing.requires_testing_data
+def test_gamma_map_volume():
+    """Test Gamma MAP inverse"""
+    forward = read_forward_solution(fname_fwd_vol)
+
+    evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0),
+                          proj=False)
+    evoked.resample(50, npad=100)
+    evoked.crop(tmin=0.1, tmax=0.16)  # crop to nice window near samp border
+
+    cov = read_cov(fname_cov)
+    cov = regularize(cov, evoked.info)
+
+    alpha = 0.5
+    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                    xyz_same_gamma=True, update_mode=1)
+    assert_array_almost_equal(stc.times, evoked.times, 5)
+
+    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                    xyz_same_gamma=False, update_mode=1)
+    assert_array_almost_equal(stc.times, evoked.times, 5)
 
 run_tests_if_main()
