@@ -656,7 +656,7 @@ def _deg_ord_idx(deg, order):
 
 
 def _sh_negate(sh, order):
-    """Helper to get the negative spherical harmonic from a positive one"""
+    """Helper to get the negative spherical harmonic from a positive one."""
     assert order >= 0
     return sh.conj() * (-1. if order % 2 else 1.)  # == (-1) ** order
 
@@ -681,7 +681,6 @@ def _sh_complex_to_real(sh, order):
     -----
     This does not include the Condon-Shortely phase.
     """
-
     if order == 0:
         return np.real(sh)
     else:
@@ -689,7 +688,7 @@ def _sh_complex_to_real(sh, order):
 
 
 def _sh_real_to_complex(shs, order):
-    """Convert real spherical harmonic pair to complex
+    """Convert real spherical harmonic pair to complex.
 
     Parameters
     ----------
@@ -761,7 +760,7 @@ def _compute_sph_harm(order, az, pol):
 # POSSIBILITY OF SUCH DAMAGE.
 
 class _TPSWarp(object):
-    """Transform points using thin-plate spline (TPS) warping
+    """Transform points using thin-plate spline (TPS) warping.
 
     Notes
     -----
@@ -773,6 +772,7 @@ class _TPSWarp(object):
            Decomposition of Deformations." IEEE Trans. Pattern Anal. Mach.
            Intell. 11, 567-585, 1989.
     """
+
     def fit(self, source, destination, reg=1e-3):
         from scipy.spatial.distance import cdist
         assert source.shape[1] == destination.shape[1] == 3
@@ -861,8 +861,9 @@ class SphericalSurfaceWarp(object):
     ----------
     .. [1] Darvas F, Ermer JJ, Mosher JC, Leahy RM (2006). "Generic head
            models for atlas-based EEG source analysis."
-           Human Brain Mapping 27:129–143
+           Human Brain Mapping 27:129-143
     """
+
     @verbose
     def fit(self, source, destination, order=4, reg=1e-3, center=True,
             verbose=None):
