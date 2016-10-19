@@ -26,7 +26,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        _get_call_line, compute_corr, sys_info, verbose,
                        check_fname, requires_ftp, get_config_path,
                        object_size, buggy_mkl_svd, _get_inst_data,
-                       copy_doc, copy_function_doc_to_method_doc)
+                       copy_doc, copy_function_doc_to_method_doc, ProgressBar)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -744,5 +744,22 @@ def test_copy_function_doc_to_method_doc():
     assert_equal(A.method_f3.__doc__, 'Docstring for f3\n\n        ')
     assert_raises(ValueError, copy_function_doc_to_method_doc(f4), A.method_f1)
     assert_raises(ValueError, copy_function_doc_to_method_doc(f5), A.method_f1)
+
+
+def test_progressbar():
+    a = np.arange(10)
+    pbar = ProgressBar(a)
+    assert_equal(a, pbar.iterable)
+    assert_equal(10, pbar.max_value)
+
+    pbar = ProgressBar(10)
+    assert_equal(10, pbar.max_value)
+    assert_true(pbar.iterable is None)
+
+    # Make sure that non-iterable input raises an error
+    def iter_func(a):
+        for ii in a:
+            pass
+    assert_raises(ValueError, iter_func, ProgressBar(20))
 
 run_tests_if_main()

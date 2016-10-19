@@ -1602,9 +1602,10 @@ class ProgressBar(object):
 
     Parameters
     ----------
-    max_value : int
+    max_value : int | iterable
         Maximum value of process (e.g. number of samples to process, bytes to
-        download, etc.).
+        download, etc.). If an iterable is given, then `max_value` will be set
+        to the length of this iterable.
     initial_value : int
         Initial value of process, useful when resuming process from a specific
         value, defaults to 0.
@@ -1642,7 +1643,13 @@ class ProgressBar(object):
                  progress_character='.', spinner=False,
                  verbose_bool=True):  # noqa: D102
         self.cur_value = initial_value
-        self.max_value = max_value
+        if isinstance(max_value, (float, int)):
+            self.max_value = max_value
+            self.iterable = None
+        else:
+            # input is an iterable
+            self.max_value = len(max_value)
+            self.iterable = max_value
         self.mesg = mesg
         self.max_chars = max_chars
         self.progress_character = progress_character
@@ -1712,6 +1719,14 @@ class ProgressBar(object):
         """
         self.cur_value += increment_value
         self.update(self.cur_value, mesg)
+
+    def __iter__(self):
+        """Iterate to auto-increment the pbar with 1."""
+        if self.iterable is None:
+            raise ValueError("Must give an iterable to be used in a loop.")
+        for obj in self.iterable:
+            yield obj
+            self.update_with_increment_value(1)
 
 
 def _get_ftp(url, temp_file_name, initial_size, file_size, verbose_bool):
