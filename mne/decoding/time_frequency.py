@@ -65,7 +65,8 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         """Init TimeFrequency transformer."""
         frequencies, sfreq, _, n_cycles, time_bandwidth, decim = \
             _check_tfr_param(frequencies, sfreq, method, True, n_cycles,
-                             time_bandwidth, use_fft, decim, output)
+                             time_bandwidth, use_fft, decim, output,
+                             parallel_across='channels')
         self.frequencies = frequencies
         self.sfreq = sfreq
         self.method = method

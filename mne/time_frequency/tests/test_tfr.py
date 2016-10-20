@@ -552,4 +552,13 @@ def test_compute_tfr():
                                n_cycles=2.)
             assert_array_equal(shape[1:], out.shape)
 
+    # Test parallelization
+    X = _compute_tfr(data, freqs, sfreq, method='morlet',
+                     decim=2, output='avg_power', n_cycles=2.)
+    for pa in ('channels', 'frequencies'):
+        out = _compute_tfr(data, freqs, sfreq, method='morlet',
+                           decim=2, output='avg_power', n_cycles=2.,
+                           n_jobs=2, parallel_across=pa)
+        assert_array_almost_equal(X, out)
+
 run_tests_if_main()
