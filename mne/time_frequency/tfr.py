@@ -373,15 +373,12 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
     else:
         # Parallelization is applied across frequencies.
         # FIXME: to avoid overheads we should use np.array_split()
-        parallel, my_cwt, _ = parallel_func(_tfr_loop_freqs, n_jobs)
+        parallel, my_cwt, n_jobs = parallel_func(_tfr_loop_freqs, n_jobs)
+        n_jobs = min(n_jobs, len(Ws[0]))
         tfrs = parallel(my_cwt(epoch_data, w, output, use_fft, decim, dtype)
-                        for w in Ws[0])
-
-        for freq_idx, tfr in enumerate(tfrs):
-            if ('avg_' in output) or ('itc' in output):
-                out[:, freq_idx, :] = tfr
-            else:
-                out[:, :, freq_idx, :] = tfr
+                        for w in np.array_split(Ws[0], n_jobs))
+        freq_axis = 1 if ('avg_' in output) or ('itc' in output) else 2
+        tfrs = np.concatenate(tfrs, axis=freq_axis)
 
     if ('avg_' not in output) and ('itc' not in output):
         # This is to enforce that the first dimension is for epochs
@@ -474,19 +471,27 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
     return frequencies, sfreq, zero_mean, n_cycles, time_bandwidth, decim
 
 
-def _tfr_loop_freqs(epoch_data, W, output, use_fft, decim, dtype):
+def _tfr_loop_freqs(epoch_data, Ws, output, use_fft, decim, dtype):
     """Aux. function to _compute_tfr to parallelize across frequencies
     See _time_frequency_loop for parameters"""
     n_epochs, n_chans, n_times = epoch_data[:, :, decim].shape
+    n_freqs = len(Ws)
 
-    out = np.empty((n_chans, n_epochs, n_times), dtype)
+    # Use empty to optimize RAM in parallelization
+    out = np.empty((n_freqs, n_chans, n_epochs, n_times), dtype)
     if ('avg_' in output) or ('itc' in output):
-        out = np.empty((n_chans, n_times), dtype)
+        out = np.empty((n_freqs, n_chans, n_times), dtype)
 
-    for idx, channel in enumerate(epoch_data.transpose(1, 0, 2)):
-        out[idx] = _time_frequency_loop(channel, [[W]], output, use_fft,
-                                        'same', decim)
-    return out
+    for freq_idx, W in enumerate(Ws):
+        for ch_idx, channel in enumerate(epoch_data.transpose(1, 0, 2)):
+            out[freq_idx, ch_idx] = _time_frequency_loop(
+                channel, [[W]], output, use_fft, 'same', decim)
+
+    # final order needs to be: ([n_epochs], n_chans, n_freqs, n_times)
+    if ('avg_' in output) or ('itc' in output):
+        return out.transpose(1, 0, 2)
+    else:
+        return out.transpose(1, 2, 0, 3)
 
 
 def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
