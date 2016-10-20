@@ -560,5 +560,8 @@ def test_compute_tfr():
                            decim=2, output='avg_power', n_cycles=2.,
                            n_jobs=2, parallel_across=pa)
         assert_array_almost_equal(X, out)
+    assert_raises(ValueError, _compute_tfr, data, freqs, parallel_across='foo')
+    assert_raises(ValueError, _compute_tfr, data, freqs,
+                  method='multitaper', parallel_across='frequencies')
 
 run_tests_if_main()
