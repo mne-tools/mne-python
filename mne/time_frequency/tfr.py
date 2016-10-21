@@ -370,19 +370,19 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         # FIXME: to avoid overheads we should use np.array_split()
         for channel_idx, tfr in enumerate(tfrs):
             out[channel_idx] = tfr
+
+        if ('avg_' not in output) and ('itc' not in output):
+            # This is to enforce that the first dimension is for epochs
+            out = out.transpose(1, 0, 2, 3)  # from ceft to ecft
     else:
         # Parallelization is applied across frequencies.
-        # FIXME: to avoid overheads we should use np.array_split()
         parallel, my_cwt, n_jobs = parallel_func(_tfr_loop_freqs, n_jobs)
         n_jobs = min(n_jobs, len(Ws[0]))
         tfrs = parallel(my_cwt(epoch_data, w, output, use_fft, decim, dtype)
                         for w in np.array_split(Ws[0], n_jobs))
-        freq_axis = 1 if ('avg_' in output) or ('itc' in output) else 2
-        tfrs = np.concatenate(tfrs, axis=freq_axis)
-
-    if ('avg_' not in output) and ('itc' not in output):
-        # This is to enforce that the first dimension is for epochs
-        out = out.transpose(1, 0, 2, 3)
+        tfrs = np.concatenate(tfrs, axis=0)
+        if not (('avg_' in output) or ('itc' in output)):
+            out = out.transpose(1, 0, 2, 3)  # from cfet to ecft
     return out
 
 
@@ -485,13 +485,8 @@ def _tfr_loop_freqs(epoch_data, Ws, output, use_fft, decim, dtype):
     for freq_idx, W in enumerate(Ws):
         for ch_idx, channel in enumerate(epoch_data.transpose(1, 0, 2)):
             out[freq_idx, ch_idx] = _time_frequency_loop(
-                channel, [[W]], output, use_fft, 'same', decim)
-
-    # final order needs to be: ([n_epochs], n_chans, n_freqs, n_times)
-    if ('avg_' in output) or ('itc' in output):
-        return out.transpose(1, 0, 2)
-    else:
-        return out.transpose(1, 2, 0, 3)
+                channel, [[W]], output, use_fft, 'same', decim)[..., 0, :]
+    return out
 
 
 def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
