@@ -559,8 +559,8 @@ def test_compute_tfr():
         for pa in ('channels', 'frequencies'):
             out = _compute_tfr(data, freqs, sfreq, method='morlet',
                                decim=2, output=output, n_cycles=2.,
-                               n_jobs=2, parallel_across=pa)
-            assert_array_almost_equal(X, out)
+                               n_jobs=1, parallel_across=pa)
+            assert_array_equal(X, out)
     assert_raises(ValueError, _compute_tfr, data, freqs, parallel_across='foo')
     assert_raises(ValueError, _compute_tfr, data, freqs,
                   method='multitaper', parallel_across='frequencies')

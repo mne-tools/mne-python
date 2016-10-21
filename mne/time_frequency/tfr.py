@@ -378,11 +378,13 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         # Parallelization is applied across frequencies.
         parallel, my_cwt, n_jobs = parallel_func(_tfr_loop_freqs, n_jobs)
         n_jobs = min(n_jobs, len(Ws[0]))
-        tfrs = parallel(my_cwt(epoch_data, w, output, use_fft, decim, dtype)
-                        for w in np.array_split(Ws[0], n_jobs))
-        tfrs = np.concatenate(tfrs, axis=0)
-        if not (('avg_' in output) or ('itc' in output)):
-            out = out.transpose(1, 0, 2, 3)  # from cfet to ecft
+        out = parallel(my_cwt(epoch_data, w, output, use_fft, decim, dtype)
+                       for w in np.array_split(Ws[0], n_jobs))
+        out = np.concatenate(out, axis=0)
+        if ('avg_' in output) or ('itc' in output):
+            out = out.transpose(1, 0, 2)  # from fct to cft
+        else:
+            out = out.transpose(2, 1, 0, 3)  # from cfet to ecft
     return out
 
 
