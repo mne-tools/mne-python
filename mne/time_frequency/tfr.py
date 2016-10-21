@@ -373,7 +373,7 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
 
         if ('avg_' not in output) and ('itc' not in output):
             # This is to enforce that the first dimension is for epochs
-            out = out.transpose(1, 0, 2, 3)  # from ceft to ecft
+            out = out.transpose(1, 0, 2, 3)  # from fcet to ecft
     else:
         # Parallelization is applied across frequencies.
         parallel, my_cwt, n_jobs = parallel_func(_tfr_loop_freqs, n_jobs)
