@@ -390,10 +390,9 @@ class SetChannelsMixin(object):
             else:
                 coil_type = FIFF.FIFFV_COIL_NONE
             self.info['chs'][c_ind]['coil_type'] = coil_type
-        if len(list(unit_changes.keys())) > 0:
-            msg = "The unit for channel(s) {0} has changed from {1} to {2}."
-            for this_change, names in unit_changes.items():
-                warn(msg.format(", ".join(sorted(names)), *this_change))
+        msg = "The unit for channel(s) {0} has changed from {1} to {2}."
+        for this_change, names in unit_changes.items():
+            warn(msg.format(", ".join(sorted(names)), *this_change))
 
     def rename_channels(self, mapping):
         """Rename channels.
