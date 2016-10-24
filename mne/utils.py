@@ -653,7 +653,8 @@ def verbose(function, *args, **kwargs):
     """Verbose decorator to allow functions to override log-level.
 
     Do not call this directly to set global verbosity level, instead use
-    set_log_level().
+    :func:`mne.set_log_level`. Available levels of verbosity: 'DEBUG', 'INFO',
+    'WARNING', 'ERROR', 'CRITICAL'.
 
     Parameters
     ----------
