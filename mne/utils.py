@@ -654,7 +654,8 @@ def verbose(function, *args, **kwargs):
 
     Do not call this directly to set global verbosity level, instead use
     :func:`mne.set_log_level`. Available levels of verbosity: 'DEBUG', 'INFO',
-    'WARNING', 'ERROR', 'CRITICAL'.
+    'WARNING', 'ERROR', 'CRITICAL'. True is an alias for 'INFO' and False is an
+    alias for 'WARNING'.
 
     Parameters
     ----------
