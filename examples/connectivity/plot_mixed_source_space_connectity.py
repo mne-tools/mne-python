@@ -18,6 +18,8 @@ import matplotlib.pyplot as plt
 import mne
 
 from mne.datasets import sample
+from mne import setup_volume_source_space, setup_source_space
+from mne import make_forward_solution
 from mne.io import read_raw_fif
 from mne.minimum_norm import make_inverse_operator, apply_inverse_epochs
 from mne.connectivity import spectral_connectivity
@@ -31,7 +33,6 @@ sbj_dir = op.join(data_path, 'subjects')
 bem_dir = op.join(sbj_dir, sbj_id, 'bem')
 
 # Set file names
-fname_mixed_src = op.join(bem_dir, '%s-oct-6-mixed-src.fif' % sbj_id)
 fname_aseg = op.join(sbj_dir, sbj_id, 'mri', 'aseg.mgz')
 
 fname_model = op.join(bem_dir, '%s-5120-bem.fif' % sbj_id)
@@ -39,20 +40,37 @@ fname_bem = op.join(bem_dir, '%s-5120-bem-sol.fif' % sbj_id)
 
 fname_raw = data_dir + '/sample_audvis_filt-0-40_raw.fif'
 fname_trans = data_dir + '/sample_audvis_raw-trans.fif'
-fname_fwd = data_dir + '/sample_audvis-meg-oct-6-mixed-fwd.fif'
 fname_cov = data_dir + '/ernoise-cov.fif'
 fname_event = data_dir + '/sample_audvis_filt-0-40_raw-eve.fif'
 
-# Read the mixed src space
-src = mne.read_source_spaces(fname_mixed_src)
+# List of sub structures we are interested in. We select only the
+# sub structures we want to include in the source space
+labels_vol = ['Left-Amygdala',
+              'Left-Thalamus-Proper',
+              'Left-Cerebellum-Cortex',
+              'Brain-Stem',
+              'Right-Amygdala',
+              'Right-Thalamus-Proper',
+              'Right-Cerebellum-Cortex']
 
-n = sum(src[i]['nuse'] for i in range(len(src)))
-print('the src space contains %d spaces and %d points' % (len(src), n))
+# Setup a surface-based source space
+src = setup_source_space(sbj_id, subjects_dir=sbj_dir,
+                         spacing='oct6', add_dist=False, overwrite=True)
 
-# read the fwd matrix
-fwd = mne.read_forward_solution(fname_fwd)
-leadfield = fwd['sol']['data']
-print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
+# Setup a volume source space
+vol_src = setup_volume_source_space(sbj_id, mri=fname_aseg,
+                                    pos=5.0,
+                                    bem=fname_model,
+                                    volume_label=labels_vol,
+                                    subjects_dir=sbj_dir)
+# Generate the mixed source space
+src += vol_src
+
+# compute the fwd matrix
+fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem,
+                            mindist=5.0,  # ignore sources<=5mm from innerskull
+                            meg=True, eeg=False,
+                            n_jobs=1)
 
 # Load data
 raw = read_raw_fif(fname_raw, preload=True)
