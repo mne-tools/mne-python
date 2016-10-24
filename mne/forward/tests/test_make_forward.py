@@ -255,7 +255,7 @@ def test_forward_mixed_source_space():
     surf = read_source_spaces(fname_src)
 
     # setup two volume source spaces
-    label_names = get_volume_labels_from_aseg(fname_aseg)
+    label_names, _ = get_volume_labels_from_aseg(fname_aseg)
     vol_labels = [label_names[int(np.random.rand() * len(label_names))]
                   for _ in range(2)]
     vol1 = setup_volume_source_space('sample', fname=None, pos=20.,
