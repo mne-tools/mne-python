@@ -29,6 +29,8 @@ How do I contribute?
 --------------------
 Check out the :ref:`contributing` page.
 
+.. _cite:
+
 How do I cite MNE?
 ------------------
 If you use the implementations provided by the MNE software in your research,
@@ -113,8 +115,8 @@ which is based on the
 h5py_, to save data in a fast, future-compatible, standard format.
 
 
-I downloaded a dataset once, but MNE-Python is asking to download it again. What gives?
-------------------------------------------------------------------------------------------
+I downloaded a dataset once, but MNE-Python is asking to download it again. Why?
+--------------------------------------------------------------------------------
 The default location for the MNE-sample data is ``~/mne_data``.
 If you downloaded data and an example asks you whether to download it again,
 make sure the data reside in the examples directory and that you run the

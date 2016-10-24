@@ -102,6 +102,7 @@
         - :ref:`contributing`
         - :ref:`FAQ`
         - :ref:`whats_new`
+        - :ref:`Cite MNE <cite>`
         - :ref:`cited`
 
     .. container:: panel panel-default nosize nopad

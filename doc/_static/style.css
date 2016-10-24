@@ -20,7 +20,7 @@
     vertical-align:middle;
     text-align: center;
     float: none;
-    height: 300px;
+    height: 290px;
 }
 
 /* Omit the version in the navbar */
@@ -37,6 +37,8 @@ blockquote {
 .devbar {
     text-align: center;
     vertical-align: middle;
+    margin-bottom: 5px;
+    padding: 5px;
 }
 
 /* Override the sphinx-gallery download ugliness */
