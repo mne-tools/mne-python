@@ -702,7 +702,7 @@ class EvokedArray(Evoked):
         self.last = self.first + np.shape(data)[-1] - 1
         self.times = np.arange(self.first, self.last + 1,
                                dtype=np.float) / info['sfreq']
-        self.info = info
+        self.info = deepcopy(info)  # do not modify original info
         self.nave = nave
         self.kind = kind
         self.comment = comment
