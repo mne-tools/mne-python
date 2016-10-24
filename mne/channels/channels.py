@@ -376,8 +376,7 @@ class SetChannelsMixin(object):
                                  "fix the measurement info of your data."
                                  % (ch_name, unit_old))
             if unit_old != _human2unit[ch_type]:
-                this_change = "/".join([_unit2human[unit_old],
-                                        _unit2human[unit_new]])
+                this_change = (_unit2human[unit_old], _unit2human[unit_new])
                 if this_change not in unit_changes:
                     unit_changes[this_change] = list()
                 unit_changes[this_change].append(ch_name)
@@ -394,9 +393,8 @@ class SetChannelsMixin(object):
         if len(list(unit_changes.keys())) > 0:
             msg = "The unit for channel(s) {0} has changed from {1} to {2}."
             for this_change in unit_changes:
-                from_, to_ = this_change.split("/")
-                names = ", ".join(unit_changes[this_change])
-                warn(msg.format(names, from_, to_))
+                names = ", ".join(sorted(unit_changes[this_change]))
+                warn(msg.format(names, *this_change))
 
     def rename_channels(self, mapping):
         """Rename channels.
