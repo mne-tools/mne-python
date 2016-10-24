@@ -247,8 +247,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
     if isinstance(solver, string_types):
         if solver == 'cholesky':
             solver = _cho_solver
-        elif solver == "pinv":  # noqa
-            solver = _pinv_solver  # noqa
+        elif solver == "pinv":
+            solver = _pinv_solver
         else:
             raise ValueError("No such solver: {0}".format(solver))
 
