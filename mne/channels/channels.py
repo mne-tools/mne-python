@@ -354,6 +354,7 @@ class SetChannelsMixin(object):
         ch_names = self.info['ch_names']
 
         # first check and assemble clean mappings of index and name
+        unit_changes = dict()
         for ch_name, ch_type in mapping.items():
             if ch_name not in ch_names:
                 raise ValueError("This channel name (%s) doesn't exist in "
@@ -375,8 +376,10 @@ class SetChannelsMixin(object):
                                  "fix the measurement info of your data."
                                  % (ch_name, unit_old))
             if unit_old != _human2unit[ch_type]:
-                warn("The unit for channel %s has changed from %s to %s."
-                     % (ch_name, _unit2human[unit_old], _unit2human[unit_new]))
+                this_change = (_unit2human[unit_old], _unit2human[unit_new])
+                if this_change not in unit_changes:
+                    unit_changes[this_change] = list()
+                unit_changes[this_change].append(ch_name)
             self.info['chs'][c_ind]['unit'] = _human2unit[ch_type]
             if ch_type in ['eeg', 'seeg', 'ecog']:
                 coil_type = FIFF.FIFFV_COIL_EEG
@@ -387,6 +390,10 @@ class SetChannelsMixin(object):
             else:
                 coil_type = FIFF.FIFFV_COIL_NONE
             self.info['chs'][c_ind]['coil_type'] = coil_type
+        if len(list(unit_changes.keys())) > 0:
+            msg = "The unit for channel(s) {0} has changed from {1} to {2}."
+            for this_change, names in unit_changes.items():
+                warn(msg.format(", ".join(sorted(names)), *this_change))
 
     def rename_channels(self, mapping):
         """Rename channels.
