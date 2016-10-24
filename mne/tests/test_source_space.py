@@ -20,6 +20,7 @@ from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mri_header, _get_mgz_header
 from mne.externals.six.moves import zip
 from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
+                              get_volume_labels_from_src,
                               _compare_source_spaces)
 from mne.tests.common import assert_naming
 from mne.io.constants import FIFF
@@ -30,6 +31,8 @@ data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
+fname_mixed = op.join(subjects_dir, 'sample', 'bem',
+                      'sample-oct-6-mixed-test-src.fif')
 fname_vol = op.join(subjects_dir, 'sample', 'bem',
                     'sample-volume-7mm-src.fif')
 fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
@@ -456,7 +459,7 @@ def test_get_volume_label_names():
     """Test reading volume label names
     """
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names = get_volume_labels_from_aseg(aseg_fname)
+    label_names, _ = get_volume_labels_from_aseg(aseg_fname)
     assert_equal(label_names.count('Brain-Stem'), 1)
 
 
@@ -468,7 +471,7 @@ def test_source_space_from_label():
     """
     tempdir = _TempDir()
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names = get_volume_labels_from_aseg(aseg_fname)
+    label_names, _ = get_volume_labels_from_aseg(aseg_fname)
     volume_label = label_names[int(np.random.rand() * len(label_names))]
 
     # Test pos as dict
@@ -499,12 +502,32 @@ def test_source_space_from_label():
 @testing.requires_testing_data
 @requires_freesurfer
 @requires_nibabel()
+def test_read_volume_from_src():
+    """Test reading volumes from a mixed source space
+    """
+
+    src = read_source_spaces(fname_mixed)
+    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+    label_names, _ = get_volume_labels_from_aseg(aseg_fname)
+    volume_src = get_volume_labels_from_src(src, subjects_dir, 'sample')
+    volume_label = volume_src[0].name
+    volume_label = 'Left-' + volume_label.replace('-lh', '')
+
+    # Test
+    assert_equal(volume_label, src[2]['seg_name'])
+
+    assert_equal(src[2]['type'], 'vol')
+
+
+@testing.requires_testing_data
+@requires_freesurfer
+@requires_nibabel()
 def test_combine_source_spaces():
     """Test combining source spaces
     """
     tempdir = _TempDir()
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names = get_volume_labels_from_aseg(aseg_fname)
+    label_names, _ = get_volume_labels_from_aseg(aseg_fname)
     volume_labels = [label_names[int(np.random.rand() * len(label_names))]
                      for ii in range(2)]
 
