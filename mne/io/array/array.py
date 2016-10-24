@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import copy
 import numpy as np
 
 from ..base import _BaseRaw
@@ -55,7 +54,7 @@ class RawArray(_BaseRaw):
         assert len(info['ch_names']) == info['nchan']
         if info.get('buffer_size_sec', None) is None:
             info['buffer_size_sec'] = 1.  # reasonable default
-        info = copy.deepcopy(info)  # do not modify original info
+        info = info.copy()  # do not modify original info
         super(RawArray, self).__init__(info, data,
                                        first_samps=(int(first_samp),),
                                        dtype=dtype, verbose=verbose)

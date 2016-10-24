@@ -1142,7 +1142,7 @@ def test_add_channels():
     assert_raises(ValueError, raw_meg.copy().add_channels, [raw_arr])
     raw_meg.copy().add_channels([raw_arr], force_update_info=True)
     # Make sure that values didn't get overwritten
-    _is_equal_dict([raw_arr.info['dev_head_t'], orig_head_t])
+    assert_true(_is_equal_dict([raw_arr.info['dev_head_t'], orig_head_t]))
 
     # Now test errors
     raw_badsf = raw_eeg.copy()
