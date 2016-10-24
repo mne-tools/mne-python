@@ -28,10 +28,14 @@ BUG
 
     - :func:`mne.find_layout` now leaves out the excluded channels by `Jaakko Leppakangas`_
 
+    - Array data constructors :class:`mne.io.RawArray` and :class:`mne.EvokedArray` now makes a copy of the info structure by `Jaakko Leppakangas`_
+
 API
 ~~~
 
     - The filtering functions ``band_pass_filter``, ``band_stop_filter``, ``low_pass_filter``, and ``high_pass_filter`` have been deprecated in favor of :func:`mne.filter.filter_data` by `Eric Larson`_
+
+    - :class:`mne.EvokedArray` now has default value ``tmin=0.`` by `Jaakko Leppakangas`_
 
 .. _changes_0_13:
 

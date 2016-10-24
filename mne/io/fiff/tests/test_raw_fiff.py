@@ -18,6 +18,7 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.io import RawArray, concatenate_raws, read_raw_fif
+from mne.io.meas_info import _is_equal_dict
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info)
@@ -1141,7 +1142,7 @@ def test_add_channels():
     assert_raises(ValueError, raw_meg.copy().add_channels, [raw_arr])
     raw_meg.copy().add_channels([raw_arr], force_update_info=True)
     # Make sure that values didn't get overwritten
-    assert_true(raw_arr.info['dev_head_t'] is orig_head_t)
+    _is_equal_dict([raw_arr.info['dev_head_t'], orig_head_t])
 
     # Now test errors
     raw_badsf = raw_eeg.copy()
