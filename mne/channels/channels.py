@@ -392,9 +392,8 @@ class SetChannelsMixin(object):
             self.info['chs'][c_ind]['coil_type'] = coil_type
         if len(list(unit_changes.keys())) > 0:
             msg = "The unit for channel(s) {0} has changed from {1} to {2}."
-            for this_change in unit_changes:
-                names = ", ".join(sorted(unit_changes[this_change]))
-                warn(msg.format(names, *this_change))
+            for this_change, names in unit_changes.items():
+                warn(msg.format(", ".join(sorted(names)), *this_change))
 
     def rename_channels(self, mapping):
         """Rename channels.
