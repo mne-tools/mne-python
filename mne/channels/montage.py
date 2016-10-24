@@ -266,7 +266,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         az = np.deg2rad(np.array([90. - h if a >= 0. else -90. - h
                                   for h, a in zip(horiz, az)]))
         pol = radius * np.pi
-        pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol])).T
+        pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
     elif ext == '.hpts':
         # MNE-C specified format for generic digitizer data
         dtype = [('type', 'S8'), ('name', 'S8'),
