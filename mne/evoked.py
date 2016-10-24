@@ -664,7 +664,7 @@ class EvokedArray(Evoked):
         Info dictionary. Consider using ``create_info`` to populate
         this structure.
     tmin : float
-        Start time before event.
+        Start time before event. Defaults to 0.
     comment : string
         Comment on dataset. Can be the condition. Defaults to ''.
     nave : int
@@ -681,7 +681,7 @@ class EvokedArray(Evoked):
     """
 
     @verbose
-    def __init__(self, data, info, tmin, comment='', nave=1, kind='average',
+    def __init__(self, data, info, tmin=0., comment='', nave=1, kind='average',
                  verbose=None):  # noqa: D102
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
