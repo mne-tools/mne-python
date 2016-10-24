@@ -117,8 +117,7 @@ labels_parc = mne.read_labels_from_annot(sbj_id, parc=parc,
 # and each sub structure contained in the src space
 # If mode = 'mean_flip' this option is used only for the surface cortical label
 src = inverse_operator['src']
-# TODO guardare cosa è stcs nel caso di epochs e raw
-# TODO perchè vengono cosi' brutte le labels ?:(
+
 label_ts = mne.extract_label_time_course([stcs], labels_parc, src,
                                          mode='mean',
                                          allow_empty=True,
