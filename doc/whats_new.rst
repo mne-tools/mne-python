@@ -28,7 +28,7 @@ BUG
 
     - :func:`mne.find_layout` now leaves out the excluded channels by `Jaakko Leppakangas`_
 
-    - Array data constructors :class:`mne.io.RawArray` and :class:`mne.EvokedArray` now makes a copy of the info structure by `Jaakko Leppakangas`_
+    - Array data constructors :class:`mne.io.RawArray` and :class:`mne.EvokedArray` now make a copy of the info structure by `Jaakko Leppakangas`_
 
 API
 ~~~
