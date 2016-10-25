@@ -40,7 +40,7 @@ rt_client = MockRtClient(raw)
 
 # create the real-time epochs object
 rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks, decim=1,
-                     reject=dict(grad=4000e-13, eog=150e-6))
+                     reject=dict(grad=4000e-13, eog=150e-6), isi_max=4.)
 
 # start the acquisition
 rt_epochs.start()
@@ -70,6 +70,12 @@ concat_classifier = Pipeline([('filter', filt), ('vector', vectorizer),
 
 data_picks = mne.pick_types(rt_epochs.info, meg='grad', eeg=False, eog=True,
                             stim=False, exclude=raw.info['bads'])
+plt.xlabel('Trials')
+plt.ylabel('Classification score (% correct)')
+plt.xlim([min_trials, 50])
+plt.ylim([30, 105])
+plt.title('Real-time decoding')
+plt.show(block=False)
 
 for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
 
@@ -103,11 +109,6 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
                       np.asarray(scores) + np.asarray(std_scores))
         plt.fill_between(scores_x, hyp_limits[0], y2=hyp_limits[1],
                          color='b', alpha=0.5)
-        plt.xlabel('Trials')
-        plt.ylabel('Classification score (% correct)')
-        plt.xlim([min_trials, 50])
-        plt.ylim([30, 105])
-        plt.title('Real-time decoding')
-        plt.show(block=False)
         plt.pause(0.01)
+
 plt.show()
