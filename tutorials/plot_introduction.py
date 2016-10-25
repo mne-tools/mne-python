@@ -118,7 +118,7 @@ mne.get_config_path()
 
 ##############################################################################
 # By default logging messages print to the console, but look at
-# mne.set_log_file() to save output to a file.
+# :func:`mne.set_log_file` to save output to a file.
 #
 # Access raw data
 # ^^^^^^^^^^^^^^^

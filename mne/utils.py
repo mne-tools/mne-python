@@ -652,10 +652,11 @@ class deprecated(object):
 def verbose(function, *args, **kwargs):
     """Verbose decorator to allow functions to override log-level.
 
-    Do not call this directly to set global verbosity level, instead use
-    :func:`mne.set_log_level`. Available levels of verbosity: 'DEBUG', 'INFO',
-    'WARNING', 'ERROR', 'CRITICAL'. True is an alias for 'INFO' and False is an
-    alias for 'WARNING'.
+    This decorator is used to set the verbose level during a function or method
+    call, such as :func:`mne.compute_covariance`. The `verbose` keyword
+    argument can be 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', True (an
+    alias for 'INFO'), or False (an alias for 'WARNING'). To set the global
+    verbosity level for all functions, use :func:`mne.set_log_level`.
 
     Parameters
     ----------
@@ -666,6 +667,11 @@ def verbose(function, *args, **kwargs):
     -------
     dec : function
         The decorated function
+
+    See Also
+    --------
+    set_log_level
+    set_config
     """
     arg_names = _get_args(function)
     default_level = verbose_level = None
