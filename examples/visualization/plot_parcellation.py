@@ -8,7 +8,7 @@ In this example, we download the HCP-MMP1.0 parcellation [1]_ and show it
 on fsaverage.
 
 .. note:: The HCP-MMP dataset has license terms restricting its use.
-          of particular relevance:
+          Of particular relevance:
 
               "I will acknowledge the use of WU-Minn HCP data and data
               derived from WU-Minn HCP data when publicly presenting any
