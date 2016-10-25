@@ -121,7 +121,7 @@ exclude_patterns = ['source/generated']
 #show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'manni'  # friendly, manni, murphy, tango
+pygments_style = 'sphinx'  # friendly, manni, murphy, tango
 
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['mne.']
@@ -142,10 +142,10 @@ html_theme = 'bootstrap'
 html_theme_options = {
     'navbar_title': ' ',  # we replace this with an image
     'source_link_position': "nav",  # default
-    'bootswatch_theme': "cerulean",  # yeti paper lumen
+    'bootswatch_theme': "flatly",  # yeti paper lumen
     'navbar_sidebarrel': False,  # Render the next/prev links in navbar?
     'navbar_pagenav': False,
-    'navbar_class': "navbar navbar-inverse",
+    'navbar_class': "navbar",
     'bootstrap_version': "3",  # default
     'navbar_links': [
         ("Get started", "getting_started"),

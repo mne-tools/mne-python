@@ -2,7 +2,7 @@
 
 .. include:: links.inc
 
-.. container:: row extra-bottom-padding
+.. container:: row
 
   .. container:: col-md-8 nopad
 
@@ -24,8 +24,9 @@
   .. container:: col-md-8
 
     Community-driven software for **processing time-resolved neural
-    signals including magneto- and electro-encephalography (MEG, EEG)**,
-    offering comprehensive data analysis tools for Windows, OSX, and Linux:
+    signals including electroencephalography (EEG) and
+    magnetoencephalography (MEG)**, offering comprehensive data analysis
+    tools for Windows, OSX, and Linux:
 
     - Preprocessing and denoising
     - Source estimation
@@ -86,51 +87,37 @@
 
   .. container:: col-md-4
 
-    .. container:: panel panel-default nosize nopad
+    .. raw:: html
 
-      .. raw:: html
+      <h2>Documentation</h2>
 
-        <div class="panel-heading"><h3 class="panel-title">Documentation</h3></div>
+    - :ref:`get_started`
+    - :ref:`tutorials`
+    - :ref:`general_examples`
+    - :ref:`API Reference <api_reference>`
+    - :ref:`manual`
+    - :ref:`contributing`
+    - :ref:`FAQ`
+    - :ref:`whats_new`
+    - :ref:`Cite MNE <cite>`
+    - :ref:`cited`
 
-      .. container:: panel-body nosize
+    .. raw:: html
 
-        - :ref:`get_started`
-        - :ref:`tutorials`
-        - :ref:`general_examples`
-        - :ref:`API Reference <api_reference>`
-        - :ref:`manual`
-        - :ref:`contributing`
-        - :ref:`FAQ`
-        - :ref:`whats_new`
-        - :ref:`Cite MNE <cite>`
-        - :ref:`cited`
+      <h2>Community</h2>
 
-    .. container:: panel panel-default nosize nopad
+    - `MNE mailing list`_ for analysis talk
+    - `GitHub <https://github.com/mne-tools/mne-python/issues/>`_ for
+      requests and bug reports
+    - `Gitter <https://gitter.im/mne-tools/mne-python>`_ to chat with devs
 
-      .. raw:: html
+    .. raw:: html
 
-        <div class="panel-heading"><h3 class="panel-title">Community</h3></div>
+      <h2>Versions</h2>
 
-      .. container:: panel-body nosize nopad
+    - `Stable <http://martinos.org/mne/stable>`_
+    - `Development <http://martinos.org/mne/dev>`_
 
-        - `MNE mailing list`_ for analysis talk
-        - `GitHub <https://github.com/mne-tools/mne-python/issues/>`_ for
-          requests and bug reports
-        - `Gitter <https://gitter.im/mne-tools/mne-python>`_ to chat with devs
+    .. raw:: html
 
-    .. container:: panel panel-default nosize nopad
-
-      .. raw:: html
-
-        <div class="panel-heading"><h3 class="panel-title">Versions</h3></div>
-
-      .. container:: panel-body nosize nopad
-
-        - `Stable <http://martinos.org/mne/stable>`_
-        - `Development <http://martinos.org/mne/dev>`_
-
-    .. container:: panel panel-default nosize nopad
-
-      .. raw:: html
-
-        <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Tweets by @mne_python</a>
+      <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Tweets by @mne_python</a>
