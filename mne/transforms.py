@@ -7,6 +7,7 @@
 import os
 from os import path as op
 import glob
+import copy
 import numpy as np
 from numpy import sin, cos
 from scipy import linalg
@@ -116,6 +117,10 @@ class Transform(dict):
             The name of the file, which should end in '-trans.fif'.
         """
         write_trans(fname, self)
+
+    def copy(self):
+        """Make a copy of the transform."""
+        return copy.deepcopy(self)
 
 
 def _coord_frame_name(cframe):
