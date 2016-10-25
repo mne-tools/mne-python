@@ -286,6 +286,14 @@ Sample datasets
    data_path
    load_data
 
+.. currentmodule:: mne.datasets
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   fetch_hcp_mmp_parcellation
+
 
 Visualization
 =============

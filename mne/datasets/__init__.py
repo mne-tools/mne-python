@@ -10,4 +10,4 @@ from . import multimodal
 from . import spm_face
 from . import testing
 from . import _fake
-from .utils import _download_all_example_data
+from .utils import _download_all_example_data, fetch_hcp_mmp_parcellation
