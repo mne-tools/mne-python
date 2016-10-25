@@ -307,7 +307,8 @@ class RtEpochs(_BaseEpochs):
         """
         verbose = 'ERROR'
         sfreq = self.info['sfreq']
-        n_samp = len(self._raw_times)
+        n_samp = len(self._raw_times)   
+        prev_samp = 5 # how many trigger samples to check from previous buffer
 
         # relative start and stop positions in samples
         tmin_samp = int(round(sfreq * self.tmin))
@@ -320,16 +321,24 @@ class RtEpochs(_BaseEpochs):
 
         # detect events
         data = np.abs(raw_buffer[self._stim_picks]).astype(np.int)
-        data = np.atleast_2d(data)
-        buff_events = _find_events(data, self._first_samp, verbose=verbose,
-                                   **self._find_events_kwargs)
-
+        #if there is a previous buffer check the last samples from it too        
+        if self._last_buffer != None:        
+            prev_data = np.abs(self._last_buffer[self._stim_picks,-prev_samp:])
+            prev_data = prev_data.astype(np.int)
+            data = np.concatenate((prev_data, data),axis=1)        
+            data = np.atleast_2d(data)
+            buff_events = _find_events(data, self._first_samp - prev_samp,
+                                       verbose=verbose, 
+                                       **self._find_events_kwargs)
+        else:
+            data = np.atleast_2d(data)
+            buff_events = _find_events(data, self._first_samp, verbose=verbose,
+                                       **self._find_events_kwargs)
         events = self._event_backlog
         for event_id in self.event_id.values():
             idx = np.where(buff_events[:, -1] == event_id)[0]
             events.extend(zip(list(buff_events[idx, 0]),
                               list(buff_events[idx, -1])))
-
         events.sort()
 
         event_backlog = list()
