@@ -300,7 +300,7 @@ tlim = [center - 0.2, center + 0.2]
 tticks = [tlim[0], center, tlim[1]]
 flim = [20, 70]
 
-x = np.zeros(int(sfreq * dur))
+x = np.zeros(int(sfreq * dur) + 1)
 blip = morlet(sfreq, [morlet_freq], n_cycles=7)[0].imag / 20.
 n_onset = int(center * sfreq) - len(blip) // 2
 x[n_onset:n_onset + len(blip)] += blip

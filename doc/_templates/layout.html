@@ -44,8 +44,8 @@
 
 {% block relbar1 %}
 {% if build_dev_html|tobool %}
-<div class="devbar">
-This documentation is for the development version ({{ release }}) - <a href="http://martinos.org/mne/stable">Stable version</a>
+<div class="row devbar alert alert-danger">
+This documentation is for the <strong>development version ({{ release }})</strong> - <a href="http://martinos.org/mne/stable">switch to Stable</a>
 </div>
 {% endif %}
 
