@@ -54,6 +54,7 @@ class RawArray(_BaseRaw):
         assert len(info['ch_names']) == info['nchan']
         if info.get('buffer_size_sec', None) is None:
             info['buffer_size_sec'] = 1.  # reasonable default
+        info = info.copy()  # do not modify original info
         super(RawArray, self).__init__(info, data,
                                        first_samps=(int(first_samp),),
                                        dtype=dtype, verbose=verbose)
