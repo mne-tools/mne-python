@@ -217,7 +217,8 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         raise RuntimeError('There must be an axes for each picked projector.')
     for proj_idx, proj in enumerate(projs):
         axes[proj_idx].set_title(proj['desc'][:10] + '...')
-        ch_names = _clean_names(proj['data']['col_names'])
+        ch_names = _clean_names(proj['data']['col_names'],
+                                remove_whitespace=True)
         data = proj['data']['data'].ravel()
 
         idx = []
@@ -229,7 +230,8 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                 if grad_pairs:
                     ch_names = [ch_names[i] for i in grad_pairs]
 
-            idx = [l.names.index(c) for c in ch_names if c in l.names]
+            l_names = _clean_names(l.names, remove_whitespace=True)
+            idx = [l_names.index(c) for c in ch_names if c in l_names]
             if len(idx) == 0:
                 continue
 
