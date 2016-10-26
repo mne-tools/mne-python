@@ -1558,11 +1558,15 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
             surf['rr'] *= sphere[3] / 1000.0  # scale by radius
             surf['rr'] += sphere[:3] / 1000.0  # move by center
         # Make the grid of sources in MRI space
-        sp = []
-        for label in volume_label:
-            vol_sp = _make_volume_source_space(surf, pos, exclude, mindist,
-                                               mri, label)
-            sp.append(vol_sp)
+        if volume_label is not None:
+            sp = []
+            for label in volume_label:
+                vol_sp = _make_volume_source_space(surf, pos, exclude, mindist,
+                                                   mri, label)
+                sp.append(vol_sp)
+        else:
+            sp = _make_volume_source_space(surf, pos, exclude, mindist, mri,
+                                           volume_label)
 
     # Compute an interpolation matrix to show data in MRI_VOXEL coord frame
     if mri is not None:
@@ -1576,12 +1580,13 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
         del sp['vol_dims']
 
     # Save it
+    if not isinstance(sp, list):
+        sp = [sp]
     for s in sp:
         s.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
                       dist_limit=None, pinfo=None, ntri=0, nearest_dist=None,
                       nuse_tri=0, tris=None, subject_his_id=subject))
-    if not isinstance(sp, list):
-        sp = [sp]
+
     sp = SourceSpaces(sp, dict(working_dir=os.getcwd(), command_line='None'))
 
     if fname is not None:
