@@ -70,11 +70,13 @@ concat_classifier = Pipeline([('filter', filt), ('vector', vectorizer),
 
 data_picks = mne.pick_types(rt_epochs.info, meg='grad', eeg=False, eog=True,
                             stim=False, exclude=raw.info['bads'])
-plt.xlabel('Trials')
-plt.ylabel('Classification score (% correct)')
-plt.xlim([min_trials, 50])
-plt.ylim([30, 105])
-plt.title('Real-time decoding')
+ax = plt.subplot(111)
+ax.set_xlabel('Trials')
+ax.set_ylabel('Classification score (% correct)')
+ax.set_title('Real-time decoding')
+ax.set_xlim([min_trials, 50])
+ax.set_ylim([30, 105])
+plt.axhline(50, color='k', linestyle='--', label="Chance level")
 plt.show(block=False)
 
 for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
@@ -99,16 +101,19 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
         scores_x.append(ev_num)
 
         # Plot accuracy
-        plt.clf()
 
-        plt.plot(scores_x, scores, '+', label="Classif. score")
-        plt.hold(True)
-        plt.plot(scores_x, scores)
-        plt.axhline(50, color='k', linestyle='--', label="Chance level")
+        plt.plot(scores_x[-1], scores[-1], '+', label="Classif. score")
+        ax.hold(True)
+        ax.plot(scores_x[-1], scores[-1])
+
         hyp_limits = (np.asarray(scores) - np.asarray(std_scores),
                       np.asarray(scores) + np.asarray(std_scores))
-        plt.fill_between(scores_x, hyp_limits[0], y2=hyp_limits[1],
-                         color='b', alpha=0.5)
+        fill = plt.fill_between(scores_x, hyp_limits[0], y2=hyp_limits[1],
+                                color='b', alpha=0.5)
         plt.pause(0.01)
+        plt.draw()
+        ax.collections.remove(fill)  # Remove old fill area
 
-plt.show()
+plt.fill_between(scores_x, hyp_limits[0], y2=hyp_limits[1], color='b',
+                 alpha=0.5)
+plt.draw()  # Final figure
