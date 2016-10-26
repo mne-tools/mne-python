@@ -15,7 +15,7 @@ from ..epochs import _BaseEpochs, EpochsArray
 from ..io import _BaseRaw
 from ..io.pick import _pick_data_channels
 from ..utils import logger
-from ..externals.six import iteritems, itervalues, string_types
+from ..externals.six import iteritems, itervalues
 from ..stats.regression import (_prepare_rerp_data, _prepare_rerp_preds,
                                 _get_solver)
 
@@ -69,7 +69,6 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq, solver='pinv'):
     toeplitz : array, shape (n_class * n_components, n_channels)
         An concatenated array of toeplitz matrix for each event type.
     """
-
     solver = _get_solver(solver)
 
     n_epochs, n_channels, n_times = epochs_data.shape

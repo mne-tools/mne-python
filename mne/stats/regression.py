@@ -267,7 +267,6 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
     return evokeds
 
 
-
 def _prepare_rerp_data(raw, events, picks=None, decim=1, sfreq=None):
     """Prepare events and data, primarily for `linear_regression_raw`."""
     decim = int(decim)
