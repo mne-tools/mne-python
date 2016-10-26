@@ -31,8 +31,6 @@ data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
-fname_mixed = op.join(subjects_dir, 'sample', 'bem',
-                      'sample-oct-6-mixed-test-src.fif')
 fname_vol = op.join(subjects_dir, 'sample', 'bem',
                     'sample-volume-7mm-src.fif')
 fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
@@ -505,9 +503,22 @@ def test_source_space_from_label():
 def test_read_volume_from_src():
     """Test reading volumes from a mixed source space
     """
-
-    src = read_source_spaces(fname_mixed)
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+    labels_vol = ['Left-Amygdala',
+                  'Brain-Stem',
+                  'Right-Amygdala']
+
+    src = read_source_spaces(fname)
+
+    # Setup a volume source space
+    vol_src = setup_volume_source_space('sample', mri=aseg_fname,
+                                        pos=5.0,
+                                        bem=fname_bem,
+                                        volume_label=labels_vol,
+                                        subjects_dir=subjects_dir)
+    # Generate the mixed source space
+    src += vol_src
+
     label_names, _ = get_volume_labels_from_aseg(aseg_fname)
     volume_src = get_volume_labels_from_src(src, subjects_dir, 'sample')
     volume_label = volume_src[0].name
