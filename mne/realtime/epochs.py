@@ -308,7 +308,7 @@ class RtEpochs(_BaseEpochs):
         verbose = 'ERROR'
         sfreq = self.info['sfreq']
         n_samp = len(self._raw_times)
-        prev_samp = self._find_events_kwargs['min_samples'] - 1
+        prev_samp = int(self._find_events_kwargs['min_samples'] - 1)
 
         # relative start and stop positions in samples
         tmin_samp = int(round(sfreq * self.tmin))
@@ -321,7 +321,7 @@ class RtEpochs(_BaseEpochs):
 
         # detect events
         data = np.abs(raw_buffer[self._stim_picks]).astype(np.int)
-        #if there is a previous buffer check the last samples from it too
+        # if there is a previous buffer check the last samples from it too
         if self._last_buffer is not None and prev_samp > 0:
             prev_data = self._last_buffer[self._stim_picks, -prev_samp:]
             prev_data = np.abs(prev_data.astype(np.int))
