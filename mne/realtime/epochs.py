@@ -322,7 +322,7 @@ class RtEpochs(_BaseEpochs):
         # detect events
         data = np.abs(raw_buffer[self._stim_picks]).astype(np.int)
         #if there is a previous buffer check the last samples from it too
-        if self._last_buffer is not None:
+        if self._last_buffer is not None and prev_samp > 0:
             prev_data = self._last_buffer[self._stim_picks, -prev_samp:]
             prev_data = np.abs(prev_data.astype(np.int))
             data = np.concatenate((prev_data, data), axis=1)

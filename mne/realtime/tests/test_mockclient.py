@@ -141,4 +141,25 @@ def test_find_events():
         assert_true(ev.comment == str(events[ii]))
     assert_true(ii == 5)
 
+    # Reset some data for ease of comparison
+    raw._first_samps[0] = 0
+    raw.info['sfreq'] = 1000
+    # Test that we can handle events over different buffers
+    raw._data[stim_channel_idx, :] = 0
+    raw._data[stim_channel_idx, 998:1003] = 5
+    raw._update_times()
+
+    # min_duration=0.004, triggers in different buffers
+    find_events = dict(consecutive=False, min_duration=0.004)
+    rt_client = MockRtClient(raw)
+    rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
+                         stim_channel='STI 014', isi_max=0.5,
+                         find_events=find_events)
+    rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
+    rt_epochs.start()
+    events = [5]
+    for ii, ev in enumerate(rt_epochs.iter_evoked()):
+        assert_true(ev.comment == str(events[ii]))
+    assert_true(ii == 0)
+
 run_tests_if_main()
