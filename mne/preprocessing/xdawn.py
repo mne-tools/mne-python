@@ -16,7 +16,8 @@ from ..io import _BaseRaw
 from ..io.pick import _pick_data_channels
 from ..utils import logger
 from ..externals.six import iteritems, itervalues, string_types
-from ..stats.regression import _prepare_rerp_data, _prepare_rerp_preds
+from ..stats.regression import (_prepare_rerp_data, _prepare_rerp_preds,
+                                _get_solver)
 
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
@@ -55,11 +56,11 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq, solver='pinv'):
     sfreq : float
         Sampling frequency.
     solver : str | function
-        Either a function which takes as its inputs the sparse predictor
-        matrix X and the observation matrix Y, and returns the coefficient
-        matrix b; or a string. If str, must be ``'cholesky'``, in which case
-        the solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``, or
-        ``'pinv'``, in which a solver based on a pseudo-inverse is used.
+        Either a function which takes the sparse predictor matrix X and the
+        observation matrix Y, and returns the coefficient matrix b;
+        or a string. If str, must be ``'cholesky'``, in which case the solver
+        used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``, or ``'pinv'``,
+        in which case a solver based on a pseudo-inverse is used.
 
     Returns
     -------
@@ -69,10 +70,7 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq, solver='pinv'):
         An concatenated array of toeplitz matrix for each event type.
     """
 
-    if solver == "pinv":
-        from ..stats.regression import _pinv_solver as solver
-    elif solver == 'cholesky':  # noqa
-        from ..stats.regression import _cho_solver as solver
+    solver = _get_solver(solver)
 
     n_epochs, n_channels, n_times = epochs_data.shape
     tmax = tmin + n_times / float(sfreq)

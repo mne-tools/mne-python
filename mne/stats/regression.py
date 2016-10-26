@@ -17,7 +17,7 @@ from ..source_estimate import SourceEstimate
 from ..epochs import _BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..utils import logger, _reject_data_segments, warn
-from ..io.pick import pick_types, pick_info
+from ..io.pick import pick_types, pick_info, _pick_data_channels
 
 
 def linear_regression(inst, design_matrix, names=None):
@@ -225,11 +225,11 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
         List of indices of channels to be included. If None, defaults to all
         MEG and EEG channels.
     solver : str | function
-        Either a function which takes as its inputs the sparse predictor
-        matrix X and the observation matrix Y, and returns the coefficient
-        matrix b; or a string. If str, must be ``'cholesky'``, in which case
-        the solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``, or
-        ``'pinv'``, in which a solver based on a pseudo-inverse is used.
+        Either a function which takes the sparse predictor matrix X and the
+        observation matrix Y, and returns the coefficient matrix b; or a
+        string. If str, must be ``'cholesky'``, in which case the solver used
+        is ``linalg.solve(dot(X.T, X), dot(X.T, y))``, or ``'pinv'``,
+        in which case a solver based on a pseudo-inverse is used.
 
     Returns
     -------
@@ -244,13 +244,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
            waveforms: II. Non-linear effects, overlap correction, and practical
            considerations. Psychophysiology, 52(2), 169-189.
     """
-    if isinstance(solver, string_types):
-        if solver == 'cholesky':
-            solver = _cho_solver
-        elif solver == "pinv":
-            solver = _pinv_solver
-        else:
-            raise ValueError("No such solver: {0}".format(solver))
+    solver = _get_solver(solver)
 
     # build data
     data, info, events = _prepare_rerp_data(raw, events, picks=picks,
@@ -282,7 +276,7 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1, sfreq=None):
 
     if hasattr(raw, "info"):
         if picks is None:
-            picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
+            picks = _pick_data_channels(raw.info)
         info = pick_info(raw.info, picks)
         info["sfreq"] /= decim
         data, times = raw[:]
@@ -396,6 +390,18 @@ def _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info):
             kind='average')  # nave and kind are technically incorrect
         cumul += tmax_ - tmin_
     return evokeds
+
+
+def _get_solver(solver='cholesky'):
+    if callable(solver):
+        return(solver)
+    elif isinstance(solver, string_types):
+        if solver == 'cholesky':
+            return _cho_solver
+        elif solver == "pinv":
+            return _pinv_solver
+        else:
+            raise ValueError("No such solver: {0}".format(solver))
 
 
 def _cho_solver(X, y):
