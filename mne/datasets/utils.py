@@ -12,7 +12,8 @@ import stat
 import sys
 
 from .. import __version__ as mne_version
-from ..utils import get_config, set_config, _fetch_file, logger, warn, verbose
+from ..utils import (get_config, set_config, _fetch_file, logger, warn,
+                     verbose, get_subjects_dir)
 from ..externals.six import string_types
 from ..externals.six.moves import input
 
@@ -76,6 +77,66 @@ If you reference this dataset in your publications, please:
        http://neuroimage.usc.edu/brainstorm
 
 For questions, please contact Francois Tadel (francois.tadel@mcgill.ca).
+"""
+
+_hcp_mmp_license_text = """
+License
+-------
+I request access to data collected by the Washington University - University
+of Minnesota Consortium of the Human Connectome Project (WU-Minn HCP), and
+I agree to the following:
+
+1. I will not attempt to establish the identity of or attempt to contact any
+   of the included human subjects.
+
+2. I understand that under no circumstances will the code that would link
+   these data to Protected Health Information be given to me, nor will any
+   additional information about individual human subjects be released to me
+   under these Open Access Data Use Terms.
+
+3. I will comply with all relevant rules and regulations imposed by my
+   institution. This may mean that I need my research to be approved or
+   declared exempt by a committee that oversees research on human subjects,
+   e.g. my IRB or Ethics Committee. The released HCP data are not considered
+   de-identified, insofar as certain combinations of HCP Restricted Data
+   (available through a separate process) might allow identification of
+   individuals.  Different committees operate under different national, state
+   and local laws and may interpret regulations differently, so it is
+   important to ask about this. If needed and upon request, the HCP will
+   provide a certificate stating that you have accepted the HCP Open Access
+   Data Use Terms.
+
+4. I may redistribute original WU-Minn HCP Open Access data and any derived
+   data as long as the data are redistributed under these same Data Use Terms.
+
+5. I will acknowledge the use of WU-Minn HCP data and data derived from
+   WU-Minn HCP data when publicly presenting any results or algorithms
+   that benefitted from their use.
+
+   1. Papers, book chapters, books, posters, oral presentations, and all
+      other printed and digital presentations of results derived from HCP
+      data should contain the following wording in the acknowledgments
+      section: "Data were provided [in part] by the Human Connectome
+      Project, WU-Minn Consortium (Principal Investigators: David Van Essen
+      and Kamil Ugurbil; 1U54MH091657) funded by the 16 NIH Institutes and
+      Centers that support the NIH Blueprint for Neuroscience Research; and
+      by the McDonnell Center for Systems Neuroscience at Washington
+      University."
+
+   2. Authors of publications or presentations using WU-Minn HCP data
+      should cite relevant publications describing the methods used by the
+      HCP to acquire and process the data. The specific publications that
+      are appropriate to cite in any given study will depend on what HCP
+      data were used and for what purposes. An annotated and appropriately
+      up-to-date list of publications that may warrant consideration is
+      available at http://www.humanconnectome.org/about/acknowledgehcp.html
+
+   3. The WU-Minn HCP Consortium as a whole should not be included as an
+      author of publications or presentations if this authorship would be
+      based solely on the use of WU-Minn HCP data.
+
+6. Failure to abide by these guidelines will result in termination of my
+   privileges to access WU-Minn HCP data.
 """
 
 
@@ -383,3 +444,55 @@ def _download_all_example_data(verbose=True):
     megsim.load_data(condition='visual', data_format='evoked',
                      data_type='simulation', update_path=True)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
+    sys.argv += ['--accept-hcpmmp-license']
+    try:
+        fetch_hcp_mmp_parcellation()
+    finally:
+        sys.argv.pop(-1)
+
+
+@verbose
+def fetch_hcp_mmp_parcellation(subjects_dir=None, verbose=None):
+    """Fetch the HCP-MMP parcellation.
+
+    This will download and install the HCP-MMP parcellation [1]_ files for
+    FreeSurfer's fsaverage [2]_ to the specified directory.
+
+    Parameters
+    ----------
+    subjects_dir : str | None
+        The subjects directory to use. The file will be placed in
+        ``subjects_dir + '/fsaverage/label'``.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Notes
+    -----
+    Use of this parcellation is subject to terms of use on the HCP-MMP webpage:
+
+        https://balsa.wustl.edu/WN56
+
+    References
+    ----------
+    .. [1] Glasser MF et al. (2016) A multi-modal parcellation of human
+           cerebral cortex. Nature 536:171-178.
+    .. [2] Mills K (2016) HCP-MMP1.0 projected on fsaverage.
+           https://figshare.com/articles/HCP-MMP1_0_projected_on_fsaverage/3498446/2
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    destination = op.join(subjects_dir, 'fsaverage', 'label')
+    fnames = [op.join(destination, 'lh.HCPMMP1.annot'),
+              op.join(destination, 'rh.HCPMMP1.annot')]
+    if all(op.isfile(fname) for fname in fnames):
+        return
+    if '--accept-hcpmmp-license' in sys.argv:
+        answer = 'y'
+    else:
+        answer = input('%s\nAgree (y/[n])? ' % _hcp_mmp_license_text)
+    if answer.lower() != 'y':
+        raise RuntimeError('You must agree to the license to use this '
+                           'dataset')
+    _fetch_file('https://ndownloader.figshare.com/files/5528816',
+                fnames[0], hash_='46a102b59b2fb1bb4bd62d51bf02e975')
+    _fetch_file('https://ndownloader.figshare.com/files/5528819',
+                fnames[1], hash_='75e96b331940227bbcb07c1c791c2463')

@@ -19,6 +19,8 @@ Changelog
 
     - Add 3D thin-plate spline warping with spherical harmonic surface approximations in :class:`mne.transforms.SphericalSurfaceWarp` by `Eric Larson`_
 
+    - Add HCP-MMP1.0 parcellation dataset downloader by `Eric Larson`_
+
 BUG
 ~~~
 
