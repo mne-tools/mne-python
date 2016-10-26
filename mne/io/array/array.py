@@ -27,7 +27,8 @@ class RawArray(_BaseRaw):
         .. versionadded:: 0.12
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     See Also
     --------

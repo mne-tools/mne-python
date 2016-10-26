@@ -12,20 +12,32 @@ import mne
 from mne.datasets.sample import data_path
 
 fname = op.join(data_path(), 'MEG', 'sample', 'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(fname)
-raw.crop(10)
+raw = mne.io.read_raw_fif(fname).crop(0, 10)
+original_level = mne.get_config('MNE_LOGGING_LEVEL', 'INFO')
 
 ###############################################################################
-# MNE python stores configurations to a folder called `.mne` in the user's
-# home directory, These configurations include information like sample data
-# paths and plotter window sizes. Files inside this folder should never be
-# modified manually. Let's see what the configurations contain.
+# MNE-python stores configurations to a folder called `.mne` in the user's
+# home directory, or to AppData directory on Windows. The path to the config
+# file can be found out by calling :func:`mne.get_config_path`.
+print(mne.get_config_path())
+
+###############################################################################
+# These configurations include information like sample data paths and plotter
+# window sizes. Files inside this folder should never be modified manually.
+# Let's see what the configurations contain.
 print(mne.get_config())
 
 ###############################################################################
 # We see fields like "MNE_DATASETS_SAMPLE_PATH". As the name suggests, this is
 # the path the sample data is downloaded to. All the fields in the
 # configuration file can be modified by calling :func:`mne.set_config`.
+
+###############################################################################
+#
+# .. _tut_logging:
+#
+# Logging
+# =======
 # Configurations also include the default logging level for the functions. This
 # field is called "MNE_LOGGING_LEVEL".
 mne.set_config('MNE_LOGGING_LEVEL', 'INFO')
@@ -72,3 +84,4 @@ cov = mne.compute_raw_covariance(raw, verbose='INFO')
 # +----------+---------+---------+
 # | CRITICAL | 50      |         |
 # +----------+---------+---------+
+mne.set_config('MNE_LOGGING_LEVEL', original_level)

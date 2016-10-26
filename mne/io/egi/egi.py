@@ -155,7 +155,8 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
         ..versionadded:: 0.11
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------

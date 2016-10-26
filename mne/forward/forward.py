@@ -398,7 +398,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         List of names of channels to exclude. If empty include all
         channels.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -559,7 +560,8 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     copy : bool
         Whether to return a new instance or modify in place.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -671,7 +673,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     overwrite : bool
         If True, overwrite destination file (if it exists).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     See Also
     --------
@@ -882,7 +885,8 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     loose : float in [0, 1] or None
         The loose orientation parameter.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -1107,7 +1111,8 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -1167,7 +1172,8 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -1389,7 +1395,8 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     See Also
     --------

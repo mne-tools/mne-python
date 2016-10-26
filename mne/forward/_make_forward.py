@@ -45,8 +45,8 @@ def _read_coil_defs(elekta_defs=False, verbose=None):
         so the first matching coil should be selected for optimal
         integration parameters.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to raw.verbose.
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -263,8 +263,8 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     do_es : bool
         If True, compute and store ex, ey, ez, and r0_exey.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to raw.verbose.
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -361,8 +361,8 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
         List of channels to exclude. If 'bads', exclude channels in
         info['bads']
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to raw.verbose.
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -525,7 +525,8 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -639,7 +640,8 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     n_jobs : int
         Number of jobs to run in parallel (used in making forward solution).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------

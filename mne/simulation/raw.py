@@ -107,7 +107,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         The random generator state used for blink, ECG, and sensor
         noise randomization.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------

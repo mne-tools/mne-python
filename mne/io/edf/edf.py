@@ -58,7 +58,8 @@ class RawEDF(_BaseRaw):
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     See Also
     --------
@@ -544,7 +545,8 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------

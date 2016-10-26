@@ -217,7 +217,8 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     n_jobs : int
         The number of jobs to run in parallel (over channels).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------

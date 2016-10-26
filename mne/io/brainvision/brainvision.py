@@ -64,7 +64,8 @@ class RawBrainVision(_BaseRaw):
         or an empty dict (default), only stimulus events are added to the
         stimulus channel. Keys are case sensitive.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     See Also
     --------
@@ -674,7 +675,8 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         or an empty dict (default), only stimulus events are added to the
         stimulus channel. Keys are case sensitive.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------

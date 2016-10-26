@@ -51,7 +51,8 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
     verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     See Also
     --------

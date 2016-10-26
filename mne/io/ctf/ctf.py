@@ -43,7 +43,8 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -80,7 +81,8 @@ class RawCTF(_BaseRaw):
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     See Also
     --------

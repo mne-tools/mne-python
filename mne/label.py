@@ -169,7 +169,8 @@ class Label(object):
     color : None | matplotlib color
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Attributes
     ----------
@@ -484,8 +485,8 @@ class Label(object):
         n_jobs : int
             Number of jobs to run in parallel
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see mne.verbose and
+            :ref:`tut_logging` for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -536,7 +537,8 @@ class Label(object):
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see mne.verbose and
+            :ref:`tut_logging` for more).
 
         Returns
         -------
@@ -923,7 +925,8 @@ def write_label(filename, label, verbose=None):
     label : Label
         The label object to save.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Notes
     -----
@@ -1765,7 +1768,8 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -1909,7 +1913,8 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
         The hemisphere(s) for which to write \*.annot files (only applies if
         annot_fname is not specified; default is 'both').
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Notes
     -----

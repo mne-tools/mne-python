@@ -248,7 +248,8 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         coords and in meters. The default is ``'auto'``, which means
         a head-digitization-based origin fit.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -373,7 +374,8 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     n_jobs : int
         The number of jobs to run in parallel.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
         .. versionadded:: 0.11
 

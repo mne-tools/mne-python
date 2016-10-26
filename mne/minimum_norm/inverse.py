@@ -96,7 +96,8 @@ def read_inverse_operator(fname, verbose=None):
     fname : string
         The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -319,7 +320,8 @@ def write_inverse_operator(fname, inv, verbose=None):
     inv : dict
         The inverse operator.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     See Also
     --------
@@ -495,7 +497,8 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
     method : "MNE" | "dSPM" | "sLORETA"
         Use mininum norm, dSPM or sLORETA.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -752,7 +755,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
         Restricts the source estimates to a given label. If None,
         source estimates will be computed for the entire source space.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -854,7 +858,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     prepared : bool
         If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -1027,7 +1032,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     prepared : bool
         If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------

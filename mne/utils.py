@@ -668,6 +668,16 @@ def verbose(function, *args, **kwargs):
     dec : function
         The decorated function
 
+    Examples
+    --------
+        >>> import mne
+        >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')
+
+        >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')
+        Using up to 49 segments
+        Number of samples used : 5880
+        [done]
+
     See Also
     --------
     set_log_level
@@ -1139,8 +1149,8 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     command : list of str | str
         Command to run as subprocess (see subprocess.Popen documentation).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to self.verbose.
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more). Defaults to self.verbose.
     *args, **kwargs : arguments
         Additional arguments to pass to subprocess.Popen.
 
@@ -1838,7 +1848,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     timeout : float
         The URL open timeout.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level ( see mne.verbose and
+        :ref:`tut_logging` for more).
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py

@@ -303,7 +303,8 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
     verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -664,7 +665,8 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 
         .. versionadded:: 0.13.0
     verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -728,7 +730,8 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
         .. versionadded:: 0.13.0
     verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Returns
     -------
@@ -847,7 +850,8 @@ class AverageTFR(_BaseTFR):
     method : str | None, defaults to None
         Comment on the method used to compute the data, e.g., morlet wavelet.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Attributes
     ----------
@@ -1367,7 +1371,8 @@ class EpochsTFR(_BaseTFR):
     method : str | None, defaults to None
         Comment on the method used to compute the data, e.g., morlet wavelet.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see mne.verbose and
+        :ref:`tut_logging` for more).
 
     Attributes
     ----------
