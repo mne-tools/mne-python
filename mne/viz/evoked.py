@@ -11,6 +11,7 @@ from __future__ import print_function
 # License: Simplified BSD
 
 from functools import partial
+from copy import deepcopy
 
 import numpy as np
 
@@ -1500,7 +1501,12 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     # are pulled from the 'colors' and 'linestyles' dicts via '/'-tag matching
     # unless they are overwritten by entries from a user-provided 'styles'.
 
-    # first, check if input is valid
+    # first, copy to avoid overwriting
+    for style_dict in [styles, colors, linestyles]:
+        if isinstance(style_dict, dict):
+            style_dict = deepcopy(style_dict)
+
+    # second, check if input is valid
     if isinstance(styles, dict):
         for style_ in styles:
             if style_ not in conditions:
@@ -1528,14 +1534,14 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     else:
         colors = _setup_styles(conditions, colors, "color", "grey")
 
-    # third, linestyles
+    # fourth, linestyles
     if not isinstance(linestyles, dict):
         linestyles = dict((condition, linestyle) for condition, linestyle in
                           zip(conditions, ['-'] * len(conditions)))
     else:
         linestyles = _setup_styles(conditions, linestyles, "linestyle", "-")
 
-    # fourth, put it all together
+    # fifth, put it all together
     if styles is None:
         styles = dict()
     for condition, color, linestyle in zip(conditions, colors, linestyles):
