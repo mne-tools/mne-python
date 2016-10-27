@@ -40,7 +40,8 @@ rt_client = MockRtClient(raw)
 
 # create the real-time epochs object
 rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks, decim=1,
-                     reject=dict(grad=4000e-13, eog=150e-6), isi_max=4.)
+                     reject=dict(grad=4000e-13, eog=150e-6), baseline=None,
+                     isi_max=4.)
 
 # start the acquisition
 rt_epochs.start()
@@ -60,7 +61,9 @@ from mne.decoding import Vectorizer, FilterEstimator  # noqa
 
 scores_x, scores, std_scores = [], [], []
 
-filt = FilterEstimator(rt_epochs.info, 1, 40)
+# don't highpass filter because it's epoched data and the signal length
+# is small
+filt = FilterEstimator(rt_epochs.info, None, 40)
 scaler = preprocessing.StandardScaler()
 vectorizer = Vectorizer()
 clf = SVC(C=1, kernel='linear')
@@ -102,7 +105,8 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
 
         # Plot accuracy
 
-        plt.plot(scores_x[-1], scores[-1], '+', label="Classif. score")
+        plt.plot(scores_x[-2:], scores[-2:], '-x', color='b',
+                 label="Classif. score")
         ax.hold(True)
         ax.plot(scores_x[-1], scores[-1])
 
