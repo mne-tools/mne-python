@@ -1393,8 +1393,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     if cmap == 'interactive':
         cmap = ('Reds' if vmin >= 0. else 'RdBu_r', True)
     elif not isinstance(cmap, tuple):
-        cmap = ('Reds' if vmin >= 0. else 'RdBu_r',
-                False if len(times) > 2 else True)
+        if cmap is None:
+            cmap = 'Reds' if vmin >= 0. else 'RdBu_r'
+        cmap = (cmap, False if len(times) > 2 else True)
 
     for idx, time in enumerate(times):
         tp, cn = plot_topomap(data[:, idx], pos, vmin=vmin, vmax=vmax,
