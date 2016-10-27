@@ -682,7 +682,7 @@ def verbose(function, *args, **kwargs):
     --------
     set_log_level
     set_config
-    """
+    """  # noqa: E501
     arg_names = _get_args(function)
     default_level = verbose_level = None
     if len(arg_names) > 0 and arg_names[0] == 'self':
