@@ -133,12 +133,11 @@ stc_gen = simulate_stc(fwd['src'], labels, signal, times[0], dt,
 # Note that the original signals are highly concentrated (point) sources.
 #
 kwargs = dict(subjects_dir=subjects_dir, hemi='split', smoothing_steps=4,
-              time_unit='s', initial_time=0.05, size=1200)
+              time_unit='s', initial_time=0.05, size=1200,
+              views=['lat', 'med'])
 clim = dict(kind='value', pos_lims=[1e-9, 1e-8, 1e-7])
-figs = [mlab.figure(1), mlab.figure(2)]
-brain_gen_lat = stc_gen.plot(clim=clim, views=['lat'], figure=figs, **kwargs)
-figs = [mlab.figure(3), mlab.figure(4)]
-brain_gen_med = stc_gen.plot(clim=clim, views=['med'], figure=figs, **kwargs)
+figs = [mlab.figure(1), mlab.figure(2), mlab.figure(3), mlab.figure(4)]
+brain_gen = stc_gen.plot(clim=clim, figure=figs, **kwargs)
 
 ###############################################################################
 # Simulate sensor-space signals
@@ -164,10 +163,8 @@ stc_inv = apply_inverse(evoked_gen, inv_op, lambda2, method=method)
 # This spread is due to the minimum norm solution so that the signal leaks to
 # nearby vertices with similar orientations so that signal ends up crossing the
 # sulci and gyri.
-figs = [mlab.figure(5), mlab.figure(6)]
-brain_inv_lat = stc_inv.plot(views=['lat'], figure=figs, **kwargs)
-figs = [mlab.figure(7), mlab.figure(8)]
-brain_inv_med = stc_inv.plot(views=['med'], figure=figs, **kwargs)
+figs = [mlab.figure(5), mlab.figure(6), mlab.figure(7), mlab.figure(8)]
+brain_inv = stc_inv.plot(figure=figs, **kwargs)
 
 ###############################################################################
 # Exercises
