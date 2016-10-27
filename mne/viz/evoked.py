@@ -1502,9 +1502,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     # unless they are overwritten by entries from a user-provided 'styles'.
 
     # first, copy to avoid overwriting
-    for style_dict in [styles, colors, linestyles]:
-        if isinstance(style_dict, dict):
-            style_dict = deepcopy(style_dict)
+    styles = deepcopy(styles)
+    colors = deepcopy(colors)
+    linestyles = deepcopy(linestyles)
 
     # second, check if input is valid
     if isinstance(styles, dict):
