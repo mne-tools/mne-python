@@ -671,9 +671,9 @@ def verbose(function, *args, **kwargs):
     Examples
     --------
         >>> import mne
-        >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')
+        >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')  # doctest: +SKIP
 
-        >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')
+        >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')  # doctest: +SKIP
         Using up to 49 segments
         Number of samples used : 5880
         [done]
