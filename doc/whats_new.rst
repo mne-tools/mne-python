@@ -21,6 +21,8 @@ Changelog
 
     - Add HCP-MMP1.0 parcellation dataset downloader by `Eric Larson`_
 
+    - Add option to project EEG electrodes onto the scalp in :func:`mne.viz.plot_trans` by `Eric Larson`_
+
 BUG
 ~~~
 
@@ -38,6 +40,8 @@ API
     - The filtering functions ``band_pass_filter``, ``band_stop_filter``, ``low_pass_filter``, and ``high_pass_filter`` have been deprecated in favor of :func:`mne.filter.filter_data` by `Eric Larson`_
 
     - :class:`mne.EvokedArray` now has default value ``tmin=0.`` by `Jaakko Leppakangas`_
+
+    - The ``ch_type`` argument for :func:`mne.viz.plot_trans` has been deprecated, use ``eeg_sensors`` and ``meg_sensors`` instead, by `Eric Larson`_
 
 .. _changes_0_13:
 
