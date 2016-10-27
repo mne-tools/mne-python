@@ -1569,19 +1569,21 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
                                            volume_label)
 
     # Compute an interpolation matrix to show data in MRI_VOXEL coord frame
+    if not isinstance(sp, list):
+        sp = [sp]
+
     if mri is not None:
         for s in sp:
             _add_interpolator(s, mri, add_interpolator)
-    elif sp['type'] == 'vol':
+    elif sp[0]['type'] == 'vol':
         # If there is no interpolator, it's actually a discrete source space
-        sp['type'] = 'discrete'
+        sp[0]['type'] = 'discrete'
 
-    if 'vol_dims' in sp:
-        del sp['vol_dims']
+    for s in sp:
+        if 'vol_dims' in s:
+            del s['vol_dims']
 
     # Save it
-    if not isinstance(sp, list):
-        sp = [sp]
     for s in sp:
         s.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
                       dist_limit=None, pinfo=None, ntri=0, nearest_dist=None,
