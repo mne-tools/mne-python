@@ -2343,7 +2343,7 @@ def _do_src_distances(con, vertno, run_inds, limit):
 
 
 def get_volume_labels_from_aseg(mgz_fname):
-    """Returns a list of names and colors of segmented volumes.
+    """Return a list of names and colors of segmented volumes.
 
     Parameters
     ----------
@@ -2389,7 +2389,7 @@ def get_volume_labels_from_aseg(mgz_fname):
 
 
 def get_volume_labels_from_src(src, sbj_dir, sbj_id):
-    """Returns a list of Label of segmented volumes included in the src space.
+    """Return a list of Label of segmented volumes included in the src space.
 
     Parameters
     ----------
