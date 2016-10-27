@@ -44,7 +44,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -82,7 +82,7 @@ class RawCTF(_BaseRaw):
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------

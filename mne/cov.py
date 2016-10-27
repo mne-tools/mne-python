@@ -239,7 +239,7 @@ def read_cov(fname, verbose=None):
         -cov.fif or -cov.fif.gz.
     verbose : bool, str, int, or None (default None)
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -270,7 +270,7 @@ def make_ad_hoc_cov(info, verbose=None):
         Measurement info.
     verbose : bool, str, int, or None (default None)
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -407,7 +407,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 
     verbose : bool | str | int | None (default None)
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -600,7 +600,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         to the same head position.
     verbose : bool | str | int | or None (default None)
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1240,7 +1240,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1545,7 +1545,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         ``prepare_noise_cov`` for details.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1611,7 +1611,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

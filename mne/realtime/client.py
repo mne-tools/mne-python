@@ -88,7 +88,7 @@ class RtClient(object):
     timeout : float
         Communication timeout in seconds.
     verbose : bool, str, int, or None
-        Log verbosity (see mne.verbose and :ref:`tut_logging` for more).
+        Log verbosity (see mne.verbose and :ref:`Logging documentation <tut_logging>` for more).
     """
 
     @verbose

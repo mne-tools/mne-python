@@ -87,7 +87,7 @@ def fiff_open(fname, preload=False, verbose=None):
         frequent seeks.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -176,7 +176,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
         Either str or list. str is a convenience output for printing.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
     """
     if output not in [list, str]:
         raise ValueError('output must be list or str')

@@ -49,7 +49,7 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
         To specify the random generator state.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

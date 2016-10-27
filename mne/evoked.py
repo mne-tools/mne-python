@@ -68,7 +68,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         activity. Can also be "yes" to load without eliciting a warning.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -131,7 +131,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             all timepoints t such that a <= t <= b.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose
-            :ref:`tut_logging` for more).
+            :ref:`Logging documentation <tut_logging>` for more).
 
         Returns
         -------
@@ -675,7 +675,7 @@ class EvokedArray(Evoked):
         Type of data, either average or standard_error. Defaults to 'average'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -930,7 +930,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         activity. Can also be "yes" to load without eliciting a warning.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

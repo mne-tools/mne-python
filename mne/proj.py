@@ -137,7 +137,7 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         the event_id, tmin, and tmax.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -192,7 +192,7 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=None):
         Number of vectors for EEG channels
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -239,7 +239,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         Number of jobs to use to compute covariance.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -303,7 +303,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         If 'bads', exclude channels in fwd['info']['bads'].
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

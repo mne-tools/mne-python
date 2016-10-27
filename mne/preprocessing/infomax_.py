@@ -86,7 +86,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         Defaults to True.
     verbose : bool, str, int, or None
         If not None, override default verbosity level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

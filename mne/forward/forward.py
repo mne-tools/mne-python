@@ -399,7 +399,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         channels.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -561,7 +561,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         Whether to return a new instance or modify in place.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -674,7 +674,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         If True, overwrite destination file (if it exists).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -886,7 +886,7 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
         The loose orientation parameter.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1112,7 +1112,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1173,7 +1173,7 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1396,7 +1396,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         Override the SUBJECTS_DIR environment variable.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------

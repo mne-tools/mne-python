@@ -545,7 +545,7 @@ def read_info(fname, verbose=None):
         File name.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -601,7 +601,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         before saving.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1349,7 +1349,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         may overwrite important metadata.
     verbose : bool, str, int, or NonIe
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

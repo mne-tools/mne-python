@@ -306,7 +306,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         If True (default False), include reference MEG sensors.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -856,7 +856,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         List of floating point scale factors for the markers.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
     **kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh.
     """
@@ -1012,7 +1012,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
         Color to plot with each dipole. If None default colors are used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

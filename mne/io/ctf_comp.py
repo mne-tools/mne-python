@@ -68,7 +68,7 @@ def read_ctf_comp(fid, node, chs, verbose=None):
         compensators that are read.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

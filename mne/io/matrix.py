@@ -34,7 +34,7 @@ def _read_named_matrix(fid, node, matkind, indent='    ', transpose=False,
         If True, transpose the matrix. Default is False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

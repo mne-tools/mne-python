@@ -21,7 +21,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
         (default = maxima, 1).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

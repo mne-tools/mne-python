@@ -775,7 +775,7 @@ class Report(object):
         timepoints t such that a <= t <= b.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -1209,7 +1209,7 @@ class Report(object):
             'warn' (default), or 'raise'.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`tut_logging` for more).
+            :ref:`Logging documentation <tut_logging>` for more).
         """
         valid_errors = ['ignore', 'warn', 'raise']
         if on_error not in valid_errors:

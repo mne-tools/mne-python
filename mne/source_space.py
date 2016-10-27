@@ -173,7 +173,7 @@ class SourceSpaces(list):
             corresponds to a color on the freesurfer lookup table.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`tut_logging` for more).
+            :ref:`Logging documentation <tut_logging>` for more).
 
         Notes
         -----
@@ -458,7 +458,7 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False,
         Calculate and add cortical patch statistics to the surfaces.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -497,7 +497,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
         Calculate and add cortical patch statistics to the surfaces.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -868,7 +868,7 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
         The list of source spaces.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
     """
     for s in src:
         logger.info('    Write a source space...')
@@ -892,7 +892,7 @@ def write_source_spaces(fname, src, verbose=None):
         The source spaces (as returned by read_source_spaces).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -1040,7 +1040,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
         either option, but nibabel may be quicker (and more pythonic).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1216,7 +1216,7 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
         (one for each hemisphere).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1401,7 +1401,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         will be produced.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2189,7 +2189,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         cores as there are source spaces.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2411,7 +2411,7 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2482,7 +2482,7 @@ def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

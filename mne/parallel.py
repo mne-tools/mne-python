@@ -32,7 +32,7 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more). INFO or DEBUG will print parallel status,
+        :ref:`Logging documentation <tut_logging>` for more). INFO or DEBUG will print parallel status,
         others will not.
     max_nbytes : int, str, or None
         Threshold on the minimum size of arrays passed to the workers that

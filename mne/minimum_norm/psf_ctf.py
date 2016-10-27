@@ -79,7 +79,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         sub-leadfields are shown in screen output.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -395,7 +395,7 @@ def cross_talk_function(inverse_operator, forward, labels,
         sub-inverses are shown in screen output.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

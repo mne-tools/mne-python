@@ -23,7 +23,7 @@ def stft(x, wsize, tstep=None, verbose=None):
         a divider of wsize and smaller than wsize/2) (default: wsize/2)
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

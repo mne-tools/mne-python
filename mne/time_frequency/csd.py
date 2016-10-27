@@ -101,7 +101,7 @@ def csd_epochs(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         the projectors from the epochs should be inherited.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

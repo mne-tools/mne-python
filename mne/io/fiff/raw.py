@@ -54,7 +54,7 @@ class Raw(_BaseRaw):
         :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -450,7 +450,7 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
         :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

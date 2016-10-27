@@ -54,7 +54,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
         only the radial component is kept.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -171,7 +171,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
         only the radial component is kept.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -238,7 +238,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
         over the stcs without having to keep them all in memory.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -305,7 +305,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
         only the radial component is kept.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -479,7 +479,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         only the radial component is kept.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

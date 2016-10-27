@@ -53,7 +53,7 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
         the environment variable SUBJECTS_DIR.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -116,7 +116,7 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
         be in head coordinates instead of MRI coordinates.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -259,7 +259,7 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
         If True (default), make a copy. If False, operate in-place.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -456,7 +456,7 @@ def read_surface(fname, read_metadata=False, verbose=None):
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -880,7 +880,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         Path to SUBJECTS_DIR is not set in the environment.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1222,7 +1222,7 @@ def read_tri(fname_in, swap=False, verbose=None):
         counterclockwise.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

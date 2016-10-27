@@ -170,7 +170,7 @@ class Label(object):
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -486,7 +486,7 @@ class Label(object):
             Number of jobs to run in parallel
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`tut_logging` for more). Defaults to self.verbose.
+            :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -538,7 +538,7 @@ class Label(object):
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`tut_logging` for more).
+            :ref:`Logging documentation <tut_logging>` for more).
 
         Returns
         -------
@@ -926,7 +926,7 @@ def write_label(filename, label, verbose=None):
         The label object to save.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -1769,7 +1769,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1914,7 +1914,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
         annot_fname is not specified; default is 'both').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----

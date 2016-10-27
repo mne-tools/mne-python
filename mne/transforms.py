@@ -884,7 +884,7 @@ class SphericalSurfaceWarp(object):
             that are in a reasonable region for head digitization.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`tut_logging` for more).
+            :ref:`Logging documentation <tut_logging>` for more).
 
         Returns
         -------
@@ -954,7 +954,7 @@ class SphericalSurfaceWarp(object):
             source points.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`tut_logging` for more).
+            :ref:`Logging documentation <tut_logging>` for more).
 
         Returns
         -------

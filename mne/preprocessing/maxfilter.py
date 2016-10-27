@@ -90,7 +90,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
         Overwrite output file if it already exists
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

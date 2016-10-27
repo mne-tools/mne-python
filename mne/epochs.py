@@ -407,7 +407,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             all timepoints t such that a <= t <= b.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose
-            :ref:`tut_logging` for more).
+            :ref:`Logging documentation <tut_logging>` for more).
 
         Returns
         -------
@@ -837,7 +837,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             then the flat parameters set at instantiation are used.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose
-            :ref:`tut_logging` for more). Defaults to self.verbose.
+            :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -930,7 +930,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Default: 'USER'.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose
-            :ref:`tut_logging` for more). Defaults to self.verbose.
+            :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -988,7 +988,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             epochs without caching all the data, which saves memory.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose
-            :ref:`tut_logging` for more). Defaults to self.verbose.
+            :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
         """
         n_events = len(self.events)
         # in case there are no good events
@@ -1346,7 +1346,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose
-            :ref:`tut_logging` for more). Defaults to self.verbose.
+            :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -1726,7 +1726,7 @@ class Epochs(_BaseEpochs):
         rejected. If False, no rejection based on annotations is performed.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more). Defaults to raw.verbose.
+        :ref:`Logging documentation <tut_logging>` for more). Defaults to raw.verbose.
 
     Attributes
     ----------
@@ -1882,7 +1882,7 @@ class EpochsArray(_BaseEpochs):
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -2268,7 +2268,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
         be read on demand.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2321,7 +2321,7 @@ class EpochsFIF(_BaseEpochs):
         be read on demand.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more). Defaults to raw.verbose.
+        :ref:`Logging documentation <tut_logging>` for more). Defaults to raw.verbose.
 
     See Also
     --------
@@ -2476,7 +2476,7 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=False,
         :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose
-        :ref:`tut_logging` for more). Defaults to True if any of the input
+        :ref:`Logging documentation <tut_logging>` for more). Defaults to True if any of the input
         epochs have verbose=True.
 
     Returns
@@ -2697,7 +2697,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

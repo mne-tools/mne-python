@@ -51,7 +51,7 @@ class FieldTripClient(object):
         Size of each buffer in terms of number of samples.
     verbose : bool, str, int, or None
         Log verbosity (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
     """
 
     def __init__(self, info=None, host='localhost', port=1972, wait_max=30,

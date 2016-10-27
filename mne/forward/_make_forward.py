@@ -46,7 +46,7 @@ def _read_coil_defs(elekta_defs=False, verbose=None):
         integration parameters.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -264,7 +264,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         If True, compute and store ex, ey, ez, and r0_exey.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -362,7 +362,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
         info['bads']
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -526,7 +526,7 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -641,7 +641,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
         Number of jobs to run in parallel (used in making forward solution).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

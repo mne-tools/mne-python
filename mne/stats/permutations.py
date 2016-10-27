@@ -89,7 +89,7 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
         Number of CPUs to use for computation.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

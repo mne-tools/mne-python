@@ -97,7 +97,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         is None and method="iir", 4th order Butterworth will be used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -285,7 +285,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         If False, filtering raw data is done in place. Defaults to True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -377,7 +377,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         If False, filtering raw data is done in place. Defaults to True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

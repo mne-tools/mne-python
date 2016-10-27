@@ -277,7 +277,7 @@ class PSDEstimator(TransformerMixin):
         the signal (as in nitime).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -397,7 +397,7 @@ class FilterEstimator(TransformerMixin):
         is None and method="iir", 4th order Butterworth will be used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more). Defaults to self.verbose.
+        :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
 
     See Also
     --------
@@ -647,7 +647,7 @@ class TemporalFilter(TransformerMixin):
         or "blackman".
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more). Defaults to self.verbose.
+        :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
 
     See Also
     --------

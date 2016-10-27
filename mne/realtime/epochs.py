@@ -116,7 +116,7 @@ class RtEpochs(_BaseEpochs):
         See :func:`mne.find_events` for detailed explanation of these options.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more). Defaults to client.verbose.
+        :ref:`Logging documentation <tut_logging>` for more). Defaults to client.verbose.
 
     Attributes
     ----------

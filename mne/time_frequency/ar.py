@@ -56,7 +56,7 @@ def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
         The end of time interval in seconds.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

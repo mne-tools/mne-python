@@ -65,7 +65,7 @@ class RawBrainVision(_BaseRaw):
         stimulus channel. Keys are case sensitive.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -676,7 +676,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         stimulus channel. Keys are case sensitive.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

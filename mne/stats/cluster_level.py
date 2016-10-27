@@ -945,7 +945,7 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
         Default is None, i.e, a regular lattice connectivity.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int or None
@@ -1078,7 +1078,7 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
         extent to save on memory and computation time.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int or None
@@ -1213,7 +1213,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
         extent to save on memory and computation time.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int or None
@@ -1340,7 +1340,7 @@ def spatio_temporal_cluster_test(X, threshold=1.67, n_permutations=1024,
         Default is None, i.e, a regular lattice connectivity.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int or None

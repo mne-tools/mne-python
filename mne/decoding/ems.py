@@ -129,7 +129,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None, defaults to self.verbose
         If not None, override default verbose level (see mne.verbose and
-        :ref:`tut_logging` for more).
+        :ref:`Logging documentation <tut_logging>` for more).
     cv : cross-validation object | str | None, defaults to LeaveOneOut
         The cross-validation scheme.
 
