@@ -26,11 +26,13 @@ BUG
 
     - Fix computation of AR coefficients across channels in :func:`mne.time_frequency.fit_iir_model_raw` by `Eric Larson`_
 
-    - Fixed maxfilter channel names extra space bug in :func:`mne.preprocessing.maxwell_filter` by `Sheraz Khan`_
+    - Fix maxfilter channel names extra space bug in :func:`mne.preprocessing.maxwell_filter` by `Sheraz Khan`_
 
     - :func:`mne.find_layout` now leaves out the excluded channels by `Jaakko Leppakangas`_
 
     - Array data constructors :class:`mne.io.RawArray` and :class:`mne.EvokedArray` now make a copy of the info structure by `Jaakko Leppakangas`_
+
+    - Fix bug with finding layouts in :func:`mne.viz.plot_projs_topomap` by `Eric Larson`_
 
 API
 ~~~
