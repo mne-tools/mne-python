@@ -61,7 +61,7 @@ src = setup_source_space(sbj_id, subjects_dir=sbj_dir,
 
 # Setup a volume source space
 vol_src = setup_volume_source_space(sbj_id, mri=fname_aseg,
-                                    pos=5.0,
+                                    pos=7.0,
                                     bem=fname_model,
                                     volume_label=labels_vol,
                                     subjects_dir=sbj_dir)
