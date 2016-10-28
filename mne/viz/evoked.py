@@ -20,7 +20,7 @@ from ..io.pick import (channel_type, pick_types, _picks_by_type,
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
-                    plt_show, _process_times, DraggableColorbar)
+                    plt_show, _process_times, DraggableColorbar, _setup_cmap)
 from ..utils import logger, _clean_names, warn
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
@@ -190,10 +190,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                            ' for interactive SSP selection.')
     if isinstance(gfp, string_types) and gfp != 'only':
         raise ValueError('gfp must be boolean or "only". Got %s' % gfp)
-    if cmap == 'interactive':
-        cmap = (None, True)
-    elif not isinstance(cmap, tuple):
-        cmap = (cmap, True)
+    cmap = _setup_cmap(cmap)
+
     scalings = _handle_default('scalings', scalings)
     titles = _handle_default('titles', titles)
     units = _handle_default('units', units)
