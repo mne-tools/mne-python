@@ -297,7 +297,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     meg_sensors : bool | str | list
         Can be "helmet" or "points" to show MEG sensors as points or as part
         of the the helmet, respectively, or a combination of the two like
-        ``['helmet', 'points']`` (equivalent to True, default) or ``[]``
+        ``['helmet', 'sensors']`` (equivalent to True, default) or ``[]``
         (equivalent to False).
     eeg_sensors : bool | str | list
         Can be "original" (default; equivalent to True) or "projected" to
@@ -327,7 +327,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     if meg_sensors is False:  # old behavior
         meg_sensors = 'helmet'
     elif meg_sensors is True:
-        meg_sensors = ['helmet', 'points']
+        meg_sensors = ['helmet', 'sensors']
     if eeg_sensors is False:
         eeg_sensors = []
     elif eeg_sensors is True:
@@ -341,7 +341,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                 not all(isinstance(x, string_types) for x in var):
             raise TypeError('%s_sensors must be list or tuple of str, got %s'
                             % (type(var),))
-    if not all(x in ('helmet', 'points') for x in meg_sensors):
+    if not all(x in ('helmet', 'sensors') for x in meg_sensors):
         raise ValueError('meg_sensors must only contain "helmet" and "points",'
                          ' got %s' % (meg_sensors,))
     if not all(x in ('original', 'projected') for x in eeg_sensors):
@@ -426,7 +426,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                 warn('EEG electrode locations not found. Cannot plot EEG '
                      'electrodes.')
     del eeg_sensors
-    if meg_sensors:
+    if 'sensors' in meg_sensors:
         coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
                        for pick in meg_picks]
         coils = _create_meg_coils([info['chs'][pick] for pick in meg_picks],
@@ -481,7 +481,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         mlab.pipeline.surface(mesh, color=colors[key], opacity=alphas[key])
 
     datas = (eeg_loc, eegp_loc, hpi_loc, car_loc, ext_loc)
-    colors = ((1., 0, 0), (0.5, 0, 0), (0., 1, 0), (1., 1, 0), (1, 0.5, 0))
+    colors = ((1., 0, 0), (0., 0.5, 1.), (0., 1, 0), (1., 1, 0), (1, 0.5, 0))
     alphas = (0.8, 0.8, 0.5, 0.5, 0.25)
     scales = (0.005, 0.0033, 0.015, 0.015, 0.0075)
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
