@@ -96,7 +96,7 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
 def test_magnetic_dipole():
     """Test basic magnetic dipole forward calculation
     """
-    trans = Transform('mri', 'head', np.eye(4))
+    trans = Transform('mri', 'head')
     info = read_info(fname_raw)
     picks = pick_types(info, meg=True, eeg=False, exclude=[])
     info = pick_info(info, picks[:12])

@@ -234,7 +234,7 @@ def _bem_specify_els(bem, els, mults):
     sol = np.zeros((len(els), bem['solution'].shape[1]))
     scalp = bem['surfs'][0]
 
-    # Operate on all intgration points for all electrodes (in MRI coords)
+    # Operate on all integration points for all electrodes (in MRI coords)
     rrs = np.concatenate([apply_trans(bem['head_mri_t']['trans'], el['rmag'])
                           for el in els], axis=0)
     ws = np.concatenate([el['w'] for el in els])

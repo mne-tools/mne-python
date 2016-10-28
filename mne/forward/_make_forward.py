@@ -155,7 +155,7 @@ def _create_eeg_el(ch, t=None):
         raise RuntimeError('%s is not an EEG channel. Cannot create an '
                            'electrode definition.' % ch['ch_name'])
     if t is None:
-        t = Transform('head', 'head', np.eye(4))  # identity, no change
+        t = Transform('head', 'head')  # identity, no change
     if t.from_str != 'head':
         raise RuntimeError('Inappropriate coordinate transformation')
 

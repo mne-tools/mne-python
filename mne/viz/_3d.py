@@ -346,13 +346,14 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                          ' got %s' % (meg_sensors,))
     if not all(x in ('original', 'projected') for x in eeg_sensors):
         raise ValueError('eeg_sensors must only contain "original" and '
-                         '"projected", got %s' % (meg_sensors,))
+                         '"projected", got %s' % (eeg_sensors,))
 
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info, got %s'
                         % type(info))
-    if coord_frame not in ['head', 'meg', 'mri']:
-        raise ValueError('coord_frame must be "head" or "meg"')
+    valid_coords = ['head', 'meg', 'mri']
+    if coord_frame not in valid_coords:
+        raise ValueError('coord_frame must be one of %s' % (valid_coords,))
 
     show_head = (subject is not None)
     if isinstance(trans, string_types):
@@ -362,7 +363,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             trans = _find_trans(subject, subjects_dir)
         trans = read_trans(trans)
     elif trans is None:
-        trans = Transform('head', 'mri', np.eye(4))
+        trans = Transform('head', 'mri')
         show_head = False
     elif not isinstance(trans, dict):
         raise TypeError('trans must be str, dict, or None')
@@ -374,13 +375,14 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     if coord_frame == 'meg':
         head_trans = invert_transform(dev_head_t)
         meg_trans = Transform('meg', 'meg')
-        mri_trans = combine_transforms(dev_head_t, head_mri_t, 'mri', 'meg')
+        mri_trans = invert_transform(combine_transforms(
+            dev_head_t, head_mri_t, 'meg', 'mri'))
     elif coord_frame == 'mri':
         head_trans = head_mri_t
         meg_trans = combine_transforms(dev_head_t, head_mri_t, 'meg', 'mri')
-        mri_trans = Transform('mri', 'mri', np.eye(4))
+        mri_trans = Transform('mri', 'mri')
     else:  # coord_frame == 'head'
-        head_trans = Transform('head', 'head', np.eye(4))
+        head_trans = Transform('head', 'head')
         meg_trans = info['dev_head_t']
         mri_trans = invert_transform(head_mri_t)
 

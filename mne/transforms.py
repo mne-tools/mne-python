@@ -76,16 +76,17 @@ class Transform(dict):
         The starting coordinate frame.
     to : str | int
         The ending coordinate frame.
-    trans : array-like, shape (4, 4)
-        The transformation matrix.
+    trans : array-like, shape (4, 4) | None
+        The transformation matrix. If None, an identity matrix will be
+        used.
     """
 
-    def __init__(self, fro, to, trans):  # noqa: D102
+    def __init__(self, fro, to, trans=None):  # noqa: D102
         super(Transform, self).__init__()
         # we could add some better sanity checks here
         fro = _to_const(fro)
         to = _to_const(to)
-        trans = np.asarray(trans, dtype=np.float64)
+        trans = np.eye(4) if trans is None else np.asarray(trans, np.float64)
         if trans.shape != (4, 4):
             raise ValueError('Transformation must be shape (4, 4) not %s'
                              % (trans.shape,))
@@ -355,7 +356,7 @@ def _get_trans(trans, fro='mri', to='head'):
         fro_to_t = trans
         trans = 'dict'
     elif trans is None:
-        fro_to_t = Transform(fro, to, np.eye(4))
+        fro_to_t = Transform(fro, to)
         trans = 'identity'
     else:
         raise ValueError('transform type %s not known, must be str, dict, '

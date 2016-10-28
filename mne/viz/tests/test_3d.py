@@ -106,6 +106,7 @@ def test_plot_evoked_field():
 @requires_mayavi
 def test_plot_trans():
     """Test plotting of -trans.fif files and MEG sensor layouts."""
+    from mayavi import mlab
     evoked = read_evokeds(evoked_fname)[0]
     with warnings.catch_warnings(record=True):  # 4D weight tables
         bti = read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
@@ -120,8 +121,10 @@ def test_plot_trans():
         ref_meg = False if system == 'KIT' else True
         plot_trans(info, trans_fname, subject='sample', meg_sensors=True,
                    subjects_dir=subjects_dir, ref_meg=ref_meg)
+        mlab.close(all=True)
     # KIT ref sensor coil def is defined
     plot_trans(infos['KIT'], None, meg_sensors=True, ref_meg=True)
+    mlab.close(all=True)
     info = infos['Neuromag']
     assert_raises(ValueError, plot_trans, info, trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
@@ -130,12 +133,20 @@ def test_plot_trans():
                   subject='sample', subjects_dir=subjects_dir)
     # no-head version
     plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
+    mlab.close(all=True)
+    # all coord frames
+    for coord_frame in ('meg', 'head', 'mri'):
+        plot_trans(info, meg_sensors=True, dig=True, coord_frame=coord_frame,
+                   trans=trans_fname, subject='sample',
+                   subjects_dir=subjects_dir)
+        mlab.close(all=True)
     # EEG only with strange options
     with warnings.catch_warnings(record=True) as w:
         plot_trans(evoked.copy().pick_types(meg=False, eeg=True).info,
                    subject='sample', trans=trans_fname, meg_sensors=True,
                    eeg_sensors=['original', 'projected'],
                    subjects_dir=subjects_dir)
+    mlab.close(all=True)
     assert_true(['Cannot plot MEG' in str(ww.message) for ww in w])
 
 
@@ -207,7 +218,7 @@ def test_limits_to_control_points():
         stc._data.fill(0.)
         plot_source_estimates(stc, subjects_dir=subjects_dir, time_unit='s')
         assert_equal(len(w), 1)
-    mlab.close()
+    mlab.close(all=True)
 
 
 @testing.requires_testing_data
