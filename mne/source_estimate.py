@@ -514,7 +514,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
+            :ref:`Logging documentation <tut_logging>` for more). Defaults to
+            self.verbose.
 
         Notes
         -----
@@ -990,7 +991,8 @@ class SourceEstimate(_BaseSourceEstimate):
             and "h5". The "w" format only supports a single time point.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
+            :ref:`Logging documentation <tut_logging>` for more). Defaults to
+            self.verbose.
         """
         if ftype not in ('stc', 'w', 'h5'):
             raise ValueError('ftype must be "stc", "w", or "h5", not "%s"'
@@ -1556,7 +1558,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
             The "w" format only supports a single time point.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
+            :ref:`Logging documentation <tut_logging>` for more). Defaults to
+            self.verbose.
         """
         if ftype not in ['stc', 'w']:
             raise ValueError('ftype must be "stc" or "w", not "%s"' % ftype)

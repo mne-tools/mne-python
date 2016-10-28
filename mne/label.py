@@ -486,7 +486,8 @@ class Label(object):
             Number of jobs to run in parallel
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
+            :ref:`Logging documentation <tut_logging>` for more). Defaults to
+            self.verbose.
 
         Returns
         -------

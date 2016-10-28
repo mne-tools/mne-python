@@ -761,7 +761,8 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose
-        :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
+        :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        self.verbose.
 
     Returns
     -------
@@ -875,7 +876,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose
-        :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
+        :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        self.verbose.
 
     Returns
     -------
@@ -2292,7 +2294,8 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
         High transition bandwidth in Hz.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
+        :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        self.verbose.
 
     Returns
     -------

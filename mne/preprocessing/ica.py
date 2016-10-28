@@ -348,7 +348,8 @@ class ICA(ContainsMixin):
             It only applies if `inst` is of type Raw.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
+            :ref:`Logging documentation <tut_logging>` for more). Defaults to
+            self.verbose.
 
         Returns
         -------
@@ -840,7 +841,8 @@ class ICA(ContainsMixin):
             High pass frequency.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
+            :ref:`Logging documentation <tut_logging>` for more). Defaults to
+            self.verbose.
 
         Returns
         -------
@@ -943,7 +945,8 @@ class ICA(ContainsMixin):
             Defaults to 'ctps'.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
+            :ref:`Logging documentation <tut_logging>` for more). Defaults to
+            self.verbose.
 
         Returns
         -------
@@ -1050,7 +1053,8 @@ class ICA(ContainsMixin):
             High pass frequency.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to self.verbose.
+            :ref:`Logging documentation <tut_logging>` for more). Defaults to
+            self.verbose.
 
         Returns
         -------
