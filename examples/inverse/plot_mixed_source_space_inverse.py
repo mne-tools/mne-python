@@ -60,6 +60,7 @@ src = setup_source_space(sbj_id, subjects_dir=sbj_dir,
 # source space bounds using the inner skull surface
 
 # Setup a volume source space
+# set pos=7.0 for computational issue
 vol_src = setup_volume_source_space(sbj_id, mri=fname_aseg,
                                     pos=7.0,
                                     bem=fname_model,
