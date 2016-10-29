@@ -1513,7 +1513,7 @@ def _empty_info(sfreq):
     for k in _list_keys:
         info[k] = list()
     info['custom_ref_applied'] = False
-    info['dev_head_t'] = Transform('meg', 'head', np.eye(4))
+    info['dev_head_t'] = Transform('meg', 'head')
     info['highpass'] = 0.
     info['sfreq'] = float(sfreq)
     info['lowpass'] = info['sfreq'] / 2.

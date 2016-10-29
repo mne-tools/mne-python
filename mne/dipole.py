@@ -884,7 +884,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         logger.info('MRI transform     : %s' % trans)
         mri_head_t, trans = _get_trans(trans)
     else:
-        mri_head_t = Transform('head', 'mri', np.eye(4))
+        mri_head_t = Transform('head', 'mri')
     bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=False)
     if not bem['is_sphere']:
         if trans is None:

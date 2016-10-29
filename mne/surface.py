@@ -242,6 +242,26 @@ def _triangle_coords(r, geom, best):
     return x, y, z
 
 
+def _project_onto_surface(rrs, surf, project_rrs=False):
+    """Project points onto (scalp) surface."""
+    surf_geom = _get_tri_supp_geom(surf)
+    coords = np.empty((len(rrs), 3))
+    tri_idx = np.empty((len(rrs),), int)
+    for ri, rr in enumerate(rrs):
+        # Get index of closest tri on scalp BEM to electrode position
+        tri_idx[ri] = _find_nearest_tri_pt(rr, surf_geom)[2]
+        # Calculate a linear interpolation between the vertex values to
+        # get coords of pt projected onto closest triangle
+        coords[ri] = _triangle_coords(rr, surf_geom, tri_idx[ri])
+    weights = np.array([1. - coords[:, 0] - coords[:, 1], coords[:, 0],
+                       coords[:, 1]])
+    out = (weights, tri_idx)
+    if project_rrs:  #
+        out += (np.einsum('ij,jik->jk', weights,
+                          surf['rr'][surf['tris'][tri_idx]]),)
+    return out
+
+
 @verbose
 def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
                           verbose=None):
@@ -977,11 +997,11 @@ def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
                    dist * dist)
 
 
-def _get_tri_supp_geom(tris, rr):
+def _get_tri_supp_geom(surf):
     """Create supplementary geometry information using tris and rrs."""
-    r1 = rr[tris[:, 0], :]
-    r12 = rr[tris[:, 1], :] - r1
-    r13 = rr[tris[:, 2], :] - r1
+    r1 = surf['rr'][surf['tris'][:, 0], :]
+    r12 = surf['rr'][surf['tris'][:, 1], :] - r1
+    r13 = surf['rr'][surf['tris'][:, 2], :] - r1
     r1213 = np.array([r12, r13]).swapaxes(0, 1)
     a = np.sum(r12 * r12, axis=1)
     b = np.sum(r13 * r13, axis=1)
@@ -1026,7 +1046,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         from_pts, from_tris = read_surface(fname, verbose=False)
         n_from_pts = len(from_pts)
         _normalize_vectors(from_pts)
-        tri_geom = _get_tri_supp_geom(from_tris, from_pts)
+        tri_geom = _get_tri_supp_geom(dict(rr=from_pts, tris=from_tris))
 
         fname = op.join(subjects_dir, subject_to, 'surf',
                         '%s.sphere.reg' % hemi)
@@ -1043,7 +1063,8 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         nn_tri_inds = []
         nn_tris_weights = []
         for pt_tris, to_pt in zip(from_pt_tris, to_pts):
-            p, q, idx, dist = _find_nearest_tri_pt(pt_tris, to_pt, tri_geom)
+            p, q, idx, dist = _find_nearest_tri_pt(to_pt, tri_geom, pt_tris,
+                                                   run_all=False)
             nn_tri_inds.append(idx)
             nn_tris_weights.extend([1. - (p + q), p, q])
 
@@ -1056,7 +1077,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
     return morph_maps
 
 
-def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, run_all=False):
+def _find_nearest_tri_pt(rr, tri_geom, pt_tris=None, run_all=True):
     """Find nearest point mapping to a set of triangles.
 
     If run_all is False, if the point lies within a triangle, it stops.
@@ -1077,8 +1098,9 @@ def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, run_all=False):
 
     # This einsum is equivalent to doing:
     # pqs = np.array([np.dot(x, y) for x, y in zip(r1213, r1-to_pt)])
-    r1 = tri_geom['r1'][pt_tris]
-    rrs = to_pt - r1
+    if pt_tris is None:  # use all points
+        pt_tris = slice(len(tri_geom['r1']))
+    rrs = rr - tri_geom['r1'][pt_tris]
     tri_nn = tri_geom['nn'][pt_tris]
     vect = np.einsum('ijk,ik->ij', tri_geom['r1213'][pt_tris], rrs)
     mats = tri_geom['mat'][pt_tris]
@@ -1099,13 +1121,16 @@ def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, run_all=False):
         p, q = pqs[:, pt]
         dist = dists[pt]
         # re-reference back to original numbers
-        pt = pt_tris[pt]
+        if not isinstance(pt_tris, slice):
+            pt = pt_tris[pt]
 
     if found is False or run_all is True:
         # don't include ones that we might have found before
-        s = np.setdiff1d(np.arange(len(pt_tris)), idx)  # ones to check sides
+        # these are the ones that we want to check thesides of
+        s = np.setdiff1d(np.arange(dists.shape[0]), idx)
         # Tough: must investigate the sides
-        pp, qq, ptt, distt = _nearest_tri_edge(pt_tris[s], to_pt, pqs[:, s],
+        use_pt_tris = s if isinstance(pt_tris, slice) else pt_tris[s]
+        pp, qq, ptt, distt = _nearest_tri_edge(use_pt_tris, rr, pqs[:, s],
                                                dists[s], tri_geom)
         if np.abs(distt) < np.abs(dist):
             p, q, pt, dist = pp, qq, ptt, distt
