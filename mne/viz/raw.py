@@ -517,7 +517,8 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=2048, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, show=True, n_jobs=1, verbose=None):
+                 n_overlap=0, dB=True, average=True, show=True, n_jobs=1,
+                 verbose=None):
     """Plot the power spectral density across channels.
 
     Parameters
@@ -556,6 +557,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         is 0 (no overlap).
     dB : bool
         If True, transform data to decibels.
+    average : bool
+        If False, the PSDs of all channels is displayed. No averaging
+        is done and parameters area_mode and area_alpha are ignored.
     show : bool
         Show figure if True.
     n_jobs : int
@@ -590,19 +594,24 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
             unit = 'dB'
         else:
             unit = 'power'
-        psd_mean = np.mean(psds, axis=0)
-        if area_mode == 'std':
-            psd_std = np.std(psds, axis=0)
-            hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
-        elif area_mode == 'range':
-            hyp_limits = (np.min(psds, axis=0), np.max(psds, axis=0))
-        else:  # area_mode is None
-            hyp_limits = None
 
-        ax.plot(freqs, psd_mean, color=color)
-        if hyp_limits is not None:
-            ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
-                            color=color, alpha=area_alpha)
+        if average:
+            psd_mean = np.mean(psds, axis=0)
+            if area_mode == 'std':
+                psd_std = np.std(psds, axis=0)
+                hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
+            elif area_mode == 'range':
+                hyp_limits = (np.min(psds, axis=0), np.max(psds, axis=0))
+            else:  # area_mode is None
+                hyp_limits = None
+
+            ax.plot(freqs, psd_mean, color=color)
+            if hyp_limits is not None:
+                ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
+                                color=color, alpha=area_alpha)
+        else:
+            ax.plot(freqs, psds.T, color=color)
+
         if make_label:
             if ii == len(picks_list) - 1:
                 ax.set_xlabel('Freq (Hz)')
