@@ -723,3 +723,54 @@ def _check_estimator(estimator, get_params=True):
         raise ValueError('estimator must be a scikit-learn transformer or an '
                          'estimator with the get_params method that allows '
                          'cloning.')
+
+
+def _get_final_est(estimator):
+    """Return the final component of a sklearn estimator/pipeline.
+
+    Parameters
+    ----------
+    estimator : pipeline, or sklearn / MNE estimator
+        An estimator chain from which you wish to pull the final estimator.
+
+    Returns
+    -------
+    estimator : the sklearn-style estimator at the end of the input chain.
+    """
+    # Define classes where we pull `estimator` manually
+    import sklearn
+    from distutils.version import LooseVersion
+    if LooseVersion(sklearn.__version__) < '0.16':
+        raise ValueError('sklearn support requires sklearn version >= 0.16')
+
+    attributes = [ii for ii in ['_final_estimator', 'base_estimator']
+                  if hasattr(estimator, ii)]
+    if len(attributes) > 0:
+        # In the event that both are present, `_final_estimator` is prioritized
+        estimator = getattr(estimator, attributes[0])
+        estimator = _get_final_est(estimator)
+    return estimator
+
+
+def get_coefs(estimator, coef_name='coef_'):
+    """Pull coefficients from an estimator object.
+
+    Parameters
+    ----------
+    estimator : a sklearn estimator
+        The estimator from which to pull the coefficients.
+    coef_name : string
+        The name of the attribute corresponding to the coefficients created
+        after fitting. Defaults to 'coef_'
+
+    Returns
+    -------
+    coefs : array, shape (n_targets, n_coefs)
+        The output coefficients.
+    """
+    estimator = _get_final_est(estimator)
+    if not hasattr(estimator, coef_name):
+        raise ValueError('Estimator either is not fit or does not use'
+                         ' coefficient name: %s' % coef_name)
+    coefs = getattr(estimator, coef_name)
+    return coefs
