@@ -113,6 +113,13 @@ def test_SearchLight():
         assert_array_equal(features_shape, [3, 4])
     assert_array_equal(y_preds[0], y_preds[1])
 
+    # Test when 'roc_auc' for binary labels
+    X = np.random.rand(5, 20, 2)
+    y = np.random.randint(3, 5, 5)
+    sl = _SearchLight(LogisticRegression(), scoring='roc_auc')
+    sl.fit(X, y)
+    sl.score(X, y)
+
 
 @requires_sklearn_0_15
 def test_GeneralizationLight():

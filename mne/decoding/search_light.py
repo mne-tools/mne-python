@@ -81,6 +81,12 @@ class _SearchLight(BaseEstimator, TransformerMixin):
         self : object
             Return self.
         """
+        if len(np.unique(y)) <= 2:
+            from sklearn.preprocessing import LabelEncoder
+             
+            le = LabelEncoder()
+            y = le.fit_transform(y)
+
         self._check_Xy(X, y)
         self.estimators_ = list()
         # For fitting, the parallelization is across estimators.
@@ -228,7 +234,16 @@ class _SearchLight(BaseEstimator, TransformerMixin):
             Score for each estimator / data slice couple.
         """
         from sklearn.metrics import make_scorer, get_scorer
+
+        if len(np.unique(y)) <= 2:
+            from sklearn.preprocessing import LabelEncoder
+                                     
+            le = LabelEncoder()
+            y = le.fit_transform(y)
+
         self._check_Xy(X)
+        le = LabelEncoder()
+        y = le.fit_transform(y)
         if X.shape[-1] != len(self.estimators_):
             raise ValueError('The number of estimators does not match '
                              'X.shape[-1]')
