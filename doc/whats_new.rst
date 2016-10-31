@@ -36,6 +36,8 @@ BUG
 
     - Fix bug with finding layouts in :func:`mne.viz.plot_projs_topomap` by `Eric Larson`_
 
+    - Fix bug :func:`mne.io.anonymize_info` when Info does not contain 'file_id' or 'meas_id' fields by `Jean-Remi King`_
+
 API
 ~~~
 

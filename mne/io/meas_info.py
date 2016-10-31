@@ -1577,6 +1577,10 @@ def anonymize_info(info):
         del info['subject_info']
     info['meas_date'] = [0, 0]
     for key_1 in ('file_id', 'meas_id'):
+        if (key_1 not in info.keys()) or (info[key_1] is None):
+            continue
         for key_2 in ('secs', 'msecs', 'usecs'):
+            if key_2 not in info[key_1].keys():
+                continue
             info[key_1][key_2] = 0
     return info
