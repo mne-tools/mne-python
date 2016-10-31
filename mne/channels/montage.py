@@ -304,7 +304,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         if ext == '.hpts':
             fids = ('2', '1', '3')  # Alternate cardinal point names
         else:
-            fids = ('nz', 'lpa', 'rpa')
+            fids = ('nasion', 'lpa', 'rpa')
 
         missing = [name for name in fids
                    if name not in names_lower]
