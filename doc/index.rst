@@ -57,6 +57,11 @@
         >>> stc_fs = stc.morph('fsaverage')  # morph to fsaverage # doctest: +SKIP
         >>> stc_fs.plot()  # plot source data on fsaverage's brain # doctest: +SKIP
 
+    Join the `MNE mailing list`_ for analysis talk, hop on
+    `GitHub <https://github.com/mne-tools/mne-python/issues/>`_ for feature
+    requests and bug reports, or use `Gitter <https://gitter.im/mne-tools/mne-python>`_
+    to chat with devs.
+
     Direct financial support for MNE has been provided by the United States:
 
     - NIH National Institute of Biomedical Imaging and Bioengineering
@@ -82,41 +87,37 @@
 
       .. raw:: html
 
-        <script type="text/javascript" src="http://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
+        <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Tweets by @mne_python</a>
 
   .. container:: col-md-4
 
     .. raw:: html
 
-      <h2>Documentation</h2>
+      <h2>News</h2>
 
-    - :ref:`get_started`
-    - :ref:`tutorials`
-    - :ref:`general_examples`
-    - :ref:`API Reference <api_reference>`
-    - :ref:`manual`
-    - :ref:`contributing`
-    - :ref:`FAQ`
     - :ref:`whats_new`
-    - :ref:`Cite MNE <cite>`
     - :ref:`cited`
+    - :ref:`cite`
 
     .. raw:: html
 
-      <h2>Community</h2>
+      <h3>2016 Highlights</h3>
 
-    - `MNE mailing list`_ for analysis talk
-    - `GitHub <https://github.com/mne-tools/mne-python/issues/>`_ for
-      requests and bug reports
-    - `Gitter <https://gitter.im/mne-tools/mne-python>`_ to chat with devs
+    - October 2\ :sup:`nd`
+        Jean-Remi King wins a BioMag 2016
+        `data analysis competition <https://sites.google.com/site/hubertcecotti/home/biomag2016>`_
+        using MNE-Python.
+    - October 1\ :sup:`st`
+        MNE-Python poster at BioMag 2016, Seoul, South Korea.
+    - September 29\ :sup:`th`
+        `BRAIN grant <https://news.brown.edu/articles/2016/09/brain>`_
+        funded to use MNE to better understand multi-modal recordings.
+    - September 27\ :sup:`th`
+        `Version 0.13 <https://pypi.python.org/pypi/mne/0.13>`_ released
+    - March 10\ :sup:`th`
+        `Google Summer of Code 2016 project <https://summerofcode.withgoogle.com/projects/#5290867271139328>`_
+        funded to improve :ref:`api_decoding` module.
 
     .. raw:: html
 
-      <h2>Versions</h2>
-
-    - `Stable <http://martinos.org/mne/stable>`_
-    - `Development <http://martinos.org/mne/dev>`_
-
-    .. raw:: html
-
-      <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Tweets by @mne_python</a>
+      <script type="text/javascript" src="http://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
