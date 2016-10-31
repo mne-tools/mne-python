@@ -157,7 +157,8 @@ def test_plot_raw_psd():
     raw.plot_psd(tmax=2.0)
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
-    raw.plot_psd(picks=picks, area_mode='range')
+    raw.plot_psd(picks=picks, area_mode='range', average=False)
+    plt.close('all')
     ax = plt.axes()
     # if ax is supplied:
     assert_raises(ValueError, raw.plot_psd, ax=ax)

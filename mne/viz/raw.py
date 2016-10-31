@@ -518,7 +518,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=2048, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33,
                  n_overlap=0, dB=True, average=True, show=True, n_jobs=1,
-                 verbose=None):
+                 line_alpha=None, verbose=None):
     """Plot the power spectral density across channels.
 
     Parameters
@@ -564,6 +564,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Show figure if True.
     n_jobs : int
         Number of jobs to run in parallel.
+    line_alpha : float | None
+        Alpha for the PSD line. Can be None (default) to use 1.0 when
+        ``average=True`` and 0.1 when ``average=False``.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -574,6 +577,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     """
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
+    if line_alpha is None:
+        line_alpha = 1.0 if average else 0.1
+    line_alpha = float(line_alpha)
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
@@ -605,12 +611,12 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
             else:  # area_mode is None
                 hyp_limits = None
 
-            ax.plot(freqs, psd_mean, color=color)
+            ax.plot(freqs, psd_mean, color=color, alpha=line_alpha)
             if hyp_limits is not None:
                 ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
                                 color=color, alpha=area_alpha)
         else:
-            ax.plot(freqs, psds.T, color=color)
+            ax.plot(freqs, psds.T, color=color, alpha=line_alpha)
 
         if make_label:
             if ii == len(picks_list) - 1:
