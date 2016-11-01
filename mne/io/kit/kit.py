@@ -605,11 +605,14 @@ def get_kit_info(rawfile):
                 # planargradiometer
                 # x,y,z,theta,phi,btheta,bphi,baseline,coilsize
                 sensors.append(np.fromfile(fid, dtype='d', count=9))
-            elif sens_type == 257:
+            elif sens_type in (257, 0):
                 # reference channels
                 sensors.append(np.zeros(7))
                 sqd['i'] = sens_type
+            else:
+                raise IOError("Unknown KIT channel type: %i" % sens_type)
         sqd['sensor_locs'] = np.array(sensors)
+        assert len(sqd['sensor_locs']) == KIT_SYS.N_SENS
 
         # amplifier gain
         fid.seek(KIT_SYS.AMPLIFIER_INFO)
