@@ -86,7 +86,7 @@ raw = mne.io.read_raw_fif(raw_fname, preload=True)
 # we see high amplitude undulations in low frequencies, spanning across tens of
 # seconds
 
-raw.plot_psd(fmax=250)
+raw.plot_psd(tmax=np.inf, fmax=250)
 
 ###############################################################################
 # On MEG sensors we see narrow frequency peaks at 60, 120, 180, 240 Hz,

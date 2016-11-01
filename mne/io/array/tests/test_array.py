@@ -93,7 +93,7 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.plot_psd()
+    raw2.plot_psd(tmax=np.inf)
     plt.close('all')
 
     # epoching
