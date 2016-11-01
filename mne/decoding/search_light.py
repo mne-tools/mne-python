@@ -81,12 +81,6 @@ class _SearchLight(BaseEstimator, TransformerMixin):
         self : object
             Return self.
         """
-        if len(np.unique(y)) <= 2:
-            from sklearn.preprocessing import LabelEncoder
-             
-            le = LabelEncoder()
-            y = le.fit_transform(y)
-
         self._check_Xy(X, y)
         self.estimators_ = list()
         # For fitting, the parallelization is across estimators.
