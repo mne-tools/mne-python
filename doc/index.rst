@@ -40,7 +40,6 @@
     From raw data to source estimates **in about 20 lines of code** (try it `in an experimental online demo <http://mybinder.org/repo/mne-tools/mne-binder/notebooks/plot_introduction.ipynb>`_!)::
 
         >>> import mne  # doctest: +SKIP
-        >>> from scipy.signal import lfilter
         >>> raw = mne.io.read_raw_fif('raw.fif')  # load data  # doctest: +SKIP
         >>> raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels  # doctest: +SKIP
         >>> raw.filter(l_freq=None, h_freq=40.0)  # low-pass filter  # doctest: +SKIP
@@ -53,7 +52,7 @@
         >>> fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)  # doctest: +SKIP
         >>> inv = mne.minimum_norm.make_inverse_operator(  # doctest: +SKIP
         >>>     raw.info, fwd, cov, loose=0.2)  # compute inverse operator # doctest: +SKIP
-        >>> stc = mne.minimum_norm.apply_inverse(
+        >>> stc = mne.minimum_norm.apply_inverse(  # doctest: +SKIP
         >>>     evoked, inv, lambda2=1. / 9., method='dSPM')  # apply it # doctest: +SKIP
         >>> stc_fs = stc.morph('fsaverage')  # morph to fsaverage # doctest: +SKIP
         >>> stc_fs.plot()  # plot source data on fsaverage's brain # doctest: +SKIP
