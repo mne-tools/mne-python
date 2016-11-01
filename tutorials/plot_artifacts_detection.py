@@ -63,6 +63,7 @@ This tutorial discusses a couple of major artifacts that most analyses
 have to deal with and demonstrates how to detect them.
 
 """
+import numpy as np
 
 import mne
 from mne.datasets import sample
