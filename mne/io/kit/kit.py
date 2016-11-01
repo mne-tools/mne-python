@@ -686,8 +686,8 @@ def get_kit_info(rawfile):
         locs = sqd['sensor_locs']
         chan_locs = apply_trans(als_ras_trans, locs[:, :3])
         chan_angles = locs[:, 3:]
-        for idx, (ch_loc, ch_angles) in enumerate(
-                zip(chan_locs, chan_angles), 1):
+        for idx, (ch_loc, ch_angles) in enumerate(zip(chan_locs, chan_angles),
+                                                  1):
             chan_info = {'cal': KIT.CALIB_FACTOR,
                          'logno': idx,
                          'scanno': idx,
