@@ -612,7 +612,8 @@ def get_kit_info(rawfile):
             else:
                 raise IOError("Unknown KIT channel type: %i" % sens_type)
         sqd['sensor_locs'] = np.array(sensors)
-        assert len(sqd['sensor_locs']) == KIT_SYS.N_SENS
+        if len(sqd['sensor_locs']) != KIT_SYS.N_SENS:
+            raise IOError("An error ocurred while reading %s" % rawfile)
 
         # amplifier gain
         fid.seek(KIT_SYS.AMPLIFIER_INFO)
