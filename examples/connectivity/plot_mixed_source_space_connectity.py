@@ -58,7 +58,7 @@ src = setup_source_space(sbj_id, subjects_dir=sbj_dir,
                          spacing='oct6', add_dist=False, overwrite=True)
 
 # Setup a volume source space
-# set pos=7.0 for computational issue
+# set pos=7.0 for speed issue
 vol_src = setup_volume_source_space(sbj_id, mri=fname_aseg,
                                     pos=7.0,
                                     bem=fname_model,
