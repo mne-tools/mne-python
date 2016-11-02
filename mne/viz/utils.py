@@ -1380,6 +1380,17 @@ def _compute_scalings(scalings, inst):
     return scalings
 
 
+def _setup_cmap(cmap, n_axes=1, norm=False):
+    """Function for setting color map interactivity."""
+    if cmap == 'interactive':
+        cmap = ('Reds' if norm else 'RdBu_r', True)
+    elif not isinstance(cmap, tuple):
+        if cmap is None:
+            cmap = 'Reds' if norm else 'RdBu_r'
+        cmap = (cmap, False if n_axes > 2 else True)
+    return cmap
+
+
 class DraggableColorbar(object):
     """Class for enabling interactive colorbar.
 
