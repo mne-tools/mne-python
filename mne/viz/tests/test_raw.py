@@ -154,19 +154,21 @@ def test_plot_raw_psd():
     import matplotlib.pyplot as plt
     raw = _get_raw()
     # normal mode
-    raw.plot_psd(tmax=2.0)
+    with warnings.catch_warnings(record=True):  # deprecation of tmax
+        raw.plot_psd()
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
-    raw.plot_psd(picks=picks, area_mode='range')
+    raw.plot_psd(tmax=np.inf, picks=picks, area_mode='range', average=False)
+    plt.close('all')
     ax = plt.axes()
     # if ax is supplied:
     assert_raises(ValueError, raw.plot_psd, ax=ax)
-    raw.plot_psd(picks=picks, ax=ax)
+    raw.plot_psd(tmax=np.inf, picks=picks, ax=ax)
     plt.close('all')
     ax = plt.axes()
     assert_raises(ValueError, raw.plot_psd, ax=ax)
     ax = [ax, plt.axes()]
-    raw.plot_psd(ax=ax)
+    raw.plot_psd(tmax=np.inf, ax=ax)
     plt.close('all')
     # topo psd
     raw.plot_psd_topo()

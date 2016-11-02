@@ -168,10 +168,10 @@ raw.plot(block=True)
 # usually would do.
 if not use_precomputed:
     meg_picks = mne.pick_types(raw.info, meg=True, eeg=False)
-    raw.plot_psd(picks=meg_picks)
+    raw.plot_psd(tmax=np.inf, picks=meg_picks)
     notches = np.arange(60, 181, 60)
     raw.notch_filter(notches)
-    raw.plot_psd(picks=meg_picks)
+    raw.plot_psd(tmax=np.inf, picks=meg_picks)
 
 ###############################################################################
 # We also lowpass filter the data at 100 Hz to remove the hf components.
