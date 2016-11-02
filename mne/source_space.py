@@ -23,7 +23,7 @@ from .io.write import (start_block, end_block, write_int,
 from .bem import read_bem_surfaces
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
-                      _read_surface_geom, _normalize_vectors,
+                      _normalize_vectors,
                       complete_surface_info, _compute_nearest,
                       fast_cross_3d, _fast_cross_nd_sum, mesh_dist,
                       _triangle_neighbors)
@@ -1460,7 +1460,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
                 raise KeyError('surface, if dict, must have entries "rr" '
                                'and "tris"')
             # let's make sure we have geom info
-            surface = _read_surface_geom(surface, verbose=False)
+            complete_surface_info(surface, copy=False, verbose=False)
             surf_extra = 'dict()'
         elif isinstance(surface, string_types):
             if not op.isfile(surface):
@@ -1515,7 +1515,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         elif surface is not None:
             if isinstance(surface, string_types):
                 # read the surface in the MRI coordinate frame
-                surf = _read_surface_geom(surface)
+                surf = read_surface(surface, return_dict=True)[-1]
             else:
                 surf = surface
             logger.info('Loaded bounding surface from %s (%d nodes)'
@@ -1534,7 +1534,6 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             # normalize to sphere (in MRI coord frame)
             surf['rr'] *= sphere[3] / 1000.0  # scale by radius
             surf['rr'] += sphere[:3] / 1000.0  # move by center
-            complete_surface_info(surf, do_neighbor_vert=True, copy=False)
         # Make the grid of sources in MRI space
         sp = _make_volume_source_space(surf, pos, exclude, mindist, mri,
                                        volume_label)
@@ -2361,7 +2360,7 @@ def _get_vertex_map_nn(fro_src, subject_from, subject_to, hemi, subjects_dir,
                 % (hemi, subject_from, subject_to))
     regs = [op.join(subjects_dir, s, 'surf', '%s.sphere.reg' % hemi)
             for s in (subject_from, subject_to)]
-    reg_fro, reg_to = [_read_surface_geom(r, patch_stats=False) for r in regs]
+    reg_fro, reg_to = [read_surface(r, return_dict=True)[-1] for r in regs]
     if to_neighbor_tri is None:
         to_neighbor_tri = _triangle_neighbors(reg_to['tris'], reg_to['np'])
     morph_inuse = np.zeros(len(reg_to['rr']), bool)
@@ -2432,7 +2431,7 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
         hemi, idx, id_ = _get_hemi(fro)
         to = op.join(subjects_dir, subject_to, 'surf', '%s.%s' % (hemi, surf,))
         logger.info('Reading destination surface %s' % (to,))
-        to = _read_surface_geom(to, patch_stats=False, verbose=False)
+        to = read_surface(to, return_dict=True, verbose=False)[-1]
         complete_surface_info(to, copy=False)
         # Now we morph the vertices to the destination
         # The C code does something like this, but with a nearest-neighbor

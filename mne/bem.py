@@ -24,6 +24,8 @@ from .io.write import (start_file, start_block, write_float, write_int,
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.open import fiff_open
+from .surface import (read_surface, write_surface, complete_surface_info,
+                      _compute_nearest, _get_ico_surface, read_tri)
 from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
 from .externals.six import string_types
 
@@ -247,7 +249,6 @@ def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
 def _fwd_bem_linear_collocation_solution(m):
     """Compute the linear collocation potential solution."""
     # first, add surface geometries
-    from .surface import complete_surface_info
     for surf in m['surfs']:
         complete_surface_info(surf, copy=False, verbose=False)
 
@@ -328,7 +329,6 @@ def make_bem_solution(surfs, verbose=None):
 
 def _ico_downsample(surf, dest_grade):
     """Downsample the surface if isomorphic to a subdivided icosahedron."""
-    from .surface import _get_ico_surface
     n_tri = surf['ntri']
     found = -1
     bad_msg = ("A surface with %d triangles cannot be isomorphic with a "
@@ -364,7 +364,6 @@ def _ico_downsample(surf, dest_grade):
 
 def _get_ico_map(fro, to):
     """Helper to get a mapping between ico surfaces."""
-    from .surface import _compute_nearest
     nearest, dists = _compute_nearest(fro['rr'], to['rr'], return_dists=True)
     n_bads = (dists > 5e-3).sum()
     if n_bads > 0:
@@ -447,7 +446,6 @@ def _check_surface_size(surf):
 
 def _check_thicknesses(surfs):
     """Compute how close we are."""
-    from .surface import _compute_nearest
     for surf_1, surf_2 in zip(surfs[:-1], surfs[1:]):
         min_dist = _compute_nearest(surf_1['rr'], surf_2['rr'],
                                     return_dists=True)[0]
@@ -460,24 +458,29 @@ def _check_thicknesses(surfs):
                      1000 * min_dist))
 
 
-def _surfaces_to_bem(fname_surfs, ids, sigmas, ico=None):
+def _surfaces_to_bem(surfs, ids, sigmas, ico=None):
     """Convert surfaces to a BEM."""
-    from .surface import _read_surface_geom
     # equivalent of mne_surf2bem
-    surfs = list()
-    assert len(fname_surfs) in (1, 3)
-    for fname in fname_surfs:
-        surfs.append(_read_surface_geom(fname, patch_stats=False,
-                                        verbose=False))
-        surfs[-1]['rr'] /= 1000.
+    # surfs can be strings (filenames) or surface dicts
+    if len(surfs) not in (1, 3) or not (len(surfs) == len(ids) ==
+                                        len(sigmas)):
+        raise ValueError('surfs, ids, and sigmas must all have the same '
+                         'number of elements (1 or 3)')
+    surf = list(surfs)
+    for si, surf in enumerate(surfs):
+        if isinstance(surf, string_types):
+            surf = read_surface(surf, return_dict=True)[-1]
+            surf['rr'] *= 1e-3
+            surfs[si] = surf
     # Downsampling if the surface is isomorphic with a subdivided icosahedron
     if ico is not None:
         for si, surf in enumerate(surfs):
             surfs[si] = _ico_downsample(surf, ico)
     for surf, id_ in zip(surfs, ids):
         surf['id'] = id_
+        surf['rr'] /= 1000.  # convert to meters
 
-    # Shifting surfaces is not implemented here
+    # Shifting surfaces is not implemented here...
 
     # Order the surfaces for the benefit of the topology checks
     for surf, sigma in zip(surfs, sigmas):
@@ -555,6 +558,7 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
     if len(conductivity) == 1:
         surfaces = surfaces[:1]
         ids = ids[:1]
+    surfaces = [read_surface(surf, return_dict=True)[-1] for surf in surfaces]
     surfaces = _surfaces_to_bem(surfaces, ids, conductivity, ico)
     _check_bem_size(surfaces)
     logger.info('Complete.\n')
@@ -1053,7 +1057,6 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     -----
     .. versionadded:: 0.10
     """
-    from .surface import read_surface, write_surface, _read_surface_geom
     from .viz.misc import plot_bem
     env, mri_dir = _prepare_env(subject, subjects_dir,
                                 requires_freesurfer=True,
@@ -1112,11 +1115,11 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         for s in surfs:
             surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))
 
-            surf, volume_info = _read_surface_geom(surf_ws_out,
-                                                   read_metadata=True)
+            rr, tris, volume_info = read_surface(surf_ws_out,
+                                                 read_metadata=True)
             volume_info.update(new_info)  # replace volume info, 'head' stays
 
-            write_surface(s, surf['rr'], surf['tris'], volume_info=volume_info)
+            write_surface(s, rr, tris, volume_info=volume_info)
             # Create symbolic links
             surf_out = op.join(bem_dir, '%s.surf' % s)
             if not overwrite and op.exists(surf_out):
@@ -1144,12 +1147,9 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     if op.isfile(fname_head):
         os.remove(fname_head)
 
-    # run the equivalent of mne_surf2bem
-    points, tris = read_surface(op.join(ws_dir,
-                                        subject + '_outer_skin_surface'))
-    points *= 1e-3
-    surf = dict(coord_frame=5, id=4, nn=None, np=len(points),
-                ntri=len(tris), rr=points, sigma=1, tris=tris)
+    surf = read_surface(
+        op.join(ws_dir, subject + '_outer_skin_surface'), return_dict=True)[-1]
+    surf = _surfaces_to_bem([surf], [FIFF.FIFFV_BEM_SURF_ID_HEAD], sigmas=[1])
     write_bem_surfaces(fname_head, surf)
 
     # Show computed BEM surfaces
@@ -1213,7 +1213,6 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
     --------
     write_bem_surfaces, write_bem_solution, make_bem_model
     """
-    from .surface import complete_surface_info
     # Default coordinate frame
     coord_frame = FIFF.FIFFV_COORD_MRI
     # Open the file, create directory
@@ -1749,7 +1748,6 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     convert_flash_mris
     """
     from .viz.misc import plot_bem
-    from .surface import write_surface, read_tri
 
     is_test = os.environ.get('MNE_SKIP_FS_FLASH_CALL', False)
 

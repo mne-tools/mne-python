@@ -15,7 +15,6 @@ from struct import pack
 import numpy as np
 from scipy.sparse import coo_matrix, csr_matrix, eye as speye
 
-from .bem import read_bem_surfaces
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tree import dir_tree_find
@@ -26,7 +25,7 @@ from .channels.channels import _get_meg_system
 from .transforms import transform_surface_to
 from .utils import logger, verbose, get_subjects_dir, warn
 from .externals.six import string_types
-from .fixes import _read_volume_info, _serialize_volume_info
+from .fixes import _serialize_volume_info, _get_read_geometry
 
 
 ###############################################################################
@@ -60,6 +59,7 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
     surf : dict
         The head surface.
     """
+    from .bem import read_bem_surfaces
     # Load the head surface from the BEM
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if not isinstance(subject, string_types):
@@ -123,6 +123,7 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
     surf : dict
         The MEG helmet as a surface.
     """
+    from .bem import read_bem_surfaces
     system = _get_meg_system(info)
     logger.info('Getting helmet for system %s' % system)
     fname = op.join(op.split(__file__)[0], 'data', 'helmets',
@@ -451,7 +452,7 @@ def read_curvature(filepath):
 
 
 @verbose
-def read_surface(fname, read_metadata=False, verbose=None):
+def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
     """Load a Freesurfer surface mesh in triangular format.
 
     Parameters
@@ -474,6 +475,8 @@ def read_surface(fname, read_metadata=False, verbose=None):
 
         .. versionadded:: 0.13.0
 
+    return_dict : bool
+        If True, a dictionary with surface parameters is returned.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -487,94 +490,19 @@ def read_surface(fname, read_metadata=False, verbose=None):
         together form a face).
     volume_info : dict-like
         If read_metadata is true, key-value pairs found in the geometry file.
+    surf : dict
+        The surface parameters. Only returned if read_dict is True.
 
     See Also
     --------
     write_surface
     read_tri
     """
-    try:
-        import nibabel as nib
-        has_nibabel = True
-    except ImportError:
-        has_nibabel = False
-    if has_nibabel and LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
-        return nib.freesurfer.read_geometry(fname, read_metadata=read_metadata)
-
-    volume_info = dict()
-    TRIANGLE_MAGIC = 16777214
-    QUAD_MAGIC = 16777215
-    NEW_QUAD_MAGIC = 16777213
-    with open(fname, "rb", buffering=0) as fobj:  # buffering=0 for np bug
-        magic = _fread3(fobj)
-        # Quad file or new quad
-        if magic in (QUAD_MAGIC, NEW_QUAD_MAGIC):
-            create_stamp = ''
-            nvert = _fread3(fobj)
-            nquad = _fread3(fobj)
-            (fmt, div) = (">i2", 100.) if magic == QUAD_MAGIC else (">f4", 1.)
-            coords = np.fromfile(fobj, fmt, nvert * 3).astype(np.float) / div
-            coords = coords.reshape(-1, 3)
-            quads = _fread3_many(fobj, nquad * 4)
-            quads = quads.reshape(nquad, 4)
-
-            # Face splitting follows
-            faces = np.zeros((2 * nquad, 3), dtype=np.int)
-            nface = 0
-            for quad in quads:
-                if (quad[0] % 2) == 0:
-                    faces[nface:nface + 2] = [[quad[0], quad[1], quad[3]],
-                                              [quad[2], quad[3], quad[1]]]
-                else:
-                    faces[nface:nface + 2] = [[quad[0], quad[1], quad[2]],
-                                              [quad[0], quad[2], quad[3]]]
-                nface += 2
-        elif magic == TRIANGLE_MAGIC:  # Triangle file
-            create_stamp = fobj.readline()
-            fobj.readline()
-            vnum = np.fromfile(fobj, ">i4", 1)[0]
-            fnum = np.fromfile(fobj, ">i4", 1)[0]
-            coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
-            faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
-            if read_metadata:
-                volume_info = _read_volume_info(fobj)
-        else:
-            raise ValueError("%s does not appear to be a Freesurfer surface"
-                             % fname)
-        logger.info('Triangle file: %s nvert = %s ntri = %s'
-                    % (create_stamp.strip(), len(coords), len(faces)))
-
-    coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
-
-    ret = (coords, faces)
-    if read_metadata:
-        if len(volume_info) == 0:
-            warn('No volume information contained in the file')
-        ret += (volume_info,)
+    ret = _get_read_geometry()(fname, read_metadata=read_metadata)
+    if return_dict:
+        ret += (dict(rr=ret[0], tris=ret[1], ntri=len(ret[1]), use_tris=ret[1],
+                     np=len(ret[0])),)
     return ret
-
-
-@verbose
-def _read_surface_geom(fname, patch_stats=True, norm_rr=False,
-                       read_metadata=False, verbose=None):
-    """Load the surface as dict, optionally add the geometry information."""
-    # based on mne_load_surface_geom() in mne_surface_io.c
-    if isinstance(fname, string_types):
-        ret = read_surface(fname, read_metadata=read_metadata)
-        nvert = len(ret[0])
-        ntri = len(ret[1])
-        s = dict(rr=ret[0], tris=ret[1], use_tris=ret[1], ntri=ntri, np=nvert)
-    elif isinstance(fname, dict):
-        s = fname
-    else:
-        raise RuntimeError('fname cannot be understood as str or dict')
-    if patch_stats is True:
-        complete_surface_info(s, copy=False)
-    if norm_rr is True:
-        _normalize_vectors(s['rr'])
-    if read_metadata:
-        return s, ret[2]
-    return s
 
 
 ##############################################################################
@@ -584,6 +512,7 @@ def _get_ico_surface(grade, patch_stats=False):
     """Return an icosahedral surface of the desired grade."""
     # always use verbose=False since users don't need to know we're pulling
     # these from a file
+    from .bem import read_bem_surfaces
     ico_file_name = op.join(op.dirname(__file__), 'data',
                             'icos.fif.gz')
     ico = read_bem_surfaces(ico_file_name, patch_stats, s_id=9000 + grade,
@@ -692,15 +621,16 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
                          subjects_dir):
     """Load a surf and use the subdivided icosahedron to get points."""
     # Based on load_source_space_surf_spacing() in load_source_space.c
-    surf = _read_surface_geom(surf)
-
+    surf = read_surface(surf, return_dict=True)[-1]
+    complete_surface_info(surf, copy=False)
     if stype in ['ico', 'oct']:
         # ## from mne_ico_downsample.c ## #
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
         logger.info('Loading geometry from %s...' % surf_name)
-        from_surf = _read_surface_geom(surf_name, norm_rr=True,
-                                       patch_stats=False)
-        if not len(from_surf['rr']) == surf['np']:
+        from_surf = read_surface(surf_name, return_dict=True)[-1]
+        complete_surface_info(from_surf, copy=False)
+        _normalize_vectors(from_surf['rr'])
+        if from_surf['np'] != surf['np']:
             raise RuntimeError('Mismatch between number of surface vertices, '
                                'possible parcellation error?')
         _normalize_vectors(ico_surf['rr'])

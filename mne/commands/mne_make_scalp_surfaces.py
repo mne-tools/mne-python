@@ -17,7 +17,7 @@ import copy
 import os.path as op
 import sys
 import mne
-from mne.utils import run_subprocess, _TempDir, verbose, logger, ETSContext
+from mne.utils import run_subprocess, verbose, logger, ETSContext
 
 
 def _check_file(fname, overwrite):
@@ -115,33 +115,29 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
                                                           subject)
     logger.info('2. Creating %s ...' % dense_fname)
     _check_file(dense_fname, overwrite)
-    run_subprocess(['mne_surf2bem', '--surf', surf, '--id', '4', force,
-                    '--fif', dense_fname], env=this_env)
+    surf = mne.bem._surfaces_to_bem(
+        [surf], [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1])
+    mne.write_bem_surfaces(dense_fname, surf)
     levels = 'medium', 'sparse'
-    my_surf = mne.read_bem_surfaces(dense_fname)[0]
     tris = [] if no_decimate else [30000, 2500]
     if os.getenv('_MNE_TESTING_SCALP', 'false') == 'true':
-        tris = [len(my_surf['tris'])]  # don't actually decimate
+        tris = [len(surf['tris'])]  # don't actually decimate
     for ii, (n_tri, level) in enumerate(zip(tris, levels), 3):
         logger.info('%i. Creating %s tessellation...' % (ii, level))
         logger.info('%i.1 Decimating the dense tessellation...' % ii)
+        # XXX we should probably use standard ICO decimation here instead
+        # of fragile ETS stuff...
         with ETSContext():
-            points, tris = mne.decimate_surface(points=my_surf['rr'],
-                                                triangles=my_surf['tris'],
+            points, tris = mne.decimate_surface(points=surf['rr'],
+                                                triangles=surf['tris'],
                                                 n_triangles=n_tri)
-        other_fname = dense_fname.replace('dense', level)
-        logger.info('%i.2 Creating %s' % (ii, other_fname))
-        _check_file(other_fname, overwrite)
-        tempdir = _TempDir()
-        surf_fname = tempdir + '/tmp-surf.surf'
-        # convert points to meters, make mne_analyze happy
-        mne.write_surface(surf_fname, points * 1e3, tris)
-        # XXX for some reason --check does not work here.
-        try:
-            run_subprocess(['mne_surf2bem', '--surf', surf_fname, '--id', '4',
-                            '--force', '--fif', other_fname], env=this_env)
-        finally:
-            del tempdir
+        dec_fname = dense_fname.replace('dense', level)
+        logger.info('%i.2 Creating %s' % (ii, dec_fname))
+        _check_file(dec_fname, overwrite)
+        dec_surf = mne.bem._surfaces_to_bem(
+            [dict(rr=points, tris=tris)],
+            [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1])
+        mne.write_bem_surfaces(dec_fname, dec_surf)
 
 is_main = (__name__ == '__main__')
 if is_main:
