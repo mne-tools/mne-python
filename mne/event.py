@@ -540,8 +540,8 @@ def find_events(raw, stim_channel=None, output='onset',
         .. versionadded:: 0.13
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

@@ -171,8 +171,8 @@ class ICA(ContainsMixin):
     max_iter : int, optional
         Maximum number of iterations during fit.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -347,9 +347,9 @@ class ICA(ContainsMixin):
             Length of data chunks for artifact rejection in seconds.
             It only applies if `inst` is of type Raw.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to
-            self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -840,9 +840,9 @@ class ICA(ContainsMixin):
         h_freq : float
             High pass frequency.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to
-            self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -944,9 +944,9 @@ class ICA(ContainsMixin):
             be recomputed until no supra-threshold component remains.
             Defaults to 'ctps'.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to
-            self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -1052,9 +1052,9 @@ class ICA(ContainsMixin):
         h_freq : float
             High pass frequency.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to
-            self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -1548,8 +1548,8 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
         automatically choose the threshold that generates a reasonable
         number of heartbeats (40-160 beats / min).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1593,8 +1593,8 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
     h_freq : float
         High cut-off frequency in Hz.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2101,8 +2101,8 @@ def run_ica(raw, n_components, max_pca_components=100,
             add_nodes=('ECG phase lock', ECG 01', my_phase_lock_function, 0.5)
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2314,8 +2314,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     show : bool
         Show figures if True.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in

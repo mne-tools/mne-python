@@ -944,8 +944,8 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
         be symmetric and only the upper triangular half is used.
         Default is None, i.e, a regular lattice connectivity.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int or None
@@ -1077,8 +1077,8 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int or None
@@ -1212,8 +1212,8 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int or None
@@ -1339,8 +1339,8 @@ def spatio_temporal_cluster_test(X, threshold=1.67, n_permutations=1024,
         be symmetric and only the upper triangular half is used.
         Default is None, i.e, a regular lattice connectivity.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int or None

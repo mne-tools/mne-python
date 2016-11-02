@@ -53,8 +53,8 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -170,8 +170,8 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -237,8 +237,8 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -304,8 +304,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -478,8 +478,8 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

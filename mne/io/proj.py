@@ -78,8 +78,9 @@ class ProjMixin(object):
         remove_existing : bool
             Remove the projection vectors currently in the file.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -271,8 +272,8 @@ def _read_proj(fid, node, verbose=None):
     node : tree node
         The node of the tree where to look.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -596,8 +597,8 @@ def activate_proj(projs, copy=True, verbose=None):
     copy : bool
         Modify projs in place or operate on a copy.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -629,8 +630,8 @@ def deactivate_proj(projs, copy=True, verbose=None):
     copy : bool
         Modify projs in place or operate on a copy.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -660,8 +661,8 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
     activate : bool
         If True projections are activated.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -735,8 +736,8 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
     activate : bool
         If True projections are activated.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

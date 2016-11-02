@@ -67,8 +67,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -130,8 +130,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             from the data. The baseline (a, b) includes both endpoints, i.e.
             all timepoints t such that a <= t <= b.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose
-            :ref:`Logging documentation <tut_logging>` for more).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -674,8 +675,8 @@ class EvokedArray(Evoked):
     kind : str
         Type of data, either average or standard_error. Defaults to 'average'.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -929,8 +930,8 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

@@ -52,8 +52,8 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -115,8 +115,8 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
         read_trans(). Can be None, in which case the surface will
         be in head coordinates instead of MRI coordinates.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -258,8 +258,8 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
     copy : bool
         If True (default), make a copy. If False, operate in-place.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -455,8 +455,8 @@ def read_surface(fname, read_metadata=False, verbose=None):
         .. versionadded:: 0.13.0
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -879,8 +879,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1221,8 +1221,8 @@ def read_tri(fname_in, swap=False, verbose=None):
         Assume the ASCII file vertex ordering is clockwise instead of
         counterclockwise.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

@@ -685,8 +685,8 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     n_jobs : int
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     bem_rr = mults = mri_Q = head_mri_t = None
     if not bem['is_sphere']:
@@ -770,8 +770,8 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
     n_jobs : int
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

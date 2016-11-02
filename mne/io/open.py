@@ -86,8 +86,8 @@ def fiff_open(fname, preload=False, verbose=None):
         requires more memory, but can be faster for I/O operations that require
         frequent seeks.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -175,8 +175,8 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
     output : type
         Either str or list. str is a convenience output for printing.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     if output not in [list, str]:
         raise ValueError('output must be list or str')

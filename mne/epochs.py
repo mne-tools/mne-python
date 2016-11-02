@@ -406,8 +406,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             from the data. The baseline (a, b) includes both endpoints, i.e.
             all timepoints t such that a <= t <= b.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose
-            :ref:`Logging documentation <tut_logging>` for more).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -836,9 +837,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If flat is None then no rejection is done. If 'existing',
             then the flat parameters set at instantiation are used.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to
-            self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -930,9 +931,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Reason for dropping the epochs ('ECG', 'timeout', 'blink' etc).
             Default: 'USER'.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to
-            self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -989,9 +990,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Return the data. Setting this to False is used to reject bad
             epochs without caching all the data, which saves memory.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to
-            self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
         """
         n_events = len(self.events)
         # in case there are no good events
@@ -1348,9 +1349,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose
-            :ref:`Logging documentation <tut_logging>` for more). Defaults to
-            self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` :ref:`Logging documentation <tut_logging>` for
+            more). Defaults to self.verbose.
 
         Returns
         -------
@@ -1729,8 +1730,8 @@ class Epochs(_BaseEpochs):
         overlapping with segments whose description begins with ``'bad'`` are
         rejected. If False, no rejection based on annotations is performed.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose
-        :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
         raw.verbose.
 
     Attributes
@@ -1886,8 +1887,8 @@ class EpochsArray(_BaseEpochs):
     proj : bool | 'delayed'
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -2272,8 +2273,8 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2325,8 +2326,8 @@ class EpochsFIF(_BaseEpochs):
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose
-        :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
         raw.verbose.
 
     See Also
@@ -2481,9 +2482,9 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=False,
         no EEG in the data). This parameter will be removed in 0.15. Use
         :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose
-        :ref:`Logging documentation <tut_logging>` for more). Defaults to True
-        if any of the input epochs have verbose=True.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        True if any of the input epochs have verbose=True.
 
     Returns
     -------
@@ -2702,7 +2703,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         .. versionadded:: 0.13
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
+        If not None, override default verbose level (see :func:`mne.verbose` and
         :ref:`Logging documentation <tut_logging>` for more).
 
     Returns

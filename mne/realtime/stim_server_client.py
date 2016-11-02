@@ -134,8 +134,9 @@ class StimServer(object):
         timeout : float
             Maximum time to wait for clients to be added.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
         """
         # Start server
         if not self._running:
@@ -164,8 +165,9 @@ class StimServer(object):
         sock : instance of socket.socket
             The client socket.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
         """
         logger.info("Adding client with ip = %s" % ip)
 
@@ -181,8 +183,9 @@ class StimServer(object):
         Parameters
         ----------
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
         """
         logger.info("Shutting down ...")
 
@@ -206,8 +209,9 @@ class StimServer(object):
         trigger : int
             The trigger to be added to the queue for sending to StimClient.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         See Also
         --------
@@ -234,8 +238,8 @@ class StimClient(object):
     timeout : float
         Communication timeout in seconds.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -282,8 +286,9 @@ class StimClient(object):
         timeout : float
             maximum time to wait for a valid trigger from the server
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         See Also
         --------

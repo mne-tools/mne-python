@@ -62,7 +62,7 @@ cov = mne.compute_raw_covariance(raw)
 # notice the ``verbose`` keyword. Setting this parameter does not touch the
 # configurations, but sets the logging level for just this one function call.
 # Let's see what happens with logging level of INFO.
-cov = mne.compute_raw_covariance(raw, verbose='INFO')
+cov = mne.compute_raw_covariance(raw, verbose=True)
 
 ###############################################################################
 # As you see there is some info about what the function is doing. The logging

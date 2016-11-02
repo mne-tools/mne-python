@@ -54,7 +54,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
     copy : bool
         Whether to return a new instance or modify in place.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`).
 
     Returns
     -------

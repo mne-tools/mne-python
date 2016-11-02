@@ -167,8 +167,8 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
         Legendre polynomial expansion used for interpolation. `'fast'` should
         be sufficient for most applications.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     picks_meg = pick_types(inst.info, meg=True, eeg=False, exclude=[])
     picks_good = pick_types(inst.info, meg=True, eeg=False, exclude='bads')

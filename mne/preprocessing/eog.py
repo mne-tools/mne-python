@@ -37,8 +37,8 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
     tstart : float
         Start detection after tstart seconds.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -192,8 +192,8 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
     preload : bool
         Preload epochs or not.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

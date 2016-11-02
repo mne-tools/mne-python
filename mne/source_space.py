@@ -172,8 +172,9 @@ class SourceSpaces(list):
             If True, assigns a numeric value to each source space that
             corresponds to a color on the freesurfer lookup table.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose and
-            :ref:`Logging documentation <tut_logging>` for more).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Notes
         -----
@@ -457,8 +458,8 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False,
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -496,8 +497,8 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -867,8 +868,8 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
     src : list
         The list of source spaces.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     for s in src:
         logger.info('    Write a source space...')
@@ -891,8 +892,8 @@ def write_source_spaces(fname, src, verbose=None):
     src : SourceSpaces
         The source spaces (as returned by read_source_spaces).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -1039,8 +1040,8 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
         back to 'freesurfer' if it fails. Results should be equivalent with
         either option, but nibabel may be quicker (and more pythonic).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1215,8 +1216,8 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
         Number of jobs to run in parallel. Will use at most 2 jobs
         (one for each hemisphere).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1400,8 +1401,8 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         If True and ``mri`` is not None, then an interpolation matrix
         will be produced.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2188,8 +2189,8 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         Number of jobs to run in parallel. Will only use (up to) as many
         cores as there are source spaces.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2410,8 +2411,8 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2481,8 +2482,8 @@ def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

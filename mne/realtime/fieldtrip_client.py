@@ -50,7 +50,7 @@ class FieldTripClient(object):
     buffer_size : int
         Size of each buffer in terms of number of samples.
     verbose : bool, str, int, or None
-        Log verbosity (see mne.verbose and
+        Log verbosity (see :func:`mne.verbose` and
         :ref:`Logging documentation <tut_logging>` for more).
     """
 

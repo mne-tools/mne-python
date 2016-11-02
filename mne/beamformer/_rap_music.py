@@ -208,8 +208,8 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
