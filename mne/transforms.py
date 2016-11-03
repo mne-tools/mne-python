@@ -900,6 +900,7 @@ class SphericalSurfaceWarp(object):
         """
         from .bem import _fit_sphere
         logger.info('Computing TPS warp')
+        src_center = dest_center = np.zeros(3)
         if center:
             logger.info('    Centering data')
             hsp = np.array([p for p in source

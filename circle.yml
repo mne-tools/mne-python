@@ -97,6 +97,9 @@ dependencies:
               python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
               SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation())" --accept-hcpmmp-license;
             fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";
+            fi;
           fi;
         done;
         echo PATTERN="$PATTERN";

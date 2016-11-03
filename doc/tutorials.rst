@@ -103,6 +103,7 @@ For further reading:
     auto_tutorials/plot_object_evoked.rst
     auto_tutorials/plot_creating_data_structures.rst
     auto_tutorials/plot_info.rst
+    auto_tutorials/plot_ecog.rst
 
 .. container:: span box
 

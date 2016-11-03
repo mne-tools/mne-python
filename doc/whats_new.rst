@@ -25,6 +25,8 @@ Changelog
 
     - Add option to plot individual sensors in :meth:`mne.io.Raw.plot_psd` by `Alex Gramfort`_ and `Eric Larson`_
 
+    - Add option to plot ECoG electrodes in :func:`mne.viz.plot_trans` by `Eric Larson`_
+
 BUG
 ~~~
 

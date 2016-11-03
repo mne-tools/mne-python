@@ -24,7 +24,8 @@ from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
-                       transform_surface_to, _project_onto_surface)
+                       transform_surface_to, _project_onto_surface,
+                       complete_surface_info)
 from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
@@ -268,8 +269,9 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                ch_type=None, source=('bem', 'head'), coord_frame='head',
                meg_sensors='helmet', eeg_sensors='original', dig=False,
-               ref_meg=False, verbose=None):
-    """Plot MEG/EEG head surface and helmet in 3D.
+               ref_meg=False, ecog_sensors=True, head=None, brain=None,
+               verbose=None):
+    """Plot head and sensor alignment in 3D.
 
     Parameters
     ----------
@@ -277,8 +279,8 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         The measurement info.
     trans : str | 'auto' | dict | None
         The full path to the head<->MRI transform ``*-trans.fif`` file
-        produced during coregistration. If trans is None, no head
-        surface will be shown.
+        produced during coregistration. If trans is None, an identity matrix
+        is assumed.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT.
@@ -308,6 +310,16 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         If True, plot the digitization points.
     ref_meg : bool
         If True (default False), include reference MEG sensors.
+    ecog_sensors : bool
+        If True (default), show ECoG sensors.
+    head : bool | None
+        If True, show head surface. Can also be None, which will show the
+        head surface for MEG and EEG, but hide it if ECoG sensors are
+        present.
+    brain : bool | str | None
+        If True, show the 'white' brain surfaces. Can also be a str for
+        surface type (e.g., 'pial', same as True), or None (True for ECoG,
+        False otherwise).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -356,7 +368,17 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     if coord_frame not in valid_coords:
         raise ValueError('coord_frame must be one of %s' % (valid_coords,))
 
-    show_head = (subject is not None)
+    meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
+    eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
+    ecog_picks = pick_types(info, meg=False, ecog=True, ref_meg=False)
+
+    if head is None:
+        if len(ecog_picks) == 0 and subject is not None:
+            head = True
+        else:
+            head = False
+    if head and subject is None:
+        raise ValueError('If head is True, subject must be provided')
     if isinstance(trans, string_types):
         if trans == 'auto':
             # let's try to do this in MRI coordinates so they're easy to plot
@@ -365,7 +387,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         trans = read_trans(trans)
     elif trans is None:
         trans = Transform('head', 'mri')
-        show_head = False
     elif not isinstance(trans, dict):
         raise TypeError('trans must be str, dict, or None')
     head_mri_t = _ensure_trans(trans, 'head', 'mri')
@@ -388,29 +409,46 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         mri_trans = invert_transform(head_mri_t)
 
     # both the head and helmet will be in MRI coordinates after this
-    meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     surfs = dict()
-    if show_head:
+    if head:
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         surfs['head'] = get_head_surf(subject, source=source,
                                       subjects_dir=subjects_dir)
     if 'helmet' in meg_sensors and len(meg_picks) > 0 and \
             (ch_type is None or ch_type == 'meg'):
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
+    if brain is None:
+        if len(ecog_picks) > 0 and subject is not None:
+            brain = 'pial'
+        else:
+            brain = False
+    if brain:
+        head_alpha = 0.75
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        brain = 'pial' if brain is True else brain
+        for hemi in ['lh', 'rh']:
+            fname = op.join(subjects_dir, subject, 'surf',
+                            '%s.%s' % (hemi, brain))
+            rr, tris = read_surface(fname)
+            rr *= 1e-3
+            surfs[hemi] = dict(rr=rr, tris=tris, ntri=len(tris), np=len(rr),
+                               coord_frame=FIFF.FIFFV_COORD_MRI)
+            complete_surface_info(surfs[hemi], copy=False)
+    else:
+        head_alpha = 1.0
     for key in surfs.keys():
         surfs[key] = transform_surface_to(surfs[key], coord_frame, mri_trans)
 
     # determine points
     meg_rrs, meg_tris = list(), list()
+    ecog_loc = list()
     hpi_loc = list()
     ext_loc = list()
     car_loc = list()
     eeg_loc = list()
     eegp_loc = list()
     if len(eeg_sensors) > 0 and (ch_type is None or ch_type == 'eeg'):
-        eeg_loc = np.array([info['chs'][k]['loc'][:3]
-                           for k in pick_types(info, meg=False, eeg=True,
-                                               ref_meg=False)])
+        eeg_loc = np.array([info['chs'][k]['loc'][:3] for k in eeg_picks])
         if len(eeg_loc) > 0:
             eeg_loc = apply_trans(head_trans, eeg_loc)
             # XXX do projections here if necessary
@@ -462,12 +500,16 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         if len(car_loc) == len(ext_loc) == 0:
             warn('Digitization points not found. Cannot plot digitization.')
     del dig
+    if len(ecog_picks) > 0 and ecog_sensors:
+        ecog_loc = np.array([info['chs'][pick]['loc'][:3]
+                             for pick in ecog_picks])
 
     # do the plotting, surfaces then points
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
-    alphas = dict(head=1.0, helmet=0.5)
-    colors = dict(head=(0.6, 0.6, 0.6), helmet=(0.0, 0.0, 0.6))
+    alphas = dict(head=head_alpha, helmet=0.5, lh=1.0, rh=1.0)
+    colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6),
+                  lh=(0.5,) * 3, rh=(0.5,) * 3)
     for key, surf in surfs.items():
         x, y, z = surf['rr'].T
         nn = surf['nn']
@@ -479,17 +521,22 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
         mesh.data.point_data.normals = nn
         mesh.data.cell_data.normals = None
-        mlab.pipeline.surface(mesh, color=colors[key], opacity=alphas[key])
+        surface = mlab.pipeline.surface(mesh, color=colors[key],
+                                        opacity=alphas[key])
+        surface.actor.property.backface_culling = True
 
-    datas = (eeg_loc, eegp_loc, hpi_loc, car_loc, ext_loc)
-    colors = ((1., 0, 0), (0., 0.5, 1.), (0., 1, 0), (1., 1, 0), (1, 0.5, 0))
-    alphas = (0.8, 0.8, 0.5, 0.5, 0.25)
-    scales = (0.005, 0.0033, 0.015, 0.015, 0.0075)
+    datas = (eeg_loc, eegp_loc, hpi_loc, car_loc, ext_loc, ecog_loc)
+    colors = ((1., 0, 0), (0., 0.5, 1.), (0., 1, 0), (1., 1, 0), (1, 0.5, 0),
+              (1., 1., 1.))
+    alphas = (0.8, 0.8, 0.5, 0.5, 0.25, 0.8)
+    scales = (0.005, 0.0033, 0.015, 0.015, 0.0075, 0.005)
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits
-                mlab.points3d(data[:, 0], data[:, 1], data[:, 2],
-                              color=color, scale_factor=scale, opacity=alpha)
+                points = mlab.points3d(data[:, 0], data[:, 1], data[:, 2],
+                                       color=color, scale_factor=scale,
+                                       opacity=alpha)
+                points.actor.property.backface_culling = True
     if len(meg_rrs) > 0:
         color, alpha = (0., 0.25, 0.5), 0.25
         mlab.triangular_mesh(meg_rrs[:, 0], meg_rrs[:, 1], meg_rrs[:, 2],
