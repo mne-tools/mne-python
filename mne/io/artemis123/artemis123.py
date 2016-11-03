@@ -52,36 +52,80 @@ def _get_artemis123_info(fname):
     header = fname + '.txt'
 
     logger.info('Reading header...')
+
+    #key names for artemis channel info...
+    chanKeys = ['name','scaling','FLL_Gain','FLL_Mode','FLL_HighPass','FLL_AutoReset','FLL_ResetLock']
+
     header_info = dict()
+    header_info['filterHist'] = [];
+    header_info['comments']   = ''
+    header_info['chanels']    = [];
+
     with open(header, 'r') as fid:
-        pass
-    #     for line in fid:
-    #         var, value = line.split('=')
-    #         if var == 'elec_names':
-    #             value = value[1:-2].split(',')  # strip brackets
-    #         elif var == 'conversion_factor':
-    #             value = float(value)
-    #         elif var != 'start_ts':
-    #             value = int(value)
-    #         header_info[var] = value
-    #
-    # ch_names = header_info['elec_names']
-    # if eog == 'auto':
-    #     eog = _find_channels(ch_names, 'EOG')
-    # if ecg == 'auto':
-    #     ecg = _find_channels(ch_names, 'ECG')
-    # if emg == 'auto':
-    #     emg = _find_channels(ch_names, 'EMG')
-    # date, time = header_info['start_ts'].split()
-    # date = date.split('-')
-    # time = time.split(':')
-    # sec, msec = time[2].split('.')
-    # date = datetime.datetime(int(date[0]), int(date[1]), int(date[2]),
-    #                          int(time[0]), int(time[1]), int(sec), int(msec))
-    info = _empty_info(5000)
-    # info.update({'filename': fname,
-    #              'meas_date': calendar.timegm(date.utctimetuple()),
-    #              'description': None, 'buffer_size_sec': 1.})
+      #section flag
+      # 0 - None
+      # 1 - main header
+      # 2 - channel header
+      # 3 - comments 
+      # 4 - length
+      # 5 - filtering History
+      sectionFlag = 0
+      for line in fid:
+        #skip emptylines
+        if not line.strip() or ( sectionFlag ==2 and line.startswith('DAQ Map') ):
+          continue
+
+        #set sectionFlag
+        if line.startswith('<end'):
+          sectionFlag = 0
+        elif line.startswith("<start main header>"):
+          sectionFlag = 1
+        elif line.startswith("<start per channel header>"):
+          sectionFlag = 2
+        elif line.startswith("<start comments>"):
+          sectionFlag = 3
+        elif line.startswith("<start length>"):
+          sectionFlag = 4
+        elif line.startswith("<start filtering history>"):
+          sectionFlag = 5
+        else:
+          #parse header info lines
+          if sectionFlag == 1: #part of main header - lines are name value pairs
+            values = line.strip().split('\t')
+            if len(values) == 1:
+              values.append('')
+            header_info[values[0]] = values[1]
+          elif sectionFlag == 2: #part of channel header - lines are Channel Info
+            values = line.strip().split('\t')
+            if len(values) != 7:
+              pass #error
+            tmp = dict()
+            for k,v in zip(chanKeys,values):
+              tmp[k] = v
+            header_info['chanels'].append(tmp)
+          elif sectionFlag == 3:
+            header_info['comments'] = '%s%s'%(header_info['comments'],line.strip())
+          elif sectionFlag == 4:
+            header_info['num_samples'] = int(line.strip())
+          elif sectionFlag == 5:
+            header_info['filterHist'].append(line.strip())
+
+    #########################################################################################
+    #build mne info struct
+    info = _empty_info(float(header_info['Rate Out']))
+
+    #Attempt to get time/date from fname
+    try:
+        date = datetime.datetime.strptime(path.basename(fname).split('_')[2],'%Y-%m-%d-%Hh-%Mm')
+    except:
+        date = None
+
+    #TODO expand on the descriptiong as a compbination of header fields and comments
+    desc = None
+    info = _empty_info(float(header_info['Rate Out']))
+    info.update({'filename': fname,
+                'meas_date': calendar.timegm(date.utctimetuple()),
+                'description': None, 'buffer_size_sec': 1.})
     #
     # if ch_type == 'eeg':
     #     ch_coil = FIFF.FIFFV_COIL_EEG
@@ -125,8 +169,7 @@ class RawArtemis123(_BaseRaw):
     def __init__(self, input_fname, preload=False, verbose=None):
         input_fname = path.abspath(input_fname)
         info, header_info = _get_artemis123_info(input_fname)
-        # last_samps = [header_info['num_samples'] - 1]
-        last_samps = None
+        last_samps = [header_info['num_samples'] - 1]
         super(RawArtemis123, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
             last_samps=last_samps, orig_format='int',
