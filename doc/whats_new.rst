@@ -107,6 +107,8 @@ BUG
     - Raise error if the cv parameter of :class:`mne.decoding.GeneralizationAcrossTime` and :class:`mne.decoding.TimeDecoding` is not a partition and the predict_mode is "cross-validation" by `Jean-Remi King`_
 
 
+    - Fix :meth:`mne.io.Raw.plot` to display the time axis relative to ``raw.first_samp`` by `Mainak Jas`_
+
 API
 ~~~
 

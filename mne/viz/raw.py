@@ -103,7 +103,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Time window (sec) to plot. The lesser of this value and the duration
         of the raw file will be used.
     start : float
-        Initial time to show (can be changed dynamically once plotted).
+        Initial time to show (can be changed dynamically once plotted) relative
+        to ``raw.first_samp``.
     n_channels : int
         Number of channels to plot at once. Defaults to 20. Has no effect if
         ``order`` is 'position' or 'selection'.
