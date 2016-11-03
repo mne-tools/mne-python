@@ -236,8 +236,6 @@ class _SearchLight(BaseEstimator, TransformerMixin):
             y = le.fit_transform(y)
 
         self._check_Xy(X)
-        le = LabelEncoder()
-        y = le.fit_transform(y)
         if X.shape[-1] != len(self.estimators_):
             raise ValueError('The number of estimators does not match '
                              'X.shape[-1]')
