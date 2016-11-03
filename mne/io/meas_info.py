@@ -191,7 +191,7 @@ class Info(dict):
             if k in ['bads', 'ch_names']:
                 entr = (', '.join(b for ii, b in enumerate(v) if ii < 10)
                         if v else '0 items')
-                if len(entr) >= 56:
+                if len(entr) > 10:
                     # get rid of of half printed ch names
                     entr = _summarize_str(entr)
             elif k == 'filename' and v:
