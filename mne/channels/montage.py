@@ -652,11 +652,12 @@ def _set_montage(info, montage, update_ch_names=False):
             raise ValueError('No EEG channels found.')
 
         sensors_found = []
+        ch_names = [ch_name.upper() for ch_name in info['ch_names']]
         for pos, ch_name in zip(montage.pos, montage.ch_names):
-            if ch_name not in info['ch_names']:
+            if ch_name.upper() not in ch_names:
                 continue
 
-            ch_idx = info['ch_names'].index(ch_name)
+            ch_idx = ch_names.index(ch_name.upper())
             info['chs'][ch_idx]['loc'] = np.r_[pos, [0.] * 9]
             sensors_found.append(ch_idx)
 

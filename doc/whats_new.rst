@@ -42,6 +42,8 @@ BUG
 
     - Fix colormap selection in :func:`mne.viz.plot_evoked_topomap` when using positive vmin with negative data by `Jaakko Leppakangas`_
 
+    - Fix channel comparison in file readers when using standard montages by `Jaakko Leppakangas`_
+
 API
 ~~~
 
