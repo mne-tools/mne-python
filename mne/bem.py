@@ -470,7 +470,6 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None):
     for si, surf in enumerate(surfs):
         if isinstance(surf, string_types):
             surf = read_surface(surf, return_dict=True)[-1]
-            surf['rr'] *= 1e-3
             surfs[si] = surf
     # Downsampling if the surface is isomorphic with a subdivided icosahedron
     if ico is not None:
