@@ -143,9 +143,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         load. If None (default), all defined electrode positions are returned.
 
         .. note:: ``ch_names`` are compared to channel names in the montage
-                  files after converting them both to upper case. If a match is
-                  found, the channel name in ``ch_names`` is included to the
-                  returned montage.
+                  file after converting them both to upper case. If a match is
+                  found, the letter case in the original ``ch_names`` is used
+                  in the returned montage.
 
     path : str | None
         The path of the folder containing the montage file. Defaults to the
