@@ -49,7 +49,7 @@ def _update_raw_data(params):
     """Deal with time or proj changed."""
     from scipy.signal import filtfilt
     start = params['t_start']
-    start -= params['raw'].first_samp / float(params['raw'].info['sfreq'])
+    start -= params['raw']._first_time
     stop = params['raw'].time_as_index(start + params['duration'])[0]
     start = params['raw'].time_as_index(start)[0]
     data_picks = _pick_data_channels(params['raw'].info)
@@ -195,6 +195,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw)
     scalings = _handle_default('scalings_plot_raw', scalings)
+    raw._first_time = raw.first_samp / float(raw.info['sfreq'])
 
     if clipping is not None and clipping not in ('clamp', 'transparent'):
         raise ValueError('clipping must be None, "clamp", or "transparent", '
@@ -299,7 +300,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # set up projection and data parameters
     duration = min(raw.times[-1], float(duration))
-    start += raw.first_samp / float(raw.info['sfreq'])
+    start += raw._first_time
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,
@@ -756,9 +757,8 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
     params['hsel_patch'] = hsel_patch
-    first_samp, sfreq = params['raw'].first_samp, info['sfreq']
-    ax_hscroll.set_xlim(first_samp / float(sfreq),
-                        (first_samp + params['n_times']) / float(sfreq))
+    ax_hscroll.set_xlim(params['raw']._first_time, params['raw']._first_time +
+                        params['n_times'] / float(info['sfreq']))
 
     ax_vscroll.set_title('Ch.')
 
@@ -787,7 +787,6 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
     lines = params['lines']
     info = params['info']
     inds = params['inds']
-    sfreq = params['raw'].info['sfreq']
     n_channels = params['n_channels']
     params['bad_color'] = bad_color
     labels = params['ax'].yaxis.get_ticklabels()
@@ -814,8 +813,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
 
             # subtraction here gets corect orientation for flipped ylim
             lines[ii].set_ydata(offset - this_data)
-            lines[ii].set_xdata(params['times'] +
-                                params['raw'].first_samp / float(sfreq))
+            lines[ii].set_xdata(params['times'] + params['raw']._first_time)
             lines[ii].set_color(this_color)
             lines[ii].set_zorder(this_z)
             vars(lines[ii])['ch_name'] = ch_name
@@ -845,8 +843,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             mask = (event_nums == ev_num) if ev_num >= 0 else ~used
             assert not np.any(used[mask])
             used[mask] = True
-            t = event_times[mask] + \
-                params['raw'].first_samp / float(sfreq)
+            t = event_times[mask] + params['raw']._first_time
             if len(t) > 0:
                 xs = list()
                 ys = list()
@@ -880,10 +877,9 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             params['ax'].text((start + end) / 2., ylim[0], dscr, ha='center')
 
     # finalize plot
-    first_time = params['raw'].first_samp / float(sfreq)
-    params['ax'].set_xlim(params['times'][0] + first_time,
-                          params['times'][0] + first_time + params['duration'],
-                          False)
+    params['ax'].set_xlim(params['times'][0] + params['raw']._first_time,
+                          params['times'][0] + params['raw']._first_time +
+                          params['duration'], False)
     params['ax'].set_yticklabels(tick_list)
     if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])
