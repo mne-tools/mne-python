@@ -564,9 +564,13 @@ def _channels_changed(params, len_channels):
 def _plot_raw_time(value, params):
     """Deal with changed time value."""
     info = params['info']
-    max_times = (params['n_times'] + params['raw'].first_samp) / float(info['sfreq']) - params['duration']
+    max_times = params['n_times'] + params['raw'].first_samp
+    max_times /= float(info['sfreq'])
+    max_times -= params['duration']
     if value > max_times:
-        value = (params['n_times'] + params['raw'].first_samp) / info['sfreq'] - params['duration']
+        value = params['n_times'] + params['raw'].first_samp
+        value /= info['sfreq']
+        value -= params['duration']
     if value < params['raw'].first_samp / info['sfreq']:
         value = params['raw'].first_samp / info['sfreq']
     if params['t_start'] != value:
