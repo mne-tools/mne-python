@@ -670,7 +670,7 @@ def verbose(function, *args, **kwargs):
 
     Examples
     --------
-    You can use the ``verbose`` argument to set the verbose level on the fly:
+    You can use the ``verbose`` argument to set the verbose level on the fly::
         >>> import mne
         >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')  # doctest: +SKIP
         >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')  # doctest: +SKIP

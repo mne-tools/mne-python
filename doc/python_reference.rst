@@ -76,6 +76,7 @@ Logging and Configuration
    set_log_file
    set_config
    sys_info
+   verbose
 
 :py:mod:`mne.cuda`:
 
