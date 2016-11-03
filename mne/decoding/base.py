@@ -672,3 +672,30 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
             for inverse_func in _get_inverse_funcs(estimator)[::-1]:
                 coef = inverse_func([coef])[0]
         return coef
+
+
+def _get_final_est(estimator):
+    """Return the final component of a sklearn estimator/pipeline.
+
+    Parameters
+    ----------
+    estimator : pipeline, or sklearn / MNE estimator
+        An estimator chain from which you wish to pull the final estimator.
+
+    Returns
+    -------
+    estimator : the sklearn-style estimator at the end of the input chain.
+    """
+    # Define classes where we pull `estimator` manually
+    import sklearn
+    from distutils.version import LooseVersion
+    if LooseVersion(sklearn.__version__) < '0.16':
+        raise ValueError('sklearn support requires sklearn version >= 0.16')
+
+    attributes = [ii for ii in ['_final_estimator', 'base_estimator']
+                  if hasattr(estimator, ii)]
+    if len(attributes) > 0:
+        # In the event that both are present, `_final_estimator` is prioritized
+        estimator = getattr(estimator, attributes[0])
+        estimator = _get_final_est(estimator)
+    return estimator
