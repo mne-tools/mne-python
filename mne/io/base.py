@@ -336,7 +336,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         grade : int
             CTF gradient compensation level.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -394,7 +396,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         projector : array
             SSP operator to apply to the data.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -541,7 +545,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Parameters
         ----------
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -817,7 +823,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         **kwargs :
             Keyword arguments to pass to fun. Note that if "verbose" is passed
             as a member of ``kwargs``, it will be consumed and will override
-            the default mne-python verbose level (see mne.verbose).
+            the default mne-python verbose level (see :func:`mne.verbose` and
+            :ref:`Logging documentation <tut_logging>` for more).
         """
         _check_preload(self, 'raw.apply_function')
         if picks is None:
@@ -885,8 +892,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             to original length. If None, n == self.n_times. If 'auto',
             the next highest fast FFT length will be use.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Notes
         -----
@@ -1019,8 +1027,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             .. versionadded:: 0.13
 
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -1158,8 +1167,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             .. versionadded:: 0.13
 
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -1238,8 +1248,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -1448,8 +1459,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                       size is 2GB.
 
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Notes
         -----

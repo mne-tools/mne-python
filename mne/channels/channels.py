@@ -110,7 +110,8 @@ def equalize_channels(candidates, verbose=None):
     candidates : list
         list Raw | Epochs | Evoked | AverageTFR
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -419,7 +420,9 @@ class SetChannelsMixin(object):
         montage : instance of Montage or DigMontage
             The montage to use.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Notes
         -----

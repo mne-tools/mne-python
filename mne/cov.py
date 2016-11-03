@@ -238,7 +238,8 @@ def read_cov(fname, verbose=None):
         The name of file containing the covariance matrix. It should end with
         -cov.fif or -cov.fif.gz.
     verbose : bool, str, int, or None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -268,7 +269,8 @@ def make_ad_hoc_cov(info, verbose=None):
     info : instance of Info
         Measurement info.
     verbose : bool, str, int, or None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -404,7 +406,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         .. versionadded:: 0.12
 
     verbose : bool | str | int | None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -596,7 +599,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         have been processed with Maxwell filtering but not transformed
         to the same head position.
     verbose : bool | str | int | or None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1235,7 +1239,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1355,7 +1360,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     proj : bool (default true)
         Apply or not projections to keep rank of data.
     verbose : bool | str | int | None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`).
 
     Returns
     -------
@@ -1539,7 +1544,8 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         The rescaling method to be applied. See documentation of
         ``prepare_noise_cov`` for details.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1604,7 +1610,8 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

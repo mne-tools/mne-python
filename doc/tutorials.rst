@@ -42,6 +42,7 @@ For further reading:
     :maxdepth: 1
 
     auto_tutorials/plot_background_filtering.rst
+    auto_tutorials/plot_configuration.rst
 
 .. container:: span box
 

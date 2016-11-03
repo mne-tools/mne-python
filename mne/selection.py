@@ -57,7 +57,8 @@ def read_selection(name, fname=None, info=None, verbose=None):
         of channel names to return, e.g. ``'MEG 0111'`` for old Neuromag
         systems and ``'MEG0111'`` for new ones.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

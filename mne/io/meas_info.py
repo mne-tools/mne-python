@@ -191,7 +191,7 @@ class Info(dict):
             if k in ['bads', 'ch_names']:
                 entr = (', '.join(b for ii, b in enumerate(v) if ii < 10)
                         if v else '0 items')
-                if len(entr) >= 56:
+                if len(v) > 10:
                     # get rid of of half printed ch names
                     entr = _summarize_str(entr)
             elif k == 'filename' and v:
@@ -544,7 +544,8 @@ def read_info(fname, verbose=None):
     fname : str
         File name.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -599,7 +600,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         Should only be needed for old files where we did not check bads
         before saving.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1329,7 +1331,8 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         to match those in the first item. Use at your own risk, as this
         may overwrite important metadata.
     verbose : bool, str, int, or NonIe
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

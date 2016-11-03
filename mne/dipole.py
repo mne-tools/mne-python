@@ -177,7 +177,9 @@ class Dipole(object):
         colors: list of colors | None
             Color to plot with each dipole. If None defaults colors are used.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -292,7 +294,8 @@ class DipoleFixed(object):
     comment : str
         The dipole comment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -338,7 +341,9 @@ class DipoleFixed(object):
             ``'.fif.gz'`` to make it explicit that the file contains
             dipole information in FIF format.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
         """
         check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz'),
                     ('.fif', '.fif.gz'))
@@ -375,7 +380,8 @@ def read_dipole(fname, verbose=None):
     fname : str
         The name of the .dip or .fif file.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -830,7 +836,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         .. versionadded:: 0.12
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

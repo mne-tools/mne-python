@@ -41,7 +41,7 @@ _data_path_doc = """Get path to local copy of {name} dataset.
         '' (empty string). This is mostly used for debugging purposes
         and can be safely ignored by most users.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`).
 
     Returns
     -------

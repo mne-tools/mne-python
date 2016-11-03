@@ -375,7 +375,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     gof_limit : float
         Minimum goodness of fit to accept.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -572,7 +573,8 @@ def filter_chpi(raw, include_line=True, verbose=None):
     include_line : bool
         If True, also filter line noise.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

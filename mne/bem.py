@@ -284,7 +284,8 @@ def make_bem_solution(surfs, verbose=None):
     surfs : list of dict
         The BEM surfaces to use (`from make_bem_model`)
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -516,7 +517,8 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -715,7 +717,8 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     sigmas : array-like
         Sigma values for the spherical shells.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -831,7 +834,8 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
         .. versionadded:: 0.12
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1196,7 +1200,8 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
         An error will be raised if it doesn't exist. If None, all
         surfaces are read and returned.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1329,7 +1334,8 @@ def read_bem_solution(fname, verbose=None):
     fname : string
         The file containing the BEM solution.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1579,7 +1585,8 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -1726,7 +1733,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         .. versionadded:: 0.13.0
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----

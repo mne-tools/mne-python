@@ -652,8 +652,11 @@ class deprecated(object):
 def verbose(function, *args, **kwargs):
     """Verbose decorator to allow functions to override log-level.
 
-    Do not call this directly to set global verbosity level, instead use
-    set_log_level().
+    This decorator is used to set the verbose level during a function or method
+    call, such as :func:`mne.compute_covariance`. The `verbose` keyword
+    argument can be 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', True (an
+    alias for 'INFO'), or False (an alias for 'WARNING'). To set the global
+    verbosity level for all functions, use :func:`mne.set_log_level`.
 
     Parameters
     ----------
@@ -664,7 +667,22 @@ def verbose(function, *args, **kwargs):
     -------
     dec : function
         The decorated function
-    """
+
+    Examples
+    --------
+    You can use the ``verbose`` argument to set the verbose level on the fly::
+        >>> import mne
+        >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')  # doctest: +SKIP
+        >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')  # doctest: +SKIP
+        Using up to 49 segments
+        Number of samples used : 5880
+        [done]
+
+    See Also
+    --------
+    set_log_level
+    set_config
+    """  # noqa: E501
     arg_names = _get_args(function)
     default_level = verbose_level = None
     if len(arg_names) > 0 and arg_names[0] == 'self':
@@ -1131,8 +1149,9 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     command : list of str | str
         Command to run as subprocess (see subprocess.Popen documentation).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to self.verbose.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        self.verbose.
     *args, **kwargs : arguments
         Additional arguments to pass to subprocess.Popen.
 
@@ -1845,7 +1864,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     timeout : float
         The URL open timeout.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py

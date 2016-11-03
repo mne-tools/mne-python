@@ -774,7 +774,8 @@ class Report(object):
         The baseline (a, b) includes both endpoints, i.e. all
         timepoints t such that a <= t <= b.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -1207,7 +1208,9 @@ class Report(object):
             What to do if a file cannot be rendered. Can be 'ignore',
             'warn' (default), or 'raise'.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
         """
         valid_errors = ['ignore', 'warn', 'raise']
         if on_error not in valid_errors:

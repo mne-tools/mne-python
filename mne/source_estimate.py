@@ -396,7 +396,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -512,8 +513,9 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Notes
         -----
@@ -944,7 +946,8 @@ class SourceEstimate(_BaseSourceEstimate):
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -987,8 +990,9 @@ class SourceEstimate(_BaseSourceEstimate):
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
         """
         if ftype not in ('stc', 'w', 'h5'):
             raise ValueError('ftype must be "stc", "w", or "h5", not "%s"'
@@ -1193,7 +1197,9 @@ class SourceEstimate(_BaseSourceEstimate):
             Instead of emitting an error, return all-zero time course for
             labels that do not have any vertices in the source estimate.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -1341,7 +1347,9 @@ class SourceEstimate(_BaseSourceEstimate):
         subjects_dir : string, or None
             Path to SUBJECTS_DIR if it is not set in the environment.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         See Also
         --------
@@ -1400,7 +1408,9 @@ class SourceEstimate(_BaseSourceEstimate):
             parameters used are subject_to and subject_from,
             and grade has to be None.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -1504,7 +1514,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -1549,8 +1560,9 @@ class VolSourceEstimate(_BaseSourceEstimate):
             File format to use. Allowed values are "stc" (default) and "w".
             The "w" format only supports a single time point.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
         """
         if ftype not in ['stc', 'w']:
             raise ValueError('ftype must be "stc" or "w", not "%s"' % ftype)
@@ -1697,7 +1709,8 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -1840,7 +1853,8 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     warn : bool
         If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2036,7 +2050,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     warn : bool
         If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2122,7 +2137,8 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     warn : bool
         If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2182,7 +2198,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     n_jobs : int
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2291,7 +2308,8 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         source space to consider neighbors. If None, immediate neighbors
         are extracted from an ico surface.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2348,7 +2366,8 @@ def grade_to_tris(grade, verbose=None):
     grade : int
         Grade of an icosahedral mesh.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2376,7 +2395,8 @@ def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
         Reassign vertex indices based on unique values. Useful
         to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2411,7 +2431,8 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2448,7 +2469,8 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
         source space to consider neighbors. If None, immediate neighbors
         are extracted from an ico surface.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2470,7 +2492,8 @@ def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
         Reassign vertex indices based on unique values. Useful
         to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2493,7 +2516,8 @@ def spatial_dist_connectivity(src, dist, verbose=None):
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2514,7 +2538,8 @@ def spatial_inter_hemi_connectivity(src, dist, verbose=None):
         Maximal Euclidean distance (in m) between vertices in one hemisphere
         compared to the other to consider neighbors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2813,7 +2838,8 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     return_generator : bool
         If True, a generator instead of a list is returned.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose` and
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

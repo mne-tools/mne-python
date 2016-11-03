@@ -38,7 +38,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
         If True, set the MNE_DATASETS_MEGSIM_PATH in mne-python
         config to the given path. If None, the user is prompted.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`).
 
     Returns
     -------
@@ -127,7 +127,7 @@ def load_data(condition='visual', data_format='raw', data_type='experimental',
         If True, set the MNE_DATASETS_MEGSIM_PATH in mne-python
         config to the given path. If None, the user is prompted.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`).
 
     Returns
     -------

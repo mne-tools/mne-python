@@ -53,7 +53,8 @@ class Raw(_BaseRaw):
         already exists). This parameter will be removed in 0.15. Use
         :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -448,7 +449,8 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
         already exists). This parameter will be removed in 0.15. Use
         :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

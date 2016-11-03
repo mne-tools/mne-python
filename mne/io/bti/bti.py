@@ -1003,7 +1003,8 @@ class RawBTi(_BaseRaw):
         ..versionadded:: 0.11
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
 
     @verbose
@@ -1361,7 +1362,8 @@ def read_raw_bti(pdf_fname, config_fname='config',
         ..versionadded:: 0.11
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

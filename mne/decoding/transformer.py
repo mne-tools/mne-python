@@ -276,7 +276,8 @@ class PSDEstimator(TransformerMixin):
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -395,8 +396,9 @@ class FilterEstimator(TransformerMixin):
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to self.verbose.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        self.verbose.
 
     See Also
     --------
@@ -645,8 +647,9 @@ class TemporalFilter(TransformerMixin):
         The window to use in FIR design, can be "hamming", "hann",
         or "blackman".
     verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to self.verbose.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        self.verbose.
 
     See Also
     --------

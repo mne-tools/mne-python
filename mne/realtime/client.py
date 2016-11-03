@@ -81,18 +81,15 @@ class RtClient(object):
     ----------
     host : str
         Hostname (or IP address) of the host where mne_rt_server is running.
-
     cmd_port : int
         Port to use for the command connection.
-
     data_port : int
         Port to use for the data connection.
-
     timeout : float
         Communication timeout in seconds.
-
     verbose : bool, str, int, or None
-        Log verbosity see mne.verbose.
+        Log verbosity (see :func:`mne.verbose` and
+        :ref:`Logging documentation <tut_logging>` for more).
     """
 
     @verbose

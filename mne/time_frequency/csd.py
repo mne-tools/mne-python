@@ -100,7 +100,8 @@ def csd_epochs(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         List of projectors to use in CSD calculation, or None to indicate that
         the projectors from the epochs should be inherited.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -253,7 +254,7 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
         Only use tapers with more than 90% spectral concentration within
         bandwidth. Only used in 'multitaper' mode.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`).
 
     Returns
     -------

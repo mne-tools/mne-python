@@ -85,7 +85,8 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         This quantity indicates if the bias should be computed.
         Defaults to True.
     verbose : bool, str, int, or None
-        If not None, override default verbosity level (see mne.verbose).
+        If not None, override default verbosity level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
