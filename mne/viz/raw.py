@@ -48,7 +48,7 @@ def _plot_update_raw_proj(params, bools):
 def _update_raw_data(params):
     """Deal with time or proj changed."""
     from scipy.signal import filtfilt
-    start = params['t_start']
+    start = params['t_start'] - params['raw'].first_samp / float(params['raw'].info['sfreq'])
     stop = params['raw'].time_as_index(start + params['duration'])[0]
     start = params['raw'].time_as_index(start)[0]
     data_picks = _pick_data_channels(params['raw'].info)
@@ -297,6 +297,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # set up projection and data parameters
     duration = min(raw.times[-1], float(duration))
+    start += raw.first_samp / float(raw.info['sfreq'])
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,
@@ -753,7 +754,8 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
     params['hsel_patch'] = hsel_patch
-    ax_hscroll.set_xlim(0, params['n_times'] / float(info['sfreq']))
+    ax_hscroll.set_xlim(params['raw'].first_samp / float(info['sfreq']),
+                        (params['raw'].first_samp + params['n_times']) / float(info['sfreq']))
 
     ax_vscroll.set_title('Ch.')
 
@@ -808,7 +810,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
 
             # subtraction here gets corect orientation for flipped ylim
             lines[ii].set_ydata(offset - this_data)
-            lines[ii].set_xdata(params['times'])
+            lines[ii].set_xdata(params['times'] + params['raw'].first_samp / float(params['raw'].info['sfreq']))
             lines[ii].set_color(this_color)
             lines[ii].set_zorder(this_z)
             vars(lines[ii])['ch_name'] = ch_name
@@ -838,7 +840,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             mask = (event_nums == ev_num) if ev_num >= 0 else ~used
             assert not np.any(used[mask])
             used[mask] = True
-            t = event_times[mask]
+            t = event_times[mask] + params['raw'].first_samp / float(params['raw'].info['sfreq'])
             if len(t) > 0:
                 xs = list()
                 ys = list()
@@ -872,8 +874,9 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             params['ax'].text((start + end) / 2., ylim[0], dscr, ha='center')
 
     # finalize plot
-    params['ax'].set_xlim(params['times'][0],
-                          params['times'][0] + params['duration'], False)
+    first_time = params['raw'].first_samp / float(params['raw'].info['sfreq'])
+    params['ax'].set_xlim(params['times'][0] + first_time,
+                          params['times'][0] + first_time + params['duration'], False)
     params['ax'].set_yticklabels(tick_list)
     if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])

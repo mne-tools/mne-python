@@ -564,11 +564,11 @@ def _channels_changed(params, len_channels):
 def _plot_raw_time(value, params):
     """Deal with changed time value."""
     info = params['info']
-    max_times = params['n_times'] / float(info['sfreq']) - params['duration']
+    max_times = (params['n_times'] + params['raw'].first_samp) / float(info['sfreq']) - params['duration']
     if value > max_times:
-        value = params['n_times'] / info['sfreq'] - params['duration']
-    if value < 0:
-        value = 0
+        value = (params['n_times'] + params['raw'].first_samp) / info['sfreq'] - params['duration']
+    if value < params['raw'].first_samp / info['sfreq']:
+        value = params['raw'].first_samp / info['sfreq']
     if params['t_start'] != value:
         params['t_start'] = value
         params['hsel_patch'].set_x(value)
