@@ -150,7 +150,7 @@ html_theme_options = {
     'navbar_links': [
         ("Get started", "getting_started"),
         ("Tutorials", "tutorials"),
-        ("Gallery", "auto_examples/index"),
+        ("Examples", "auto_examples/index"),
         ("API", "python_reference"),
         ("Manual", "manual/index"),
         ("Contribute", "contributing"),
