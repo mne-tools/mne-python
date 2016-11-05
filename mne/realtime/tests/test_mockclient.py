@@ -128,7 +128,7 @@ def test_find_events():
         assert_true(ev.comment == str(events[ii]))
     assert_true(ii == 0)
 
-    # ouput='step', consecutive=True
+    # output='step', consecutive=True
     find_events = dict(output='step', consecutive=True)
     rt_client = MockRtClient(raw)
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
@@ -149,7 +149,7 @@ def test_find_events():
     raw._data[stim_channel_idx, 1000:1005] = 5
     raw._update_times()
 
-    # min_duration=0.004, triggers in different buffers
+    # Check that we find events that start at the beginning of the buffer
     find_events = dict(consecutive=False)
     rt_client = MockRtClient(raw)
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
@@ -169,31 +169,19 @@ def test_find_events():
     raw._data[stim_channel_idx, :] = 0
     raw._data[stim_channel_idx, 997:1003] = 5
     raw._update_times()
+    for min_dur in [0.002, 0.004]:
+        find_events = dict(consecutive=False, min_duration=min_dur)
+        rt_client = MockRtClient(raw)
+        rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
+                             stim_channel='STI 014', isi_max=0.5,
+                             find_events=find_events)
+        rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10,
+                            buffer_size=1000)
+        rt_epochs.start()
+        events = [5]
+        for ii, ev in enumerate(rt_epochs.iter_evoked()):
+            assert_true(ev.comment == str(events[ii]))
+        assert_true(ii == 0)
 
-    # min_duration=0.004, triggers in different buffers
-    find_events = dict(consecutive=False, min_duration=0.004)
-    rt_client = MockRtClient(raw)
-    rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
-                         stim_channel='STI 014', isi_max=0.5,
-                         find_events=find_events)
-    rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
-    rt_epochs.start()
-    events = [5]
-    for ii, ev in enumerate(rt_epochs.iter_evoked()):
-        assert_true(ev.comment == str(events[ii]))
-    assert_true(ii == 0)
-
-    # min_duration=0.002, triggers in different buffers
-    find_events = dict(consecutive=False, min_duration=0.002)
-    rt_client = MockRtClient(raw)
-    rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
-                         stim_channel='STI 014', isi_max=0.5,
-                         find_events=find_events)
-    rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
-    rt_epochs.start()
-    events = [5]
-    for ii, ev in enumerate(rt_epochs.iter_evoked()):
-        assert_true(ev.comment == str(events[ii]))
-    assert_true(ii == 0)
 
 run_tests_if_main()

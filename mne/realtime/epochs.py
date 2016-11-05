@@ -308,7 +308,6 @@ class RtEpochs(_BaseEpochs):
         verbose = 'ERROR'
         sfreq = self.info['sfreq']
         n_samp = len(self._raw_times)
-        prev_samp = int(self._find_events_kwargs['min_samples'] - 1)
 
         # relative start and stop positions in samples
         tmin_samp = int(round(sfreq * self.tmin))
@@ -322,19 +321,35 @@ class RtEpochs(_BaseEpochs):
         # detect events
         data = np.abs(raw_buffer[self._stim_picks]).astype(np.int)
         # if there is a previous buffer check the last samples from it too
-        if self._last_buffer is not None and prev_samp > 0:
-            prev_data = self._last_buffer[self._stim_picks, -prev_samp:]
-            prev_data = np.abs(prev_data.astype(np.int))
+        # import pdb; pdb.set_trace();
+        if self._last_buffer is not None:
+            prev_data = self._last_buffer[self._stim_picks,
+                                          -raw_buffer.shape[1]:].astype(np.int)
             data = np.concatenate((prev_data, data), axis=1)
             data = np.atleast_2d(data)
-            buff_events = _find_events(data, self._first_samp - prev_samp,
+            buff_events = _find_events(data,
+                                       self._first_samp - raw_buffer.shape[1],
                                        verbose=verbose,
                                        **self._find_events_kwargs)
         else:
             data = np.atleast_2d(data)
             buff_events = _find_events(data, self._first_samp, verbose=verbose,
                                        **self._find_events_kwargs)
+
         events = self._event_backlog
+
+        # remove events before the last epoch processed
+        min_event_samp = self._first_samp - int(self._find_events_kwargs['min_samples'])
+        if len(self._event_backlog) > 0:
+            backlog_samps = np.array(self._event_backlog)[:, 0]
+            min_event_samp = backlog_samps[-1] + 1
+
+        if buff_events.shape[0] > 0:
+            valid_events_idx = buff_events[:, 0] >= min_event_samp
+            buff_events = buff_events[valid_events_idx]
+
+        # add events from this buffer to the list of events
+        # processed so far
         for event_id in self.event_id.values():
             idx = np.where(buff_events[:, -1] == event_id)[0]
             events.extend(zip(list(buff_events[idx, 0]),
