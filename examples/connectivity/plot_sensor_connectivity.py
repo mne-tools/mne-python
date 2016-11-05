@@ -29,7 +29,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 # Add a bad channel
@@ -51,7 +51,7 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 tmin = 0.0  # exclude the baseline period
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     epochs, method='pli', mode='multitaper', sfreq=sfreq, fmin=fmin, fmax=fmax,
-    faverage=True, tmin=tmin, mt_adaptive=False, n_jobs=2)
+    faverage=True, tmin=tmin, mt_adaptive=False, n_jobs=1)
 
 # the epochs contain an EOG channel, which we remove now
 ch_names = epochs.ch_names

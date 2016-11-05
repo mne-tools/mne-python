@@ -7,62 +7,54 @@
 # License: BSD (3-clause)
 
 import copy
-import warnings
 import os
 import os.path as op
 
 import numpy as np
 
 from ..constants import FIFF
-from ..open import fiff_open, _fiff_get_fid
+from ..open import fiff_open, _fiff_get_fid, _get_next_fname
 from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
-from ..tag import read_tag
+from ..tag import read_tag, read_tag_info
 from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
-from ..compensator import get_current_comp, set_current_comp, make_compensator
-from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
+from ..base import (_BaseRaw, _RawShell, _check_raw_compatibility,
+                    _check_maxshield)
+from ..utils import _mult_cal_one
 
-from ...utils import check_fname, logger, verbose
-from ...externals.six import string_types
+from ...annotations import Annotations, _combine_annotations
+from ...utils import check_fname, logger, verbose, warn
 
 
-class RawFIF(_BaseRaw):
-    """Raw data
+class Raw(_BaseRaw):
+    """Raw data in FIF format.
 
     Parameters
     ----------
-    fnames : list, or string
-        A list of the raw files to treat as a Raw instance, or a single
-        raw file. For files that have automatically been split, only the
-        name of the first file has to be specified. Filenames should end
+    fname : str
+        The raw file to load. For files that have automatically been split,
+        the split part will be automatically loaded. Filenames should end
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
         raw_tsss.fif or raw_tsss.fif.gz.
-    allow_maxshield : bool, (default False)
-        allow_maxshield if True, allow loading of data that has been
-        processed with Maxshield. Maxshield-processed data should generally
-        not be loaded directly, but should be processed using SSS first.
+    allow_maxshield : bool | str (default False)
+        If True, allow loading of data that has been recorded with internal
+        active compensation (MaxShield). Data recorded with MaxShield should
+        generally not be loaded directly, but should first be processed using
+        SSS/tSSS to remove the compensation signals that may also affect brain
+        activity. Can also be "yes" to load without eliciting a warning.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    proj : bool
-        Apply the signal space projection (SSP) operators present in
-        the file to the data. Note: Once the projectors have been
-        applied, they can no longer be removed. It is usually not
-        recommended to apply the projectors at this point as they are
-        applied automatically later on (e.g. when computing inverse
-        solutions).
-    compensation : None | int
-        If None the compensation in the data is not modified.
-        If set to n, e.g. 3, apply gradient compensation of grade n as
-        for CTF systems.
     add_eeg_ref : bool
-        If True, add average EEG reference projector (if it's not already
-        present).
+        If True, an EEG average reference will be added (unless one
+        already exists). This parameter will be removed in 0.15. Use
+        :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -77,68 +69,66 @@ class RawFIF(_BaseRaw):
     verbose : bool, str, int, or None
         See above.
     """
-    @verbose
-    def __init__(self, fnames, allow_maxshield=False, preload=False,
-                 proj=False, compensation=None, add_eeg_ref=True,
-                 verbose=None):
 
-        if not isinstance(fnames, list):
-            fnames = [fnames]
-        fnames = [op.realpath(f) for f in fnames]
+    @verbose
+    def __init__(self, fname, allow_maxshield=False, preload=False,
+                 add_eeg_ref=False, verbose=None):  # noqa: D102
+        fnames = [op.realpath(fname)]
+        del fname
         split_fnames = []
 
         raws = []
         for ii, fname in enumerate(fnames):
             do_check_fname = fname not in split_fnames
             raw, next_fname = self._read_raw_file(fname, allow_maxshield,
-                                                  preload, compensation,
-                                                  do_check_fname)
+                                                  preload, do_check_fname)
             raws.append(raw)
             if next_fname is not None:
                 if not op.exists(next_fname):
-                    logger.warning('Split raw file detected but next file %s '
-                                   'does not exist.' % next_fname)
+                    warn('Split raw file detected but next file %s does not '
+                         'exist.' % next_fname)
                     continue
-                if next_fname in fnames:
-                    # the user manually specified the split files
-                    logger.info('Note: %s is part of a split raw file. It is '
-                                'not necessary to manually specify the parts '
-                                'in this case; simply construct Raw using '
-                                'the name of the first file.' % next_fname)
-                    continue
-
                 # process this file next
                 fnames.insert(ii + 1, next_fname)
                 split_fnames.append(next_fname)
 
         _check_raw_compatibility(raws)
 
-        super(RawFIF, self).__init__(
+        super(Raw, self).__init__(
             copy.deepcopy(raws[0].info), False,
             [r.first_samp for r in raws], [r.last_samp for r in raws],
-            [r.filename for r in raws], [r._rawdir for r in raws],
-            copy.deepcopy(raws[0].comp), raws[0]._orig_comp_grade,
-            raws[0].orig_format,
-            verbose=verbose)
+            [r.filename for r in raws], [r._raw_extras for r in raws],
+            raws[0].orig_format, None, verbose=verbose)
+        from ...epochs import _dep_eeg_ref
+        add_eeg_ref = _dep_eeg_ref(add_eeg_ref)
 
         # combine information from each raw file to construct self
         if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
             eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
             self.add_proj(eeg_ref)
 
+        # combine annotations
+        self.annotations = raws[0].annotations
+        if any([r.annotations for r in raws[1:]]):
+            first_samps = list()
+            last_samps = list()
+            for r in raws:
+                first_samps = np.r_[first_samps, r.first_samp]
+                last_samps = np.r_[last_samps, r.last_samp]
+                self.annotations = _combine_annotations((self.annotations,
+                                                         r.annotations),
+                                                        last_samps,
+                                                        first_samps,
+                                                        r.info['sfreq'])
         if preload:
             self._preload_data(preload)
         else:
             self.preload = False
 
-        # setup the SSP projector
-        if proj:
-            self.apply_proj()
-
     @verbose
-    def _read_raw_file(self, fname, allow_maxshield, preload, compensation,
+    def _read_raw_file(self, fname, allow_maxshield, preload,
                        do_check_fname=True, verbose=None):
-        """Read in header information from a raw file"""
+        """Read in header information from a raw file."""
         logger.info('Opening raw data file %s...' % fname)
 
         if do_check_fname:
@@ -152,24 +142,41 @@ class RawFIF(_BaseRaw):
         ff, tree, _ = fiff_open(fname, preload=whole_file)
         with ff as fid:
             #   Read the measurement info
-            info, meas = read_meas_info(fid, tree)
+
+            info, meas = read_meas_info(fid, tree, clean_bads=True)
+
+            annotations = None
+            annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
+            if len(annot_data) > 0:
+                annot_data = annot_data[0]
+                for k in range(annot_data['nent']):
+                    kind = annot_data['directory'][k].kind
+                    pos = annot_data['directory'][k].pos
+                    orig_time = None
+                    tag = read_tag(fid, pos)
+                    if kind == FIFF.FIFF_MNE_BASELINE_MIN:
+                        onset = tag.data
+                    elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
+                        duration = tag.data - onset
+                    elif kind == FIFF.FIFF_COMMENT:
+                        description = tag.data.split(':')
+                        description = [d.replace(';', ':') for d in
+                                       description]
+                    elif kind == FIFF.FIFF_MEAS_DATE:
+                        orig_time = float(tag.data)
+                annotations = Annotations(onset, duration, description,
+                                          orig_time)
 
             #   Locate the data of interest
             raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
             if len(raw_node) == 0:
                 raw_node = dir_tree_find(meas, FIFF.FIFFB_CONTINUOUS_DATA)
-                if (len(raw_node) == 0) and allow_maxshield:
+                if (len(raw_node) == 0):
                     raw_node = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
-                    msg = ('This file contains raw Internal Active Shielding '
-                           'data. It may be distorted. Elekta recommends it be'
-                           ' run through MaxFilter to produce reliable '
-                           'results. Consider closing the file and running '
-                           'MaxFilter on the data.')
+                    if (len(raw_node) == 0):
+                        raise ValueError('No raw data in %s' % fname)
+                    _check_maxshield(allow_maxshield)
                     info['maxshield'] = True
-                    warnings.warn(msg)
-
-            if len(raw_node) == 0:
-                raise ValueError('No raw data in %s' % fname)
 
             if len(raw_node) == 1:
                 raw_node = raw_node[0]
@@ -190,6 +197,7 @@ class RawFIF(_BaseRaw):
                 tag = read_tag(fid, directory[first].pos)
                 first_samp = int(tag.data)
                 first += 1
+                _check_entry(first, nent)
 
             #   Omit initial skip
             if directory[first].kind == FIFF.FIFF_DATA_SKIP:
@@ -197,15 +205,18 @@ class RawFIF(_BaseRaw):
                 tag = read_tag(fid, directory[first].pos)
                 first_skip = int(tag.data)
                 first += 1
+                _check_entry(first, nent)
 
             raw = _RawShell()
             raw.filename = fname
             raw.first_samp = first_samp
+            raw.annotations = annotations
 
             #   Go through the remaining tags in the directory
-            rawdir = list()
+            raw_extras = list()
             nskip = 0
             orig_format = None
+
             for k in range(first, nent):
                 ent = directory[k]
                 if ent.kind == FIFF.FIFF_DATA_SKIP:
@@ -254,55 +265,19 @@ class RawFIF(_BaseRaw):
 
                     #  Do we have a skip pending?
                     if nskip > 0:
-                        rawdir.append(dict(ent=None, first=first_samp,
-                                           last=first_samp + nskip * nsamp - 1,
-                                           nsamp=nskip * nsamp))
+                        raw_extras.append(dict(
+                            ent=None, first=first_samp, nsamp=nskip * nsamp,
+                            last=first_samp + nskip * nsamp - 1))
                         first_samp += nskip * nsamp
                         nskip = 0
 
                     #  Add a data buffer
-                    rawdir.append(dict(ent=ent, first=first_samp,
-                                       last=first_samp + nsamp - 1,
-                                       nsamp=nsamp))
+                    raw_extras.append(dict(ent=ent, first=first_samp,
+                                           last=first_samp + nsamp - 1,
+                                           nsamp=nsamp))
                     first_samp += nsamp
 
-            # Try to get the next filename tag for split files
-            nodes_list = dir_tree_find(tree, FIFF.FIFFB_REF)
-            next_fname = None
-            for nodes in nodes_list:
-                next_fname = None
-                for ent in nodes['directory']:
-                    if ent.kind == FIFF.FIFF_REF_ROLE:
-                        tag = read_tag(fid, ent.pos)
-                        role = int(tag.data)
-                        if role != FIFF.FIFFV_ROLE_NEXT_FILE:
-                            next_fname = None
-                            break
-                    if ent.kind == FIFF.FIFF_REF_FILE_NAME:
-                        tag = read_tag(fid, ent.pos)
-                        next_fname = op.join(op.dirname(fname), tag.data)
-                    if ent.kind == FIFF.FIFF_REF_FILE_NUM:
-                        # Some files don't have the name, just the number. So
-                        # we construct the name from the current name.
-                        if next_fname is not None:
-                            continue
-                        next_num = read_tag(fid, ent.pos).data
-                        path, base = op.split(fname)
-                        idx = base.find('.')
-                        idx2 = base.rfind('-')
-                        if idx2 < 0 and next_num == 1:
-                            # this is the first file, which may not be numbered
-                            next_fname = op.join(
-                                path, '%s-%d.%s' % (base[:idx], next_num,
-                                                    base[idx + 1:]))
-                            continue
-                        num_str = base[idx2 + 1:idx]
-                        if not num_str.isdigit():
-                            continue
-                        next_fname = op.join(path, '%s-%d.%s' % (base[:idx2],
-                                             next_num, base[idx + 1:]))
-                if next_fname is not None:
-                    break
+            next_fname = _get_next_fname(fid, fname, tree)
 
         raw.last_samp = first_samp - 1
         raw.orig_format = orig_format
@@ -313,30 +288,15 @@ class RawFIF(_BaseRaw):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
 
         raw._cals = cals
-        raw._rawdir = rawdir
-        raw.comp = None
-        raw._orig_comp_grade = None
-
-        #   Set up the CTF compensator
-        current_comp = get_current_comp(info)
-        if current_comp is not None:
-            logger.info('Current compensation grade : %d' % current_comp)
-
-        if compensation is not None:
-            raw.comp = make_compensator(info, current_comp, compensation)
-            if raw.comp is not None:
-                logger.info('Appropriate compensator added to change to '
-                            'grade %d.' % (compensation))
-                raw._orig_comp_grade = current_comp
-                set_current_comp(info, compensation)
-
+        raw._raw_extras = raw_extras
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     raw.first_samp, raw.last_samp,
                     float(raw.first_samp) / info['sfreq'],
                     float(raw.last_samp) / info['sfreq']))
 
         # store the original buffer size
-        info['buffer_size_sec'] = (np.median([r['nsamp'] for r in rawdir]) /
+        info['buffer_size_sec'] = (np.median([r['nsamp']
+                                              for r in raw_extras]) /
                                    info['sfreq'])
 
         raw.info = info
@@ -346,95 +306,53 @@ class RawFIF(_BaseRaw):
 
         return raw, next_fname
 
-    @verbose
-    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
-                      projector=None, verbose=None):
-        """Read a chunk of raw data"""
-        #  Initial checks
-        start = int(start)
-        stop = self.n_times if stop is None else min([int(stop), self.n_times])
+    @property
+    def _dtype(self):
+        """Get the dtype to use to store data from disk."""
+        if self._dtype_ is not None:
+            return self._dtype_
+        dtype = None
+        for raw_extra, filename in zip(self._raw_extras, self._filenames):
+            for this in raw_extra:
+                if this['ent'] is not None:
+                    with _fiff_get_fid(filename) as fid:
+                        fid.seek(this['ent'].pos, 0)
+                        tag = read_tag_info(fid)
+                        if tag is not None:
+                            if tag.type in (FIFF.FIFFT_COMPLEX_FLOAT,
+                                            FIFF.FIFFT_COMPLEX_DOUBLE):
+                                dtype = np.complex128
+                            else:
+                                dtype = np.float64
+                    if dtype is not None:
+                        break
+            if dtype is not None:
+                break
+        if dtype is None:
+            raise RuntimeError('bug in reading')
+        self._dtype_ = dtype
+        return dtype
 
-        if start >= stop:
-            raise ValueError('No data in this range')
-
-        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
-                    (start, stop - 1, start / float(self.info['sfreq']),
-                     (stop - 1) / float(self.info['sfreq'])))
-
-        #  Initialize the data and calibration vector
-        nchan = self.info['nchan']
-
-        n_sel_channels = nchan if sel is None else len(sel)
-        # convert sel to a slice if possible for efficiency
-        if sel is not None and len(sel) > 1 and np.all(np.diff(sel) == 1):
-            sel = slice(sel[0], sel[-1] + 1)
-        idx = slice(None, None, None) if sel is None else sel
-        data_shape = (n_sel_channels, stop - start)
-        if isinstance(data_buffer, np.ndarray):
-            if data_buffer.shape != data_shape:
-                raise ValueError('data_buffer has incorrect shape')
-            data = data_buffer
-        else:
-            data = None  # we will allocate it later, once we know the type
-
-        mult = list()
-        for ri in range(len(self._first_samps)):
-            mult.append(np.diag(self._cals.ravel()))
-            if self.comp is not None:
-                mult[ri] = np.dot(self.comp, mult[ri])
-            if projector is not None:
-                mult[ri] = np.dot(projector, mult[ri])
-            mult[ri] = mult[ri][idx]
-
-        # deal with having multiple files accessed by the raw object
-        cumul_lens = np.concatenate(([0], np.array(self._raw_lengths,
-                                                   dtype='int')))
-        cumul_lens = np.cumsum(cumul_lens)
-        files_used = np.logical_and(np.less(start, cumul_lens[1:]),
-                                    np.greater_equal(stop - 1,
-                                                     cumul_lens[:-1]))
-
-        first_file_used = False
-        s_off = 0
-        dest = 0
-        if isinstance(idx, slice):
-            cals = self._cals.ravel()[idx][:, np.newaxis]
-        else:
-            cals = self._cals.ravel()[:, np.newaxis]
-
-        for fi in np.nonzero(files_used)[0]:
-            start_loc = self._first_samps[fi]
-            # first iteration (only) could start in the middle somewhere
-            if not first_file_used:
-                first_file_used = True
-                start_loc += start - cumul_lens[fi]
-            stop_loc = np.min([stop - 1 - cumul_lens[fi] +
-                               self._first_samps[fi], self._last_samps[fi]])
-            if start_loc < self._first_samps[fi]:
-                raise ValueError('Bad array indexing, could be a bug')
-            if stop_loc > self._last_samps[fi]:
-                raise ValueError('Bad array indexing, could be a bug')
-            if stop_loc < start_loc:
-                raise ValueError('Bad array indexing, could be a bug')
-            len_loc = stop_loc - start_loc + 1
-            fid = _fiff_get_fid(self._filenames[fi])
-
-            for this in self._rawdirs[fi]:
-
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        """Read a segment of data from a file."""
+        stop -= 1
+        offset = 0
+        with _fiff_get_fid(self._filenames[fi]) as fid:
+            for this in self._raw_extras[fi]:
                 #  Do we need this buffer
-                if this['last'] >= start_loc:
+                if this['last'] >= start:
                     #  The picking logic is a bit complicated
-                    if stop_loc > this['last'] and start_loc < this['first']:
+                    if stop > this['last'] and start < this['first']:
                         #    We need the whole buffer
                         first_pick = 0
                         last_pick = this['nsamp']
                         logger.debug('W')
 
-                    elif start_loc >= this['first']:
-                        first_pick = start_loc - this['first']
-                        if stop_loc <= this['last']:
+                    elif start >= this['first']:
+                        first_pick = start - this['first']
+                        if stop <= this['last']:
                             #   Something from the middle
-                            last_pick = this['nsamp'] + stop_loc - this['last']
+                            last_pick = this['nsamp'] + stop - this['last']
                             logger.debug('M')
                         else:
                             #   From the middle to the end
@@ -443,7 +361,7 @@ class RawFIF(_BaseRaw):
                     else:
                         #    From the beginning to the middle
                         first_pick = 0
-                        last_pick = stop_loc - this['first'] + 1
+                        last_pick = stop - this['first'] + 1
                         logger.debug('B')
 
                     #   Now we are ready to pick
@@ -452,123 +370,96 @@ class RawFIF(_BaseRaw):
                         # only read data if it exists
                         if this['ent'] is not None:
                             one = read_tag(fid, this['ent'].pos,
-                                           shape=(this['nsamp'], nchan),
+                                           shape=(this['nsamp'],
+                                                  self.info['nchan']),
                                            rlims=(first_pick, last_pick)).data
-                            if np.isrealobj(one):
-                                dtype = np.float
-                            else:
-                                dtype = np.complex128
-                            one.shape = (picksamp, nchan)
-                            one = one.T.astype(dtype)
-                            # use proj + cal factors in mult
-                            if mult is not None:
-                                one[idx] = np.dot(mult[fi], one)
-                            else:  # apply just the calibration factors
-                                # this logic is designed to limit memory copies
-                                if isinstance(idx, slice):
-                                    # This is a view operation, so it's fast
-                                    one[idx] *= cals
-                                else:
-                                    # Extra operations are actually faster here
-                                    # than creating a new array
-                                    # (fancy indexing)
-                                    one *= cals
-
-                            # if not already done, allocate array with
-                            # right type
-                            data = _allocate_data(data, data_buffer,
-                                                  data_shape, dtype)
-                            if isinstance(idx, slice):
-                                # faster to slice in data than doing
-                                # one = one[idx] sooner
-                                data[:, dest:(dest + picksamp)] = one[idx]
-                            else:
-                                # faster than doing one = one[idx]
-                                data_view = data[:, dest:(dest + picksamp)]
-                                for ii, ix in enumerate(idx):
-                                    data_view[ii] = one[ix]
-                        dest += picksamp
+                            one.shape = (picksamp, self.info['nchan'])
+                            _mult_cal_one(data[:, offset:(offset + picksamp)],
+                                          one.T, idx, cals, mult)
+                        offset += picksamp
 
                 #   Done?
-                if this['last'] >= stop_loc:
-                    # if not already done, allocate array with float dtype
-                    data = _allocate_data(data, data_buffer, data_shape,
-                                          np.float)
+                if this['last'] >= stop:
                     break
 
-            fid.close()  # clean it up
-            s_off += len_loc
-            # double-check our math
-            if not s_off == dest:
-                raise ValueError('Incorrect file reading')
+    def fix_mag_coil_types(self):
+        """Fix Elekta magnetometer coil types.
 
-        logger.info('[done]')
-        times = np.arange(start, stop) / self.info['sfreq']
+        Returns
+        -------
+        raw : instance of Raw
+            The raw object. Operates in place.
 
-        return data, times
+        Notes
+        -----
+        This function changes magnetometer coil types 3022 (T1: SQ20483N) and
+        3023 (T2: SQ20483-A) to 3024 (T3: SQ20950N) in the channel definition
+        records in the info structure.
+
+        Neuromag Vectorview systems can contain magnetometers with two
+        different coil sizes (3022 and 3023 vs. 3024). The systems
+        incorporating coils of type 3024 were introduced last and are used at
+        the majority of MEG sites. At some sites with 3024 magnetometers,
+        the data files have still defined the magnetometers to be of type
+        3022 to ensure compatibility with older versions of Neuromag software.
+        In the MNE software as well as in the present version of Neuromag
+        software coil type 3024 is fully supported. Therefore, it is now safe
+        to upgrade the data files to use the true coil type.
+
+        .. note:: The effect of the difference between the coil sizes on the
+                  current estimates computed by the MNE software is very small.
+                  Therefore the use of mne_fix_mag_coil_types is not mandatory.
+        """
+        from ...channels import fix_mag_coil_types
+        fix_mag_coil_types(self.info)
+        return self
 
 
-def _allocate_data(data, data_buffer, data_shape, dtype):
-    if data is None:
-        # if not already done, allocate array with right type
-        if isinstance(data_buffer, string_types):
-            # use a memmap
-            data = np.memmap(data_buffer, mode='w+',
-                             dtype=dtype, shape=data_shape)
-        else:
-            data = np.zeros(data_shape, dtype=dtype)
-    return data
+def _check_entry(first, nent):
+    """Sanity check entries."""
+    if first >= nent:
+        raise IOError('Could not read data, perhaps this is a corrupt file')
 
 
-def read_raw_fif(fnames, allow_maxshield=False, preload=False,
-                 proj=False, compensation=None, add_eeg_ref=True,
-                 verbose=None):
-    """Reader function for Raw FIF data
+def read_raw_fif(fname, allow_maxshield=False, preload=False,
+                 add_eeg_ref=False, verbose=None):
+    """Reader function for Raw FIF data.
 
     Parameters
     ----------
-    fnames : list, or string
-        A list of the raw files to treat as a Raw instance, or a single
-        raw file. For files that have automatically been split, only the
-        name of the first file has to be specified. Filenames should end
+    fname : str
+        The raw file to load. For files that have automatically been split,
+        the split part will be automatically loaded. Filenames should end
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
         raw_tsss.fif or raw_tsss.fif.gz.
-    allow_maxshield : bool, (default False)
-        allow_maxshield if True, allow loading of data that has been
-        processed with Maxshield. Maxshield-processed data should generally
-        not be loaded directly, but should be processed using SSS first.
+    allow_maxshield : bool | str (default False)
+        If True, allow loading of data that has been recorded with internal
+        active compensation (MaxShield). Data recorded with MaxShield should
+        generally not be loaded directly, but should first be processed using
+        SSS/tSSS to remove the compensation signals that may also affect brain
+        activity. Can also be "yes" to load without eliciting a warning.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    proj : bool
-        Apply the signal space projection (SSP) operators present in
-        the file to the data. Note: Once the projectors have been
-        applied, they can no longer be removed. It is usually not
-        recommended to apply the projectors at this point as they are
-        applied automatically later on (e.g. when computing inverse
-        solutions).
-    compensation : None | int
-        If None the compensation in the data is not modified.
-        If set to n, e.g. 3, apply gradient compensation of grade n as
-        for CTF systems.
     add_eeg_ref : bool
-        If True, add average EEG reference projector (if it's not already
-        present).
+        If True, an EEG average reference will be added (unless one
+        already exists). This parameter will be removed in 0.15. Use
+        :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
-    raw : Instance of RawFIF
+    raw : instance of Raw
         A Raw object containing FIF data.
 
     Notes
     -----
     .. versionadded:: 0.9.0
     """
-    return RawFIF(fnames=fnames, allow_maxshield=allow_maxshield,
-                  preload=preload, proj=proj, compensation=compensation,
-                  add_eeg_ref=add_eeg_ref, verbose=verbose)
+    return Raw(fname=fname, allow_maxshield=allow_maxshield,
+               preload=preload, add_eeg_ref=add_eeg_ref, verbose=verbose)

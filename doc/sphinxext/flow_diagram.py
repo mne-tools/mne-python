@@ -119,7 +119,7 @@ def generate_flow_diagram(app):
                                '<BR ALIGN="LEFT"/>'.join(edge[2].split('\n')) +
                                '<BR ALIGN="LEFT"/></I>>')
         e.attr['fontsize'] = edge_size
-    g.get_node
+
     # Change colors
     for these_nodes, color in zip((sensor_space, source_space),
                                   (sensor_color, source_color)):
@@ -160,7 +160,7 @@ def generate_flow_diagram(app):
 # This is useful for testing/iterating to see what the result looks like
 if __name__ == '__main__':
     from mne.io.constants import Bunch
-    out_dir = op.abspath(op.join(op.dirname(__file__), '..', 'build', 'html'))
+    out_dir = op.abspath(op.join(op.dirname(__file__), '..', '_build', 'html'))
     app = Bunch(builder=Bunch(outdir=out_dir,
                               config=Bunch(make_flow_diagram=True)))
     g = generate_flow_diagram(app)

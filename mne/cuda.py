@@ -3,9 +3,9 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy.fftpack import fft, ifft
+from scipy.fftpack import fft, ifft, rfft, irfft
 
-from .utils import sizeof_fmt, logger, get_config
+from .utils import sizeof_fmt, logger, get_config, warn, _explain_exception
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
@@ -13,8 +13,20 @@ _cuda_capable = False
 _multiply_inplace_c128 = _halve_c128 = _real_c128 = None
 
 
+def _get_cudafft():
+    """Deal with scikit-cuda namespace change."""
+    try:
+        from skcuda import fft
+    except ImportError:
+        try:
+            from scikits.cuda import fft
+        except ImportError:
+            fft = None
+    return fft
+
+
 def get_cuda_memory():
-    """Get the amount of free memory for CUDA operations
+    """Get the amount of free memory for CUDA operations.
 
     Returns
     -------
@@ -22,7 +34,7 @@ def get_cuda_memory():
         The amount of available memory as a human-readable string.
     """
     if not _cuda_capable:
-        logger.warning('CUDA not enabled, returning zero for memory')
+        warn('CUDA not enabled, returning zero for memory')
         mem = 0
     else:
         from pycuda.driver import mem_get_info
@@ -31,7 +43,7 @@ def get_cuda_memory():
 
 
 def init_cuda(ignore_config=False):
-    """Initialize CUDA functionality
+    """Initialize CUDA functionality.
 
     This function attempts to load the necessary interfaces
     (hardware connectivity) to run CUDA-based filtering. This
@@ -52,24 +64,22 @@ def init_cuda(ignore_config=False):
     # Triage possible errors for informative messaging
     _cuda_capable = False
     try:
-        from pycuda import gpuarray, driver  # noqa
+        from pycuda import gpuarray, driver  # noqa: F401
         from pycuda.elementwise import ElementwiseKernel
     except ImportError:
-        logger.warning('module pycuda not found, CUDA not enabled')
+        warn('module pycuda not found, CUDA not enabled')
         return
     try:
         # Initialize CUDA; happens with importing autoinit
-        import pycuda.autoinit  # noqa
+        import pycuda.autoinit  # noqa: F401
     except ImportError:
-        logger.warning('pycuda.autoinit could not be imported, likely '
-                       'a hardware error, CUDA not enabled')
+        warn('pycuda.autoinit could not be imported, likely a hardware error, '
+             'CUDA not enabled%s' % _explain_exception())
         return
-    # Make sure scikits.cuda is installed
-    try:
-        from scikits.cuda import fft as cudafft
-    except ImportError:
-        logger.warning('module scikits.cuda not found, CUDA not '
-                       'enabled')
+    # Make sure scikit-cuda is installed
+    cudafft = _get_cudafft()
+    if cudafft is None:
+        warn('module scikit-cuda not found, CUDA not enabled')
         return
 
     # let's construct our own CUDA multiply in-place function
@@ -84,9 +94,9 @@ def init_cuda(ignore_config=False):
     # Make sure we can use 64-bit FFTs
     try:
         cudafft.Plan(16, np.float64, np.complex128)  # will get auto-GC'ed
-    except:
-        logger.warning('Device does not support 64-bit FFTs, '
-                       'CUDA not enabled')
+    except Exception:
+        warn('Device does not appear to support 64-bit FFTs, CUDA not '
+             'enabled%s' % _explain_exception())
         return
     _cuda_capable = True
     # Figure out limit for CUDA FFT calculations
@@ -97,7 +107,7 @@ def init_cuda(ignore_config=False):
 # Repeated FFT multiplication
 
 def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
-    """Set up repeated CUDA FFT multiplication with a given filter
+    """Set up repeated CUDA FFT multiplication with a given filter.
 
     Parameters
     ----------
@@ -146,7 +156,7 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
         init_cuda()
         if _cuda_capable:
             from pycuda import gpuarray
-            from scikits.cuda import fft as cudafft
+            cudafft = _get_cudafft()
             # set up all arrays necessary for CUDA
             # try setting up for float64
             try:
@@ -160,10 +170,10 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
                     x_fft=gpuarray.empty(cuda_fft_len, np.complex128),
                     x=gpuarray.empty(int(n_fft), np.float64))
                 logger.info('Using CUDA for FFT FIR filtering')
-            except Exception:
+            except Exception as exp:
                 logger.info('CUDA not used, could not instantiate memory '
-                            '(arrays may be too large), falling back to '
-                            'n_jobs=1')
+                            '(arrays may be too large: "%s"), falling back to '
+                            'n_jobs=1' % str(exp))
         else:
             logger.info('CUDA not used, CUDA could not be initialized, '
                         'falling back to n_jobs=1')
@@ -171,7 +181,7 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
 
 
 def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
-    """Do FFT multiplication by a filter function (possibly using CUDA)
+    """Do FFT multiplication by a filter function (possibly using CUDA).
 
     Parameters
     ----------
@@ -191,7 +201,7 @@ def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
         # do the fourier-domain operations
         x = np.real(ifft(h_fft * fft(x), overwrite_x=True)).ravel()
     else:
-        from scikits.cuda import fft as cudafft
+        cudafft = _get_cudafft()
         # do the fourier-domain operations, results in second param
         cuda_dict['x'].set(x.astype(np.float64))
         cudafft.fft(cuda_dict['x'], cuda_dict['x_fft'], cuda_dict['fft_plan'])
@@ -209,7 +219,7 @@ def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
 # FFT Resampling
 
 def setup_cuda_fft_resample(n_jobs, W, new_len):
-    """Set up CUDA FFT resampling
+    """Set up CUDA FFT resampling.
 
     Parameters
     ----------
@@ -262,7 +272,7 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
         if _cuda_capable:
             # try setting up for float64
             from pycuda import gpuarray
-            from scikits.cuda import fft as cudafft
+            cudafft = _get_cudafft()
             try:
                 # do the IFFT normalization now so we don't have to later
                 W = gpuarray.to_gpu(W[:cuda_fft_len_x]
@@ -286,21 +296,22 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
     return n_jobs, cuda_dict, W
 
 
-def fft_resample(x, W, new_len, npad, to_remove,
+def fft_resample(x, W, new_len, npads, to_removes,
                  cuda_dict=dict(use_cuda=False)):
-    """Do FFT resampling with a filter function (possibly using CUDA)
+    """Do FFT resampling with a filter function (possibly using CUDA).
 
     Parameters
     ----------
     x : 1-d array
-        The array to resample.
+        The array to resample. Will be converted to float64 if necessary.
     W : 1-d array or gpuarray
         The filtering function to apply.
     new_len : int
         The size of the output array (before removing padding).
-    npad : int
-        Amount of padding to apply before resampling.
-    to_remove : int
+    npads : tuple of int
+        Amount of padding to apply to the start and end of the
+        signal before resampling.
+    to_removes : tuple of int
         Number of samples to remove after resampling.
     cuda_dict : dict
         Dictionary constructed using setup_cuda_multiply_repeated().
@@ -311,20 +322,32 @@ def fft_resample(x, W, new_len, npad, to_remove,
         Filtered version of x.
     """
     # add some padding at beginning and end to make this work a little cleaner
-    x = _smart_pad(x, npad)
+    if x.dtype != np.float64:
+        x = x.astype(np.float64)
+    x = _smart_pad(x, npads)
     old_len = len(x)
     shorter = new_len < old_len
     if not cuda_dict['use_cuda']:
         N = int(min(new_len, old_len))
-        sl_1 = slice((N + 1) // 2)
-        y_fft = np.zeros(new_len, np.complex128)
-        x_fft = fft(x).ravel() * W
+        # The below is equivalent to this, but faster
+        # sl_1 = slice((N + 1) // 2)
+        # y_fft = np.zeros(new_len, np.complex128)
+        # x_fft = fft(x).ravel() * W
+        # y_fft[sl_1] = x_fft[sl_1]
+        # sl_2 = slice(-(N - 1) // 2, None)
+        # y_fft[sl_2] = x_fft[sl_2]
+        # y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
+        x_fft = rfft(x).ravel()
+        x_fft *= W[np.arange(1, len(x) + 1) // 2].real
+        y_fft = np.zeros(new_len, np.float64)
+        sl_1 = slice(N)
         y_fft[sl_1] = x_fft[sl_1]
-        sl_2 = slice(-(N - 1) // 2, None)
-        y_fft[sl_2] = x_fft[sl_2]
-        y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
+        if min(new_len, old_len) % 2 == 0:
+            if new_len > old_len:
+                y_fft[N - 1] /= 2.
+        y = irfft(y_fft, overwrite_x=True).ravel()
     else:
-        from scikits.cuda import fft as cudafft
+        cudafft = _get_cudafft()
         cuda_dict['x'].set(np.concatenate((x, np.zeros(max(new_len - old_len,
                                                            0), x.dtype))))
         # do the fourier-domain operations, results put in second param
@@ -345,10 +368,10 @@ def fft_resample(x, W, new_len, npad, to_remove,
         y = cuda_dict['x'].get()[:new_len if shorter else None]
 
     # now let's trim it back to the correct size (if there was padding)
-    if to_remove > 0:
+    if (to_removes > 0).any():
         keep = np.ones((new_len), dtype='bool')
-        keep[:to_remove] = False
-        keep[-to_remove:] = False
+        keep[:to_removes[0]] = False
+        keep[-to_removes[1]:] = False
         y = np.compress(keep, y)
 
     return y
@@ -359,9 +382,13 @@ def fft_resample(x, W, new_len, npad, to_remove,
 
 # this has to go in mne.cuda instead of mne.filter to avoid import errors
 def _smart_pad(x, n_pad):
-    """Pad vector x
-    """
+    """Pad vector x."""
+    if (n_pad == 0).all():
+        return x
+    elif (n_pad < 0).any():
+        raise RuntimeError('n_pad must be non-negative')
     # need to pad with zeros if len(x) <= npad
-    z_pad = np.zeros(max(n_pad - len(x) + 1, 0), dtype=x.dtype)
-    return np.r_[z_pad, 2 * x[0] - x[n_pad:0:-1], x,
-                 2 * x[-1] - x[-2:-n_pad - 2:-1], z_pad]
+    l_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
+    r_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
+    return np.concatenate([l_z_pad, 2 * x[0] - x[n_pad[0]:0:-1], x,
+                           2 * x[-1] - x[-2:-n_pad[1] - 2:-1], r_z_pad])

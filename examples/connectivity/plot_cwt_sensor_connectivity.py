@@ -6,11 +6,11 @@ Compute seed based time-frequency connectivity in sensor space
 Computes the connectivity between a seed-gradiometer close to the visual cortex
 and all other gradiometers. The connectivity is computed in the time-frequency
 domain using Morlet wavelets and the debiased Squared Weighted Phase Lag Index
-[1] is used as connectivity metric.
+[1]_ is used as connectivity metric.
 
-[1] Vinck et al. "An improved index of phase-synchronization for electro-
-    physiological data in the presence of volume-conduction, noise and
-    sample-size bias" NeuroImage, vol. 55, no. 4, pp. 1548-1565, Apr. 2011.
+.. [1] Vinck et al. "An improved index of phase-synchronization for electro-
+       physiological data in the presence of volume-conduction, noise and
+       sample-size bias" NeuroImage, vol. 55, no. 4, pp. 1548-1565, Apr. 2011.
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
@@ -33,7 +33,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 # Add a bad channel
@@ -67,7 +67,7 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 con, freqs, times, _, _ = spectral_connectivity(
     epochs, indices=indices,
     method='wpli2_debiased', mode='cwt_morlet', sfreq=sfreq,
-    cwt_frequencies=cwt_frequencies, cwt_n_cycles=cwt_n_cycles, n_jobs=2)
+    cwt_frequencies=cwt_frequencies, cwt_n_cycles=cwt_n_cycles, n_jobs=1)
 
 # Mark the seed channel with a value of 1.0, so we can see it in the plot
 con[np.where(indices[1] == seed)] = 1.0

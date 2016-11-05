@@ -9,50 +9,69 @@ import os.path as op
 import inspect
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_equal, assert_raises
+from nose.tools import assert_equal, assert_raises, assert_true
+from scipy import linalg
 import scipy.io
 
-from mne import pick_types, concatenate_raws, Epochs, read_events
-from mne.utils import _TempDir
-from mne.io import Raw
-from mne.io import read_raw_kit, read_epochs_kit
+from mne import pick_types, Epochs, find_events, read_events
+from mne.transforms import apply_trans
+from mne.tests.common import assert_dig_allclose
+from mne.utils import run_tests_if_main
+from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
+from mne.io.kit.constants import KIT, KIT_CONSTANTS, KIT_NY, KIT_UMD_2014
+from mne.io.tests.test_raw import _test_raw_reader
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
 data_dir = op.join(parent_dir, 'data')
 sqd_path = op.join(data_dir, 'test.sqd')
+sqd_umd_path = op.join(data_dir, 'test_umd-raw.sqd')
 epochs_path = op.join(data_dir, 'test-epoch.raw')
 events_path = op.join(data_dir, 'test-eve.txt')
 mrk_path = op.join(data_dir, 'test_mrk.sqd')
 mrk2_path = op.join(data_dir, 'test_mrk_pre.sqd')
 mrk3_path = op.join(data_dir, 'test_mrk_post.sqd')
-elp_path = op.join(data_dir, 'test_elp.txt')
-hsp_path = op.join(data_dir, 'test_hsp.txt')
+elp_txt_path = op.join(data_dir, 'test_elp.txt')
+hsp_txt_path = op.join(data_dir, 'test_hsp.txt')
+elp_path = op.join(data_dir, 'test.elp')
+hsp_path = op.join(data_dir, 'test.hsp')
 
 
 def test_data():
-    """Test reading raw kit files
-    """
+    """Test reading raw kit files."""
     assert_raises(TypeError, read_raw_kit, epochs_path)
     assert_raises(TypeError, read_epochs_kit, sqd_path)
-    assert_raises(ValueError, read_raw_kit, sqd_path, mrk_path, elp_path)
+    assert_raises(ValueError, read_raw_kit, sqd_path, mrk_path, elp_txt_path)
     assert_raises(ValueError, read_raw_kit, sqd_path, None, None, None,
                   list(range(200, 190, -1)))
     assert_raises(ValueError, read_raw_kit, sqd_path, None, None, None,
                   list(range(167, 159, -1)), '*', 1, True)
     # check functionality
-    _ = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_path,
-                     hsp_path)
-    raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path,
-                          stim=list(range(167, 159, -1)), slope='+',
-                          stimthresh=1, preload=True)
-    print(repr(raw_py))
+    raw_mrk = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_txt_path,
+                           hsp_txt_path)
+    raw_py = _test_raw_reader(read_raw_kit, input_fname=sqd_path, mrk=mrk_path,
+                              elp=elp_txt_path, hsp=hsp_txt_path,
+                              stim=list(range(167, 159, -1)), slope='+',
+                              stimthresh=1)
+    assert_true('RawKIT' in repr(raw_py))
+    assert_equal(raw_mrk.info['kit_system_id'], KIT.SYSTEM_NYU_2010)
+    assert_true(KIT_CONSTANTS[raw_mrk.info['kit_system_id']] is KIT_NY)
+
+    # Test stim channel
+    raw_stim = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp_txt_path,
+                            stim='<', preload=False)
+    for raw in [raw_py, raw_stim, raw_mrk]:
+        stim_pick = pick_types(raw.info, meg=False, ref_meg=False,
+                               stim=True, exclude='bads')
+        stim1, _ = raw[stim_pick]
+        stim2 = np.array(raw.read_stim_ch(), ndmin=2)
+        assert_array_equal(stim1, stim2)
 
     # Binary file only stores the sensor channels
     py_picks = pick_types(raw_py.info, exclude='bads')
     raw_bin = op.join(data_dir, 'test_bin_raw.fif')
-    raw_bin = Raw(raw_bin, preload=True)
+    raw_bin = read_raw_fif(raw_bin, preload=True)
     bin_picks = pick_types(raw_bin.info, stim=True, exclude='bads')
     data_bin, _ = raw_bin[bin_picks]
     data_py, _ = raw_py[py_picks]
@@ -69,12 +88,15 @@ def test_data():
     data_py, _ = raw_py[py_picks]
     assert_array_almost_equal(data_py, data_bin)
 
-    # Make sure concatenation works
-    raw_concat = concatenate_raws([raw_py.copy(), raw_py])
-    assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
+    # KIT-UMD data
+    _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path)
+    raw = read_raw_kit(sqd_umd_path)
+    assert_equal(raw.info['kit_system_id'], KIT.SYSTEM_UMD_2014_12)
+    assert_true(KIT_CONSTANTS[raw.info['kit_system_id']] is KIT_UMD_2014)
 
 
 def test_epochs():
+    """Test reading epoched SQD file."""
     raw = read_raw_kit(sqd_path, stim=None)
     events = read_events(events_path)
     raw_epochs = Epochs(raw, events, None, tmin=0, tmax=.099, baseline=None)
@@ -84,46 +106,43 @@ def test_epochs():
     assert_array_equal(data1, data11)
 
 
-def test_read_segment():
-    """Test writing raw kit files when preload is False
-    """
-    tempdir = _TempDir()
-    raw1 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=False)
-    raw1_file = op.join(tempdir, 'test1-raw.fif')
-    raw1.save(raw1_file, buffer_size_sec=.1, overwrite=True)
-    raw2 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=True)
-    raw2_file = op.join(tempdir, 'test2-raw.fif')
-    raw2.save(raw2_file, buffer_size_sec=.1, overwrite=True)
-    data1, times1 = raw1[0, 0:1]
+def test_raw_events():
+    """Test creating stim channel from raw SQD file."""
+    def evts(a, b, c, d, e, f=None):
+        out = [[269, a, b], [281, b, c], [1552, c, d], [1564, d, e]]
+        if f is not None:
+            out.append([2000, e, f])
+        return out
 
-    raw1 = Raw(raw1_file, preload=True)
-    raw2 = Raw(raw2_file, preload=True)
-    assert_array_equal(raw1._data, raw2._data)
-    data2, times2 = raw2[0, 0:1]
-    assert_array_almost_equal(data1, data2)
-    assert_array_almost_equal(times1, times2)
-    raw3 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=True)
-    assert_array_almost_equal(raw1._data, raw3._data)
-    raw4 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=False)
-    raw4.preload_data()
-    buffer_fname = op.join(tempdir, 'buffer')
-    assert_array_almost_equal(raw1._data, raw4._data)
-    raw5 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=buffer_fname)
-    assert_array_almost_equal(raw1._data, raw5._data)
+    raw = read_raw_kit(sqd_path)
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(255, 254, 255, 254, 255, 0))
+
+    raw = read_raw_kit(sqd_path, slope='+')
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(0, 1, 0, 1, 0))
+
+    raw = read_raw_kit(sqd_path, stim='<', slope='+')
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(0, 128, 0, 128, 0))
+
+    raw = read_raw_kit(sqd_path, stim='<', slope='+', stim_code='channel')
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(0, 160, 0, 160, 0))
+
+    raw = read_raw_kit(sqd_path, stim=range(160, 162), slope='+',
+                       stim_code='channel')
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(0, 160, 0, 160, 0))
 
 
 def test_ch_loc():
-    """Test raw kit loc
-    """
-    raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<')
-    raw_bin = Raw(op.join(data_dir, 'test_bin_raw.fif'))
+    """Test raw kit loc."""
+    raw_py = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp_txt_path,
+                          stim='<')
+    raw_bin = read_raw_fif(op.join(data_dir, 'test_bin_raw.fif'))
 
-    ch_py = raw_py._kit_info['sensor_locs'][:, :5]
+    ch_py = raw_py._raw_extras[0]['sensor_locs'][:, :5]
     # ch locs stored as m, not mm
     ch_py[:, :3] *= 1e3
     ch_sns = read_sns(op.join(data_dir, 'sns.txt'))
@@ -135,22 +154,35 @@ def test_ch_loc():
         if bin_ch['ch_name'].startswith('MEG'):
             # the stored ch locs have more precision than the sns.txt
             assert_array_almost_equal(py_ch['loc'], bin_ch['loc'], decimal=2)
-            assert_array_almost_equal(py_ch['coil_trans'],
-                                      bin_ch['coil_trans'],
-                                      decimal=2)
 
     # test when more than one marker file provided
     mrks = [mrk_path, mrk2_path, mrk3_path]
-    read_raw_kit(sqd_path, mrks, elp_path, hsp_path, preload=False)
+    read_raw_kit(sqd_path, mrks, elp_txt_path, hsp_txt_path, preload=False)
+    # this dataset does not have the equivalent set of points :(
+    raw_bin.info['dig'] = raw_bin.info['dig'][:8]
+    raw_py.info['dig'] = raw_py.info['dig'][:8]
+    assert_dig_allclose(raw_py.info, raw_bin.info)
 
 
-def test_stim_ch():
-    """Test raw kit stim ch
-    """
-    raw = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                       slope='+', preload=True)
-    stim_pick = pick_types(raw.info, meg=False, ref_meg=False,
-                           stim=True, exclude='bads')
-    stim1, _ = raw[stim_pick]
-    stim2 = np.array(raw.read_stim_ch(), ndmin=2)
-    assert_array_equal(stim1, stim2)
+def test_hsp_elp():
+    """Test KIT usage of *.elp and *.hsp files against *.txt files."""
+    raw_txt = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp_txt_path)
+    raw_elp = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
+
+    # head points
+    pts_txt = np.array([dig_point['r'] for dig_point in raw_txt.info['dig']])
+    pts_elp = np.array([dig_point['r'] for dig_point in raw_elp.info['dig']])
+    assert_array_almost_equal(pts_elp, pts_txt, decimal=5)
+
+    # transforms
+    trans_txt = raw_txt.info['dev_head_t']['trans']
+    trans_elp = raw_elp.info['dev_head_t']['trans']
+    assert_array_almost_equal(trans_elp, trans_txt, decimal=5)
+
+    # head points in device space
+    pts_txt_in_dev = apply_trans(linalg.inv(trans_txt), pts_txt)
+    pts_elp_in_dev = apply_trans(linalg.inv(trans_elp), pts_elp)
+    assert_array_almost_equal(pts_elp_in_dev, pts_txt_in_dev, decimal=5)
+
+
+run_tests_if_main()

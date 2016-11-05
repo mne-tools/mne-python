@@ -5,7 +5,7 @@ Compute coherence in source space using a MNE inverse solution
 
 This examples computes the coherence between a seed in the left
 auditory cortex and the rest of the brain based on single-trial
-MNE-dSPM inverse soltions.
+MNE-dSPM inverse solutions.
 
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
@@ -16,7 +16,6 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 from mne.minimum_norm import (apply_inverse, apply_inverse_epochs,
                               read_inverse_operator)
 from mne.connectivity import seed_target_indices, spectral_connectivity
@@ -37,7 +36,7 @@ method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
 label_lh = mne.read_label(fname_label_lh)
-raw = Raw(fname_raw)
+raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
 # Add a bad channel
@@ -49,8 +48,8 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=dict(mag=4e-12, grad=4000e-13,
-                                                    eog=150e-6))
+                    baseline=(None, 0),
+                    reject=dict(mag=4e-12, grad=4000e-13, eog=150e-6))
 
 # First, we find the most active vertex in the left auditory cortex, which
 # we will later use as seed for the connectivity computation
@@ -95,7 +94,7 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 # get 2 frequency bins
 coh, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     stcs, method='coh', mode='fourier', indices=indices,
-    sfreq=sfreq, fmin=fmin, fmax=fmax, faverage=True, n_jobs=2)
+    sfreq=sfreq, fmin=fmin, fmax=fmax, faverage=True, n_jobs=1)
 
 print('Frequencies in Hz over which coherence was averaged for alpha: ')
 print(freqs[0])

@@ -1,5 +1,4 @@
-"""Some utility functions for commands (e.g. for cmdline handling)
-"""
+"""Some utility functions for commands (e.g. for cmdline handling)."""
 
 # Authors: Yaroslav Halchenko <debian@onerussian.com>
 #
@@ -13,9 +12,8 @@ from optparse import OptionParser
 import mne
 
 
-def get_optparser(cmdpath):
-    """Create OptionParser with cmd source specific settings (e.g. prog value)
-    """
+def get_optparser(cmdpath, usage=None):
+    """Create OptionParser with cmd specific settings (e.g. prog value)."""
     command = os.path.basename(cmdpath)
     if re.match('mne_(.*).py', command):
         command = command[4:-3]
@@ -40,6 +38,6 @@ def get_optparser(cmdpath):
     parser = OptionParser(prog="mne %s" % command,
                           version=mne.__version__,
                           description=description,
-                          epilog=epilog)
+                          epilog=epilog, usage=usage)
 
     return parser

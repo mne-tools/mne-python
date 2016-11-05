@@ -31,13 +31,11 @@ The data set is available at PhysioNet [3]
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mne import Epochs, pick_types
-from mne.io import concatenate_raws
-from mne.io.edf import read_raw_edf
-from mne.datasets import eegbci
-from mne.event import find_events
-from mne.decoding import CSP
+from mne import Epochs, pick_types, find_events
 from mne.channels import read_layout
+from mne.io import concatenate_raws, read_raw_edf
+from mne.datasets import eegbci
+from mne.decoding import CSP
 
 print(__doc__)
 
@@ -55,11 +53,11 @@ raw_fnames = eegbci.load_data(subject, runs)
 raw_files = [read_raw_edf(f, preload=True) for f in raw_fnames]
 raw = concatenate_raws(raw_files)
 
-# strip channel names
-raw.info['ch_names'] = [chn.strip('.') for chn in raw.info['ch_names']]
+# strip channel names of "." characters
+raw.rename_channels(lambda x: x.strip('.'))
 
 # Apply band-pass filter
-raw.filter(7., 30., method='iir')
+raw.filter(7., 30.)
 
 events = find_events(raw, shortest_event=0, stim_channel='STI 014')
 
@@ -69,8 +67,8 @@ picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
 # Read epochs (train will be done only between 1 and 2s)
 # Testing will be done with a running classifier
 epochs = Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-                baseline=None, preload=True, add_eeg_ref=False)
-epochs_train = epochs.crop(tmin=1., tmax=2., copy=True)
+                baseline=None, preload=True)
+epochs_train = epochs.copy().crop(tmin=1., tmax=2.)
 labels = epochs.events[:, -1] - 2
 
 ###############################################################################
@@ -109,7 +107,7 @@ evoked.data = csp.patterns_.T
 evoked.times = np.arange(evoked.data.shape[0])
 
 layout = read_layout('EEG1005')
-evoked.plot_topomap(times=[0, 1, 2, 61, 62, 63], ch_type='eeg', layout=layout,
+evoked.plot_topomap(times=[0, 1, 2, 3, 4, 5], ch_type='eeg', layout=layout,
                     scale_time=1, time_format='%i', scale=1,
                     unit='Patterns (AU)', size=1.5)
 

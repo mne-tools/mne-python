@@ -17,8 +17,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
                       mt_adaptive=False, mt_low_bias=True,
                       cwt_frequencies=None, cwt_n_cycles=7, block_size=1000,
                       n_jobs=1, verbose=None):
-    """
-    Compute the Phase Slope Index (PSI) connectivity measure
+    """Compute the Phase Slope Index (PSI) connectivity measure.
 
     The PSI is an effective connectivity measure, i.e., a measure which can
     give an indication of the direction of the information flow (causality).
@@ -90,7 +89,8 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     n_jobs : int
         How many epochs to process in parallel.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

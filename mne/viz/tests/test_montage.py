@@ -5,11 +5,13 @@
 # License: Simplified BSD
 
 # Set our plotters to test mode
-import matplotlib
 import os.path as op
-matplotlib.use('Agg')  # for testing don't use X server
 
-from mne.channels import read_montage, read_dig_montage  # noqa
+import matplotlib
+
+from mne.channels import read_montage, read_dig_montage
+
+matplotlib.use('Agg')  # for testing don't use X server
 
 
 p_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit', 'tests', 'data')

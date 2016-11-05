@@ -4,17 +4,15 @@
 
 import numpy as np
 from ..evoked import Evoked
-from ..epochs import Epochs
-from ..io import Raw
-from ..utils import deprecated
+from ..epochs import _BaseEpochs
+from ..io import _BaseRaw
 from ..event import find_events
 
-from .. import pick_types
 from ..io.pick import pick_channels
 
 
 def _get_window(start, end):
-    """Return window which has length as much as parameter start - end"""
+    """Return window which has length as much as parameter start - end."""
     from scipy.signal import hann
     window = 1 - np.r_[hann(4)[:2],
                        np.ones(np.abs(end - start) - 4),
@@ -23,7 +21,7 @@ def _get_window(start, end):
 
 
 def _check_preload(inst):
-    """Check if inst.preload is False. If it is False, raising error"""
+    """Check if inst.preload is False. If it is False, raising error."""
     if inst.preload is False:
         raise RuntimeError('Modifying data of Instance is only supported '
                            'when preloading is used. Use preload=True '
@@ -31,7 +29,7 @@ def _check_preload(inst):
 
 
 def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
-    """Modify original data by using parameter data"""
+    """Modify original data by using parameter data."""
     from scipy.interpolate import interp1d
     if mode == 'linear':
         x = np.array([first_samp, last_samp])
@@ -44,71 +42,12 @@ def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
             data[picks, first_samp:last_samp] * window[np.newaxis, :]
 
 
-@deprecated('`eliminate_stim_artifact` will be deprecated '
-            'in v0.10 : Use fix_stim_artifact')
-def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
-                            tmax=0.01, mode='linear'):
-    """Eliminate stimulations artifacts from raw data
-
-    The raw object will be modified in place (no copy)
-
-    Parameters
-    ----------
-    raw : Raw object
-        raw data object.
-    events : array, shape (n_events, 3)
-        The list of events.
-    event_id : int
-        The id of the events generating the stimulation artifacts.
-    tmin : float
-        Start time of the interpolation window in seconds.
-    tmax : float
-        End time of the interpolation window in seconds.
-    mode : 'linear' | 'window'
-        way to fill the artifacted time interval.
-        'linear' does linear interpolation
-        'window' applies a (1 - hanning) window.
-
-    Returns
-    -------
-    raw: Raw object
-        raw data object.
-    """
-    from scipy.interpolate import interp1d
-    if not raw.preload:
-        raise RuntimeError('Modifying data of Raw is only supported '
-                           'when preloading is used. Use preload=True '
-                           '(or string) in the constructor.')
-    events_sel = (events[:, 2] == event_id)
-    event_start = events[events_sel, 0]
-    s_start = int(np.ceil(raw.info['sfreq'] * tmin))
-    s_end = int(np.ceil(raw.info['sfreq'] * tmax))
-
-    picks = pick_types(raw.info, meg=True, eeg=True, eog=True, ecg=True,
-                       emg=True, ref_meg=True, misc=True, chpi=True,
-                       exclude='bads', stim=False, resp=False)
-
-    if mode == 'window':
-        window = _get_window(s_start, s_end)
-
-    for k in range(len(event_start)):
-        first_samp = int(event_start[k]) - raw.first_samp + s_start
-        last_samp = int(event_start[k]) - raw.first_samp + s_end
-        data, _ = raw[picks, first_samp:last_samp]
-        if mode == 'linear':
-            x = np.array([first_samp, last_samp])
-            f = interp1d(x, data[:, (0, -1)])
-            xnew = np.arange(first_samp, last_samp)
-            interp_data = f(xnew)
-            raw[picks, first_samp:last_samp] = interp_data
-        elif mode == 'window':
-            raw[picks, first_samp:last_samp] = data * window[np.newaxis, :]
-    return raw
-
-
 def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
-                      tmax=0.01, mode='linear', stim_channel=None, copy=False):
-    """Eliminate stimulation's artifacts from instance
+                      tmax=0.01, mode='linear', stim_channel=None):
+    """Eliminate stimulation's artifacts from instance.
+
+    .. note:: This function operates in-place, consider passing
+              ``inst.copy()`` if this is not desired.
 
     Parameters
     ----------
@@ -129,8 +68,6 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         'window' applies a (1 - hanning) window.
     stim_channel : str | None
         Stim channel to use.
-    copy : bool
-        If True, data will be copied. Else data may be modified in place.
 
     Returns
     -------
@@ -139,9 +76,6 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     """
     if mode not in ('linear', 'window'):
         raise ValueError("mode has to be 'linear' or 'window' (got %s)" % mode)
-
-    if copy:
-        inst = inst.copy()
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
     s_end = int(np.ceil(inst.info['sfreq'] * tmax))
     if (mode == "window") and (s_end - s_start) < 4:
@@ -153,7 +87,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     ch_names = inst.info['ch_names']
     picks = pick_channels(ch_names, ch_names)
 
-    if isinstance(inst, Raw):
+    if isinstance(inst, _BaseRaw):
         _check_preload(inst)
         if events is None:
             events = find_events(inst, stim_channel=stim_channel)
@@ -164,13 +98,13 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         else:
             events_sel = (events[:, 2] == event_id)
         event_start = events[events_sel, 0]
-        data, _ = inst[:, :]
+        data = inst._data
         for event_idx in event_start:
             first_samp = int(event_idx) - inst.first_samp + s_start
             last_samp = int(event_idx) - inst.first_samp + s_end
             _fix_artifact(data, window, picks, first_samp, last_samp, mode)
 
-    elif isinstance(inst, Epochs):
+    elif isinstance(inst, _BaseEpochs):
         _check_preload(inst)
         if inst.reject is not None:
             raise RuntimeError('Reject is already applied. Use reject=None '

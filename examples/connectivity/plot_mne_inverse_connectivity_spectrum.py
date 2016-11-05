@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.connectivity import spectral_connectivity
 
@@ -28,7 +27,7 @@ fname_event = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
-raw = Raw(fname_raw)
+raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
 # Add a bad channel
@@ -68,7 +67,7 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     label_ts, method='wpli2_debiased', mode='multitaper', sfreq=sfreq,
-    fmin=fmin, fmax=fmax, mt_adaptive=True, n_jobs=2)
+    fmin=fmin, fmax=fmax, mt_adaptive=True, n_jobs=1)
 
 n_rows, n_cols = con.shape[:2]
 fig, axes = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)

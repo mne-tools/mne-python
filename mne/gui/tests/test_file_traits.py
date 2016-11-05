@@ -11,23 +11,23 @@ from nose.tools import assert_equal, assert_false, assert_raises, assert_true
 from mne.datasets import testing
 from mne.io.tests import data_dir as fiff_data_dir
 from mne.utils import (_TempDir, requires_mne, requires_freesurfer,
-                       requires_traits)
+                       requires_mayavi)
 
 data_path = testing.data_path(download=False)
 subjects_dir = os.path.join(data_path, 'subjects')
 bem_path = os.path.join(subjects_dir, 'sample', 'bem', 'sample-1280-bem.fif')
-raw_path = os.path.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc_raw.fif')
+inst_path = os.path.join(data_path, 'MEG', 'sample',
+                         'sample_audvis_trunc_raw.fif')
 fid_path = os.path.join(fiff_data_dir, 'fsaverage-fiducials.fif')
 
 
 @testing.requires_testing_data
-@requires_traits
+@requires_mayavi
 def test_bem_source():
-    """Test BemSource"""
-    from mne.gui._file_traits import BemSource
+    """Test SurfaceSource"""
+    from mne.gui._file_traits import SurfaceSource
 
-    bem = BemSource()
+    bem = SurfaceSource()
     assert_equal(bem.points.shape, (0, 3))
     assert_equal(bem.tris.shape, (0, 3))
 
@@ -37,7 +37,7 @@ def test_bem_source():
 
 
 @testing.requires_testing_data
-@requires_traits
+@requires_mayavi
 def test_fiducials_source():
     """Test FiducialsSource"""
     from mne.gui._file_traits import FiducialsSource
@@ -55,27 +55,27 @@ def test_fiducials_source():
 
 
 @testing.requires_testing_data
-@requires_traits
-def test_raw_source():
-    """Test RawSource"""
-    from mne.gui._file_traits import RawSource
+@requires_mayavi
+def test_inst_source():
+    """Test InstSource"""
+    from mne.gui._file_traits import InstSource
 
-    raw = RawSource()
-    assert_equal(raw.raw_fname, '-')
+    inst = InstSource()
+    assert_equal(inst.inst_fname, '-')
 
-    raw.file = raw_path
-    assert_equal(raw.raw_dir, os.path.dirname(raw_path))
+    inst.file = inst_path
+    assert_equal(inst.inst_dir, os.path.dirname(inst_path))
 
     lpa = array([[-7.13766068e-02, 0.00000000e+00, 5.12227416e-09]])
     nasion = array([[3.72529030e-09, 1.02605611e-01, 4.19095159e-09]])
     rpa = array([[7.52676800e-02, 0.00000000e+00, 5.58793545e-09]])
-    assert_allclose(raw.lpa, lpa)
-    assert_allclose(raw.nasion, nasion)
-    assert_allclose(raw.rpa, rpa)
+    assert_allclose(inst.lpa, lpa)
+    assert_allclose(inst.nasion, nasion)
+    assert_allclose(inst.rpa, rpa)
 
 
 @testing.requires_testing_data
-@requires_traits
+@requires_mayavi
 def test_subject_source():
     """Test SubjectSelector"""
     from mne.gui._file_traits import MRISubjectSource
@@ -87,7 +87,7 @@ def test_subject_source():
 
 
 @testing.requires_testing_data
-@requires_traits
+@requires_mayavi
 @requires_mne
 @requires_freesurfer
 def test_subject_source_with_fsaverage():

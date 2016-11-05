@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-"""Clean a raw file from EOG and ECG artifacts with PCA (ie SSP)
+"""Clean a raw file from EOG and ECG artifacts with PCA (ie SSP).
+
+You can do for example:
+
+$ mne clean_eog_ecg -i in_raw.fif -o clean_raw.fif -e -c
 """
 from __future__ import print_function
 
@@ -17,7 +21,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
                   ecg_proj_fname=None, eog_proj_fname=None,
                   ecg_event_fname=None, eog_event_fname=None, in_path='.',
                   quiet=False):
-    """Clean ECG from raw fif file
+    """Clean ECG from raw fif file.
 
     Parameters
     ----------
@@ -38,7 +42,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
         raise Exception("EOG and ECG cannot be both disabled")
 
     # Reading fif File
-    raw_in = mne.io.Raw(in_fif_fname)
+    raw_in = mne.io.read_raw_fif(in_fif_fname)
 
     if in_fif_fname.endswith('_raw.fif') or in_fif_fname.endswith('-raw.fif'):
         prefix = in_fif_fname[:-8]
@@ -101,6 +105,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)

@@ -5,23 +5,30 @@
 
 
 class Bunch(dict):
-    """ Container object for datasets: dictionnary-like object that
-        exposes its keys as attributes.
-    """
+    """Dictionnary-like object thatexposes its keys as attributes."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs):  # noqa: D102
         dict.__init__(self, kwargs)
         self.__dict__ = self
 
 
 class BunchConst(Bunch):
-    """Class to prevent us from re-defining constants (DRY)"""
-    def __setattr__(self, attr, val):
+    """Class to prevent us from re-defining constants (DRY)."""
+
+    def __setattr__(self, attr, val):  # noqa: D105
         if attr != '__dict__' and hasattr(self, attr):
             raise AttributeError('Attribute "%s" already set' % attr)
         super(BunchConst, self).__setattr__(attr, val)
 
 FIFF = BunchConst()
+
+#
+# FIFF version number in use
+#
+FIFF.FIFFC_MAJOR_VERSION = 1
+FIFF.FIFFC_MINOR_VERSION = 3
+FIFF.FIFFC_VERSION = FIFF.FIFFC_MAJOR_VERSION << 16 | FIFF.FIFFC_MINOR_VERSION
+
 #
 # Blocks
 #
@@ -47,8 +54,6 @@ FIFF.FIFFB_REF                = 118
 FIFF.FIFFB_SMSH_RAW_DATA      = 119
 FIFF.FIFFB_SMSH_ASPECT        = 120
 FIFF.FIFFB_HPI_SUBSYSTEM      = 121
-FIFF.FIFFB_EPOCHS             = 122
-FIFF.FIFFB_ICA                = 123
 
 FIFF.FIFFB_SPHERE             = 300   # Concentric sphere model related
 FIFF.FIFFB_BEM                = 310   # Boundary-element method
@@ -66,6 +71,7 @@ FIFF.FIFFB_MRI_SEG_REGION     = 206     # One MRI segmentation region
 FIFF.FIFFB_PROCESSING_HISTORY = 900
 FIFF.FIFFB_PROCESSING_RECORD  = 901
 
+FIFF.FIFFB_DATA_CORRECTION    = 500
 FIFF.FIFFB_CHANNEL_DECOUPLER  = 501
 FIFF.FIFFB_SSS_INFO           = 502
 FIFF.FIFFB_SSS_CAL            = 503
@@ -136,10 +142,11 @@ FIFF.FIFF_NAME           = 233          # Intended to be a short name.
 FIFF.FIFF_DESCRIPTION    = FIFF.FIFF_COMMENT # (Textual) Description of an object
 FIFF.FIFF_DIG_STRING     = 234          # String of digitized points
 FIFF.FIFF_LINE_FREQ      = 235    # Line frequency
-FIFF.FIFF_CUSTOM_REF     = 236    # Whether a custom reference was applied to the data
+
 #
 # HPI fitting program tags
 #
+FIFF.FIFF_HPI_COIL_FREQ          = 236   # HPI coil excitation frequency
 FIFF.FIFF_HPI_COIL_MOMENTS       = 240   # Estimated moment vectors for the HPI coil magnetic dipoles
 FIFF.FIFF_HPI_FIT_GOODNESS       = 241   # Three floats indicating the goodness of fit
 FIFF.FIFF_HPI_FIT_ACCEPT         = 242   # Bitmask indicating acceptance (see below)
@@ -156,20 +163,25 @@ FIFF.FIFFV_NEXT_NONE   = -1
 #
 # Channel types
 #
-FIFF.FIFFV_MEG_CH     =   1
-FIFF.FIFFV_REF_MEG_CH = 301
-FIFF.FIFFV_EEG_CH     =   2
-FIFF.FIFFV_MCG_CH     = 201
-FIFF.FIFFV_STIM_CH    =   3
-FIFF.FIFFV_EOG_CH     = 202
-FIFF.FIFFV_EMG_CH     = 302
-FIFF.FIFFV_ECG_CH     = 402
-FIFF.FIFFV_MISC_CH    = 502
-FIFF.FIFFV_RESP_CH    = 602  # Respiration monitoring
-FIFF.FIFFV_SEEG_CH    = 702  # stereotactic EEG
-FIFF.FIFFV_SYST_CH    = 900  # some system status information (on Triux systems only)
-FIFF.FIFFV_IAS_CH     = 910  # Internal Active Shielding data (maybe on Triux only)
-FIFF.FIFFV_EXCI_CH    = 920  # flux excitation channel used to be a stimulus channel
+FIFF.FIFFV_BIO_CH       = 102
+FIFF.FIFFV_MEG_CH       =   1
+FIFF.FIFFV_REF_MEG_CH   = 301
+FIFF.FIFFV_EEG_CH       =   2
+FIFF.FIFFV_MCG_CH       = 201
+FIFF.FIFFV_STIM_CH      =   3
+FIFF.FIFFV_EOG_CH       = 202
+FIFF.FIFFV_EMG_CH       = 302
+FIFF.FIFFV_ECG_CH       = 402
+FIFF.FIFFV_MISC_CH      = 502
+FIFF.FIFFV_RESP_CH      = 602  # Respiration monitoring
+FIFF.FIFFV_SEEG_CH      = 802  # stereotactic EEG
+FIFF.FIFFV_SYST_CH      = 900  # some system status information (on Triux systems only)
+FIFF.FIFFV_ECOG_CH      = 902
+FIFF.FIFFV_IAS_CH       = 910  # Internal Active Shielding data (maybe on Triux only)
+FIFF.FIFFV_EXCI_CH      = 920  # flux excitation channel used to be a stimulus channel
+FIFF.FIFFV_DIPOLE_WAVE  = 1000  # Dipole time curve (xplotter/xfit)
+FIFF.FIFFV_GOODNESS_FIT = 1001  # Goodness of fit (xplotter/xfit)
+FIFF.FIFFV_FNIRS_CH     = 1100  # Functional near-infrared spectroscopy
 
 #
 # Quaternion channels for head position monitoring
@@ -204,8 +216,7 @@ FIFF.FIFF_DATA_BUFFER    = 300    # Buffer containing measurement data
 FIFF.FIFF_DATA_SKIP      = 301    # Data skip in buffers
 FIFF.FIFF_EPOCH          = 302    # Buffer containing one epoch and channel
 FIFF.FIFF_DATA_SKIP_SAMP = 303    # Data skip in samples
-FIFF.FIFF_MNE_BASELINE_MIN   = 304    # Time of baseline beginning
-FIFF.FIFF_MNE_BASELINE_MAX   = 305    # Time of baseline end
+
 #
 # Info on subject
 #
@@ -220,6 +231,13 @@ FIFF.FIFF_SUBJ_WEIGHT       = 407  # Weight of the subject
 FIFF.FIFF_SUBJ_HEIGHT       = 408  # Height of the subject
 FIFF.FIFF_SUBJ_COMMENT      = 409  # Comment about the subject
 FIFF.FIFF_SUBJ_HIS_ID       = 410  # ID used in the Hospital Information System
+
+FIFF.FIFFV_SUBJ_HAND_RIGHT  = 1    # Righthanded
+FIFF.FIFFV_SUBJ_HAND_LEFT   = 2    # Lefthanded
+
+FIFF.FIFFV_SUBJ_SEX_UNKNOWN = 0    # Unknown gender
+FIFF.FIFFV_SUBJ_SEX_MALE    = 1    # Male
+FIFF.FIFFV_SUBJ_SEX_FEMALE  = 2    # Female
 
 FIFF.FIFF_PROJ_ID           = 500
 FIFF.FIFF_PROJ_NAME         = 501
@@ -318,6 +336,8 @@ FIFF.FIFF_PROJ_ITEM_NVEC         = 3414
 FIFF.FIFF_PROJ_ITEM_VECTORS      = 3415
 FIFF.FIFF_PROJ_ITEM_DEFINITION   = 3416
 FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST = 3417
+#   XPlotter
+FIFF.FIFF_XPLOTTER_LAYOUT        = 3501  # string - "Xplotter layout tag"
 #
 #   MRIs
 #
@@ -357,7 +377,7 @@ FIFF.FIFFV_MRI_PIXEL_BYTE_RGB_COLOR     = 6
 FIFF.FIFFV_MRI_PIXEL_BYTE_RLE_RGB_COLOR = 7
 FIFF.FIFFV_MRI_PIXEL_BIT_RLE            = 8
 #
-#   These are the MNE fiff definitions
+#   These are the MNE fiff definitions (range 350-390 reserved for MNE)
 #
 FIFF.FIFFB_MNE                    = 350
 FIFF.FIFFB_MNE_SOURCE_SPACE       = 351
@@ -381,6 +401,9 @@ FIFF.FIFFB_MNE_SURFACE_MAP_GROUP  = 364
 FIFF.FIFFB_MNE_CTF_COMP           = 370
 FIFF.FIFFB_MNE_CTF_COMP_DATA      = 371
 FIFF.FIFFB_MNE_DERIVATIONS        = 372
+
+FIFF.FIFFB_MNE_EPOCHS             = 373
+FIFF.FIFFB_MNE_ICA                = 374
 #
 # Fiff tags associated with MNE computations (3500...)
 #
@@ -477,12 +500,15 @@ FIFF.FIFF_MNE_EXTERNAL_LITTLE_ENDIAN = 3553     # Reference to an external binar
 # 3560... Miscellaneous
 #
 FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE       = 3560     # Is this projection item active?
-FIFF.FIFF_MNE_EVENT_LIST             = 3561     # An event list (for STI 014)
+FIFF.FIFF_MNE_EVENT_LIST             = 3561     # An event list (for STI101 / STI 014)
 FIFF.FIFF_MNE_HEMI                   = 3562     # Hemisphere association for general purposes
 FIFF.FIFF_MNE_DATA_SKIP_NOP          = 3563     # A data skip turned off in the raw data
 FIFF.FIFF_MNE_ORIG_CH_INFO           = 3564     # Channel information before any changes
 FIFF.FIFF_MNE_EVENT_TRIGGER_MASK     = 3565     # Mask applied to the trigger channnel values
 FIFF.FIFF_MNE_EVENT_COMMENTS         = 3566     # Event comments merged into one long string
+FIFF.FIFF_MNE_CUSTOM_REF             = 3567     # Whether a custom reference was applied to the data
+FIFF.FIFF_MNE_BASELINE_MIN           = 3568     # Time of baseline beginning
+FIFF.FIFF_MNE_BASELINE_MAX           = 3569     # Time of baseline end
 #
 # 3570... Morphing maps
 #
@@ -509,6 +535,10 @@ FIFF.FIFF_MNE_ICA_PCA_MEAN          = 3606     # PCA mean
 FIFF.FIFF_MNE_ICA_MATRIX            = 3607     # ICA unmixing matrix
 FIFF.FIFF_MNE_ICA_BADS              = 3608     # ICA bad sources
 FIFF.FIFF_MNE_ICA_MISC_PARAMS       = 3609     # ICA misc params
+#
+# Miscellaneous
+#
+FIFF.FIFF_MNE_KIT_SYSTEM_ID         = 3612     # Unique ID assigned to KIT systems
 #
 # Maxfilter tags
 #
@@ -608,30 +638,7 @@ FIFF.FIFFV_MNE_COORD_FS_TAL      = 2006         # FreeSurfer Talairach coordinat
 #
 FIFF.FIFFV_MNE_COORD_4D_HEAD     = FIFF.FIFFV_MNE_COORD_CTF_HEAD
 FIFF.FIFFV_MNE_COORD_KIT_HEAD    = FIFF.FIFFV_MNE_COORD_CTF_HEAD
-#
-# KIT system coil types
-#
-FIFF.FIFFV_COIL_KIT_GRAD         = 6001
-FIFF.FIFFV_COIL_KIT_REF_MAG      = 6002
-#
-# CTF coil and channel types
-#
-FIFF.FIFFV_COIL_CTF_GRAD             = 5001
-FIFF.FIFFV_COIL_CTF_REF_MAG          = 5002
-FIFF.FIFFV_COIL_CTF_REF_GRAD         = 5003
-FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD = 5004
-#
-# Magnes reference sensors
-#
-FIFF.FIFFV_COIL_MAGNES_REF_MAG          = 4003
-FIFF.FIFFV_COIL_MAGNES_REF_GRAD         = 4004
-FIFF.FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD = 4005
-#
-# BabySQUID sensors
-#
-FIFF.FIFFV_COIL_BABY_GRAD               = 7001
-FIFF.FIFFV_COIL_BABY_MAG                = 7002
-FIFF.FIFFV_COIL_BABY_REF_MAG            = 7003
+
 #
 #   FWD Types
 #
@@ -693,40 +700,40 @@ FIFF.FIFF_UNIT_NONE = -1
 #
 # SI base units
 #
-FIFF.FIFF_UNIT_M   = 1
-FIFF.FIFF_UNIT_KG  = 2
-FIFF.FIFF_UNIT_SEC = 3
-FIFF.FIFF_UNIT_A   = 4
-FIFF.FIFF_UNIT_K   = 5
-FIFF.FIFF_UNIT_MOL = 6
+FIFF.FIFF_UNIT_M   = 1  # meter
+FIFF.FIFF_UNIT_KG  = 2  # kilogram
+FIFF.FIFF_UNIT_SEC = 3  # second
+FIFF.FIFF_UNIT_A   = 4  # ampere
+FIFF.FIFF_UNIT_K   = 5  # Kelvin
+FIFF.FIFF_UNIT_MOL = 6  # mole
 #
 # SI Supplementary units
 #
-FIFF.FIFF_UNIT_RAD = 7
-FIFF.FIFF_UNIT_SR  = 8
+FIFF.FIFF_UNIT_RAD = 7  # radian
+FIFF.FIFF_UNIT_SR  = 8  # steradian
 #
 # SI base candela
 #
-FIFF.FIFF_UNIT_CD  = 9
+FIFF.FIFF_UNIT_CD  = 9  # candela
 #
 # SI derived units
 #
-FIFF.FIFF_UNIT_HZ  = 101
-FIFF.FIFF_UNIT_N   = 102
-FIFF.FIFF_UNIT_PA  = 103
-FIFF.FIFF_UNIT_J   = 104
-FIFF.FIFF_UNIT_W   = 105
-FIFF.FIFF_UNIT_C   = 106
-FIFF.FIFF_UNIT_V   = 107
-FIFF.FIFF_UNIT_F   = 108
-FIFF.FIFF_UNIT_OHM = 109
-FIFF.FIFF_UNIT_MHO = 110
-FIFF.FIFF_UNIT_WB  = 111
-FIFF.FIFF_UNIT_T   = 112
-FIFF.FIFF_UNIT_H   = 113
-FIFF.FIFF_UNIT_CEL = 114
-FIFF.FIFF_UNIT_LM  = 115
-FIFF.FIFF_UNIT_LX  = 116
+FIFF.FIFF_UNIT_HZ  = 101  # hertz
+FIFF.FIFF_UNIT_N   = 102  # Newton
+FIFF.FIFF_UNIT_PA  = 103  # pascal
+FIFF.FIFF_UNIT_J   = 104  # joule
+FIFF.FIFF_UNIT_W   = 105  # watt
+FIFF.FIFF_UNIT_C   = 106  # coulomb
+FIFF.FIFF_UNIT_V   = 107  # volt
+FIFF.FIFF_UNIT_F   = 108  # farad
+FIFF.FIFF_UNIT_OHM = 109  # ohm
+FIFF.FIFF_UNIT_MHO = 110  # one per ohm
+FIFF.FIFF_UNIT_WB  = 111  # weber
+FIFF.FIFF_UNIT_T   = 112  # tesla
+FIFF.FIFF_UNIT_H   = 113  # Henry
+FIFF.FIFF_UNIT_CEL = 114  # celcius
+FIFF.FIFF_UNIT_LM  = 115  # lumen
+FIFF.FIFF_UNIT_LX  = 116  # lux
 #
 # Others we need
 #
@@ -767,10 +774,15 @@ FIFF.FIFFV_COIL_EEG_BIPOLAR           = 5  # Bipolar EEG lead
 FIFF.FIFFV_COIL_DIPOLE             = 200  # Time-varying dipole definition
 # The coil info contains dipole location (r0) and
 # direction (ex)
+FIFF.FIFFV_COIL_FNIRS_HBO               = 300  # fNIRS oxyhemoglobin
+FIFF.FIFFV_COIL_FNIRS_HBR               = 301  # fNIRS deoxyhemoglobin
+
 FIFF.FIFFV_COIL_MCG_42             = 1000  # For testing the MCG software
 
-FIFF.FIFFV_COIL_POINT_MAGNETOMETER = 2000  # Simple point magnetometer
-FIFF.FIFFV_COIL_AXIAL_GRAD_5CM     = 2001  # Generic axial gradiometer
+FIFF.FIFFV_COIL_POINT_MAGNETOMETER   = 2000  # Simple point magnetometer
+FIFF.FIFFV_COIL_AXIAL_GRAD_5CM       = 2001  # Generic axial gradiometer
+FIFF.FIFFV_COIL_POINT_MAGNETOMETER_X = 2002  # Simple point magnetometer, x-direction
+FIFF.FIFFV_COIL_POINT_MAGNETOMETER_Y = 2003  # Simple point magnetometer, y-direction
 
 FIFF.FIFFV_COIL_VV_PLANAR_W        = 3011  # VV prototype wirewound planar sensor
 FIFF.FIFFV_COIL_VV_PLANAR_T1       = 3012  # Vectorview SQ20483N planar gradiometer
@@ -786,6 +798,30 @@ FIFF.FIFFV_COIL_MAGNES_GRAD        = 4002  # Magnes WH gradiometer
 FIFF.FIFFV_COIL_MAGNES_R_MAG       = 4003  # Magnes WH reference magnetometer
 FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA  = 4004  # Magnes WH reference diagonal gradioometer
 FIFF.FIFFV_COIL_MAGNES_R_GRAD_OFF  = 4005  # Magnes WH reference off-diagonal gradiometer
+#
+# Magnes reference sensors
+#
+FIFF.FIFFV_COIL_MAGNES_REF_MAG          = 4003
+FIFF.FIFFV_COIL_MAGNES_REF_GRAD         = 4004
+FIFF.FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD = 4005
+#
+# CTF coil and channel types
+#
+FIFF.FIFFV_COIL_CTF_GRAD             = 5001
+FIFF.FIFFV_COIL_CTF_REF_MAG          = 5002
+FIFF.FIFFV_COIL_CTF_REF_GRAD         = 5003
+FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD = 5004
+#
+# KIT system coil types
+#
+FIFF.FIFFV_COIL_KIT_GRAD         = 6001
+FIFF.FIFFV_COIL_KIT_REF_MAG      = 6002
+#
+# BabySQUID sensors
+#
+FIFF.FIFFV_COIL_BABY_GRAD               = 7001
+FIFF.FIFFV_COIL_BABY_MAG                = 7002
+FIFF.FIFFV_COIL_BABY_REF_MAG            = 7003
 
 # MNE RealTime
 FIFF.FIFF_MNE_RT_COMMAND           = 3700  # realtime command
@@ -794,3 +830,6 @@ FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701  # realtime client
 # MNE epochs bookkeeping
 FIFF.FIFFB_MNE_EPOCHS_SELECTION    = 3800  # the epochs selection
 FIFF.FIFFB_MNE_EPOCHS_DROP_LOG     = 3801  # the drop log
+
+# MNE annotations
+FIFF.FIFFB_MNE_ANNOTATIONS          = 3810  # annotations

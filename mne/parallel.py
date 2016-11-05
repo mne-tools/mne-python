@@ -1,17 +1,16 @@
-"""Parallel util function
-"""
+"""Parallel util function."""
 
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: Simplified BSD
 
 from .externals.six import string_types
-import inspect
 import logging
 import os
 
 from . import get_config
-from .utils import logger, verbose
+from .utils import logger, verbose, warn
+from .fixes import _get_args
 
 if 'MNE_FORCE_SERIAL' in os.environ:
     _force_serial = True
@@ -21,7 +20,7 @@ else:
 
 @verbose
 def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
-    """Return parallel instance with delayed function
+    """Return parallel instance with delayed function.
 
     Util function to use joblib only if available
 
@@ -32,8 +31,9 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
     n_jobs: int
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        INFO or DEBUG will print parallel status, others will not.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). INFO or DEBUG
+        will print parallel status, others will not.
     max_nbytes : int, str, or None
         Threshold on the minimum size of arrays passed to the workers that
         triggers automated memmory mapping. Can be an int in Bytes,
@@ -63,14 +63,14 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
         try:
             from sklearn.externals.joblib import Parallel, delayed
         except ImportError:
-            logger.warning('joblib not installed. Cannot run in parallel.')
+            warn('joblib not installed. Cannot run in parallel.')
             n_jobs = 1
             my_func = func
             parallel = list
             return parallel, my_func, n_jobs
 
     # check if joblib is recent enough to support memmaping
-    p_args = inspect.getargspec(Parallel.__init__).args
+    p_args = _get_args(Parallel.__init__)
     joblib_mmap = ('temp_folder' in p_args and 'max_nbytes' in p_args)
 
     cache_dir = get_config('MNE_CACHE_DIR', None)
@@ -79,8 +79,8 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
 
     if max_nbytes is not None:
         if not joblib_mmap and cache_dir is not None:
-            logger.warning('"MNE_CACHE_DIR" is set but a newer version of '
-                           'joblib is needed to use the memmapping pool.')
+            warn('"MNE_CACHE_DIR" is set but a newer version of joblib is '
+                 'needed to use the memmapping pool.')
         if joblib_mmap and cache_dir is None:
             logger.info('joblib supports memapping pool but "MNE_CACHE_DIR" '
                         'is not set in MNE-Python config. To enable it, use, '
@@ -104,7 +104,7 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
 
 
 def check_n_jobs(n_jobs, allow_cuda=False):
-    """Check n_jobs in particular for negative values
+    """Check n_jobs in particular for negative values.
 
     Parameters
     ----------
@@ -141,8 +141,7 @@ def check_n_jobs(n_jobs, allow_cuda=False):
         except ImportError:
             # only warn if they tried to use something other than 1 job
             if n_jobs != 1:
-                logger.warning('multiprocessing not installed. Cannot run in '
-                               'parallel.')
+                warn('multiprocessing not installed. Cannot run in parallel.')
                 n_jobs = 1
 
     return n_jobs

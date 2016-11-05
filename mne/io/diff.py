@@ -9,8 +9,9 @@ from ..utils import logger, verbose
 
 @verbose
 def is_equal(first, second, verbose=None):
-    """ Says if 2 python structures are the same. Designed to
-    handle dict, list, np.ndarray etc.
+    """Check if 2 python structures are the same.
+
+    Designed to handle dict, list, np.ndarray etc.
     """
     all_equal = True
     # Check all keys in first dict

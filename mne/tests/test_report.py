@@ -2,16 +2,19 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
+
+import glob
 import os
 import os.path as op
-import glob
-import warnings
 import shutil
+import sys
+import warnings
 
 from nose.tools import assert_true, assert_equal, assert_raises
+from nose.plugins.skip import SkipTest
 
 from mne import Epochs, read_events, pick_types, read_evokeds
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
@@ -46,8 +49,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 @testing.requires_testing_data
 @requires_PIL
 def test_render_report():
-    """Test rendering -*.fif files for mne report.
-    """
+    """Test rendering -*.fif files for mne report."""
     tempdir = _TempDir()
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
     event_fname_new = op.join(tempdir, 'temp_raw-eve.fif')
@@ -64,17 +66,20 @@ def test_render_report():
     # create and add -epo.fif and -ave.fif files
     epochs_fname = op.join(tempdir, 'temp-epo.fif')
     evoked_fname = op.join(tempdir, 'temp-ave.fif')
-    raw = Raw(raw_fname_new)
+    raw = read_raw_fif(raw_fname_new)
     picks = pick_types(raw.info, meg='mag', eeg=False)  # faster with one type
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2, picks=picks)
     epochs.save(epochs_fname)
     epochs.average().save(evoked_fname)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
+    if sys.version.startswith('3.5'):  # XXX Some strange MPL/3.5 error...
+        raise SkipTest('Python 3.5 and mpl have unresolved issues')
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         report.parse_folder(data_path=tempdir, on_error='raise')
     assert_true(len(w) >= 1)
+    assert_true(repr(report))
 
     # Check correct paths and filenames
     fnames = glob.glob(op.join(tempdir, '*.fif'))
@@ -85,6 +90,7 @@ def test_render_report():
 
     assert_equal(len(report.fnames), len(fnames))
     assert_equal(len(report.html), len(report.fnames))
+    assert_equal(len(report.fnames), len(report))
 
     # Check saving functionality
     report.data_path = tempdir
@@ -109,6 +115,7 @@ def test_render_report():
         warnings.simplefilter('always')
         report.parse_folder(data_path=tempdir, pattern=pattern)
     assert_true(len(w) >= 1)
+    assert_true(repr(report))
 
     fnames = glob.glob(op.join(tempdir, '*.raw')) + \
         glob.glob(op.join(tempdir, '*.raw'))
@@ -122,8 +129,8 @@ def test_render_report():
 @requires_mayavi
 @requires_PIL
 def test_render_add_sections():
-    """Test adding figures/images to section.
-    """
+    """Test adding figures/images to section."""
+    from PIL import Image
     tempdir = _TempDir()
     import matplotlib.pyplot as plt
     report = Report(subjects_dir=subjects_dir)
@@ -141,20 +148,23 @@ def test_render_add_sections():
     # need to recreate because calls above change size
     fig = plt.plot([1, 2], [1, 2])[0].figure
 
-    # Check add_images_to_section
+    # Check add_images_to_section with png and then gif
     img_fname = op.join(tempdir, 'testimage.png')
     fig.savefig(img_fname)
     report.add_images_to_section(fnames=[img_fname],
                                  captions=['evoked response'])
+
+    im = Image.open(img_fname)
+    op.join(tempdir, 'testimage.gif')
+    im.save(img_fname)  # matplotlib does not support gif
+    report.add_images_to_section(fnames=[img_fname],
+                                 captions=['evoked response'])
+
     assert_raises(ValueError, report.add_images_to_section,
                   fnames=[img_fname, img_fname], captions='H')
 
-    # Check deprecation of add_section
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        report.add_section(figs=fig,
-                           captions=['evoked response'])
-        assert_true(w[0].category == DeprecationWarning)
+    assert_raises(ValueError, report.add_images_to_section,
+                  fnames=['foobar.xxx'], captions='H')
 
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
@@ -163,6 +173,7 @@ def test_render_add_sections():
 
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions='random image', scale=1.2)
+    assert_true(repr(report))
 
 
 @slow_test
@@ -170,8 +181,7 @@ def test_render_add_sections():
 @requires_mayavi
 @requires_nibabel()
 def test_render_mri():
-    """Test rendering MRI for mne report.
-    """
+    """Test rendering MRI for mne report."""
     tempdir = _TempDir()
     trans_fname_new = op.join(tempdir, 'temp-trans.fif')
     for a, b in [[trans_fname, trans_fname_new]]:
@@ -183,13 +193,13 @@ def test_render_mri():
         report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*',
                             n_jobs=2)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
+    assert_true(repr(report))
 
 
 @testing.requires_testing_data
 @requires_nibabel()
 def test_render_mri_without_bem():
-    """Test rendering MRI without BEM for mne report.
-    """
+    """Test rendering MRI without BEM for mne report."""
     tempdir = _TempDir()
     os.mkdir(op.join(tempdir, 'sample'))
     os.mkdir(op.join(tempdir, 'sample', 'mri'))
@@ -206,8 +216,7 @@ def test_render_mri_without_bem():
 @testing.requires_testing_data
 @requires_nibabel()
 def test_add_htmls_to_section():
-    """Test adding html str to mne report.
-    """
+    """Test adding html str to mne report."""
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     html = '<b>MNE-Python is AWESOME</b>'
@@ -215,10 +224,35 @@ def test_add_htmls_to_section():
     report.add_htmls_to_section(html, caption, section)
     idx = report._sectionlabels.index('report_' + section)
     html_compare = report.html[idx]
-    assert_equal(html, html_compare)
+    assert_true(html in html_compare)
+    assert_true(repr(report))
+
+
+def test_add_slider_to_section():
+    """Test adding a slider with a series of images to mne report."""
+    tempdir = _TempDir()
+    from matplotlib import pyplot as plt
+    report = Report(info_fname=raw_fname,
+                    subject='sample', subjects_dir=subjects_dir)
+    section = 'slider_section'
+    figs = list()
+    figs.append(plt.figure())
+    plt.plot([1, 2, 3])
+    plt.close('all')
+    figs.append(plt.figure())
+    plt.plot([3, 2, 1])
+    plt.close('all')
+    report.add_slider_to_section(figs, section=section)
+    report.save(op.join(tempdir, 'report.html'), open_browser=False)
+
+    assert_raises(NotImplementedError, report.add_slider_to_section,
+                  [figs, figs])
+    assert_raises(ValueError, report.add_slider_to_section, figs, ['wug'])
+    assert_raises(TypeError, report.add_slider_to_section, figs, 'wug')
 
 
 def test_validate_input():
+    """Test Report input validation."""
     report = Report()
     items = ['a', 'b', 'c']
     captions = ['Letter A', 'Letter B', 'Letter C']

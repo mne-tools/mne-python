@@ -2,31 +2,30 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types
-from warnings import warn
-from inspect import getargspec, getmembers
+from functools import partial
+from inspect import getmembers
 
 import numpy as np
 from scipy.fftpack import fftfreq
 
 from .utils import check_indices
-from ..fixes import tril_indices, partial
+from ..fixes import _get_args
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
-from .. import Epochs
+from ..epochs import _BaseEpochs
 from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
-from ..utils import logger, verbose, _time_mask
+from ..utils import logger, verbose, _time_mask, warn
+from ..externals.six import string_types
 
 ########################################################################
 # Various connectivity estimators
 
 
 class _AbstractConEstBase(object):
-    """Abstract base class for all connectivity estimators, specifies
-       the interface but doesn't do anything"""
+    """ABC for connectivity estimators."""
 
     def start_epoch(self):
         raise RuntimeError('start_epoch method not implemented')
@@ -42,7 +41,8 @@ class _AbstractConEstBase(object):
 
 
 class _EpochMeanConEstBase(_AbstractConEstBase):
-    """Base class for methods that estimate connectivity as mean over epochs"""
+    """Base class for methods that estimate connectivity as mean epoch-wise."""
+
     def __init__(self, n_cons, n_freqs, n_times):
         self.n_cons = n_cons
         self.n_freqs = n_freqs
@@ -55,17 +55,18 @@ class _EpochMeanConEstBase(_AbstractConEstBase):
 
         self.con_scores = None
 
-    def start_epoch(self):
-        """This method is called at the start of each epoch"""
+    def start_epoch(self):  # noqa: D401
+        """This method is called at the start of each epoch."""
         pass  # for this type of con. method we don't do anything
 
     def combine(self, other):
-        """Include con. accumated for some epochs in this estimate"""
+        """Include con. accumated for some epochs in this estimate."""
         self._acc += other._acc
 
 
 class _CohEstBase(_EpochMeanConEstBase):
-    """Base Estimator for Coherence, Coherency, Imag. Coherence"""
+    """Base Estimator for Coherence, Coherency, Imag. Coherence."""
+
     def __init__(self, n_cons, n_freqs, n_times):
         super(_CohEstBase, self).__init__(n_cons, n_freqs, n_times)
 
@@ -73,16 +74,17 @@ class _CohEstBase(_EpochMeanConEstBase):
         self._acc = np.zeros(self.csd_shape, dtype=np.complex128)
 
     def accumulate(self, con_idx, csd_xy):
-        """Accumulate CSD for some connections"""
+        """Accumulate CSD for some connections."""
         self._acc[con_idx] += csd_xy
 
 
 class _CohEst(_CohEstBase):
-    """Coherence Estimator"""
+    """Coherence Estimator."""
+
     name = 'Coherence'
 
     def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):
-        """Compute final con. score for some connections"""
+        """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
         csd_mean = self._acc[con_idx] / n_epochs
@@ -90,11 +92,12 @@ class _CohEst(_CohEstBase):
 
 
 class _CohyEst(_CohEstBase):
-    """Coherency Estimator"""
+    """Coherency Estimator."""
+
     name = 'Coherency'
 
     def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):
-        """Compute final con. score for some connections"""
+        """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape,
                                        dtype=np.complex128)
@@ -103,11 +106,12 @@ class _CohyEst(_CohEstBase):
 
 
 class _ImCohEst(_CohEstBase):
-    """Imaginary Coherence Estimator"""
+    """Imaginary Coherence Estimator."""
+
     name = 'Imaginary Coherence'
 
     def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):
-        """Compute final con. score for some connections"""
+        """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
         csd_mean = self._acc[con_idx] / n_epochs
@@ -115,7 +119,8 @@ class _ImCohEst(_CohEstBase):
 
 
 class _PLVEst(_EpochMeanConEstBase):
-    """PLV Estimator"""
+    """PLV Estimator."""
+
     name = 'PLV'
 
     def __init__(self, n_cons, n_freqs, n_times):
@@ -125,11 +130,11 @@ class _PLVEst(_EpochMeanConEstBase):
         self._acc = np.zeros(self.csd_shape, dtype=np.complex128)
 
     def accumulate(self, con_idx, csd_xy):
-        """Accumulate some connections"""
+        """Accumulate some connections."""
         self._acc[con_idx] += csd_xy / np.abs(csd_xy)
 
     def compute_con(self, con_idx, n_epochs):
-        """Compute final con. score for some connections"""
+        """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
         plv = np.abs(self._acc / n_epochs)
@@ -137,7 +142,8 @@ class _PLVEst(_EpochMeanConEstBase):
 
 
 class _PLIEst(_EpochMeanConEstBase):
-    """PLI Estimator"""
+    """PLI Estimator."""
+
     name = 'PLI'
 
     def __init__(self, n_cons, n_freqs, n_times):
@@ -147,11 +153,11 @@ class _PLIEst(_EpochMeanConEstBase):
         self._acc = np.zeros(self.csd_shape)
 
     def accumulate(self, con_idx, csd_xy):
-        """Accumulate some connections"""
+        """Accumulate some connections."""
         self._acc[con_idx] += np.sign(np.imag(csd_xy))
 
     def compute_con(self, con_idx, n_epochs):
-        """Compute final con. score for some connections"""
+        """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
         pli_mean = self._acc[con_idx] / n_epochs
@@ -159,11 +165,12 @@ class _PLIEst(_EpochMeanConEstBase):
 
 
 class _PLIUnbiasedEst(_PLIEst):
-    """Unbiased PLI Square Estimator"""
+    """Unbiased PLI Square Estimator."""
+
     name = 'Unbiased PLI Square'
 
     def compute_con(self, con_idx, n_epochs):
-        """Compute final con. score for some connections"""
+        """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
         pli_mean = self._acc[con_idx] / n_epochs
@@ -175,7 +182,8 @@ class _PLIUnbiasedEst(_PLIEst):
 
 
 class _WPLIEst(_EpochMeanConEstBase):
-    """WPLI Estimator"""
+    """WPLI Estimator."""
+
     name = 'WPLI'
 
     def __init__(self, n_cons, n_freqs, n_times):
@@ -186,13 +194,13 @@ class _WPLIEst(_EpochMeanConEstBase):
         self._acc = np.zeros(acc_shape)
 
     def accumulate(self, con_idx, csd_xy):
-        """Accumulate some connections"""
+        """Accumulate some connections."""
         im_csd = np.imag(csd_xy)
         self._acc[0, con_idx] += im_csd
         self._acc[1, con_idx] += np.abs(im_csd)
 
     def compute_con(self, con_idx, n_epochs):
-        """Compute final con. score for some connections"""
+        """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
 
@@ -212,7 +220,8 @@ class _WPLIEst(_EpochMeanConEstBase):
 
 
 class _WPLIDebiasedEst(_EpochMeanConEstBase):
-    """Debiased WPLI Square Estimator"""
+    """Debiased WPLI Square Estimator."""
+
     name = 'Debiased WPLI Square'
 
     def __init__(self, n_cons, n_freqs, n_times):
@@ -222,14 +231,14 @@ class _WPLIDebiasedEst(_EpochMeanConEstBase):
         self._acc = np.zeros(acc_shape)
 
     def accumulate(self, con_idx, csd_xy):
-        """Accumulate some connections"""
+        """Accumulate some connections."""
         im_csd = np.imag(csd_xy)
         self._acc[0, con_idx] += im_csd
         self._acc[1, con_idx] += np.abs(im_csd)
         self._acc[2, con_idx] += im_csd ** 2
 
     def compute_con(self, con_idx, n_epochs):
-        """Compute final con. score for some connections"""
+        """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
 
@@ -254,7 +263,8 @@ class _WPLIDebiasedEst(_EpochMeanConEstBase):
 
 
 class _PPCEst(_EpochMeanConEstBase):
-    """Pairwise Phase Consistency (PPC) Estimator"""
+    """Pairwise Phase Consistency (PPC) Estimator."""
+
     name = 'PPC'
 
     def __init__(self, n_cons, n_freqs, n_times):
@@ -264,7 +274,7 @@ class _PPCEst(_EpochMeanConEstBase):
         self._acc = np.zeros(self.csd_shape, dtype=np.complex128)
 
     def accumulate(self, con_idx, csd_xy):
-        """Accumulate some connections"""
+        """Accumulate some connections."""
         denom = np.abs(csd_xy)
         z_denom = np.where(denom == 0.)
         denom[z_denom] = 1.
@@ -274,7 +284,7 @@ class _PPCEst(_EpochMeanConEstBase):
         self._acc[con_idx] += this_acc
 
     def compute_con(self, con_idx, n_epochs):
-        """Compute final con. score for some connections"""
+        """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
 
@@ -293,8 +303,7 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
                                  psd, accumulate_psd, con_method_types,
                                  con_methods, n_signals, n_times,
                                  accumulate_inplace=True):
-    """Connectivity estimation for one epoch see spectral_connectivity"""
-
+    """Connectivity estimation for one epoch see spectral_connectivity."""
     n_cons = len(idx_map[0])
 
     if wavelets is not None:
@@ -447,7 +456,7 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
 
 
 def _get_n_epochs(epochs, n):
-    """Generator that returns lists with at most n epochs"""
+    """Generator that returns lists with at most n epochs."""
     epochs_out = []
     for e in epochs:
         if not isinstance(e, (list, tuple)):
@@ -460,7 +469,7 @@ def _get_n_epochs(epochs, n):
 
 
 def _check_method(method):
-    """Test if a method implements the required interface"""
+    """Test if a method implements the required interface."""
     interface_members = [m[0] for m in getmembers(_AbstractConEstBase)
                          if not m[0].startswith('_')]
     method_members = [m[0] for m in getmembers(method)
@@ -473,7 +482,7 @@ def _check_method(method):
 
 
 def _get_and_verify_data_sizes(data, n_signals=None, n_times=None, times=None):
-    """Helper function to get and/or verify the data sizes and time scales"""
+    """Helper function to get and/or verify the data sizes and time scales."""
     if not isinstance(data, (list, tuple)):
         raise ValueError('data has to be a list or tuple')
     n_signals_tot = 0
@@ -519,8 +528,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                           mt_low_bias=True, cwt_frequencies=None,
                           cwt_n_cycles=7, block_size=1000, n_jobs=1,
                           verbose=None):
-    """Compute various frequency-domain and time-frequency domain connectivity
-    measures.
+    """Compute frequency- and time-frequency-domain connectivity measures.
 
     The connectivity method(s) are specified using the "method" parameter.
     All methods are based on estimates of the cross- and power spectral
@@ -539,8 +547,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     to compute the connectivity between the signal with index 0 and signals
     "2, 3, 4" (a total of 3 connections) one can use the following::
 
-        indices = (np.array([0, 0, 0],    # row indices
-                   np.array([2, 3, 4])))  # col indices
+        indices = (np.array([0, 0, 0]),    # row indices
+                   np.array([2, 3, 4]))    # col indices
 
         con_flat = spectral_connectivity(data, method='coh',
                                          indices=indices, ...)
@@ -594,6 +602,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
         'wpli2_debiased' : Debiased estimator of squared WPLI [5].
 
+
     References
     ----------
 
@@ -620,15 +629,14 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
     Parameters
     ----------
-    data : array, shape=(n_epochs, n_signals, n_times)
-           or list/generator of array, shape =(n_signals, n_times)
-           or list/generator of SourceEstimate or VolSourceEstimate
-           or Epochs
+    data : array-like, shape=(n_epochs, n_signals, n_times) | Epochs
         The data from which to compute connectivity. Note that it is also
         possible to combine multiple signals by providing a list of tuples,
         e.g., data = [(arr_0, stc_0), (arr_1, stc_1), (arr_2, stc_2)],
         corresponds to 3 epochs, and arr_* could be an array with the same
-        number of time points as stc_*.
+        number of time points as stc_*. The array-like object can also
+        be a list/generator of array, shape =(n_signals, n_times),
+        or a list/generator of SourceEstimate or VolSourceEstimate objects.
     method : string | list of string
         Connectivity measure(s) to compute.
     indices : tuple of arrays | None
@@ -684,7 +692,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     n_jobs : int
         How many epochs to process in parallel.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -706,7 +715,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         The number of DPSS tapers used. Only defined in 'multitaper' mode.
         Otherwise None is returned.
     """
-    if n_jobs > 1:
+    if n_jobs != 1:
         parallel, my_epoch_spectral_connectivity, _ = \
             parallel_func(_epoch_spectral_connectivity, n_jobs,
                           verbose=verbose)
@@ -745,7 +754,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             con_method_types.append(m)
 
     # determine how many arguments the compute_con_function needs
-    n_comp_args = [len(getargspec(mtype.compute_con).args)
+    n_comp_args = [len(_get_args(mtype.compute_con))
                    for mtype in con_method_types]
 
     # we only support 3 or 5 arguments
@@ -756,7 +765,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     # if none of the comp_con functions needs the PSD, we don't estimate it
     accumulate_psd = any(n == 5 for n in n_comp_args)
 
-    if isinstance(data, Epochs):
+    if isinstance(data, _BaseEpochs):
         times_in = data.times  # input times for Epochs input type
         sfreq = data.info['sfreq']
 
@@ -780,7 +789,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                                        endpoint=False)
 
             n_times_in = len(times_in)
-            mask = _time_mask(times_in, tmin, tmax)
+            mask = _time_mask(times_in, tmin, tmax, sfreq=sfreq)
             tmin_idx, tmax_idx = np.where(mask)[0][[0, -1]]
             tmax_idx += 1
             tmin_true = times_in[tmin_idx]
@@ -791,7 +800,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
             if indices is None:
                 # only compute r for lower-triangular region
-                indices_use = tril_indices(n_signals, -1)
+                indices_use = np.tril_indices(n_signals, -1)
             else:
                 indices_use = check_indices(indices)
 
@@ -926,8 +935,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                     cwt_n_cycles = cwt_n_cycles[freq_mask]
 
                 # get the Morlet wavelets
-                wavelets = morlet(sfreq, freqs,
-                                  n_cycles=cwt_n_cycles, zero_mean=True)
+                wavelets = morlet(sfreq, freqs, n_cycles=cwt_n_cycles,
+                                  zero_mean=True)
                 eigvals = None
                 n_tapers = None
                 window_fun = None

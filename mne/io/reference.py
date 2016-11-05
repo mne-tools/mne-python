@@ -11,11 +11,11 @@ from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .pick import pick_types
 from .base import _BaseRaw
 from ..evoked import Evoked
-from ..epochs import Epochs
-from ..utils import logger
+from ..epochs import _BaseEpochs
+from ..utils import logger, warn
 
 
-def _apply_reference(inst, ref_from, ref_to=None, copy=True):
+def _apply_reference(inst, ref_from, ref_to=None):
     """Apply a custom EEG referencing scheme.
 
     Calculates a reference signal by taking the mean of a set of channels and
@@ -33,9 +33,6 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
     ref_to : list of str | None
         The names of the channels to apply the reference to. By default,
         all EEG channels are chosen.
-    copy : bool
-        Specifies whether the data will be copied (True) or modified in place
-        (False). Defaults to True.
 
     Returns
     -------
@@ -46,6 +43,8 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
 
     Notes
     -----
+    This function operates in-place.
+
     1. Do not use this function to apply an average reference. By default, an
        average reference projection has already been added upon loading raw
        data.
@@ -58,7 +57,7 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
 
     4. The data must be preloaded.
 
-    See also
+    See Also
     --------
     set_eeg_reference : Convenience function for creating an EEG reference.
     set_bipolar_reference : Convenience function for creating a bipolar
@@ -73,9 +72,6 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
 
     if ref_to is None:
         ref_to = [inst.ch_names[i] for i in eeg_idx]
-
-    if copy:
-        inst = inst.copy()
 
     # After referencing, existing SSPs might not be valid anymore.
     for i, proj in enumerate(inst.info['projs']):
@@ -110,7 +106,7 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
     if len(ref_from) > 0:
         ref_data = data[..., ref_from, :].mean(-2)
 
-        if isinstance(inst, Epochs):
+        if isinstance(inst, _BaseEpochs):
             data[:, ref_to, :] -= ref_data[:, np.newaxis, :]
         else:
             data[ref_to] -= ref_data
@@ -161,6 +157,10 @@ def add_reference_channels(inst, ref_channels, copy=True):
         if ch in inst.info['ch_names']:
             raise ValueError("Channel %s already specified in inst." % ch)
 
+    # Once CAR is applied (active), don't allow adding channels
+    if _has_eeg_average_ref_proj(inst.info['projs'], check_active=True):
+        raise RuntimeError('Average reference already applied to data.')
+
     if copy:
         inst = inst.copy()
 
@@ -174,7 +174,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         refs = np.zeros((len(ref_channels), data.shape[1]))
         data = np.vstack((data, refs))
         inst._data = data
-    elif isinstance(inst, Epochs):
+    elif isinstance(inst, _BaseEpochs):
         data = inst._data
         x, y, z = data.shape
         refs = np.zeros((x * len(ref_channels), z))
@@ -185,7 +185,32 @@ def add_reference_channels(inst, ref_channels, copy=True):
         raise TypeError("inst should be Raw, Epochs, or Evoked instead of %s."
                         % type(inst))
     nchan = len(inst.info['ch_names'])
-    if ch in ref_channels:
+
+    # only do this if we actually have digitisation points
+    if inst.info.get('dig', None) is not None:
+        # "zeroth" EEG electrode dig points is reference
+        ref_dig_loc = [dl for dl in inst.info['dig'] if (
+                       dl['kind'] == FIFF.FIFFV_POINT_EEG and
+                       dl['ident'] == 0)]
+        if len(ref_channels) > 1 or len(ref_dig_loc) != len(ref_channels):
+            ref_dig_array = np.zeros(12)
+            warn('The locations of multiple reference channels are ignored '
+                 '(set to zero).')
+        else:  # n_ref_channels == 1 and a single ref digitization exists
+            ref_dig_array = np.concatenate((ref_dig_loc[0]['r'],
+                                           ref_dig_loc[0]['r'], np.zeros(6)))
+            # Replace the (possibly new) Ref location for each channel
+            for idx in pick_types(inst.info, meg=False, eeg=True, exclude=[]):
+                inst.info['chs'][idx]['loc'][3:6] = ref_dig_loc[0]['r']
+    else:
+        # we should actually be able to do this from the montage, but
+        # it looks like the montage isn't stored, so we can't extract
+        # this information. The user will just have to call set_montage()
+        # by setting this to zero, we fall back to the old behavior
+        # when missing digitisation
+        ref_dig_array = np.zeros(12)
+
+    for ch in ref_channels:
         chan_info = {'ch_name': ch,
                      'coil_type': FIFF.FIFFV_COIL_EEG,
                      'kind': FIFF.FIFFV_EEG_CH,
@@ -196,13 +221,13 @@ def add_reference_channels(inst, ref_channels, copy=True):
                      'unit_mul': 0.,
                      'unit': FIFF.FIFF_UNIT_V,
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                     'eeg_loc': np.zeros(3),
-                     'loc': np.zeros(12)}
+                     'loc': ref_dig_array}
         inst.info['chs'].append(chan_info)
-    inst.info['ch_names'].extend(ref_channels)
+        inst.info._update_redundant()
     if isinstance(inst, _BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
-
+    inst.info._check_consistency()
+    set_eeg_reference(inst, ref_channels=ref_channels, copy=False)
     return inst
 
 
@@ -217,11 +242,12 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
     ref_channels : list of str | None
-        The names of the channels to use to construct the reference. If None is
-        specified here, an average reference will be applied in the form of an
-        SSP projector. If an empty list is specified, the data is assumed to
-        already have a proper reference and MNE will not attempt any
-        re-referencing of the data. Defaults to an average reference (None).
+        The names of the channels to use to construct the reference. If
+        None (default), an average reference will be added as an SSP
+        projector but not immediately applied to the data. If an empty list
+        is specified, the data is assumed to already have a proper reference
+        and MNE will not attempt any re-referencing of the data. Defaults
+        to an average reference (None).
     copy : bool
         Specifies whether the data will be copied (True) or modified in place
         (False). Defaults to True.
@@ -229,9 +255,12 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
     Returns
     -------
     inst : instance of Raw | Epochs | Evoked
-        Data with EEG channels re-referenced.
+        Data with EEG channels re-referenced. For ``ref_channels=None``,
+        an average projector will be added instead of directly subtarcting
+        data.
     ref_data : array
-        Array of reference data subtracted from EEG channels.
+        Array of reference data subtracted from EEG channels. This will
+        be None for an average reference.
 
     Notes
     -----
@@ -246,7 +275,7 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
 
     .. versionadded:: 0.9.0
 
-    See also
+    See Also
     --------
     set_bipolar_reference : Convenience function for creating bipolar
                             references.
@@ -254,16 +283,16 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
     if ref_channels is None:
         # CAR requested
         if _has_eeg_average_ref_proj(inst.info['projs']):
-            logger.warning('An average reference projection was already '
-                           'added. The data has been left untouched.')
+            warn('An average reference projection was already added. The data '
+                 'has been left untouched.')
             return inst, None
         else:
-            inst.info['custom_ref_applied'] = False
             inst.add_proj(make_eeg_average_ref_proj(inst.info, activate=False))
             return inst, None
     else:
         logger.info('Applying a custom EEG reference.')
-        return _apply_reference(inst, ref_channels, copy=copy)
+        inst = inst.copy() if copy else inst
+        return _apply_reference(inst, ref_channels)
 
 
 def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
@@ -275,7 +304,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     channels will be dropped.
 
     Multiple anodes and cathodes can be specified, in which case multiple
-    vitual channels will be created. The 1st anode will be substracted from the
+    virtual channels will be created. The 1st anode will be subtracted from the
     1st cathode, the 2nd anode from the 2nd cathode, etc.
 
     By default, the virtual channels will be annotated with channel info of
@@ -320,7 +349,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     .. versionadded:: 0.9.0
 
-    See also
+    See Also
     --------
     set_eeg_reference : Convenience function for creating an EEG reference.
     """
@@ -363,8 +392,6 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         new_info = inst.info['chs'][inst.ch_names.index(an)].copy()
 
         # Set channel location and coil type
-        if 'eeg_loc' in new_info:
-            new_info['eeg_loc'] = np.zeros((3, 2))
         new_info['loc'] = np.zeros(12)
         new_info['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
 
@@ -376,12 +403,12 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Perform bipolar referencing
     for an, ca, name, info in zip(anode, cathode, ch_name, new_ch_info):
-        inst, _ = _apply_reference(inst, [ca], [an], copy=False)
+        _apply_reference(inst, [ca], [an])
         an_idx = inst.ch_names.index(an)
         inst.info['chs'][an_idx] = info
         inst.info['chs'][an_idx]['ch_name'] = name
-        inst.info['ch_names'][an_idx] = name
         logger.info('Bipolar channel added as "%s".' % name)
+        inst.info._update_redundant()
 
     # Drop cathode channels
     inst.drop_channels(cathode)

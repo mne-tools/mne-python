@@ -1,0 +1,11 @@
+start_ts=2015-01-01 12:00:00.000
+num_samples=512
+sample_freq=256
+conversion_factor=0.179000
+num_channels=29
+elec_names=[FP1,FP2,F3,F4,C3,C4,P3,P4,O1,O2,F7,F8,T3,T4,T5,T6,FZ,CZ,PZ,SP1,SP2,RS,T1,T2,EOG1,EOG2,EMG,ECG,PHO]
+pat_id=102
+adm_id=1102
+rec_id=100102
+duration_in_sec=2
+sample_bytes=2

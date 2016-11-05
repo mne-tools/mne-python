@@ -1,19 +1,20 @@
+from functools import partial
 import os
-import os.path as op
+import warnings
+
 import numpy as np
+from scipy import sparse, linalg, stats
 from numpy.testing import (assert_equal, assert_array_equal,
                            assert_array_almost_equal)
 from nose.tools import assert_true, assert_raises
-from scipy import sparse, linalg, stats
-from mne.fixes import partial
-import warnings
+
 from mne.parallel import _force_serial
 from mne.stats.cluster_level import (permutation_cluster_test,
                                      permutation_cluster_1samp_test,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
                                      ttest_1samp_no_p, summarize_clusters_stc)
-from mne.utils import run_tests_if_main, slow_test, _TempDir, set_log_file
+from mne.utils import run_tests_if_main, slow_test, _TempDir, catch_logging
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -52,22 +53,22 @@ def test_cache_dir():
     orig_size = os.getenv('MNE_MEMMAP_MIN_SIZE', None)
     rng = np.random.RandomState(0)
     X = rng.randn(9, 2, 10)
-    log_file = op.join(tempdir, 'log.txt')
     try:
         os.environ['MNE_MEMMAP_MIN_SIZE'] = '1K'
         os.environ['MNE_CACHE_DIR'] = tempdir
         # Fix error for #1507: in-place when memmapping
-        permutation_cluster_1samp_test(
-            X, buffer_size=None, n_jobs=2, n_permutations=1,
-            seed=0, stat_fun=ttest_1samp_no_p, verbose=False)
-        # ensure that non-independence yields warning
-        stat_fun = partial(ttest_1samp_no_p, sigma=1e-3)
-        set_log_file(log_file)
-        permutation_cluster_1samp_test(
-            X, buffer_size=10, n_jobs=2, n_permutations=1,
-            seed=0, stat_fun=stat_fun, verbose=False)
-        with open(log_file, 'r') as fid:
-            assert_true('independently' in ''.join(fid.readlines()))
+        with catch_logging() as log_file:
+            permutation_cluster_1samp_test(
+                X, buffer_size=None, n_jobs=2, n_permutations=1,
+                seed=0, stat_fun=ttest_1samp_no_p, verbose=False)
+            # ensure that non-independence yields warning
+            stat_fun = partial(ttest_1samp_no_p, sigma=1e-3)
+            assert_true('independently' not in log_file.getvalue())
+            with warnings.catch_warnings(record=True):  # independently
+                permutation_cluster_1samp_test(
+                    X, buffer_size=10, n_jobs=2, n_permutations=1,
+                    seed=0, stat_fun=stat_fun, verbose=False)
+            assert_true('independently' in log_file.getvalue())
     finally:
         if orig_dir is not None:
             os.environ['MNE_CACHE_DIR'] = orig_dir
@@ -77,7 +78,6 @@ def test_cache_dir():
             os.environ['MNE_MEMMAP_MIN_SIZE'] = orig_size
         else:
             del os.environ['MNE_MEMMAP_MIN_SIZE']
-        set_log_file(None)
 
 
 def test_permutation_step_down_p():
@@ -87,7 +87,7 @@ def test_permutation_step_down_p():
         try:
             from sklearn.feature_extraction.image import grid_to_graph
         except ImportError:
-            from scikits.learn.feature_extraction.image import grid_to_graph  # noqa
+            from scikits.learn.feature_extraction.image import grid_to_graph  # noqa: F401
     except ImportError:
         return
     rng = np.random.RandomState(0)
@@ -176,12 +176,12 @@ def test_cluster_permutation_t_test():
 
             # test with 2 jobs and buffer_size enabled
             buffer_size = condition1.shape[1] // 10
-            T_obs_neg_buff, _, cluster_p_values_neg_buff, _ = \
-                permutation_cluster_1samp_test(-condition1, n_permutations=100,
-                                               tail=-1, threshold=-1.67,
-                                               seed=1, n_jobs=2,
-                                               stat_fun=stat_fun,
-                                               buffer_size=buffer_size)
+            with warnings.catch_warnings(record=True):  # independently
+                T_obs_neg_buff, _, cluster_p_values_neg_buff, _ = \
+                    permutation_cluster_1samp_test(
+                        -condition1, n_permutations=100, tail=-1,
+                        threshold=-1.67, seed=1, n_jobs=2, stat_fun=stat_fun,
+                        buffer_size=buffer_size)
 
             assert_array_equal(T_obs_neg, T_obs_neg_buff)
             assert_array_equal(cluster_p_values_neg, cluster_p_values_neg_buff)
@@ -245,7 +245,7 @@ def test_cluster_permutation_with_connectivity():
 
         # Make sure that we got the old ones back
         data_1 = set([np.sum(out[0][b[:n_pts]]) for b in out[1]])
-        data_2 = set([np.sum(out_connectivity_2[0][a[:n_pts]]) for a in
+        data_2 = set([np.sum(out_connectivity_2[0][a]) for a in
                      out_connectivity_2[1][:]])
         assert_true(len(data_1.intersection(data_2)) == len(data_1))
 

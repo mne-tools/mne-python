@@ -2,23 +2,23 @@
 #
 # License: BSD (3-clause)
 
-import re
 import copy
-import time
+import re
 import threading
-import warnings
+import time
+
 import numpy as np
 
+from ..io import _empty_info
+from ..io.pick import pick_info
 from ..io.constants import FIFF
-from ..io.meas_info import Info
 from ..epochs import EpochsArray
-from ..utils import logger
+from ..utils import logger, warn
 from ..externals.FieldTrip import Client as FtClient
 
 
 def _buffer_recv_worker(ft_client):
     """Worker thread that constantly receives buffers."""
-
     try:
         for raw_buffer in ft_client.iter_raw_buffers():
             ft_client._push_raw_buffer(raw_buffer)
@@ -29,7 +29,7 @@ def _buffer_recv_worker(ft_client):
 
 
 class FieldTripClient(object):
-    """ Realtime FieldTrip client
+    """Realtime FieldTrip client.
 
     Parameters
     ----------
@@ -50,10 +50,13 @@ class FieldTripClient(object):
     buffer_size : int
         Size of each buffer in terms of number of samples.
     verbose : bool, str, int, or None
-        Log verbosity see mne.verbose.
+        Log verbosity (see :func:`mne.verbose` and
+        :ref:`Logging documentation <tut_logging>` for more).
     """
+
     def __init__(self, info=None, host='localhost', port=1972, wait_max=30,
-                 tmin=None, tmax=np.inf, buffer_size=1000, verbose=None):
+                 tmin=None, tmax=np.inf, buffer_size=1000,
+                 verbose=None):  # noqa: D102
         self.verbose = verbose
 
         self.info = info
@@ -68,7 +71,7 @@ class FieldTripClient(object):
         self._recv_thread = None
         self._recv_callbacks = list()
 
-    def __enter__(self):
+    def __enter__(self):  # noqa: D105
         # instantiate Fieldtrip client and connect
         self.ft_client = FtClient()
 
@@ -124,27 +127,18 @@ class FieldTripClient(object):
 
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type, value, traceback):  # noqa: D105
         self.ft_client.disconnect()
 
     def _guess_measurement_info(self):
-        """
-        Creates a minimal Info dictionary required for epoching, averaging
-        et al.
-        """
-
+        """Create a minimal Info dictionary for epoching, averaging, etc."""
         if self.info is None:
+            warn('Info dictionary not provided. Trying to guess it from '
+                 'FieldTrip Header object')
 
-            warnings.warn('Info dictionary not provided. Trying to guess it '
-                          'from FieldTrip Header object')
-
-            info = Info()  # create info dictionary
+            info = _empty_info(self.ft_header.fSample)  # create info
 
             # modify info attributes according to the FieldTrip Header object
-            info['nchan'] = self.ft_header.nChannels
-            info['sfreq'] = self.ft_header.fSample
-            info['ch_names'] = self.ft_header.labels
-
             info['comps'] = list()
             info['projs'] = list()
             info['bads'] = list()
@@ -152,7 +146,10 @@ class FieldTripClient(object):
             # channel dictionary list
             info['chs'] = []
 
-            for idx, ch in enumerate(info['ch_names']):
+            # unrecognized channels
+            chs_unknown = []
+
+            for idx, ch in enumerate(self.ft_header.labels):
                 this_info = dict()
 
                 this_info['scanno'] = idx
@@ -176,15 +173,19 @@ class FieldTripClient(object):
                     this_info['kind'] = FIFF.FIFFV_ECG_CH
                 elif ch.startswith('MISC'):
                     this_info['kind'] = FIFF.FIFFV_MISC_CH
+                elif ch.startswith('SYS'):
+                    this_info['kind'] = FIFF.FIFFV_SYST_CH
+                else:
+                    # cannot guess channel type, mark as MISC and warn later
+                    this_info['kind'] = FIFF.FIFFV_MISC_CH
+                    chs_unknown.append(ch)
 
                 # Fieldtrip already does calibration
                 this_info['range'] = 1.0
                 this_info['cal'] = 1.0
 
                 this_info['ch_name'] = ch
-                this_info['coil_trans'] = None
                 this_info['loc'] = None
-                this_info['eeg_loc'] = None
 
                 if ch.startswith('EEG'):
                     this_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
@@ -204,6 +205,13 @@ class FieldTripClient(object):
                 this_info['unit_mul'] = 0
 
                 info['chs'].append(this_info)
+                info._update_redundant()
+                info._check_consistency()
+
+            if chs_unknown:
+                msg = ('Following channels in the FieldTrip header were '
+                       'unrecognized and marked as MISC: ')
+                warn(msg + ', '.join(chs_unknown))
 
         else:
 
@@ -222,7 +230,7 @@ class FieldTripClient(object):
         return info
 
     def get_measurement_info(self):
-        """Returns the measurement info.
+        """Return the measurement info.
 
         Returns
         -------
@@ -232,7 +240,7 @@ class FieldTripClient(object):
         return self.info
 
     def get_data_as_epoch(self, n_samples=1024, picks=None):
-        """Returns last n_samples from current time.
+        """Return last n_samples from current time.
 
         Parameters
         ----------
@@ -246,6 +254,10 @@ class FieldTripClient(object):
         -------
         epoch : instance of Epochs
             The samples fetched as an Epochs object.
+
+        See Also
+        --------
+        Epochs.iter_evoked
         """
         ft_header = self.ft_client.getHeader()
         last_samp = ft_header.nSamples - 1
@@ -255,16 +267,14 @@ class FieldTripClient(object):
 
         # get the data
         data = self.ft_client.getData([start, stop]).transpose()
-        data = np.expand_dims(data, axis=0)
 
         # create epoch from data
-        epoch = EpochsArray(data, info=self.info,
-                            events=events, tmin=0)
-
-        # pick channels
+        info = self.info
         if picks is not None:
-            ch_names = [self.info['ch_names'][k] for k in picks]
-            epoch = epoch.pick_channels(ch_names=ch_names, copy=True)
+            info = pick_info(info, picks)
+        else:
+            picks = range(info['nchan'])
+        epoch = EpochsArray(data[picks][np.newaxis], info, events)
 
         return epoch
 
@@ -281,7 +291,7 @@ class FieldTripClient(object):
             self._recv_callbacks.append(callback)
 
     def unregister_receive_callback(self, callback):
-        """Unregister a raw buffer receive callback
+        """Unregister a raw buffer receive callback.
 
         Parameters
         ----------
@@ -306,7 +316,6 @@ class FieldTripClient(object):
         nchan : int
             The number of channels in the data.
         """
-
         if self._recv_thread is None:
 
             self._recv_thread = threading.Thread(target=_buffer_recv_worker,
@@ -315,7 +324,7 @@ class FieldTripClient(object):
             self._recv_thread.start()
 
     def stop_receive_thread(self, stop_measurement=False):
-        """Stop the receive thread
+        """Stop the receive thread.
 
         Parameters
         ----------
@@ -327,14 +336,13 @@ class FieldTripClient(object):
             self._recv_thread = None
 
     def iter_raw_buffers(self):
-        """Return an iterator over raw buffers
+        """Return an iterator over raw buffers.
 
         Returns
         -------
         raw_buffer : generator
             Generator for iteration over raw buffers.
         """
-
         iter_times = zip(range(self.tmin_samp, self.tmax_samp,
                                self.buffer_size),
                          range(self.tmin_samp + self.buffer_size - 1,

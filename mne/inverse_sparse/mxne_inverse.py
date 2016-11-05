@@ -106,10 +106,12 @@ def _reapply_source_weighting(X, source_weighting, active_set,
 
 
 def _compute_residual(forward, evoked, X, active_set, info):
+    # OK, picking based on row_names is safe
     sel = [forward['sol']['row_names'].index(c) for c in info['ch_names']]
     residual = evoked.copy()
     residual = pick_channels_evoked(residual, include=info['ch_names'])
     r_tmp = residual.copy()
+
     r_tmp.data = np.dot(forward['sol']['data'][sel, :][:, active_set], X)
 
     # Take care of proj
@@ -164,7 +166,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
                debias=True, time_pca=True, weights=None, weights_min=None,
                solver='auto', n_mxne_iter=1, return_residual=False,
                verbose=None):
-    """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE)
+    """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
     Compute L1/L2 mixed-norm solution or L0.5/L2 mixed-norm solution
     on evoked data.
@@ -228,7 +230,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -237,6 +240,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     residual : instance of Evoked
         The residual a.k.a. data not explained by the sources.
         Only returned if return_residual is True.
+
+    See Also
+    --------
+    tf_mixed_norm
     """
     if n_mxne_iter < 1:
         raise ValueError('MxNE has to be computed at least 1 time. '
@@ -342,7 +349,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
 
 def _window_evoked(evoked, size):
-    """Window evoked (size in seconds)"""
+    """Window evoked (size in seconds)."""
     if isinstance(size, (float, int)):
         lsize = rsize = float(size)
     else:
@@ -364,19 +371,19 @@ def _window_evoked(evoked, size):
 def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                   loose=0.2, depth=0.8, maxit=3000, tol=1e-4,
                   weights=None, weights_min=None, pca=True, debias=True,
-                  wsize=64, tstep=4, window=0.02,
-                  return_residual=False, verbose=None):
-    """Time-Frequency Mixed-norm estimate (TF-MxNE)
+                  wsize=64, tstep=4, window=0.02, return_residual=False,
+                  verbose=None):
+    """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
-    Compute L1/L2 + L1 mixed-norm solution on time frequency
+    Compute L1/L2 + L1 mixed-norm solution on time-frequency
     dictionary. Works with evoked data.
 
     References:
 
-    A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski,
+    A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
     Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
     non-stationary source activations
-    NeuroImage, Volume 70, 15 April 2013, Pages 410-422, ISSN 1053-8119,
+    Neuroimage, Volume 70, 15 April 2013, Pages 410-422, ISSN 1053-8119,
     DOI: 10.1016/j.neuroimage.2012.12.051.
 
     A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
@@ -395,10 +402,10 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         Forward operator.
     noise_cov : instance of Covariance
         Noise covariance to compute whitener.
-    alpha_space : float
+    alpha_space : float in [0, 100]
         Regularization parameter for spatial sparsity. If larger than 100,
         then no source will be active.
-    alpha_time : float
+    alpha_time : float in [0, 100]
         Regularization parameter for temporal sparsity. It set to 0,
         no temporal regularization is applied. It this case, TF-MxNE is
         equivalent to MxNE with L21 norm.
@@ -436,7 +443,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -445,16 +453,30 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     residual : instance of Evoked
         The residual a.k.a. data not explained by the sources.
         Only returned if return_residual is True.
+
+    See Also
+    --------
+    mixed_norm
     """
     _check_reference(evoked)
 
     all_ch_names = evoked.ch_names
     info = evoked.info
 
+    if (alpha_space < 0.) or (alpha_space > 100.):
+        raise Exception('alpha_space must be in range [0, 100].'
+                        ' Got alpha_space = %f' % alpha_space)
+
+    if (alpha_time < 0.) or (alpha_time > 100.):
+        raise Exception('alpha_time must be in range [0, 100].'
+                        ' Got alpha_time = %f' % alpha_time)
+
     # put the forward solution in fixed orientation if it's not already
     if loose is None and not is_fixed_orient(forward):
         forward = deepcopy(forward)
         _to_fixed_ori(forward)
+
+    n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked.info, noise_cov, pca, depth, loose, weights,
@@ -471,22 +493,19 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     M = np.dot(whitener, M)
 
     # Scaling to make setting of alpha easy
-    n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos, copy=False)
     alpha_max *= 0.01
     gain /= alpha_max
     source_weighting /= alpha_max
 
-    X, active_set, E = tf_mixed_norm_solver(M, gain,
-                                            alpha_space, alpha_time,
-                                            wsize=wsize, tstep=tstep,
-                                            maxit=maxit, tol=tol,
-                                            verbose=verbose,
-                                            n_orient=n_dip_per_pos,
-                                            debias=debias)
+    X, active_set, E = tf_mixed_norm_solver(
+        M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
+        maxit=maxit, tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
+        log_objective=False, debias=debias)
 
     if active_set.sum() == 0:
-        raise Exception("No active dipoles found. alpha is too big.")
+        raise Exception("No active dipoles found. "
+                        "alpha_space/alpha_time are too big.")
 
     if mask is not None:
         active_set_tmp = np.zeros(len(mask), dtype=np.bool)
@@ -494,20 +513,21 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         active_set = active_set_tmp
         del active_set_tmp
 
-    # Reapply weights to have correct unit
-    X = _reapply_source_weighting(X, source_weighting,
-                                  active_set, n_dip_per_pos)
+    X = _reapply_source_weighting(
+        X, source_weighting, active_set, n_dip_per_pos)
 
     if return_residual:
-        residual = _compute_residual(forward, evoked, X, active_set,
-                                     gain_info)
+        residual = _compute_residual(
+            forward, evoked, X, active_set, gain_info)
 
-    tmin = evoked.times[0]
-    tstep = 1.0 / info['sfreq']
-    out = _make_sparse_stc(X, active_set, forward, tmin, tstep)
+    stc = _make_sparse_stc(
+        X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'])
+
     logger.info('[done]')
 
     if return_residual:
-        out = out, residual
+        out = stc, residual
+    else:
+        out = stc
 
     return out

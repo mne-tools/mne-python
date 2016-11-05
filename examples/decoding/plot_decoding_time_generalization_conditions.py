@@ -5,11 +5,6 @@ Decoding sensor space data with generalization across time and conditions
 
 This example runs the analysis computed in:
 
-Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
-and Stanislas Dehaene, "Two distinct dynamic modes subtend the detection of
-unexpected sounds", PLOS ONE, 2013,
-http://www.ncbi.nlm.nih.gov/pubmed/24475052
-
 King & Dehaene (2014) 'Characterizing the dynamics of mental
 representations: the temporal generalization method', Trends In Cognitive
 Sciences, 18(4), 203-210.
@@ -37,7 +32,7 @@ data_path = sample.data_path()
 # Load and filter data, set up epochs
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 events_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-raw = mne.io.Raw(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')  # Pick MEG channels
 raw.filter(1, 30, method='fft')  # Band pass filtering signals
 events = mne.read_events(events_fname)
@@ -71,5 +66,4 @@ gat.fit(epochs[('AudL', 'VisL')], y=viz_vs_auditory_l)
 viz_vs_auditory_r = (triggers[np.in1d(triggers, (2, 4))] == 4).astype(int)
 
 gat.score(epochs[('AudR', 'VisR')], y=viz_vs_auditory_r)
-gat.plot(
-    title="Generalization Across Time (visual vs auditory): left to right")
+gat.plot(title="Temporal Generalization (visual vs auditory): left to right")

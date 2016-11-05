@@ -1,4 +1,4 @@
-"""File data sources for traits GUIs"""
+"""File data sources for traits GUIs."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -9,25 +9,16 @@ import os
 import numpy as np
 from ..externals.six.moves import map
 
-# allow import without traits
-try:
-    from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
-                            on_trait_change, Array, Bool, Button, DelegatesTo,
-                            Directory, Enum, Event, File, Instance, Int, List,
-                            Property, Str)
-    from traitsui.api import View, Item, VGroup
-    from pyface.api import (DirectoryDialog, OK, ProgressDialog, error,
-                            information)
-except:
-    from ..utils import trait_wraith
-    HasTraits = HasPrivateTraits = object
-    cached_property = on_trait_change = Any = Array = Bool = Button = \
-        DelegatesTo = Directory = Enum = Event = File = Instance = \
-        Int = List = Property = Str = View = Item = VGroup = trait_wraith
+from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
+                        on_trait_change, Array, Bool, Button, DelegatesTo,
+                        Directory, Enum, Event, File, Instance, Int, List,
+                        Property, Str)
+from traitsui.api import View, Item, VGroup, HGroup
+from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
 
 from ..io.constants import FIFF
-from ..io import Raw, read_fiducials
-from ..surface import read_bem_surfaces
+from ..io import read_info, read_fiducials
+from ..surface import read_bem_surfaces, read_surface
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config
@@ -45,7 +36,7 @@ def _expand_path(p):
 
 
 def get_fs_home():
-    """Get the FREESURFER_HOME directory
+    """Get the FREESURFER_HOME directory.
 
     Returns
     -------
@@ -62,7 +53,7 @@ def get_fs_home():
 
 
 def get_mne_root():
-    """Get the MNE_ROOT directory
+    """Get the MNE_ROOT directory.
 
     Returns
     -------
@@ -92,14 +83,14 @@ def _get_root_home(cfg, name, check_fun):
             root = dlg.path
             problem = check_fun(root)
             if problem is None:
-                set_config(cfg, root)
+                set_config(cfg, root, set_env=False)
         else:
             return None
     return root
 
 
 def set_fs_home():
-    """Set the FREESURFER_HOME environment variable
+    """Set the FREESURFER_HOME environment variable.
 
     Returns
     -------
@@ -122,7 +113,7 @@ def set_fs_home():
 
 
 def _fs_home_problem(fs_home):
-    """Check FREESURFER_HOME path
+    """Check FREESURFER_HOME path.
 
     Return str describing problem or None if the path is okay.
     """
@@ -138,7 +129,7 @@ def _fs_home_problem(fs_home):
 
 
 def set_mne_root(set_mne_bin=False):
-    """Set the MNE_ROOT environment variable
+    """Set the MNE_ROOT environment variable.
 
     Parameters
     ----------
@@ -170,7 +161,7 @@ def set_mne_root(set_mne_bin=False):
 
 
 def _mne_root_problem(mne_root):
-    """Check MNE_ROOT path
+    """Check MNE_ROOT path.
 
     Return str describing problem or None if the path is okay.
     """
@@ -185,27 +176,28 @@ def _mne_root_problem(mne_root):
                     "installation, consider reinstalling." % mne_root)
 
 
-class BemSource(HasTraits):
-    """Expose points and tris of a given BEM file
+class SurfaceSource(HasTraits):
+    """Expose points and tris of a file storing a surface.
 
     Parameters
     ----------
     file : File
-        Path to the BEM file (*.fif).
+        Path to a *-bem.fif file or a surface containing a Freesurfer surface.
 
     Attributes
     ----------
     pts : Array, shape = (n_pts, 3)
-        BEM file points.
-    tri : Array, shape = (n_tri, 3)
-        BEM file triangles.
+        Point coordinates.
+    tris : Array, shape = (n_tri, 3)
+        Triangles.
 
     Notes
     -----
     tri is always updated after pts, so in case downstream objects depend on
-    both, they should sync to a change in tri.
+    both, they should sync to a change in tris.
     """
-    file = File(exists=True, filter=['*.fif'])
+
+    file = File(exists=True, filter=['*.fif', '*.*'])
     points = Array(shape=(None, 3), value=np.empty((0, 3)))
     norms = Array
     tris = Array(shape=(None, 3), value=np.empty((0, 3)))
@@ -213,10 +205,24 @@ class BemSource(HasTraits):
     @on_trait_change('file')
     def read_file(self):
         if os.path.exists(self.file):
-            bem = read_bem_surfaces(self.file)[0]
-            self.points = bem['rr']
-            self.norms = bem['nn']
-            self.tris = bem['tris']
+            if self.file.endswith('.fif'):
+                bem = read_bem_surfaces(self.file)[0]
+                self.points = bem['rr']
+                self.norms = bem['nn']
+                self.tris = bem['tris']
+            else:
+                try:
+                    points, tris = read_surface(self.file)
+                    points /= 1e3
+                    self.points = points
+                    self.norms = []
+                    self.tris = tris
+                except Exception:
+                    error(message="Error loading surface from %s (see "
+                                  "Terminal for details).",
+                          title="Error Loading Surface")
+                    self.reset_traits(['file'])
+                    raise
         else:
             self.points = np.empty((0, 3))
             self.norms = np.empty((0, 3))
@@ -224,7 +230,7 @@ class BemSource(HasTraits):
 
 
 class FiducialsSource(HasTraits):
-    """Expose points of a given fiducials fif file
+    """Expose points of a given fiducials fif file.
 
     Parameters
     ----------
@@ -236,6 +242,7 @@ class FiducialsSource(HasTraits):
     points : Array, shape = (n_points, 3)
         Fiducials file points.
     """
+
     file = File(filter=[fid_wildcard])
     fname = Property(depends_on='file')
     points = Property(depends_on='file')
@@ -250,21 +257,28 @@ class FiducialsSource(HasTraits):
         if not os.path.exists(self.file):
             return None
 
-        points = np.zeros((3, 3))
-        fids, _ = read_fiducials(self.file)
-        for fid in fids:
-            ident = fid['ident']
-            if ident == FIFF.FIFFV_POINT_LPA:
-                points[0] = fid['r']
-            elif ident == FIFF.FIFFV_POINT_NASION:
-                points[1] = fid['r']
-            elif ident == FIFF.FIFFV_POINT_RPA:
-                points[2] = fid['r']
-        return points
+        try:
+            points = np.zeros((3, 3))
+            fids, _ = read_fiducials(self.file)
+            for fid in fids:
+                ident = fid['ident']
+                if ident == FIFF.FIFFV_POINT_LPA:
+                    points[0] = fid['r']
+                elif ident == FIFF.FIFFV_POINT_NASION:
+                    points[1] = fid['r']
+                elif ident == FIFF.FIFFV_POINT_RPA:
+                    points[2] = fid['r']
+            return points
+        except Exception as err:
+            error(None, "Error reading fiducials from %s: %s (See terminal "
+                  "for more information)" % (self.fname, str(err)),
+                  "Error Reading Fiducials")
+            self.reset_traits(['file'])
+            raise
 
 
-class RawSource(HasPrivateTraits):
-    """Expose measurement information from a raw file
+class InstSource(HasPrivateTraits):
+    """Expose measurement information from a inst file.
 
     Parameters
     ----------
@@ -277,24 +291,26 @@ class RawSource(HasPrivateTraits):
         Each row contains the coordinates for one fiducial point, in the order
         Nasion, RAP, LAP. If no file is set all values are 0.
     """
+
     file = File(exists=True, filter=['*.fif'])
 
-    raw_fname = Property(Str, depends_on='file')
-    raw_dir = Property(depends_on='file')
-    raw = Property(depends_on='file')
+    inst_fname = Property(Str, depends_on='file')
+    inst_dir = Property(depends_on='file')
+    inst = Property(depends_on='file')
 
     points_filter = Any(desc="Index to select a subset of the head shape "
                         "points")
     n_omitted = Property(Int, depends_on=['points_filter'])
 
     # head shape
-    raw_points = Property(depends_on='raw', desc="Head shape points in the "
-                          "raw file(n x 3 array)")
-    points = Property(depends_on=['raw_points', 'points_filter'], desc="Head "
+    inst_points = Property(depends_on='inst', desc="Head shape points in the "
+                           "inst file(n x 3 array)")
+    points = Property(depends_on=['inst_points', 'points_filter'], desc="Head "
                       "shape points selected by the filter (n x 3 array)")
 
     # fiducials
-    fid_dig = Property(depends_on='raw', desc="Fiducial points (list of dict)")
+    fid_dig = Property(depends_on='inst', desc="Fiducial points "
+                       "(list of dict)")
     fid_points = Property(depends_on='fid_dig', desc="Fiducial points {ident: "
                           "point} dict}")
     lpa = Property(depends_on='fid_points', desc="LPA coordinates (1 x 3 "
@@ -305,59 +321,66 @@ class RawSource(HasPrivateTraits):
                    "array)")
 
     view = View(VGroup(Item('file'),
-                       Item('raw_fname', show_label=False, style='readonly')))
+                       Item('inst_fname', show_label=False, style='readonly')))
 
     @cached_property
     def _get_n_omitted(self):
         if self.points_filter is None:
             return 0
         else:
-            return np.sum(self.points_filter == False)  # noqa
+            return np.sum(self.points_filter == False)  # noqa: E712
 
     @cached_property
-    def _get_raw(self):
+    def _get_inst(self):
         if self.file:
-            return Raw(self.file)
+            info = read_info(self.file)
+            if info['dig'] is None:
+                error(None, "The selected FIFF file does not contain "
+                      "digitizer information. Please select a different "
+                      "file.", "Error Reading FIFF File")
+                self.reset_traits(['file'])
+            else:
+                return info
 
     @cached_property
-    def _get_raw_dir(self):
+    def _get_inst_dir(self):
         return os.path.dirname(self.file)
 
     @cached_property
-    def _get_raw_fname(self):
+    def _get_inst_fname(self):
         if self.file:
             return os.path.basename(self.file)
         else:
             return '-'
 
     @cached_property
-    def _get_raw_points(self):
-        if not self.raw:
+    def _get_inst_points(self):
+        if not self.inst:
             return np.zeros((1, 3))
 
-        points = np.array([d['r'] for d in self.raw.info['dig']
+        points = np.array([d['r'] for d in self.inst['dig']
                            if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
         return points
 
     @cached_property
     def _get_points(self):
         if self.points_filter is None:
-            return self.raw_points
+            return self.inst_points
         else:
-            return self.raw_points[self.points_filter]
+            return self.inst_points[self.points_filter]
 
     @cached_property
-    def _get_fid_dig(self):
-        """Fiducials for info['dig']"""
-        if not self.raw:
+    def _get_fid_dig(self):  # noqa: D401
+        """Fiducials for info['dig']."""
+        if not self.inst:
             return []
-        dig = self.raw.info['dig']
+        dig = self.inst['dig']
         dig = [d for d in dig if d['kind'] == FIFF.FIFFV_POINT_CARDINAL]
         return dig
 
     @cached_property
     def _get_fid_points(self):
-        if not self.raw:
+        if not self.inst:
             return {}
         digs = dict((d['ident'], d) for d in self.fid_dig)
         return digs
@@ -388,7 +411,7 @@ class RawSource(HasPrivateTraits):
 
 
 class MRISubjectSource(HasPrivateTraits):
-    """Find subjects in SUBJECTS_DIR and select one
+    """Find subjects in SUBJECTS_DIR and select one.
 
     Parameters
     ----------
@@ -397,6 +420,7 @@ class MRISubjectSource(HasPrivateTraits):
     subject : str
         Subject, corresponding to a folder in SUBJECTS_DIR.
     """
+
     refresh = Event(desc="Refresh the subject list based on the directory "
                     "structure of subjects_dir.")
 
@@ -404,6 +428,7 @@ class MRISubjectSource(HasPrivateTraits):
     subjects_dir = Directory(exists=True)
     subjects = Property(List(Str), depends_on=['subjects_dir', 'refresh'])
     subject = Enum(values='subjects')
+    use_high_res_head = Bool(True)
 
     # info
     can_create_fsaverage = Property(Bool, depends_on=['subjects_dir',
@@ -450,7 +475,7 @@ class MRISubjectSource(HasPrivateTraits):
             return False
         return _mri_subject_has_bem(self.subject, self.subjects_dir)
 
-    def create_fsaverage(self):
+    def create_fsaverage(self):  # noqa: D102
         if not self.subjects_dir:
             err = ("No subjects directory is selected. Please specify "
                    "subjects_dir first.")
@@ -474,12 +499,15 @@ class MRISubjectSource(HasPrivateTraits):
 
 
 class SubjectSelectorPanel(HasPrivateTraits):
+    """Subject selector panel."""
+
     model = Instance(MRISubjectSource)
 
     can_create_fsaverage = DelegatesTo('model')
     subjects_dir = DelegatesTo('model')
     subject = DelegatesTo('model')
     subjects = DelegatesTo('model')
+    use_high_res_head = DelegatesTo('model')
 
     create_fsaverage = Button("Copy FsAverage to Subjects Folder",
                               desc="Copy the files for the fsaverage subject "
@@ -487,6 +515,8 @@ class SubjectSelectorPanel(HasPrivateTraits):
 
     view = View(VGroup(Item('subjects_dir', label='subjects_dir'),
                        'subject',
+                       HGroup(Item('use_high_res_head',
+                                   label='High Resolution Head')),
                        Item('create_fsaverage', show_label=False,
                             enabled_when='can_create_fsaverage')))
 
@@ -506,3 +536,12 @@ class SubjectSelectorPanel(HasPrivateTraits):
             raise
         finally:
             prog.close()
+
+    def _subjects_dir_changed(self, old, new):
+        if new and self.subjects == ['']:
+            information(None, "The directory selected as subjects-directory "
+                        "(%s) does not contain any valid MRI subjects. MRI "
+                        "subjects need to contain head surface models which "
+                        "can be created by running:\n\n    $ mne "
+                        "make_scalp_surfaces" % self.subjects_dir,
+                        "No Subjects Found")

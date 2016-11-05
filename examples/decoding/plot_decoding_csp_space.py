@@ -19,6 +19,7 @@ See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]
 # License: BSD (3-clause)
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne import io
@@ -36,8 +37,8 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname, preload=True)
-raw.filter(2, None, method='iir')  # replace baselining with high-pass
+raw = io.read_raw_fif(raw_fname, preload=True)
+raw.filter(2, None)  # replace baselining with high-pass
 events = mne.read_events(event_fname)
 
 raw.info['bads'] = ['MEG 2443']  # set bad channels
@@ -94,14 +95,17 @@ scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
 print(scores.mean())  # should match results above
 
 # And using reuglarized csp with Ledoit-Wolf estimator
-csp = CSP(n_components=n_components, reg='lws')
+csp = CSP(n_components=n_components, reg='ledoit_wolf')
 clf = Pipeline([('CSP', csp), ('SVC', svc)])
 scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
 print(scores.mean())  # should get better results than above
 
 # plot CSP patterns estimated on full data for visualization
 csp.fit_transform(epochs_data, labels)
-evoked.data = csp.patterns_.T
-evoked.times = np.arange(evoked.data.shape[0])
-evoked.plot_topomap(times=[0, 1, 201, 202], ch_type='grad',
-                    colorbar=False, size=1.5)
+data = csp.patterns_
+fig, axes = plt.subplots(1, 4)
+for idx in range(4):
+    mne.viz.plot_topomap(data[idx], evoked.info, axes=axes[idx], show=False)
+fig.suptitle('CSP patterns')
+fig.tight_layout()
+fig.show()

@@ -1,27 +1,28 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types
-import numpy as np
 import os.path as op
 from io import BytesIO
+from gzip import GzipFile
+
+import numpy as np
 
 from .tag import read_tag_info, read_tag, read_big, Tag
-from .tree import make_dir_tree
+from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
 from ..utils import logger, verbose
-from ..externals import six
-from ..fixes import gzip_open
+from ..externals.six import string_types, iteritems
 
 
 def _fiff_get_fid(fname):
-    """Helper to open a FIF file with no additional parsing"""
+    """Open a FIF file with no additional parsing."""
     if isinstance(fname, string_types):
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Using gzip')
-            fid = gzip_open(fname, "rb")  # Open in binary mode
+            fid = GzipFile(fname, "rb")  # Open in binary mode
         else:
             logger.debug('Using normal I/O')
             fid = open(fname, "rb")  # Open in binary mode
@@ -29,6 +30,47 @@ def _fiff_get_fid(fname):
         fid = fname
         fid.seek(0)
     return fid
+
+
+def _get_next_fname(fid, fname, tree):
+    """Get the next filename in split files."""
+    nodes_list = dir_tree_find(tree, FIFF.FIFFB_REF)
+    next_fname = None
+    for nodes in nodes_list:
+        next_fname = None
+        for ent in nodes['directory']:
+            if ent.kind == FIFF.FIFF_REF_ROLE:
+                tag = read_tag(fid, ent.pos)
+                role = int(tag.data)
+                if role != FIFF.FIFFV_ROLE_NEXT_FILE:
+                    next_fname = None
+                    break
+            if ent.kind == FIFF.FIFF_REF_FILE_NAME:
+                tag = read_tag(fid, ent.pos)
+                next_fname = op.join(op.dirname(fname), tag.data)
+            if ent.kind == FIFF.FIFF_REF_FILE_NUM:
+                # Some files don't have the name, just the number. So
+                # we construct the name from the current name.
+                if next_fname is not None:
+                    continue
+                next_num = read_tag(fid, ent.pos).data
+                path, base = op.split(fname)
+                idx = base.find('.')
+                idx2 = base.rfind('-')
+                if idx2 < 0 and next_num == 1:
+                    # this is the first file, which may not be numbered
+                    next_fname = op.join(
+                        path, '%s-%d.%s' % (base[:idx], next_num,
+                                            base[idx + 1:]))
+                    continue
+                num_str = base[idx2 + 1:idx]
+                if not num_str.isdigit():
+                    continue
+                next_fname = op.join(path, '%s-%d.%s' % (base[:idx2],
+                                     next_num, base[idx + 1:]))
+        if next_fname is not None:
+            break
+    return next_fname
 
 
 @verbose
@@ -44,7 +86,8 @@ def fiff_open(fname, preload=False, verbose=None):
         requires more memory, but can be faster for I/O operations that require
         frequent seeks.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -113,7 +156,7 @@ def fiff_open(fname, preload=False, verbose=None):
 
 def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
               output=str, verbose=None):
-    """Show FIFF information
+    """Show FIFF information.
 
     This function is similar to mne_show_fiff.
 
@@ -132,13 +175,17 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
     output : type
         Either str or list. str is a convenience output for printing.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     if output not in [list, str]:
         raise ValueError('output must be list or str')
     f, tree, directory = fiff_open(fname)
+    # This gets set to 0 (unknown) by fiff_open, but FIFFB_ROOT probably
+    # makes more sense for display
+    tree['block'] = FIFF.FIFFB_ROOT
     with f as fid:
-        out = _show_tree(fid, tree['children'][0], indent=indent, level=0,
+        out = _show_tree(fid, tree, indent=indent, level=0,
                          read_limit=read_limit, max_str=max_str)
     if output == str:
         out = '\n'.join(out)
@@ -146,19 +193,23 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
 
 
 def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
-    """Helper to find matching values"""
-    vals = [k for k, v in six.iteritems(FIFF)
+    """Find matching values."""
+    value = int(value)
+    vals = [k for k, v in iteritems(FIFF)
             if v == value and any(fmt in k for fmt in fmts) and
             not any(exc in k for exc in exclude)]
+    if len(vals) == 0:
+        vals = ['???']
     return vals
 
 
 def _show_tree(fid, tree, indent, level, read_limit, max_str):
-    """Helper for showing FIFF"""
+    """Show FIFF tree."""
+    from scipy import sparse
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information
-    out = [this_idt + str(tree['block'][0]) + ' = ' +
+    out = [this_idt + str(int(tree['block'])) + ' = ' +
            '/'.join(_find_type(tree['block'], fmts=['FIFFB_']))]
     if tree['directory'] is not None:
         kinds = [ent.kind for ent in tree['directory']] + [-1]
@@ -195,12 +246,16 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
                         postpend += ' ... str len=' + str(len(tag.data))
                     elif isinstance(tag.data, (list, tuple)):
                         postpend += ' ... list len=' + str(len(tag.data))
+                    elif sparse.issparse(tag.data):
+                        postpend += (' ... sparse (%s) shape=%s'
+                                     % (tag.data.getformat(), tag.data.shape))
                     else:
-                        postpend += ' ... (unknown type)'
+                        postpend += ' ... type=' + str(type(tag.data))
                 postpend = '>' * 20 + 'BAD' if not good else postpend
                 out += [next_idt + prepend + str(k) + ' = ' +
                         '/'.join(this_type) + ' (' + str(size) + ')' +
                         postpend]
+                out[-1] = out[-1].replace('\n', u'¶')
                 counter = 0
                 good = True
 

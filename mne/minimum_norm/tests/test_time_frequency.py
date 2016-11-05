@@ -6,7 +6,8 @@ from nose.tools import assert_true
 import warnings
 
 from mne.datasets import testing
-from mne import io, find_events, Epochs, pick_types
+from mne import find_events, Epochs, pick_types
+from mne.io import read_raw_fif
 from mne.utils import run_tests_if_main
 from mne.label import read_label
 from mne.minimum_norm.inverse import (read_inverse_operator,
@@ -18,7 +19,7 @@ from mne.minimum_norm.time_frequency import (source_band_induced_power,
                                              compute_source_psd_epochs)
 
 
-from mne.time_frequency import multitaper_psd
+from mne.time_frequency.multitaper import _psd_multitaper
 
 data_path = testing.data_path(download=False)
 fname_inv = op.join(data_path, 'MEG', 'sample',
@@ -31,12 +32,11 @@ warnings.simplefilter('always')
 
 @testing.requires_testing_data
 def test_tfr_with_inverse_operator():
-    """Test time freq with MNE inverse computation"""
-
+    """Test time freq with MNE inverse computation."""
     tmin, tmax, event_id = -0.2, 0.5, 1
 
     # Setup for reading the raw data
-    raw = io.Raw(fname_data)
+    raw = read_raw_fif(fname_data)
     events = find_events(raw, stim_channel='STI 014')
     inverse_operator = read_inverse_operator(fname_inv)
     inv = prepare_inverse_operator(inverse_operator, nave=1,
@@ -94,8 +94,8 @@ def test_tfr_with_inverse_operator():
 
 @testing.requires_testing_data
 def test_source_psd():
-    """Test source PSD computation in label"""
-    raw = io.Raw(fname_data)
+    """Test source PSD computation in label."""
+    raw = read_raw_fif(fname_data)
     inverse_operator = read_inverse_operator(fname_inv)
     label = read_label(fname_label)
     tmin, tmax = 0, 20  # seconds
@@ -114,9 +114,8 @@ def test_source_psd():
 
 @testing.requires_testing_data
 def test_source_psd_epochs():
-    """Test multi-taper source PSD computation in label from epochs"""
-
-    raw = io.Raw(fname_data)
+    """Test multi-taper source PSD computation in label from epochs."""
+    raw = read_raw_fif(fname_data)
     inverse_operator = read_inverse_operator(fname_inv)
     label = read_label(fname_label)
 
@@ -135,7 +134,7 @@ def test_source_psd_epochs():
                     baseline=(None, 0), reject=reject)
 
     # only look at one epoch
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
     one_epochs = epochs[:1]
 
     inv = prepare_inverse_operator(inverse_operator, nave=1,
@@ -169,8 +168,8 @@ def test_source_psd_epochs():
                                prepared=True)[0]
 
     sfreq = epochs.info['sfreq']
-    psd, freqs = multitaper_psd(stc.data, sfreq=sfreq, bandwidth=bandwidth,
-                                fmin=fmin, fmax=fmax)
+    psd, freqs = _psd_multitaper(stc.data, sfreq=sfreq, bandwidth=bandwidth,
+                                 fmin=fmin, fmax=fmax)
 
     assert_array_almost_equal(psd, stc_psd.data)
     assert_array_almost_equal(freqs, stc_psd.times)

@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 from mne.minimum_norm import apply_inverse_raw, read_inverse_operator
 
 print(__doc__)
@@ -32,10 +31,11 @@ lambda2 = 1.0 / snr ** 2
 method = "sLORETA"  # use sLORETA method (could also be MNE or dSPM)
 
 # Load data
-raw = Raw(fname_raw)
+raw = mne.io.read_raw_fif(fname_raw)
 inverse_operator = read_inverse_operator(fname_inv)
 label = mne.read_label(fname_label)
 
+raw.set_eeg_reference()  # set average reference.
 start, stop = raw.time_as_index([0, 15])  # read the first 15s of data
 
 # Compute inverse solution

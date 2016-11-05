@@ -5,7 +5,7 @@
 
 
 def parse_config(fname):
-    """Parse a config file (like .ave and .cov files)
+    """Parse a config file (like .ave and .cov files).
 
     Parameters
     ----------
@@ -60,14 +60,13 @@ def parse_config(fname):
 
 
 def read_reject_parameters(fname):
-    """Read rejection parameters from .cov or .ave config file
+    """Read rejection parameters from .cov or .ave config file.
 
     Parameters
     ----------
     fname : str
         Filename to read.
     """
-
     try:
         with open(fname, 'r') as f:
             lines = f.readlines()
@@ -88,8 +87,7 @@ def read_reject_parameters(fname):
 
 
 def read_flat_parameters(fname):
-    """Read flat channel rejection parameters from .cov or .ave config file"""
-
+    """Read flat channel rejection parameters from .cov or .ave config file."""
     try:
         with open(fname, 'r') as f:
             lines = f.readlines()

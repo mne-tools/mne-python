@@ -1,12 +1,17 @@
-# TODO inspect for Cython (see sagenb.misc.sageinspect)
 from __future__ import print_function
 
-from nose.plugins.skip import SkipTest
-from os import path as op
+from nose.tools import assert_true
+import sys
 import inspect
 import warnings
-import imp
-from mne.utils import run_tests_if_main
+
+from pkgutil import walk_packages
+from inspect import getsource
+
+import mne
+from mne.utils import (run_tests_if_main, _doc_special_members,
+                       requires_numpydoc)
+from mne.fixes import _get_args
 
 public_modules = [
     # the list of modules users need to access for all functionality
@@ -19,7 +24,6 @@ public_modules = [
     'mne.datasets.spm_face',
     'mne.decoding',
     'mne.filter',
-    'mne.gui',
     'mne.inverse_sparse',
     'mne.io',
     'mne.io.kit',
@@ -35,13 +39,6 @@ public_modules = [
     'mne.viz',
 ]
 
-docscrape_path = op.join(op.dirname(__file__), '..', '..', 'doc', 'sphinxext',
-                         'numpy_ext', 'docscrape.py')
-if op.isfile(docscrape_path):
-    docscrape = imp.load_source('docscrape', docscrape_path)
-else:
-    docscrape = None
-
 
 def get_name(func):
     parts = []
@@ -54,60 +51,25 @@ def get_name(func):
     return '.'.join(parts)
 
 
-# functions to ignore # of args b/c we deprecated a name and moved it
-# to the end
-_deprecation_ignores = [
-    'mne.evoked.Evoked.plot_topomap',  # format
-    'mne.evoked.EvokedArray.plot_topomap',  # format
-    'mne.forward._field_interpolation.make_field_map',
-    'mne.forward._make_forward.make_forward_solution',  # mri
-    'mne.forward.forward.do_forward_solution',  # mri
-    'mne.source_estimate.SourceEstimate.plot',  # fmin/fmid/fmax
-    'mne.source_estimate.plot',  # fmin/fmid/fmax
-    'mne.source_space.read_source_spaces',  # add_geom
-    'mne.surface.read_bem_surfaces',  # add_geom
-    'as_data_frame',  # dep
-    'to_nitime',  # dep
-    'mne.utils.label_time_courses',  # dep
-    'mne.utils.pick_types_evoked',  # dep
-    'mne.utils.read_dip',  # dep
-    'mne.utils.plot_raw_psds',  # dep
-    'mne.utils.iir_filter_raw',  # dep
-    'mne.utils.time_generalization',  # dep
-    'mne.utils.Report.add_section',  # dep
-    'mne.utils.add_section',  # dep
-    'plot_psds',  # dep
-    'RawArray.save',  # format
-    'RawFIF.save',  # format
-    'mne.io.base.save',  # format
-    'mne.minimum_norm.inverse.apply_inverse',  # pick_normal
-    'mne.minimum_norm.time_frequency.compute_source_psd',  # pick_normal
-    'mne.minimum_norm.time_frequency.source_induced_power',  # pick_normal
-    'mne.viz.topomap.plot_evoked_topomap',  # format
-    'mne.evoked.plot_topomap',  # format
-    'mne.viz.topomap.plot_tfr_topomap',  # format
-    'mne.viz._3d.plot_trans',  # trans_fname
-    'mne.viz._3d.plot_source_estimates',  # fmin/fmid/fmax
-    'mne.time_frequency.tfr.single_trial_power',  # Fs
-    'mne.time_frequency.tfr.morlet',  # Fs
-    'mne.time_frequency.tfr.cwt_morlet',  # Fs
-    'mne.time_frequency.tfr.plot_topomap',  # format
-    'mne.time_frequency.tfr.AverageTFR.plot_topomap',  # format
-    'mne.stats.cluster_level.summarize_clusters_stc',  # vertno
+# functions to ignore args / docstring of
+_docstring_ignores = [
     'mne.io.write',  # always ignore these
-    'mne.fixes._in1d',  # fix function
+]
+
+_tab_ignores = [
 ]
 
 
 def check_parameters_match(func, doc=None):
     """Helper to check docstring, returns list of incorrect results"""
+    from numpydoc import docscrape
     incorrect = []
     name_ = get_name(func)
     if not name_.startswith('mne.') or name_.startswith('mne.externals'):
         return incorrect
     if inspect.isdatadescriptor(func):
         return incorrect
-    args, varargs, varkw, defaults = inspect.getargspec(func)
+    args = _get_args(func)
     # drop self
     if len(args) > 0 and args[0] == 'self':
         args = args[1:]
@@ -125,7 +87,8 @@ def check_parameters_match(func, doc=None):
     if len(param_names) != len(args):
         bad = str(sorted(list(set(param_names) - set(args)) +
                          list(set(args) - set(param_names))))
-        if not any(d in name_ for d in _deprecation_ignores):
+        if not any(d in name_ for d in _docstring_ignores) and \
+                'deprecation_wrapped' not in func.__code__.co_name:
             incorrect += [name_ + ' arg mismatch: ' + bad]
     else:
         for n1, n2 in zip(param_names, args):
@@ -134,18 +97,27 @@ def check_parameters_match(func, doc=None):
     return incorrect
 
 
+@requires_numpydoc
 def test_docstring_parameters():
     """Test module docsting formatting"""
-    if docscrape is None:
-        raise SkipTest('This must be run from the mne-python source directory')
+    from numpydoc import docscrape
+
+    # skip modules that require mayavi if mayavi is not installed
+    public_modules_ = public_modules[:]
+    try:
+        import mayavi  # noqa: F401
+        public_modules_.append('mne.gui')
+    except ImportError:
+        pass
+
     incorrect = []
-    for name in public_modules:
+    for name in public_modules_:
         module = __import__(name, globals())
         for submod in name.split('.')[1:]:
             module = getattr(module, submod)
         classes = inspect.getmembers(module, inspect.isclass)
         for cname, cls in classes:
-            if cname.startswith('_'):
+            if cname.startswith('_') and cname not in _doc_special_members:
                 continue
             with warnings.catch_warnings(record=True) as w:
                 cdoc = docscrape.ClassDoc(cls)
@@ -167,6 +139,28 @@ def test_docstring_parameters():
     msg = '\n' + '\n'.join(sorted(list(set(incorrect))))
     if len(incorrect) > 0:
         raise AssertionError(msg)
+
+
+def test_tabs():
+    """Test that there are no tabs in our source files"""
+    # avoid importing modules that require mayavi if mayavi is not installed
+    ignore = _tab_ignores[:]
+    try:
+        import mayavi  # noqa: F401
+    except ImportError:
+        ignore.extend('mne.gui.' + name for name in
+                      ('_coreg_gui', '_fiducials_gui', '_file_traits', '_help',
+                       '_kit2fiff_gui', '_marker_gui', '_viewer'))
+
+    for importer, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
+        if not ispkg and modname not in ignore:
+            # mod = importlib.import_module(modname)  # not py26 compatible!
+            __import__(modname)  # because we don't import e.g. mne.tests w/mne
+            mod = sys.modules[modname]
+            source = getsource(mod)
+            assert_true('\t' not in source,
+                        '"%s" has tabs, please remove them or add it to the'
+                        'ignore list' % modname)
 
 
 run_tests_if_main()

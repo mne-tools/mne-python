@@ -1,5 +1,6 @@
 import numpy as np
-from numpy.testing import assert_almost_equal, assert_allclose, assert_raises
+from numpy.testing import (
+    assert_almost_equal, assert_allclose, assert_raises, assert_array_equal)
 from nose.tools import assert_true
 from scipy import stats
 
@@ -25,6 +26,8 @@ def test_multi_pval_correction():
     assert_true(pval_bonferroni.ndim == 2)
     assert_true(reject_bonferroni.ndim == 2)
     assert_allclose(pval_bonferroni / 10000, pval)
+    reject_expected = pval_bonferroni < alpha
+    assert_array_equal(reject_bonferroni, reject_expected)
 
     fwer = np.mean(reject_bonferroni)
     assert_almost_equal(fwer, alpha, 1)

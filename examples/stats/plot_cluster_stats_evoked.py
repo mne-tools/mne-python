@@ -31,7 +31,7 @@ tmin = -0.2
 tmax = 0.5
 
 #   Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 channel = 'MEG 1332'  # include only this channel in analysis
@@ -60,7 +60,7 @@ condition2 = condition2[:, 0, :]  # take only one channel to get a 2D array
 threshold = 6.0
 T_obs, clusters, cluster_p_values, H0 = \
     permutation_cluster_test([condition1, condition2], n_permutations=1000,
-                             threshold=threshold, tail=1, n_jobs=2)
+                             threshold=threshold, tail=1, n_jobs=1)
 
 ###############################################################################
 # Plot

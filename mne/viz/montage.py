@@ -1,10 +1,11 @@
-"""Functions to plot EEG sensor montages or digitizer montages
-"""
+"""Functions to plot EEG sensor montages or digitizer montages."""
 import numpy as np
+
+from .utils import plt_show
 
 
 def plot_montage(montage, scale_factor=1.5, show_names=False, show=True):
-    """Plot a montage
+    """Plot a montage.
 
     Parameters
     ----------
@@ -25,7 +26,7 @@ def plot_montage(montage, scale_factor=1.5, show_names=False, show=True):
     from ..channels.montage import Montage, DigMontage
 
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D  # noqa
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
@@ -52,7 +53,5 @@ def plot_montage(montage, scale_factor=1.5, show_names=False, show=True):
     ax.set_ylabel('y')
     ax.set_zlabel('z')
 
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig

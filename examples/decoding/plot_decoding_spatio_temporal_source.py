@@ -43,8 +43,8 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_r=2, vis_r=4)  # load contra-lateral conditions
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname, preload=True)
-raw.filter(2, None, method='iir')  # replace baselining with high-pass
+raw = io.read_raw_fif(raw_fname, preload=True)
+raw.filter(2, None)  # replace baselining with high-pass
 events = mne.read_events(event_fname)
 
 # Set up pick list: MEG - bad channels (modify to your needs)
@@ -55,9 +55,10 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=None, preload=True,
-                    reject=dict(grad=4000e-13, eog=150e-6))
+                    reject=dict(grad=4000e-13, eog=150e-6),
+                    decim=5)  # decimate to save memory and increase speed
 
-epochs.equalize_event_counts(list(event_id.keys()), 'mintime', copy=False)
+epochs.equalize_event_counts(list(event_id.keys()))
 epochs_list = [epochs[k] for k in event_id]
 
 # Compute inverse solution
@@ -147,6 +148,5 @@ stc_feat = mne.SourceEstimate(feature_weights, vertices=vertices,
                               tmin=stc.tmin, tstep=stc.tstep,
                               subject='sample')
 
-brain = stc_feat.plot(clim='auto')
-brain.set_time(100)
-brain.show_view('l')  # take the medial view to further explore visual areas
+brain = stc_feat.plot(views=['lat'], transparent=True,
+                      initial_time=0.1, time_unit='s')

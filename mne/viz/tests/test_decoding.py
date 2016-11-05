@@ -12,7 +12,8 @@ import numpy as np
 
 from mne.epochs import equalize_epoch_counts, concatenate_epochs
 from mne.decoding import GeneralizationAcrossTime
-from mne import io, Epochs, read_events, pick_types
+from mne import Epochs, read_events, pick_types
+from mne.io import read_raw_fif
 from mne.utils import requires_sklearn, run_tests_if_main
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -28,9 +29,10 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
               event_id_gen=dict(aud_l=2, vis_l=4), test_times=None):
-    """Aux function for testing GAT viz"""
+    """Aux function for testing GAT viz."""
     gat = GeneralizationAcrossTime()
-    raw = io.Raw(raw_fname, preload=False)
+    raw = read_raw_fif(raw_fname)
+    raw.add_proj([], remove_existing=True)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -39,21 +41,21 @@ def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
     # Test on time generalization within one condition
     with warnings.catch_warnings(record=True):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), preload=True, decim=decim)
+                        preload=True, decim=decim)
     epochs_list = [epochs[k] for k in event_id]
     equalize_epoch_counts(epochs_list)
     epochs = concatenate_epochs(epochs_list)
 
     # Test default running
-    gat = GeneralizationAcrossTime()
+    gat = GeneralizationAcrossTime(test_times=test_times)
     gat.fit(epochs)
-    gat.score(epochs, test_times=test_times)
+    gat.score(epochs)
     return gat
 
 
 @requires_sklearn
 def test_gat_plot_matrix():
-    """Test GAT matrix plot"""
+    """Test GAT matrix plot."""
     gat = _get_data()
     gat.plot()
     del gat.scores_
@@ -62,7 +64,7 @@ def test_gat_plot_matrix():
 
 @requires_sklearn
 def test_gat_plot_diagonal():
-    """Test GAT diagonal plot"""
+    """Test GAT diagonal plot."""
     gat = _get_data()
     gat.plot_diagonal()
     del gat.scores_
@@ -71,16 +73,17 @@ def test_gat_plot_diagonal():
 
 @requires_sklearn
 def test_gat_plot_times():
-    """Test GAT times plot"""
+    """Test GAT times plot."""
     gat = _get_data()
     # test one line
-    gat.plot_times(gat.train_times['times_'][0])
+    gat.plot_times(gat.train_times_['times'][0])
     # test multiple lines
-    gat.plot_times(gat.train_times['times_'])
+    gat.plot_times(gat.train_times_['times'])
     # test multiple colors
-    n_times = len(gat.train_times['times_'])
-    colors = np.tile(['r', 'g', 'b'], np.ceil(n_times / 3))[:n_times]
-    gat.plot_times(gat.train_times['times_'], color=colors)
+    n_times = len(gat.train_times_['times'])
+    colors = np.tile(['r', 'g', 'b'],
+                     int(np.ceil(n_times / 3)))[:n_times]
+    gat.plot_times(gat.train_times_['times'], color=colors)
     # test invalid time point
     assert_raises(ValueError, gat.plot_times, -1.)
     # test float type
@@ -96,7 +99,7 @@ def chance(ax):
 
 @requires_sklearn
 def test_gat_chance_level():
-    """Test GAT plot_times chance level"""
+    """Test GAT plot_times chance level."""
     gat = _get_data()
     ax = gat.plot_diagonal(chance=False)
     ax = gat.plot_diagonal()
@@ -113,7 +116,7 @@ def test_gat_chance_level():
 
 @requires_sklearn
 def test_gat_plot_nonsquared():
-    """Test GAT diagonal plot"""
+    """Test GAT diagonal plot."""
     gat = _get_data(test_times=dict(start=0.))
     gat.plot()
     ax = gat.plot_diagonal()

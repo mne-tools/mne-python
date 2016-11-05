@@ -1,7 +1,11 @@
-from .classifier import Scaler, FilterEstimator
-from .classifier import PSDEstimator, ConcatenateChannels
+"""Decoding analysis utilities."""
+
+from .transformer import Scaler, FilterEstimator
+from .transformer import (PSDEstimator, Vectorizer,
+                          UnsupervisedSpatialFilter, TemporalFilter)
 from .mixin import TransformerMixin
+from .base import BaseEstimator, LinearModel
 from .csp import CSP
-from .ems import compute_ems
-from .time_gen import time_generalization  ## to be deprecated
-from .time_gen import GeneralizationAcrossTime
+from .ems import compute_ems, EMS
+from .time_gen import GeneralizationAcrossTime, TimeDecoding
+from .time_frequency import TimeFrequency

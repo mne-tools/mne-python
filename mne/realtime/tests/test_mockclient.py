@@ -18,7 +18,7 @@ events = read_events(event_name)
 def test_mockclient():
     """Test the RtMockClient."""
 
-    raw = mne.io.Raw(raw_fname, preload=True, verbose=False)
+    raw = mne.io.read_raw_fif(raw_fname, preload=True, verbose=False)
     picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                            stim=True, exclude=raw.info['bads'])
 
@@ -44,7 +44,7 @@ def test_mockclient():
 def test_get_event_data():
     """Test emulation of realtime data stream."""
 
-    raw = mne.io.Raw(raw_fname, preload=True, verbose=False)
+    raw = mne.io.read_raw_fif(raw_fname, preload=True, verbose=False)
     picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                            stim=True, exclude=raw.info['bads'])
 
@@ -66,7 +66,7 @@ def test_get_event_data():
 def test_find_events():
     """Test find_events in rt_epochs."""
 
-    raw = mne.io.Raw(raw_fname, preload=True, verbose=False)
+    raw = mne.io.read_raw_fif(raw_fname, preload=True, verbose=False)
     picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                            stim=True, exclude=raw.info['bads'])
 
@@ -75,7 +75,7 @@ def test_find_events():
 
     stim_channel = 'STI 014'
     stim_channel_idx = pick_channels(raw.info['ch_names'],
-                                     include=stim_channel)
+                                     include=[stim_channel])
 
     # Reset some data for ease of comparison
     raw._first_samps[0] = 0
@@ -86,6 +86,7 @@ def test_find_events():
     raw._data[stim_channel_idx, 520:530] = 6
     raw._data[stim_channel_idx, 530:532] = 5
     raw._data[stim_channel_idx, 540] = 6
+    raw._update_times()
 
     # consecutive=False
     find_events = dict(consecutive=False)

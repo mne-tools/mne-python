@@ -1,12 +1,9 @@
-"""Compute Linearly constrained minimum variance (LCMV) beamformer.
-"""
+"""Compute Linearly constrained minimum variance (LCMV) beamformer."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
-
-import warnings
 
 import numpy as np
 from scipy import linalg
@@ -20,7 +17,7 @@ from ..minimum_norm.inverse import _get_vertno, combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from .. import Epochs
 from ..externals import six
 
@@ -56,7 +53,7 @@ def _setup_picks(picks, info, forward, noise_cov=None):
 def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                 label=None, picks=None, pick_ori=None, rank=None,
                 verbose=None):
-    """ LCMV beamformer for evoked data, single epochs, and raw data
+    """LCMV beamformer for evoked data, single epochs, and raw data.
 
     Parameters
     ----------
@@ -91,16 +88,16 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     stc : SourceEstimate | VolSourceEstimate (or list of thereof)
         Source time courses.
     """
-    is_free_ori, ch_names, proj, vertno, G = (
-        _prepare_beamformer_input(
-            info, forward, label, picks, pick_ori))
+    is_free_ori, ch_names, proj, vertno, G = \
+        _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
     # Handle whitening + data covariance
     whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
@@ -223,7 +220,6 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
     Check input values, prepare channel list and gain matrix. For documentation
     of parameters, please refer to _apply_lcmv.
     """
-
     is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
     if pick_ori in ['normal', 'max-power'] and not is_free_ori:
@@ -240,8 +236,13 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
                          'is used.')
 
     # Restrict forward solution to selected channels
-    ch_names = [info['chs'][k]['ch_name'] for k in picks]
-    forward = pick_channels_forward(forward, include=ch_names)
+    info_ch_names = [c['ch_name'] for c in info['chs']]
+    ch_names = [info_ch_names[k] for k in picks]
+    fwd_ch_names = forward['sol']['row_names']
+    # Keep channels in forward present in info:
+    fwd_ch_names = [c for c in fwd_ch_names if c in info_ch_names]
+    forward = pick_channels_forward(forward, fwd_ch_names)
+    picks_forward = [fwd_ch_names.index(c) for c in ch_names]
 
     # Get gain matrix (forward operator)
     if label is not None:
@@ -258,9 +259,14 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
         G = forward['sol']['data']
 
     # Apply SSPs
-    proj, ncomp, _ = make_projector(info['projs'], ch_names)
+    proj, ncomp, _ = make_projector(info['projs'], fwd_ch_names)
+
     if info['projs']:
         G = np.dot(proj, G)
+
+    # Pick after applying the projections
+    G = G[picks_forward]
+    proj = proj[np.ix_(picks_forward, picks_forward)]
 
     return is_free_ori, ch_names, proj, vertno, G
 
@@ -303,12 +309,17 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     stc : SourceEstimate | VolSourceEstimate
         Source time courses
+
+    See Also
+    --------
+    lcmv_raw, lcmv_epochs
 
     Notes
     -----
@@ -382,12 +393,17 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     stc: list | generator of (SourceEstimate | VolSourceEstimate)
         The source estimates for all epochs
+
+    See Also
+    --------
+    lcmv_raw, lcmv
 
     Notes
     -----
@@ -409,7 +425,6 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     picks = _setup_picks(picks, info, forward, noise_cov)
 
     data = epochs.get_data()[:, picks, :]
-
     stcs = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, noise_cov=noise_cov,
         data_cov=data_cov, reg=reg, label=label, picks=picks, rank=rank,
@@ -464,12 +479,17 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     stc : SourceEstimate | VolSourceEstimate
         Source time courses
+
+    See Also
+    --------
+    lcmv, lcmv_epochs
 
     Notes
     -----
@@ -540,7 +560,8 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -678,7 +699,8 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -708,7 +730,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                          'window lengths')
 
     # Extract raw object from the epochs object
-    raw = epochs.raw
+    raw = epochs._raw
     if raw is None:
         raise ValueError('The provided epochs object does not contain the '
                          'underlying raw object. Please use preload=False '
@@ -721,7 +743,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     raw_picks = [raw.ch_names.index(c) for c in ch_names]
 
     # Make sure epochs.events contains only good events:
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
 
     # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
@@ -733,7 +755,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
 
         raw_band = raw.copy()
         raw_band.filter(l_freq, h_freq, picks=raw_picks, method='iir',
-                        n_jobs=n_jobs)
+                        n_jobs=n_jobs, iir_params=dict(output='ba'))
         raw_band.info['highpass'] = l_freq
         raw_band.info['lowpass'] = h_freq
         epochs_band = Epochs(raw_band, epochs.events, epochs.event_id,
@@ -755,7 +777,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
             # be calculated for an additional time window
             if i_time == n_time_steps - 1 and win_tmax - tstep < tmax and\
                win_tmax >= tmax + (epochs.times[-1] - epochs.times[-2]):
-                warnings.warn('Adding a time window to cover last time points')
+                warn('Adding a time window to cover last time points')
                 win_tmin = tmax - win_length
                 win_tmax = tmax
 

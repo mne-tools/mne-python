@@ -9,7 +9,7 @@ from scipy import linalg
 from ..forward import is_fixed_orient, _to_fixed_ori
 
 from ..minimum_norm.inverse import _check_reference
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from ..externals.six.moves import xrange as range
 from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual)
@@ -18,7 +18,7 @@ from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
 @verbose
 def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
                    group_size=1, gammas=None, verbose=None):
-    """Hierarchical Bayes (Gamma-MAP)
+    """Hierarchical Bayes (Gamma-MAP).
 
     Parameters
     ----------
@@ -40,7 +40,8 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         Initial values for posterior variances (gammas). If None, a
         variance of 1.0 is used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -48,12 +49,6 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         Estimated source time courses.
     active_set : array, shape=(n_active,)
         Indices of active sources.
-
-    References
-    ----------
-    [1] Wipf et al. Analysis of Empirical Bayesian Methods for
-    Neuroelectromagnetic Source Localization, Advances in Neural Information
-    Processing Systems (2007).
     """
     G = G.copy()
     M = M.copy()
@@ -107,7 +102,6 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         S = S[np.newaxis, :]
         CM = np.dot(U * S, U.T)
         CMinv = np.dot(U / (S + eps), U.T)
-
         CMinvG = np.dot(CMinv, G)
         A = np.dot(CMinvG.T, M)  # mult. w. Diag(gamma) in gamma update
 
@@ -156,9 +150,9 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
             break
 
     if itno < maxit - 1:
-        print('\nConvergence reached !\n')
+        logger.info('\nConvergence reached !\n')
     else:
-        print('\nConvergence NOT reached !\n')
+        warn('\nConvergence NOT reached !\n')
 
     # undo normalization and compute final posterior mean
     n_const = np.sqrt(M_normalize_constant) / G_normalize_constant
@@ -172,11 +166,12 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
               xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=1,
               gammas=None, pca=True, return_residual=False,
               verbose=None):
-    """Hierarchical Bayes (Gamma-MAP) sparse source localization method
+    """Hierarchical Bayes (Gamma-MAP) sparse source localization method.
 
     Models each source time course using a zero-mean Gaussian prior with an
     unknown variance (gamma) parameter. During estimation, most gammas are
-    driven to zero, resulting in a sparse source estimate.
+    driven to zero, resulting in a sparse source estimate, as in
+    [1]_ and [2]_.
 
     For fixed-orientation forward operators, a separate gamma is used for each
     source time course, while for free-orientation forward operators, the same
@@ -217,7 +212,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -229,11 +225,12 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     References
     ----------
-    Wipf et al. Analysis of Empirical Bayesian Methods for Neuroelectromagnetic
-    Source Localization, Advances in Neural Information Process. Systems (2007)
+    .. [1] Wipf et al. Analysis of Empirical Bayesian Methods for
+           Neuroelectromagnetic Source Localization, Advances in Neural
+           Information Process. Systems (2007)
 
-    Wipf et al. A unified Bayesian framework for MEG/EEG source imaging,
-    NeuroImage, vol. 44, no. 3, pp. 947-66, Mar. 2009.
+    .. [2] Wipf et al. A unified Bayesian framework for MEG/EEG source
+           imaging, NeuroImage, vol. 44, no. 3, pp. 947-66, Mar. 2009.
     """
     _check_reference(evoked)
 

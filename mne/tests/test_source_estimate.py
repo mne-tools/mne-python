@@ -12,11 +12,13 @@ from scipy.fftpack import fft
 
 from mne.datasets import testing
 from mne import (stats, SourceEstimate, VolSourceEstimate, Label,
-                 read_source_spaces, MixedSourceEstimate)
-from mne import read_source_estimate, morph_data, extract_label_time_course
-from mne.source_estimate import (spatio_temporal_tris_connectivity,
-                                 spatio_temporal_src_connectivity,
-                                 compute_morph_matrix, grade_to_vertices)
+                 read_source_spaces, MixedSourceEstimate, read_source_estimate,
+                 morph_data, extract_label_time_course,
+                 spatio_temporal_tris_connectivity,
+                 spatio_temporal_src_connectivity,
+                 spatial_inter_hemi_connectivity)
+from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
+                                 grade_to_tris)
 
 from mne.minimum_norm import read_inverse_operator
 from mne.label import read_labels_from_annot, label_sign_flip
@@ -32,6 +34,8 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
 fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 fname_src = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+fname_src_3 = op.join(data_path, 'subjects', 'sample', 'bem',
+                      'sample-oct-4-src.fif')
 fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
 fname_smorph = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-meg')
@@ -41,6 +45,41 @@ fname_vol = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
 fname_vsrc = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-vol-7-fwd.fif')
+rng = np.random.RandomState(0)
+
+
+@testing.requires_testing_data
+def test_spatial_inter_hemi_connectivity():
+    """Test spatial connectivity between hemispheres"""
+    # trivial cases
+    conn = spatial_inter_hemi_connectivity(fname_src_3, 5e-6)
+    assert_equal(conn.data.size, 0)
+    conn = spatial_inter_hemi_connectivity(fname_src_3, 5e6)
+    assert_equal(conn.data.size, np.prod(conn.shape) // 2)
+    # actually interesting case (1cm), should be between 2 and 10% of verts
+    src = read_source_spaces(fname_src_3)
+    conn = spatial_inter_hemi_connectivity(src, 10e-3)
+    conn = conn.tocsr()
+    n_src = conn.shape[0]
+    assert_true(n_src * 0.02 < conn.data.size < n_src * 0.10)
+    assert_equal(conn[:src[0]['nuse'], :src[0]['nuse']].data.size, 0)
+    assert_equal(conn[-src[1]['nuse']:, -src[1]['nuse']:].data.size, 0)
+    c = (conn.T + conn) / 2. - conn
+    c.eliminate_zeros()
+    assert_equal(c.data.size, 0)
+    # check locations
+    upper_right = conn[:src[0]['nuse'], src[0]['nuse']:].toarray()
+    assert_equal(upper_right.sum(), conn.sum() // 2)
+    good_labels = ['S_pericallosal', 'Unknown', 'G_and_S_cingul-Mid-Post',
+                   'G_cuneus']
+    for hi, hemi in enumerate(('lh', 'rh')):
+        has_neighbors = src[hi]['vertno'][np.where(np.any(upper_right,
+                                                          axis=1 - hi))[0]]
+        labels = read_labels_from_annot('sample', 'aparc.a2009s', hemi,
+                                        subjects_dir=subjects_dir)
+        use_labels = [l.name[:-3] for l in labels
+                      if np.in1d(l.vertices, has_neighbors).any()]
+        assert_true(set(use_labels) - set(good_labels) == set())
 
 
 @slow_test
@@ -101,14 +140,12 @@ def test_volume_stc():
         with warnings.catch_warnings(record=True):  # nib<->numpy
             img = nib.load(vol_fname)
         assert_true(img.shape == t1_img.shape + (len(stc.times),))
-        assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
-                                  decimal=5)
+        assert_array_almost_equal(img.affine, t1_img.affine, decimal=5)
 
         # export without saving
         img = stc.as_volume(src, dest='mri', mri_resolution=True)
         assert_true(img.shape == t1_img.shape + (len(stc.times),))
-        assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
-                                  decimal=5)
+        assert_array_almost_equal(img.affine, t1_img.affine, decimal=5)
 
     except ImportError:
         print('Save as nifti test skipped, needs NiBabel')
@@ -128,6 +165,8 @@ def test_expand():
     stc_new.data.fill(0)
     for label in labels_lh[:2]:
         stc_new += stc.in_label(label).expand(stc_limited.vertices)
+    assert_raises(TypeError, stc_new.expand, stc_limited.vertices[0])
+    assert_raises(ValueError, stc_new.expand, [stc_limited.vertices[0]])
     # make sure we can't add unless vertno agree
     assert_raises(ValueError, stc.__add__, stc.in_label(labels_lh[0]))
 
@@ -211,6 +250,10 @@ def test_stc_arithmetic():
         a -= 1
         a *= -1
         a /= 2
+        b = 2 + a
+        b = 2 - a
+        b = +a
+        assert_array_equal(b.data, a.data)
         with warnings.catch_warnings(record=True):
             warnings.simplefilter('always')
             a **= 3
@@ -226,8 +269,7 @@ def test_stc_arithmetic():
 @slow_test
 @testing.requires_testing_data
 def test_stc_methods():
-    """Test stc methods lh_data, rh_data, bin(), center_of_mass(), resample()
-    """
+    """Test stc methods lh_data, rh_data, bin, center_of_mass, resample"""
     stc = read_source_estimate(fname_stc)
 
     # lh_data / rh_data
@@ -241,6 +283,8 @@ def test_stc_methods():
     assert a[0] == bin.data[0, 0]
 
     assert_raises(ValueError, stc.center_of_mass, 'sample')
+    assert_raises(TypeError, stc.center_of_mass, 'sample',
+                  subjects_dir=subjects_dir, surf=1)
     stc.lh_data[:] = 0
     vertex, hemi, t = stc.center_of_mass('sample', subjects_dir=subjects_dir)
     assert_true(hemi == 1)
@@ -249,12 +293,26 @@ def test_stc_methods():
     assert_equal(np.round(t, 2), 0.12)
 
     stc = read_source_estimate(fname_stc)
-    label = read_labels_from_annot('sample', 'aparc', 'lh',
-                                   subjects_dir=subjects_dir)[0]
-    assert_true(isinstance(stc.shape, tuple) and len(stc.shape) == 2)
-    stc_label = stc.in_label(label)
-    n_vertices_used = len(label.get_vertices_used(stc_label.vertices[0]))
-    assert_equal(len(stc_label.data), n_vertices_used)
+    stc.subject = 'sample'
+    label_lh = read_labels_from_annot('sample', 'aparc', 'lh',
+                                      subjects_dir=subjects_dir)[0]
+    label_rh = read_labels_from_annot('sample', 'aparc', 'rh',
+                                      subjects_dir=subjects_dir)[0]
+    label_both = label_lh + label_rh
+    for label in (label_lh, label_rh, label_both):
+        assert_true(isinstance(stc.shape, tuple) and len(stc.shape) == 2)
+        stc_label = stc.in_label(label)
+        if label.hemi != 'both':
+            if label.hemi == 'lh':
+                verts = stc_label.vertices[0]
+            else:  # label.hemi == 'rh':
+                verts = stc_label.vertices[1]
+            n_vertices_used = len(label.get_vertices_used(verts))
+            assert_equal(len(stc_label.data), n_vertices_used)
+    stc_lh = stc.in_label(label_lh)
+    assert_raises(ValueError, stc_lh.in_label, label_rh)
+    label_lh.subject = 'foo'
+    assert_raises(RuntimeError, stc.in_label, label_lh)
 
     stc_new = deepcopy(stc)
     o_sfreq = 1.0 / stc.tstep
@@ -326,8 +384,9 @@ def test_extract_label_time_course():
                   src, mode='mean')
 
     # but this works:
-    tc = extract_label_time_course(stcs, empty_label, src, mode='mean',
-                                   allow_empty=True)
+    with warnings.catch_warnings(record=True):  # empty label
+        tc = extract_label_time_course(stcs, empty_label, src, mode='mean',
+                                       allow_empty=True)
     for arr in tc:
         assert_true(arr.shape == (1, n_times))
         assert_array_equal(arr, np.zeros((1, n_times)))
@@ -374,9 +433,18 @@ def test_morph_data():
     # make sure we can specify grade
     stc_from.crop(0.09, 0.1)  # for faster computation
     stc_to.crop(0.09, 0.1)  # for faster computation
+    assert_array_equal(stc_to.time_as_index([0.09, 0.1], use_rounding=True),
+                       [0, len(stc_to.times) - 1])
+    assert_raises(ValueError, stc_from.morph, subject_to, grade=3, smooth=-1,
+                  subjects_dir=subjects_dir)
     stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12, buffer_size=1000,
                              subjects_dir=subjects_dir)
     stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
+    # Morphing to a density that is too high should raise an informative error
+    # (here we need to push to grade=6, but for some subjects even grade=5
+    # will break)
+    assert_raises(ValueError, stc_to1.morph, subject_from, grade=6,
+                  subjects_dir=subjects_dir)
     # make sure we can specify vertices
     vertices_to = grade_to_vertices(subject_to, grade=3,
                                     subjects_dir=subjects_dir)
@@ -404,6 +472,15 @@ def test_morph_data():
                                      smooth=12, subjects_dir=subjects_dir)
     stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to, morph_mat)
     assert_array_almost_equal(stc_to1.data, stc_to3.data)
+    assert_raises(ValueError, stc_from.morph_precomputed,
+                  subject_to, vertices_to, 'foo')
+    assert_raises(ValueError, stc_from.morph_precomputed,
+                  subject_to, [vertices_to[0]], morph_mat)
+    assert_raises(ValueError, stc_from.morph_precomputed,
+                  subject_to, [vertices_to[0][:-1], vertices_to[1]], morph_mat)
+    assert_raises(ValueError, stc_from.morph_precomputed, subject_to,
+                  vertices_to, morph_mat, subject_from='foo')
+
     # steps warning
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -465,8 +542,8 @@ def test_transform_data():
     """Test applying linear (time) transform to data"""
     # make up some data
     n_sensors, n_vertices, n_times = 10, 20, 4
-    kernel = np.random.randn(n_vertices, n_sensors)
-    sens_data = np.random.randn(n_sensors, n_times)
+    kernel = rng.randn(n_vertices, n_sensors)
+    sens_data = rng.randn(n_sensors, n_times)
 
     vertices = np.arange(n_vertices)
     data = np.dot(kernel, sens_data)
@@ -496,7 +573,7 @@ def test_transform():
     # make up some data
     n_verts_lh, n_verts_rh, n_times = 10, 10, 10
     vertices = [np.arange(n_verts_lh), n_verts_lh + np.arange(n_verts_rh)]
-    data = np.random.randn(n_verts_lh + n_verts_rh, n_times)
+    data = rng.randn(n_verts_lh + n_verts_rh, n_times)
     stc = SourceEstimate(data, vertices=vertices, tmin=-0.1, tstep=0.1)
 
     # data_t.ndim > 2 & copy is True
@@ -589,13 +666,15 @@ def test_spatio_temporal_src_connectivity():
     b = sum([s['nuse'] for s in inverse_operator['src']])
     assert_true(a == b)
 
+    assert_equal(grade_to_tris(5).shape, [40960, 3])
+
 
 @requires_pandas
 def test_to_data_frame():
     """Test stc Pandas exporter"""
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
-    data = np.random.randn(n_vert, n_times)
+    data = rng.randn(n_vert, n_times)
     stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                               subject='sample')
     stc_vol = VolSourceEstimate(data, vertices=vertices[0], tmin=0, tstep=1,
@@ -617,7 +696,7 @@ def test_get_peak():
     """
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
-    data = np.random.randn(n_vert, n_times)
+    data = rng.randn(n_vert, n_times)
     stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                               subject='sample')
 
@@ -648,7 +727,7 @@ def test_mixed_stc():
     T = 2  # number of time points
     S = 3  # number of source spaces
 
-    data = np.random.randn(N, T)
+    data = rng.randn(N, T)
     vertno = S * [np.arange(N // S)]
 
     # make sure error is raised if vertices are not a list of length >= 2

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""
-Import BTi / 4D MagnesWH3600 data to fif file.
+r"""Import BTi / 4D MagnesWH3600 data to fif file.
 
 example usage: mne bti2fiff --pdf C,rfDC -o my_raw.fif
 
@@ -30,6 +29,7 @@ from mne.io import read_raw_bti
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)

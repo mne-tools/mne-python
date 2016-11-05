@@ -10,13 +10,13 @@ from scipy import fftpack
 # XXX explore cuda optimazation at some point.
 
 from ..io.pick import pick_types, pick_info
-from ..utils import logger, verbose
+from ..utils import verbose, warn
 from ..parallel import parallel_func, check_n_jobs
 from .tfr import AverageTFR, _get_data
 
 
 def _check_input_st(x_in, n_fft):
-    """Aux function"""
+    """Aux function."""
     # flatten to 2 D and memorize original shape
     n_times = x_in.shape[-1]
 
@@ -29,19 +29,19 @@ def _check_input_st(x_in, n_fft):
     elif n_fft < n_times:
         raise ValueError("n_fft cannot be smaller than signal size. "
                          "Got %s < %s." % (n_fft, n_times))
-    zero_pad = None
     if n_times < n_fft:
-        msg = ('The input signal is shorter ({0}) than "n_fft" ({1}). '
-               'Applying zero padding.').format(x_in.shape[-1], n_fft)
-        logger.warning(msg)
+        warn('The input signal is shorter ({0}) than "n_fft" ({1}). '
+             'Applying zero padding.'.format(x_in.shape[-1], n_fft))
         zero_pad = n_fft - n_times
         pad_array = np.zeros(x_in.shape[:-1] + (zero_pad,), x_in.dtype)
         x_in = np.concatenate((x_in, pad_array), axis=-1)
-        return x_in, n_fft, zero_pad
+    else:
+        zero_pad = 0
+    return x_in, n_fft, zero_pad
 
 
 def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
-    """Precompute stockwell gausian windows (in the freq domain)"""
+    """Precompute stockwell gausian windows (in the freq domain)."""
     tw = fftpack.fftfreq(n_samp, 1. / sfreq) / n_samp
     tw = np.r_[tw[:1], tw[1:][::-1]]
 
@@ -60,7 +60,7 @@ def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
 
 
 def _st(x, start_f, windows):
-    """Implementation based on Ali Moukadem Matlab code (only used in tests)"""
+    """Implementation based on Ali Moukadem Matlab code (used in tests)."""
     n_samp = x.shape[-1]
     ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex)
     # do the work
@@ -73,7 +73,7 @@ def _st(x, start_f, windows):
 
 
 def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
-    """Aux function"""
+    """Aux function."""
     n_samp = x.shape[-1]
     n_out = (n_samp - zero_pad)
     n_out = n_out // decim + bool(n_out % decim)
@@ -84,7 +84,10 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     for i_f, window in enumerate(W):
         f = start_f + i_f
         ST = fftpack.ifft(XX[:, f:f + n_samp] * window)
-        TFR = ST[:, :-zero_pad:decim]
+        if zero_pad > 0:
+            TFR = ST[:, :-zero_pad:decim]
+        else:
+            TFR = ST[:, ::decim]
         TFR_abs = np.abs(TFR)
         if compute_itc:
             TFR /= TFR_abs
@@ -96,7 +99,7 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
 
 def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
                              decim=1, return_itc=False, n_jobs=1):
-    """Computes power and intertrial coherence using Stockwell (S) transform
+    """Compute power and intertrial coherence using Stockwell (S) transform.
 
     Parameters
     ----------
@@ -189,7 +192,7 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
 def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
                   width=1.0, decim=1, return_itc=False, n_jobs=1,
                   verbose=None):
-    """Time-Frequency Representation (TFR) using Stockwell Transform
+    """Time-Frequency Representation (TFR) using Stockwell Transform.
 
     Parameters
     ----------
@@ -214,7 +217,8 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     n_jobs : int
         The number of jobs to run in parallel (over channels).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -222,6 +226,11 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
         The averaged power.
     itc : AverageTFR
         The intertrial coherence. Only returned if return_itc is True.
+
+    See Also
+    --------
+    cwt : Compute time-frequency decomposition with user-provided wavelets
+    cwt_morlet, psd_multitaper
 
     Notes
     -----

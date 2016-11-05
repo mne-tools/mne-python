@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Compute SSP/PCA projections for EOG artifacts
+r"""Compute SSP/PCA projections for EOG artifacts.
 
 You can do for example:
 
@@ -28,6 +28,7 @@ import mne
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -157,10 +158,10 @@ def run():
     else:
         eog_proj_fname = prefix + '_eog-proj.fif'
 
-    raw = mne.io.Raw(raw_in, preload=preload)
+    raw = mne.io.read_raw_fif(raw_in, preload=preload)
 
     if raw_event_fname is not None:
-        raw_event = mne.io.Raw(raw_event_fname)
+        raw_event = mne.io.read_raw_fif(raw_event_fname)
     else:
         raw_event = raw
 

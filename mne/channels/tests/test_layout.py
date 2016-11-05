@@ -9,85 +9,54 @@ from __future__ import print_function
 import copy
 import os.path as op
 import warnings
+# Set our plotters to test mode
+import matplotlib
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_equal, assert_true, assert_raises
 from mne.channels import (make_eeg_layout, make_grid_layout, read_layout,
                           find_layout)
 from mne.channels.layout import (_box_size, _auto_topomap_coords,
                                  generate_2d_layout)
 from mne.utils import run_tests_if_main
 from mne import pick_types, pick_info
-from mne.io import Raw
-from mne.io import read_raw_kit
+from mne.io import read_raw_kit, _empty_info, read_info
 from mne.io.constants import FIFF
-from mne.preprocessing.maxfilter import fit_sphere_to_headshape
+from mne.bem import fit_sphere_to_headshape
 from mne.utils import _TempDir
+matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')
 
-fif_fname = op.join(op.dirname(__file__), '..', '..', 'io',
-                    'tests', 'data', 'test_raw.fif')
+io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
+fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
+lout_path = op.join(io_dir, 'tests', 'data')
+bti_dir = op.join(io_dir, 'bti', 'tests', 'data')
+fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
+fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
+fname_kit_umd = op.join(io_dir, 'kit', 'tests', 'data', 'test_umd-raw.sqd')
 
-lout_path = op.join(op.dirname(__file__), '..', '..', 'io',
-                    'tests', 'data')
 
-bti_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'bti',
-                  'tests', 'data')
-
-fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                        'data', 'test_ctf_comp_raw.fif')
-
-fname_kit_157 = op.join(op.dirname(__file__), '..', '..',  'io', 'kit',
-                        'tests', 'data', 'test.sqd')
-
-test_info = {
-    'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
-    'chs': [{'cal': 1,
-             'ch_name': 'ICA 001',
-             'coil_trans': None,
-             'coil_type': 0,
-             'coord_Frame': 0,
-             'eeg_loc': None,
-             'kind': 502,
-             'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
-                             dtype=np.float32),
-             'logno': 1,
-             'range': 1.0,
-             'scanno': 1,
-             'unit': -1,
-             'unit_mul': 0},
-            {'cal': 1,
-             'ch_name': 'ICA 002',
-             'coil_trans': None,
-             'coil_type': 0,
-             'coord_Frame': 0,
-             'eeg_loc': None,
-             'kind': 502,
-             'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
-                             dtype=np.float32),
-             'logno': 2,
-             'range': 1.0,
-             'scanno': 2,
-             'unit': -1,
-             'unit_mul': 0},
-            {'cal': 0.002142000012099743,
-             'ch_name': 'EOG 061',
-             'coil_trans': None,
-             'coil_type': 1,
-             'coord_frame': 0,
-             'eeg_loc': None,
-             'kind': 202,
-             'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
-                             dtype=np.float32),
-             'logno': 61,
-             'range': 1.0,
-             'scanno': 376,
-             'unit': 107,
-             'unit_mul': 0}],
-    'nchan': 3}
+def _get_test_info():
+    """Helper to make test info"""
+    test_info = _empty_info(1000)
+    loc = np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
+                   dtype=np.float32)
+    test_info['chs'] = [
+        {'cal': 1, 'ch_name': 'ICA 001', 'coil_type': 0, 'coord_Frame': 0,
+         'kind': 502, 'loc': loc.copy(), 'logno': 1, 'range': 1.0, 'scanno': 1,
+         'unit': -1, 'unit_mul': 0},
+        {'cal': 1, 'ch_name': 'ICA 002', 'coil_type': 0, 'coord_Frame': 0,
+         'kind': 502, 'loc': loc.copy(), 'logno': 2, 'range': 1.0, 'scanno': 2,
+         'unit': -1, 'unit_mul': 0},
+        {'cal': 0.002142000012099743, 'ch_name': 'EOG 061', 'coil_type': 1,
+         'coord_frame': 0, 'kind': 202, 'loc': loc.copy(), 'logno': 61,
+         'range': 1.0, 'scanno': 376, 'unit': 107, 'unit_mul': 0}]
+    test_info._update_redundant()
+    test_info._check_consistency()
+    return test_info
 
 
 def test_io_layout_lout():
@@ -116,7 +85,7 @@ def test_io_layout_lay():
 
 def test_auto_topomap_coords():
     """Test mapping of coordinates in 3D space to 2D"""
-    info = Raw(fif_fname).info.copy()
+    info = read_info(fif_fname)
     picks = pick_types(info, meg=False, eeg=True, eog=False, stim=False)
 
     # Remove extra digitization point, so EEG digitization points match up
@@ -128,8 +97,7 @@ def test_auto_topomap_coords():
     dig_kinds = (FIFF.FIFFV_POINT_CARDINAL,
                  FIFF.FIFFV_POINT_EEG,
                  FIFF.FIFFV_POINT_EXTRA)
-    _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds)
-    origin_head /= 1000.  # to meters
+    _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds, units='m')
     for ch in info['chs']:
         ch['loc'][:3] -= origin_head
 
@@ -139,10 +107,10 @@ def test_auto_topomap_coords():
     # Remove electrode position information, use digitization points from now
     # on.
     for ch in info['chs']:
-        ch['loc'] = np.zeros(12)
+        ch['loc'].fill(0)
 
     l1 = _auto_topomap_coords(info, picks)
-    assert_allclose(l1, l0)
+    assert_allclose(l1, l0, atol=1e-3)
 
     # Test plotting mag topomap without channel locations: it should fail
     mag_picks = pick_types(info, meg='mag')
@@ -177,7 +145,7 @@ def test_make_eeg_layout():
     tmp_name = 'foo'
     lout_name = 'test_raw'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
-    info = Raw(fif_fname).info
+    info = read_info(fif_fname)
     info['bads'].append(info['ch_names'][360])
     layout = make_eeg_layout(info, exclude=[])
     assert_array_equal(len(layout.names), len([ch for ch in info['ch_names']
@@ -203,7 +171,7 @@ def test_make_grid_layout():
     tmp_name = 'bar'
     lout_name = 'test_ica'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
-    layout = make_grid_layout(test_info)
+    layout = make_grid_layout(_get_test_info())
     layout.save(op.join(tempdir, tmp_name + '.lout'))
     lout_new = read_layout(kind=tmp_name, path=tempdir)
     assert_array_equal(lout_new.kind, tmp_name)
@@ -211,7 +179,7 @@ def test_make_grid_layout():
     assert_array_equal(lout_orig.names, lout_new.names)
 
     # Test creating grid layout with specified number of columns
-    layout = make_grid_layout(test_info, n_col=2)
+    layout = make_grid_layout(_get_test_info(), n_col=2)
     # Vertical positions should be equal
     assert_true(layout.pos[0, 1] == layout.pos[1, 1])
     # Horizontal positions should be unequal
@@ -222,9 +190,10 @@ def test_make_grid_layout():
 
 def test_find_layout():
     """Test finding layout"""
-    assert_raises(ValueError, find_layout, test_info, ch_type='meep')
+    import matplotlib.pyplot as plt
+    assert_raises(ValueError, find_layout, _get_test_info(), ch_type='meep')
 
-    sample_info = Raw(fif_fname).info
+    sample_info = read_info(fif_fname)
     grads = pick_types(sample_info, meg='grad')
     sample_info2 = pick_info(sample_info, grads)
 
@@ -235,59 +204,71 @@ def test_find_layout():
     sample_info4 = copy.deepcopy(sample_info)
     for ii, name in enumerate(sample_info4['ch_names']):
         new = name.replace(' ', '')
-        sample_info4['ch_names'][ii] = new
         sample_info4['chs'][ii]['ch_name'] = new
 
     eegs = pick_types(sample_info, meg=False, eeg=True)
     sample_info5 = pick_info(sample_info, eegs)
 
     lout = find_layout(sample_info, ch_type=None)
-    assert_true(lout.kind == 'Vectorview-all')
+    assert_equal(lout.kind, 'Vectorview-all')
     assert_true(all(' ' in k for k in lout.names))
 
     lout = find_layout(sample_info2, ch_type='meg')
-    assert_true(lout.kind == 'Vectorview-all')
+    assert_equal(lout.kind, 'Vectorview-all')
 
     # test new vector-view
     lout = find_layout(sample_info4, ch_type=None)
-    assert_true(lout.kind == 'Vectorview-all')
+    assert_equal(lout.kind, 'Vectorview-all')
     assert_true(all(' ' not in k for k in lout.names))
 
     lout = find_layout(sample_info, ch_type='grad')
-    assert_true(lout.kind == 'Vectorview-grad')
+    assert_equal(lout.kind, 'Vectorview-grad')
     lout = find_layout(sample_info2)
-    assert_true(lout.kind == 'Vectorview-grad')
+    assert_equal(lout.kind, 'Vectorview-grad')
     lout = find_layout(sample_info2, ch_type='grad')
-    assert_true(lout.kind == 'Vectorview-grad')
+    assert_equal(lout.kind, 'Vectorview-grad')
     lout = find_layout(sample_info2, ch_type='meg')
-    assert_true(lout.kind == 'Vectorview-all')
+    assert_equal(lout.kind, 'Vectorview-all')
 
     lout = find_layout(sample_info, ch_type='mag')
-    assert_true(lout.kind == 'Vectorview-mag')
+    assert_equal(lout.kind, 'Vectorview-mag')
     lout = find_layout(sample_info3)
-    assert_true(lout.kind == 'Vectorview-mag')
+    assert_equal(lout.kind, 'Vectorview-mag')
     lout = find_layout(sample_info3, ch_type='mag')
-    assert_true(lout.kind == 'Vectorview-mag')
+    assert_equal(lout.kind, 'Vectorview-mag')
     lout = find_layout(sample_info3, ch_type='meg')
-    assert_true(lout.kind == 'Vectorview-all')
+    assert_equal(lout.kind, 'Vectorview-all')
 
     lout = find_layout(sample_info, ch_type='eeg')
-    assert_true(lout.kind == 'EEG')
+    assert_equal(lout.kind, 'EEG')
     lout = find_layout(sample_info5)
-    assert_true(lout.kind == 'EEG')
+    assert_equal(lout.kind, 'EEG')
     lout = find_layout(sample_info5, ch_type='eeg')
-    assert_true(lout.kind == 'EEG')
+    assert_equal(lout.kind, 'EEG')
     # no common layout, 'meg' option not supported
 
+    lout = find_layout(read_info(fname_ctf_raw))
+    assert_equal(lout.kind, 'CTF-275')
+
     fname_bti_raw = op.join(bti_dir, 'exported4D_linux_raw.fif')
-    lout = find_layout(Raw(fname_bti_raw).info)
-    assert_true(lout.kind == 'magnesWH3600')
+    lout = find_layout(read_info(fname_bti_raw))
+    assert_equal(lout.kind, 'magnesWH3600')
 
-    lout = find_layout(Raw(fname_ctf_raw).info)
-    assert_true(lout.kind == 'CTF-275')
+    raw_kit = read_raw_kit(fname_kit_157)
+    lout = find_layout(raw_kit.info)
+    assert_equal(lout.kind, 'KIT-157')
 
-    lout = find_layout(read_raw_kit(fname_kit_157).info)
-    assert_true(lout.kind == 'KIT-157')
+    raw_kit.info['bads'] = ['MEG  13', 'MEG  14', 'MEG  15', 'MEG  16']
+    lout = find_layout(raw_kit.info)
+    assert_equal(lout.kind, 'KIT-157')
+
+    raw_umd = read_raw_kit(fname_kit_umd)
+    lout = find_layout(raw_umd.info)
+    assert_equal(lout.kind, 'KIT-UMD-3')
+
+    # Test plotting
+    lout.plot()
+    plt.close('all')
 
 
 def test_box_size():
@@ -358,7 +339,7 @@ def test_generate_2d_layout():
     snobg = 10
     sbg = 15
     side = range(snobg)
-    bg_image = np.random.randn(sbg, sbg)
+    bg_image = np.random.RandomState(42).randn(sbg, sbg)
     w, h = [.2, .5]
 
     # Generate fake data

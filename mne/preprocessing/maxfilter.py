@@ -6,16 +6,16 @@
 
 from ..externals.six import string_types
 import os
-from warnings import warn
 
 
 from ..bem import fit_sphere_to_headshape
-from ..io import Raw
-from ..utils import logger, verbose
+from ..io import read_raw_fif
+from ..utils import logger, verbose, warn
 from ..externals.six.moves import map
 
 
 def _mxwarn(msg):
+    """Warn about a bug."""
     warn('Possible MaxFilter bug: %s, more info: '
          'http://imaging.mrc-cbu.cam.ac.uk/meg/maxbugs' % msg)
 
@@ -28,100 +28,75 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
                     mv_hpistep=None, mv_hpisubt=None, mv_hpicons=True,
                     linefreq=None, cal=None, ctc=None, mx_args='',
                     overwrite=True, verbose=None):
+    """Apply NeuroMag MaxFilter to raw data.
 
-    """ Apply NeuroMag MaxFilter to raw data.
-
-        Needs Maxfilter license, maxfilter has to be in PATH
+    Needs Maxfilter license, maxfilter has to be in PATH.
 
     Parameters
     ----------
     in_fname : string
         Input file name
-
     out_fname : string
         Output file name
-
     origin : array-like or string
         Head origin in mm. If None it will be estimated from headshape points.
-
     frame : string ('device' or 'head')
         Coordinate frame for head center
-
     bad : string, list (or None)
         List of static bad channels. Can be a list with channel names, or a
         string with channels (names or logical channel numbers)
-
     autobad : string ('on', 'off', 'n')
         Sets automated bad channel detection on or off
-
     skip : string or a list of float-tuples (or None)
         Skips raw data sequences, time intervals pairs in sec,
         e.g.: 0 30 120 150
-
     force : bool
         Ignore program warnings
-
     st : bool
         Apply the time-domain MaxST extension
-
     st_buflen : float
         MaxSt buffer length in sec (disabled if st is False)
-
     st_corr : float
         MaxSt subspace correlation limit (disabled if st is False)
-
     mv_trans : string (filename or 'default') (or None)
         Transforms the data into the coil definitions of in_fname, or into the
         default frame (None: don't use option)
-
     mv_comp : bool (or 'inter')
         Estimates and compensates head movements in continuous raw data
-
     mv_headpos : bool
         Estimates and stores head position parameters, but does not compensate
         movements (disabled if mv_comp is False)
-
     mv_hp : string (or None)
         Stores head position data in an ascii file
         (disabled if mv_comp is False)
-
     mv_hpistep : float (or None)
         Sets head position update interval in ms (disabled if mv_comp is False)
-
     mv_hpisubt : string ('amp', 'base', 'off') (or None)
         Subtracts hpi signals: sine amplitudes, amp + baseline, or switch off
         (disabled if mv_comp is False)
-
     mv_hpicons : bool
         Check initial consistency isotrak vs hpifit
         (disabled if mv_comp is False)
-
     linefreq : int (50, 60) (or None)
         Sets the basic line interference frequency (50 or 60 Hz)
         (None: do not use line filter)
-
     cal : string
         Path to calibration file
-
     ctc : string
         Path to Cross-talk compensation file
-
     mx_args : string
         Additional command line arguments to pass to MaxFilter
-
     overwrite : bool
         Overwrite output file if it already exists
-
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     origin: string
         Head origin in selected coordinate frame
     """
-
     # check for possible maxfilter bugs
     if mv_trans is not None and mv_comp:
         _mxwarn("Don't use '-trans' with head-movement compensation "
@@ -137,8 +112,8 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     # determine the head origin if necessary
     if origin is None:
         logger.info('Estimating head origin from headshape points..')
-        raw = Raw(in_fname)
-        r, o_head, o_dev = fit_sphere_to_headshape(raw.info)
+        raw = read_raw_fif(in_fname)
+        r, o_head, o_dev = fit_sphere_to_headshape(raw.info, units='mm')
         raw.close()
         logger.info('[done]')
         if frame == 'head':
