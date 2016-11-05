@@ -16,9 +16,9 @@ from numpy.testing import assert_raises, assert_equal
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate)
-from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit
+from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
-                     plot_trans)
+                     plot_trans, snapshot_brain_montage)
 from mne.utils import requires_mayavi, requires_pysurfer, run_tests_if_main
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -234,5 +234,25 @@ def test_plot_dipole_locations():
     assert_raises(ValueError, dipoles.plot_locations, trans, 'sample',
                   subjects_dir, mode='foo')
 
+
+@requires_mayavi
+def test_snapshot_brain_montage():
+    info = read_info(evoked_fname)
+    fig = plot_trans(info, trans=None, subject='sample',
+                     subjects_dir=subjects_dir)
+
+    xyz = np.vstack([ich['loc'][:3] for ich in info['chs']])
+    ch_names = [ich['ch_name'] for ich in info['chs']]
+    xyz_dict = dict(zip(ch_names, xyz))
+    xyz_dict[info['chs'][0]['ch_name']] = [1, 2]  # Set one ch to only 2 vals
+
+    # Make sure wrong types are checked
+    assert_raises(ValueError, snapshot_brain_montage, fig, xyz)
+
+    # All chs must have 3 position values
+    assert_raises(ValueError, snapshot_brain_montage, fig, xyz_dict)
+
+    # Make sure we raise error if the figure has no scene
+    assert_raises(TypeError, snapshot_brain_montage, fig, info)
 
 run_tests_if_main()

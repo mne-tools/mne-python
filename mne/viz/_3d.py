@@ -1142,3 +1142,131 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
         fig.scene.x_plus_view()
 
     return fig
+
+
+def snapshot_brain_montage(fig, montage, hide_sensors=True):
+    """Take a snapshot of a Mayavi Scene and project channels onto 2d coords.
+
+    Note that this will take the raw values for 3d coordinates of each channel,
+    without applying any transforms. If brain images are flipped up/dn upon
+    using `imshow`, check your matplotlib backend as this behavior changes.
+
+    Parameters
+    ----------
+    fig : instance of Mayavi Scene
+        The figure on which you've plotted electrodes using `plot_trans`.
+    montage : instance of `DigMontage` or `Info` | dict of ch: xyz mappings.
+        The digital montage for the electrodes plotted in the scene. If `Info`,
+        channel positions will be pulled from the `loc` field of `chs`.
+    hide_sensors : bool
+        Whether to remove the spheres in the scene before taking a snapshot.
+
+    Returns
+    -------
+    xy : array, shape (n_channels, 2)
+        The 2d location of each channel on the image of the current scene view.
+    im : array, shape (m, n, 3)
+        The screenshot of the current scene view
+    """
+    from mayavi import mlab
+    from ..channels import Montage, DigMontage
+    from .. import Info
+    if isinstance(montage, (Montage, DigMontage)):
+        chs = montage.dig_ch_pos
+        ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in chs.items()])
+    elif isinstance(montage, Info):
+        xyz = [ich['loc'][:3] for ich in montage['chs']]
+        ch_names = [ich['ch_name'] for ich in montage['chs']]
+    elif isinstance(montage, dict):
+        if not all(len(ii) == 3 for ii in montage.values()):
+            raise ValueError('All electrode positions must be length 3')
+        ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in montage.items()])
+    else:
+        raise ValueError('montage must be an instance of `DigMontage`, `Info`,'
+                         ' or `dict`')
+
+    xyz = np.vstack(xyz)
+    xy = _3d_to_2d(fig, xyz)
+    xy = dict(zip(ch_names, xy))
+    pts = fig.children[-1]
+
+    if hide_sensors is True:
+        pts.visible = False
+    im = mlab.screenshot(fig)
+    pts.visible = True
+    return xy, im
+
+
+def _3d_to_2d(fig, xyz):
+    """Convert 3d points to a 2d perspective using a Mayavi Scene."""
+    from mayavi.core.scene import Scene
+
+    if not isinstance(fig, Scene):
+        raise TypeError('fig must be an instance of Scene, '
+                        'found type %s' % type(fig))
+    xyz = np.column_stack([xyz, np.ones(xyz.shape[0])])
+
+    # Transform points into 'unnormalized' view coordinates
+    comb_trans_mat = _get_world_to_view_matrix(fig.scene)
+    view_coords = np.dot(comb_trans_mat, xyz.T).T
+
+    # Divide through by the fourth element for normalized view coords
+    norm_view_coords = view_coords / (view_coords[:, 3].reshape(-1, 1))
+
+    # Transform from normalized view coordinates to display coordinates.
+    view_to_disp_mat = _get_view_to_display_matrix(fig.scene)
+    xy = np.dot(view_to_disp_mat, norm_view_coords.T).T
+
+    # Pull the first two columns since they're meaningful for 2d plotting
+    xy = xy[:, :2]
+    return xy
+
+
+def _get_world_to_view_matrix(scene):
+    """Return the 4x4 matrix to transform xyz space to the current view.
+
+    This is a concatenation of the model view and perspective transforms.
+    """
+    from mayavi.core.ui.mayavi_scene import MayaviScene
+    from tvtk.pyface.tvtk_scene import TVTKScene
+
+    if not isinstance(scene, (MayaviScene, TVTKScene)):
+        raise TypeError('scene must be an instance of TVTKScene/MayaviScene, '
+                        'found type %s' % type(scene))
+    cam = scene.camera
+
+    # The VTK method needs the aspect ratio and near and far
+    # clipping planes in order to return the proper transform.
+    scene_size = tuple(scene.get_size())
+    clip_range = cam.clipping_range
+    aspect_ratio = float(scene_size[0]) / scene_size[1]
+
+    # Get the vtk matrix object using the aspect ratio we defined
+    vtk_comb_trans_mat = cam.get_composite_projection_transform_matrix(
+        aspect_ratio, clip_range[0], clip_range[1])
+    vtk_comb_trans_mat = vtk_comb_trans_mat.to_array()
+    return vtk_comb_trans_mat
+
+
+def _get_view_to_display_matrix(scene):
+    """Return the 4x4 matrix to convert view coordinates to display coordinates.
+
+    It's assumed that the view should take up the entire window and that the
+    origin of the window is in the upper left corner.
+    """
+    from mayavi.core.ui.mayavi_scene import MayaviScene
+    from tvtk.pyface.tvtk_scene import TVTKScene
+
+    if not isinstance(scene, (MayaviScene, TVTKScene)):
+        raise TypeError('scene must be an instance of TVTKScene/MayaviScene, '
+                        'found type %s' % type(scene))
+
+    # normalized view coordinates have the origin in the middle of the space
+    # so we need to scale by width and height of the display window and shift
+    # by half width and half height. The matrix accomplishes that.
+    x, y = tuple(scene.get_size())
+    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],
+                                 [0.,      -y / 2.0,   0.,   y / 2.0],
+                                 [0.,            0.,   1.,        0.],
+                                 [0.,            0.,   0.,        1.]])
+    return view_to_disp_mat
