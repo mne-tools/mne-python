@@ -371,7 +371,7 @@ class DigMontage(object):
     .. versionadded:: 0.9.0
     """
 
-    def __init__(self, hsp, hpi, elp, point_names,
+    def __init__(self, hsp=None, hpi=None, elp=None, point_names=None,
                  nasion=None, lpa=None, rpa=None, dev_head_t=None,
                  dig_ch_pos=None):  # noqa: D102
         self.hsp = hsp

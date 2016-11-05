@@ -141,11 +141,14 @@ def test_plot_trans():
                    subjects_dir=subjects_dir)
         mlab.close(all=True)
     # EEG only with strange options
+    evoked_eeg_ecog = evoked.copy().pick_types(meg=False, eeg=True)
+    evoked_eeg_ecog.info['projs'] = []  # "remove" avg proj
+    evoked_eeg_ecog.set_channel_types({'EEG 001': 'ecog'})
     with warnings.catch_warnings(record=True) as w:
-        plot_trans(evoked.copy().pick_types(meg=False, eeg=True).info,
+        plot_trans(evoked_eeg_ecog.info,
                    subject='sample', trans=trans_fname, meg_sensors=True,
-                   eeg_sensors=['original', 'projected'],
-                   subjects_dir=subjects_dir)
+                   eeg_sensors=['original', 'projected'], ecog_sensors=True,
+                   brain='white', head=True, subjects_dir=subjects_dir)
     mlab.close(all=True)
     assert_true(['Cannot plot MEG' in str(ww.message) for ww in w])
 
