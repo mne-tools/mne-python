@@ -188,11 +188,13 @@ class RawKIT(_BaseRaw):
                 else:
                     raise ValueError("stim needs to be list of int, '>' or "
                                      "'<', not %r" % str(stim))
-            elif np.max(stim) >= self._raw_extras[0]['nchan']:
-                raise ValueError('Tried to set stim channel %i, but sqd file '
-                                 'only has %i channels'
-                                 % (np.max(stim),
-                                    self._raw_extras[0]['nchan']))
+            else:
+                stim = np.asarray(stim, int)
+                if stim.max() >= self._raw_extras[0]['nchan']:
+                    raise ValueError(
+                        'Got stim=%s, but sqd file only has %i channels' %
+                        (stim, self._raw_extras[0]['nchan']))
+
             # modify info
             nchan = self._raw_extras[0]['nchan'] + 1
             ch_name = 'STI 014'
