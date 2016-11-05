@@ -131,6 +131,11 @@ def test_raw_events():
     assert_array_equal(find_events(raw, output='step', consecutive=True),
                        evts(0, 160, 0, 160, 0))
 
+    raw = read_raw_kit(sqd_path, stim=range(160, 162), slope='+',
+                       stim_code='channel')
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(0, 160, 0, 160, 0))
+
 
 def test_ch_loc():
     """Test raw kit loc."""
