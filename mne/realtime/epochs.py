@@ -321,7 +321,6 @@ class RtEpochs(_BaseEpochs):
         # detect events
         data = np.abs(raw_buffer[self._stim_picks]).astype(np.int)
         # if there is a previous buffer check the last samples from it too
-        # import pdb; pdb.set_trace();
         if self._last_buffer is not None:
             prev_data = self._last_buffer[self._stim_picks,
                                           -raw_buffer.shape[1]:].astype(np.int)
@@ -339,7 +338,8 @@ class RtEpochs(_BaseEpochs):
         events = self._event_backlog
 
         # remove events before the last epoch processed
-        min_event_samp = self._first_samp - int(self._find_events_kwargs['min_samples'])
+        min_event_samp = self._first_samp - \
+            int(self._find_events_kwargs['min_samples'])
         if len(self._event_backlog) > 0:
             backlog_samps = np.array(self._event_backlog)[:, 0]
             min_event_samp = backlog_samps[-1] + 1
@@ -354,6 +354,7 @@ class RtEpochs(_BaseEpochs):
             idx = np.where(buff_events[:, -1] == event_id)[0]
             events.extend(zip(list(buff_events[idx, 0]),
                               list(buff_events[idx, -1])))
+
         events.sort()
 
         event_backlog = list()
