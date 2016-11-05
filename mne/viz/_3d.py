@@ -373,10 +373,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     ecog_picks = pick_types(info, meg=False, ecog=True, ref_meg=False)
 
     if head is None:
-        if len(ecog_picks) == 0 and subject is not None:
-            head = True
-        else:
-            head = False
+        head = (len(ecog_picks) == 0 and subject is not None)
     if head and subject is None:
         raise ValueError('If head is True, subject must be provided')
     if isinstance(trans, string_types):

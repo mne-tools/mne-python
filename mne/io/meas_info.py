@@ -528,10 +528,10 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
             raise ValueError(msg)
     if dig_ch_pos is not None:
         keys = sorted(dig_ch_pos.keys())
-        try:
+        try:  # use the last 3 as int if possible (e.g., EEG001->1)
             idents = [int(key[-3:]) for key in keys]
-        except ValueError:
-            idents = np.arange(len(keys))
+        except ValueError:  # and if any conversion fails, simply use arange
+            idents = np.arange(1, len(keys) + 1)
         for key, ident in zip(keys, idents):
             dig.append({'r': dig_ch_pos[key], 'ident': ident,
                         'kind': FIFF.FIFFV_POINT_EEG,
