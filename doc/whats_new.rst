@@ -27,6 +27,8 @@ Changelog
 
     - Add option to plot ECoG electrodes in :func:`mne.viz.plot_trans` by `Eric Larson`_
 
+    - Add convenient default values to :meth:`mne.io.Raw.apply_hilbert` and :meth:`mne.io.Raw.apply_function` by `Denis Engemann`_
+
 BUG
 ~~~
 
