@@ -783,7 +783,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._data[sel, start:stop] = value
 
     @verbose
-    def apply_function(self, fun, picks=None, dtype=np.float64,
+    def apply_function(self, fun, picks=None, dtype=None,
                        n_jobs=1, *args, **kwargs):
         """Apply a function to a subset of channels.
 
