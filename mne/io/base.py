@@ -783,7 +783,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._data[sel, start:stop] = value
 
     @verbose
-    def apply_function(self, fun, picks, dtype, n_jobs, *args, **kwargs):
+    def apply_function(self, fun, picks=None, dtype=np.float64,
+                       n_jobs=1, *args, **kwargs):
         """Apply a function to a subset of channels.
 
         The function "fun" is applied to the channels defined in "picks". The
@@ -809,13 +810,13 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             A function to be applied to the channels. The first argument of
             fun has to be a timeseries (numpy.ndarray). The function must
             return an numpy.ndarray with the same size as the input.
-        picks : array-like of int | None
+        picks : array-like of int (defaul: None)
             Indices of channels to apply the function to. If None, all
-            M-EEG channels are used.
-        dtype : numpy.dtype
+            M-EEG channels are used. If None, all data channels are used.
+        dtype : numpy.dtype (default: None)
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
-        n_jobs: int
+        n_jobs: int (default: 1)
             Number of jobs to run in parallel.
         *args :
             Additional positional arguments to pass to fun (first pos. argument
@@ -825,6 +826,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             as a member of ``kwargs``, it will be consumed and will override
             the default mne-python verbose level (see :func:`mne.verbose` and
             :ref:`Logging documentation <tut_logging>` for more).
+
+        Returns
+        -------
+        self : instance of Raw
+            The raw object with transformed data.
         """
         _check_preload(self, 'raw.apply_function')
         if picks is None:
@@ -850,9 +856,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                       for p in picks)
             for pp, p in enumerate(picks):
                 self._data[p, :] = data_picks_new[pp]
+        return self
 
     @verbose
-    def apply_hilbert(self, picks, envelope=False, n_jobs=1, n_fft='auto',
+    def apply_hilbert(self, picks=None, envelope=False, n_jobs=1, n_fft='auto',
                       verbose=None):
         """Compute analytic signal or envelope for a subset of channels.
 
@@ -880,8 +887,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        picks : array-like of int
-            Indices of channels to apply the function to.
+        picks : array-like of int (default: None)
+            Indices of channels to apply the function to. If None, all data
+            channels are used.
         envelope : bool (default: False)
             Compute the envelope signal of each channel.
         n_jobs: int
@@ -895,6 +903,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
             for more). Defaults to self.verbose.
+
+        Returns
+        -------
+        self : instance of Raw
+            The raw object with transformed data.
 
         Notes
         -----
@@ -926,11 +939,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if n_fft < self.n_times:
             raise ValueError("n_fft must be greater than n_times")
         if envelope is True:
-            self.apply_function(_my_hilbert, picks, None, n_jobs, n_fft,
-                                envelope=envelope)
+            dtype = None
         else:
-            self.apply_function(_my_hilbert, picks, np.complex64, n_jobs,
-                                n_fft, envelope=envelope)
+            dtype = np.complex64
+        return self.apply_function(_my_hilbert, picks, dtype, n_jobs, n_fft,
+                                   envelope=envelope)
 
     @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
