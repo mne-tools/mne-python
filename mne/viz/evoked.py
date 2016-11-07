@@ -836,7 +836,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                    if not proj['active']]
     # either applied already or not-- else issue
     for idx in passive_idx[::-1]:  # reverse order so idx does not change
-        evoked.info['projs'].pop(idx)
+        evoked.del_proj(idx)
 
     picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
                        exclude='bads')
