@@ -832,7 +832,11 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     'whitening jointly.')
 
     evoked = evoked.copy()  # handle ref meg
-    evoked.info['projs'] = []  # either applied already or not-- else issue
+    passive_idx = [idx for idx, proj in enumerate(evoked.info['projs'])
+                   if not proj['active']]
+    # either applied already or not-- else issue
+    for idx in passive_idx[::-1]:  # reverse order so idx does not change
+        evoked.del_proj(idx)
 
     picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
                        exclude='bads')
@@ -872,8 +876,6 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     evokeds_white = [whiten_evoked(evoked, n, picks, rank=r)
                      for n, r in zip(noise_cov, rank_list)]
 
-    axes_evoked = None
-
     def whitened_gfp(x, rank=None):
         """Whitened Global Field Power.
 
@@ -901,7 +903,6 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     noise_cov[0].get('method', 'empirical'))
         fig.suptitle(suptitle)
 
-    ax_gfp = None
     if any(((n_columns == 1 and n_ch_used == 1),
             (n_columns == 1 and n_ch_used > 1),
             (n_columns == 2 and n_ch_used == 1))):
