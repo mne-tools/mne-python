@@ -370,7 +370,8 @@ def _read_dig_points(fname, comments='%', unit='auto'):
     Parameters
     ----------
     fname : str
-        The filepath of space delimited file with points.
+        The filepath of space delimited file with points, or a .mat file
+        (Polhemus FastTrak format).
     comments : str
         The character used to indicate the start of a comment;
         Default: '%'.
@@ -399,6 +400,9 @@ def _read_dig_points(fname, comments='%', unit='auto'):
         points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
                                                       re.MULTILINE)]
         dig_points = np.array(points_str, dtype=float)
+    elif ext == '.mat':  # like FastScan II
+        from scipy.io import loadmat
+        dig_points = loadmat(fname)['Points'].T
     else:
         dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
         if unit == 'auto':

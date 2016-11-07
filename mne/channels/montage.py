@@ -23,17 +23,18 @@ from ..io.meas_info import _make_dig_points, _read_dig_points, _read_dig_fif
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
-from ..utils import _check_fname, warn
+from ..utils import _check_fname, warn, copy_function_doc_to_method_doc
 
 from ..externals.six import string_types
 from ..externals.six.moves import map
 
 
 class Montage(object):
-    """Montage for EEG cap.
+    """Montage for standard EEG electrode locations.
 
-    Montages are typically loaded from a file using read_montage. Only use this
-    class directly if you're constructing a new montage.
+    .. warning:: Montages should typically loaded from a file using
+                 :func:`mne.channels.read_montage` instead of
+                 instantiating this class directly.
 
     Parameters
     ----------
@@ -45,6 +46,12 @@ class Montage(object):
         The type of montage (e.g. 'standard_1005').
     selection : array of int
         The indices of the selected channels in the montage file.
+
+    See Also
+    --------
+    DigMontage
+    read_montage
+    read_dig_montage
 
     Notes
     -----
@@ -83,11 +90,62 @@ class Montage(object):
 
 
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
-    """Read a generic (built-in) montage from a file.
+    """Read a generic (built-in) montage.
 
-    This function can be used to read electrode positions from a user specified
-    file using the `kind` and `path` parameters. Alternatively, use only the
-    `kind` parameter to load one of the built-in montages:
+    .. note:: Individualized (digitized) electrode positions should be
+              read in using :func:`read_dig_montage`.
+
+    In most cases, you should only the
+    `kind` parameter to load one of the built-in montages (see Notes).
+
+    Parameters
+    ----------
+    kind : str
+        The name of the montage file without the file extension (e.g.
+        kind='easycap-M10' for 'easycap-M10.txt'). Files with extensions
+        '.elc', '.txt', '.csd', '.elp', '.hpts', '.sfp' or '.loc' ('.locs' and
+        '.eloc') are supported.
+    ch_names : list of str | None
+        If not all electrodes defined in the montage are present in the EEG
+        data, use this parameter to select subset of electrode positions to
+        load. If None (default), all defined electrode positions are returned.
+
+        .. note:: ``ch_names`` are compared to channel names in the montage
+                  file after converting them both to upper case. If a match is
+                  found, the letter case in the original ``ch_names`` is used
+                  in the returned montage.
+
+    path : str | None
+        The path of the folder containing the montage file. Defaults to the
+        mne/channels/data/montages folder in your mne-python installation.
+    unit : 'm' | 'cm' | 'mm'
+        Unit of the input file. If not 'm' (default), coordinates will be
+        rescaled to 'm'.
+    transform : bool
+        If True, points will be transformed to Neuromag space.
+        The fidicuals, 'nasion', 'lpa', 'rpa' must be specified in
+        the montage file. Useful for points captured using Polhemus FastSCAN.
+        Default is False.
+
+    Returns
+    -------
+    montage : instance of Montage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    Montage
+    read_dig_montage
+
+    Notes
+    -----
+    Built-in montages are not scaled or transformed by default.
+
+    Montages can contain fiducial points in addition to electrode
+    locations, e.g. ``biosemi-64`` contains 67 total channels.
+
+    The valid ``kind`` arguments are:
 
     ===================   =====================================================
     Kind                  description
@@ -129,51 +187,6 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     GSN-HydroCel-256      HydroCel Geodesic Sensor Net with 256 electrodes
     GSN-HydroCel-257      HydroCel Geodesic Sensor Net with 256 electrodes + Cz
     ===================   =====================================================
-
-    Parameters
-    ----------
-    kind : str
-        The name of the montage file without the file extension (e.g.
-        kind='easycap-M10' for 'easycap-M10.txt'). Files with extensions
-        '.elc', '.txt', '.csd', '.elp', '.hpts', '.sfp' or '.loc' ('.locs' and
-        '.eloc') are supported.
-    ch_names : list of str | None
-        If not all electrodes defined in the montage are present in the EEG
-        data, use this parameter to select subset of electrode positions to
-        load. If None (default), all defined electrode positions are returned.
-
-        .. note:: ``ch_names`` are compared to channel names in the montage
-                  file after converting them both to upper case. If a match is
-                  found, the letter case in the original ``ch_names`` is used
-                  in the returned montage.
-
-    path : str | None
-        The path of the folder containing the montage file. Defaults to the
-        mne/channels/data/montages folder in your mne-python installation.
-    unit : 'm' | 'cm' | 'mm'
-        Unit of the input file. If not 'm' (default), coordinates will be
-        rescaled to 'm'.
-    transform : bool
-        If True, points will be transformed to Neuromag space.
-        The fidicuals, 'nasion', 'lpa', 'rpa' must be specified in
-        the montage file. Useful for points captured using Polhemus FastSCAN.
-        Default is False.
-
-    Returns
-    -------
-    montage : instance of Montage
-        The montage.
-
-    See Also
-    --------
-    read_dig_montage : To read subject-specific digitization information.
-
-    Notes
-    -----
-    Built-in montages are not scaled or transformed by default.
-
-    Montages can contain fiducial points in addition to electrode
-    locations, e.g. ``biosemi-64`` contains 67 total channels.
 
     .. versionadded:: 0.9.0
     """
@@ -335,10 +348,11 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
 
 class DigMontage(object):
-    """Montage for Digitized data.
+    """Montage for digitized electrode and headshape position data.
 
-    Montages are typically loaded from a file using read_dig_montage. Only use
-    this class directly if you're constructing a new montage.
+    .. warning:: Montages are typically loaded from a file using
+                 :func:`read_dig_montage` instead of instantiating
+                 this class.
 
     Parameters
     ----------
@@ -366,6 +380,12 @@ class DigMontage(object):
 
         .. versionadded:: 0.12
 
+    See Also
+    --------
+    Montage
+    read_dig_montage
+    read_montage
+
     Notes
     -----
     .. versionadded:: 0.9.0
@@ -376,16 +396,23 @@ class DigMontage(object):
                  dig_ch_pos=None):  # noqa: D102
         self.hsp = hsp
         self.hpi = hpi
+        if elp is not None:
+            if not isinstance(point_names, Iterable):
+                raise TypeError('If elp is specified, point_names must '
+                                'provide a list of str with one entry per ELP '
+                                'point')
+            point_names = list(point_names)
+            if len(point_names) != len(elp):
+                raise ValueError('elp contains %i points but %i '
+                                 'point_names were specified.' %
+                                 (len(elp), len(point_names)))
         self.elp = elp
         self.point_names = point_names
 
         self.nasion = nasion
         self.lpa = lpa
         self.rpa = rpa
-        if dev_head_t is None:
-            self.dev_head_t = np.identity(4)
-        else:
-            self.dev_head_t = dev_head_t
+        self.dev_head_t = dev_head_t
         self.dig_ch_pos = dig_ch_pos
 
     def __repr__(self):
@@ -395,24 +422,55 @@ class DigMontage(object):
               ', '.join(self.point_names[:3]))
         return s
 
-    def plot(self, scale_factor=1.5, show_names=False):
-        """Plot EEG sensor montage.
-
-        Parameters
-        ----------
-        scale_factor : float
-            Determines the size of the points. Defaults to 1.5
-        show_names : bool
-            Whether to show the channel names. Defaults to False
-
-        Returns
-        -------
-        fig : Instance of matplotlib.figure.Figure
-            The figure object.
-        """
-        from ..viz import plot_montage
+    @copy_function_doc_to_method_doc(plot_montage)
+    def plot(self, scale_factor=1.5, show_names=False, show=True):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names)
+
+    def transform_to_head(self):
+        """Transform digitizer points to Neuromag head coordinates."""
+        nasion, rpa, lpa = self.nasion, self.rpa, self.lpa
+        if any(x is None for x in (nasion, rpa, lpa)):
+            if self.elp is None or self.point_names is None:
+                raise ValueError('ELP points and names must be specified for '
+                                 'transformation.')
+            names = [name.lower() for name in self.point_names]
+
+            # check that all needed points are present
+            kinds = ('nasion', 'lpa', 'rpa')
+            missing = [name for name in kinds if name not in names]
+            if len(missing) > 0:
+                raise ValueError('The points %s are missing, but are needed '
+                                 'to transform the points to the MNE '
+                                 'coordinate system. Either add the points, '
+                                 'or read the montage with transform=False.'
+                                 % str(missing))
+
+            nasion, lpa, rpa = [self.elp[names.index(kind)] for kind in kinds]
+
+            # remove fiducials from elp
+            mask = np.ones(len(names), dtype=bool)
+            for fid in ['nasion', 'lpa', 'rpa']:
+                mask[names.index(fid)] = False
+            self.elp = self.elp[mask]
+            self.point_names = [p for pi, p in enumerate(self.point_names)
+                                if mask[pi]]
+
+        native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+        self.nasion, self.lpa, self.rpa = apply_trans(
+            native_head_t, np.array([nasion, lpa, rpa]))
+        self.elp = apply_trans(native_head_t, self.elp)
+        if self.hsp is not None:
+            self.hsp = apply_trans(native_head_t, self.hsp)
+        if self.dig_ch_pos is not None:
+            for key, val in self.dig_ch_pos.items():
+                self.dig_ch_pos[key] = apply_trans(native_head_t, val)
+
+    def compute_dev_head_t(self):
+        """Compute the Neuromag dev_head_t from matched points."""
+        from ..coreg import fit_matched_points
+        self.dev_head_t = fit_matched_points(tgt_pts=self.elp,
+                                             src_pts=self.hpi, out='trans')
 
 
 _cardinal_ident_mapping = {
@@ -448,14 +506,15 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     elp : None | str | array, shape (n_fids + n_hpi, 3)
         If str, this corresponds to the filename of electrode position
         points. This is typically used with the Polhemus FastSCAN system.
-        Fiducials should be listed first: nasion, left periauricular point,
-        right periauricular point, then the points corresponding to the HPI.
         If numpy.array, this corresponds to an array of digitizer points in
         the same order. These points are assumed to be in the native digitizer
         space and will be rescaled according to the unit parameter.
     point_names : None | list
-        If list, this corresponds to a list of point names. This must be
-        specified if elp is defined.
+        A list of point names for elp (required if elp is defined).
+        Typically this would be like::
+
+            ('nasion', 'lpa', 'rpa', 'CHPI001', 'CHPI002', 'CHPI003')
+
     unit : 'auto' | 'm' | 'cm' | 'mm'
         Unit of the digitizer files (hsp and elp). If not 'm', coordinates will
         be rescaled to 'm'. Default is 'auto', which assumes 'm' for \*.hsp and
@@ -468,15 +527,18 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         .. versionadded:: 0.12
 
     transform : bool
-        If True, points will be transformed to Neuromag space.
-        The fidicuals, 'nasion', 'lpa', 'rpa' must be specified in
-        the montage file. Useful for points captured using Polhemus FastSCAN.
-        Default is True.
+        If True (default), points will be transformed to Neuromag space
+        using :meth:`DigMontage.transform_to_head`.
+        The fidicuals (nasion, lpa, and rpa) must be specified.
+        This is useful for points captured using a device that does
+        not automatically convert points to Neuromag head coordinates
+        (e.g., Polhemus FastSCAN).
     dev_head_t : bool
         If True, a Dev-to-Head transformation matrix will be added to the
-        montage. To get a proper `dev_head_t`, the hpi and the elp points
-        must be in the same order. If False, an identity matrix will be added
-        to the montage. Default is False.
+        montage using :meth:`DigMontage.compute_dev_head_t`.
+        To get a proper `dev_head_t`, the hpi and the elp points
+        must be in the same order. If False (default), no transformation
+        will be added to the montage.
 
     Returns
     -------
@@ -485,7 +547,9 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
     See Also
     --------
-    read_montage : Function to read generic EEG templates
+    DigMontage
+    Montage
+    read_montage
 
     Notes
     -----
@@ -533,6 +597,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         hsp = np.array(hsp)
         elp = np.array(elp)
     else:
+        fids = [None] * 3
         dig_ch_pos = None
         scale = {'mm': 1e-3, 'cm': 1e-2, 'auto': 1e-3, 'm': None}
         if unit not in scale:
@@ -548,7 +613,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         # HPI
         if isinstance(hpi, string_types):
             ext = op.splitext(hpi)[-1]
-            if ext == '.txt':
+            if ext in ('.txt', '.mat'):
                 hpi = _read_dig_points(hpi, unit='m')
             elif ext in ('.sqd', '.mrk'):
                 from ..io.kit import read_mrk
@@ -564,59 +629,14 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         elif elp is not None and scale[unit]:
             elp *= scale[unit]
 
-        if elp is not None:
-            if not isinstance(point_names, Iterable):
-                raise TypeError("If elp is specified, point_names must "
-                                "provide a list of str with one entry per ELP "
-                                "point")
-            point_names = list(point_names)
-            if len(point_names) != len(elp):
-                raise ValueError("The elp file contains %i points, but %i "
-                                 "names were specified." %
-                                 (len(elp), len(point_names)))
-
-        # Transform digitizer coordinates to neuromag space
-        if transform:
-            if elp is None:
-                raise ValueError("ELP points are not specified. Points are "
-                                 "needed for transformation.")
-            names_lower = [name.lower() for name in point_names]
-
-            # check that all needed points are present
-            missing = [name for name in ('nasion', 'lpa', 'rpa')
-                       if name not in names_lower]
-            if missing:
-                raise ValueError("The points %s are missing, but are needed "
-                                 "to transform the points to the MNE "
-                                 "coordinate system. Either add the points, "
-                                 "or read the montage with transform=False."
-                                 % str(missing))
-
-            nasion = elp[names_lower.index('nasion')]
-            lpa = elp[names_lower.index('lpa')]
-            rpa = elp[names_lower.index('rpa')]
-
-            # remove fiducials from elp
-            mask = np.ones(len(names_lower), dtype=bool)
-            for fid in ['nasion', 'lpa', 'rpa']:
-                mask[names_lower.index(fid)] = False
-            elp = elp[mask]
-
-            neuromag_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-            fids = apply_trans(neuromag_trans, [nasion, lpa, rpa])
-            elp = apply_trans(neuromag_trans, elp)
-            hsp = apply_trans(neuromag_trans, hsp)
-        else:
-            fids = [None] * 3
-
+    # Transform digitizer coordinates to neuromag space
+    out = DigMontage(hsp, hpi, elp, point_names, fids[0], fids[1], fids[2],
+                     dig_ch_pos=dig_ch_pos)
+    if fif is None and transform:  # only need to do this for non-Neuromag
+        out.transform_to_head()
     if dev_head_t:
-        from ..coreg import fit_matched_points
-        trans = fit_matched_points(tgt_pts=elp, src_pts=hpi, out='trans')
-    else:
-        trans = np.identity(4)
-
-    return DigMontage(hsp, hpi, elp, point_names, fids[0], fids[1], fids[2],
-                      trans, dig_ch_pos)
+        out.compute_dev_head_t()
+    return out
 
 
 def _set_montage(info, montage, update_ch_names=False):
@@ -689,7 +709,8 @@ def _set_montage(info, montage, update_ch_names=False):
                                dig_points=montage.hsp,
                                dig_ch_pos=montage.dig_ch_pos)
         info['dig'] = dig
-        info['dev_head_t']['trans'] = montage.dev_head_t
+        if montage.dev_head_t is not None:
+            info['dev_head_t']['trans'] = montage.dev_head_t
         if montage.dig_ch_pos is not None:  # update channel positions, too
             eeg_ref_pos = montage.dig_ch_pos.get('EEG000', np.zeros(3))
             did_set = np.zeros(len(info['ch_names']), bool)
