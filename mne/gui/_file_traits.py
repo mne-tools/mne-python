@@ -16,9 +16,10 @@ from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
 from traitsui.api import View, Item, VGroup, HGroup
 from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
 
+from ..bem import read_bem_surfaces
 from ..io.constants import FIFF
 from ..io import read_info, read_fiducials
-from ..surface import read_bem_surfaces, read_surface
+from ..surface import read_surface
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config

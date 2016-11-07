@@ -70,7 +70,85 @@ def _safe_svd(A, **kwargs):
 
 
 ###############################################################################
-# Back porting scipy.signal.sosfilt (0.17) and sosfiltfilt (0.18)
+# Backporting nibabel's read_geometry
+
+def _get_read_geometry():
+    """Get the geometry reading function."""
+    try:
+        import nibabel as nib
+        has_nibabel = True
+    except ImportError:
+        has_nibabel = False
+    if has_nibabel and LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
+        from nibabel.freesurfer import read_geometry
+    else:
+        read_geometry = _read_geometry
+    return read_geometry
+
+
+def _read_geometry(filepath, read_metadata=False, read_stamp=False):
+    """Backport from nibabel."""
+    from .surface import _fread3, _fread3_many
+    volume_info = dict()
+
+    TRIANGLE_MAGIC = 16777214
+    QUAD_MAGIC = 16777215
+    NEW_QUAD_MAGIC = 16777213
+    with open(filepath, "rb") as fobj:
+        magic = _fread3(fobj)
+        if magic in (QUAD_MAGIC, NEW_QUAD_MAGIC):  # Quad file
+            nvert = _fread3(fobj)
+            nquad = _fread3(fobj)
+            (fmt, div) = (">i2", 100.) if magic == QUAD_MAGIC else (">f4", 1.)
+            coords = np.fromfile(fobj, fmt, nvert * 3).astype(np.float) / div
+            coords = coords.reshape(-1, 3)
+            quads = _fread3_many(fobj, nquad * 4)
+            quads = quads.reshape(nquad, 4)
+            #
+            #   Face splitting follows
+            #
+            faces = np.zeros((2 * nquad, 3), dtype=np.int)
+            nface = 0
+            for quad in quads:
+                if (quad[0] % 2) == 0:
+                    faces[nface] = quad[0], quad[1], quad[3]
+                    nface += 1
+                    faces[nface] = quad[2], quad[3], quad[1]
+                    nface += 1
+                else:
+                    faces[nface] = quad[0], quad[1], quad[2]
+                    nface += 1
+                    faces[nface] = quad[0], quad[2], quad[3]
+                    nface += 1
+
+        elif magic == TRIANGLE_MAGIC:  # Triangle file
+            create_stamp = fobj.readline().rstrip(b'\n').decode('utf-8')
+            fobj.readline()
+            vnum = np.fromfile(fobj, ">i4", 1)[0]
+            fnum = np.fromfile(fobj, ">i4", 1)[0]
+            coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
+            faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
+
+            if read_metadata:
+                volume_info = _read_volume_info(fobj)
+        else:
+            raise ValueError("File does not appear to be a Freesurfer surface")
+
+    coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
+
+    ret = (coords, faces)
+    if read_metadata:
+        if len(volume_info) == 0:
+            warnings.warn('No volume information contained in the file')
+        ret += (volume_info,)
+    if read_stamp:
+        ret += (create_stamp,)
+
+    return ret
+
+
+###############################################################################
+# Backporting scipy.signal.sosfilt (0.17) and sosfiltfilt (0.18)
 
 
 def _sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
