@@ -676,8 +676,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         they correspond to different conditions. To average by condition,
         do ``epochs[condition].average()`` for each condition separately.
 
-        Will not include ICA channels when picks=None. If object contains only
-        ICA channels, an error will occur.
+        Will not include ICA channels, when picks=None. If picks = None and the
+        object contains only ICA channels, an error will occur.
         """
         return self._compute_mean_or_stderr(picks, 'ave')
 
