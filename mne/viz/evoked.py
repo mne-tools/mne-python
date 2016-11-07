@@ -166,12 +166,10 @@ def _plot_legend(pos, colors, axis, bads, outlines):
         _draw_outlines(ax, outlines)
 
 
-def _plot_evoked(evoked, picks, exclude, unit, show,
-                 ylim, proj, xlim, hline, units,
-                 scalings, titles, axes, plot_type,
-                 cmap=None, gfp=False, window_title=None,
-                 spatial_colors=False, set_tight_layout=True,
-                 selectable=True, zorder='unsorted'):
+def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
+                 units, scalings, titles, axes, plot_type, cmap=None,
+                 gfp=False, window_title=None, spatial_colors=False,
+                 set_tight_layout=True, selectable=True, zorder='unsorted'):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -184,15 +182,12 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         interactive.
     """
     import matplotlib.pyplot as plt
-    from matplotlib import patheffects
-    from matplotlib.widgets import SpanSelector
     info = evoked.info
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
     if isinstance(gfp, string_types) and gfp != 'only':
         raise ValueError('gfp must be boolean or "only". Got %s' % gfp)
-    cmap = _setup_cmap(cmap)
 
     scalings = _handle_default('scalings', scalings)
     titles = _handle_default('titles', titles)
@@ -254,172 +249,30 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         evoked = evoked.copy()
         evoked.apply_proj()
 
-    times = 1e3 * evoked.times  # time in milliseconds
-    texts = list()
-    idxs = list()
-    lines = list()
-    selectors = list()  # for keeping reference to span_selectors
-    path_effects = [patheffects.withStroke(linewidth=2, foreground="w",
-                                           alpha=0.75)]
-    gfp_path_effects = [patheffects.withStroke(linewidth=5, foreground="w",
-                                               alpha=0.75)]
-    for ax, t in zip(axes, ch_types_used):
-        line_list = list()  # 'line_list' contains the lines for this axes
-        ch_unit = units[t]
-        this_scaling = scalings[t]
-        if unit is False:
-            this_scaling = 1.0
-            ch_unit = 'NA'  # no unit
-        idx = list(picks[types == t])
-        idxs.append(idx)
-        if len(idx) > 0:
-            # Set amplitude scaling
-            D = this_scaling * evoked.data[idx, :]
-            # Parameters for butterfly interactive plots
-            if plot_type == 'butterfly':
+    if plot_type == 'butterfly':
+        from matplotlib.widgets import SpanSelector
+        import matplotlib.pyplot as plt
+        times = evoked.times * 1e3  # time in milliseconds
+        _plot_butterfly(evoked.data, info, picks, fig, axes, spatial_colors,
+                        unit, units, scalings, hline, gfp, types, zorder, xlim,
+                        ylim, times, bad_ch_idx, titles, ch_types_used)
+        if selectable:
+            for ax in axes:
                 text = ax.annotate('Loading...', xy=(0.01, 0.1),
                                    xycoords='axes fraction', fontsize=20,
                                    color='green', zorder=3)
                 text.set_visible(False)
-                if selectable:
-                    callback_onselect = partial(
-                        _butterfly_onselect, ch_types=ch_types_used,
-                        evoked=evoked, text=text)
-                    blit = False if plt.get_backend() == 'MacOSX' else True
-                    selectors.append(SpanSelector(
-                        ax, callback_onselect, 'horizontal', minspan=10,
-                        useblit=blit, rectprops=dict(alpha=0.5,
-                                                     facecolor='red')))
-
-                gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
-                if not gfp_only:
-                    if spatial_colors:
-                        chs = [info['chs'][i] for i in idx]
-                        locs3d = np.array([ch['loc'][:3] for ch in chs])
-                        x, y, z = locs3d.T
-                        colors = _rgb(info, x, y, z)
-                        if t in ('meg', 'mag', 'grad', 'eeg'):
-                            layout = find_layout(info, ch_type=t, exclude=[])
-                        else:
-                            layout = find_layout(info, None, exclude=[])
-                        # drop channels that are not in the data
-                        used_nm = np.array(_clean_names(info['ch_names']))[idx]
-                        names = np.asarray([name for name in used_nm
-                                            if name in layout.names])
-                        name_idx = [layout.names.index(name) for name in names]
-                        if len(name_idx) < len(chs):
-                            warn('Could not find layout for all the channels. '
-                                 'Generating custom layout from channel '
-                                 'positions.')
-                            xy = _auto_topomap_coords(info, idx, True)
-                            layout = generate_2d_layout(
-                                xy[idx], ch_names=list(used_nm), name='custom')
-                            names = used_nm
-                            name_idx = [layout.names.index(name) for name in
-                                        names]
-
-                        # find indices for bads
-                        bads = [np.where(names == bad)[0][0] for bad in
-                                info['bads'] if bad in names]
-                        pos, outlines = _check_outlines(layout.pos[:, :2],
-                                                        'skirt', None)
-                        pos = pos[name_idx]
-                        _plot_legend(pos, colors, ax, bads, outlines)
-                    else:
-                        colors = ['k'] * len(idx)
-                        for i in bad_ch_idx:
-                            if i in idx:
-                                colors[idx.index(i)] = 'r'
-
-                    if zorder == 'std':
-                        # find the channels with the least activity
-                        # to map them in front of the more active ones
-                        z_ord = D.std(axis=1).argsort()
-                    elif zorder == 'unsorted':
-                        z_ord = list(range(D.shape[0]))
-                    elif not callable(zorder):
-                        error = ('`zorder` must be a function, "std" '
-                                 'or "unsorted", not {0}.')
-                        raise TypeError(error.format(type(zorder)))
-                    else:
-                        z_ord = zorder(D)
-
-                    # plot channels
-                    for ch_idx, z in enumerate(z_ord):
-                        line_list.append(
-                            ax.plot(times, D[ch_idx], picker=3.,
-                                    zorder=z + 1 if spatial_colors else 1,
-                                    color=colors[ch_idx])[0])
-
-                if gfp:  # 'only' or boolean True
-                    gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
-                    this_gfp = np.sqrt((D * D).mean(axis=0))
-                    this_ylim = ax.get_ylim() if (ylim is None or t not in
-                                                  ylim.keys()) else ylim[t]
-                    if not gfp_only:
-                        y_offset = this_ylim[0]
-                    else:
-                        y_offset = 0.
-                    this_gfp += y_offset
-                    ax.fill_between(times, y_offset, this_gfp, color='none',
-                                    facecolor=gfp_color, zorder=1, alpha=0.25)
-                    line_list.append(ax.plot(times, this_gfp, color=gfp_color,
-                                             zorder=3)[0])
-                    ax.text(times[0] + 0.01 * (times[-1] - times[0]),
-                            this_gfp[0] + 0.05 * np.diff(ax.get_ylim())[0],
-                            'GFP', zorder=4, color=gfp_color,
-                            path_effects=gfp_path_effects)
-                for ii, line in zip(idx, line_list):
-                    if ii in bad_ch_idx:
-                        line.set_zorder(2)
-                        if spatial_colors:
-                            line.set_linestyle("--")
-                ax.set_ylabel('data (%s)' % ch_unit)
-                # for old matplotlib, we actually need this to have a bounding
-                # box (!), so we have to put some valid text here, change
-                # alpha and path effects later
-                texts.append(ax.text(0, 0, 'blank', zorder=3,
-                                     verticalalignment='baseline',
-                                     horizontalalignment='left',
-                                     fontweight='bold', alpha=0))
-            elif plot_type == 'image':
-                im = ax.imshow(D, interpolation='nearest', origin='lower',
-                               extent=[times[0], times[-1], 0, D.shape[0]],
-                               aspect='auto', cmap=cmap[0])
-                cbar = plt.colorbar(im, ax=ax)
-                cbar.ax.set_title(ch_unit)
-                if cmap[1]:
-                    ax.CB = DraggableColorbar(cbar, im)
-                ax.set_ylabel('channels (%s)' % 'index')
-            else:
-                raise ValueError("plot_type has to be 'butterfly' or 'image'."
-                                 "Got %s." % plot_type)
-            if xlim is not None:
-                if xlim == 'tight':
-                    xlim = (times[0], times[-1])
-                ax.set_xlim(xlim)
-            if ylim is not None and t in ylim:
-                if plot_type == 'butterfly':
-                    ax.set_ylim(ylim[t])
-                elif plot_type == 'image':
-                    im.set_clim(ylim[t])
-            ax.set_title(titles[t] + ' (%d channel%s)' % (len(D), _pl(D)))
-            ax.set_xlabel('time (ms)')
-
-            if (plot_type == 'butterfly') and (hline is not None):
-                for h in hline:
-                    c = ('r' if not spatial_colors else 'grey')
-                    ax.axhline(h, linestyle='--', linewidth=2, color=c)
-        lines.append(line_list)
-    if plot_type == 'butterfly':
-        params = dict(axes=axes, texts=texts, lines=lines,
-                      ch_names=info['ch_names'], idxs=idxs, need_draw=False,
-                      path_effects=path_effects, selectors=selectors)
-        fig.canvas.mpl_connect('pick_event',
-                               partial(_butterfly_onpick, params=params))
-        fig.canvas.mpl_connect('button_press_event',
-                               partial(_butterfly_on_button_press,
-                                       params=params))
+                callback_onselect = partial(_butterfly_onselect,
+                                            ch_types=ch_types_used,
+                                            evoked=evoked, text=text)
+                blit = False if plt.get_backend() == 'MacOSX' else True
+                ax._span_selector = SpanSelector(
+                    ax, callback_onselect, 'horizontal', minspan=10,
+                    useblit=blit, rectprops=dict(alpha=0.5, facecolor='red'))
+    elif plot_type == 'image':
+        for ax, this_type in zip(axes, ch_types_used):
+            _plot_image(evoked.data, ax, this_type, picks, cmap, unit, units,
+                        scalings, evoked.times, types, xlim, ylim, titles)
 
     if axes_init is None:
         plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
@@ -439,6 +292,181 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         tight_layout(fig=fig)
 
     return fig
+
+
+def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
+                    scalings, hline, gfp, types, zorder, xlim, ylim, times,
+                    bad_ch_idx, titles, ch_types_used):
+    """Function for plotting data as butterfly plot."""
+    from matplotlib import patheffects
+    texts = list()
+    idxs = list()
+    lines = list()
+    path_effects = [patheffects.withStroke(linewidth=2, foreground="w",
+                                           alpha=0.75)]
+    gfp_path_effects = [patheffects.withStroke(linewidth=5, foreground="w",
+                                               alpha=0.75)]
+    # Parameters for butterfly interactive plots
+    params = dict(axes=axes, texts=texts, lines=lines,
+                  ch_names=info['ch_names'], idxs=idxs, need_draw=False,
+                  path_effects=path_effects)
+    fig.canvas.mpl_connect('pick_event',
+                           partial(_butterfly_onpick, params=params))
+    fig.canvas.mpl_connect('button_press_event',
+                           partial(_butterfly_on_button_press,
+                                   params=params))
+    for ax, t in zip(axes, ch_types_used):
+        line_list = list()  # 'line_list' contains the lines for this axes
+        ch_unit = units[t]
+        this_scaling = 1. if scalings is None else scalings[t]
+        if unit is False:
+            this_scaling = 1.0
+            ch_unit = 'NA'  # no unit
+        idx = list(picks[types == t])
+        idxs.append(idx)
+        if len(idx) > 0:
+            # Set amplitude scaling
+            D = this_scaling * data[idx, :]
+            gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
+            if not gfp_only:
+                if spatial_colors:
+                    chs = [info['chs'][i] for i in idx]
+                    locs3d = np.array([ch['loc'][:3] for ch in chs])
+                    x, y, z = locs3d.T
+                    colors = _rgb(info, x, y, z)
+                    if t in ('meg', 'mag', 'grad', 'eeg'):
+                        layout = find_layout(info, ch_type=t, exclude=[])
+                    else:
+                        layout = find_layout(info, None, exclude=[])
+                    # drop channels that are not in the data
+                    used_nm = np.array(_clean_names(info['ch_names']))[idx]
+                    names = np.asarray([name for name in used_nm
+                                        if name in layout.names])
+                    name_idx = [layout.names.index(name) for name in names]
+                    if len(name_idx) < len(chs):
+                        warn('Could not find layout for all the channels. '
+                             'Generating custom layout from channel '
+                             'positions.')
+                        xy = _auto_topomap_coords(info, idx, True)
+                        layout = generate_2d_layout(
+                            xy[idx], ch_names=list(used_nm), name='custom')
+                        names = used_nm
+                        name_idx = [layout.names.index(name) for name in
+                                    names]
+
+                    # find indices for bads
+                    bads = [np.where(names == bad)[0][0] for bad in
+                            info['bads'] if bad in names]
+                    pos, outlines = _check_outlines(layout.pos[:, :2],
+                                                    'skirt', None)
+                    pos = pos[name_idx]
+                    _plot_legend(pos, colors, ax, bads, outlines)
+                else:
+                    colors = ['k'] * len(idx)
+                    for i in bad_ch_idx:
+                        if i in idx:
+                            colors[idx.index(i)] = 'r'
+
+                if zorder == 'std':
+                    # find the channels with the least activity
+                    # to map them in front of the more active ones
+                    z_ord = D.std(axis=1).argsort()
+                elif zorder == 'unsorted':
+                    z_ord = list(range(D.shape[0]))
+                elif not callable(zorder):
+                    error = ('`zorder` must be a function, "std" '
+                             'or "unsorted", not {0}.')
+                    raise TypeError(error.format(type(zorder)))
+                else:
+                    z_ord = zorder(D)
+
+                # plot channels
+                for ch_idx, z in enumerate(z_ord):
+                    line_list.append(
+                        ax.plot(times, D[ch_idx], picker=3.,
+                                zorder=z + 1 if spatial_colors else 1,
+                                color=colors[ch_idx])[0])
+
+            if gfp:  # 'only' or boolean True
+                gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
+                this_gfp = np.sqrt((D * D).mean(axis=0))
+                this_ylim = ax.get_ylim() if (ylim is None or t not in
+                                              ylim.keys()) else ylim[t]
+                if not gfp_only:
+                    y_offset = this_ylim[0]
+                else:
+                    y_offset = 0.
+                this_gfp += y_offset
+                ax.fill_between(times, y_offset, this_gfp, color='none',
+                                facecolor=gfp_color, zorder=1, alpha=0.25)
+                line_list.append(ax.plot(times, this_gfp, color=gfp_color,
+                                         zorder=3)[0])
+                ax.text(times[0] + 0.01 * (times[-1] - times[0]),
+                        this_gfp[0] + 0.05 * np.diff(ax.get_ylim())[0],
+                        'GFP', zorder=4, color=gfp_color,
+                        path_effects=gfp_path_effects)
+            for ii, line in zip(idx, line_list):
+                if ii in bad_ch_idx:
+                    line.set_zorder(2)
+                    if spatial_colors:
+                        line.set_linestyle("--")
+            ax.set_ylabel('data (%s)' % ch_unit)
+            # for old matplotlib, we actually need this to have a bounding
+            # box (!), so we have to put some valid text here, change
+            # alpha and path effects later
+            texts.append(ax.text(0, 0, 'blank', zorder=3,
+                                 verticalalignment='baseline',
+                                 horizontalalignment='left',
+                                 fontweight='bold', alpha=0))
+
+            if xlim is not None:
+                if xlim == 'tight':
+                    xlim = (times[0], times[-1])
+                ax.set_xlim(xlim)
+            if ylim is not None and t in ylim:
+                ax.set_ylim(ylim[t])
+            ax.set_title(titles[t] + ' (%d channel%s)' % (
+                         len(D), 's' if len(D) > 1 else ''))
+            ax.set_xlabel('time (ms)')
+
+            if hline is not None:
+                for h in hline:
+                    c = ('r' if not spatial_colors else 'grey')
+                    ax.axhline(h, linestyle='--', linewidth=2, color=c)
+        lines.append(line_list)
+
+
+def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
+                types, xlim, ylim, titles):
+    """Function for plotting images."""
+    import matplotlib.pyplot as plt
+    cmap = _setup_cmap(cmap)
+    ch_unit = units[this_type]
+    this_scaling = scalings[this_type]
+    if unit is False:
+        this_scaling = 1.0
+        ch_unit = 'NA'  # no unit
+    idx = list(picks[types == this_type])
+    if len(idx) > 0:
+        # Set amplitude scaling
+        data = this_scaling * data[idx, :]
+    im = ax.imshow(data, interpolation='nearest', origin='lower',
+                   extent=[times[0], times[-1], 0, data.shape[0]],
+                   aspect='auto', cmap=cmap[0])
+    if xlim is not None:
+        if xlim == 'tight':
+            xlim = (times[0], times[-1])
+        ax.set_xlim(xlim)
+        if ylim is not None and this_type in ylim:
+            im.set_clim(ylim[this_type])
+    cbar = plt.colorbar(im, ax=ax)
+    cbar.ax.set_title(ch_unit)
+    if cmap[1]:
+        ax.CB = DraggableColorbar(cbar, im)
+    ax.set_ylabel('channels (index)')
+    ax.set_title(titles[this_type] + ' (%d channel%s)' % (
+                 len(data), 's' if len(data) > 1 else ''))
+    ax.set_xlabel('time (ms)')
 
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,

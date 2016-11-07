@@ -518,7 +518,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=2048, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33,
                  n_overlap=0, dB=True, average=True, show=True, n_jobs=1,
-                 line_alpha=None, verbose=None):
+                 line_alpha=None, spatial_colors=False, verbose=None):
     """Plot the power spectral density across channels.
 
     Parameters
@@ -567,6 +567,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     line_alpha : float | None
         Alpha for the PSD line. Can be None (default) to use 1.0 when
         ``average=True`` and 0.1 when ``average=False``.
+    spatial_colors : bool
+        Whether to use spatial colors.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -582,6 +584,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         line_alpha = 1.0 if average else 0.1
     line_alpha = float(line_alpha)
 
+    psd_list = list()
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
         psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
@@ -617,7 +620,10 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                 ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
                                 color=color, alpha=area_alpha)
         else:
-            ax.plot(freqs, psds.T, color=color, alpha=line_alpha)
+            if spatial_colors:
+                psd_list.append(psds)
+            else:
+                ax.plot(freqs, psds.T, color=color, alpha=line_alpha)
 
         if make_label:
             if ii == len(picks_list) - 1:
@@ -628,6 +634,27 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
+
+    if spatial_colors:
+        from evoked import _plot_butterfly
+        from mne.io.pick import channel_type
+        types = np.array([channel_type(raw.info, idx) for idx in picks])
+        valid_channel_types = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg',
+                               'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
+                               'hbr', 'misc']
+        ch_types_used = []
+        for t in valid_channel_types:
+            if t in types:
+                ch_types_used.append(t)
+        units = {t: 'Power Spectral Density (%s/Hz)' % unit for t in
+                 ch_types_used}
+        titles = {c: t for c, t in zip(ch_types_used, titles_list)}
+        _plot_butterfly(psds, raw.info, picks, fig, ax_list, spatial_colors,
+                        unit, units=units, scalings=None, hline=None,
+                        gfp=False, types=types, zorder='std',
+                        xlim=(freqs[0], freqs[-1]), ylim=None,
+                        times=range(psds.shape[1]), bad_ch_idx=[],
+                        titles=titles, ch_types_used=ch_types_used)
     plt_show(show)
     return fig
 
