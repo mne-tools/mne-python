@@ -29,6 +29,8 @@ Changelog
 
     - Add convenient default values to :meth:`mne.io.Raw.apply_hilbert` and :meth:`mne.io.Raw.apply_function` by `Denis Engemann`_
 
+    - Remove MNE-C requirement for :ref:`mne make_scalp_surfaces <gen_mne_make_scalp_surfaces>` by `Eric Larson`_
+
 BUG
 ~~~
 
