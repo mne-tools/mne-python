@@ -458,7 +458,7 @@ def _check_thicknesses(surfs):
                      1000 * min_dist))
 
 
-def _surfaces_to_bem(surfs, ids, sigmas, ico=None):
+def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True):
     """Convert surfaces to a BEM."""
     # equivalent of mne_surf2bem
     # surfs can be strings (filenames) or surface dicts
@@ -469,15 +469,17 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None):
     surf = list(surfs)
     for si, surf in enumerate(surfs):
         if isinstance(surf, string_types):
-            surf = read_surface(surf, return_dict=True)[-1]
-            surfs[si] = surf
+            surfs[si] = read_surface(surf, return_dict=True)[-1]
     # Downsampling if the surface is isomorphic with a subdivided icosahedron
     if ico is not None:
         for si, surf in enumerate(surfs):
             surfs[si] = _ico_downsample(surf, ico)
     for surf, id_ in zip(surfs, ids):
         surf['id'] = id_
-        surf['rr'] /= 1000.  # convert to meters
+        surf['coord_frame'] = surf.get('coord_frame', FIFF.FIFFV_COORD_MRI)
+        surf.update(np=len(surf['rr']), ntri=len(surf['tris']))
+        if rescale:
+            surf['rr'] /= 1000.  # convert to meters
 
     # Shifting surfaces is not implemented here...
 
@@ -557,7 +559,6 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
     if len(conductivity) == 1:
         surfaces = surfaces[:1]
         ids = ids[:1]
-    surfaces = [read_surface(surf, return_dict=True)[-1] for surf in surfaces]
     surfaces = _surfaces_to_bem(surfaces, ids, conductivity, ico)
     _check_bem_size(surfaces)
     logger.info('Complete.\n')
@@ -1146,9 +1147,8 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     if op.isfile(fname_head):
         os.remove(fname_head)
 
-    surf = read_surface(
-        op.join(ws_dir, subject + '_outer_skin_surface'), return_dict=True)[-1]
-    surf = _surfaces_to_bem([surf], [FIFF.FIFFV_BEM_SURF_ID_HEAD], sigmas=[1])
+    surf = _surfaces_to_bem([op.join(ws_dir, subject + '_outer_skin_surface')],
+                            [FIFF.FIFFV_BEM_SURF_ID_HEAD], sigmas=[1])
     write_bem_surfaces(fname_head, surf)
 
     # Show computed BEM surfaces

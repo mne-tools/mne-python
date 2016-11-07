@@ -5,8 +5,9 @@ import shutil
 import glob
 import warnings
 from nose.tools import assert_true, assert_raises
+from numpy.testing import assert_equal, assert_allclose
 
-from mne import concatenate_raws
+from mne import concatenate_raws, read_bem_surfaces
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_kit2fiff,
@@ -113,7 +114,6 @@ def test_kit2fiff():
 
 
 @requires_tvtk
-@requires_mne
 @testing.requires_testing_data
 def test_make_scalp_surfaces():
     """Test mne make_scalp_surfaces."""
@@ -129,27 +129,33 @@ def test_make_scalp_surfaces():
     shutil.copy(op.join(surf_path, 'lh.seghead'), surf_path_new)
 
     orig_fs = os.getenv('FREESURFER_HOME', None)
-    orig_mne = os.getenv('MNE_ROOT')
     if orig_fs is not None:
         del os.environ['FREESURFER_HOME']
     cmd = ('-s', 'sample', '--subjects-dir', tempdir)
     os.environ['_MNE_TESTING_SCALP'] = 'true'
+    dense_fname = op.join(subj_dir, 'sample-head-dense.fif')
+    medium_fname = op.join(subj_dir, 'sample-head-medium.fif')
     try:
         with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
             assert_raises(RuntimeError, mne_make_scalp_surfaces.run)
-            os.environ['FREESURFER_HOME'] = tempdir  # don't need it
-            del os.environ['MNE_ROOT']
-            assert_raises(RuntimeError, mne_make_scalp_surfaces.run)
-            os.environ['MNE_ROOT'] = orig_mne
+            os.environ['FREESURFER_HOME'] = tempdir  # don't actually use it
             mne_make_scalp_surfaces.run()
-            assert_true(op.isfile(op.join(subj_dir, 'sample-head-dense.fif')))
-            assert_true(op.isfile(op.join(subj_dir, 'sample-head-medium.fif')))
+            assert_true(op.isfile(dense_fname))
+            assert_true(op.isfile(medium_fname))
             assert_raises(IOError, mne_make_scalp_surfaces.run)  # no overwrite
     finally:
         if orig_fs is not None:
             os.environ['FREESURFER_HOME'] = orig_fs
-        os.environ['MNE_ROOT'] = orig_mne
+        else:
+            del os.environ['FREESURFER_HOME']
         del os.environ['_MNE_TESTING_SCALP']
+    # actually check the outputs
+    head_py = read_bem_surfaces(dense_fname)
+    assert_equal(len(head_py), 1)
+    head_py = head_py[0]
+    head_c = read_bem_surfaces(op.join(subjects_dir, 'sample', 'bem',
+                                       'sample-head-dense.fif'))[0]
+    assert_allclose(head_py['rr'], head_c['rr'])
 
 
 def test_maxfilter():
