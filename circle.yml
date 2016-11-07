@@ -112,7 +112,7 @@ dependencies:
     - echo BUILD="$(cat build.txt)"
     - ls -al ~/mne_data;
     - if [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
-        python -c "import mne; mne.datasets._download_all_example_data()";
+        SUBJECTS_DIR=/home/ubuntu/mne_data/MNE-sample-data/subjects python -c "import mne; mne.datasets._download_all_example_data()";
       fi;
     - python -c "import mne; mne.sys_info()";
     - >

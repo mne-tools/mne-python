@@ -21,16 +21,30 @@ Changelog
 
     - Add HCP-MMP1.0 parcellation dataset downloader by `Eric Larson`_
 
+    - Add option to project EEG electrodes onto the scalp in :func:`mne.viz.plot_trans` by `Eric Larson`_
+
+    - Add option to plot individual sensors in :meth:`mne.io.Raw.plot_psd` by `Alex Gramfort`_ and `Eric Larson`_
+
 BUG
 ~~~
 
     - Fix computation of AR coefficients across channels in :func:`mne.time_frequency.fit_iir_model_raw` by `Eric Larson`_
 
-    - Fixed maxfilter channel names extra space bug in :func:`mne.preprocessing.maxwell_filter` by `Sheraz Khan`_
+    - Fix maxfilter channel names extra space bug in :func:`mne.preprocessing.maxwell_filter` by `Sheraz Khan`_
 
     - :func:`mne.find_layout` now leaves out the excluded channels by `Jaakko Leppakangas`_
 
     - Array data constructors :class:`mne.io.RawArray` and :class:`mne.EvokedArray` now make a copy of the info structure by `Jaakko Leppakangas`_
+
+    - Fix bug with finding layouts in :func:`mne.viz.plot_projs_topomap` by `Eric Larson`_
+
+    - Fix bug :func:`mne.io.anonymize_info` when Info does not contain 'file_id' or 'meas_id' fields by `Jean-Remi King`_
+
+    - Fix colormap selection in :func:`mne.viz.plot_evoked_topomap` when using positive vmin with negative data by `Jaakko Leppakangas`_
+
+    - Fix channel name comparison in :func:`mne.read_montage` so that if ``ch_names`` is provided, the returned montage will have channel names in the same letter case by `Jaakko Leppakangas`_
+
+    - Fix handling of events in :class:`mne.realtime.RtEpochs` when the triggers were split between two buffers resulting in missing and/or duplicate epochs by `Mainak Jas`_ and `Antti Rantala`_
 
 API
 ~~~
@@ -38,6 +52,10 @@ API
     - The filtering functions ``band_pass_filter``, ``band_stop_filter``, ``low_pass_filter``, and ``high_pass_filter`` have been deprecated in favor of :func:`mne.filter.filter_data` by `Eric Larson`_
 
     - :class:`mne.EvokedArray` now has default value ``tmin=0.`` by `Jaakko Leppakangas`_
+
+    - The ``ch_type`` argument for :func:`mne.viz.plot_trans` has been deprecated, use ``eeg_sensors`` and ``meg_sensors`` instead, by `Eric Larson`_
+
+    - The default ``tmax=60.`` in :meth:`mne.io.Raw.plot_psd` will change to ``tmax=np.inf`` in 0.15, by `Eric Larson`_
 
 .. _changes_0_13:
 
@@ -1846,3 +1864,5 @@ of commits):
 .. _Johannes Niediek: https://github.com/jniediek
 
 .. _Sheraz Khan: https://github.com/SherazKhan
+
+.. _Antti Rantala: https://github.com/Odingod

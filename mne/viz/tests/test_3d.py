@@ -53,8 +53,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 @requires_pysurfer
 @requires_mayavi
 def test_plot_sparse_source_estimates():
-    """Test plotting of (sparse) source estimates
-    """
+    """Test plotting of (sparse) source estimates."""
     sample_src = read_source_spaces(src_fname)
 
     # dense version
@@ -91,8 +90,7 @@ def test_plot_sparse_source_estimates():
 @testing.requires_testing_data
 @requires_mayavi
 def test_plot_evoked_field():
-    """Test plotting evoked field
-    """
+    """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
@@ -107,8 +105,8 @@ def test_plot_evoked_field():
 @testing.requires_testing_data
 @requires_mayavi
 def test_plot_trans():
-    """Test plotting of -trans.fif files and MEG sensor layouts
-    """
+    """Test plotting of -trans.fif files and MEG sensor layouts."""
+    from mayavi import mlab
     evoked = read_evokeds(evoked_fname)[0]
     with warnings.catch_warnings(record=True):  # 4D weight tables
         bti = read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
@@ -123,8 +121,10 @@ def test_plot_trans():
         ref_meg = False if system == 'KIT' else True
         plot_trans(info, trans_fname, subject='sample', meg_sensors=True,
                    subjects_dir=subjects_dir, ref_meg=ref_meg)
+        mlab.close(all=True)
     # KIT ref sensor coil def is defined
     plot_trans(infos['KIT'], None, meg_sensors=True, ref_meg=True)
+    mlab.close(all=True)
     info = infos['Neuromag']
     assert_raises(ValueError, plot_trans, info, trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
@@ -133,10 +133,20 @@ def test_plot_trans():
                   subject='sample', subjects_dir=subjects_dir)
     # no-head version
     plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
+    mlab.close(all=True)
+    # all coord frames
+    for coord_frame in ('meg', 'head', 'mri'):
+        plot_trans(info, meg_sensors=True, dig=True, coord_frame=coord_frame,
+                   trans=trans_fname, subject='sample',
+                   subjects_dir=subjects_dir)
+        mlab.close(all=True)
     # EEG only with strange options
     with warnings.catch_warnings(record=True) as w:
         plot_trans(evoked.copy().pick_types(meg=False, eeg=True).info,
-                   trans=trans_fname, meg_sensors=True)
+                   subject='sample', trans=trans_fname, meg_sensors=True,
+                   eeg_sensors=['original', 'projected'],
+                   subjects_dir=subjects_dir)
+    mlab.close(all=True)
     assert_true(['Cannot plot MEG' in str(ww.message) for ww in w])
 
 
@@ -144,8 +154,7 @@ def test_plot_trans():
 @requires_pysurfer
 @requires_mayavi
 def test_limits_to_control_points():
-    """Test functionality for determing control points
-    """
+    """Test functionality for determing control points."""
     sample_src = read_source_spaces(src_fname)
 
     vertices = [s['vertno'] for s in sample_src]
@@ -209,14 +218,13 @@ def test_limits_to_control_points():
         stc._data.fill(0.)
         plot_source_estimates(stc, subjects_dir=subjects_dir, time_unit='s')
         assert_equal(len(w), 1)
-    mlab.close()
+    mlab.close(all=True)
 
 
 @testing.requires_testing_data
 @requires_mayavi
 def test_plot_dipole_locations():
-    """Test plotting dipole locations
-    """
+    """Test plotting dipole locations."""
     dipoles = read_dipole(dip_fname)
     trans = read_trans(trans_fname)
     dipoles.plot_locations(trans, 'sample', subjects_dir, fig_name='foo')

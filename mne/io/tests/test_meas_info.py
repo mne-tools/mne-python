@@ -370,5 +370,10 @@ def test_anonymize():
     assert_true(raw.info['file_id']['secs'] != orig_file_id)
     assert_true(raw.info['meas_id']['secs'] != orig_meas_id)
 
+    # Test no error for incomplete info
+    info = raw.info.copy()
+    info.pop('file_id')
+    anonymize_info(info)
+
 
 run_tests_if_main()

@@ -24,7 +24,7 @@ from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
-                       transform_surface_to)
+                       transform_surface_to, _project_onto_surface)
 from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
@@ -267,8 +267,8 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 @verbose
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                ch_type=None, source=('bem', 'head'), coord_frame='head',
-               meg_sensors=False, eeg_sensors=True, dig=False, ref_meg=False,
-               verbose=None):
+               meg_sensors='helmet', eeg_sensors='original', dig=False,
+               ref_meg=False, verbose=None):
     """Plot MEG/EEG head surface and helmet in 3D.
 
     Parameters
@@ -286,9 +286,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     ch_type : None | 'eeg' | 'meg'
-        If None, both the MEG helmet and EEG electrodes will be shown.
-        If 'meg', only the MEG helmet will be shown. If 'eeg', only the
-        EEG electrodes will be shown.
+        This argument is deprecated. Use meg_sensors and eeg_sensors instead.
     source : str
         Type to load. Common choices would be `'bem'` or `'head'`. We first
         try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
@@ -296,10 +294,16 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         to 'bem'. Note. For single layer bems it is recommended to use 'head'.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
-    meg_sensors : bool
-        If True, plot MEG sensors as points in addition to showing the helmet.
-    eeg_sensors : bool
-        If True, plot EEG sensors as points.
+    meg_sensors : bool | str | list
+        Can be "helmet" or "points" to show MEG sensors as points or as part
+        of the the helmet, respectively, or a combination of the two like
+        ``['helmet', 'sensors']`` (equivalent to True, default) or ``[]``
+        (equivalent to False).
+    eeg_sensors : bool | str | list
+        Can be "original" (default; equivalent to True) or "projected" to
+        show EEG sensors in their digitized locations or projected onto the
+        scalp, or a list of these options including ``[]`` (equivalent of
+        False).
     dig : bool
         If True, plot the digitization points.
     ref_meg : bool
@@ -312,15 +316,44 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     fig : instance of mlab.Figure
         The mayavi figure.
     """
+    from mayavi import mlab
     from ..forward import _create_meg_coils
+    if ch_type is not None:
+        if ch_type not in ['eeg', 'meg']:
+            raise ValueError('Argument ch_type must be None | eeg | meg. Got '
+                             '%s.' % ch_type)
+        warnings.warn('the ch_type argument is deprecated and will be removed '
+                      'in 0.14. Use meg_sensors and eeg_sensors instead.')
+    if meg_sensors is False:  # old behavior
+        meg_sensors = 'helmet'
+    elif meg_sensors is True:
+        meg_sensors = ['helmet', 'sensors']
+    if eeg_sensors is False:
+        eeg_sensors = []
+    elif eeg_sensors is True:
+        eeg_sensors = 'original'
+    if isinstance(eeg_sensors, string_types):
+        eeg_sensors = [eeg_sensors]
+    if isinstance(meg_sensors, string_types):
+        meg_sensors = [meg_sensors]
+    for kind, var in zip(('eeg', 'meg'), (eeg_sensors, meg_sensors)):
+        if not isinstance(var, (list, tuple)) or \
+                not all(isinstance(x, string_types) for x in var):
+            raise TypeError('%s_sensors must be list or tuple of str, got %s'
+                            % (type(var),))
+    if not all(x in ('helmet', 'sensors') for x in meg_sensors):
+        raise ValueError('meg_sensors must only contain "helmet" and "points",'
+                         ' got %s' % (meg_sensors,))
+    if not all(x in ('original', 'projected') for x in eeg_sensors):
+        raise ValueError('eeg_sensors must only contain "original" and '
+                         '"projected", got %s' % (eeg_sensors,))
+
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info, got %s'
                         % type(info))
-    if coord_frame not in ['head', 'meg', 'mri']:
-        raise ValueError('coord_frame must be "head" or "meg"')
-    if ch_type not in [None, 'eeg', 'meg']:
-        raise ValueError('Argument ch_type must be None | eeg | meg. Got %s.'
-                         % ch_type)
+    valid_coords = ['head', 'meg', 'mri']
+    if coord_frame not in valid_coords:
+        raise ValueError('coord_frame must be one of %s' % (valid_coords,))
 
     show_head = (subject is not None)
     if isinstance(trans, string_types):
@@ -330,12 +363,28 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             trans = _find_trans(subject, subjects_dir)
         trans = read_trans(trans)
     elif trans is None:
-        trans = Transform('head', 'mri', np.eye(4))
+        trans = Transform('head', 'mri')
         show_head = False
     elif not isinstance(trans, dict):
         raise TypeError('trans must be str, dict, or None')
     head_mri_t = _ensure_trans(trans, 'head', 'mri')
+    dev_head_t = info['dev_head_t']
     del trans
+
+    # Figure out our transformations
+    if coord_frame == 'meg':
+        head_trans = invert_transform(dev_head_t)
+        meg_trans = Transform('meg', 'meg')
+        mri_trans = invert_transform(combine_transforms(
+            dev_head_t, head_mri_t, 'meg', 'mri'))
+    elif coord_frame == 'mri':
+        head_trans = head_mri_t
+        meg_trans = combine_transforms(dev_head_t, head_mri_t, 'meg', 'mri')
+        mri_trans = Transform('mri', 'mri')
+    else:  # coord_frame == 'head'
+        head_trans = Transform('head', 'head')
+        meg_trans = info['dev_head_t']
+        mri_trans = invert_transform(head_mri_t)
 
     # both the head and helmet will be in MRI coordinates after this
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
@@ -344,18 +393,11 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         surfs['head'] = get_head_surf(subject, source=source,
                                       subjects_dir=subjects_dir)
-    if (ch_type is None and len(meg_picks) > 0) or ch_type == 'meg':
+    if 'helmet' in meg_sensors and len(meg_picks) > 0 and \
+            (ch_type is None or ch_type == 'meg'):
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
-    if coord_frame == 'meg':
-        surf_trans = combine_transforms(info['dev_head_t'], head_mri_t,
-                                        'meg', 'mri')
-    elif coord_frame == 'head':
-        surf_trans = head_mri_t
-    else:  # coord_frame == 'mri'
-        surf_trans = None
     for key in surfs.keys():
-        surfs[key] = transform_surface_to(surfs[key], coord_frame, surf_trans)
-    del surf_trans
+        surfs[key] = transform_surface_to(surfs[key], coord_frame, mri_trans)
 
     # determine points
     meg_rrs, meg_tris = list(), list()
@@ -363,16 +405,19 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     ext_loc = list()
     car_loc = list()
     eeg_loc = list()
-    if eeg_sensors and (ch_type is None or ch_type == 'eeg'):
+    eegp_loc = list()
+    if len(eeg_sensors) > 0 and (ch_type is None or ch_type == 'eeg'):
         eeg_loc = np.array([info['chs'][k]['loc'][:3]
-                           for k in pick_types(info, meg=False, eeg=True)])
+                           for k in pick_types(info, meg=False, eeg=True,
+                                               ref_meg=False)])
         if len(eeg_loc) > 0:
-            # Transform EEG electrodes from head coordinates if necessary
-            if coord_frame == 'meg':
-                eeg_loc = apply_trans(invert_transform(info['dev_head_t']),
-                                      eeg_loc)
-            elif coord_frame == 'mri':
-                eeg_loc = apply_trans(head_mri_t, eeg_loc)
+            eeg_loc = apply_trans(head_trans, eeg_loc)
+            # XXX do projections here if necessary
+            if 'projected' in eeg_sensors:
+                eegp_loc = _project_onto_surface(eeg_loc, surfs['head'],
+                                                 project_rrs=True)[2]
+            if 'original' not in eeg_sensors:
+                eeg_loc = list()
         else:
             # only warn if EEG explicitly requested, or EEG channels exist but
             # no locations are provided
@@ -380,32 +425,25 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                     len(pick_types(info, meg=False, eeg=True)) > 0):
                 warn('EEG electrode locations not found. Cannot plot EEG '
                      'electrodes.')
-    if meg_sensors:
+    del eeg_sensors
+    if 'sensors' in meg_sensors:
         coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
                        for pick in meg_picks]
-        # Transform MEG coordinates from meg if necessary
-        trans = None
-        if coord_frame == 'head':
-            trans = info['dev_head_t']
-        elif coord_frame == 'mri':
-            trans = combine_transforms(info['dev_head_t'], head_mri_t,
-                                       'meg', 'mri')
         coils = _create_meg_coils([info['chs'][pick] for pick in meg_picks],
                                   acc='normal')
         offset = 0
         for coil, coil_trans in zip(coils, coil_transs):
             rrs, tris = _sensor_shape(coil)
             rrs = apply_trans(coil_trans, rrs)
-            if trans is not None:
-                rrs = apply_trans(trans, rrs)
             meg_rrs.append(rrs)
             meg_tris.append(tris + offset)
             offset += len(meg_rrs[-1])
         if len(meg_rrs) == 0:
             warn('MEG electrodes not found. Cannot plot MEG locations.')
         else:
-            meg_rrs = np.concatenate(meg_rrs, axis=0)
+            meg_rrs = apply_trans(meg_trans, np.concatenate(meg_rrs, axis=0))
             meg_tris = np.concatenate(meg_tris, axis=0)
+    del meg_sensors
     if dig:
         hpi_loc = np.array([d['r'] for d in info['dig']
                             if d['kind'] == FIFF.FIFFV_POINT_HPI])
@@ -413,20 +451,18 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                            if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
         car_loc = np.array([d['r'] for d in info['dig']
                             if d['kind'] == FIFF.FIFFV_POINT_CARDINAL])
+        # Transform from head coords if necessary
         if coord_frame == 'meg':
-            t = invert_transform(info['dev_head_t'])
-            hpi_loc = apply_trans(t, hpi_loc)
-            ext_loc = apply_trans(t, ext_loc)
-            car_loc = apply_trans(t, car_loc)
+            for loc in (hpi_loc, ext_loc, car_loc):
+                loc[:] = apply_trans(invert_transform(info['dev_head_t']), loc)
         elif coord_frame == 'mri':
-            hpi_loc = apply_trans(head_mri_t, hpi_loc)
-            ext_loc = apply_trans(head_mri_t, ext_loc)
-            car_loc = apply_trans(head_mri_t, car_loc)
+            for loc in (hpi_loc, ext_loc, car_loc):
+                loc[:] = apply_trans(head_mri_t, loc)
         if len(car_loc) == len(ext_loc) == 0:
             warn('Digitization points not found. Cannot plot digitization.')
+    del dig
 
     # do the plotting, surfaces then points
-    from mayavi import mlab
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
     alphas = dict(head=1.0, helmet=0.5)
@@ -444,10 +480,10 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         mesh.data.cell_data.normals = None
         mlab.pipeline.surface(mesh, color=colors[key], opacity=alphas[key])
 
-    datas = (eeg_loc, hpi_loc, car_loc, ext_loc)
-    colors = ((1., 0., 0.), (0., 1., 0.), (1., 1., 0.), (1., 0.5, 0.))
-    alphas = (1.0, 0.5, 0.5, 0.25)
-    scales = (0.005, 0.015, 0.015, 0.0075)
+    datas = (eeg_loc, eegp_loc, hpi_loc, car_loc, ext_loc)
+    colors = ((1., 0, 0), (0., 0.5, 1.), (0., 1, 0), (1., 1, 0), (1, 0.5, 0))
+    alphas = (0.8, 0.8, 0.5, 0.5, 0.25)
+    scales = (0.005, 0.0033, 0.015, 0.015, 0.0075)
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits

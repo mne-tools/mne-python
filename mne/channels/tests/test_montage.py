@@ -103,6 +103,12 @@ def test_montage():
             assert_array_less(distance_from_centroid, 0.2)
             assert_array_less(0.01, distance_from_centroid)
 
+    # Test reading in different letter case.
+    ch_names = ["F3", "FZ", "F4", "FC3", "FCz", "FC4", "C3", "CZ", "C4", "CP3",
+                "CPZ", "CP4", "P3", "PZ", "P4", "O1", "OZ", "O2"]
+    montage = read_montage('standard_1020', ch_names=ch_names)
+    assert_array_equal(ch_names, montage.ch_names)
+
     # test transform
     input_str = """
     eeg Fp1 -95.0 -31.0 -3.0

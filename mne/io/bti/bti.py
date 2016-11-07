@@ -198,7 +198,7 @@ def _process_bti_headshape(fname, convert=True, use_hpi=True):
     if convert:
         ctf_head_t = _get_ctf_head_to_head_t(idx_points)
     else:
-        ctf_head_t = Transform('ctf_head', 'ctf_head', np.eye(4))
+        ctf_head_t = Transform('ctf_head', 'ctf_head')
 
     if dig_points is not None:
         # dig_points = apply_trans(ctf_head_t['trans'], dig_points)
@@ -1118,10 +1118,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
     # for old backward compatibility and external processing
     rotation_x = 0. if rotation_x is None else rotation_x
-    if convert:
-        bti_dev_t = _get_bti_dev_t(rotation_x, translation)
-    else:
-        bti_dev_t = np.eye(4)
+    bti_dev_t = _get_bti_dev_t(rotation_x, translation) if convert else None
     bti_dev_t = Transform('ctf_meg', 'meg', bti_dev_t)
 
     use_hpi = False  # hard coded, but marked as later option.
@@ -1262,12 +1259,12 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                                    'meg', 'ctf_head')
             dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
         else:
-            dev_head_t = Transform('meg', 'head', np.eye(4))
+            dev_head_t = Transform('meg', 'head')
         logger.info('Done.')
     else:
         logger.info('... no headshape file supplied, doing nothing.')
-        dev_head_t = Transform('meg', 'head', np.eye(4))
-        ctf_head_t = Transform('ctf_head', 'head', np.eye(4))
+        dev_head_t = Transform('meg', 'head')
+        ctf_head_t = Transform('ctf_head', 'head')
     info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
                 ctf_head_t=ctf_head_t)
 

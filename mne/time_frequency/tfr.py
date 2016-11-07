@@ -26,7 +26,7 @@ from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
 from ..utils import SizeMixin
 from .multitaper import dpss_windows
-from ..viz.utils import figure_nobar, plt_show
+from ..viz.utils import figure_nobar, plt_show, _setup_cmap
 from ..externals.h5io import write_hdf5, read_hdf5
 from ..externals.six import string_types
 
@@ -986,10 +986,7 @@ class AverageTFR(_BaseTFR):
                 raise RuntimeError('There must be an axes for each picked '
                                    'channel.')
 
-        if cmap == 'interactive':
-            cmap = ('RdBu_r', True)
-        elif not isinstance(cmap, tuple):
-            cmap = (cmap, True)
+        cmap = _setup_cmap(cmap)
         for idx in range(len(data)):
             if axes is None:
                 fig = plt.figure()

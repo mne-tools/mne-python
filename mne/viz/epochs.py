@@ -21,7 +21,7 @@ from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show,
-                    _compute_scalings, DraggableColorbar)
+                    _compute_scalings, DraggableColorbar, _setup_cmap)
 from ..defaults import _handle_default
 
 
@@ -190,10 +190,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         this_vmin = vmin * scalings[ch_type] if scale_vmin else vmin
         this_vmax = vmax * scalings[ch_type] if scale_vmax else vmax
 
-        if cmap == 'interactive':
-            cmap = ('RdBu_r', True)
-        elif not isinstance(cmap, tuple):
-            cmap = (cmap, True)
+        cmap = _setup_cmap(cmap)
         im = ax1.imshow(this_data,
                         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
                                 0, n_epochs],

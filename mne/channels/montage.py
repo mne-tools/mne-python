@@ -141,6 +141,12 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         If not all electrodes defined in the montage are present in the EEG
         data, use this parameter to select subset of electrode positions to
         load. If None (default), all defined electrode positions are returned.
+
+        .. note:: ``ch_names`` are compared to channel names in the montage
+                  file after converting them both to upper case. If a match is
+                  found, the letter case in the original ``ch_names`` is used
+                  in the returned montage.
+
     path : str | None
         The path of the folder containing the montage file. Defaults to the
         mne/channels/data/montages folder in your mne-python installation.
@@ -182,10 +188,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
             raise ValueError('Could not find the montage. Please provide the '
                              'full path.')
         kind, ext = montages[0]
-        fname = op.join(path, kind + ext)
     else:
         kind, ext = op.splitext(kind)
-        fname = op.join(path, kind + ext)
+    fname = op.join(path, kind + ext)
 
     if ext == '.sfp':
         # EGI geodesic
@@ -315,8 +320,11 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = apply_trans(neuromag_trans, pos)
 
     if ch_names is not None:
-        sel, ch_names_ = zip(*[(i, e) for i, e in enumerate(ch_names_)
-                             if e in ch_names])
+        # Ensure channels with differing case are found.
+        upper_names = [ch_name.upper() for ch_name in ch_names]
+        sel, ch_names_ = zip(*[(i, ch_names[upper_names.index(e)]) for i, e in
+                               enumerate([n.upper() for n in ch_names_])
+                               if e in upper_names])
         sel = list(sel)
         pos = pos[sel]
         selection = selection[sel]

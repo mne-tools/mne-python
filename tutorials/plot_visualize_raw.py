@@ -6,6 +6,7 @@ Visualize Raw data
 
 """
 import os.path as op
+import numpy as np
 
 import mne
 
@@ -98,7 +99,7 @@ raw.plot()
 #
 # Raw container also lets us easily plot the power spectra over the raw data.
 # See the API documentation for more info.
-raw.plot_psd()
+raw.plot_psd(tmax=np.inf)
 
 ###############################################################################
 # Plotting channel-wise power spectra is just as easy. The layout is inferred

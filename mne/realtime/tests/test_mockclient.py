@@ -128,7 +128,7 @@ def test_find_events():
         assert_true(ev.comment == str(events[ii]))
     assert_true(ii == 0)
 
-    # ouput='step', consecutive=True
+    # output='step', consecutive=True
     find_events = dict(output='step', consecutive=True)
     rt_client = MockRtClient(raw)
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
@@ -172,6 +172,7 @@ def test_find_events():
     raw._update_times()
     for min_dur in [0.002, 0.004]:
     # min_duration= 0.002 and 0.004, triggers in different buffers
+
         find_events = dict(consecutive=False, min_duration=min_dur)
         rt_client = MockRtClient(raw)
         rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
@@ -181,8 +182,10 @@ def test_find_events():
                             tmax=10, buffer_size=1000)
         rt_epochs.start()
         events = [5, 6]
+
         for ii, ev in enumerate(rt_epochs.iter_evoked()):
             assert_true(ev.comment == str(events[ii]))
         assert_true(ii == 0)
+
 
 run_tests_if_main()

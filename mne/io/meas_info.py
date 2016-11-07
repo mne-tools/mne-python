@@ -25,7 +25,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose, warn, object_diff
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
 
@@ -1227,23 +1227,6 @@ def write_info(fname, info, data_type=None, reset_range=True):
     end_file(fid)
 
 
-def _is_equal_dict(dicts):
-    """Check if dicts are equal."""
-    tests = zip(*[d.items() for d in dicts])
-    is_equal = []
-    for d in tests:
-        k0, v0 = d[0]
-        if (isinstance(v0, (list, np.ndarray)) and len(v0) > 0 and
-                isinstance(v0[0], dict)):
-            for k, v in d:
-                is_equal.append((k0 == k) and _is_equal_dict(v))
-        else:
-            is_equal.append(all(np.all(k == k0) and
-                            (np.array_equal(v, v0) if isinstance(v, np.ndarray)
-                             else np.all(v == v0)) for k, v in d))
-    return all(is_equal)
-
-
 @verbose
 def _merge_dict_values(dicts, key, verbose=None):
     """Merge things together.
@@ -1279,7 +1262,7 @@ def _merge_dict_values(dicts, key, verbose=None):
             return _flatten(lists)
     # dict
     elif _check_isinstance(values, dict, all):
-        is_qual = _is_equal_dict(values)
+        is_qual = all(object_diff(values[0], v) == '' for v in values[1:])
         if is_qual:
             return values[0]
         else:
@@ -1530,7 +1513,7 @@ def _empty_info(sfreq):
     for k in _list_keys:
         info[k] = list()
     info['custom_ref_applied'] = False
-    info['dev_head_t'] = Transform('meg', 'head', np.eye(4))
+    info['dev_head_t'] = Transform('meg', 'head')
     info['highpass'] = 0.
     info['sfreq'] = float(sfreq)
     info['lowpass'] = info['sfreq'] / 2.
@@ -1594,6 +1577,11 @@ def anonymize_info(info):
         del info['subject_info']
     info['meas_date'] = [0, 0]
     for key_1 in ('file_id', 'meas_id'):
+        key = info.get(key_1)
+        if key is None:
+            continue
         for key_2 in ('secs', 'msecs', 'usecs'):
+            if key_2 not in key:
+                continue
             info[key_1][key_2] = 0
     return info

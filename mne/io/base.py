@@ -1536,15 +1536,22 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
-    def plot_psd(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
+    def plot_psd(self, tmin=0.0, tmax=None, fmin=0, fmax=np.inf,
                  proj=False, n_fft=2048, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, show=True, n_jobs=1, verbose=None):
+                 n_overlap=0, dB=True, average=True, show=True,
+                 n_jobs=1, line_alpha=None, verbose=None):
+        if tmax is None:
+            tmax = 60.
+            warn('tmax defaults to 60. in 0.14 but will change to np.inf in '
+                 '0.15. Set it explicitly to avoid this warning',
+                 DeprecationWarning)
         return plot_raw_psd(self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
                             proj=proj, n_fft=n_fft, picks=picks, ax=ax,
                             color=color, area_mode=area_mode,
                             area_alpha=area_alpha, n_overlap=n_overlap,
-                            dB=dB, show=show, n_jobs=n_jobs)
+                            dB=dB, average=average, show=show, n_jobs=n_jobs,
+                            line_alpha=line_alpha)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
