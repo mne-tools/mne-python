@@ -991,7 +991,7 @@ Classes:
    :template: class.rst
 
    CSP
-   EpochsVectorizer
+   Vectorizer
    FilterEstimator
    GeneralizationAcrossTime
    PSDEstimator
