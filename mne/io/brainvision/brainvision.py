@@ -367,8 +367,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     # check binary format
     data_format = cfg.get('Common Infos', 'DataFormat')
     if data_format != 'BINARY':
-        raise ValueError('Only support for data stored in binary format '
-                         'is supported. Your data are in %s.' % data_format)
+        raise ValueError('Only data in binary format is supported. '
+                         'Your data are in %s.' % data_format)
     order = cfg.get('Common Infos', 'DataOrientation')
     if order not in _orientation_dict:
         raise NotImplementedError('Data Orientation %s is not supported'
