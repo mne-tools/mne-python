@@ -37,10 +37,13 @@ ch_types = ['mag', 'mag', 'grad', 'grad']
 ch_names = ['sin', 'cos', 'sinX2', 'cosX2']
 
 ###############################################################################
-# Creation of info dictionary.
+# Create an :class:`info <mne.io.Info>` object.
 
 # It is also possible to use info from another raw object.
 info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+
+###############################################################################
+# Create a dummy :class:`mne.io.RawArray` object
 
 raw = mne.io.RawArray(data, info)
 
@@ -60,6 +63,7 @@ raw.plot(n_channels=4, scalings=scalings, title='Auto-scaled Data from arrays',
 ###############################################################################
 # EpochsArray
 
+# This is used to identify the events
 event_id = 1
 events = np.array([[200, 0, event_id],
                    [1200, 0, event_id],
@@ -95,6 +99,35 @@ evokeds = mne.EvokedArray(evoked_data, info=info, tmin=-0.2,
 evokeds.plot(picks=picks, show=True, units={'mag': '-'},
              titles={'mag': 'sin and cos averaged'})
 
+###############################################################################
+# Create epochs by windowing the raw data.
+
+# The events are spaced evenly every 1 second.
+duration = 1.
+
+# create a fixed size events array
+# start=0 and stop=None by default
+events = mne.make_fixed_length_events(raw, event_id, duration=duration)
+print(events)
+
+# for fixed size events no start time before and after event
+tmin = 0.
+tmax = 0.99  # inclusive tmax, 1 second epochs
+
+# create :class:`Epochs <mne.Epochs>` object
+epochs = mne.Epochs(raw, events=events, tmin=tmin, tmax=tmax, verbose=True)
+epochs.plot(scalings='auto', block=True)
+
+###############################################################################
+# Create overlapping epochs using :func:`mne.make_fixed_length_events` (50 %
+# overlap). This also roughly doubles the amount of events compared to the
+# previous event list.
+
+duration = 0.5
+events = mne.make_fixed_length_events(raw, event_id, duration=duration)
+print events
+epochs = mne.Epochs(raw, events=events, tmin=tmin, tmax=tmax, verbose=True)
+epochs.plot(scalings='auto', block=True)
 
 ###############################################################################
 # Extracting data from NEO file
