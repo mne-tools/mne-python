@@ -19,7 +19,8 @@ from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _str_to_frame, _frame_to_str)
-from ..io.meas_info import _make_dig_points, _read_dig_points, _read_dig_fif
+from ..io.meas_info import (_make_dig_points, _read_dig_points, _read_dig_fif,
+                            write_dig)
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
@@ -32,7 +33,7 @@ from ..externals.six.moves import map
 class Montage(object):
     """Montage for standard EEG electrode locations.
 
-    .. warning:: Montages should typically loaded from a file using
+    .. warning:: Montages should typically be loaded from a file using
                  :func:`mne.channels.read_montage` instead of
                  instantiating this class directly.
 
@@ -70,33 +71,20 @@ class Montage(object):
              % (self.kind, len(self.ch_names), ', '.join(self.ch_names[:3])))
         return s
 
-    def plot(self, scale_factor=1.5, show_names=False):
-        """Plot EEG sensor montage.
-
-        Parameters
-        ----------
-        scale_factor : float
-            Determines the size of the points. Defaults to 1.5
-        show_names : bool
-            Whether to show the channel names. Defaults to False
-
-        Returns
-        -------
-        fig : Instance of matplotlib.figure.Figure
-            The figure object.
-        """
+    @copy_function_doc_to_method_doc(plot_montage)
+    def plot(self, scale_factor=20, show_names=False, show=True):
         return plot_montage(self, scale_factor=scale_factor,
-                            show_names=show_names)
+                            show_names=show_names, show=True)
 
 
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     """Read a generic (built-in) montage.
 
-    .. note:: Individualized (digitized) electrode positions should be
-              read in using :func:`read_dig_montage`.
+    Individualized (digitized) electrode positions should be
+    read in using :func:`read_dig_montage`.
 
-    In most cases, you should only the
-    `kind` parameter to load one of the built-in montages (see Notes).
+    In most cases, you should only need the `kind` parameter to load one of
+    the built-in montages (see Notes).
 
     Parameters
     ----------
@@ -143,7 +131,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     Built-in montages are not scaled or transformed by default.
 
     Montages can contain fiducial points in addition to electrode
-    locations, e.g. ``biosemi-64`` contains 67 total channels.
+    locations, e.g. ``biosemi64`` contains 67 total channels.
 
     The valid ``kind`` arguments are:
 
@@ -380,6 +368,10 @@ class DigMontage(object):
 
         .. versionadded:: 0.12
 
+    coord_frame : str
+        The coordinate frame of the points. Usually this is "unknown"
+        for native digitizer space.
+
     See Also
     --------
     Montage
@@ -393,7 +385,7 @@ class DigMontage(object):
 
     def __init__(self, hsp=None, hpi=None, elp=None, point_names=None,
                  nasion=None, lpa=None, rpa=None, dev_head_t=None,
-                 dig_ch_pos=None):  # noqa: D102
+                 dig_ch_pos=None, coord_frame='unknown'):  # noqa: D102
         self.hsp = hsp
         self.hpi = hpi
         if elp is not None:
@@ -414,6 +406,11 @@ class DigMontage(object):
         self.rpa = rpa
         self.dev_head_t = dev_head_t
         self.dig_ch_pos = dig_ch_pos
+        if not isinstance(coord_frame, string_types) or \
+                coord_frame not in _str_to_frame:
+            raise ValueError('coord_frame must be one of %s, got %s'
+                             % (sorted(_str_to_frame.keys()), coord_frame))
+        self.coord_frame = coord_frame
 
     def __repr__(self):
         """String representation."""
@@ -423,12 +420,14 @@ class DigMontage(object):
         return s
 
     @copy_function_doc_to_method_doc(plot_montage)
-    def plot(self, scale_factor=1.5, show_names=False, show=True):
+    def plot(self, scale_factor=20, show_names=False, show=True):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names)
 
     def transform_to_head(self):
         """Transform digitizer points to Neuromag head coordinates."""
+        if self.coord_frame == 'head':  # nothing to do
+            return
         nasion, rpa, lpa = self.nasion, self.rpa, self.lpa
         if any(x is None for x in (nasion, rpa, lpa)):
             if self.elp is None or self.point_names is None:
@@ -465,12 +464,29 @@ class DigMontage(object):
         if self.dig_ch_pos is not None:
             for key, val in self.dig_ch_pos.items():
                 self.dig_ch_pos[key] = apply_trans(native_head_t, val)
+        self.coord_frame = 'head'
 
     def compute_dev_head_t(self):
         """Compute the Neuromag dev_head_t from matched points."""
         from ..coreg import fit_matched_points
         self.dev_head_t = fit_matched_points(tgt_pts=self.elp,
                                              src_pts=self.hpi, out='trans')
+
+    def _get_dig(self):
+        """Get the digitization list."""
+        return _make_dig_points(
+            nasion=self.nasion, lpa=self.lpa, rpa=self.rpa, hpi=self.hpi,
+            dig_points=self.hsp, dig_ch_pos=self.dig_ch_pos)
+
+    def save(self, fname):
+        """Save digitization points to FIF
+
+        Parameters
+        ----------
+        fname : str
+            The filename to use. Should end in .fif or .fif.gz.
+        """
+        write_dig(fname, self._get_dig())
 
 
 _cardinal_ident_mapping = {
@@ -596,6 +612,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         fids = np.array([fids[key] for key in ('nasion', 'lpa', 'rpa')])
         hsp = np.array(hsp)
         elp = np.array(elp)
+        coord_frame = 'head'
     else:
         fids = [None] * 3
         dig_ch_pos = None
@@ -628,10 +645,11 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             elp = _read_dig_points(elp, unit=unit)
         elif elp is not None and scale[unit]:
             elp *= scale[unit]
+        coord_frame = 'unknown'
 
     # Transform digitizer coordinates to neuromag space
     out = DigMontage(hsp, hpi, elp, point_names, fids[0], fids[1], fids[2],
-                     dig_ch_pos=dig_ch_pos)
+                     dig_ch_pos=dig_ch_pos, coord_frame=coord_frame)
     if fif is None and transform:  # only need to do this for non-Neuromag
         out.transform_to_head()
     if dev_head_t:
@@ -704,11 +722,7 @@ def _set_montage(info, montage, update_ch_names=False):
                  'left untouched.')
 
     elif isinstance(montage, DigMontage):
-        dig = _make_dig_points(nasion=montage.nasion, lpa=montage.lpa,
-                               rpa=montage.rpa, hpi=montage.hpi,
-                               dig_points=montage.hsp,
-                               dig_ch_pos=montage.dig_ch_pos)
-        info['dig'] = dig
+        info['dig'] = montage._get_dig()
         if montage.dev_head_t is not None:
             info['dev_head_t']['trans'] = montage.dev_head_t
         if montage.dig_ch_pos is not None:  # update channel positions, too

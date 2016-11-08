@@ -242,33 +242,51 @@ def test_set_dig_montage():
 
     montage = read_dig_montage(hsp, hpi, elp, names, transform=True,
                                dev_head_t=True)
-    info = create_info(['Test Ch'], 1e3, ['eeg'])
-    _set_montage(info, montage)
-    hs = np.array([p['r'] for i, p in enumerate(info['dig'])
-                   if p['kind'] == FIFF.FIFFV_POINT_EXTRA])
-    nasion_dig = np.array([p['r'] for p in info['dig']
-                           if all([p['ident'] == FIFF.FIFFV_POINT_NASION,
-                                   p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
-    lpa_dig = np.array([p['r'] for p in info['dig']
-                        if all([p['ident'] == FIFF.FIFFV_POINT_LPA,
-                                p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
-    rpa_dig = np.array([p['r'] for p in info['dig']
-                        if all([p['ident'] == FIFF.FIFFV_POINT_RPA,
-                                p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
-    hpi_dig = np.array([p['r'] for p in info['dig']
-                        if p['kind'] == FIFF.FIFFV_POINT_HPI])
-    assert_array_equal(hs, hsp_points)
-    assert_array_equal(nasion_dig.ravel(), nasion_point)
-    assert_array_equal(lpa_dig.ravel(), lpa_point)
-    assert_array_equal(rpa_dig.ravel(), rpa_point)
-    assert_array_equal(hpi_dig, hpi_points)
-    assert_array_equal(montage.dev_head_t, info['dev_head_t']['trans'])
+    temp_dir = _TempDir()
+    fname_temp = op.join(temp_dir, 'test.fif')
+    montage.save(fname_temp)
+    montage_read = read_dig_montage(fif=fname_temp)
+    for use_mon in (montage, montage_read):
+        info = create_info(['Test Ch'], 1e3, ['eeg'])
+        _set_montage(info, use_mon)
+        hs = np.array([p['r'] for i, p in enumerate(info['dig'])
+                       if p['kind'] == FIFF.FIFFV_POINT_EXTRA])
+        nasion_dig = np.array([p['r'] for p in info['dig']
+                               if all([p['ident'] == FIFF.FIFFV_POINT_NASION,
+                                       p['kind'] == FIFF.FIFFV_POINT_CARDINAL])
+                               ])
+        lpa_dig = np.array([p['r'] for p in info['dig']
+                            if all([p['ident'] == FIFF.FIFFV_POINT_LPA,
+                                    p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
+        rpa_dig = np.array([p['r'] for p in info['dig']
+                            if all([p['ident'] == FIFF.FIFFV_POINT_RPA,
+                                    p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
+        hpi_dig = np.array([p['r'] for p in info['dig']
+                            if p['kind'] == FIFF.FIFFV_POINT_HPI])
+        assert_allclose(hs, hsp_points, atol=1e-7)
+        assert_allclose(nasion_dig.ravel(), nasion_point, atol=1e-7)
+        assert_allclose(lpa_dig.ravel(), lpa_point, atol=1e-7)
+        assert_allclose(rpa_dig.ravel(), rpa_point, atol=1e-7)
+        assert_allclose(hpi_dig, hpi_points, atol=1e-7)
+        assert_allclose(use_mon.dev_head_t, info['dev_head_t']['trans'],
+                        atol=1e-7)
 
 
 @testing.requires_testing_data
 def test_fif_dig_montage():
     """Test FIF dig montage support."""
     dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
+
+    # test round-trip IO
+    temp_dir = _TempDir()
+    fname_temp = op.join(temp_dir, 'test.fif')
+    dig_montage.save(fname_temp)
+    dig_montage_2 = read_dig_montage(fif=fname_temp)
+    for kind in ('elp', 'hsp', 'nasion', 'lpa', 'rpa'):
+        assert_allclose(getattr(dig_montage_2, kind),
+                        getattr(dig_montage, kind))
+    assert_equal(dig_montage.coord_frame, 'head')
+    assert_equal(dig_montage_2.coord_frame, 'head')
 
     # Make a BrainVision file like the one the user would have had
     with warnings.catch_warnings(record=True) as w:

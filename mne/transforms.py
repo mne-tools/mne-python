@@ -35,7 +35,8 @@ _str_to_frame = dict(meg=FIFF.FIFFV_COORD_DEVICE,
                      ras=FIFF.FIFFV_MNE_COORD_RAS,
                      fs_tal=FIFF.FIFFV_MNE_COORD_FS_TAL,
                      ctf_head=FIFF.FIFFV_MNE_COORD_CTF_HEAD,
-                     ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE)
+                     ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
+                     unknown=FIFF.FIFFV_COORD_UNKNOWN)
 _frame_to_str = dict((val, key) for key, val in _str_to_frame.items())
 
 _verbose_frames = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
@@ -62,9 +63,9 @@ def _to_const(cf):
         if cf not in _str_to_frame:
             raise ValueError('Unknown cf %s' % cf)
         cf = _str_to_frame[cf]
-    elif not isinstance(cf, int):
+    elif not isinstance(cf, (int, np.integer)):
         raise TypeError('cf must be str or int, not %s' % type(cf))
-    return cf
+    return int(cf)
 
 
 class Transform(dict):
