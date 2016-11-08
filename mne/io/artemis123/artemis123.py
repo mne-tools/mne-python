@@ -3,16 +3,17 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from os import path
+import os.path as op
 import datetime
 import calendar
+import inspect
 
+from .utils import _load_mne_locs
 from ...utils import logger
-from ..utils import _read_segments_file, _find_channels, _create_chs
-from ..base import _BaseRaw, _check_update_montage
+from ..utils import _read_segments_file
+from ..base import _BaseRaw
 from ..meas_info import _empty_info
 from ..constants import FIFF
-
 
 def read_raw_artemis123(input_fname, preload=False, verbose=None):
     """Read Artemis123 data as raw object.
@@ -48,7 +49,7 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None):
 
 def _get_artemis123_info(fname):
     """Function for extracting info from artemis123 header files."""
-    fname = path.splitext(fname)[0]
+    fname = op.splitext(fname)[0]
     header = fname + '.txt'
 
     logger.info('Reading header...')
@@ -59,14 +60,14 @@ def _get_artemis123_info(fname):
     header_info = dict()
     header_info['filterHist'] = [];
     header_info['comments']   = ''
-    header_info['chanels']    = [];
+    header_info['Channels']    = [];
 
     with open(header, 'r') as fid:
       #section flag
       # 0 - None
       # 1 - main header
       # 2 - channel header
-      # 3 - comments 
+      # 3 - comments
       # 4 - length
       # 5 - filtering History
       sectionFlag = 0
@@ -102,7 +103,7 @@ def _get_artemis123_info(fname):
             tmp = dict()
             for k,v in zip(chanKeys,values):
               tmp[k] = v
-            header_info['chanels'].append(tmp)
+            header_info['Channels'].append(tmp)
           elif sectionFlag == 3:
             header_info['comments'] = '%s%s'%(header_info['comments'],line.strip())
           elif sectionFlag == 4:
@@ -116,7 +117,7 @@ def _get_artemis123_info(fname):
 
     #Attempt to get time/date from fname
     try:
-        date = datetime.datetime.strptime(path.basename(fname).split('_')[2],'%Y-%m-%d-%Hh-%Mm')
+        date = datetime.datetime.strptime(op.basename(fname).split('_')[2],'%Y-%m-%d-%Hh-%Mm')
     except:
         date = None
 
@@ -126,24 +127,52 @@ def _get_artemis123_info(fname):
     info.update({'filename': fname,
                 'meas_date': calendar.timegm(date.utctimetuple()),
                 'description': None, 'buffer_size_sec': 1.})
-    #
-    # if ch_type == 'eeg':
-    #     ch_coil = FIFF.FIFFV_COIL_EEG
-    #     ch_kind = FIFF.FIFFV_EEG_CH
-    # elif ch_type == 'seeg':
-    #     ch_coil = FIFF.FIFFV_COIL_EEG
-    #     ch_kind = FIFF.FIFFV_SEEG_CH
-    # else:
-    #     raise TypeError("Channel type not recognized. Available types are "
-    #                     "'eeg' and 'seeg'.")
-    # cals = np.repeat(header_info['conversion_factor'] * 1e-6, len(ch_names))
-    # info['chs'] = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg,
-    #                           misc)
-    # info['highpass'] = 0.
-    # info['lowpass'] = info['sfreq'] / 2.0
-    # info._update_redundant()
-    return info, header_info
 
+    #load mne loc dictionary
+    locDict = _load_mne_locs()
+    info['chs'] = []
+    info['bads'] =[]
+    print header_info['Channels'][0].keys()
+    for i,chan in enumerate(header_info['Channels']):
+        #build chs struct
+        t = {   'cal':float(chan['scaling']),'ch_name':chan['name'],'logno':i+1,'scanno':i+1,
+                'range':1.0,'unit_mul':0,'coord_frame':FIFF.FIFFV_COORD_DEVICE}
+        try:
+            t['loc'] = locDict[chan['name']]
+        except:
+            t['loc'] = np.zeros(12)
+
+        if (chan['name'].startswith('MEG')):
+            t['coil_type']  = FIFF.FIFFV_COIL_ARTEMIS123_GRAD
+            t['kind']       = FIFF.FIFFV_MEG_CH
+            t['unit']       = FIFF.FIFF_UNIT_T_M
+        elif (chan['name'].startswith('REF')):
+            t['coil_type']  = FIFF.FIFFV_COIL_ARTEMIS123_REF_MAG
+            t['kind']       = FIFF.FIFFV_REF_MEG_CH
+            t['unit']       = FIFF.FIFF_UNIT_T
+        elif (chan['name'].startswith('AUX')):
+            t['coil_type']  = FIFF.FIFFV_COIL_NONE
+            t['kind']       = FIFF.FIFFV_MISC_CH
+            t['unit']       = FIFF.FIFF_UNIT_V
+        elif (chan['name'].startswith('TRG')):
+            t['coil_type']  = FIFF.FIFFV_COIL_NONE
+            t['kind']       = FIFF.FIFFV_STIM_CH
+            t['unit']       = FIFF.FIFF_UNIT_V
+        elif (chan['name'].startswith('MIO')):
+            t['coil_type']  = FIFF.FIFFV_COIL_NONE
+            t['kind']       = FIFF.FIFFV_MISC_CH
+            t['unit']       = FIFF.FIFF_UNIT_V
+        else:
+            pass
+            #raise excpetion
+
+        info['chs'].append(t)
+        if chan['FLL_ResetLock'] == 'TRUE':
+            info['bads'].append(t['ch_name'])
+    info['ch_names'] = [ ch['ch_name'] for ch in info['chs'] ]
+    info['nchan'] = len(info['ch_names'])
+
+    return info, header_info
 
 class RawArtemis123(_BaseRaw):
     """Raw object from Artemis123 file.
@@ -167,7 +196,7 @@ class RawArtemis123(_BaseRaw):
     """
 
     def __init__(self, input_fname, preload=False, verbose=None):
-        input_fname = path.abspath(input_fname)
+        input_fname = op.abspath(input_fname)
         info, header_info = _get_artemis123_info(input_fname)
         last_samps = [header_info['num_samples'] - 1]
         super(RawArtemis123, self).__init__(
