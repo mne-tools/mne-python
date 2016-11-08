@@ -50,6 +50,8 @@ BUG
 
     - Fix channel name comparison in :func:`mne.read_montage` so that if ``ch_names`` is provided, the returned montage will have channel names in the same letter case by `Jaakko Leppakangas`_
 
+    - Fix handling of events in :class:`mne.realtime.RtEpochs` when the triggers were split between two buffers resulting in missing and/or duplicate epochs by `Mainak Jas`_ and `Antti Rantala`_
+
 API
 ~~~
 
@@ -1868,3 +1870,5 @@ of commits):
 .. _Johannes Niediek: https://github.com/jniediek
 
 .. _Sheraz Khan: https://github.com/SherazKhan
+
+.. _Antti Rantala: https://github.com/Odingod
