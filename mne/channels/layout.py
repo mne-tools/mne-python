@@ -652,6 +652,9 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
         The measurement info.
     picks : list of int
         The channel indices to generate topomap coords for.
+    ignore_overlap : bool
+        Whether to ignore overlapping positions in the layout. If False and
+        positions overlap, an error is thrown.
 
     Returns
     -------

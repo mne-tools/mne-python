@@ -77,8 +77,10 @@ def _butterfly_onselect(xmin, xmax, ch_types, info, data, times, text=None,
                         pair_grads=True):
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
+    print(data)
+
     ch_types = [type_ for type_ in ch_types if type_ in ('eeg', 'grad', 'mag')]
-    if (pair_grads, 'grad' in ch_types and
+    if (pair_grads and 'grad' in ch_types and
             len(_pair_grad_sensors(info, topomap_coords=False,
                                    raise_error=False)) < 2):
         ch_types.remove('grad')
@@ -97,27 +99,28 @@ def _butterfly_onselect(xmin, xmax, ch_types, info, data, times, text=None,
         evoked_fig = plt.gcf()
         evoked_fig.canvas.draw()
         evoked_fig.canvas.flush_events()
-    xmin *= 0.001
+
     minidx = np.abs(times - xmin).argmin()
-    xmax *= 0.001
     maxidx = np.abs(times - xmax).argmin()
     fig, axarr = plt.subplots(1, len(ch_types), squeeze=False,
                               figsize=(3 * len(ch_types), 3))
     for idx, ch_type in enumerate(ch_types):
+        if ch_type not in ('eeg', 'grad', 'mag'):
+            continue
         picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(
-            info, ch_type, layout=None)
-        data = data[picks, minidx:maxidx]
+            info, ch_type, layout=None, merge_grads=pair_grads)
+        this_data = data[picks, minidx:maxidx]
         if merge_grads:
             from ..channels.layout import _merge_grad_data
-            data = _merge_grad_data(data)
+            this_data = _merge_grad_data(this_data)
             title = '%s RMS' % ch_type
         else:
             title = ch_type
-        data = np.average(data, axis=1)
+        this_data = np.average(this_data, axis=1)
         axarr[0][idx].set_title(title)
-        plot_topomap(data, pos, axes=axarr[0][idx], show=False)
+        plot_topomap(this_data, pos, axes=axarr[0][idx], show=False)
 
-    fig.suptitle('Average over %.2fs - %.2fs' % (xmin, xmax), fontsize=15,
+    fig.suptitle('Average over %.2fms - %.2fms' % (xmin, xmax), fontsize=15,
                  y=0.1)
     tight_layout(pad=2.0, fig=fig)
     plt_show()
@@ -256,6 +259,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                         unit, units, scalings, hline, gfp, types, zorder, xlim,
                         ylim, times, bad_ch_idx, titles, ch_types_used,
                         selectable, True)
+        for ax in axes:
+            ax.set_xlabel('time (ms)')
 
     elif plot_type == 'image':
         for ax, this_type in zip(axes, ch_types_used):
@@ -274,7 +279,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
 
-    plt_show(show)
+    plt_show(show, block=True)
     fig.canvas.draw()  # for axes plots update axes.
     if set_tight_layout:
         tight_layout(fig=fig)
@@ -304,27 +309,28 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
     fig.canvas.mpl_connect('button_press_event',
                            partial(_butterfly_on_button_press,
                                    params=params))
-    for ax, t in zip(axes, ch_types_used):
+    for ax, this_type in zip(axes, ch_types_used):
         line_list = list()  # 'line_list' contains the lines for this axes
-        ch_unit = units[t]
-        this_scaling = 1. if scalings is None else scalings[t]
+        ch_unit = units[this_type]
+        this_scaling = 1. if scalings is None else scalings[this_type]
         if unit is False:
             this_scaling = 1.0
             ch_unit = 'NA'  # no unit
-        idx = list(picks[types == t])
+        idx = list(picks[types == this_type])
         idxs.append(idx)
         if len(idx) > 0:
             # Set amplitude scaling
             D = this_scaling * data[idx, :]
             gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
             if not gfp_only:
-                if spatial_colors:
+                if spatial_colors and len(idx) != 1:
                     chs = [info['chs'][i] for i in idx]
                     locs3d = np.array([ch['loc'][:3] for ch in chs])
                     x, y, z = locs3d.T
                     colors = _rgb(info, x, y, z)
-                    if t in ('meg', 'mag', 'grad', 'eeg'):
-                        layout = find_layout(info, ch_type=t, exclude=[])
+                    if this_type in ('meg', 'mag', 'grad', 'eeg'):
+                        layout = find_layout(info, ch_type=this_type,
+                                             exclude=[])
                     else:
                         layout = find_layout(info, None, exclude=[])
                     # drop channels that are not in the data
@@ -336,7 +342,8 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
                         warn('Could not find layout for all the channels. '
                              'Generating custom layout from channel '
                              'positions.')
-                        xy = _auto_topomap_coords(info, idx, True)
+                        xy = _auto_topomap_coords(info, idx,
+                                                  ignore_overlap=True)
                         layout = generate_2d_layout(
                             xy[idx], ch_names=list(used_nm), name='custom')
                         names = used_nm
@@ -379,8 +386,8 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
             if gfp:  # 'only' or boolean True
                 gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
                 this_gfp = np.sqrt((D * D).mean(axis=0))
-                this_ylim = ax.get_ylim() if (ylim is None or t not in
-                                              ylim.keys()) else ylim[t]
+                this_ylim = ax.get_ylim() if (ylim is None or this_type not in
+                                              ylim.keys()) else ylim[this_type]
                 if not gfp_only:
                     y_offset = this_ylim[0]
                 else:
@@ -412,11 +419,10 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
                 if xlim == 'tight':
                     xlim = (times[0], times[-1])
                 ax.set_xlim(xlim)
-            if ylim is not None and t in ylim:
-                ax.set_ylim(ylim[t])
-            ax.set_title(titles[t] + ' (%d channel%s)' % (
+            if ylim is not None and this_type in ylim:
+                ax.set_ylim(ylim[this_type])
+            ax.set_title(titles[this_type] + ' (%d channel%s)' % (
                          len(D), 's' if len(D) > 1 else ''))
-            ax.set_xlabel('time (ms)')
 
             if hline is not None:
                 for h in hline:
@@ -426,6 +432,8 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
     if selectable:
         import matplotlib.pyplot as plt
         for ax in axes:
+            if len(ax.lines) == 1:
+                continue
             text = ax.annotate('Loading...', xy=(0.01, 0.1),
                                xycoords='axes fraction', fontsize=20,
                                color='green', zorder=3)
@@ -435,8 +443,9 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
                                         data=data, times=times, text=text,
                                         pair_grads=pair_grads)
             blit = False if plt.get_backend() == 'MacOSX' else True
+            minspan = times[1] - times[0]  # Click does not draw an area.
             ax._span_selector = SpanSelector(
-                ax, callback_onselect, 'horizontal', minspan=10,
+                ax, callback_onselect, 'horizontal', minspan=minspan,
                 useblit=blit, rectprops=dict(alpha=0.5, facecolor='red'))
 
 

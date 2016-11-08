@@ -30,8 +30,8 @@ from ..channels.layout import _find_topomap_coords
 from ..io.meas_info import Info
 
 
-def _prepare_topo_plot(inst, ch_type, layout):
-    """Prepare topo plot."""
+def _prepare_topo_plot(inst, ch_type, layout, merge_grads=True):
+    """"Prepare topo plot."""
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
 
     if layout is None and ch_type is not 'eeg':
@@ -47,7 +47,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
     info._check_consistency()
 
     # special case for merging grad channels
-    if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
+    if (merge_grads and ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
             np.unique([ch['coil_type'] for ch in info['chs']])):
         from ..channels.layout import _pair_grad_sensors
         picks, pos = _pair_grad_sensors(info, layout)
@@ -573,6 +573,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
+
     Zi = _griddata(pos_x, pos_y, data, Xi, Yi)
 
     if outlines is None:
