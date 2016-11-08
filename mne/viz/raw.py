@@ -13,7 +13,7 @@ import numpy as np
 
 from ..externals.six import string_types
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
-                       _PICK_TYPES_KEYS, pick_channels)
+                       _PICK_TYPES_KEYS, pick_channels, channel_type)
 from ..io.proj import setup_proj
 from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
@@ -27,6 +27,8 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _change_channel_group)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
+from .evoked import _plot_butterfly
+from .. import create_info
 
 
 def _plot_update_raw_proj(params, bools):
@@ -516,9 +518,9 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 @verbose
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=2048, picks=None, ax=None, color='black',
-                 area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, average=True, show=True, n_jobs=1,
-                 line_alpha=None, spatial_colors=False, verbose=None):
+                 area_mode='std', area_alpha=0.33, n_overlap=0, dB=True,
+                 average=True, show=True, n_jobs=1, line_alpha=None,
+                 spatial_colors=False, verbose=None):
     """Plot the power spectral density across channels.
 
     Parameters
@@ -578,6 +580,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     fig : instance of matplotlib figure
         Figure with frequency spectra of the data channels.
     """
+    if average and spatial_colors:
+        raise ValueError('Average and spatial_colors cannot be enabled '
+                         'simultaneously.')
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
     if line_alpha is None:
@@ -632,28 +637,35 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                 ax.set_ylabel('Power Spectral Density (%s/Hz)' % unit)
             ax.set_title(title)
             ax.set_xlim(freqs[0], freqs[-1])
+
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
 
     if spatial_colors:
-        from evoked import _plot_butterfly
-        from mne.io.pick import channel_type
+        picks = np.concatenate(picks_list)
+
+        psd_list = np.concatenate(psd_list)
         types = np.array([channel_type(raw.info, idx) for idx in picks])
-        valid_channel_types = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg',
+        # Needed because the data does not match the info anymore.
+        info = create_info([raw.ch_names[p] for p in picks], raw.info['sfreq'],
+                           types)
+        info['chs'] = [raw.info['chs'][p] for p in picks]
+        valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
                                'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
                                'hbr', 'misc']
-        ch_types_used = []
-        for t in valid_channel_types:
-            if t in types:
-                ch_types_used.append(t)
+        ch_types_used = list()
+        for this_type in valid_channel_types:
+            if this_type in types:
+                ch_types_used.append(this_type)
         units = {t: 'Power Spectral Density (%s/Hz)' % unit for t in
                  ch_types_used}
         titles = {c: t for c, t in zip(ch_types_used, titles_list)}
-        _plot_butterfly(psds, raw.info, picks, fig, ax_list, spatial_colors,
+        picks = np.arange(len(psd_list))
+        _plot_butterfly(psd_list, info, picks, fig, ax_list, spatial_colors,
                         unit, units=units, scalings=None, hline=None,
                         gfp=False, types=types, zorder='std',
                         xlim=(freqs[0], freqs[-1]), ylim=None,
-                        times=range(psds.shape[1]), bad_ch_idx=[],
+                        times=freqs, bad_ch_idx=[],
                         titles=titles, ch_types_used=ch_types_used)
     plt_show(show)
     return fig
