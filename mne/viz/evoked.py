@@ -73,12 +73,13 @@ def _butterfly_on_button_press(event, params):
     params['need_draw'] = False
 
 
-def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
+def _butterfly_onselect(xmin, xmax, ch_types, info, data, times, text=None,
+                        pair_grads=True):
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
     ch_types = [type_ for type_ in ch_types if type_ in ('eeg', 'grad', 'mag')]
-    if ('grad' in ch_types and
-            len(_pair_grad_sensors(evoked.info, topomap_coords=False,
+    if (pair_grads, 'grad' in ch_types and
+            len(_pair_grad_sensors(info, topomap_coords=False,
                                    raise_error=False)) < 2):
         ch_types.remove('grad')
         if len(ch_types) == 0:
@@ -96,7 +97,6 @@ def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
         evoked_fig = plt.gcf()
         evoked_fig.canvas.draw()
         evoked_fig.canvas.flush_events()
-    times = evoked.times
     xmin *= 0.001
     minidx = np.abs(times - xmin).argmin()
     xmax *= 0.001
@@ -105,8 +105,8 @@ def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
                               figsize=(3 * len(ch_types), 3))
     for idx, ch_type in enumerate(ch_types):
         picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(
-            evoked, ch_type, layout=None)
-        data = evoked.data[picks, minidx:maxidx]
+            info, ch_type, layout=None)
+        data = data[picks, minidx:maxidx]
         if merge_grads:
             from ..channels.layout import _merge_grad_data
             data = _merge_grad_data(data)
@@ -250,25 +250,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         evoked.apply_proj()
 
     if plot_type == 'butterfly':
-        from matplotlib.widgets import SpanSelector
         import matplotlib.pyplot as plt
         times = evoked.times * 1e3  # time in milliseconds
         _plot_butterfly(evoked.data, info, picks, fig, axes, spatial_colors,
                         unit, units, scalings, hline, gfp, types, zorder, xlim,
-                        ylim, times, bad_ch_idx, titles, ch_types_used)
-        if selectable:
-            for ax in axes:
-                text = ax.annotate('Loading...', xy=(0.01, 0.1),
-                                   xycoords='axes fraction', fontsize=20,
-                                   color='green', zorder=3)
-                text.set_visible(False)
-                callback_onselect = partial(_butterfly_onselect,
-                                            ch_types=ch_types_used,
-                                            evoked=evoked, text=text)
-                blit = False if plt.get_backend() == 'MacOSX' else True
-                ax._span_selector = SpanSelector(
-                    ax, callback_onselect, 'horizontal', minspan=10,
-                    useblit=blit, rectprops=dict(alpha=0.5, facecolor='red'))
+                        ylim, times, bad_ch_idx, titles, ch_types_used,
+                        selectable, True)
+
     elif plot_type == 'image':
         for ax, this_type in zip(axes, ch_types_used):
             _plot_image(evoked.data, ax, this_type, picks, cmap, unit, units,
@@ -296,9 +284,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
 def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
                     scalings, hline, gfp, types, zorder, xlim, ylim, times,
-                    bad_ch_idx, titles, ch_types_used):
+                    bad_ch_idx, titles, ch_types_used, selectable, pair_grads):
     """Function for plotting data as butterfly plot."""
     from matplotlib import patheffects
+    from matplotlib.widgets import SpanSelector
     texts = list()
     idxs = list()
     lines = list()
@@ -434,6 +423,21 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
                     c = ('r' if not spatial_colors else 'grey')
                     ax.axhline(h, linestyle='--', linewidth=2, color=c)
         lines.append(line_list)
+    if selectable:
+        import matplotlib.pyplot as plt
+        for ax in axes:
+            text = ax.annotate('Loading...', xy=(0.01, 0.1),
+                               xycoords='axes fraction', fontsize=20,
+                               color='green', zorder=3)
+            text.set_visible(False)
+            callback_onselect = partial(_butterfly_onselect,
+                                        ch_types=ch_types_used, info=info,
+                                        data=data, times=times, text=text,
+                                        pair_grads=pair_grads)
+            blit = False if plt.get_backend() == 'MacOSX' else True
+            ax._span_selector = SpanSelector(
+                ax, callback_onselect, 'horizontal', minspan=10,
+                useblit=blit, rectprops=dict(alpha=0.5, facecolor='red'))
 
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,

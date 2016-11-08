@@ -15,6 +15,7 @@ from ..externals.six import string_types
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels, channel_type)
 from ..io.proj import setup_proj
+from ..io.meas_info import create_info
 from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
@@ -28,7 +29,6 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
 from .evoked import _plot_butterfly
-from .. import create_info
 
 
 def _plot_update_raw_proj(params, bools):
@@ -664,9 +664,10 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         _plot_butterfly(psd_list, info, picks, fig, ax_list, spatial_colors,
                         unit, units=units, scalings=None, hline=None,
                         gfp=False, types=types, zorder='std',
-                        xlim=(freqs[0], freqs[-1]), ylim=None,
-                        times=freqs, bad_ch_idx=[],
-                        titles=titles, ch_types_used=ch_types_used)
+                        xlim=(freqs[0], freqs[-1]), ylim=None, times=freqs,
+                        bad_ch_idx=[], titles=titles,
+                        ch_types_used=ch_types_used, selectable=True,
+                        pair_grads=False)
     plt_show(show)
     return fig
 
