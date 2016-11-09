@@ -222,6 +222,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         if this_type in types:
             ch_types_used.append(this_type)
 
+    fig = None
     if axes is None:
         fig, axes = plt.subplots(len(ch_types_used), 1)
         plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
