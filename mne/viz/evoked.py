@@ -77,8 +77,6 @@ def _butterfly_onselect(xmin, xmax, ch_types, info, data, times, text=None,
                         pair_grads=True):
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
-    print(data)
-
     ch_types = [type_ for type_ in ch_types if type_ in ('eeg', 'grad', 'mag')]
     if (pair_grads and 'grad' in ch_types and
             len(_pair_grad_sensors(info, topomap_coords=False,
@@ -219,32 +217,28 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     picks = np.array(picks)
 
     types = np.array([channel_type(info, idx) for idx in picks])
-    n_channel_types = 0
     ch_types_used = []
-    for t in valid_channel_types:
-        if t in types:
-            n_channel_types += 1
-            ch_types_used.append(t)
-
-    axes_init = axes  # remember if axes were given as input
-
-    fig = None
-    if axes is None:
-        fig, axes = plt.subplots(n_channel_types, 1)
+    for this_type in valid_channel_types:
+        if this_type in types:
+            ch_types_used.append(this_type)
 
     if isinstance(axes, plt.Axes):
         axes = [axes]
     elif isinstance(axes, np.ndarray):
         axes = list(axes)
 
-    if axes_init is not None:
+    if axes is None:
+        fig, axes = plt.subplots(len(ch_types_used), 1)
+        plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
+    else:
         fig = axes[0].get_figure()
+
     if window_title is not None:
         fig.canvas.set_window_title(window_title)
 
-    if not len(axes) == n_channel_types:
+    if len(axes) != len(ch_types_used):
         raise ValueError('Number of axes (%g) must match number of channel '
-                         'types (%d: %s)' % (len(axes), n_channel_types,
+                         'types (%d: %s)' % (len(axes), len(ch_types_used),
                                              sorted(ch_types_used)))
 
     # instead of projecting during each iteration let's use the mixin here.
@@ -253,7 +247,6 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         evoked.apply_proj()
 
     if plot_type == 'butterfly':
-        import matplotlib.pyplot as plt
         times = evoked.times * 1e3  # time in milliseconds
         _plot_butterfly(evoked.data, info, picks, fig, axes, spatial_colors,
                         unit, units, scalings, hline, gfp, types, zorder, xlim,
@@ -264,11 +257,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
     elif plot_type == 'image':
         for ax, this_type in zip(axes, ch_types_used):
-            _plot_image(evoked.data, ax, this_type, picks, cmap, unit, units,
-                        scalings, evoked.times, types, xlim, ylim, titles)
-
-    if axes_init is None:
-        plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
+            this_picks = list(picks[types == this_type])
+            _plot_image(evoked.data, ax, this_type, this_picks, cmap, unit,
+                        units, scalings, evoked.times, xlim, ylim, titles)
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
@@ -450,7 +441,7 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
 
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
-                types, xlim, ylim, titles):
+                xlim, ylim, titles):
     """Function for plotting images."""
     import matplotlib.pyplot as plt
     cmap = _setup_cmap(cmap)
@@ -459,10 +450,9 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
     if unit is False:
         this_scaling = 1.0
         ch_unit = 'NA'  # no unit
-    idx = list(picks[types == this_type])
-    if len(idx) > 0:
-        # Set amplitude scaling
-        data = this_scaling * data[idx, :]
+
+    # Set amplitude scaling
+    data = this_scaling * data[picks, :]
     im = ax.imshow(data, interpolation='nearest', origin='lower',
                    extent=[times[0], times[-1], 0, data.shape[0]],
                    aspect='auto', cmap=cmap[0])

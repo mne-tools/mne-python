@@ -625,10 +625,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                 ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
                                 color=color, alpha=area_alpha)
         else:
-            if spatial_colors:
-                psd_list.append(psds)
-            else:
-                ax.plot(freqs, psds.T, color=color, alpha=line_alpha)
+            psd_list.append(psds)
 
         if make_label:
             if ii == len(picks_list) - 1:
@@ -641,7 +638,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
 
-    if spatial_colors:
+    if not average:
         picks = np.concatenate(picks_list)
 
         psd_list = np.concatenate(psd_list)
