@@ -21,6 +21,7 @@ from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
 from mne.io.kit.constants import KIT, KIT_CONSTANTS, KIT_NY, KIT_UMD_2014
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.surface import _get_ico_surface
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
@@ -184,5 +185,25 @@ def test_hsp_elp():
     pts_elp_in_dev = apply_trans(linalg.inv(trans_elp), pts_elp)
     assert_array_almost_equal(pts_elp_in_dev, pts_txt_in_dev, decimal=5)
 
+
+def test_decimate():
+    """Test decimation of digitizer headshapes with too many points. """
+    # create fake head points from sphere, and scale to similar numbers as hsp
+    hsp = _get_ico_surface(5)['rr']
+    hsp /= 10
+
+    # read in raw data using spherical hsp, and extract new hsp
+    raw = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp)
+    hsp_dec = np.array([dig['r'] for dig in raw.info['dig']])
+
+    # with 10242 points and decimation at 5 mm, hsp_dec should be over 5000
+    assert len(hsp_dec) > 5000
+    # should have similar size, distance from center
+    dist = np.sqrt(np.sum((hsp - np.mean(hsp, axis=0))**2, axis=1))
+    dist_dec = np.sqrt(np.sum((hsp_dec - np.mean(hsp_dec, axis=0))**2, axis=1))
+    hsp_rad = np.mean(dist)
+    hsp_dec_rad = np.mean(dist_dec)
+
+    assert_array_almost_equal(hsp_rad, hsp_dec_rad, decimal=3)
 
 run_tests_if_main()
