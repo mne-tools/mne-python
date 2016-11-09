@@ -4,6 +4,7 @@ import inspect
 from ...utils import logger
 
 def _load_mne_locs():
+    """Load MNE locs stucture either from file (if it exists) if not recreate it"""
     #find input file
     FILE = inspect.getfile(inspect.currentframe())
     resource_dir = op.join(op.dirname(op.abspath(FILE)), 'resources')
@@ -19,7 +20,7 @@ def _load_mne_locs():
     else:
         logger.info('Converting Tristan coil file to mne loc file...')
         chanFname = op.join(resource_dir, 'Artemis123_ChannelMap.csv')
-        chans = _load_tristanCoilLocs(chanFname)
+        chans = _load_tristan_coil_locs(chanFname)
         #compute a dict of loc structs
         locs = {n:_compute_mne_loc(cinfo) for n,cinfo in chans.items()}
 
@@ -31,7 +32,7 @@ def _load_mne_locs():
                 fid.write('\n')
     return locs
 
-def _load_tristanCoilLocs(coilLocPath):
+def _load_tristan_coil_locs(coilLocPath):
     """Load the Coil locations from Tristan CAD drawings."""
     channelInfo = dict()
     with open(coilLocPath, 'r') as fid:
@@ -50,7 +51,6 @@ def _load_tristanCoilLocs(coilLocPath):
                 channelInfo[vals[0]]['outerCoil'] = np.zeros(3)
     return channelInfo
 
-# double(12)	The channel location. The first three numbers indicate the location [m], followed by the three unit vectors of the channel-specific coordinate frame.
 def _compute_mne_loc(coilLoc):
     """Convert a set of coils to an mne Struct
     Note input coil locations are in inches."""

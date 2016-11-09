@@ -654,7 +654,7 @@ def _sensor_shape(coil):
         circle *= coil['size'] / 2.  # radius of coil
         rrs = np.array([circle.real, circle.imag]).T
         tris = _make_tris_fan(n_pts + 1)
-    elif id_ in (4002, 5001, 5003, 5004, 4004, 4005, 6001, 7001):
+    elif id_ in (4002, 5001, 5003, 5004, 4004, 4005, 6001, 7001, 10001, 10002):
         # round coil 1st order (off-diagonal) gradiometer
         baseline = coil['base'] if id_ in (5004, 4005) else 0.
         n_pts = 16  # number of points for circle

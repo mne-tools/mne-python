@@ -14,6 +14,7 @@ from ..utils import _read_segments_file
 from ..base import _BaseRaw
 from ..meas_info import _empty_info
 from ..constants import FIFF
+from ...transforms import Transform
 
 def read_raw_artemis123(input_fname, preload=False, verbose=None):
     """Read Artemis123 data as raw object.
@@ -72,8 +73,8 @@ def _get_artemis123_info(fname):
       # 5 - filtering History
       sectionFlag = 0
       for line in fid:
-        #skip emptylines
-        if not line.strip() or ( sectionFlag ==2 and line.startswith('DAQ Map') ):
+        #skip emptylines or header line for channel info
+        if not line.strip() or ( sectionFlag==2 and line.startswith('DAQ Map') ):
           continue
 
         #set sectionFlag
@@ -132,11 +133,10 @@ def _get_artemis123_info(fname):
     locDict = _load_mne_locs()
     info['chs'] = []
     info['bads'] =[]
-    print header_info['Channels'][0].keys()
     for i,chan in enumerate(header_info['Channels']):
         #build chs struct
         t = {   'cal':float(chan['scaling']),'ch_name':chan['name'],'logno':i+1,'scanno':i+1,
-                'range':1.0,'unit_mul':0,'coord_frame':FIFF.FIFFV_COORD_DEVICE}
+                'range':1.0,'unit_mul':FIFF.FIFF_UNITM_NONE,'coord_frame':FIFF.FIFFV_COORD_DEVICE}
         try:
             t['loc'] = locDict[chan['name']]
         except:
@@ -145,11 +145,13 @@ def _get_artemis123_info(fname):
         if (chan['name'].startswith('MEG')):
             t['coil_type']  = FIFF.FIFFV_COIL_ARTEMIS123_GRAD
             t['kind']       = FIFF.FIFFV_MEG_CH
-            t['unit']       = FIFF.FIFF_UNIT_T_M
+            t['unit']       = FIFF.FIFF_UNIT_T ##TODO Shouldn't gradiometers be in T/m (Not sure if it matters)
+            t['unit_mul']   = FIFF.FIFF_UNITM_F 
         elif (chan['name'].startswith('REF')):
             t['coil_type']  = FIFF.FIFFV_COIL_ARTEMIS123_REF_MAG
             t['kind']       = FIFF.FIFFV_REF_MEG_CH
-            t['unit']       = FIFF.FIFF_UNIT_T
+            t['unit']       = FIFF.FIFF_UNIT_T ##TODO Shouldn't gradiometers be in T/m (Not sure if it matters)
+            t['unit_mul']   = FIFF.FIFF_UNITM_F 
         elif (chan['name'].startswith('AUX')):
             t['coil_type']  = FIFF.FIFFV_COIL_NONE
             t['kind']       = FIFF.FIFFV_MISC_CH
@@ -163,14 +165,20 @@ def _get_artemis123_info(fname):
             t['kind']       = FIFF.FIFFV_MISC_CH
             t['unit']       = FIFF.FIFF_UNIT_V
         else:
-            pass
-            #raise excpetion
+            raise ValueError('Channel does not match expected channel Types: "%s"' % chan['name'])
 
         info['chs'].append(t)
         if chan['FLL_ResetLock'] == 'TRUE':
             info['bads'].append(t['ch_name'])
+
     info['ch_names'] = [ ch['ch_name'] for ch in info['chs'] ]
     info['nchan'] = len(info['ch_names'])
+
+    #~ #maybe needed as default!
+    #~ mat = np.zeros((4,4));
+    #~ for i in range(4):
+        #~ mat[i,i] = 1
+    #~ info['dev_head_t'] = Transform( FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_HEAD, mat)
 
     return info, header_info
 
@@ -206,4 +214,4 @@ class RawArtemis123(_BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        _read_segments_file(self, data, idx, fi, start, stop, cals, mult)
+        _read_segments_file(self, data, idx, fi, start, stop, cals, mult,dtype='>f4')
