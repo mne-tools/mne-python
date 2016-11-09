@@ -125,7 +125,7 @@ epochs.plot(scalings='auto', block=True)
 
 duration = 0.5
 events = mne.make_fixed_length_events(raw, event_id, duration=duration)
-print events
+print(events)
 epochs = mne.Epochs(raw, events=events, tmin=tmin, tmax=tmax, verbose=True)
 epochs.plot(scalings='auto', block=True)
 
