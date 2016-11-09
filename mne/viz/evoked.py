@@ -217,20 +217,23 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     picks = np.array(picks)
 
     types = np.array([channel_type(info, idx) for idx in picks])
-    ch_types_used = []
+    ch_types_used = list()
     for this_type in valid_channel_types:
         if this_type in types:
             ch_types_used.append(this_type)
+
+    if axes is None:
+        fig, axes = plt.subplots(len(ch_types_used), 1)
+        plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
+        if isinstance(axes, plt.Axes):
+            axes = [axes]
 
     if isinstance(axes, plt.Axes):
         axes = [axes]
     elif isinstance(axes, np.ndarray):
         axes = list(axes)
 
-    if axes is None:
-        fig, axes = plt.subplots(len(ch_types_used), 1)
-        plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
-    else:
+    if fig is None:
         fig = axes[0].get_figure()
 
     if window_title is not None:
