@@ -4,20 +4,18 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import inspect
-from mne.utils import run_tests_if_main
 
+from mne.utils import run_tests_if_main
 from mne.io import read_raw_artemis123
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.datasets import testing
 
-FILE = inspect.getfile(inspect.currentframe())
-base_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
-fname = op.join(base_dir, 'test_nicolet_raw.data')
-
+artemis123_dir = op.join(testing.data_path(download=False), 'ARTEMIS123')
+shortNoHPI_fname = op.join(artemis123_dir,'Artemis_Data_2016-11-03-15h-58m_test.bin')
 
 def test_data():
     """Test reading raw Artemis123 files."""
-    _test_raw_reader(read_raw_artemis123, input_fname=fname)
+    _test_raw_reader(read_raw_artemis123, input_fname=shortNoHPI_fname)
     pass
 
 run_tests_if_main()
