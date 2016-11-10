@@ -664,7 +664,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                         xlim=(freqs[0], freqs[-1]), ylim=None, times=freqs,
                         bad_ch_idx=[], titles=titles,
                         ch_types_used=ch_types_used, selectable=True,
-                        pair_grads=False)
+                        pair_grads=False, psd=True)
     plt_show(show)
     return fig
 
