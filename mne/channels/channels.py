@@ -237,7 +237,8 @@ def _check_set(ch, projs, ch_type):
 class SetChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs."""
 
-    def set_eeg_reference(self, ref_channels=None):
+    @verbose
+    def set_eeg_reference(self, ref_channels=None, verbose=None):
         """Rereference EEG channels to new reference channel(s).
 
         If multiple reference channels are specified, they will be averaged. If
@@ -279,7 +280,8 @@ class SetChannelsMixin(object):
         mne.set_bipolar_reference
         """
         from ..io.reference import set_eeg_reference
-        return set_eeg_reference(self, ref_channels, copy=False)[0]
+        return set_eeg_reference(self, ref_channels, copy=False,
+                                 verbose=verbose)[0]
 
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.
