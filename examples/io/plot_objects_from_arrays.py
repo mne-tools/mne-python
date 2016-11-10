@@ -63,8 +63,8 @@ raw.plot(n_channels=4, scalings=scalings, title='Auto-scaled Data from arrays',
 ###############################################################################
 # EpochsArray
 
-# This is used to identify the events
-event_id = 1
+event_id = 1  # This is used to identify the events.
+# First column is for the sample number.
 events = np.array([[200, 0, event_id],
                    [1200, 0, event_id],
                    [2000, 0, event_id]])  # List of three arbitrary events
@@ -115,7 +115,8 @@ tmin = 0.
 tmax = 0.99  # inclusive tmax, 1 second epochs
 
 # create :class:`Epochs <mne.Epochs>` object
-epochs = mne.Epochs(raw, events=events, tmin=tmin, tmax=tmax, verbose=True)
+epochs = mne.Epochs(raw, events=events, event_id=event_id, tmin=tmin,
+                    tmax=tmax, baseline=None, verbose=True)
 epochs.plot(scalings='auto', block=True)
 
 ###############################################################################
@@ -126,7 +127,8 @@ epochs.plot(scalings='auto', block=True)
 duration = 0.5
 events = mne.make_fixed_length_events(raw, event_id, duration=duration)
 print(events)
-epochs = mne.Epochs(raw, events=events, tmin=tmin, tmax=tmax, verbose=True)
+epochs = mne.Epochs(raw, events=events, tmin=tmin, tmax=tmax, baseline=None,
+                    verbose=True)
 epochs.plot(scalings='auto', block=True)
 
 ###############################################################################
