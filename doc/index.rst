@@ -87,7 +87,7 @@
 
       .. raw:: html
 
-        <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Tweets by @mne_python</a>
+        <script type="text/javascript" src="https://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
 
   .. container:: col-md-4
 
@@ -101,23 +101,4 @@
 
     .. raw:: html
 
-      <h3>2016 Highlights</h3>
-
-    - October 2\ :sup:`nd`
-        Jean-Remi King wins a BioMag 2016
-        `data analysis competition <https://sites.google.com/site/hubertcecotti/home/biomag2016>`_
-        using MNE-Python.
-    - October 1\ :sup:`st`
-        MNE-Python poster at BioMag 2016, Seoul, South Korea.
-    - September 29\ :sup:`th`
-        `BRAIN grant <https://news.brown.edu/articles/2016/09/brain>`_
-        funded to use MNE to better understand multi-modal recordings.
-    - September 27\ :sup:`th`
-        `Version 0.13 <https://pypi.python.org/pypi/mne/0.13>`_ released
-    - March 10\ :sup:`th`
-        `Google Summer of Code 2016 project <https://summerofcode.withgoogle.com/projects/#5290867271139328>`_
-        funded to improve :ref:`api_decoding` module.
-
-    .. raw:: html
-
-      <script type="text/javascript" src="http://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
+      <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Updates by @mne_python</a>
