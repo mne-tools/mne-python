@@ -252,6 +252,9 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
     copy : bool
         Specifies whether the data will be copied (True) or modified in place
         (False). Defaults to True.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

@@ -254,6 +254,10 @@ class SetChannelsMixin(object):
             is specified, the data is assumed to already have a proper
             reference and MNE will not attempt any re-referencing of the data.
             Defaults to an average reference (None).
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -280,8 +284,7 @@ class SetChannelsMixin(object):
         mne.set_bipolar_reference
         """
         from ..io.reference import set_eeg_reference
-        return set_eeg_reference(self, ref_channels, copy=False,
-                                 verbose=verbose)[0]
+        return set_eeg_reference(self, ref_channels, copy=False)[0]
 
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.
