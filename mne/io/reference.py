@@ -12,7 +12,7 @@ from .pick import pick_types
 from .base import _BaseRaw
 from ..evoked import Evoked
 from ..epochs import _BaseEpochs
-from ..utils import logger, warn
+from ..utils import logger, warn, verbose
 
 
 def _apply_reference(inst, ref_from, ref_to=None):
@@ -231,7 +231,8 @@ def add_reference_channels(inst, ref_channels, copy=True):
     return inst
 
 
-def set_eeg_reference(inst, ref_channels=None, copy=True):
+@verbose
+def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
     """Rereference EEG channels to new reference channel(s).
 
     If multiple reference channels are specified, they will be averaged. If
@@ -251,6 +252,9 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
     copy : bool
         Specifies whether the data will be copied (True) or modified in place
         (False). Defaults to True.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

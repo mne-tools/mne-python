@@ -237,7 +237,8 @@ def _check_set(ch, projs, ch_type):
 class SetChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs."""
 
-    def set_eeg_reference(self, ref_channels=None):
+    @verbose
+    def set_eeg_reference(self, ref_channels=None, verbose=None):
         """Rereference EEG channels to new reference channel(s).
 
         If multiple reference channels are specified, they will be averaged. If
@@ -253,6 +254,10 @@ class SetChannelsMixin(object):
             is specified, the data is assumed to already have a proper
             reference and MNE will not attempt any re-referencing of the data.
             Defaults to an average reference (None).
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
