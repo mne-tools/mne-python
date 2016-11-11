@@ -56,7 +56,7 @@ install:
         if [ "${PYTHON}" == "3.5" ]; then
           conda install --yes --quiet $ENSURE_PACKAGES ipython;
         else
-          conda install --yes --quiet $ENSURE_PACKAGES ipython==1.1.0 statsmodels pandas$PANDAS;
+          conda install --yes --quiet $ENSURE_PACKAGES ipython statsmodels pandas$PANDAS;
           pip install nitime faulthandler;
           if [ "${NUMPY}" != "=1.8" ]; then
             conda install --yes --quiet $ENSURE_PACKAGES mayavi$MAYAVI;
