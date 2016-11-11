@@ -268,9 +268,9 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 @verbose
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                ch_type=None, source=('bem', 'head'), coord_frame='head',
-               meg_sensors='helmet', eeg_sensors='original', dig=False,
-               ref_meg=False, ecog_sensors=True, head=None, brain=None,
-               verbose=None):
+               meg_sensors=('helmet', 'sensors'), eeg_sensors='original',
+               dig=False, ref_meg=False, ecog_sensors=True, head=None,
+               brain=None, verbose=None):
     """Plot head and sensor alignment in 3D.
 
     Parameters
@@ -297,10 +297,9 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
     meg_sensors : bool | str | list
-        Can be "helmet" or "points" to show MEG sensors as points or as part
-        of the the helmet, respectively, or a combination of the two like
-        ``['helmet', 'sensors']`` (equivalent to True, default) or ``[]``
-        (equivalent to False).
+        Can be "helmet" (equivalent to False) or "sensors" to show the MEG
+        helmet or sensors, respectively, or a combination of the two like
+        ``['helmet', 'sensors']`` (equivalent to True, default) or ``[]``.
     eeg_sensors : bool | str | list
         Can be "original" (default; equivalent to True) or "projected" to
         show EEG sensors in their digitized locations or projected onto the
