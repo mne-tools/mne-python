@@ -287,7 +287,16 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
                  'has been left untouched.')
             return inst, None
         else:
-            inst.add_proj(make_eeg_average_ref_proj(inst.info, activate=False))
+            # Creating an average reference may fail. In this case, make sure
+            # that the custom_ref_applied flag is left untouched.
+            custom_ref_applied = inst.info['custom_ref_applied']
+            try:
+                inst.info['custom_ref_applied'] = False
+                inst.add_proj(make_eeg_average_ref_proj(inst.info, activate=False))
+            except Exception as e:
+                inst.info['custom_ref_applied'] = custom_ref_applied
+                raise e
+
             return inst, None
     else:
         logger.info('Applying a custom EEG reference.')
