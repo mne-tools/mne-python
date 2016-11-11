@@ -1109,45 +1109,40 @@ def _make_view(tabbed=False, split=False, scene_width=500):
     view : traits View
         View object for the CoregFrame.
     """
-    view_options = VGroup(Item('headview', style='custom'), 'view_options',
-                          show_border=True, show_labels=False, label='View')
+    view_options = VGroup(
+        Item('headview', style='custom'), 'view_options', show_border=True,
+        show_labels=False, label='View')
 
-    scene = VGroup(Item('scene', show_label=False,
-                        editor=SceneEditor(scene_class=MayaviScene),
-                        dock='vertical', width=scene_width),
-                   view_options)
+    scene = VGroup(
+        Item('scene', show_label=False,
+             editor=SceneEditor(scene_class=MayaviScene),
+             dock='vertical', width=scene_width), view_options)
 
-    data_panel = VGroup(VGroup(Item('subject_panel', style='custom'),
-                               label="MRI Subject", show_border=True,
-                               show_labels=False),
-                        VGroup(Item('lock_fiducials', style='custom',
-                                    editor=EnumEditor(cols=2,
-                                                      values={False: '2:Edit',
-                                                              True: '1:Lock'}),
-                                    enabled_when='fid_ok'),
-                               HGroup('hsp_always_visible',
-                                      Label("Always Show Head Shape Points"),
-                                      show_labels=False),
-                               Item('fid_panel', style='custom'),
-                               label="MRI Fiducials", show_border=True,
-                               show_labels=False),
-                        VGroup(Item('raw_src', style="custom"),
-                               HGroup('guess_mri_subject',
-                                      Label('Guess MRI Subject from File Name'),
-                                      show_labels=False),
-                               HGroup(Item('distance', show_label=True),
-                                      'omit_points', 'reset_omit_points',
-                                      show_labels=False),
-                               Item('omitted_info', style='readonly',
-                                    show_label=False),
-                               label='Head Shape Source (Raw/Epochs/Evoked)',
-                               show_border=True, show_labels=False),
-                        show_labels=False, label="Data Source")
+    data_panel = VGroup(
+        VGroup(Item('subject_panel', style='custom'), label="MRI Subject",
+               show_border=True, show_labels=False),
+        VGroup(Item('lock_fiducials', style='custom',
+                    editor=EnumEditor(cols=2, values={False: '2:Edit',
+                                                      True: '1:Lock'}),
+                    enabled_when='fid_ok'),
+               HGroup('hsp_always_visible',
+                      Label("Always Show Head Shape Points"),
+                      show_labels=False),
+               Item('fid_panel', style='custom'),
+               label="MRI Fiducials",  show_border=True, show_labels=False),
+        VGroup(Item('raw_src', style="custom"),
+               HGroup('guess_mri_subject',
+                      Label('Guess MRI Subject from File Name'),
+                      show_labels=False),
+               HGroup(Item('distance', show_label=True), 'omit_points',
+                      'reset_omit_points', show_labels=False),
+               Item('omitted_info', style='readonly', show_label=False),
+               label='Head Shape Source (Raw/Epochs/Evoked)', show_border=True,
+               show_labels=False), show_labels=False, label="Data Source")
 
-    coreg_panel = VGroup(Item('coreg_panel', style='custom'),
-                         label="Coregistration", show_border=True,
-                         show_labels=False,
-                         enabled_when="fid_panel.locked")
+    coreg_panel = VGroup(
+        Item('coreg_panel', style='custom'), label="Coregistration",
+        show_border=True, show_labels=False, enabled_when="fid_panel.locked")
 
     if split:
         main_layout = 'split'
