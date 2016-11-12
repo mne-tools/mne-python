@@ -675,6 +675,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Computes an average of all epochs in the instance, even if
         they correspond to different conditions. To average by condition,
         do ``epochs[condition].average()`` for each condition separately.
+
+        When picks is None and epochs contain only ICA channels, no channels
+        are selected, resulting in an error. This is because ICA channels
+        are not considered data channels (they are of misc type) and only data
+        channels are selected when picks is None.
         """
         return self._compute_mean_or_stderr(picks, 'ave')
 
@@ -697,6 +702,17 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _compute_mean_or_stderr(self, picks, mode='ave'):
         """Compute the mean or std over epochs and return Evoked."""
         _do_std = True if mode == 'stderr' else False
+
+        # if instance contains ICA channels they won't be included unless picks
+        # is specified
+        if picks is None:
+            check_ICA = [x.startswith('ICA') for x in self.ch_names]
+            if np.all(check_ICA):
+                raise TypeError('picks must be specified (i.e. not None) for '
+                                'ICA channel data')
+            elif np.any(check_ICA):
+                warn('ICA channels will not be included unless explicitly '
+                     'selected in picks')
 
         n_channels = len(self.ch_names)
         n_times = len(self.times)
