@@ -69,6 +69,7 @@ class CoregModel(HasPrivateTraits):
     hsp = Instance(InstSource, ())
 
     # parameters
+    guess_mri_subject = Bool(True)  # change MRI subject when dig file changes
     grow_hair = Float(label="Grow Hair [mm]", desc="Move the back of the MRI "
                       "head outwards to compensate for hair on the digitizer "
                       "head shape")
@@ -317,10 +318,11 @@ class CoregModel(HasPrivateTraits):
 
     @on_trait_change('raw_subject')
     def _on_raw_subject_change(self, subject):
-        if subject in self.mri.subject_source.subjects:
-            self.mri4.subject = subject
-        elif 'fsaverage' in self.mri.subject_source.subjects:
-            self.mri.subject = 'fsaverage'
+        if self.guess_mri_subject:
+            if subject in self.mri.subject_source.subjects:
+                self.mri.subject = subject
+            elif 'fsaverage' in self.mri.subject_source.subjects:
+                self.mri.subject = 'fsaverage'
 
     def omit_hsp_points(self, distance=0, reset=False):
         """Exclude head shape points that are far away from the MRI head.
@@ -1107,42 +1109,40 @@ def _make_view(tabbed=False, split=False, scene_width=500):
     view : traits View
         View object for the CoregFrame.
     """
-    view_options = VGroup(Item('headview', style='custom'), 'view_options',
-                          show_border=True, show_labels=False, label='View')
+    view_options = VGroup(
+        Item('headview', style='custom'), 'view_options', show_border=True,
+        show_labels=False, label='View')
 
-    scene = VGroup(Item('scene', show_label=False,
-                        editor=SceneEditor(scene_class=MayaviScene),
-                        dock='vertical', width=scene_width),
-                   view_options)
+    scene = VGroup(
+        Item('scene', show_label=False,
+             editor=SceneEditor(scene_class=MayaviScene),
+             dock='vertical', width=scene_width), view_options)
 
-    data_panel = VGroup(VGroup(Item('subject_panel', style='custom'),
-                               label="MRI Subject", show_border=True,
-                               show_labels=False),
-                        VGroup(Item('lock_fiducials', style='custom',
-                                    editor=EnumEditor(cols=2,
-                                                      values={False: '2:Edit',
-                                                              True: '1:Lock'}),
-                                    enabled_when='fid_ok'),
-                               HGroup('hsp_always_visible',
-                                      Label("Always Show Head Shape Points"),
-                                      show_labels=False),
-                               Item('fid_panel', style='custom'),
-                               label="MRI Fiducials", show_border=True,
-                               show_labels=False),
-                        VGroup(Item('raw_src', style="custom"),
-                               HGroup(Item('distance', show_label=True),
-                                      'omit_points', 'reset_omit_points',
-                                      show_labels=False),
-                               Item('omitted_info', style='readonly',
-                                    show_label=False),
-                               label='Head Shape Source (Raw/Epochs/Evoked)',
-                               show_border=True, show_labels=False),
-                        show_labels=False, label="Data Source")
+    data_panel = VGroup(
+        VGroup(Item('subject_panel', style='custom'), label="MRI Subject",
+               show_border=True, show_labels=False),
+        VGroup(Item('lock_fiducials', style='custom',
+                    editor=EnumEditor(cols=2, values={False: '2:Edit',
+                                                      True: '1:Lock'}),
+                    enabled_when='fid_ok'),
+               HGroup('hsp_always_visible',
+                      Label("Always Show Head Shape Points"),
+                      show_labels=False),
+               Item('fid_panel', style='custom'),
+               label="MRI Fiducials",  show_border=True, show_labels=False),
+        VGroup(Item('raw_src', style="custom"),
+               HGroup('guess_mri_subject',
+                      Label('Guess MRI Subject from File Name'),
+                      show_labels=False),
+               HGroup(Item('distance', show_label=True), 'omit_points',
+                      'reset_omit_points', show_labels=False),
+               Item('omitted_info', style='readonly', show_label=False),
+               label='Head Shape Source (Raw/Epochs/Evoked)', show_border=True,
+               show_labels=False), show_labels=False, label="Data Source")
 
-    coreg_panel = VGroup(Item('coreg_panel', style='custom'),
-                         label="Coregistration", show_border=True,
-                         show_labels=False,
-                         enabled_when="fid_panel.locked")
+    coreg_panel = VGroup(
+        Item('coreg_panel', style='custom'), label="Coregistration",
+        show_border=True, show_labels=False, enabled_when="fid_panel.locked")
 
     if split:
         main_layout = 'split'
@@ -1187,6 +1187,7 @@ class CoregFrame(HasTraits):
     fid_panel = Instance(FiducialsPanel)
     coreg_panel = Instance(CoregPanel)
     raw_src = DelegatesTo('model', 'hsp')
+    guess_mri_subject = DelegatesTo('model')
 
     # Omit Points
     distance = Float(5., label="Distance [mm]", desc="Maximal distance for "
@@ -1238,8 +1239,8 @@ class CoregFrame(HasTraits):
     def _headview_default(self):
         return HeadViewController(scene=self.scene, system='RAS')
 
-    def __init__(self, raw=None, subject=None,
-                 subjects_dir=None):  # noqa: D102
+    def __init__(self, raw=None, subject=None, subjects_dir=None,
+                 guess_mri_subject=None):  # noqa: D102
         super(CoregFrame, self).__init__()
 
         subjects_dir = get_subjects_dir(subjects_dir)
@@ -1248,6 +1249,9 @@ class CoregFrame(HasTraits):
 
         if subject is not None:
             self.model.mri.subject = subject
+
+        if guess_mri_subject is not None:
+            self.guess_mri_subject = guess_mri_subject
 
         if raw is not None:
             self.model.hsp.file = raw
