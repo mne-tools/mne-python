@@ -53,10 +53,8 @@ install:
         source ${MNE_ROOT}/bin/mne_setup_sh;
         conda install --yes --quiet $ENSURE_PACKAGES pandas$PANDAS scikit-learn$SKLEARN h5py pillow;
         pip install -q joblib nibabel;
-        if [ "${PYTHON}" == "3.5" ]; then
-          conda install --yes --quiet $ENSURE_PACKAGES ipython;
-        else
-          conda install --yes --quiet $ENSURE_PACKAGES ipython statsmodels pandas$PANDAS;
+        if [ "${PYTHON}" != "3.5" ]; then
+          conda install --yes --quiet $ENSURE_PACKAGES statsmodels pandas$PANDAS;
           pip install nitime faulthandler;
           if [ "${NUMPY}" != "=1.8" ]; then
             conda install --yes --quiet $ENSURE_PACKAGES mayavi$MAYAVI;
