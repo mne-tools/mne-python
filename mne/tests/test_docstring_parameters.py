@@ -153,9 +153,13 @@ def test_tabs():
                        '_kit2fiff_gui', '_marker_gui', '_viewer'))
 
     for importer, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
+        # because we don't import e.g. mne.tests w/mne
         if not ispkg and modname not in ignore:
             # mod = importlib.import_module(modname)  # not py26 compatible!
-            __import__(modname)  # because we don't import e.g. mne.tests w/mne
+            try:
+                __import__(modname)
+            except Exception:  # can't import properly
+                continue
             mod = sys.modules[modname]
             source = getsource(mod)
             assert_true('\t' not in source,

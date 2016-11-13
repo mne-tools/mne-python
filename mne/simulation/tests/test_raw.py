@@ -192,6 +192,7 @@ def test_simulate_raw_sphere():
                   blink=True)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_simulate_raw_bem():
     """Test simulation of raw data with BEM."""
