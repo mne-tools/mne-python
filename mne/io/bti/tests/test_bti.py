@@ -22,7 +22,7 @@ from mne.tests.common import assert_dig_allclose
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne import pick_types
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, slow_test
 from mne.transforms import Transform, combine_transforms, invert_transform
 from mne.externals import six
 
@@ -87,6 +87,7 @@ def test_transforms():
         assert_array_equal(dev_head_t_new['trans'], dev_head_t_old['trans'])
 
 
+@slow_test
 def test_raw():
     """Test bti conversion to Raw object."""
     for pdf, config, hs, exported in zip(pdf_fnames, config_fnames, hs_fnames,

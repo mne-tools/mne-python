@@ -480,6 +480,7 @@ def test_bads_reconstruction():
     assert_meg_snr(raw_sss, read_crop(sss_bad_recon_fname), 300.)
 
 
+@buggy_mkl_svd
 @requires_svd_convergence
 @testing.requires_testing_data
 def test_spatiotemporal_maxwell():
@@ -534,6 +535,7 @@ def test_spatiotemporal_maxwell():
                   st_correlation=0.)
 
 
+@slow_test
 @requires_svd_convergence
 @testing.requires_testing_data
 def test_spatiotemporal_only():

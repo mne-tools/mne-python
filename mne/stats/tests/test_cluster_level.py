@@ -187,6 +187,7 @@ def test_cluster_permutation_t_test():
             assert_array_equal(cluster_p_values_neg, cluster_p_values_neg_buff)
 
 
+@slow_test
 def test_cluster_permutation_with_connectivity():
     """Test cluster level permutations with connectivity matrix
     """
