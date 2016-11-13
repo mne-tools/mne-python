@@ -57,11 +57,6 @@
         >>> stc_fs = stc.morph('fsaverage')  # morph to fsaverage # doctest: +SKIP
         >>> stc_fs.plot()  # plot source data on fsaverage's brain # doctest: +SKIP
 
-    Join the `MNE mailing list`_ for analysis talk, hop on
-    `GitHub <https://github.com/mne-tools/mne-python/issues/>`_ for feature
-    requests and bug reports, or use `Gitter <https://gitter.im/mne-tools/mne-python>`_
-    to chat with devs.
-
     Direct financial support for MNE has been provided by the United States:
 
     - NIH National Institute of Biomedical Imaging and Bioengineering
@@ -90,6 +85,15 @@
         <script type="text/javascript" src="https://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
 
   .. container:: col-md-4
+
+    .. raw:: html
+
+     <h2>More help</h2>
+
+    - `MNE mailing list`_ for analysis talk
+    - `GitHub <https://github.com/mne-tools/mne-python/issues/>`_ for
+      requests and bug reports
+    - `Gitter <https://gitter.im/mne-tools/mne-python>`_ to chat with devs
 
     .. raw:: html
 
