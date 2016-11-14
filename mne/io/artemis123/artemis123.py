@@ -18,14 +18,12 @@ from ..constants import FIFF
 def read_raw_artemis123(input_fname, preload=False, verbose=None):
     """Read Artemis123 data as raw object.
 
-    Note: This reader takes data files with the extension ``.bin`` as an
-    input. The header file with the same file name stem and an extension
-    ``.`` is expected to be found in the same directory.
-
     Parameters
     ----------
     input_fname : str
-        Path to the data file.
+        Path to the data file (extension ``.bin``). The header file with the
+        same file name stem and an extension ``.txt`` is expected to be found
+        in the same directory.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -49,7 +47,7 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None):
 
 def _get_artemis123_info(fname):
     """Function for extracting info from artemis123 header files."""
-    fname = op.splitext(fname)[0]
+    fname = op.splitext(op.abspath(fname))[0]
     header = fname + '.txt'
 
     logger.info('Reading header...')
@@ -157,10 +155,7 @@ def _get_artemis123_info(fname):
              'logno': i + 1, 'scanno': i + 1, 'range': 1.0,
              'unit_mul': FIFF.FIFF_UNITM_NONE,
              'coord_frame': FIFF.FIFFV_COORD_DEVICE}
-        try:
-            t['loc'] = loc_dict[chan['name']]
-        except:
-            t['loc'] = np.zeros(12)
+        t['loc'] = loc_dict.get(chan['name'], np.zeros(12))
 
         if (chan['name'].startswith('MEG')):
             t['coil_type'] = FIFF.FIFFV_COIL_ARTEMIS123_GRAD
@@ -216,9 +211,7 @@ def _get_artemis123_info(fname):
 
     # reduce info['bads'] to unique set
     info['bads'] = list(set(info['bads']))
-    info['ch_names'] = [ch['ch_name'] for ch in info['chs']]
-    info['nchan'] = len(info['ch_names'])
-
+    info._update_redundant()
     return info, header_info
 
 
@@ -244,12 +237,11 @@ class RawArtemis123(_BaseRaw):
     """
 
     def __init__(self, input_fname, preload=False, verbose=None):  # noqa: D102
-        input_fname = op.abspath(input_fname)
         info, header_info = _get_artemis123_info(input_fname)
         last_samps = [header_info['num_samples'] - 1]
         super(RawArtemis123, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
-            last_samps=last_samps, orig_format='int',
+            last_samps=last_samps, orig_format=np.float32,
             verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
