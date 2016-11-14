@@ -646,7 +646,7 @@ def _sensor_shape(coil):
         size = 0.001 if id_ == 2000 else (coil['size'] / 2.)
         rrs = np.array([[-1., 1.], [1., 1.], [1., -1.], [-1., -1.]]) * size
         tris = _make_tris_fan(4)
-    elif id_ in (4001, 4003, 5002, 7002, 7003):
+    elif id_ in (4001, 4003, 5002, 7002, 7003, 10002):
         # round magnetometer
         n_pts = 15  # number of points for circle
         circle = np.exp(2j * np.pi * np.arange(n_pts) / float(n_pts))
@@ -654,7 +654,7 @@ def _sensor_shape(coil):
         circle *= coil['size'] / 2.  # radius of coil
         rrs = np.array([circle.real, circle.imag]).T
         tris = _make_tris_fan(n_pts + 1)
-    elif id_ in (4002, 5001, 5003, 5004, 4004, 4005, 6001, 7001, 10001, 10002):
+    elif id_ in (4002, 5001, 5003, 5004, 4004, 4005, 6001, 7001, 10001, 10003):
         # round coil 1st order (off-diagonal) gradiometer
         baseline = coil['base'] if id_ in (5004, 4005) else 0.
         n_pts = 16  # number of points for circle

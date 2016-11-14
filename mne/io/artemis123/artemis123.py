@@ -116,9 +116,6 @@ def _get_artemis123_info(fname):
                 elif sectionFlag == 5:
                     header_info['filter_hist'].append(line.strip())
 
-    ###########################################################################
-    print (header_info)
-
     # build mne info struct
     info = _empty_info(float(header_info['Rate Out']))
 
@@ -132,16 +129,28 @@ def _get_artemis123_info(fname):
     except Exception:
         meas_date = None
 
-    # TODO expand on the description as a comb. of header fields and comments
-    desc = None
+    # build description
+    desc = ''
+    for k in ['Project Name', 'Purpose', 'Notes', 'Subject ID']:
+        desc += '{} : {}\n'.format(k, header_info[k])
+    desc += 'Comments : {}'.format(header_info['comments'])
+
     info = _empty_info(float(header_info['Rate Out']))
     info.update({'filename': fname, 'meas_date': meas_date,
                 'description': desc, 'buffer_size_sec': 1.})
+
+    # Channel Names by type
+    ref_mag_names = ['REF_001', 'REF_002', 'REF_003',
+                     'REF_004', 'REF_005', 'REF_006']
+
+    ref_grad_names = ['REF_007', 'REF_008', 'REF_009',
+                      'REF_010', 'REF_011', 'REF_012']
 
     # load mne loc dictionary
     loc_dict = _load_mne_locs()
     info['chs'] = []
     info['bads'] = []
+
     for i, chan in enumerate(header_info['channels']):
         # build chs struct
         t = {'cal': float(chan['scaling']), 'ch_name': chan['name'],
@@ -159,32 +168,54 @@ def _get_artemis123_info(fname):
             # TODO Shouldn't gradiometers be in T/m (Not sure if it matters)
             t['unit'] = FIFF.FIFF_UNIT_T
             t['unit_mul'] = FIFF.FIFF_UNITM_F
-        elif (chan['name'].startswith('REF')):
+
+        # 3 axis referance magnetometers
+        elif (chan['name'] in ref_mag_names):
             t['coil_type'] = FIFF.FIFFV_COIL_ARTEMIS123_REF_MAG
+            t['kind'] = FIFF.FIFFV_REF_MEG_CH
+            t['unit'] = FIFF.FIFF_UNIT_T
+            t['unit_mul'] = FIFF.FIFF_UNITM_F
+
+        # reference gradiometers
+        elif (chan['name'] in ref_grad_names):
+            t['coil_type'] = FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD
             t['kind'] = FIFF.FIFFV_REF_MEG_CH
             # TODO Shouldn't gradiometers be in T/m (Not sure if it matters)
             t['unit'] = FIFF.FIFF_UNIT_T
             t['unit_mul'] = FIFF.FIFF_UNITM_F
+
+        # other reference channels are unplugged and should be ignored.
+        elif (chan['name'].startswith('REF')):
+            t['coil_type'] = FIFF.FIFFV_COIL_NONE
+            t['kind'] = FIFF.FIFFV_MISC_CH
+            t['unit'] = FIFF.FIFF_UNIT_V
+            info['bads'].append(t['ch_name'])
+
         elif (chan['name'].startswith('AUX')):
             t['coil_type'] = FIFF.FIFFV_COIL_NONE
             t['kind'] = FIFF.FIFFV_MISC_CH
             t['unit'] = FIFF.FIFF_UNIT_V
+
         elif (chan['name'].startswith('TRG')):
             t['coil_type'] = FIFF.FIFFV_COIL_NONE
             t['kind'] = FIFF.FIFFV_STIM_CH
             t['unit'] = FIFF.FIFF_UNIT_V
+
         elif (chan['name'].startswith('MIO')):
             t['coil_type'] = FIFF.FIFFV_COIL_NONE
             t['kind'] = FIFF.FIFFV_MISC_CH
             t['unit'] = FIFF.FIFF_UNIT_V
+
         else:
             raise ValueError('Channel does not match expected' +
                              ' channel Types:"%s"' % chan['name'])
 
         info['chs'].append(t)
-        if chan['FLL_ResetLock'] == 'TRUE':
+        if (chan['FLL_ResetLock'] == 'TRUE'):
             info['bads'].append(t['ch_name'])
 
+    # reduce info['bads'] to unique set
+    info['bads'] = list(set(info['bads']))
     info['ch_names'] = [ch['ch_name'] for ch in info['chs']]
     info['nchan'] = len(info['ch_names'])
 

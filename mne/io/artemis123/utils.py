@@ -47,9 +47,9 @@ def _load_tristan_coil_locs(coil_loc_path):
             channel_info[vals[0]] = dict()
             if (vals[6]):
                 channel_info[vals[0]]['inner_coil'] = \
-                    np.array(vals[1:4], np.float)
+                    np.array(vals[2:5], np.float)
                 channel_info[vals[0]]['outer_coil'] = \
-                    np.array(vals[4:7], np.float)
+                    np.array(vals[5:8], np.float)
             else:  # nothing supplied
                 channel_info[vals[0]]['inner_coil'] = np.zeros(3)
                 channel_info[vals[0]]['outer_coil'] = np.zeros(3)
