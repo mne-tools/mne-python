@@ -6,7 +6,6 @@ import numpy as np
 import os.path as op
 import datetime
 import calendar
-import inspect
 
 from .utils import _load_mne_locs
 from ...utils import logger
@@ -14,7 +13,7 @@ from ..utils import _read_segments_file
 from ..base import _BaseRaw
 from ..meas_info import _empty_info
 from ..constants import FIFF
-from ...transforms import Transform
+
 
 def read_raw_artemis123(input_fname, preload=False, verbose=None):
     """Read Artemis123 data as raw object.
@@ -55,131 +54,142 @@ def _get_artemis123_info(fname):
 
     logger.info('Reading header...')
 
-    #key names for artemis channel info...
-    chan_keys = ['name','scaling','FLL_Gain','FLL_Mode','FLL_HighPass','FLL_AutoReset','FLL_ResetLock']
+    # key names for artemis channel info...
+    chan_keys = ['name', 'scaling', 'FLL_Gain', 'FLL_Mode', 'FLL_HighPass',
+                 'FLL_AutoReset', 'FLL_ResetLock']
 
     header_info = dict()
-    header_info['filter_hist'] = [];
-    header_info['comments']   = ''
-    header_info['channels']    = [];
+    header_info['filter_hist'] = []
+    header_info['comments'] = ''
+    header_info['channels'] = []
 
     with open(header, 'r') as fid:
-      #section flag
-      # 0 - None
-      # 1 - main header
-      # 2 - channel header
-      # 3 - comments
-      # 4 - length
-      # 5 - filtering History
-      sectionFlag = 0
-      for line in fid:
-        #skip emptylines or header line for channel info
-        if not line.strip() or ( sectionFlag==2 and line.startswith('DAQ Map') ):
-          continue
+        # section flag
+        # 0 - None
+        # 1 - main header
+        # 2 - channel header
+        # 3 - comments
+        # 4 - length
+        # 5 - filtering History
+        sectionFlag = 0
+        for line in fid:
+            # skip emptylines or header line for channel info
+            if ((not line.strip()) or
+               (sectionFlag == 2 and line.startswith('DAQ Map'))):
+                continue
 
-        #set sectionFlag
-        if line.startswith('<end'):
-          sectionFlag = 0
-        elif line.startswith("<start main header>"):
-          sectionFlag = 1
-        elif line.startswith("<start per channel header>"):
-          sectionFlag = 2
-        elif line.startswith("<start comments>"):
-          sectionFlag = 3
-        elif line.startswith("<start length>"):
-          sectionFlag = 4
-        elif line.startswith("<start filtering history>"):
-          sectionFlag = 5
-        else:
-          #parse header info lines
-          if sectionFlag == 1: #part of main header - lines are name value pairs
-            values = line.strip().split('\t')
-            if len(values) == 1:
-              values.append('')
-            header_info[values[0]] = values[1]
-          elif sectionFlag == 2: #part of channel header - lines are Channel Info
-            values = line.strip().split('\t')
-            if len(values) != 7:
-              pass #error
-            tmp = dict()
-            for k,v in zip(chan_keys,values):
-              tmp[k] = v
-            header_info['channels'].append(tmp)
-          elif sectionFlag == 3:
-            header_info['comments'] = '%s%s'%(header_info['comments'],line.strip())
-          elif sectionFlag == 4:
-            header_info['num_samples'] = int(line.strip())
-          elif sectionFlag == 5:
-            header_info['filter_hist'].append(line.strip())
+            # set sectionFlag
+            if line.startswith('<end'):
+                sectionFlag = 0
+            elif line.startswith("<start main header>"):
+                sectionFlag = 1
+            elif line.startswith("<start per channel header>"):
+                sectionFlag = 2
+            elif line.startswith("<start comments>"):
+                sectionFlag = 3
+            elif line.startswith("<start length>"):
+                sectionFlag = 4
+            elif line.startswith("<start filtering history>"):
+                sectionFlag = 5
+            else:
+                # parse header info lines
+                # part of main header - lines are name value pairs
+                if sectionFlag == 1:
+                    values = line.strip().split('\t')
+                    if len(values) == 1:
+                        values.append('')
+                    header_info[values[0]] = values[1]
+                # part of channel header - lines are Channel Info
+                elif sectionFlag == 2:
+                    values = line.strip().split('\t')
+                    if len(values) != 7:
+                        pass  # error
+                    tmp = dict()
+                    for k, v in zip(chan_keys, values):
+                        tmp[k] = v
+                    header_info['channels'].append(tmp)
+                elif sectionFlag == 3:
+                    header_info['comments'] = '%s%s' \
+                        % (header_info['comments'], line.strip())
+                elif sectionFlag == 4:
+                    header_info['num_samples'] = int(line.strip())
+                elif sectionFlag == 5:
+                    header_info['filter_hist'].append(line.strip())
 
-    #########################################################################################
+    ###########################################################################
     print (header_info)
 
-    #build mne info struct
+    # build mne info struct
     info = _empty_info(float(header_info['Rate Out']))
 
-    #Attempt to get time/date from fname
-    #Artemis123 files saved from the scanner observe the following naming convention
-    # - 'Artemis_Data_YYYY-MM-DD-HHh-MMm_[chosen by user].bin'
+    # Attempt to get time/date from fname
+    # Artemis123 files saved from the scanner observe the following
+    # naming convention 'Artemis_Data_YYYY-MM-DD-HHh-MMm_[chosen by user].bin'
     try:
-        date = datetime.datetime.strptime(op.basename(fname).split('_')[2],'%Y-%m-%d-%Hh-%Mm')
+        date = datetime.datetime.strptime(
+            op.basename(fname).split('_')[2], '%Y-%m-%d-%Hh-%Mm')
         meas_date = calendar.timegm(date.utctimetuple())
     except Exception:
         meas_date = None
 
-    #TODO expand on the description as a combination of header fields and comments
+    # TODO expand on the description as a comb. of header fields and comments
     desc = None
     info = _empty_info(float(header_info['Rate Out']))
-    info.update({'filename': fname,
-                'meas_date': meas_date,
+    info.update({'filename': fname, 'meas_date': meas_date,
                 'description': desc, 'buffer_size_sec': 1.})
 
-    #load mne loc dictionary
+    # load mne loc dictionary
     loc_dict = _load_mne_locs()
     info['chs'] = []
-    info['bads'] =[]
-    for i,chan in enumerate(header_info['channels']):
-        #build chs struct
-        t = {   'cal':float(chan['scaling']),'ch_name':chan['name'],'logno':i+1,'scanno':i+1,
-                'range':1.0,'unit_mul':FIFF.FIFF_UNITM_NONE,'coord_frame':FIFF.FIFFV_COORD_DEVICE}
+    info['bads'] = []
+    for i, chan in enumerate(header_info['channels']):
+        # build chs struct
+        t = {'cal': float(chan['scaling']), 'ch_name': chan['name'],
+             'logno': i + 1, 'scanno': i + 1, 'range': 1.0,
+             'unit_mul': FIFF.FIFF_UNITM_NONE,
+             'coord_frame': FIFF.FIFFV_COORD_DEVICE}
         try:
             t['loc'] = loc_dict[chan['name']]
         except:
             t['loc'] = np.zeros(12)
 
         if (chan['name'].startswith('MEG')):
-            t['coil_type']  = FIFF.FIFFV_COIL_ARTEMIS123_GRAD
-            t['kind']       = FIFF.FIFFV_MEG_CH
-            t['unit']       = FIFF.FIFF_UNIT_T ##TODO Shouldn't gradiometers be in T/m (Not sure if it matters)
-            t['unit_mul']   = FIFF.FIFF_UNITM_F 
+            t['coil_type'] = FIFF.FIFFV_COIL_ARTEMIS123_GRAD
+            t['kind'] = FIFF.FIFFV_MEG_CH
+            # TODO Shouldn't gradiometers be in T/m (Not sure if it matters)
+            t['unit'] = FIFF.FIFF_UNIT_T
+            t['unit_mul'] = FIFF.FIFF_UNITM_F
         elif (chan['name'].startswith('REF')):
-            t['coil_type']  = FIFF.FIFFV_COIL_ARTEMIS123_REF_MAG
-            t['kind']       = FIFF.FIFFV_REF_MEG_CH
-            t['unit']       = FIFF.FIFF_UNIT_T ##TODO Shouldn't gradiometers be in T/m (Not sure if it matters)
-            t['unit_mul']   = FIFF.FIFF_UNITM_F 
+            t['coil_type'] = FIFF.FIFFV_COIL_ARTEMIS123_REF_MAG
+            t['kind'] = FIFF.FIFFV_REF_MEG_CH
+            # TODO Shouldn't gradiometers be in T/m (Not sure if it matters)
+            t['unit'] = FIFF.FIFF_UNIT_T
+            t['unit_mul'] = FIFF.FIFF_UNITM_F
         elif (chan['name'].startswith('AUX')):
-            t['coil_type']  = FIFF.FIFFV_COIL_NONE
-            t['kind']       = FIFF.FIFFV_MISC_CH
-            t['unit']       = FIFF.FIFF_UNIT_V
+            t['coil_type'] = FIFF.FIFFV_COIL_NONE
+            t['kind'] = FIFF.FIFFV_MISC_CH
+            t['unit'] = FIFF.FIFF_UNIT_V
         elif (chan['name'].startswith('TRG')):
-            t['coil_type']  = FIFF.FIFFV_COIL_NONE
-            t['kind']       = FIFF.FIFFV_STIM_CH
-            t['unit']       = FIFF.FIFF_UNIT_V
+            t['coil_type'] = FIFF.FIFFV_COIL_NONE
+            t['kind'] = FIFF.FIFFV_STIM_CH
+            t['unit'] = FIFF.FIFF_UNIT_V
         elif (chan['name'].startswith('MIO')):
-            t['coil_type']  = FIFF.FIFFV_COIL_NONE
-            t['kind']       = FIFF.FIFFV_MISC_CH
-            t['unit']       = FIFF.FIFF_UNIT_V
+            t['coil_type'] = FIFF.FIFFV_COIL_NONE
+            t['kind'] = FIFF.FIFFV_MISC_CH
+            t['unit'] = FIFF.FIFF_UNIT_V
         else:
-            raise ValueError('Channel does not match expected channel Types: "%s"' % chan['name'])
+            raise ValueError('Channel does not match expected' +
+                             ' channel Types:"%s"' % chan['name'])
 
         info['chs'].append(t)
         if chan['FLL_ResetLock'] == 'TRUE':
             info['bads'].append(t['ch_name'])
 
-    info['ch_names'] = [ ch['ch_name'] for ch in info['chs'] ]
+    info['ch_names'] = [ch['ch_name'] for ch in info['chs']]
     info['nchan'] = len(info['ch_names'])
 
     return info, header_info
+
 
 class RawArtemis123(_BaseRaw):
     """Raw object from Artemis123 file.
@@ -213,4 +223,5 @@ class RawArtemis123(_BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        _read_segments_file(self, data, idx, fi, start, stop, cals, mult,dtype='>f4')
+        _read_segments_file(self, data, idx, fi, start,
+                            stop, cals, mult, dtype='>f4')

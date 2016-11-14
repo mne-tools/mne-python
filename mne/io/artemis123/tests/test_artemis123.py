@@ -11,7 +11,9 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 
 artemis123_dir = op.join(testing.data_path(download=False), 'ARTEMIS123')
-short_no_HPI_fname = op.join(artemis123_dir,'Artemis_Data_2016-11-03-15h-58m_test.bin')
+short_no_HPI_fname = op.join(artemis123_dir,
+                             'Artemis_Data_2016-11-03-15h-58m_test.bin')
+
 
 def test_data():
     """Test reading raw Artemis123 files."""
