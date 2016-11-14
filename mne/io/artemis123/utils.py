@@ -1,15 +1,15 @@
 import numpy as np
 import os.path as op
-import inspect
 from ...utils import logger
+from ...transforms import rotation3d_align_z_axis
 
 
 def _load_mne_locs():
     """Load MNE locs stucture from file (if exists) or recreate it."""
     # find input file
-    FILE = inspect.getfile(inspect.currentframe())
-    resource_dir = op.join(op.dirname(op.abspath(FILE)), 'resources')
+    resource_dir = op.join(op.dirname(op.abspath(__file__)), 'resources')
     loc_fname = op.join(resource_dir, 'Artemis123_mneLoc.csv')
+
     if not op.exists(loc_fname):
         raise IOError('MNE locs file "%s" does not exist' % (loc_fname))
 
@@ -26,8 +26,7 @@ def _load_mne_locs():
 def _generate_mne_locs_file(output_fname):
     """Generate mne coil locs and save to supplied file."""
     logger.info('Converting Tristan coil file to mne loc file...')
-    FILE = inspect.getfile(inspect.currentframe())
-    resource_dir = op.join(op.dirname(op.abspath(FILE)), 'resources')
+    resource_dir = op.join(op.dirname(op.abspath(__file__)), 'resources')
     chan_fname = op.join(resource_dir, 'Artemis123_ChannelMap.csv')
     chans = _load_tristan_coil_locs(chan_fname)
 
@@ -46,7 +45,7 @@ def _load_tristan_coil_locs(coil_loc_path):
     """Load the Coil locations from Tristan CAD drawings."""
     channel_info = dict()
     with open(coil_loc_path, 'r') as fid:
-        # skip 2 lines
+        # skip 2 Header lines
         fid.readline()
         fid.readline()
         for line in fid:
@@ -79,29 +78,6 @@ def _compute_mne_loc(coil_loc):
 
     # figure out rotation
     z_axis = coil_loc['outer_coil'] - coil_loc['inner_coil']
-    R = _compute_rot(z_axis)
+    R = rotation3d_align_z_axis(z_axis)
     loc[3:13] = R.T.reshape(9)
     return loc
-
-
-def _compute_rot(z_dev):
-    """Compute a rotaion matrix to align channel z axis with device z axis.
-
-    Input z_dev does not need to be normalized
-    """
-    z_dev = z_dev / np.linalg.norm(z_dev)
-    f = 1 / (1 + z_dev[2])
-    R = np.zeros((3, 3))
-    R[0, 0] = 1 - 1 * f * z_dev[0] * z_dev[0]
-    R[0, 1] = -1 * f * z_dev[0] * z_dev[1]
-    R[0, 2] = z_dev[0]
-    R[1, 0] = -1 * f * z_dev[0] * z_dev[1]
-    R[1, 1] = 1 - 1 * f * z_dev[1] * z_dev[1]
-    R[1, 2] = z_dev[1]
-    R[2, 0] = -z_dev[0]
-    R[2, 1] = -z_dev[1]
-    R[2, 2] = 1 - f * (z_dev[0] * z_dev[0] + z_dev[1] * z_dev[1])
-
-    # this assertion could be stricter
-    assert(np.linalg.norm(z_dev - R.dot([0, 0, 1])) < 1e-6)
-    return R

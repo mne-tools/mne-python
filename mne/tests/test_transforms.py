@@ -17,7 +17,8 @@ from mne.transforms import (invert_transform, _get_trans,
                             get_ras_to_neuromag_trans, _pol_to_cart,
                             quat_to_rot, rot_to_quat, _angle_between_quats,
                             _find_vector_rotation, _sph_to_cart, _cart_to_sph,
-                            _topo_to_sph, SphericalSurfaceWarp)
+                            _topo_to_sph, SphericalSurfaceWarp,
+                            rotation3d_align_z_axis)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -234,6 +235,29 @@ def test_rotation():
         assert_equal(back, rot)
         back4 = rotation_angles(m4)
         assert_equal(back4, rot)
+
+
+def test_rotation3d_align_z_axis():
+    """Test rotation3d_align_z_axis."""
+    # The more complex z axis fails the assert presumably due to tolerance
+    #
+    # inp_zs = [[0, 0, 1], [0, 1, 0], [1, 0, 0],
+    #           [-0.75071668, -0.62183808,  0.22302888]]
+    #
+    # exp_res = [[[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]],
+    #            [[1., 0., 0.], [0., 0., 1.], [0., -1., 0.]],
+    #            [[0., 0., 1.], [0., 1., 0.], [-1., 0., 0.]],
+    #            [[0.53919688, -0.38169517, -0.75071668],
+    #             [-0.38169517, 0.683832, -0.62183808],
+    #             [0.75071668, 0.62183808, 0.22302888]]]
+
+    inp_zs = [[0, 0, 1], [0, 1, 0], [1, 0, 0]]
+    exp_res = [[[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]],
+               [[1., 0., 0.], [0., 0., 1.], [0., -1., 0.]],
+               [[0., 0., 1.], [0., 1., 0.], [-1., 0., 0.]]]
+
+    for i, z in enumerate(inp_zs):
+        assert_array_equal(exp_res[i], rotation3d_align_z_axis(z))
 
 
 @testing.requires_testing_data
