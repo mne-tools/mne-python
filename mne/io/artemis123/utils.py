@@ -10,28 +10,36 @@ def _load_mne_locs():
     FILE = inspect.getfile(inspect.currentframe())
     resource_dir = op.join(op.dirname(op.abspath(FILE)), 'resources')
     loc_fname = op.join(resource_dir, 'Artemis123_mneLoc.csv')
-    if op.exists(loc_fname):
-        logger.info('Loading precomputed mne loc file...')
-        locs = dict()
-        with open(loc_fname, 'r') as fid:
-            for line in fid:
-                vals = line.strip().split(',')
-                locs[vals[0]] = np.array(vals[1::], np.float)
+    if not op.exists(loc_fname):
+        raise IOError('MNE locs file "%s" does not exist' % (loc_fname))
 
-    else:
-        logger.info('Converting Tristan coil file to mne loc file...')
-        chan_fname = op.join(resource_dir, 'Artemis123_ChannelMap.csv')
-        chans = _load_tristan_coil_locs(chan_fname)
-        # compute a dict of loc structs
-        locs = {n: _compute_mne_loc(cinfo) for n, cinfo in chans.items()}
+    logger.info('Loading precomputed mne loc file...')
+    locs = dict()
+    with open(loc_fname, 'r') as fid:
+        for line in fid:
+            vals = line.strip().split(',')
+            locs[vals[0]] = np.array(vals[1::], np.float)
 
-        # write it out to loc_fname
-        with open(loc_fname, 'w') as fid:
-            for n in sorted(locs.keys()):
-                fid.write('%s,' % n)
-                fid.write(','.join(locs[n].astype(str)))
-                fid.write('\n')
     return locs
+
+
+def _generate_mne_locs_file(output_fname):
+    """Generate mne coil locs and save to supplied file."""
+    logger.info('Converting Tristan coil file to mne loc file...')
+    FILE = inspect.getfile(inspect.currentframe())
+    resource_dir = op.join(op.dirname(op.abspath(FILE)), 'resources')
+    chan_fname = op.join(resource_dir, 'Artemis123_ChannelMap.csv')
+    chans = _load_tristan_coil_locs(chan_fname)
+
+    # compute a dict of loc structs
+    locs = {n: _compute_mne_loc(cinfo) for n, cinfo in chans.items()}
+
+    # write it out to loc_fname
+    with open(output_fname, 'w') as fid:
+        for n in sorted(locs.keys()):
+            fid.write('%s,' % n)
+            fid.write(','.join(locs[n].astype(str)))
+            fid.write('\n')
 
 
 def _load_tristan_coil_locs(coil_loc_path):

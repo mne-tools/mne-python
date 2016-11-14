@@ -3,21 +3,41 @@
 #
 # License: BSD (3-clause)
 
+import os
 import os.path as op
+import tempfile
+import filecmp
+import inspect
 
 from mne.utils import run_tests_if_main
 from mne.io import read_raw_artemis123
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
+from mne.io.artemis123.utils import _generate_mne_locs_file
 
 artemis123_dir = op.join(testing.data_path(download=False), 'ARTEMIS123')
 short_no_HPI_fname = op.join(artemis123_dir,
                              'Artemis_Data_2016-11-03-15h-58m_test.bin')
 
 
+@testing.requires_testing_data
 def test_data():
     """Test reading raw Artemis123 files."""
     _test_raw_reader(read_raw_artemis123, input_fname=short_no_HPI_fname)
-    pass
+
+
+def test_utils():
+    """Test artemis123 utils."""
+    # make a tempfile
+    fd, path = tempfile.mkstemp()
+    FILE = inspect.getfile(inspect.currentframe())
+    res_dir = op.join(op.dirname(op.dirname(op.abspath(FILE))), 'resources')
+    loc_fname = op.join(res_dir, 'Artemis123_mneLoc.csv')
+    try:
+        _generate_mne_locs_file(path)
+        if not filecmp.cmp(path, loc_fname, shallow=False):
+            raise Exception("Test Failed")
+    finally:
+        os.remove(path)
 
 run_tests_if_main()
