@@ -5,7 +5,7 @@ from ...utils import logger
 
 
 def _load_mne_locs():
-    """Load MNE locs stucture from file (if exists) or recreate it"""
+    """Load MNE locs stucture from file (if exists) or recreate it."""
     # find input file
     FILE = inspect.getfile(inspect.currentframe())
     resource_dir = op.join(op.dirname(op.abspath(FILE)), 'resources')
@@ -57,8 +57,10 @@ def _load_tristan_coil_locs(coil_loc_path):
 
 
 def _compute_mne_loc(coil_loc):
-    """Convert a set of coils to an mne Struct
-    Note input coil locations are in inches."""
+    """Convert a set of coils to an mne Struct.
+
+    Note input coil locations are in inches.
+    """
     loc = np.zeros((12))
     if (np.linalg.norm(coil_loc['inner_coil']) == 0) and \
        (np.linalg.norm(coil_loc['outer_coil']) == 0):
@@ -75,10 +77,10 @@ def _compute_mne_loc(coil_loc):
 
 
 def _compute_rot(z_dev):
-    """Compute a rotaion matrix to align channel coord z axis (0,0,1)
-    with the supplied device coordinate z axis (z_dev)
-    Input z_dev does not need to be normalized"""
+    """Compute a rotaion matrix to align channel z axis with device z axis.
 
+    Input z_dev does not need to be normalized
+    """
     z_dev = z_dev / np.linalg.norm(z_dev)
     f = 1 / (1 + z_dev[2])
     R = np.zeros((3, 3))

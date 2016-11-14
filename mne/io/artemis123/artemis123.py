@@ -212,7 +212,7 @@ class RawArtemis123(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
 
-    def __init__(self, input_fname, preload=False, verbose=None):
+    def __init__(self, input_fname, preload=False, verbose=None):  # noqa: D102
         input_fname = op.abspath(input_fname)
         info, header_info = _get_artemis123_info(input_fname)
         last_samps = [header_info['num_samples'] - 1]
