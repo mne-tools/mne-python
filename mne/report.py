@@ -391,6 +391,7 @@ def _build_html_image(img, id, div_klass, img_klass, caption=None, show=True):
     html.append(u'</li>')
     return u'\n'.join(html)
 
+
 slider_template = HTMLTemplate(u"""
 <script>$("#{{slider_id}}").slider({
                        range: "min",
