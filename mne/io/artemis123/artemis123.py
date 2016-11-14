@@ -56,12 +56,12 @@ def _get_artemis123_info(fname):
     logger.info('Reading header...')
 
     #key names for artemis channel info...
-    chanKeys = ['name','scaling','FLL_Gain','FLL_Mode','FLL_HighPass','FLL_AutoReset','FLL_ResetLock']
+    chan_keys = ['name','scaling','FLL_Gain','FLL_Mode','FLL_HighPass','FLL_AutoReset','FLL_ResetLock']
 
     header_info = dict()
-    header_info['filterHist'] = [];
+    header_info['filter_hist'] = [];
     header_info['comments']   = ''
-    header_info['Channels']    = [];
+    header_info['channels']    = [];
 
     with open(header, 'r') as fid:
       #section flag
@@ -102,43 +102,48 @@ def _get_artemis123_info(fname):
             if len(values) != 7:
               pass #error
             tmp = dict()
-            for k,v in zip(chanKeys,values):
+            for k,v in zip(chan_keys,values):
               tmp[k] = v
-            header_info['Channels'].append(tmp)
+            header_info['channels'].append(tmp)
           elif sectionFlag == 3:
             header_info['comments'] = '%s%s'%(header_info['comments'],line.strip())
           elif sectionFlag == 4:
             header_info['num_samples'] = int(line.strip())
           elif sectionFlag == 5:
-            header_info['filterHist'].append(line.strip())
+            header_info['filter_hist'].append(line.strip())
 
     #########################################################################################
+    print (header_info)
+
     #build mne info struct
     info = _empty_info(float(header_info['Rate Out']))
 
     #Attempt to get time/date from fname
+    #Artemis123 files saved from the scanner observe the following naming convention
+    # - 'Artemis_Data_YYYY-MM-DD-HHh-MMm_[chosen by user].bin'
     try:
         date = datetime.datetime.strptime(op.basename(fname).split('_')[2],'%Y-%m-%d-%Hh-%Mm')
-    except:
-        date = None
+        meas_date = calendar.timegm(date.utctimetuple())
+    except Exception:
+        meas_date = None
 
-    #TODO expand on the descriptiong as a compbination of header fields and comments
+    #TODO expand on the description as a combination of header fields and comments
     desc = None
     info = _empty_info(float(header_info['Rate Out']))
     info.update({'filename': fname,
-                'meas_date': calendar.timegm(date.utctimetuple()),
-                'description': None, 'buffer_size_sec': 1.})
+                'meas_date': meas_date,
+                'description': desc, 'buffer_size_sec': 1.})
 
     #load mne loc dictionary
-    locDict = _load_mne_locs()
+    loc_dict = _load_mne_locs()
     info['chs'] = []
     info['bads'] =[]
-    for i,chan in enumerate(header_info['Channels']):
+    for i,chan in enumerate(header_info['channels']):
         #build chs struct
         t = {   'cal':float(chan['scaling']),'ch_name':chan['name'],'logno':i+1,'scanno':i+1,
                 'range':1.0,'unit_mul':FIFF.FIFF_UNITM_NONE,'coord_frame':FIFF.FIFFV_COORD_DEVICE}
         try:
-            t['loc'] = locDict[chan['name']]
+            t['loc'] = loc_dict[chan['name']]
         except:
             t['loc'] = np.zeros(12)
 
@@ -173,12 +178,6 @@ def _get_artemis123_info(fname):
 
     info['ch_names'] = [ ch['ch_name'] for ch in info['chs'] ]
     info['nchan'] = len(info['ch_names'])
-
-    #~ #maybe needed as default!
-    #~ mat = np.zeros((4,4));
-    #~ for i in range(4):
-        #~ mat[i,i] = 1
-    #~ info['dev_head_t'] = Transform( FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_HEAD, mat)
 
     return info, header_info
 
