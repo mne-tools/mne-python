@@ -570,7 +570,10 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Alpha for the PSD line. Can be None (default) to use 1.0 when
         ``average=True`` and 0.1 when ``average=False``.
     spatial_colors : bool
-        Whether to use spatial colors.
+        Whether to use spatial colors. With spatial colors it is possible to
+        click on a channel to identify it or paint an area (hold left mouse
+        button and drag) to plot a topomap. Only works when average=False.
+        Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -654,7 +657,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         for this_type in valid_channel_types:
             if this_type in types:
                 ch_types_used.append(this_type)
-        units = {t: 'Power Spectral Density (%s/Hz)' % unit for t in
+        units = {t: 'PSD (%s/Hz)' % unit for t in
                  ch_types_used}
         titles = {c: t for c, t in zip(ch_types_used, titles_list)}
         picks = np.arange(len(psd_list))
@@ -665,6 +668,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                         bad_ch_idx=[], titles=titles,
                         ch_types_used=ch_types_used, selectable=True,
                         pair_grads=False, psd=True)
+        tight_layout(fig=fig)
     plt_show(show)
     return fig
 
