@@ -101,7 +101,8 @@ def _get_artemis123_info(fname):
                 elif sectionFlag == 2:
                     values = line.strip().split('\t')
                     if len(values) != 7:
-                        pass  # error
+                        raise IOError('Error parsing line \n\t:%s\n' % line +
+                                      'from file %s' % header)
                     tmp = dict()
                     for k, v in zip(chan_keys, values):
                         tmp[k] = v
