@@ -3,12 +3,10 @@
 #
 # License: BSD (3-clause)
 
-import os
 import os.path as op
-import tempfile
 from numpy.testing import assert_equal
 
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_artemis123
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
@@ -28,14 +26,12 @@ def test_data():
 def test_utils():
     """Test artemis123 utils."""
     # make a tempfile
-    fd, path = tempfile.mkstemp()
-    try:
-        _generate_mne_locs_file(path)
-        installed_locs = _load_mne_locs()
-        generated_locs = _load_mne_locs(path)
-        assert_equal(installed_locs, generated_locs)
-    finally:
-        os.remove(path)
+    tmp_dir = _TempDir()
+    tmp_fname = op.join(tmp_dir, 'test_gen_mne_locs.csv')
+    _generate_mne_locs_file(tmp_fname)
+    installed_locs = _load_mne_locs()
+    generated_locs = _load_mne_locs(tmp_fname)
+    assert_equal(installed_locs, generated_locs)
 
 
 run_tests_if_main()

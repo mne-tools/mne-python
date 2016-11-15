@@ -136,7 +136,7 @@ def _get_artemis123_info(fname):
         meas_date = None
 
     # build subject info
-    subject_info = {'ID': header_info['Subject ID']}
+    subject_info = {'id': header_info['Subject ID']}
 
     # build description
     desc = ''

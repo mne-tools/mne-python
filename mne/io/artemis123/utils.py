@@ -5,7 +5,7 @@ from ...transforms import rotation3d_align_z_axis
 
 
 def _load_mne_locs(fname=None):
-    """Load MNE locs stucture from file (if exists) or recreate it."""
+    """Load MNE locs structure from file (if exists) or recreate it."""
     if (not fname):
         # find input file
         resource_dir = op.join(op.dirname(op.abspath(__file__)), 'resources')
