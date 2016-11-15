@@ -6,14 +6,13 @@
 import os
 import os.path as op
 import tempfile
-import filecmp
-import inspect
+from numpy.testing import assert_equal
 
 from mne.utils import run_tests_if_main
 from mne.io import read_raw_artemis123
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
-from mne.io.artemis123.utils import _generate_mne_locs_file
+from mne.io.artemis123.utils import _generate_mne_locs_file, _load_mne_locs
 
 artemis123_dir = op.join(testing.data_path(download=False), 'ARTEMIS123')
 short_no_HPI_fname = op.join(artemis123_dir,
@@ -30,14 +29,13 @@ def test_utils():
     """Test artemis123 utils."""
     # make a tempfile
     fd, path = tempfile.mkstemp()
-    FILE = inspect.getfile(inspect.currentframe())
-    res_dir = op.join(op.dirname(op.dirname(op.abspath(FILE))), 'resources')
-    loc_fname = op.join(res_dir, 'Artemis123_mneLoc.csv')
     try:
         _generate_mne_locs_file(path)
-        if not filecmp.cmp(path, loc_fname, shallow=False):
-            raise Exception("Test Failed")
+        installed_locs = _load_mne_locs()
+        generated_locs = _load_mne_locs(path)
+        assert_equal(installed_locs, generated_locs)
     finally:
         os.remove(path)
+
 
 run_tests_if_main()

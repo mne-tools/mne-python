@@ -4,18 +4,19 @@ from ...utils import logger
 from ...transforms import rotation3d_align_z_axis
 
 
-def _load_mne_locs():
+def _load_mne_locs(fname=None):
     """Load MNE locs stucture from file (if exists) or recreate it."""
-    # find input file
-    resource_dir = op.join(op.dirname(op.abspath(__file__)), 'resources')
-    loc_fname = op.join(resource_dir, 'Artemis123_mneLoc.csv')
+    if (not fname):
+        # find input file
+        resource_dir = op.join(op.dirname(op.abspath(__file__)), 'resources')
+        fname = op.join(resource_dir, 'Artemis123_mneLoc.csv')
 
-    if not op.exists(loc_fname):
-        raise IOError('MNE locs file "%s" does not exist' % (loc_fname))
+    if not op.exists(fname):
+        raise IOError('MNE locs file "%s" does not exist' % (fname))
 
-    logger.info('Loading precomputed mne loc file...')
+    logger.info('Loading mne loc file {}'.format(fname))
     locs = dict()
-    with open(loc_fname, 'r') as fid:
+    with open(fname, 'r') as fid:
         for line in fid:
             vals = line.strip().split(',')
             locs[vals[0]] = np.array(vals[1::], np.float)
@@ -33,7 +34,7 @@ def _generate_mne_locs_file(output_fname):
     # compute a dict of loc structs
     locs = {n: _compute_mne_loc(cinfo) for n, cinfo in chans.items()}
 
-    # write it out to loc_fname
+    # write it out to output_fname
     with open(output_fname, 'w') as fid:
         for n in sorted(locs.keys()):
             fid.write('%s,' % n)
