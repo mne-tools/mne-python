@@ -263,7 +263,7 @@ def rotation3d_align_z_axis(target_z_axis):
     """
     target_z_axis = target_z_axis / np.linalg.norm(target_z_axis)
     r = np.zeros((3, 3))
-    if ( (1 + target_z_axis[2]) < 1E-12 ):
+    if ((1 + target_z_axis[2]) < 1E-12):
         r[0, 0] = 1
         r[1, 1] = -1
         r[2, 2] = -1

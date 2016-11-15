@@ -4,7 +4,7 @@
 # License: BSD (3-clause)
 
 import os.path as op
-from numpy.testing import assert_equal
+from numpy.testing import assert_allclose, assert_equal
 
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_artemis123
@@ -31,7 +31,9 @@ def test_utils():
     _generate_mne_locs_file(tmp_fname)
     installed_locs = _load_mne_locs()
     generated_locs = _load_mne_locs(tmp_fname)
-    assert_equal(installed_locs, generated_locs)
+    assert_equal(set(installed_locs.keys()), set(generated_locs.keys()))
+    for key in installed_locs.keys():
+        assert_allclose(installed_locs[key], generated_locs[key], atol=1e-7)
 
 
 run_tests_if_main()
