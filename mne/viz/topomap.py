@@ -30,7 +30,7 @@ from ..channels.layout import _find_topomap_coords
 from ..io.meas_info import Info
 
 
-def _prepare_topo_plot(inst, ch_type, layout, merge_grads=True):
+def _prepare_topo_plot(inst, ch_type, layout):
     """"Prepare topo plot."""
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
 
@@ -47,7 +47,7 @@ def _prepare_topo_plot(inst, ch_type, layout, merge_grads=True):
     info._check_consistency()
 
     # special case for merging grad channels
-    if (merge_grads and ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
+    if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
             np.unique([ch['coil_type'] for ch in info['chs']])):
         from ..channels.layout import _pair_grad_sensors
         picks, pos = _pair_grad_sensors(info, layout)

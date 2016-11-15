@@ -74,11 +74,11 @@ def _butterfly_on_button_press(event, params):
 
 
 def _butterfly_onselect(xmin, xmax, ch_types, info, data, times, text=None,
-                        pair_grads=True, psd=False):
+                        psd=False):
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
     ch_types = [type_ for type_ in ch_types if type_ in ('eeg', 'grad', 'mag')]
-    if (pair_grads and 'grad' in ch_types and
+    if ('grad' in ch_types and
             len(_pair_grad_sensors(info, topomap_coords=False,
                                    raise_error=False)) < 2):
         ch_types.remove('grad')
@@ -102,22 +102,23 @@ def _butterfly_onselect(xmin, xmax, ch_types, info, data, times, text=None,
     maxidx = np.abs(times - xmax).argmin()
     fig, axarr = plt.subplots(1, len(ch_types), squeeze=False,
                               figsize=(3 * len(ch_types), 3))
+
     for idx, ch_type in enumerate(ch_types):
         if ch_type not in ('eeg', 'grad', 'mag'):
             continue
         picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(
-            info, ch_type, layout=None, merge_grads=pair_grads)
+            info, ch_type, layout=None)
         this_data = data[picks, minidx:maxidx]
         if merge_grads:
             from ..channels.layout import _merge_grad_data
-            this_data = _merge_grad_data(this_data)
-            title = '%s RMS' % ch_type
+            this_data = _merge_grad_data(this_data, psd=psd)
+            title = '%s mean' % ch_type if psd else '%s RMS' % ch_type
         else:
             title = ch_type
         this_data = np.average(this_data, axis=1)
         axarr[0][idx].set_title(title)
         vmin = min(this_data) if psd else None
-        vmax = max(this_data) if psd else None  # All negative for psd.
+        vmax = max(this_data) if psd else None  # All negative for dB psd.
         plot_topomap(this_data, pos, vmin=vmin, vmax=vmax, axes=axarr[0][idx],
                      show=False)
 
@@ -259,7 +260,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         _plot_butterfly(evoked.data, info, picks, fig, axes, spatial_colors,
                         unit, units, scalings, hline, gfp, types, zorder, xlim,
                         ylim, times, bad_ch_idx, titles, ch_types_used,
-                        selectable, True, False)
+                        selectable, False)
         for ax in axes:
             ax.set_xlabel('time (ms)')
 
@@ -288,8 +289,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
 def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
                     scalings, hline, gfp, types, zorder, xlim, ylim, times,
-                    bad_ch_idx, titles, ch_types_used, selectable, pair_grads,
-                    psd):
+                    bad_ch_idx, titles, ch_types_used, selectable, psd):
     """Function for plotting data as butterfly plot."""
     from matplotlib import patheffects
     from matplotlib.widgets import SpanSelector
@@ -356,7 +356,7 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
                     pos, outlines = _check_outlines(layout.pos[:, :2],
                                                     'skirt', None)
                     pos = pos[name_idx]
-                    loc = 1 if psd else 2
+                    loc = 1 if psd else 2  # Legend in top right for psd plot.
                     _plot_legend(pos, colors, ax, bads, outlines, loc)
                 else:
                     colors = ['k'] * len(idx)
@@ -442,7 +442,7 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
             callback_onselect = partial(_butterfly_onselect,
                                         ch_types=ch_types_used, info=info,
                                         data=data, times=times, text=text,
-                                        pair_grads=pair_grads, psd=psd)
+                                        psd=psd)
             blit = False if plt.get_backend() == 'MacOSX' else True
             minspan = times[1] - times[0]  # Click does not draw an area.
             ax._span_selector = SpanSelector(

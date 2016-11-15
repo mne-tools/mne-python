@@ -666,8 +666,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                         gfp=False, types=types, zorder='std',
                         xlim=(freqs[0], freqs[-1]), ylim=None, times=freqs,
                         bad_ch_idx=[], titles=titles,
-                        ch_types_used=ch_types_used, selectable=True,
-                        pair_grads=False, psd=True)
+                        ch_types_used=ch_types_used, selectable=True, psd=True)
         tight_layout(fig=fig)
     plt_show(show)
     return fig
