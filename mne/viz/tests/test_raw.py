@@ -158,11 +158,13 @@ def test_plot_raw_psd():
         raw.plot_psd()
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
-    raw.plot_psd(tmax=np.inf, picks=picks, area_mode='range', average=False)
+    raw.plot_psd(tmax=np.inf, picks=picks, area_mode='range', average=False,
+                 spatial_colors=True)
     plt.close('all')
     ax = plt.axes()
     # if ax is supplied:
     assert_raises(ValueError, raw.plot_psd, ax=ax)
+    assert_raises(ValueError, raw.plot_psd, average=True, spatial_colors=True)
     raw.plot_psd(tmax=np.inf, picks=picks, ax=ax)
     plt.close('all')
     ax = plt.axes()
