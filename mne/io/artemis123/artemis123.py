@@ -8,7 +8,7 @@ import datetime
 import calendar
 
 from .utils import _load_mne_locs
-from ...utils import logger
+from ...utils import logger, warn
 from ..utils import _read_segments_file
 from ..base import _BaseRaw
 from ..meas_info import _empty_info
@@ -115,6 +115,13 @@ def _get_artemis123_info(fname):
                 elif sectionFlag == 5:
                     header_info['filter_hist'].append(line.strip())
 
+    for k in ['Temporal Filter Active?', 'Decimation Active?',
+              'Spatial Filter Active?']:
+        if(header_info[k] != 'FALSE'):
+            warn('%s - set to but is not supported' % k)
+    if(header_info['filter_hist']):
+        warn('Non-Empty Filter histroy found, BUT is not supported' % k)
+
     # build mne info struct
     info = _empty_info(float(header_info['Rate Out']))
 
@@ -128,15 +135,20 @@ def _get_artemis123_info(fname):
     except Exception:
         meas_date = None
 
+    # build subject info
+    subject_info = {'ID': header_info['Subject ID']}
+
     # build description
     desc = ''
-    for k in ['Project Name', 'Purpose', 'Notes', 'Subject ID']:
+    for k in ['Purpose', 'Notes']:
         desc += '{} : {}\n'.format(k, header_info[k])
     desc += 'Comments : {}'.format(header_info['comments'])
 
     info = _empty_info(float(header_info['Rate Out']))
     info.update({'filename': fname, 'meas_date': meas_date,
-                'description': desc, 'buffer_size_sec': 1.})
+                 'description': desc, 'buffer_size_sec': 1.,
+                 'subject_info': subject_info,
+                 'proj_name': header_info['Project Name']})
 
     # Channel Names by type
     ref_mag_names = ['REF_001', 'REF_002', 'REF_003',
