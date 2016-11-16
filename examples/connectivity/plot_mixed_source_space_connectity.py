@@ -14,7 +14,6 @@ is ordered based on the locations of the regions.
 
 import os.path as op
 import numpy as np
-import matplotlib.pyplot as plt
 import mne
 
 from mne.datasets import sample
@@ -181,5 +180,6 @@ plot_connectivity_circle(conmat, label_names, n_lines=300,
 
 # Uncomment the following line to save the figure
 '''
+import matplotlib.pyplot as plt
 plt.savefig('circle.png', facecolor='black')
 '''
