@@ -1,7 +1,7 @@
 """
-=========================================================================
+===============================================================================
 Compute mixed source space connectivity and visualize it using a circular graph
-=========================================================================
+===============================================================================
 
 This example computes the all-to-all connectivity between 75 regions in
 a mixed source space based on dSPM inverse solutions and a FreeSurfer cortical
@@ -27,16 +27,16 @@ from mne.viz import circular_layout, plot_connectivity_circle
 
 # Set dir
 data_path = sample.data_path()
-sbj_id = 'sample'
-data_dir = op.join(data_path, 'MEG', sbj_id)
-sbj_dir = op.join(data_path, 'subjects')
-bem_dir = op.join(sbj_dir, sbj_id, 'bem')
+subject = 'sample'
+data_dir = op.join(data_path, 'MEG', subject)
+subjects_dir = op.join(data_path, 'subjects')
+bem_dir = op.join(subjects_dir, subject, 'bem')
 
 # Set file names
-fname_aseg = op.join(sbj_dir, sbj_id, 'mri', 'aseg.mgz')
+fname_aseg = op.join(subjects_dir, subject, 'mri', 'aseg.mgz')
 
-fname_model = op.join(bem_dir, '%s-5120-bem.fif' % sbj_id)
-fname_bem = op.join(bem_dir, '%s-5120-bem-sol.fif' % sbj_id)
+fname_model = op.join(bem_dir, '%s-5120-bem.fif' % subject)
+fname_bem = op.join(bem_dir, '%s-5120-bem-sol.fif' % subject)
 
 fname_raw = data_dir + '/sample_audvis_filt-0-40_raw.fif'
 fname_trans = data_dir + '/sample_audvis_raw-trans.fif'
@@ -54,16 +54,16 @@ labels_vol = ['Left-Amygdala',
               'Right-Cerebellum-Cortex']
 
 # Setup a surface-based source space
-src = setup_source_space(sbj_id, subjects_dir=sbj_dir,
+src = setup_source_space(subject, subjects_dir=subjects_dir,
                          spacing='oct6', add_dist=False, overwrite=True)
 
 # Setup a volume source space
 # set pos=7.0 for speed issue
-vol_src = setup_volume_source_space(sbj_id, mri=fname_aseg,
+vol_src = setup_volume_source_space(subject, mri=fname_aseg,
                                     pos=7.0,
                                     bem=fname_model,
                                     volume_label=labels_vol,
-                                    subjects_dir=sbj_dir)
+                                    subjects_dir=subjects_dir)
 # Generate the mixed source space
 src += vol_src
 
@@ -108,8 +108,8 @@ stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, inv_method,
                             pick_ori=None, return_generator=True)
 
 # Get labels for FreeSurfer 'aparc' cortical parcellation with 34 labels/hemi
-labels_parc = mne.read_labels_from_annot(sbj_id, parc=parc,
-                                         subjects_dir=sbj_dir)
+labels_parc = mne.read_labels_from_annot(subject, parc=parc,
+                                         subjects_dir=subjects_dir)
 
 # Average the source estimates within each label of the cortical parcellation
 # and each sub structures contained in the src space
@@ -130,7 +130,7 @@ con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=1)
 
 # We create a list of Label containing also the sub structures
-labels_aseg = mne.get_volume_labels_from_src(src, sbj_dir, sbj_id)
+labels_aseg = mne.get_volume_labels_from_src(src, subject, subjects_dir)
 labels = labels_parc + labels_aseg
 
 # read colors
@@ -165,11 +165,10 @@ rh_labels = [label[:-2] + 'rh' for label in lh_labels
 
 # Save the plot order
 node_order = list()
-node_order.extend(lh_labels[::-1])  # reverse the order
-node_order.extend(rh_labels)
+node_order = lh_labels[::-1] + rh_labels
 
 node_angles = circular_layout(label_names, node_order, start_pos=90,
-                              group_boundaries=[0, len(label_names) / 2])
+                              group_boundaries=[0, len(label_names) // 2])
 
 
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
@@ -179,4 +178,8 @@ plot_connectivity_circle(conmat, label_names, n_lines=300,
                          node_angles=node_angles, node_colors=node_colors,
                          title='All-to-All Connectivity left-Auditory '
                                'Condition (PLI)')
+
+# Uncomment the following line to save the figure
+'''
 plt.savefig('circle.png', facecolor='black')
+'''
