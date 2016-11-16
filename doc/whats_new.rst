@@ -267,6 +267,8 @@ API
 
     - :func:`mne.preprocessing.create_ecg_epochs` now includes all the channels when ``picks=None`` by `Jaakko Leppakangas`_
 
+    - :func:`mne.io.set_eeg_reference` now allows moving from a custom to an average EEG reference by `Marijn van Vliet`_
+
 Authors
 ~~~~~~~
 
