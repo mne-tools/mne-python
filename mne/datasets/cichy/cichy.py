@@ -51,6 +51,7 @@ data_path.__doc__ = _data_path_doc.format(name='cichy',
 
 
 def get_version():
+    """Get dataset version."""
     return _get_version('cichy')
 
 get_version.__doc__ = _version_doc.format(name='cichy')
