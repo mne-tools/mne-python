@@ -1351,7 +1351,7 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
 def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
                               sphere=(0.0, 0.0, 0.0, 90.0), bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
-                              overwrite=False, subjects_dir=None,
+                              overwrite=None, subjects_dir=None,
                               volume_label=None, add_interpolator=True,
                               verbose=None):
     """Setup a volume source space with grid spacing or discrete source space.
@@ -1392,7 +1392,8 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         Exclude points closer than this distance (mm) from the center of mass
         of the bounding surface.
     overwrite: bool
-        If True, overwrite output file (if it exists).
+        Deprecated and will be removed in 0.15. Use
+        :func:`mne.write_source_spaces` instead.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     volume_label : str | None
@@ -1426,12 +1427,17 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     """
     subjects_dir = get_subjects_dir(subjects_dir)
 
+    if overwrite is not None:
+        raise ValueError("Parameter 'overwrite' is deprecated. Use "
+                         "mne.write_source_spaces instead.")
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '
                          'specified')
     if mri is not None:
         if not op.isfile(mri):
-            raise IOError('mri file "%s" not found' % mri)
+            mri = op.join(subjects_dir, subject, mri)
+            if not op.isfile(mri):
+                raise IOError('mri file "%s" not found' % mri)
         if isinstance(pos, dict):
             raise ValueError('Cannot create interpolation matrix for '
                              'discrete source space, mri must be None if '
