@@ -292,7 +292,8 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
             custom_ref_applied = inst.info['custom_ref_applied']
             try:
                 inst.info['custom_ref_applied'] = False
-                inst.add_proj(make_eeg_average_ref_proj(inst.info, activate=False))
+                inst.add_proj(make_eeg_average_ref_proj(inst.info,
+                              activate=False))
             except Exception as e:
                 inst.info['custom_ref_applied'] = custom_ref_applied
                 raise e
