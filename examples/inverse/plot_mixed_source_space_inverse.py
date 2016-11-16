@@ -24,17 +24,17 @@ from nilearn import plotting
 
 # Set dir
 data_path = sample.data_path()
-sbj_id = 'sample'
-data_dir = op.join(data_path, 'MEG', sbj_id)
-sbj_dir = op.join(data_path, 'subjects')
-bem_dir = op.join(sbj_dir, sbj_id, 'bem')
+subject = 'sample'
+data_dir = op.join(data_path, 'MEG', subject)
+subjects_dir = op.join(data_path, 'subjects')
+bem_dir = op.join(subjects_dir, subject, 'bem')
 
 # Set file names
-fname_mixed_src = op.join(bem_dir, '%s-oct-6-mixed-src.fif' % sbj_id)
-fname_aseg = op.join(sbj_dir, sbj_id, 'mri', 'aseg.mgz')
+fname_mixed_src = op.join(bem_dir, '%s-oct-6-mixed-src.fif' % subject)
+fname_aseg = op.join(subjects_dir, subject, 'mri', 'aseg.mgz')
 
-fname_model = op.join(bem_dir, '%s-5120-bem.fif' % sbj_id)
-fname_bem = op.join(bem_dir, '%s-5120-bem-sol.fif' % sbj_id)
+fname_model = op.join(bem_dir, '%s-5120-bem.fif' % subject)
+fname_bem = op.join(bem_dir, '%s-5120-bem-sol.fif' % subject)
 
 fname_evoked = data_dir + '/sample_audvis-ave.fif'
 fname_trans = data_dir + '/sample_audvis_raw-trans.fif'
@@ -52,7 +52,7 @@ labels_vol = ['Left-Amygdala',
               'Right-Cerebellum-Cortex']
 
 # Setup a surface-based source space
-src = setup_source_space(sbj_id, subjects_dir=sbj_dir,
+src = setup_source_space(subject, subjects_dir=subjects_dir,
                          spacing='oct6', add_dist=False, overwrite=True)
 
 # We create a mixed src space adding to the surface src space the volume
@@ -61,11 +61,11 @@ src = setup_source_space(sbj_id, subjects_dir=sbj_dir,
 
 # Setup a volume source space
 # set pos=7.0 for speed issue
-vol_src = setup_volume_source_space(sbj_id, mri=fname_aseg,
+vol_src = setup_volume_source_space(subject, mri=fname_aseg,
                                     pos=7.0,
                                     bem=fname_model,
                                     volume_label=labels_vol,
-                                    subjects_dir=sbj_dir)
+                                    subjects_dir=subjects_dir)
 # Generate the mixed source space
 src += vol_src
 
@@ -76,7 +76,7 @@ print('the src space contains %d spaces and %d points' % (len(src), n))
 write_source_spaces(fname_mixed_src, src)
 
 # Export source positions to nift file
-nii_fname = op.join(bem_dir, '%s-mixed-src.nii' % sbj_id)
+nii_fname = op.join(bem_dir, '%s-mixed-src.nii' % subject)
 src.export_volume(nii_fname, mri_resolution=True)
 
 plotting.plot_img(nii_fname)
@@ -119,8 +119,8 @@ stcs = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
                      pick_ori=None)
 
 # Get labels for FreeSurfer 'aparc' cortical parcellation with 34 labels/hemi
-labels_parc = mne.read_labels_from_annot(sbj_id, parc=parc,
-                                         subjects_dir=sbj_dir)
+labels_parc = mne.read_labels_from_annot(subject, parc=parc,
+                                         subjects_dir=subjects_dir)
 
 # Average the source estimates within each label of the cortical parcellation
 # and each sub structure contained in the src space
