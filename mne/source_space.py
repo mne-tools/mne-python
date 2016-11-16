@@ -1435,7 +1435,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
                          'specified')
     if mri is not None:
         if not op.isfile(mri):
-            mri = op.join(subjects_dir, subject, mri)
+            mri = op.join(subjects_dir, subject, 'mri', mri)
             if not op.isfile(mri):
                 raise IOError('mri file "%s" not found' % mri)
         if isinstance(pos, dict):
