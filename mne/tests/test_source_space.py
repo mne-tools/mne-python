@@ -457,8 +457,10 @@ def test_get_volume_label_names():
     """Test reading volume label names
     """
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names, _ = get_volume_labels_from_aseg(aseg_fname)
+    label_names, label_colors = get_volume_labels_from_aseg(aseg_fname)
     assert_equal(label_names.count('Brain-Stem'), 1)
+
+    assert_equal(len(label_colors), len(label_names))
 
 
 @testing.requires_testing_data
@@ -469,7 +471,7 @@ def test_source_space_from_label():
     """
     tempdir = _TempDir()
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names, _ = get_volume_labels_from_aseg(aseg_fname)
+    label_names = get_volume_labels_from_aseg(aseg_fname)
     volume_label = label_names[int(np.random.rand() * len(label_names))]
 
     # Test pos as dict
@@ -519,8 +521,8 @@ def test_read_volume_from_src():
     # Generate the mixed source space
     src += vol_src
 
-    label_names, _ = get_volume_labels_from_aseg(aseg_fname)
-    volume_src = get_volume_labels_from_src(src, subjects_dir, 'sample')
+    label_names = get_volume_labels_from_aseg(aseg_fname)
+    volume_src = get_volume_labels_from_src(src, 'sample', subjects_dir)
     volume_label = volume_src[0].name
     volume_label = 'Left-' + volume_label.replace('-lh', '')
 
@@ -538,7 +540,7 @@ def test_combine_source_spaces():
     """
     tempdir = _TempDir()
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names, _ = get_volume_labels_from_aseg(aseg_fname)
+    label_names = get_volume_labels_from_aseg(aseg_fname)
     volume_labels = [label_names[int(np.random.rand() * len(label_names))]
                      for ii in range(2)]
 
