@@ -1462,13 +1462,13 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
                 volume_label = [volume_label]
 
         # Check that volume label is found in .mgz file
-        volume_labels, _ = get_volume_labels_from_aseg(mri)
+        volume_labels = get_volume_labels_from_aseg(mri)
 
-        for l in volume_label:
-            if l not in volume_labels:
+        for label in volume_label:
+            if label not in volume_labels:
                 raise ValueError('Volume %s not found in file %s. Double '
                                  'check  freesurfer lookup table.'
-                                 % (l, mri))
+                                 % (label, mri))
 
     sphere = np.asarray(sphere)
     if sphere.size != 4:
@@ -2342,7 +2342,7 @@ def _do_src_distances(con, vertno, run_inds, limit):
     return d, min_idx, min_dist
 
 
-def get_volume_labels_from_aseg(mgz_fname):
+def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
     """Return a list of names and colors of segmented volumes.
 
     Parameters
@@ -2350,19 +2350,20 @@ def get_volume_labels_from_aseg(mgz_fname):
     mgz_fname : str
         Filename to read. Typically aseg.mgz or some variant in the freesurfer
         pipeline.
+    return_colors : bool
+        If True returns also the labels colors
 
     Returns
     -------
-    label_names_sorted : list of str
+    label_names : list of str
         The names of segmented volumes included in this mgz file.
-    label_colors_sorted : list of str
+    label_colors : list of str
         The RGB colors of the labels included in this mgz file.
     Notes
     -----
     .. versionadded:: 0.9.0
     """
     import nibabel as nib
-    import pandas as pd
 
     # Read the mgz file using nibabel
     mgz_data = nib.load(mgz_fname).get_data()
@@ -2377,28 +2378,28 @@ def get_volume_labels_from_aseg(mgz_fname):
                      lut[lut['id'] == ii]['B'][0],
                      lut[lut['id'] == ii]['A'][0]]
                     for ii in np.unique(mgz_data)]
-    label_names_sorted = sorted(label_names, key=lambda n: n.lower())
 
-    p = pd.DataFrame({'label_names': label_names,
-                     'label_colors': label_colors}).sort('label_names')
+    order = np.argsort(label_names)
+    label_names = [label_names[k] for k in order]
+    label_colors = [label_colors[k] for k in order]
 
-    label_names_sorted = list(p['label_names'])
-    labels_colors_sorted = list(p['label_colors'])
+    if return_colors:
+        return label_names, label_colors
+    else:
+        return label_names
 
-    return label_names_sorted, labels_colors_sorted
 
-
-def get_volume_labels_from_src(src, sbj_dir, sbj_id):
+def get_volume_labels_from_src(src, subject, subjects_dir):
     """Return a list of Label of segmented volumes included in the src space.
 
     Parameters
     ----------
     src : instance of SourceSpaces
         The source space containing the volume regions
-    sbj_dir: str
-        Freesurfer folder of the subjects
-    sbj_id: str
+    subject: str
         Subject name
+    subjects_dir: str
+        Freesurfer folder of the subjects
 
     Returns
     -------
@@ -2409,11 +2410,11 @@ def get_volume_labels_from_src(src, sbj_dir, sbj_id):
     import os.path as op
     import numpy as np
 
-    from mne import Label
-    from mne import get_volume_labels_from_aseg
+    from . import Label
+    from . import get_volume_labels_from_aseg
 
     # Read the aseg file
-    aseg_fname = op.join(sbj_dir, sbj_id, 'mri', 'aseg.mgz')
+    aseg_fname = op.join(subjects_dir, subject, 'mri', 'aseg.mgz')
     if not op.isfile(aseg_fname):
         raise IOError('aseg file "%s" not found' % aseg_fname)
     all_labels_aseg = get_volume_labels_from_aseg(aseg_fname)
@@ -2448,7 +2449,7 @@ def get_volume_labels_from_src(src, sbj_dir, sbj_id):
 
         label = Label(vertices=vertices, pos=pos, hemi=hemi,
                       name=roi_str, color=color,
-                      subject=sbj_id)
+                      subject=subject)
         labels_aseg.append(label)
 
     return labels_aseg
