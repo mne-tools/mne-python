@@ -142,6 +142,12 @@ def test_set_eeg_reference():
                                         copy=False)
     assert_true(raw is reref)
 
+    # Test moving from custom to average reference
+    reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'])
+    reref, _ = set_eeg_reference(reref)
+    assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
+    assert_equal(reref.info['custom_ref_applied'], False)
+
     # When creating an average reference fails, make sure the
     # custom_ref_applied flag remains untouched.
     reref = raw.copy()
