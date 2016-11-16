@@ -2417,7 +2417,8 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
     aseg_fname = op.join(subjects_dir, subject, 'mri', 'aseg.mgz')
     if not op.isfile(aseg_fname):
         raise IOError('aseg file "%s" not found' % aseg_fname)
-    all_labels_aseg = get_volume_labels_from_aseg(aseg_fname)
+    all_labels_aseg = get_volume_labels_from_aseg(aseg_fname,
+                                                  return_colors=True)
 
     # Create a list of Label
     if len(src) < 2:
