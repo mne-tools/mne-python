@@ -2766,13 +2766,20 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     # loop through source estimates and extract time series
     for stc in stcs:
         # make sure the stc is compatible with the source space
-        for i in range(0, len(src)):
+        for i in range(len(src)):
             if len(stc.vertices[i]) != nvert[i]:
-                raise ValueError('stc not compatible with source space')
+                raise ValueError('stc not compatible with source space. '
+                                 'stc has %s time series but there are %s '
+                                 'vertices in source space'
+                                 % (len(stc.vertices[i]), nvert[i]))
+
         if any(np.any(svn != vn) for svn, vn in zip(stc.vertices, vertno)):
             raise ValueError('stc not compatible with source space')
         if not (sum(nvert)) == stc.shape[0]:
-            raise ValueError('stc not compatible with source space')
+            raise ValueError('stc not compatible with source space. '
+                             'stc has %s vertices but the source space '
+                             'has %s vertices'
+                             % (stc.shape[0], sum(nvert)))
 
         logger.info('Extracting time courses for %d labels (mode: %s)'
                     % (n_labels, mode))
