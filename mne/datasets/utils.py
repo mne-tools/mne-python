@@ -219,6 +219,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'brainstorm': 'MNE_DATASETS_BRAINSTORM_PATH',
         'testing': 'MNE_DATASETS_TESTING_PATH',
         'multimodal': 'MNE_DATASETS_MULTIMODAL_PATH',
+        'visual_96_categories': 'MNE_DATASETS_VISUAL_96_CATEGORIES_PATH',
     }[name]
 
     path = _get_path(path, key, name)
@@ -237,6 +238,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='mne-testing-data-%s.tar.gz' % releases['testing'],
         multimodal='MNE-multimodal-data.tar.gz',
         fake='foo.tgz',
+        visual_96_categories='visual_96_categories.tar.gz',
     )
     if archive_name is not None:
         archive_names.update(archive_name)
@@ -249,6 +251,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         multimodal='MNE-multimodal-data',
         spm='MNE-spm-face',
         testing='MNE-testing-data',
+        visual_96_categories='MNE-visual_96_categories-data',
     )
     urls = dict(
         brainstorm='https://mne-tools.s3.amazonaws.com/datasets/'
@@ -263,6 +266,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
         multimodal='https://ndownloader.figshare.com/files/5999598',
+        visual_96_categories='https://mne-tools.s3.amazonaws.com/datasets/'
+                             'MNE-visual_96_categories/%s',
     )
     hashes = dict(
         brainstorm=None,
@@ -273,6 +278,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         spm='f61041e3f3f2ba0def8a2ca71592cc41',
         testing='c5577654e92d93d5a64d0e0f5b1243a7',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
+        visual_96_categories='8ac7f7e743d9470a58489fe7285cc407',
     )
     folder_origs = dict(  # not listed means None
         misc='mne-misc-data-%s' % releases['misc'],
@@ -405,6 +411,7 @@ def has_dataset(name):
         'somato': 'MNE-somato-data',
         'spm': 'MNE-spm-face',
         'testing': 'MNE-testing-data',
+        'visual_96_categories': 'visual_96_categories-data',
     }[name]
     archive_name = None
     if name == 'brainstorm':

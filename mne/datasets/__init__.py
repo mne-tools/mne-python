@@ -1,6 +1,7 @@
 """Functions for fetching remote datasets."""
 
 from . import brainstorm
+from . import visual_96_categories
 from . import eegbci
 from . import megsim
 from . import misc
