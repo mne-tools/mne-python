@@ -34,7 +34,7 @@ print(type(c))
 # If you come from a background of matlab, remember that indexing in python
 # starts from zero:
 a = [1, 2, 3, 4]
-print('This is the zeroth value in the list: {}'.format(a[0]))
+print('This is the zeroth value in the list: {0}'.format(a[0]))
 
 ###############################################################################
 # No need to reinvent the wheel. Scipy and Numpy are battle field tested

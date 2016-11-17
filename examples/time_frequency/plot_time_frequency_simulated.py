@@ -101,7 +101,7 @@ for width in (0.7, 3.0):
     power = tfr_stockwell(epochs, fmin=fmin, fmax=fmax, width=width)
     power.plot([0], baseline=(0., 0.1), mode='mean',
                title='Sim: Using S transform, width '
-                     '= {:0.1f}'.format(width), show=True)
+                     '= {0:0.1f}'.format(width), show=True)
 
 # #############################################################################
 # Finally, compare to morlet wavelet

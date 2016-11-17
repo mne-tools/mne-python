@@ -220,7 +220,7 @@ class SetChannelsMixin(object):
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
         if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
             raise ValueError('Could not extract channel positions for '
-                             '{} channels'.format(n_zero))
+                             '{0} channels'.format(n_zero))
         return pos
 
     def _set_channel_positions(self, pos, names):
@@ -771,7 +771,7 @@ def read_ch_connectivity(fname, picks=None):
                 break
         else:
             raise ValueError('I do not know about this neighbor '
-                             'template: "{}"'.format(fname))
+                             'template: "{0}"'.format(fname))
 
         fname = op.join(templates_dir, fname)
 
@@ -783,8 +783,8 @@ def read_ch_connectivity(fname, picks=None):
     if picks is not None:
         if max(picks) >= len(ch_names):
             raise ValueError('The picks must be compatible with '
-                             'channels. Found a pick ({}) which exceeds '
-                             'the channel range ({})'
+                             'channels. Found a pick ({0}) which exceeds '
+                             'the channel range ({1})'
                              .format(max(picks), len(ch_names)))
     connectivity = _ch_neighbor_connectivity(ch_names, neighbors)
     if picks is not None:

@@ -70,8 +70,8 @@ print(type(connectivity))  # it's a sparse matrix!
 
 plt.imshow(connectivity.toarray(), cmap='gray', origin='lower',
            interpolation='nearest')
-plt.xlabel('{} Magnetometers'.format(len(ch_names)))
-plt.ylabel('{} Magnetometers'.format(len(ch_names)))
+plt.xlabel('{0} Magnetometers'.format(len(ch_names)))
+plt.ylabel('{0} Magnetometers'.format(len(ch_names)))
 plt.title('Between-sensor adjacency')
 
 ###############################################################################

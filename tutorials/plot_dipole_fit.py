@@ -75,7 +75,7 @@ diff = combine_evoked([evoked, pred_evoked], [1, -1])
 plot_params['colorbar'] = True
 diff.plot_topomap(time_format='Difference', axes=axes[2], **plot_params)
 plt.suptitle('Comparison of measured and predicted fields '
-             'at {:.0f} ms'.format(best_time * 1000.), fontsize=16)
+             'at {0:.0f} ms'.format(best_time * 1000.), fontsize=16)
 
 ###############################################################################
 # Estimate the time course of a single dipole with fixed position and
