@@ -142,6 +142,20 @@ def test_set_eeg_reference():
                                         copy=False)
     assert_true(raw is reref)
 
+    # Test moving from custom to average reference
+    reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'])
+    reref, _ = set_eeg_reference(reref)
+    assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
+    assert_equal(reref.info['custom_ref_applied'], False)
+
+    # When creating an average reference fails, make sure the
+    # custom_ref_applied flag remains untouched.
+    reref = raw.copy()
+    reref.info['custom_ref_applied'] = True
+    reref.pick_types(eeg=False)  # Cause making average ref fail
+    assert_raises(ValueError, set_eeg_reference, reref)
+    assert_true(reref.info['custom_ref_applied'])
+
 
 @testing.requires_testing_data
 def test_set_bipolar_reference():
@@ -308,8 +322,6 @@ def test_add_reference():
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True, proj='delayed')
     epochs_ref = add_reference_channels(epochs, 'Ref', copy=True)
-    # CAR after custom reference is an Error
-    assert_raises(RuntimeError, epochs_ref.set_eeg_reference)
 
     assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 1)
     _check_channel_names(epochs_ref, 'Ref')
