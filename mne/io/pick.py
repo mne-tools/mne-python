@@ -272,7 +272,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                   ias, syst, seeg, dipole, gof, bio, ecog):
         if not isinstance(param, bool):
             w = ('Parameters for all channel types (with the exception '
-                 'of "meg" and "ref_meg") must be of type bool, not {}.')
+                 'of "meg" and "ref_meg") must be of type bool, not {0}.')
             raise ValueError(w.format(type(param)))
 
     for k in range(nchan):
