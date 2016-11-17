@@ -336,7 +336,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         assert self._data.shape[-1] == len(self.times)
         return self
 
-    def decimate(self, decim, offset=0):
+    @verbose
+    def decimate(self, decim, offset=0, verbose=None):
         """Decimate the epochs.
 
         .. note:: No filtering is performed. To avoid aliasing, ensure
@@ -352,6 +353,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             current sampling rate.
 
             .. versionadded:: 0.12
+
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
