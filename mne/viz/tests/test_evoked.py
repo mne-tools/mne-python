@@ -19,7 +19,7 @@ from mne import read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.utils import slow_test, run_tests_if_main
-from mne.viz.evoked import _butterfly_onselect, plot_compare_evokeds
+from mne.viz.evoked import _line_plot_onselect, plot_compare_evokeds
 from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
@@ -114,7 +114,7 @@ def test_plot_evoked():
         plt.close('all')
 
         evoked.plot_topo()  # should auto-find layout
-        _butterfly_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
+        _line_plot_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
                             evoked.times)
         plt.close('all')
 
