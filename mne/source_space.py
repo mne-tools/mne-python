@@ -1353,7 +1353,7 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
 
 
 @verbose
-def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
+def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
                               sphere=(0.0, 0.0, 0.0, 90.0), bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
                               overwrite=None, subjects_dir=None,
@@ -1433,8 +1433,9 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     subjects_dir = get_subjects_dir(subjects_dir)
 
     if fname is not None or overwrite is not None:
-        raise ValueError("Parameters 'fname' and 'overwrite' are deprecated. "
-                         "Use mne.write_source_spaces instead.")
+        warn("Parameters 'fname' and 'overwrite' are deprecated and will be "
+             "removed in version 0.15. The source spaces will not be saved. "
+             "Use mne.write_source_spaces instead.")
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '
                          'specified')
