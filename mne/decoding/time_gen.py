@@ -1571,7 +1571,7 @@ def _set_cv(cv, clf=None, X=None, y=None):
         from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
         if isinstance(cv, (int, np.int)):
             XFold = StratifiedKFold if is_classifier(clf) else KFold
-            cv = XFold(n_folds=cv)
+            cv = XFold(n_splits=cv)
         cv = check_cv(cv=cv, y=y, classifier=is_classifier(clf))
     else:
         from sklearn.cross_validation import (check_cv, StratifiedKFold, KFold)
