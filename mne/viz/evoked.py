@@ -73,7 +73,7 @@ def _butterfly_on_button_press(event, params):
     params['need_draw'] = False
 
 
-def _butterfly_onselect(xmin, xmax, ch_types, info, data, times, text=None,
+def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
                         psd=False):
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
@@ -111,8 +111,9 @@ def _butterfly_onselect(xmin, xmax, ch_types, info, data, times, text=None,
         this_data = data[picks, minidx:maxidx]
         if merge_grads:
             from ..channels.layout import _merge_grad_data
-            this_data = _merge_grad_data(this_data, psd=psd)
-            title = '%s mean' % ch_type if psd else '%s RMS' % ch_type
+            method = 'mean' if psd else 'rms'
+            this_data = _merge_grad_data(this_data, method=method)
+            title = '%s %s' % (ch_type, method.upper())
         else:
             title = ch_type
         this_data = np.average(this_data, axis=1)
@@ -257,10 +258,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
     if plot_type == 'butterfly':
         times = evoked.times * 1e3  # time in milliseconds
-        _plot_butterfly(evoked.data, info, picks, fig, axes, spatial_colors,
-                        unit, units, scalings, hline, gfp, types, zorder, xlim,
-                        ylim, times, bad_ch_idx, titles, ch_types_used,
-                        selectable, False)
+        _plot_lines(evoked.data, info, picks, fig, axes, spatial_colors, unit,
+                    units, scalings, hline, gfp, types, zorder, xlim, ylim,
+                    times, bad_ch_idx, titles, ch_types_used, selectable,
+                    False)
         for ax in axes:
             ax.set_xlabel('time (ms)')
 
@@ -287,9 +288,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     return fig
 
 
-def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
-                    scalings, hline, gfp, types, zorder, xlim, ylim, times,
-                    bad_ch_idx, titles, ch_types_used, selectable, psd):
+def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
+                scalings, hline, gfp, types, zorder, xlim, ylim, times,
+                bad_ch_idx, titles, ch_types_used, selectable, psd):
     """Function for plotting data as butterfly plot."""
     from matplotlib import patheffects
     from matplotlib.widgets import SpanSelector
@@ -323,7 +324,7 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
             D = this_scaling * data[idx, :]
             gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
             if not gfp_only:
-                if spatial_colors and len(idx) != 1:
+                if spatial_colors is True and len(idx) != 1:
                     chs = [info['chs'][i] for i in idx]
                     locs3d = np.array([ch['loc'][:3] for ch in chs])
                     x, y, z = locs3d.T
@@ -359,7 +360,11 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
                     loc = 1 if psd else 2  # Legend in top right for psd plot.
                     _plot_legend(pos, colors, ax, bads, outlines, loc)
                 else:
-                    colors = ['k'] * len(idx)
+                    if isinstance(spatial_colors, (tuple, string_types)):
+                        col = [spatial_colors]
+                    else:
+                        col = ['k']
+                    colors = col * len(idx)
                     for i in bad_ch_idx:
                         if i in idx:
                             colors[idx.index(i)] = 'r'
@@ -381,11 +386,12 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
                 for ch_idx, z in enumerate(z_ord):
                     line_list.append(
                         ax.plot(times, D[ch_idx], picker=3.,
-                                zorder=z + 1 if spatial_colors else 1,
+                                zorder=z + 1 if spatial_colors is True else 1,
                                 color=colors[ch_idx])[0])
 
             if gfp:  # 'only' or boolean True
-                gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
+                gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
+                                                                      0.)
                 this_gfp = np.sqrt((D * D).mean(axis=0))
                 this_ylim = ax.get_ylim() if (ylim is None or this_type not in
                                               ylim.keys()) else ylim[this_type]
@@ -405,7 +411,7 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
             for ii, line in zip(idx, line_list):
                 if ii in bad_ch_idx:
                     line.set_zorder(2)
-                    if spatial_colors:
+                    if spatial_colors is True:
                         line.set_linestyle("--")
             ax.set_ylabel('data (%s)' % ch_unit)
             # for old matplotlib, we actually need this to have a bounding
@@ -427,7 +433,7 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
 
             if hline is not None:
                 for h in hline:
-                    c = ('r' if not spatial_colors else 'grey')
+                    c = ('r' if not spatial_colors is True else 'grey')
                     ax.axhline(h, linestyle='--', linewidth=2, color=c)
         lines.append(line_list)
     if selectable:
@@ -439,7 +445,7 @@ def _plot_butterfly(data, info, picks, fig, axes, spatial_colors, unit, units,
                                xycoords='axes fraction', fontsize=20,
                                color='green', zorder=3)
             text.set_visible(False)
-            callback_onselect = partial(_butterfly_onselect,
+            callback_onselect = partial(_line_plot_onselect,
                                         ch_types=ch_types_used, info=info,
                                         data=data, times=times, text=text,
                                         psd=psd)

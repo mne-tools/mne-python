@@ -8,6 +8,7 @@ from __future__ import print_function
 
 import copy
 from functools import partial
+from warnings import warn
 
 import numpy as np
 
@@ -28,7 +29,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _change_channel_group)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
-from .evoked import _plot_butterfly
+from .evoked import _plot_lines
 
 
 def _plot_update_raw_proj(params, bools):
@@ -520,7 +521,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=2048, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33, n_overlap=0, dB=True,
                  average=True, show=True, n_jobs=1, line_alpha=None,
-                 spatial_colors=False, verbose=None):
+                 spatial_colors=None, verbose=None):
     """Plot the power spectral density across channels.
 
     Parameters
@@ -546,7 +547,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     ax : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
     color : str | tuple
-        A matplotlib-compatible color to use.
+        A matplotlib-compatible color to use. Has no effect when
+        spatial_colors=True.
     area_mode : str | None
         Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
         will be plotted. If 'range', the min and max (across channels) will be
@@ -586,6 +588,10 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     if average and spatial_colors:
         raise ValueError('Average and spatial_colors cannot be enabled '
                          'simultaneously.')
+    elif spatial_colors is None:
+        # XXX: deprecation
+        warn('In version 0.14 average defaults to False and spatial_colors '
+             'defaults to True')
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
     if line_alpha is None:
@@ -661,12 +667,13 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  ch_types_used}
         titles = {c: t for c, t in zip(ch_types_used, titles_list)}
         picks = np.arange(len(psd_list))
-        _plot_butterfly(psd_list, info, picks, fig, ax_list, spatial_colors,
-                        unit, units=units, scalings=None, hline=None,
-                        gfp=False, types=types, zorder='std',
-                        xlim=(freqs[0], freqs[-1]), ylim=None, times=freqs,
-                        bad_ch_idx=[], titles=titles,
-                        ch_types_used=ch_types_used, selectable=True, psd=True)
+        if not spatial_colors:
+            spatial_colors = color
+        _plot_lines(psd_list, info, picks, fig, ax_list, spatial_colors,
+                    unit, units=units, scalings=None, hline=None, gfp=False,
+                    types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
+                    ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
+                    ch_types_used=ch_types_used, selectable=True, psd=True)
         tight_layout(fig=fig)
     plt_show(show)
     return fig

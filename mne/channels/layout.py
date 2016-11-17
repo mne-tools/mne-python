@@ -852,15 +852,15 @@ def _pair_grad_sensors_from_ch_names(ch_names):
     return grad_chs
 
 
-def _merge_grad_data(data, psd=False):
+def _merge_grad_data(data, method):
     """Merge data from channel pairs using the RMS (or mean if psd=True).
 
     Parameters
     ----------
     data : array, shape = (n_channels, n_times)
         Data for channels, ordered in pairs.
-    psd : bool
-        If True, merge data by taking mean of grad pairs.
+    method : str
+        Can be 'rms' or 'mean'.
 
     Returns
     -------
@@ -868,9 +868,9 @@ def _merge_grad_data(data, psd=False):
         The root mean square or mean for each pair.
     """
     data = data.reshape((len(data) // 2, 2, -1))
-    if psd:
+    if method == 'mean':
         data = np.mean(data, axis=1)
-    else:
+    elif method == 'rms':
         data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
     return data
 
