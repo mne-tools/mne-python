@@ -1020,7 +1020,8 @@ class SourceEstimate(_BaseSourceEstimate):
             write_hdf5(fname + '-stc.h5',
                        dict(vertices=self.vertices, data=self.data,
                             tmin=self.tmin, tstep=self.tstep,
-                            subject=self.subject), title='mnepython')
+                            subject=self.subject), title='mnepython',
+                            overwrite=True)
         logger.info('[done]')
 
     def __repr__(self):  # noqa: D105

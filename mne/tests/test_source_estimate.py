@@ -201,6 +201,7 @@ def test_io_stc_h5():
     assert_raises(ValueError, stc.save, op.join(tempdir, 'tmp'), ftype='foo')
     out_name = op.join(tempdir, 'tmp')
     stc.save(out_name, ftype='h5')
+    stc.save(out_name, ftype='h5')  # test overwrite
     stc3 = read_source_estimate(out_name)
     stc4 = read_source_estimate(out_name + '-stc.h5')
     assert_raises(RuntimeError, read_source_estimate, out_name, subject='bar')
