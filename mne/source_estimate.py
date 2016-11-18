@@ -1021,7 +1021,7 @@ class SourceEstimate(_BaseSourceEstimate):
                        dict(vertices=self.vertices, data=self.data,
                             tmin=self.tmin, tstep=self.tstep,
                             subject=self.subject), title='mnepython',
-                            overwrite=True)
+                       overwrite=True)
         logger.info('[done]')
 
     def __repr__(self):  # noqa: D105
