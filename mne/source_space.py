@@ -1364,7 +1364,8 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
     Parameters
     ----------
     subject : str
-        Subject to process.
+        Subject to process. If None, the path to the mri volume must be
+        absolute. Has no effect if pos is a dict.
     fname : str | None
         Deprecated and will be removed in 0.15. Use
         :func:`mne.write_source_spaces` instead.
@@ -1559,6 +1560,9 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
 
     if 'vol_dims' in sp:
         del sp['vol_dims']
+
+    if subject is not None:
+        sp['subject_his_id'] = subject
 
     # Save it
     sp.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
