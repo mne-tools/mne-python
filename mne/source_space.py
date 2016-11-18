@@ -1367,7 +1367,7 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
     ----------
     subject : str
         Subject to process. If None, the path to the mri volume must be
-        absolute. Has no effect if pos is a dict.
+        absolute.
     fname : str | None
         Deprecated and will be removed in 0.15. Use
         :func:`mne.write_source_spaces` instead.
@@ -1437,8 +1437,7 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
 
     if fname is not None or overwrite is not None:
         warn("Parameters 'fname' and 'overwrite' are deprecated and will be "
-             "removed in version 0.15. The source spaces will not be saved. "
-             "Use mne.write_source_spaces instead.")
+             "removed in version 0.15. Use mne.write_source_spaces instead.")
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '
                          'specified')
