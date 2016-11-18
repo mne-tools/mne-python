@@ -682,7 +682,7 @@ def has_nibabel(vox2ras_tkr=False):
                                    'header_class', 0),
                            'get_vox2ras_tkr', None) is not None)
         return out
-    except ImportError:
+    except Exception:
         return False
 
 
