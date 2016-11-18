@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-#
 
 # Copyright (C) 2011-2014 Alexandre Gramfort
 # <alexandre.gramfort@telecom-paristech.fr>
