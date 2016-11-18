@@ -53,8 +53,8 @@ def _get_epochs():
     picks = _get_picks(raw)
     # Use a subset of channels for plotting speed
     picks = picks[np.round(np.linspace(0, len(picks) - 1, n_chan)).astype(int)]
-    # make sure we have a magnetometer and a grad pair
-    picks = np.concatenate([[2, 3, 4], picks])
+    # make sure we have a magnetometer and a pair of grad pairs for topomap.
+    picks = np.concatenate([[2, 3, 4, 6, 7], picks])
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks)
     epochs.info['bads'] = [epochs.ch_names[-1]]
     return epochs
