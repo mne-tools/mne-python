@@ -534,6 +534,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq
         self._update_times()
+        return self
 
     @property
     def data(self):
