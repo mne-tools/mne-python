@@ -133,7 +133,8 @@ def test_montage():
     montage = read_montage('standard_1020', ch_names=ch_names)
     assert_array_equal(ch_names, montage.ch_names)
 
-    # test transform
+    # test transform with "other" [choose .sfp, could be any != from hpts]
+    # fiducials == ('nasion', 'lpa', 'rpa')
     input_str = """
     eeg Fp1 -95.0 -31.0 -3.0
     eeg AF7 -81 -59 -3
@@ -145,7 +146,24 @@ def test_montage():
     fname = op.join(tempdir, 'test_fid.hpts')
     with open(fname, 'w') as fid:
         fid.write(input_str)
-    montage = read_montage(op.join(tempdir, 'test_fid.hpts'), transform=True)
+    montage = read_montage(op.join(tempdir, kind), transform=True)
+
+    # test transform with "other" [choose .sfp, could be any != from hpts]
+    # fiducials == ('nasion', 'lpa', 'rpa')
+    input_str = """
+    Fp1 -95.0 -31.0 -3.0
+    AF7 -81 -59 -3
+    AF3 -87 -41 28
+    nasion -91 0 -42
+    lpa 0 -91 -42
+    rpa 0 91 -42
+    """
+    kind = 'test_fid.sfp'
+    fname = op.join(tempdir, kind)
+    with open(fname, 'w') as fid:
+        fid.write(input_str)
+    montage = read_montage(op.join(tempdir, kind), transform=True)
+
     # check coordinate transformation
     pos = np.array([-95.0, -31.0, -3.0])
     nasion = np.array([-91, 0, -42])
@@ -155,14 +173,14 @@ def test_montage():
     trans = get_ras_to_neuromag_trans(fids[0], fids[1], fids[2])
     pos = apply_trans(trans, pos)
     assert_array_equal(montage.pos[0], pos)
-    idx = montage.ch_names.index('2')
+    idx = montage.ch_names.index('nasion')
     assert_array_equal(montage.pos[idx, [0, 2]], [0, 0])
-    idx = montage.ch_names.index('1')
+    idx = montage.ch_names.index('lpa')
     assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
-    idx = montage.ch_names.index('3')
+    idx = montage.ch_names.index('rpa')
     assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
     pos = np.array([-95.0, -31.0, -3.0])
-    montage_fname = op.join(tempdir, 'test_fid.hpts')
+    montage_fname = op.join(tempdir, kind)
     montage = read_montage(montage_fname, unit='mm')
     assert_array_equal(montage.pos[0], pos * 1e-3)
 
