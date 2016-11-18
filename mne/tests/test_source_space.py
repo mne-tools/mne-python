@@ -188,9 +188,7 @@ def test_discrete_source_space():
                         '--pos', temp_pos, '--src', temp_name])
         src_c = read_source_spaces(temp_name)
         pos_dict = dict(rr=src[0]['rr'][v], nn=src[0]['nn'][v])
-        src_new = setup_volume_source_space('sample', None,
-                                            pos=pos_dict,
-                                            subjects_dir=subjects_dir)
+        src_new = setup_volume_source_space(None, None, pos=pos_dict)
         _compare_source_spaces(src_c, src_new, mode='approx')
         assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
                         rtol=1e-3, atol=1e-6)
@@ -226,8 +224,9 @@ def test_volume_source_space():
     for bem, surf in zip((fname_bem, None), (None, surf)):
         src_new = setup_volume_source_space('sample', temp_name, pos=7.0,
                                             bem=bem, surface=surf,
-                                            mri=fname_mri,
+                                            mri='T1.mgz',
                                             subjects_dir=subjects_dir)
+        src[0]['subject_his_id'] = 'sample'  # XXX: to make comparison pass
         _compare_source_spaces(src, src_new, mode='approx')
         del src_new
         src_new = read_source_spaces(temp_name)
@@ -254,8 +253,7 @@ def test_other_volume_source_spaces():
                     '--src', temp_name,
                     '--mri', fname_mri])
     src = read_source_spaces(temp_name)
-    src_new = setup_volume_source_space('sample', temp_name, pos=7.0,
-                                        mri=fname_mri,
+    src_new = setup_volume_source_space(None, pos=7.0, mri=fname_mri,
                                         subjects_dir=subjects_dir)
     _compare_source_spaces(src, src_new, mode='approx')
     assert_true('volume, shape' in repr(src))

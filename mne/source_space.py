@@ -746,7 +746,9 @@ def _read_one_source_space(fid, this, verbose=None):
         logger.info('    Distance information added...')
 
     tag = find_tag(fid, this, FIFF.FIFF_SUBJ_HIS_ID)
-    if tag is not None:
+    if tag is None:
+        res['subject_his_id'] = None
+    else:
         res['subject_his_id'] = tag.data
 
     return res
@@ -1561,13 +1563,10 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
     if 'vol_dims' in sp:
         del sp['vol_dims']
 
-    if subject is not None:
-        sp['subject_his_id'] = subject
-
     # Save it
     sp.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
                    dist_limit=None, pinfo=None, ntri=0, nearest_dist=None,
-                   nuse_tri=0, tris=None))
+                   nuse_tri=0, tris=None, subject_his_id=subject))
     sp = SourceSpaces([sp], dict(working_dir=os.getcwd(), command_line='None'))
     if fname is not None:
         write_source_spaces(fname, sp, verbose=False)
