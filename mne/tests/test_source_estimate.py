@@ -149,7 +149,7 @@ def test_volume_stc():
         assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
                                   decimal=5)
 
-    except ImportError:
+    except Exception:
         print('Save as nifti test skipped, needs NiBabel')
 
 
