@@ -197,7 +197,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                         aspect='auto', origin='lower', interpolation='nearest',
                         vmin=this_vmin, vmax=this_vmax, cmap=cmap[0])
         if this_overlay_times is not None:
-            plt.plot(1e3 * this_overlay_times, 0.5 + np.arange(len(this_data)),
+            ax1.plot(1e3 * this_overlay_times, 0.5 + np.arange(len(this_data)),
                      'k', linewidth=2)
         ax1.set_title(epochs.ch_names[idx])
         ax1.set_ylabel('Epochs')
