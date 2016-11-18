@@ -433,7 +433,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
 
             if hline is not None:
                 for h in hline:
-                    c = ('r' if not spatial_colors is True else 'grey')
+                    c = ('grey' if spatial_colors is True else 'r')
                     ax.axhline(h, linestyle='--', linewidth=2, color=c)
         lines.append(line_list)
     if selectable:
