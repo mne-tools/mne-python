@@ -187,11 +187,13 @@ class RawKIT(_BaseRaw):
                 else:
                     raise ValueError("stim needs to be list of int, '>' or "
                                      "'<', not %r" % str(stim))
-            elif np.max(stim) >= self._raw_extras[0]['nchan']:
-                raise ValueError('Tried to set stim channel %i, but sqd file '
-                                 'only has %i channels'
-                                 % (np.max(stim),
-                                    self._raw_extras[0]['nchan']))
+            else:
+                stim = np.asarray(stim, int)
+                if stim.max() >= self._raw_extras[0]['nchan']:
+                    raise ValueError(
+                        'Got stim=%s, but sqd file only has %i channels' %
+                        (stim, self._raw_extras[0]['nchan']))
+
             # modify info
             nchan = self._raw_extras[0]['nchan'] + 1
             ch_name = 'STI 014'
@@ -603,11 +605,15 @@ def get_kit_info(rawfile):
                 # planargradiometer
                 # x,y,z,theta,phi,btheta,bphi,baseline,coilsize
                 sensors.append(np.fromfile(fid, dtype='d', count=9))
-            elif sens_type == 257:
+            elif sens_type in (257, 0):
                 # reference channels
                 sensors.append(np.zeros(7))
                 sqd['i'] = sens_type
+            else:
+                raise IOError("Unknown KIT channel type: %i" % sens_type)
         sqd['sensor_locs'] = np.array(sensors)
+        if len(sqd['sensor_locs']) != KIT_SYS.N_SENS:
+            raise IOError("An error occurred while reading %s" % rawfile)
 
         # amplifier gain
         fid.seek(KIT_SYS.AMPLIFIER_INFO)
@@ -678,27 +684,19 @@ def get_kit_info(rawfile):
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')
-        ch_names = {}
-        ch_names['MEG'] = ['MEG %03d' % ch for ch
-                           in range(1, sqd['n_sens'] + 1)]
-        ch_names['MISC'] = ['MISC %03d' % ch for ch
-                            in range(1, sqd['nmiscchan'] + 1)]
         locs = sqd['sensor_locs']
         chan_locs = apply_trans(als_ras_trans, locs[:, :3])
         chan_angles = locs[:, 3:]
-        info['chs'] = []
-        for idx, ch_info in enumerate(zip(ch_names['MEG'], chan_locs,
-                                          chan_angles), 1):
-            ch_name, ch_loc, ch_angles = ch_info
-            chan_info = {}
-            chan_info['cal'] = KIT.CALIB_FACTOR
-            chan_info['logno'] = idx
-            chan_info['scanno'] = idx
-            chan_info['range'] = KIT.RANGE
-            chan_info['unit_mul'] = KIT.UNIT_MUL
-            chan_info['ch_name'] = ch_name
-            chan_info['unit'] = FIFF.FIFF_UNIT_T
-            chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+        for idx, (ch_loc, ch_angles) in enumerate(zip(chan_locs, chan_angles),
+                                                  1):
+            chan_info = {'cal': KIT.CALIB_FACTOR,
+                         'logno': idx,
+                         'scanno': idx,
+                         'range': KIT.RANGE,
+                         'unit_mul': KIT.UNIT_MUL,
+                         'ch_name': 'MEG %03d' % idx,
+                         'unit': FIFF.FIFF_UNIT_T,
+                         'coord_frame': FIFF.FIFFV_COORD_DEVICE}
             if idx <= sqd['nmegchan']:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_GRAD
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
@@ -736,19 +734,18 @@ def get_kit_info(rawfile):
             info['chs'].append(chan_info)
 
         # label trigger and misc channels
-        for idy, ch_name in enumerate(ch_names['MISC'],
-                                      sqd['n_sens'] + 1):
-            chan_info = {}
-            chan_info['cal'] = KIT.CALIB_FACTOR
-            chan_info['logno'] = idy
-            chan_info['scanno'] = idy
-            chan_info['range'] = 1.0
-            chan_info['unit'] = FIFF.FIFF_UNIT_V
-            chan_info['unit_mul'] = 0
-            chan_info['ch_name'] = ch_name
-            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-            chan_info['loc'] = np.zeros(12)
-            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+        for idx in range(1, sqd['nmiscchan'] + 1):
+            ch_idx = idx + KIT_SYS.N_SENS
+            chan_info = {'cal': KIT.CALIB_FACTOR,
+                         'logno': ch_idx,
+                         'scanno': ch_idx,
+                         'range': 1.0,
+                         'unit': FIFF.FIFF_UNIT_V,
+                         'unit_mul': 0,
+                         'ch_name': 'MISC %03d' % idx,
+                         'coil_type': FIFF.FIFFV_COIL_NONE,
+                         'loc': np.zeros(12),
+                         'kind': FIFF.FIFFV_MISC_CH}
             info['chs'].append(chan_info)
     info._update_redundant()
     return info, sqd
