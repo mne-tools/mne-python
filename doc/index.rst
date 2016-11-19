@@ -82,28 +82,13 @@
 
       .. raw:: html
 
-        <script type="text/javascript" src="http://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
+        <script type="text/javascript" src="https://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
 
   .. container:: col-md-4
 
     .. raw:: html
 
-      <h2>Documentation</h2>
-
-    - :ref:`get_started`
-    - :ref:`tutorials`
-    - :ref:`general_examples`
-    - :ref:`API Reference <api_reference>`
-    - :ref:`manual`
-    - :ref:`contributing`
-    - :ref:`FAQ`
-    - :ref:`whats_new`
-    - :ref:`Cite MNE <cite>`
-    - :ref:`cited`
-
-    .. raw:: html
-
-      <h2>Community</h2>
+     <h2>More help</h2>
 
     - `MNE mailing list`_ for analysis talk
     - `GitHub <https://github.com/mne-tools/mne-python/issues/>`_ for
@@ -112,11 +97,12 @@
 
     .. raw:: html
 
-      <h2>Versions</h2>
+      <h2>News</h2>
 
-    - `Stable <http://martinos.org/mne/stable>`_
-    - `Development <http://martinos.org/mne/dev>`_
+    - :ref:`whats_new`
+    - :ref:`cited`
+    - :ref:`cite`
 
     .. raw:: html
 
-      <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Tweets by @mne_python</a>
+      <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Updates by @mne_python</a>

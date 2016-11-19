@@ -39,8 +39,8 @@ UA = ('Mozilla/5.0 (X11; U; FreeBSD i386; en-US; rv:1.9.2.9) '
 # ##### Templates for citations #####
 html = (u""".. _cited
 
-Publications from MNE users
-===========================
+Publications by users
+=====================
 
 Papers citing MNE as extracted from Google Scholar (on %s).
 

@@ -975,6 +975,8 @@ Simulation
    simulate_sparse_stc
    select_source_in_label
 
+.. _api_decoding:
+
 Decoding
 ========
 
