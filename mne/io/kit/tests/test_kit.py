@@ -9,7 +9,7 @@ import os.path as op
 import inspect
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_equal, assert_raises, assert_true
+from nose.tools import assert_equal, assert_almost_equal, assert_raises, assert_true
 from scipy import linalg
 import scipy.io
 
@@ -190,11 +190,12 @@ def test_hsp_elp():
 
 def test_decimate():
     """Test decimation of digitizer headshapes with too many points. """
+    # load headshape and convert to meters
     hsp = np.loadtxt(sphere_hsp_txt_path)
+    hsp /= 1000
     # read in raw data using spherical hsp, and extract new hsp
     raw = read_raw_kit(sqd_path, mrk_path, elp_txt_path, sphere_hsp_txt_path)
     hsp_dec = np.array([dig['r'] for dig in raw.info['dig']])[8:]
-
     # with 10242 points and _decimate_points set to resolution of 5 mm, hsp_dec
     # should be a bit over 5000 points. If not, something is wrong or
     # decimation resolution has been purposefully changed
@@ -205,6 +206,6 @@ def test_decimate():
     hsp_rad = np.mean(dist)
     hsp_dec_rad = np.mean(dist_dec)
 
-    assert_equal(hsp_rad, hsp_dec_rad, decimal=3)
+    assert_almost_equal(hsp_rad, hsp_dec_rad, places=3)
 
 run_tests_if_main()
