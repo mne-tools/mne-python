@@ -9,7 +9,8 @@ import os.path as op
 import inspect
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_equal, assert_almost_equal, assert_raises, assert_true
+from nose.tools import (assert_equal, assert_almost_equal, assert_raises,
+                        assert_true)
 from scipy import linalg
 import scipy.io
 
@@ -21,7 +22,6 @@ from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
 from mne.io.kit.constants import KIT, KIT_CONSTANTS, KIT_NY, KIT_UMD_2014
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.surface import _get_ico_surface
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
