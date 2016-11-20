@@ -804,6 +804,11 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     raw : Instance of RawKIT
         A Raw object containing KIT data.
 
+    Notes
+    -----
+    If mrk, hsp or elp are array_like inputs, then the numbers in xyz
+    coordinates should be in units of meters.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
