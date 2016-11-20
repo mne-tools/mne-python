@@ -37,6 +37,8 @@ elp_txt_path = op.join(data_dir, 'test_elp.txt')
 hsp_txt_path = op.join(data_dir, 'test_hsp.txt')
 elp_path = op.join(data_dir, 'test.elp')
 hsp_path = op.join(data_dir, 'test.hsp')
+# this is a fake headshape made up of a unit sphere to test decimation
+sphere_hsp_txt_path = op.join(data_dir, 'test_sphere_hsp.txt')
 
 
 def test_data():
@@ -188,15 +190,14 @@ def test_hsp_elp():
 
 def test_decimate():
     """Test decimation of digitizer headshapes with too many points. """
-    # create fake head points from sphere, and scale to similar numbers as hsp
-    hsp = _get_ico_surface(5)['rr']
-    hsp /= 10
-
+    hsp = np.loadtxt(sphere_hsp_txt_path)
     # read in raw data using spherical hsp, and extract new hsp
-    raw = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp)
-    hsp_dec = np.array([dig['r'] for dig in raw.info['dig']])
+    raw = read_raw_kit(sqd_path, mrk_path, elp_txt_path, sphere_hsp_txt_path)
+    hsp_dec = np.array([dig['r'] for dig in raw.info['dig']])[8:]
 
-    # with 10242 points and decimation at 5 mm, hsp_dec should be over 5000
+    # with 10242 points and _decimate_points set to resolution of 5 mm, hsp_dec
+    # should be a bit over 5000 points. If not, something is wrong or
+    # decimation resolution has been purposefully changed
     assert len(hsp_dec) > 5000
     # should have similar size, distance from center
     dist = np.sqrt(np.sum((hsp - np.mean(hsp, axis=0))**2, axis=1))
@@ -204,6 +205,6 @@ def test_decimate():
     hsp_rad = np.mean(dist)
     hsp_dec_rad = np.mean(dist_dec)
 
-    assert_array_almost_equal(hsp_rad, hsp_dec_rad, decimal=3)
+    assert_equal(hsp_rad, hsp_dec_rad, decimal=3)
 
 run_tests_if_main()
