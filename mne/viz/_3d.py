@@ -23,7 +23,7 @@ from ..externals.six import string_types, advance_iterator
 from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
-from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
+from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
                        complete_surface_info)
 from ..transforms import (read_trans, _find_trans, apply_trans,
@@ -267,10 +267,11 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
 @verbose
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
-               ch_type=None, source=('bem', 'head'), coord_frame='head',
-               meg_sensors=('helmet', 'sensors'), eeg_sensors='original',
-               dig=False, ref_meg=False, ecog_sensors=True, head=None,
-               brain=None, verbose=None):
+               ch_type=None, source=('bem', 'head', 'outer_skin',
+                                     'outer_skull', 'inner_skull'),
+               coord_frame='head', meg_sensors=('helmet', 'sensors'),
+               eeg_sensors='original', dig=False, ref_meg=False,
+               ecog_sensors=True, head=None, brain=None, verbose=None):
     """Plot head and sensor alignment in 3D.
 
     Parameters
@@ -289,11 +290,15 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     ch_type : None | 'eeg' | 'meg'
         This argument is deprecated. Use meg_sensors and eeg_sensors instead.
-    source : str
-        Type to load. Common choices would be `'bem'` or `'head'`. We first
-        try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
-        then look for `'$SUBJECT*$SOURCE.fif'` in the same directory. Defaults
-        to 'bem'. Note. For single layer bems it is recommended to use 'head'.
+    source : str | list
+        Type to load. Common choices would be `'bem'`, `'head'` or
+        `'outer_skin'`. If list, the sources are looked up in the given order
+        and first found surface is used. We first try loading
+        `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
+        `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
+        `'outer_skull'` and `'inner_skull'`, the subjects bem/flash folder is
+        searched. Defaults to 'bem'. Note. For single
+        layer bems it is recommended to use 'head'.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
     meg_sensors : bool | str | list
@@ -408,22 +413,26 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     surfs = dict()
     if head:
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        try:
-            surfs['head'] = get_head_surf(subject, source=source,
-                                          subjects_dir=subjects_dir)
-        except IOError as err:
+        head_surf = _get_head_surface(subject, source=source,
+                                      subjects_dir=subjects_dir,
+                                      raise_error=False)
+        if head_surf is None:
             for this_surf in ('outer_skin', 'outer_skull', 'inner_skull'):
+                if this_surf not in source:
+                    continue
                 surf_fname = op.join(subjects_dir, subject, 'bem',
                                      'flash', '%s.surf' % this_surf)
                 if op.exists(surf_fname):
-                    logger.info(err.message +
-                                ' Using %s for head surface.' % this_surf)
+                    logger.info('Using %s for head surface.' % this_surf)
+                    rr, tris = read_surface(surf_fname)
+                    # Normalization ensured later.
+                    head_surf = {'rr': rr / 1000., 'tris': tris,
+                                 'nn': rr.copy(),
+                                 'coord_frame': FIFF.FIFFV_COORD_MRI}
                     break
-                elif this_surf == 'inner_skull':  # No surface file found.
-                    raise err
-            rr, tris = read_surface(surf_fname)
-            surfs['head'] = {'rr': rr / 1000., 'tris': tris, 'nn': rr.copy(),
-                             'coord_frame': FIFF.FIFFV_COORD_MRI}
+        if head_surf is None:
+            raise IOError('No head surface found for subject %s.' % subject)
+        surfs['head'] = head_surf
 
     if 'helmet' in meg_sensors and len(meg_picks) > 0 and \
             (ch_type is None or ch_type == 'meg'):

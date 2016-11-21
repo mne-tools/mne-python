@@ -59,6 +59,12 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
     surf : dict
         The head surface.
     """
+    return _get_head_surface(subject=subject, source=source,
+                             subjects_dir=subjects_dir)
+
+
+def _get_head_surface(subject, source, subjects_dir, raise_error=True):
+    """Load the subject head surface."""
     from .bem import read_bem_surfaces
     # Load the head surface from the BEM
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -95,7 +101,7 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
         if surf is not None:
             break
 
-    if surf is None:
+    if surf is None and raise_error:
         raise IOError('No file matching "%s*%s" and containing a head '
                       'surface found.' % (subject, this_source))
     logger.info('Using surface from %s.' % this_head)
