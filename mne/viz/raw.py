@@ -300,7 +300,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_times=n_times, event_times=event_times, inds=inds,
                   event_nums=event_nums, clipping=clipping, fig_proj=None)
 
-    if order in ['selection', 'position']:
+    if isinstance(order, string_types) and order in ['selection', 'position']:
         params['fig_selection'] = fig_selection
         params['selections'] = selections
         params['radio_clicked'] = partial(_radio_clicked, params=params)
@@ -385,7 +385,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if show_options is True:
         _toggle_options(None, params)
     # initialize the first selection set
-    if order in ['selection', 'position']:
+    if isinstance(order, string_types) and order in ['selection', 'position']:
         _radio_clicked(fig_selection.radio.labels[0]._text, params)
         callback_selection_key = partial(_selection_key_press, params=params)
         callback_selection_scroll = partial(_selection_scroll, params=params)
