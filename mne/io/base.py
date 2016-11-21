@@ -2007,7 +2007,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             logger.info('Skipping data chunk due to small buffer ... '
                         '[done]')
             break
-        logger.info('Writing ...')
+        logger.debug('Writing ...')
         _write_raw_buffer(fid, data, cals, fmt)
 
         pos = fid.tell()
