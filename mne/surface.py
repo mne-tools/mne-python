@@ -101,9 +101,12 @@ def _get_head_surface(subject, source, subjects_dir, raise_error=True):
         if surf is not None:
             break
 
-    if surf is None and raise_error:
-        raise IOError('No file matching "%s*%s" and containing a head '
-                      'surface found.' % (subject, this_source))
+    if surf is None:
+        if raise_error:
+            raise IOError('No file matching "%s*%s" and containing a head '
+                          'surface found.' % (subject, this_source))
+        else:
+            return surf
     logger.info('Using surface from %s.' % this_head)
     return surf
 

@@ -417,19 +417,25 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                                       subjects_dir=subjects_dir,
                                       raise_error=False)
         if head_surf is None:
-            for this_surf in ('outer_skin', 'outer_skull', 'inner_skull'):
-                if this_surf not in source:
+            if isinstance(source, string_types):
+                source = [source]
+            for this_surf in source:
+                if not this_surf.endswith(('outer_skin', 'outer_skull',
+                                           'inner_skull')):
                     continue
-                surf_fname = op.join(subjects_dir, subject, 'bem',
-                                     'flash', '%s.surf' % this_surf)
-                if op.exists(surf_fname):
-                    logger.info('Using %s for head surface.' % this_surf)
-                    rr, tris = read_surface(surf_fname)
-                    # Normalization ensured later.
-                    head_surf = {'rr': rr / 1000., 'tris': tris,
-                                 'nn': rr.copy(),
-                                 'coord_frame': FIFF.FIFFV_COORD_MRI}
-                    break
+                surf_fname = op.join(subjects_dir, subject, 'bem', 'flash',
+                                     '%s.surf' % this_surf)
+                if not op.exists(surf_fname):
+                    surf_fname = op.join(subjects_dir, subject, 'bem',
+                                         '%s.surf' % this_surf)
+                    if not op.exists(surf_fname):
+                        continue
+                logger.info('Using %s for head surface.' % this_surf)
+                rr, tris = read_surface(surf_fname)
+                # Normalization ensured later.
+                head_surf = {'rr': rr / 1000., 'tris': tris, 'nn': rr.copy(),
+                             'coord_frame': FIFF.FIFFV_COORD_MRI}
+                break
         if head_surf is None:
             raise IOError('No head surface found for subject %s.' % subject)
         surfs['head'] = head_surf
