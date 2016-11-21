@@ -6,6 +6,7 @@ from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_equal, assert_true, assert_raises
 from scipy.signal import resample as sp_resample, butter
+from scipy.fftpack import fft, fftfreq
 
 from mne import create_info
 from mne.io import RawArray, read_raw_fif
@@ -314,16 +315,30 @@ def test_filters():
     assert_true(any('Increase filter_length' in str(ww.message) for ww in w))
 
     # try new default and old default
-    for fl in ['auto', '10s', '5000ms', 1024]:
+    freqs = fftfreq(a.shape[-1], 1. / sfreq)
+    A = np.abs(fft(a))
+    for fl in ['auto', '10s', '5000ms', 1024, 1023]:
         bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0)
-        bs = filter_data(a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0,
-                         phase='zero', fir_window='hamming')
-        lp = filter_data(a, sfreq, None, 8, None, fl, 10, 1.0, n_jobs=2,
-                         phase='zero', fir_window='hamming')
-        hp = filter_data(lp, sfreq, 4, None, None, fl, 1.0, 10, phase='zero',
-                         fir_window='hamming')
+        bs = filter_data(a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0)
+        lp = filter_data(a, sfreq, None, 8, None, fl, 10, 1.0, n_jobs=2)
+        hp = filter_data(lp, sfreq, 4, None, None, fl, 1.0, 10)
         assert_array_almost_equal(hp, bp, 4)
         assert_array_almost_equal(bp + bs, a, 4)
+        # Sanity check ttenuation
+        mask = (freqs > 5.5) & (freqs < 6.5)
+        assert_allclose(np.mean(np.abs(fft(bp)[:, mask]) / A[:, mask]),
+                        1., atol=0.02)
+        assert_allclose(np.mean(np.abs(fft(bs)[:, mask]) / A[:, mask]),
+                        0., atol=0.2)
+        # now the minimum-phase versions
+        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0,
+                         phase='minimum')
+        bs = filter_data(a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0,
+                         phase='minimum')
+        assert_allclose(np.mean(np.abs(fft(bp)[:, mask]) / A[:, mask]),
+                        1., atol=0.11)
+        assert_allclose(np.mean(np.abs(fft(bs)[:, mask]) / A[:, mask]),
+                        0., atol=0.3)
 
     # and since these are low-passed, downsampling/upsampling should be close
     n_resamp_ignore = 10

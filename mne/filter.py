@@ -9,7 +9,7 @@ from scipy.fftpack import fft, ifftshift, fftfreq, ifft
 from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
                    setup_cuda_fft_resample, fft_resample, _smart_pad)
 from .externals.six import string_types, integer_types
-from .fixes import get_sosfiltfilt
+from .fixes import get_sosfiltfilt, minimum_phase
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from .utils import (logger, verbose, sum_squared, check_version, warn,
@@ -139,7 +139,8 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
         If 'zero', the delay for the filter is compensated (and it must be
         an odd-length symmetric filter). If 'linear', the response is
         uncompensated. If 'zero-double', the filter is applied in the
-        forward and reverse directions.
+        forward and reverse directions. If 'minimum', a minimum-phase
+        filter will be used.
     picks : array-like of int | None
         Indices of channels to filter. If None all channels will be
         filtered. Only supported for 2D (n_channels, n_times) and 3D
@@ -317,7 +318,8 @@ def _construct_fir_filter(sfreq, freq, gain, filter_length, phase, fir_window):
         If 'zero', the delay for the filter is compensated (and it must be
         an odd-length symmetric filter). If 'linear', the response is
         uncompensated. If 'zero-double', the filter is applied in the
-        forward and reverse directions.
+        forward and reverse directions. If 'minimum', a minimum-phase
+        filter will be used.
     fir_window : str
         The window to use in FIR design, can be "hamming" (default),
         "hann", or "blackman".
@@ -330,7 +332,7 @@ def _construct_fir_filter(sfreq, freq, gain, filter_length, phase, fir_window):
     from scipy.signal import firwin2
 
     # issue a warning if attenuation is less than this
-    min_att_db = 20
+    min_att_db = 12 if phase == 'minimum' else 20
 
     # normalize frequencies
     freq = np.array(freq) / (sfreq / 2.)
@@ -342,7 +344,12 @@ def _construct_fir_filter(sfreq, freq, gain, filter_length, phase, fir_window):
     # Use overlap-add filter with a fixed length
     N = _check_zero_phase_length(filter_length, phase, gain[-1])
     # construct symmetric (linear phase) filter
-    h = firwin2(N, freq, gain, window=fir_window)
+    if phase == 'minimum':
+        h = firwin2(N * 2 - 1, freq, gain, window=fir_window)
+        h = minimum_phase(h)
+    else:
+        h = firwin2(N, freq, gain, window=fir_window)
+    assert h.size == N
     att_db, att_freq = _filter_attenuation(h, freq, gain)
     if phase == 'zero-double':
         att_db += 6
@@ -749,7 +756,8 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
         By default, a symmetric linear-phase FIR filter is constructed.
         If ``phase='zero'`` (default), the delay of this filter
         is compensated for. If ``phase=='zero-double'``, then this filter
-        is applied twice, once forward, and once backward.
+        is applied twice, once forward, and once backward. If 'minimum',
+        then a minimum-phase, causal filter will be used.
 
         .. versionadded:: 0.13
 
@@ -864,7 +872,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
         By default, a symmetric linear-phase FIR filter is constructed.
         If ``phase='zero'`` (default), the delay of this filter
         is compensated for. If ``phase=='zero-double'``, then this filter
-        is applied twice, once forward, and once backward.
+        is applied twice, once forward, and once backward. If 'minimum',
+        then a minimum-phase, causal filter will be used.
 
         .. versionadded:: 0.13
 
@@ -1607,8 +1616,9 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         Phase of the filter, only used if ``method='fir'``.
         By default, a symmetric linear-phase FIR filter is constructed.
         If ``phase='zero'`` (default), the delay of this filter
-        is compensated for. If ``phase=='zero-double'`` then this filter
-        is applied twice, once forward, and once backward.
+        is compensated for. If ``phase=='zero-double'``, then this filter
+        is applied twice, once forward, and once backward. If 'minimum',
+        then a minimum-phase, causal filter will be used.
 
         .. versionadded:: 0.13
 
@@ -2066,9 +2076,9 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                           bands='scalar', reverse=False):
     """Helper to validate and automate filter parameter selection."""
     if not isinstance(phase, string_types) or phase not in \
-            ('linear', 'zero', 'zero-double', ''):
-        raise ValueError('phase must be "linear", "zero", or "zero-double", '
-                         'got "%s"' % (phase,))
+            ('linear', 'zero', 'zero-double', 'minimum', ''):
+        raise ValueError('phase must be "linear", "zero", "zero-double", '
+                         'or "minimum", got "%s"' % (phase,))
     if not isinstance(fir_window, string_types) or fir_window not in \
             ('hann', 'hamming', 'blackman', ''):
         raise ValueError('fir_window must be "hamming", "hann", or "blackman",'
