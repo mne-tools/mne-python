@@ -13,6 +13,7 @@ from nose.tools import (assert_equal, assert_almost_equal, assert_raises,
                         assert_true)
 from scipy import linalg
 import scipy.io
+from tempfile import NamedTemporaryFile
 
 from mne import pick_types, Epochs, find_events, read_events
 from mne.transforms import apply_trans
@@ -22,6 +23,7 @@ from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
 from mne.io.kit.constants import KIT, KIT_CONSTANTS, KIT_NY, KIT_UMD_2014
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.surface import _get_ico_surface
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
@@ -191,17 +193,24 @@ def test_hsp_elp():
 def test_decimate():
     """Test decimation of digitizer headshapes with too many points. """
     # load headshape and convert to meters
-    hsp = np.loadtxt(sphere_hsp_txt_path)
-    hsp /= 1000
+    hsp_mm = _get_ico_surface(5)['rr'] * 100
+    hsp_m = hsp_mm / 1000.
+
+    # save headshape to a file in mm
+    sphere_hsp = NamedTemporaryFile()
+    np.savetxt(sphere_hsp.name, hsp_mm)
     # read in raw data using spherical hsp, and extract new hsp
-    raw = read_raw_kit(sqd_path, mrk_path, elp_txt_path, sphere_hsp_txt_path)
+    raw = read_raw_kit(sqd_path, mrk_path, elp_txt_path, sphere_hsp.name)
+    # close and delete temporary file
+    sphere_hsp.close()
+    # collect headshape from raw (should now be in m)
     hsp_dec = np.array([dig['r'] for dig in raw.info['dig']])[8:]
     # with 10242 points and _decimate_points set to resolution of 5 mm, hsp_dec
     # should be a bit over 5000 points. If not, something is wrong or
     # decimation resolution has been purposefully changed
     assert_true(len(hsp_dec) > 5000)
     # should have similar size, distance from center
-    dist = np.sqrt(np.sum((hsp - np.mean(hsp, axis=0))**2, axis=1))
+    dist = np.sqrt(np.sum((hsp_m - np.mean(hsp_m, axis=0))**2, axis=1))
     dist_dec = np.sqrt(np.sum((hsp_dec - np.mean(hsp_dec, axis=0))**2, axis=1))
     hsp_rad = np.mean(dist)
     hsp_dec_rad = np.mean(dist_dec)
