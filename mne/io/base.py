@@ -1028,8 +1028,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Phase of the filter, only used if ``method='fir'``.
             By default, a symmetric linear-phase FIR filter is constructed.
             If ``phase='zero'`` (default), the delay of this filter
-            is compensated for. If ``phase=='zero-double'``, then this
-            filter is applied twice, once forward, and once backward.
+            is compensated for. If ``phase=='zero-double'``, then this filter
+            is applied twice, once forward, and once backward. If 'minimum',
+            then a minimum-phase, causal filter will be used.
 
             .. versionadded:: 0.13
 
@@ -1168,8 +1169,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Phase of the filter, only used if ``method='fir'``.
             By default, a symmetric linear-phase FIR filter is constructed.
             If ``phase='zero'`` (default), the delay of this filter
-            is compensated for. If ``phase=='zero-double'`` then this filter
-            is applied twice, once forward, and once backward.
+            is compensated for. If ``phase=='zero-double'``, then this filter
+            is applied twice, once forward, and once backward. If 'minimum',
+            then a minimum-phase, causal filter will be used.
 
             .. versionadded:: 0.13
 

@@ -96,7 +96,7 @@ In MNE-Python we default to using FIR filtering. As noted in Widmann *et al.*
 
     Despite IIR filters often being considered as computationally more
     efficient, they are recommended only when high throughput and sharp
-    cutoffs are required (Ifeachor and Jervis, 2002[2]_, p. 321),
+    cutoffs are required (Ifeachor and Jervis, 2002 [2]_, p. 321),
     ...FIR filters are easier to control, are always stable, have a
     well-defined passband, can be corrected to zero-phase without
     additional computations, and can be converted to minimum-phase.
