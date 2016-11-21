@@ -17,7 +17,7 @@
 # Dev branch marker is: 'X.Y.devN' where N is an integer.
 #
 
-__version__ = '0.13'
+__version__ = '0.13.1'
 
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
