@@ -408,8 +408,23 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     surfs = dict()
     if head:
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        surfs['head'] = get_head_surf(subject, source=source,
-                                      subjects_dir=subjects_dir)
+        try:
+            surfs['head'] = get_head_surf(subject, source=source,
+                                          subjects_dir=subjects_dir)
+        except IOError as err:
+            for this_surf in ('outer_skin', 'outer_skull', 'inner_skull'):
+                surf_fname = op.join(subjects_dir, subject, 'bem',
+                                     'flash', '%s.surf' % this_surf)
+                if op.exists(surf_fname):
+                    logger.info(err.message +
+                                ' Using %s for head surface.' % this_surf)
+                    break
+                elif this_surf == 'inner_skull':  # No surface file found.
+                    raise err
+            rr, tris = read_surface(surf_fname)
+            surfs['head'] = {'rr': rr / 1000., 'tris': tris, 'nn': rr.copy(),
+                             'coord_frame': FIFF.FIFFV_COORD_MRI}
+
     if 'helmet' in meg_sensors and len(meg_picks) > 0 and \
             (ch_type is None or ch_type == 'meg'):
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
