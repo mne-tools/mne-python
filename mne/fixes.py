@@ -361,7 +361,16 @@ def get_sosfiltfilt():
 def minimum_phase(h):
     """Convert a linear-phase FIR filter to minimum phase.
 
-    Adapted from scipy.signal.
+    Parameters
+    ----------
+    h : array
+        Linear-phase FIR filter coefficients.
+
+    Returns
+    -------
+    h_minimum : array
+        The minimum-phase version of the filter, with length
+        ``(length(h) + 1) // 2``.
     """
     try:
         from scipy.signal import minimum_phase
