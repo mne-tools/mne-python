@@ -199,7 +199,7 @@ def test_decimate():
     # with 10242 points and _decimate_points set to resolution of 5 mm, hsp_dec
     # should be a bit over 5000 points. If not, something is wrong or
     # decimation resolution has been purposefully changed
-    assert len(hsp_dec) > 5000
+    assert_true(len(hsp_dec) > 5000)
     # should have similar size, distance from center
     dist = np.sqrt(np.sum((hsp - np.mean(hsp, axis=0))**2, axis=1))
     dist_dec = np.sqrt(np.sum((hsp_dec - np.mean(hsp_dec, axis=0))**2, axis=1))
