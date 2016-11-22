@@ -87,8 +87,6 @@ def test_plot_evoked():
                     [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
         # plot with bad channels excluded & spatial_colors & zorder
         evoked.plot(exclude='bads')
-        evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True,
-                    zorder='std')
 
         # test selective updating of dict keys is working.
         evoked.plot(hline=[1], units=dict(mag='femto foo'))
@@ -169,6 +167,11 @@ def test_plot_evoked():
         evoked_sss.info['proc_history'] = [dict(max_info=None)]
         evoked_sss.plot_white(cov)
         evoked_sss.plot_white(cov_fname)
+
+        # plot with bad channels excluded, spatial_colors, zorder & pos. layout
+        evoked.rename_channels({'MEG 0133': 'MEG 0000'})
+        evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True,
+                    zorder='std')
         plt.close('all')
     evoked.plot_sensors()  # Test plot_sensors
     plt.close('all')

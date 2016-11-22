@@ -346,7 +346,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                         xy = _auto_topomap_coords(info, idx,
                                                   ignore_overlap=True)
                         layout = generate_2d_layout(
-                            xy[idx], ch_names=list(used_nm), name='custom')
+                            xy, ch_names=list(used_nm), name='custom')
                         names = used_nm
                         name_idx = [layout.names.index(name) for name in
                                     names]
