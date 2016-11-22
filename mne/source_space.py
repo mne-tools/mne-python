@@ -1365,9 +1365,9 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
 
     Parameters
     ----------
-    subject : str
+    subject : str | None
         Subject to process. If None, the path to the mri volume must be
-        absolute.
+        absolute. Defaults to None.
     fname : str | None
         Deprecated and will be removed in 0.15. Use
         :func:`mne.write_source_spaces` instead.
@@ -1443,6 +1443,8 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
                          'specified')
     if mri is not None:
         if not op.isfile(mri):
+            if subject is None:
+                raise IOError('mri file "%s" not found' % mri)
             mri = op.join(subjects_dir, subject, 'mri', mri)
             if not op.isfile(mri):
                 raise IOError('mri file "%s" not found' % mri)
