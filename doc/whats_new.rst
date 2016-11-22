@@ -1881,4 +1881,4 @@ of commits):
 
 .. _Antti Rantala: https://github.com/Odingod
 
-.. _Keith Doelling: https://science.keithdoelling.com
+.. _Keith Doelling: http://science.keithdoelling.com
