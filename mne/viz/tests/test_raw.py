@@ -161,7 +161,7 @@ def test_plot_raw_psd():
     raw.plot_psd(tmax=np.inf, picks=picks, area_mode='range', average=False,
                  spatial_colors=True)
     raw.plot_psd(tmax=20., color='yellow', dB=False, line_alpha=0.4,
-                 n_overlap=0.1)
+                 n_overlap=0.1, average=False)
     plt.close('all')
     ax = plt.axes()
     # if ax is supplied:

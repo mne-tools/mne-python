@@ -395,10 +395,10 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 this_gfp = np.sqrt((D * D).mean(axis=0))
                 this_ylim = ax.get_ylim() if (ylim is None or this_type not in
                                               ylim.keys()) else ylim[this_type]
-                if not gfp_only:
-                    y_offset = this_ylim[0]
-                else:
+                if gfp_only:
                     y_offset = 0.
+                else:
+                    y_offset = this_ylim[0]
                 this_gfp += y_offset
                 ax.fill_between(times, y_offset, this_gfp, color='none',
                                 facecolor=gfp_color, zorder=1, alpha=0.25)

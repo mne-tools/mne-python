@@ -172,6 +172,8 @@ def test_plot_evoked():
         evoked.rename_channels({'MEG 0133': 'MEG 0000'})
         evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True,
                     zorder='std')
+        evoked.plot(exclude=[], spatial_colors=True, zorder='unsorted')
+        assert_raises(TypeError, evoked.plot, zorder='asdf')
         plt.close('all')
     evoked.plot_sensors()  # Test plot_sensors
     plt.close('all')
