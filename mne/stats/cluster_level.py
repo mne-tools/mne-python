@@ -689,8 +689,9 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     """
     if out_type not in ['mask', 'indices']:
         raise ValueError('out_type must be either \'mask\' or \'indices\'')
-    if tail < 0 and threshold > 0 or \
-            tail > 0 and threshold < 0 or tail == 0 and threshold < 0:
+    if not isinstance(threshold, dict) and (tail < 0 and threshold > 0 or
+                                            tail > 0 and threshold < 0 or
+                                            tail == 0 and threshold < 0):
         raise ValueError('incompatible tail and threshold signs, got %s and %s'
                          % (tail, threshold))
 
