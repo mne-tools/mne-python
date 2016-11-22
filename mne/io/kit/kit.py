@@ -477,7 +477,7 @@ def _set_dig_kit(mrk, elp, hsp):
     """Add landmark points and head shape data to the KIT instance.
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
-    ALS coordinate system.
+    ALS coordinate system. This is converted to [m].
 
     Parameters
     ----------
@@ -504,7 +504,7 @@ def _set_dig_kit(mrk, elp, hsp):
         hsp = _read_dig_points(hsp)
     n_pts = len(hsp)
     if n_pts > KIT.DIG_POINTS:
-        hsp = _decimate_points(hsp, res=5)
+        hsp = _decimate_points(hsp, res=0.005)
         n_new = len(hsp)
         warn("The selected head shape contained {n_in} points, which is "
              "more than recommended ({n_rec}), and was automatically "
@@ -803,6 +803,11 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     -------
     raw : Instance of RawKIT
         A Raw object containing KIT data.
+
+    Notes
+    -----
+    If mrk, hsp or elp are array_like inputs, then the numbers in xyz
+    coordinates should be in units of meters.
 
     See Also
     --------
