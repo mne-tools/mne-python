@@ -54,6 +54,7 @@ BUG
 
     - Fix handling of events in :class:`mne.realtime.RtEpochs` when the triggers were split between two buffers resulting in missing and/or duplicate epochs by `Mainak Jas`_ and `Antti Rantala`_
 
+    - Fix bug with automatic decimation in :func:`mne.io.read_raw_kit` by `Keith Doelling`_
 API
 ~~~
 
@@ -1876,3 +1877,5 @@ of commits):
 .. _Sheraz Khan: https://github.com/SherazKhan
 
 .. _Antti Rantala: https://github.com/Odingod
+
+.. _Keith Doelling: https://science.keithdoelling.com
