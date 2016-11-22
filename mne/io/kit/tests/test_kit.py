@@ -38,8 +38,6 @@ elp_txt_path = op.join(data_dir, 'test_elp.txt')
 hsp_txt_path = op.join(data_dir, 'test_hsp.txt')
 elp_path = op.join(data_dir, 'test.elp')
 hsp_path = op.join(data_dir, 'test.hsp')
-# this is a fake headshape made up of a unit sphere to test decimation
-sphere_hsp_txt_path = op.join(data_dir, 'test_sphere_hsp.txt')
 
 
 def test_data():
