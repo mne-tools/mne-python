@@ -508,7 +508,8 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
         use, or a loaded sphere model (dict).
     fname : str | None
         Destination forward solution filename. If None, the solution
-        will not be saved.
+        will not be saved. Deprecated and removed in 0.15, Use
+        :func:`mne.write_forward_solution` instead.
     meg : bool
         If True (Default), include MEG computations.
     eeg : bool
@@ -522,6 +523,8 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     overwrite : bool
         If True, the destination file (if it exists) will be overwritten.
         If False (default), an error will be raised if the file exists.
+        Deprecated and removed in 0.15. Use :func:`mne.write_forward_solution`
+        instead.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
@@ -603,6 +606,8 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     fwd.update(**update_kwargs)
     if fname is not None:
         logger.info('writing %s...', fname)
+        warn("Parameters 'fname' and 'overwrite' are deprecated and removed in"
+             "version 0.15. Use mne.write_forward_solution instead.")
         write_forward_solution(fname, fwd, overwrite, verbose=False)
 
     logger.info('Finished.')
