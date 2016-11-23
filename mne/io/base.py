@@ -630,6 +630,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._times.flags.writeable = False
 
     @property
+    def _first_time(self):
+        return self.first_samp / float(self.info['sfreq'])
+
+    @property
     def first_samp(self):
         """The first data sample."""
         return self._first_samps[0]

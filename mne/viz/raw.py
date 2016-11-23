@@ -195,7 +195,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw)
     scalings = _handle_default('scalings_plot_raw', scalings)
-    raw._first_time = raw.first_samp / float(raw.info['sfreq'])
 
     if clipping is not None and clipping not in ('clamp', 'transparent'):
         raise ValueError('clipping must be None, "clamp", or "transparent", '
