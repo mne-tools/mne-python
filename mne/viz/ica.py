@@ -787,6 +787,8 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     inds = list(range(len(picks)))
     data = np.array(data)
     n_channels = min([20, len(picks)])
+    raw._first_time = raw.first_samp / float(raw.info['sfreq'])
+    start += raw._first_time
     params = dict(raw=raw, orig_data=data, data=data[:, 0:t_end], inds=inds,
                   ch_start=0, t_start=start, info=info, duration=duration,
                   ica=ica, n_channels=n_channels, times=times, types=types,
@@ -825,7 +827,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
 def _update_data(params):
     """Prepare the data on horizontal shift of the viewport."""
     sfreq = params['info']['sfreq']
-    start = int(params['t_start'] * sfreq)
+    start = int((params['t_start'] - params['raw']._first_time) * sfreq)
     end = int((params['t_start'] + params['duration']) * sfreq)
     params['data'] = params['orig_data'][:, start:end]
     params['times'] = params['raw'].times[start:end]
