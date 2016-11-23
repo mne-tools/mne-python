@@ -33,6 +33,8 @@ Changelog
 
     - Add option to convert 3d electrode plots to a snapshot with 2d electrode positions with :func:`mne.viz.snapshot_brain_montage` by `Chris Holdgraf`_
 
+    - Add skull surface plotting option to :func:`mne.viz.plot_trans` by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 

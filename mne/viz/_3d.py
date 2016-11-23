@@ -323,11 +323,11 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         If True, show the 'white' brain surfaces. Can also be a str for
         surface type (e.g., 'pial', same as True), or None (True for ECoG,
         False otherwise).
-    skull : bool | str
+    skull : bool | str | list
         Whether to plot skull surface. If string, common choices would be
-        'inner_skull', or 'outer_skull'. True is an alias of 'outer_skull'. The
-        subjects bem and bem/flash folders are searched for the 'surf' files.
-        Defaults to False.
+        'inner_skull', or 'outer_skull'. Can also be a list to plot multiple
+        skull surfaces. True is an alias of 'outer_skull'. The subjects bem and
+        bem/flash folders are searched for the 'surf' files. Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -443,7 +443,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             raise IOError('No head surface found for subject %s.' % subject)
         surfs['head'] = head_surf
 
-    head_alpha = skull_alpha = 1.
+    head_alpha = 1.
     if 'helmet' in meg_sensors and len(meg_picks) > 0 and \
             (ch_type is None or ch_type == 'meg'):
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
@@ -468,16 +468,21 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     if skull is True:
         skull = 'outer_skull'
     if isinstance(skull, string_types):
-        if brain:
-            head_alpha = 0.5
-            skull_alpha = 0.75
-        else:
-            skull_alpha = 0.75
+        skull = [skull]
+    elif not skull:
+        skull = []
+    skull.sort()
+    skull_alpha = dict()
+    skull_colors = dict()
+    for idx, this_skull in enumerate(skull):
+        head_alpha = 0.75 - len(skull) * 0.25
+        skull_alpha[this_skull] = 1. - (len(skull) - idx) * 0.25
+        skull_colors[this_skull] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
         skull_fname = op.join(subjects_dir, subject, 'bem', 'flash',
-                              '%s.surf' % skull)
+                              '%s.surf' % this_skull)
         if not op.exists(skull_fname):
             skull_fname = op.join(subjects_dir, subject, 'bem',
-                                  '%s.surf' % skull)
+                                  '%s.surf' % this_skull)
         if not op.exists(skull_fname):
             raise IOError('No skull surface found for subject %s.' % subject)
         logger.info('Using %s for head surface.' % skull_fname)
@@ -485,7 +490,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         skull_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
                           np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
         complete_surface_info(skull_surf, copy=False)
-        surfs['skull'] = skull_surf
+        surfs[this_skull] = skull_surf
 
     for key in surfs.keys():
         surfs[key] = transform_surface_to(surfs[key], coord_frame, mri_trans)
@@ -558,10 +563,11 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     # do the plotting, surfaces then points
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
-    alphas = dict(head=head_alpha, skull=skull_alpha, helmet=0.5, lh=1.0,
-                  rh=1.0)
-    colors = dict(head=(0.6,) * 3, skull=(0.6,) * 3, helmet=(0.0, 0.0, 0.6),
-                  lh=(0.5,) * 3, rh=(0.5,) * 3)
+    alphas = dict(head=head_alpha, helmet=0.5, lh=1.0, rh=1.0)
+    alphas.update(skull_alpha)
+    colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
+                  rh=(0.5,) * 3)
+    colors.update(skull_colors)
     for key, surf in surfs.items():
         x, y, z = surf['rr'].T
         nn = surf['nn']
