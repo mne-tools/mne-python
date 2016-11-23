@@ -422,6 +422,8 @@ def _assert_inside(fro, to, expand=False):
         while (np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5).any():
             inds = np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5
             for ind in np.where(inds)[0]:
+                logger.info('Expanding %s vertice %s outwards.' %
+                            (_surf_name[to['id']], ind))
                 for idx in range(3):
                     if to['rr'][ind][idx] > 0:  # move vertice outwards
                         to['rr'][ind][idx] += 0.001
@@ -438,7 +440,7 @@ def _check_surfaces(surfs, expand=False):
     for surf in surfs:
         _assert_complete_surface(surf)
     # Then check the topology
-    for surf_1, surf_2 in zip(surfs[:-1], surfs[1:]):
+    for surf_1, surf_2 in zip(surfs[:-1][::-1], surfs[1:][::-1]):
         logger.info('Checking that %s surface is inside %s surface...' %
                     (_surf_name[surf_2['id']], _surf_name[surf_1['id']]))
         _assert_inside(surf_2, surf_1, expand=expand)
@@ -532,9 +534,10 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
         Path to SUBJECTS_DIR if it is not set in the environment.
     expand : bool
         Whether to expand the outer surface when the surfaces intersect. If
-        True, the outer surface vertices are moved outwards where the vertices
-        are inside the inner surface. Always make sure the bem model is still
-        valid after the expansion. You can plot them by passing surfaces to
+        True, the outer surface vertices are moved radially outwards where the
+        vertices are inside the inner surface until the surfaces no longer
+        intersect. Always make sure the bem model is still valid after the
+        expansion. You can plot them by passing surfaces to
         :func:`mne.viz.plot_trans` using `skull` argument. If False (default),
         an error is raised when the surfaces intersect.
     verbose : bool, str, int, or None
