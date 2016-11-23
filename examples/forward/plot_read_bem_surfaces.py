@@ -9,6 +9,7 @@ Plot BEM surfaces used for forward solution generation.
 #
 # License: BSD (3-clause)
 import os.path as op
+from mayavi import mlab
 
 import mne
 from mne.datasets.sample import data_path
@@ -28,3 +29,4 @@ subjects_dir = op.join(data_path, 'subjects')
 mne.viz.plot_trans(raw.info, trans=None, subject='sample',
                    subjects_dir=subjects_dir, meg_sensors=[], eeg_sensors=[],
                    head='outer_skin', skull=['inner_skull', 'outer_skull'])
+mlab.view(40, 60)
