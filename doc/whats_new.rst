@@ -58,6 +58,8 @@ BUG
 
     - Fix bug with :func:`mne.setup_volume_source_space` where arguments ``subject`` and ``subjects_dir`` were ignored by `Jaakko Leppakangas`_
 
+    - Fix sanity check for incompatible ``threshold`` and ``tail`` values in clustering functions like :func:`mne.stats.spatio_temporal_cluster_1samp_test` by `Eric Larson`_
+
 API
 ~~~
 
