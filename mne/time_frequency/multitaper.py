@@ -7,7 +7,7 @@ import numpy as np
 from scipy import fftpack, linalg
 
 from ..parallel import parallel_func
-from ..utils import sum_squared, warn
+from ..utils import sum_squared, warn, verbose
 
 
 def tridisolve(d, e, b, overwrite_b=True):
@@ -451,9 +451,10 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     return x_mt, freqs
 
 
-def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
-                    adaptive=False, low_bias=True, normalization='length',
-                    n_jobs=1):
+@verbose
+def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
+                         adaptive=False, low_bias=True, normalization='length',
+                         n_jobs=1, verbose=None):
     """Compute power spectrum density (PSD) using a multi-taper method.
 
     Parameters
@@ -480,6 +481,9 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         the signal (as in nitime).
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

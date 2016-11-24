@@ -143,9 +143,8 @@ def test_compares_psd():
     n_fft = 2048
 
     # Compute psds with the new implementation using Welch
-    psds_welch, freqs_welch = psd_welch(raw, tmin=tmin, tmax=tmax,
-                                        fmin=fmin, fmax=fmax,
-                                        proj=False, picks=picks,
+    psds_welch, freqs_welch = psd_welch(raw, tmin=tmin, tmax=tmax, fmin=fmin,
+                                        fmax=fmax, proj=False, picks=picks,
                                         n_fft=n_fft, n_jobs=1)
 
     # Compute psds with plt.psd

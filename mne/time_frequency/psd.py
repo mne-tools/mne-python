@@ -8,7 +8,7 @@ from ..parallel import parallel_func
 from ..io.pick import _pick_data_channels
 from ..utils import logger, verbose, _time_mask
 from ..fixes import get_spectrogram
-from .multitaper import _psd_multitaper
+from .multitaper import psd_array_multitaper
 
 
 def _psd_func(epoch, noverlap, nfft, fs, freq_mask, func):
@@ -52,8 +52,9 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
     return data, sfreq
 
 
-def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-               n_jobs=1):
+@verbose
+def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
+                    n_jobs=1, verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
     x : array, shape=(..., n_times)
@@ -161,7 +162,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     See Also
     --------
     mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_multitaper,
-    csd_epochs
+    csd_epochs, psd_array_welch
 
     Notes
     -----
@@ -169,8 +170,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     """
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
-    return _psd_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
-                      n_overlap=n_overlap, n_jobs=n_jobs)
+    return psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
+                           n_overlap=n_overlap, n_jobs=n_jobs, verbose=verbose)
 
 
 @verbose
@@ -241,7 +242,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_welch, csd_epochs
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_welch, csd_epochs,
+    psd_array_multitaper
 
     Notes
     -----
@@ -249,7 +251,7 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     """
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
-    return _psd_multitaper(data, sfreq, fmin=fmin, fmax=fmax,
-                           bandwidth=bandwidth, adaptive=adaptive,
-                           low_bias=low_bias,
-                           normalization=normalization, n_jobs=n_jobs)
+    return psd_array_multitaper(data, sfreq, fmin=fmin, fmax=fmax,
+                                bandwidth=bandwidth, adaptive=adaptive,
+                                low_bias=low_bias, normalization=normalization,
+                                n_jobs=n_jobs, verbose=verbose)
