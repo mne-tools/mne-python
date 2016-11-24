@@ -474,7 +474,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     elif not skull:
         skull = []
     if len(skull) > 0 and not isinstance(skull[0], dict):
-        skull.sort()
+        skull = sorted(skull)
     skull_alpha = dict()
     skull_colors = dict()
     for idx, this_skull in enumerate(skull):
