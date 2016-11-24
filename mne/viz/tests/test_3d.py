@@ -145,8 +145,8 @@ def test_plot_trans():
     evoked_eeg_ecog.info['projs'] = []  # "remove" avg proj
     evoked_eeg_ecog.set_channel_types({'EEG 001': 'ecog'})
     with warnings.catch_warnings(record=True) as w:
-        plot_trans(evoked_eeg_ecog.info,
-                   subject='sample', trans=trans_fname, meg_sensors=True,
+        plot_trans(evoked_eeg_ecog.info, subject='sample', trans=trans_fname,
+                   source='outer_skin', meg_sensors=True, skull=True,
                    eeg_sensors=['original', 'projected'], ecog_sensors=True,
                    brain='white', head=True, subjects_dir=subjects_dir)
     mlab.close(all=True)

@@ -23,7 +23,7 @@ from ..externals.six import string_types, advance_iterator
 from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
-from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
+from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
                        complete_surface_info)
 from ..transforms import (read_trans, _find_trans, apply_trans,
@@ -267,10 +267,11 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
 @verbose
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
-               ch_type=None, source=('bem', 'head'), coord_frame='head',
-               meg_sensors=('helmet', 'sensors'), eeg_sensors='original',
-               dig=False, ref_meg=False, ecog_sensors=True, head=None,
-               brain=None, verbose=None):
+               ch_type=None, source=('bem', 'head', 'outer_skin'),
+               coord_frame='head', meg_sensors=('helmet', 'sensors'),
+               eeg_sensors='original', dig=False, ref_meg=False,
+               ecog_sensors=True, head=None, brain=None, skull=False,
+               verbose=None):
     """Plot head and sensor alignment in 3D.
 
     Parameters
@@ -289,11 +290,14 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     ch_type : None | 'eeg' | 'meg'
         This argument is deprecated. Use meg_sensors and eeg_sensors instead.
-    source : str
-        Type to load. Common choices would be `'bem'` or `'head'`. We first
-        try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
-        then look for `'$SUBJECT*$SOURCE.fif'` in the same directory. Defaults
-        to 'bem'. Note. For single layer bems it is recommended to use 'head'.
+    source : str | list
+        Type to load. Common choices would be `'bem'`, `'head'` or
+        `'outer_skin'`. If list, the sources are looked up in the given order
+        and first found surface is used. We first try loading
+        `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
+        `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
+        the subjects bem and bem/flash folders are searched. Defaults to 'bem'.
+        Note. For single layer bems it is recommended to use 'head'.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
     meg_sensors : bool | str | list
@@ -319,6 +323,13 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         If True, show the 'white' brain surfaces. Can also be a str for
         surface type (e.g., 'pial', same as True), or None (True for ECoG,
         False otherwise).
+    skull : bool | str | list of str | list of dict
+        Whether to plot skull surface. If string, common choices would be
+        'inner_skull', or 'outer_skull'. Can also be a list to plot multiple
+        skull surfaces. If a list of dicts, each dict must contain the complete
+        surface info (such as you get from :func:`mne.make_bem_model`).
+        True is an alias of 'outer_skull'. The subjects bem and bem/flash
+        folders are searched for the 'surf' files. Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -408,8 +419,33 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     surfs = dict()
     if head:
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        surfs['head'] = get_head_surf(subject, source=source,
-                                      subjects_dir=subjects_dir)
+        head_surf = _get_head_surface(subject, source=source,
+                                      subjects_dir=subjects_dir,
+                                      raise_error=False)
+        if head_surf is None:
+            if isinstance(source, string_types):
+                source = [source]
+            for this_surf in source:
+                if not this_surf.endswith('outer_skin'):
+                    continue
+                surf_fname = op.join(subjects_dir, subject, 'bem', 'flash',
+                                     '%s.surf' % this_surf)
+                if not op.exists(surf_fname):
+                    surf_fname = op.join(subjects_dir, subject, 'bem',
+                                         '%s.surf' % this_surf)
+                    if not op.exists(surf_fname):
+                        continue
+                logger.info('Using %s for head surface.' % this_surf)
+                rr, tris = read_surface(surf_fname)
+                head_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
+                                 np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
+                complete_surface_info(head_surf, copy=False)
+                break
+        if head_surf is None:
+            raise IOError('No head surface found for subject %s.' % subject)
+        surfs['head'] = head_surf
+
+    head_alpha = 1.
     if 'helmet' in meg_sensors and len(meg_picks) > 0 and \
             (ch_type is None or ch_type == 'meg'):
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
@@ -430,8 +466,41 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             surfs[hemi] = dict(rr=rr, tris=tris, ntri=len(tris), np=len(rr),
                                coord_frame=FIFF.FIFFV_COORD_MRI)
             complete_surface_info(surfs[hemi], copy=False)
-    else:
-        head_alpha = 1.0
+
+    if skull is True:
+        skull = 'outer_skull'
+    if isinstance(skull, string_types):
+        skull = [skull]
+    elif not skull:
+        skull = []
+    if len(skull) > 0 and not isinstance(skull[0], dict):
+        skull = sorted(skull)
+    skull_alpha = dict()
+    skull_colors = dict()
+    for idx, this_skull in enumerate(skull):
+        head_alpha = 0.75 - len(skull) * 0.25
+        if isinstance(this_skull, dict):
+            from ..bem import _surf_name
+            skull_surf = this_skull
+            this_skull = _surf_name[skull_surf['id']]
+        else:
+            skull_fname = op.join(subjects_dir, subject, 'bem', 'flash',
+                                  '%s.surf' % this_skull)
+            if not op.exists(skull_fname):
+                skull_fname = op.join(subjects_dir, subject, 'bem',
+                                      '%s.surf' % this_skull)
+            if not op.exists(skull_fname):
+                raise IOError('No skull surface %s found for subject %s.'
+                              % (this_skull, subject))
+            logger.info('Using %s for head surface.' % skull_fname)
+            rr, tris = read_surface(skull_fname)
+            skull_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
+                              np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
+            complete_surface_info(skull_surf, copy=False)
+        skull_alpha[this_skull] = 1. - (len(skull) - idx) * 0.25
+        skull_colors[this_skull] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
+        surfs[this_skull] = skull_surf
+
     for key in surfs.keys():
         surfs[key] = transform_surface_to(surfs[key], coord_frame, mri_trans)
 
@@ -504,8 +573,10 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
     alphas = dict(head=head_alpha, helmet=0.5, lh=1.0, rh=1.0)
-    colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6),
-                  lh=(0.5,) * 3, rh=(0.5,) * 3)
+    alphas.update(skull_alpha)
+    colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
+                  rh=(0.5,) * 3)
+    colors.update(skull_colors)
     for key, surf in surfs.items():
         x, y, z = surf['rr'].T
         nn = surf['nn']

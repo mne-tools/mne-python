@@ -59,11 +59,17 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
     surf : dict
         The head surface.
     """
+    return _get_head_surface(subject=subject, source=source,
+                             subjects_dir=subjects_dir)
+
+
+def _get_head_surface(subject, source, subjects_dir, raise_error=True):
+    """Load the subject head surface."""
     from .bem import read_bem_surfaces
     # Load the head surface from the BEM
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if not isinstance(subject, string_types):
-        raise TypeError('subject must be a string, not %s' % (type(subject,)))
+        raise TypeError('subject must be a string, not %s.' % (type(subject,)))
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
     if isinstance(source, string_types):
         source = [source]
@@ -79,7 +85,7 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
             # let's do a more sophisticated search
             path = op.join(subjects_dir, subject, 'bem')
             if not op.isdir(path):
-                raise IOError('Subject bem directory "%s" does not exist'
+                raise IOError('Subject bem directory "%s" does not exist.'
                               % path)
             files = sorted(glob(op.join(path, '%s*%s.fif'
                                         % (subject, this_source))))
@@ -96,9 +102,12 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
             break
 
     if surf is None:
-        raise IOError('No file matching "%s*%s" and containing a head '
-                      'surface found' % (subject, this_source))
-    logger.info('Using surface from %s' % this_head)
+        if raise_error:
+            raise IOError('No file matching "%s*%s" and containing a head '
+                          'surface found.' % (subject, this_source))
+        else:
+            return surf
+    logger.info('Using surface from %s.' % this_head)
     return surf
 
 
