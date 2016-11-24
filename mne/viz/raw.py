@@ -563,7 +563,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         If True, transform data to decibels.
     average : bool
         If False, the PSDs of all channels is displayed. No averaging
-        is done and parameters area_mode and area_alpha are ignored.
+        is done and parameters area_mode and area_alpha are ignored. When
+        False, it is possible to paint an area (hold left mouse button and
+        drag) to plot a topomap.
     show : bool
         Show figure if True.
     n_jobs : int
@@ -572,10 +574,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Alpha for the PSD line. Can be None (default) to use 1.0 when
         ``average=True`` and 0.1 when ``average=False``.
     spatial_colors : bool
-        Whether to use spatial colors. With spatial colors it is possible to
-        click on a channel to identify it or paint an area (hold left mouse
-        button and drag) to plot a topomap. Only works when average=False.
-        Defaults to False.
+        Whether to use spatial colors. Only works when average=False. Defaults
+        to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
