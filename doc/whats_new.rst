@@ -62,6 +62,8 @@ BUG
 
     - Fix sanity check for incompatible ``threshold`` and ``tail`` values in clustering functions like :func:`mne.stats.spatio_temporal_cluster_1samp_test` by `Eric Larson`_
 
+    - Fix ``_bad_dropped`` not being set when loading eeglab epoched files via :func:`mne.io.eeglab.read_epochs_eeglab` which resulted in ``len()`` not working for :class:`mne.io.eeglab.EpochsEEGLAB`; by `Mikołaj Magnuski`_
+
 API
 ~~~
 
