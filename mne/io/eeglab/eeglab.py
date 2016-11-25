@@ -555,6 +555,9 @@ class EpochsEEGLAB(_BaseEpochs):
             info, data, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, verbose=verbose)
+
+        # data are preloaded but _bad_dropped is not set so we do it here:
+        self._bad_dropped = True
         logger.info('Ready.')
 
 

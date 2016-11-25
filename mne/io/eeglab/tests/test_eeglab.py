@@ -6,7 +6,7 @@ import os.path as op
 import shutil
 
 import warnings
-from nose.tools import assert_raises, assert_equal
+from nose.tools import assert_raises, assert_equal, assert_true
 import numpy as np
 from numpy.testing import assert_array_equal
 
@@ -65,7 +65,7 @@ def test_io_set():
         raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                     phase='zero')  # test that preloading works
 
-    # test that using uin16_codec does not break stuff
+    # test that using uint16_codec does not break stuff
     raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
                            event_id=event_id, preload=False,
                            uint16_codec='ascii')
@@ -96,6 +96,8 @@ def test_io_set():
 
     epochs = read_epochs_eeglab(epochs_fname, epochs.events, event_id)
     assert_equal(len(epochs.events), 4)
+    assert_true(epochs.preload)
+    assert_true(epochs._bad_dropped)
     epochs = read_epochs_eeglab(epochs_fname, out_fname, event_id)
     assert_raises(ValueError, read_epochs_eeglab, epochs_fname,
                   None, event_id)
