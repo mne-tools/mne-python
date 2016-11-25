@@ -512,12 +512,12 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
 
 def _get_inst_data(inst):
     """Get data view from MNE object instance like Raw, Epochs or Evoked."""
-    from .io.base import _BaseRaw
+    from .io.base import BaseRaw
     from .epochs import BaseEpochs
     from . import Evoked
     from .time_frequency.tfr import _BaseTFR
 
-    if isinstance(inst, (_BaseRaw, BaseEpochs)):
+    if isinstance(inst, (BaseRaw, BaseEpochs)):
         if not inst.preload:
             inst.load_data()
         return inst._data
@@ -1973,10 +1973,10 @@ class SizeMixin(object):
         """
         from .evoked import Evoked
         from .epochs import BaseEpochs
-        from .io.base import _BaseRaw
+        from .io.base import BaseRaw
         if isinstance(self, Evoked):
             return object_hash(dict(info=self.info, data=self.data))
-        elif isinstance(self, (BaseEpochs, _BaseRaw)):
+        elif isinstance(self, (BaseEpochs, BaseRaw)):
             if not self.preload:
                 raise RuntimeError('Cannot hash %s unless data are loaded'
                                    % self.__class__.__name__)

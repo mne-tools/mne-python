@@ -139,7 +139,7 @@ class ProjMixin(object):
             The instance.
         """
         from ..epochs import BaseEpochs
-        from .base import _BaseRaw
+        from .base import BaseRaw
         if self.info['projs'] is None or len(self.info['projs']) == 0:
             logger.info('No projector specified for this dataset. '
                         'Please consider the method self.add_proj.')
@@ -163,7 +163,7 @@ class ProjMixin(object):
                         ' Doing nothing.')
             return self
         self._projector, self.info = _projector, info
-        if isinstance(self, _BaseRaw):
+        if isinstance(self, BaseRaw):
             if self.preload:
                 self._data = np.dot(self._projector, self._data)
         elif isinstance(self, BaseEpochs):

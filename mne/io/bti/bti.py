@@ -16,7 +16,7 @@ from ...utils import logger, verbose, sum_squared
 from ...transforms import (combine_transforms, invert_transform, apply_trans,
                            Transform)
 from ..constants import FIFF
-from .. import _BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
+from .. import BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
 from ..utils import _mult_cal_one, read_str
 from .constants import BTI
 from .read import (read_int32, read_int16, read_float, read_double,
@@ -963,7 +963,7 @@ def _correct_trans(t):
     return t
 
 
-class RawBTi(_BaseRaw):
+class RawBTi(BaseRaw):
     """Raw object from 4D Neuroimaging MagnesWH3600 data.
 
     Parameters

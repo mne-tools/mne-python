@@ -77,7 +77,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
 
     .. versionadded:: 0.10.0
     """
-    from ..io.base import _BaseRaw
+    from ..io.base import BaseRaw
     from ..evoked import Evoked
     from ..epochs import BaseEpochs
 
@@ -85,7 +85,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         exclude = ica.exclude
     elif len(ica.exclude) > 0:
         exclude = np.union1d(ica.exclude, exclude)
-    if isinstance(inst, _BaseRaw):
+    if isinstance(inst, BaseRaw):
         fig = _plot_sources_raw(ica, inst, picks, exclude, start=start,
                                 stop=stop, show=show, title=title,
                                 block=block)
@@ -174,11 +174,11 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     -----
     .. versionadded:: 0.13
     """
-    from ..io.base import _BaseRaw
+    from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
     from ..preprocessing import ICA
 
-    if not isinstance(inst, (_BaseRaw, BaseEpochs)):
+    if not isinstance(inst, (BaseRaw, BaseEpochs)):
         raise ValueError('inst should be an instance of Raw or Epochs,'
                          ' got %s instead.' % type(inst))
     if not isinstance(ica, ICA):
@@ -219,7 +219,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     # calculations
     # ------------
     plot_line_at_zero = False
-    if isinstance(inst, _BaseRaw):
+    if isinstance(inst, BaseRaw):
         # break up continuous signal into segments
         from ..epochs import _segment_raw
         inst = _segment_raw(inst, segment_length=2., verbose=False,
@@ -606,11 +606,11 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         The figure.
     """
     # avoid circular imports
-    from ..io.base import _BaseRaw
+    from ..io.base import BaseRaw
     from ..evoked import Evoked
     from ..preprocessing.ica import _check_start_stop
 
-    if not isinstance(inst, (_BaseRaw, Evoked)):
+    if not isinstance(inst, (BaseRaw, Evoked)):
         raise ValueError('Data input must be of Raw or Evoked type')
     if title is None:
         title = 'Signals before (red) and after (black) cleaning'
@@ -618,7 +618,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         picks = [inst.ch_names.index(k) for k in ica.ch_names]
     if exclude is None:
         exclude = ica.exclude
-    if isinstance(inst, _BaseRaw):
+    if isinstance(inst, BaseRaw):
         if start is None:
             start = 0.0
         if stop is None:

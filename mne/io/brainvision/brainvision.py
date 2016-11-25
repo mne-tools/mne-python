@@ -18,14 +18,14 @@ import numpy as np
 from ...utils import verbose, logger, warn
 from ..constants import FIFF
 from ..meas_info import _empty_info
-from ..base import _BaseRaw, _check_update_montage
+from ..base import BaseRaw, _check_update_montage
 from ..utils import _read_segments_file, _synthesize_stim_channel
 
 from ...externals.six import StringIO
 from ...externals.six.moves import configparser
 
 
-class RawBrainVision(_BaseRaw):
+class RawBrainVision(BaseRaw):
     """Raw object from Brain Vision EEG file.
 
     Parameters

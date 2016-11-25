@@ -19,7 +19,7 @@ from ...coreg import fit_matched_points, _decimate_points
 from ...utils import verbose, logger, warn
 from ...transforms import (apply_trans, als_ras_trans,
                            get_ras_to_neuromag_trans, Transform)
-from ..base import _BaseRaw
+from ..base import BaseRaw
 from ..utils import _mult_cal_one
 from ...epochs import BaseEpochs
 from ..constants import FIFF
@@ -30,7 +30,7 @@ from ...externals.six import string_types
 from ...event import read_events
 
 
-class RawKIT(_BaseRaw):
+class RawKIT(BaseRaw):
     """Raw object from KIT SQD file.
 
     Parameters

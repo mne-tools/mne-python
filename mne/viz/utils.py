@@ -1329,9 +1329,9 @@ def _compute_scalings(scalings, inst):
     scalings : dict
         A scalings dictionary with updated values
     """
-    from ..io.base import _BaseRaw
+    from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
-    if not isinstance(inst, (_BaseRaw, BaseEpochs)):
+    if not isinstance(inst, (BaseRaw, BaseEpochs)):
         raise ValueError('Must supply either Raw or Epochs')
     if scalings is None:
         # If scalings is None just return it and do nothing
@@ -1349,7 +1349,7 @@ def _compute_scalings(scalings, inst):
     scalings = deepcopy(scalings)
 
     if inst.preload is False:
-        if isinstance(inst, _BaseRaw):
+        if isinstance(inst, BaseRaw):
             # Load a window of data from the center up to 100mb in size
             n_times = 1e8 // (len(inst.ch_names) * 8)
             n_times = np.clip(n_times, 1, inst.n_times)

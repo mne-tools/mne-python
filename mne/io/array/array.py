@@ -6,12 +6,12 @@
 
 import numpy as np
 
-from ..base import _BaseRaw
+from ..base import BaseRaw
 from ..meas_info import Info
 from ...utils import verbose, logger
 
 
-class RawArray(_BaseRaw):
+class RawArray(BaseRaw):
     """Raw object from numpy array.
 
     Parameters

@@ -36,10 +36,10 @@ def _check_nfft(n, n_fft, n_overlap):
 
 def _check_psd_data(inst, tmin, tmax, picks, proj):
     """Helper to do checks on PSD data / pull arrays from inst."""
-    from ..io.base import _BaseRaw
+    from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    if not isinstance(inst, (BaseEpochs, _BaseRaw, Evoked)):
+    if not isinstance(inst, (BaseEpochs, BaseRaw, Evoked)):
         raise ValueError('epochs must be an instance of Epochs, Raw, or'
                          'Evoked. Got type {0}'.format(type(inst)))
 
@@ -51,7 +51,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
         inst = inst.copy().apply_proj()
 
     sfreq = inst.info['sfreq']
-    if isinstance(inst, _BaseRaw):
+    if isinstance(inst, BaseRaw):
         start, stop = np.where(time_mask)[0][[0, -1]]
         data, times = inst[picks, start:(stop + 1)]
     elif isinstance(inst, BaseEpochs):

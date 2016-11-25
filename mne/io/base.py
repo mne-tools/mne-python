@@ -126,7 +126,7 @@ class ToDataFrameMixin(object):
             else:
                 # volume source estimates
                 col_names = ['VOL {0}'.format(vert) for vert in self.vertices]
-        elif isinstance(self, (BaseEpochs, _BaseRaw, Evoked)):
+        elif isinstance(self, (BaseEpochs, BaseRaw, Evoked)):
             picks = self._get_check_picks(picks, self.ch_names)
             if isinstance(self, BaseEpochs):
                 default_index = ['condition', 'epoch', 'time']
@@ -144,9 +144,9 @@ class ToDataFrameMixin(object):
                               np.repeat(np.arange(n_epochs), n_times)))
                 col_names = [self.ch_names[k] for k in picks]
 
-            elif isinstance(self, (_BaseRaw, Evoked)):
+            elif isinstance(self, (BaseRaw, Evoked)):
                 default_index = ['time']
-                if isinstance(self, _BaseRaw):
+                if isinstance(self, BaseRaw):
                     data, times = self[picks, start:stop]
                 elif isinstance(self, Evoked):
                     data = self.data[picks, :]
@@ -244,9 +244,9 @@ def _check_fun(fun, d, *args, **kwargs):
     return d
 
 
-class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
-               SetChannelsMixin, InterpolationMixin, ToDataFrameMixin,
-               TimeMixin, SizeMixin):
+class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
+              SetChannelsMixin, InterpolationMixin, ToDataFrameMixin,
+              TimeMixin, SizeMixin):
     """Base class for Raw data.
 
     Subclasses must provide the following methods:
@@ -254,7 +254,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         * _read_segment_file(self, data, idx, fi, start, stop, cals, mult)
           (only needed for types that support on-demand disk reads)
 
-    The `_BaseRaw._raw_extras` list can contain whatever data is necessary for
+    The `BaseRaw._raw_extras` list can contain whatever data is necessary for
     such on-demand reads. For `RawFIF` this means a list of variables formerly
     known as ``_rawdirs``.
     """

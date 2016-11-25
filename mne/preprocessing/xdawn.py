@@ -12,7 +12,7 @@ from .. import EvokedArray, Evoked
 from ..cov import Covariance, _regularized_covariance
 from ..decoding import TransformerMixin, BaseEstimator
 from ..epochs import BaseEpochs, EpochsArray
-from ..io import _BaseRaw
+from ..io import BaseRaw
 from ..io.pick import _pick_data_channels
 from ..utils import logger
 from ..externals.six import iteritems, itervalues
@@ -551,7 +551,7 @@ class Xdawn(_XdawnTransformer):
         if event_id is None:
             event_id = self.event_id_
 
-        if not isinstance(inst, (_BaseRaw, BaseEpochs, Evoked)):
+        if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
             raise ValueError('Data input must be Raw, Epochs or Evoked type')
         picks = _pick_data_channels(inst.info)
 
@@ -562,7 +562,7 @@ class Xdawn(_XdawnTransformer):
         else:
             exclude = list(set(list(default_exclude) + list(exclude)))
 
-        if isinstance(inst, _BaseRaw):
+        if isinstance(inst, BaseRaw):
             out = self._apply_raw(raw=inst, include=include, exclude=exclude,
                                   event_id=event_id, picks=picks)
         elif isinstance(inst, BaseEpochs):

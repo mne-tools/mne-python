@@ -30,7 +30,7 @@ from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
                       _pick_aux_channels, _DATA_CH_TYPES_SPLIT)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
-from .io.base import _BaseRaw, ToDataFrameMixin, TimeMixin
+from .io.base import BaseRaw, ToDataFrameMixin, TimeMixin
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale
@@ -1805,7 +1805,7 @@ class Epochs(BaseEpochs):
                  reject_tmax=None, detrend=None, add_eeg_ref=None,
                  on_missing='error', reject_by_annotation=True,
                  verbose=None):  # noqa: D102
-        if not isinstance(raw, _BaseRaw):
+        if not isinstance(raw, BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of `mne.io.Raw`')
         info = deepcopy(raw.info)

@@ -8,7 +8,7 @@ import time
 
 import numpy as np
 
-from ..base import _BaseRaw, _check_update_montage
+from ..base import BaseRaw, _check_update_montage
 from ..utils import _read_segments_file, _create_chs
 from ..meas_info import _empty_info
 from ..constants import FIFF
@@ -171,7 +171,7 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
                   verbose)
 
 
-class RawEGI(_BaseRaw):
+class RawEGI(BaseRaw):
     """Raw object from EGI simple binary file."""
 
     @verbose

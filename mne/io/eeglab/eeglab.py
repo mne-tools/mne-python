@@ -11,7 +11,7 @@ from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
 from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
-from ..base import _BaseRaw, _check_update_montage
+from ..base import BaseRaw, _check_update_montage
 from ...utils import logger, verbose, check_version, warn
 from ...channels.montage import Montage
 from ...epochs import BaseEpochs
@@ -244,7 +244,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     return epochs
 
 
-class RawEEGLAB(_BaseRaw):
+class RawEEGLAB(BaseRaw):
     r"""Raw object from EEGLAB .set file.
 
     Parameters
