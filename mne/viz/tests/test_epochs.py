@@ -13,11 +13,10 @@ from nose.tools import assert_raises
 import numpy as np
 from numpy.testing import assert_equal
 
-from mne import io, read_events, Epochs
-from mne import pick_types
-from mne.utils import run_tests_if_main, requires_version
+from mne import read_events, Epochs, pick_types
 from mne.channels import read_layout
-
+from mne.io import read_raw_fif
+from mne.utils import run_tests_if_main, requires_version
 from mne.viz import plot_drop_log
 from mne.viz.utils import _fake_click
 
@@ -38,44 +37,38 @@ n_chan = 15
 layout = read_layout('Vectorview-all')
 
 
-def _get_raw():
-    return io.read_raw_fif(raw_fname, preload=False)
-
-
-def _get_events():
-    return read_events(event_name)
-
-
 def _get_picks(raw):
+    """Get picks."""
     return pick_types(raw.info, meg=True, eeg=False, stim=False,
                       ecg=False, eog=False, exclude='bads')
 
 
 def _get_epochs():
-    raw = _get_raw()
-    events = _get_events()
+    """Get epochs."""
+    raw = read_raw_fif(raw_fname)
+    events = read_events(event_name)
     picks = _get_picks(raw)
     # Use a subset of channels for plotting speed
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
     with warnings.catch_warnings(record=True):  # bad proj
-        epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0))
+        epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks)
     return epochs
 
 
 def _get_epochs_delayed_ssp():
-    raw = _get_raw()
-    events = _get_events()
+    """Get epochs with delayed SSP."""
+    raw = read_raw_fif(raw_fname)
+    events = read_events(event_name)
     picks = _get_picks(raw)
     reject = dict(mag=4e-12)
-    epochs_delayed_ssp = Epochs(raw, events[:10], event_id, tmin, tmax,
-                                picks=picks, baseline=(None, 0),
-                                proj='delayed', reject=reject)
+    epochs_delayed_ssp = Epochs(
+        raw, events[:10], event_id, tmin, tmax, picks=picks,
+        proj='delayed', reject=reject)
     return epochs_delayed_ssp
 
 
 def test_plot_epochs():
-    """Test epoch plotting"""
+    """Test epoch plotting."""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.info.normalize_proj()  # avoid warnings
@@ -130,8 +123,7 @@ def test_plot_epochs():
 
 
 def test_plot_epochs_image():
-    """Test plotting of epochs image
-    """
+    """Test plotting of epochs image."""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.plot_image(picks=[1, 2])
@@ -151,8 +143,7 @@ def test_plot_epochs_image():
 
 
 def test_plot_drop_log():
-    """Test plotting a drop log
-    """
+    """Test plotting a drop log."""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
     assert_raises(ValueError, epochs.plot_drop_log)
@@ -170,8 +161,7 @@ def test_plot_drop_log():
 
 @requires_version('scipy', '0.12')
 def test_plot_psd_epochs():
-    """Test plotting epochs psd (+topomap)
-    """
+    """Test plotting epochs psd (+topomap)."""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.plot_psd()

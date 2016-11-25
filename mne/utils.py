@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Some utility functions"""
+"""Some utility functions."""
 from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -26,6 +26,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 import warnings
 
 import numpy as np
@@ -55,7 +56,7 @@ except ImportError:
 
 
 def nottest(f):
-    """Decorator to mark a function as not a test"""
+    """Decorator to mark a function as not a test."""
     f.__test__ = False
     return f
 
@@ -71,22 +72,19 @@ _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
 # RANDOM UTILITIES
 
 
-def _check_copy_dep(inst, copy, kind='inst'):
-    """Check for copy deprecation for 0.14"""
-    # For methods with copy=False default, we only need one release cycle
-    # for deprecation (0.13). For copy=True, we first need to go to copy=False
-    # (one cycle; 0.13) then remove copy altogether (one cycle; 0.14).
-    if copy:
-        warn('The copy parameter is deprecated and will be removed in 0.14. '
-             'In 0.13 the default is copy=False. Use %s.copy() if necessary.'
-             % (kind,), DeprecationWarning)
-    elif copy is None:
-        copy = False
-    return inst.copy() if copy else inst
+def _explain_exception(start=-1, stop=None, prefix='> '):
+    """Explain an exception."""
+    # start=-1 means "only the most recent caller"
+    etype, value, tb = sys.exc_info()
+    string = traceback.format_list(traceback.extract_tb(tb)[start:stop])
+    string = (''.join(string).split('\n') +
+              traceback.format_exception_only(etype, value))
+    string = ':\n' + prefix + ('\n' + prefix).join(string)
+    return string
 
 
 def _get_call_line(in_verbose=False):
-    """Helper to get the call line from within a function"""
+    """Get the call line from within a function."""
     # XXX Eventually we could auto-triage whether in a `verbose` decorated
     # function or not.
     # NB This probably only works for functions that are undecorated,
@@ -99,7 +97,7 @@ def _get_call_line(in_verbose=False):
 
 
 def _sort_keys(x):
-    """Sort and return keys of dict"""
+    """Sort and return keys of dict."""
     keys = list(x.keys())  # note: not thread-safe
     idx = np.argsort([str(k) for k in keys])
     keys = [keys[ii] for ii in idx]
@@ -107,7 +105,7 @@ def _sort_keys(x):
 
 
 def object_hash(x, h=None):
-    """Hash a reasonable python object
+    """Hash a reasonable python object.
 
     Parameters
     ----------
@@ -152,7 +150,7 @@ def object_hash(x, h=None):
 
 
 def object_size(x):
-    """Estimate the size of a reasonable python object
+    """Estimate the size of a reasonable python object.
 
     Parameters
     ----------
@@ -183,13 +181,16 @@ def object_size(x):
             size += object_size(value)
     elif isinstance(x, (list, tuple)):
         size = sys.getsizeof(x) + sum(object_size(xx) for xx in x)
+    elif sparse.isspmatrix_csc(x) or sparse.isspmatrix_csr(x):
+        size = sum(sys.getsizeof(xx)
+                   for xx in [x, x.data, x.indices, x.indptr])
     else:
         raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
     return size
 
 
 def object_diff(a, b, pre=''):
-    """Compute all differences between two python variables
+    """Compute all differences between two python variables.
 
     Parameters
     ----------
@@ -255,7 +256,7 @@ def object_diff(a, b, pre=''):
 
 
 def check_random_state(seed):
-    """Turn seed into a np.random.RandomState instance
+    """Turn seed into a np.random.RandomState instance.
 
     If seed is None, return the RandomState singleton used by np.random.
     If seed is an int, return a new RandomState instance seeded with seed.
@@ -273,7 +274,7 @@ def check_random_state(seed):
 
 
 def split_list(l, n):
-    """split list in n (approx) equal pieces"""
+    """Split list in n (approx) equal pieces."""
     n = int(n)
     sz = len(l) // n
     for i in range(n - 1):
@@ -282,7 +283,7 @@ def split_list(l, n):
 
 
 def create_chunks(sequence, size):
-    """Generate chunks from a sequence
+    """Generate chunks from a sequence.
 
     Parameters
     ----------
@@ -295,7 +296,7 @@ def create_chunks(sequence, size):
 
 
 def sum_squared(X):
-    """Compute norm of an array
+    """Compute norm of an array.
 
     Parameters
     ----------
@@ -312,7 +313,7 @@ def sum_squared(X):
 
 
 def warn(message, category=RuntimeWarning):
-    """Emit a warning with trace outside the mne namespace
+    """Emit a warning with trace outside the mne namespace.
 
     This function takes arguments like warnings.warn, and sends messages
     using both ``warnings.warn`` and ``logger.warn``. Warnings can be
@@ -329,13 +330,11 @@ def warn(message, category=RuntimeWarning):
     """
     import mne
     root_dir = op.dirname(mne.__file__)
-    stacklevel = 1
     frame = None
     stack = inspect.stack()
     last_fname = ''
     for fi, frame in enumerate(stack):
-        fname = frame[1]
-        del frame
+        fname, lineno = frame[1:3]
         if fname == '<string>' and last_fname == 'utils.py':  # in verbose dec
             last_fname = fname
             continue
@@ -344,17 +343,19 @@ def warn(message, category=RuntimeWarning):
         if not (fname.startswith(root_dir) or
                 ('unittest' in fname and 'case' in fname)) or \
                 op.basename(op.dirname(fname)) == 'tests':
-            stacklevel = fi + 1
             break
         last_fname = op.basename(fname)
-    del stack
     if logger.level <= logging.WARN:
-        warnings.warn(message, category, stacklevel=stacklevel)
+        # We need to use this instead of warn(message, category, stacklevel)
+        # because we move out of the MNE stack, so warnings won't properly
+        # recognize the module name (and our warnings.simplefilter will fail)
+        warnings.warn_explicit(message, category, fname, lineno,
+                               'mne', globals().get('__warningregistry__', {}))
     logger.warning(message)
 
 
 def check_fname(fname, filetype, endings, endings_err=()):
-    """Enforce MNE filename conventions
+    """Enforce MNE filename conventions.
 
     Parameters
     ----------
@@ -380,11 +381,13 @@ def check_fname(fname, filetype, endings, endings_err=()):
 
 
 class WrapStdOut(object):
-    """Dynamically wrap to sys.stdout
+    """Dynamically wrap to sys.stdout.
 
     This makes packages that monkey-patch sys.stdout (e.g.doctest,
-    sphinx-gallery) work properly."""
-    def __getattr__(self, name):
+    sphinx-gallery) work properly.
+    """
+
+    def __getattr__(self, name):  # noqa: D105
         # Even more ridiculous than this class, this must be sys.stdout (not
         # just stdout) in order for this to work (tested on OSX and Linux)
         if hasattr(sys.stdout, name):
@@ -394,7 +397,7 @@ class WrapStdOut(object):
 
 
 class _TempDir(str):
-    """Class for creating and auto-destroying temp dir
+    """Create and auto-destroy temp dir.
 
     This is designed to be used with testing modules. Instances should be
     defined inside test functions. Instances defined at module level can not
@@ -404,20 +407,20 @@ class _TempDir(str):
     cleanup can fail because the rmtree function may be cleaned up before this
     object (an alternative could be using the atexit module instead).
     """
-    def __new__(self):
+
+    def __new__(self):  # noqa: D105
         new = str.__new__(self, tempfile.mkdtemp())
         return new
 
-    def __init__(self):
+    def __init__(self):  # noqa: D102
         self._path = self.__str__()
 
-    def __del__(self):
+    def __del__(self):  # noqa: D105
         rmtree(self._path, ignore_errors=True)
 
 
-def estimate_rank(data, tol='auto', return_singular=False,
-                  norm=True, copy=None):
-    """Helper to estimate the rank of data
+def estimate_rank(data, tol='auto', return_singular=False, norm=True):
+    """Estimate the rank of data.
 
     This function will normalize the rows of the data (typically
     channels or vertices) such that non-zero singular values
@@ -439,9 +442,6 @@ def estimate_rank(data, tol='auto', return_singular=False,
     norm : bool
         If True, data will be scaled by their estimated row-wise norm.
         Else data are assumed to be scaled. Defaults to True.
-    copy : bool
-        This parameter has been deprecated and will be removed in 0.13.
-        It is ignored in 0.12.
 
     Returns
     -------
@@ -451,8 +451,6 @@ def estimate_rank(data, tol='auto', return_singular=False,
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    if copy is not None:
-        warn('copy is deprecated and ignored. It will be removed in 0.13.')
     data = data.copy()  # operate on a copy
     if norm is True:
         norms = _compute_row_norms(data)
@@ -472,15 +470,14 @@ def estimate_rank(data, tol='auto', return_singular=False,
 
 
 def _compute_row_norms(data):
-    """Compute scaling based on estimated norm"""
+    """Compute scaling based on estimated norm."""
     norms = np.sqrt(np.sum(data ** 2, axis=1))
     norms[norms == 0] = 1.0
     return norms
 
 
 def _reject_data_segments(data, reject, flat, decim, info, tstep):
-    """Reject data segments using peak-to-peak amplitude
-    """
+    """Reject data segments using peak-to-peak amplitude."""
     from .epochs import _is_good
     from .io.pick import channel_indices_by_type
 
@@ -514,8 +511,7 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
 
 
 def _get_inst_data(inst):
-    """get data from MNE object instance like Raw, Epochs or Evoked.
-    Returns a view, not a copy!"""
+    """Get data view from MNE object instance like Raw, Epochs or Evoked."""
     from .io.base import _BaseRaw
     from .epochs import _BaseEpochs
     from . import Evoked
@@ -534,7 +530,8 @@ def _get_inst_data(inst):
 
 
 class _FormatDict(dict):
-    """Helper for pformat()"""
+    """Helper for pformat()."""
+
     def __missing__(self, key):
         return "{" + key + "}"
 
@@ -550,12 +547,6 @@ def pformat(temp, **fmt):
     formatter = Formatter()
     mapping = _FormatDict(fmt)
     return formatter.vformat(temp, (), mapping)
-
-
-def trait_wraith(*args, **kwargs):
-    # Stand in for traits to allow importing traits based modules when the
-    # traits library is not installed
-    return lambda x: x
 
 
 ###############################################################################
@@ -590,17 +581,18 @@ class deprecated(object):
     extra: string
         To be added to the deprecation messages.
     """
+
     # Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,
     # but with many changes.
 
     # scikit-learn will not import on all platforms b/c it can be
     # sklearn or scikits.learn, so a self-contained example is used above
 
-    def __init__(self, extra=''):
+    def __init__(self, extra=''):  # noqa: D102
         self.extra = extra
 
-    def __call__(self, obj):
-        """Call
+    def __call__(self, obj):  # noqa: D105
+        """Call.
 
         Parameters
         ----------
@@ -632,8 +624,7 @@ class deprecated(object):
         return cls
 
     def _decorate_fun(self, fun):
-        """Decorate function fun"""
-
+        """Decorate function fun."""
         msg = "Function %s is deprecated" % fun.__name__
         if self.extra:
             msg += "; %s" % self.extra
@@ -659,10 +650,13 @@ class deprecated(object):
 
 @decorator
 def verbose(function, *args, **kwargs):
-    """Improved verbose decorator to allow functions to override log-level
+    """Verbose decorator to allow functions to override log-level.
 
-    Do not call this directly to set global verbosity level, instead use
-    set_log_level().
+    This decorator is used to set the verbose level during a function or method
+    call, such as :func:`mne.compute_covariance`. The `verbose` keyword
+    argument can be 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', True (an
+    alias for 'INFO'), or False (an alias for 'WARNING'). To set the global
+    verbosity level for all functions, use :func:`mne.set_log_level`.
 
     Parameters
     ----------
@@ -673,7 +667,22 @@ def verbose(function, *args, **kwargs):
     -------
     dec : function
         The decorated function
-    """
+
+    Examples
+    --------
+    You can use the ``verbose`` argument to set the verbose level on the fly::
+        >>> import mne
+        >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')  # doctest: +SKIP
+        >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')  # doctest: +SKIP
+        Using up to 49 segments
+        Number of samples used : 5880
+        [done]
+
+    See Also
+    --------
+    set_log_level
+    set_config
+    """  # noqa: E501
     arg_names = _get_args(function)
     default_level = verbose_level = None
     if len(arg_names) > 0 and arg_names[0] == 'self':
@@ -694,40 +703,41 @@ def verbose(function, *args, **kwargs):
 
 
 class use_log_level(object):
-    """Context handler for logging level
+    """Context handler for logging level.
 
     Parameters
     ----------
     level : int
         The level to use.
     """
-    def __init__(self, level):
+
+    def __init__(self, level):  # noqa: D102
         self.level = level
 
-    def __enter__(self):
+    def __enter__(self):  # noqa: D105
         self.old_level = set_log_level(self.level, True)
 
-    def __exit__(self, *args):
+    def __exit__(self, *args):  # noqa: D105
         set_log_level(self.old_level)
 
 
 @nottest
 def slow_test(f):
-    """Decorator for slow tests"""
+    """Decorator for slow tests."""
     f.slow_test = True
     return f
 
 
 @nottest
 def ultra_slow_test(f):
-    """Decorator for ultra slow tests"""
+    """Decorator for ultra slow tests."""
     f.ultra_slow_test = True
     f.slow_test = True
     return f
 
 
 def has_nibabel(vox2ras_tkr=False):
-    """Determine if nibabel is installed
+    """Determine if nibabel is installed.
 
     Parameters
     ----------
@@ -752,24 +762,24 @@ def has_nibabel(vox2ras_tkr=False):
 
 
 def has_mne_c():
-    """Aux function"""
+    """Aux function."""
     return 'MNE_ROOT' in os.environ
 
 
 def has_freesurfer():
-    """Aux function"""
+    """Aux function."""
     return 'FREESURFER_HOME' in os.environ
 
 
 def requires_nibabel(vox2ras_tkr=False):
-    """Aux function"""
+    """Aux function."""
     extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
     return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
                                  'Requires nibabel%s' % extra)
 
 
 def buggy_mkl_svd(function):
-    """Decorator for tests that make calls to SVD and intermittently fail"""
+    """Decorator for tests that make calls to SVD and intermittently fail."""
     @wraps(function)
     def dec(*args, **kwargs):
         try:
@@ -785,14 +795,14 @@ def buggy_mkl_svd(function):
 
 
 def requires_version(library, min_version):
-    """Helper for testing"""
+    """Helper for testing."""
     return np.testing.dec.skipif(not check_version(library, min_version),
                                  'Requires %s version >= %s'
                                  % (library, min_version))
 
 
 def requires_module(function, name, call=None):
-    """Decorator to skip test if package is not available"""
+    """Decorator to skip test if package is not available."""
     call = ('import %s' % name) if call is None else call
     try:
         from nose.plugins.skip import SkipTest
@@ -800,15 +810,12 @@ def requires_module(function, name, call=None):
         SkipTest = AssertionError
 
     @wraps(function)
-    def dec(*args, **kwargs):
-        skip = False
+    def dec(*args, **kwargs):  # noqa: D102
         try:
             exec(call) in globals(), locals()
-        except Exception:
-            skip = True
-        if skip is True:
-            raise SkipTest('Test %s skipped, requires %s'
-                           % (function.__name__, name))
+        except Exception as exc:
+            raise SkipTest('Test %s skipped, requires %s. Got exception (%s)'
+                           % (function.__name__, name, exc))
         return function(*args, **kwargs)
     return dec
 
@@ -1048,7 +1055,6 @@ requires_fs_or_nibabel = partial(requires_module, name='nibabel or Freesurfer',
 requires_tvtk = partial(requires_module, name='TVTK',
                         call='from tvtk.api import tvtk')
 requires_statsmodels = partial(requires_module, name='statsmodels')
-requires_patsy = partial(requires_module, name='patsy')
 requires_pysurfer = partial(requires_module, name='PySurfer',
                             call='from surfer import Brain')
 requires_PIL = partial(requires_module, name='PIL',
@@ -1062,13 +1068,12 @@ requires_ftp = partial(
     call='if int(os.environ.get("MNE_SKIP_FTP_TESTS", 0)):\n'
          '    raise ImportError')
 requires_nitime = partial(requires_module, name='nitime')
-requires_traits = partial(requires_module, name='traits')
 requires_h5py = partial(requires_module, name='h5py')
 requires_numpydoc = partial(requires_module, name='numpydoc')
 
 
 def check_version(library, min_version):
-    """Check minimum library version required
+    r"""Check minimum library version required.
 
     Parameters
     ----------
@@ -1076,7 +1081,7 @@ def check_version(library, min_version):
         The library name to import. Must have a ``__version__`` property.
     min_version : str
         The minimum version string. Anything that matches
-        ``'(\\d+ | [a-z]+ | \\.)'``
+        ``'(\d+ | [a-z]+ | \.)'``
 
     Returns
     -------
@@ -1096,13 +1101,13 @@ def check_version(library, min_version):
 
 
 def _check_mayavi_version(min_version='4.3.0'):
-    """Helper for mayavi"""
+    """Helper for mayavi."""
     if not check_version('mayavi', min_version):
         raise RuntimeError("Need mayavi >= %s" % min_version)
 
 
 def _check_pyface_backend():
-    """Check the currently selected Pyface backend
+    """Check the currently selected Pyface backend.
 
     Returns
     -------
@@ -1132,7 +1137,7 @@ def _check_pyface_backend():
 
 @verbose
 def run_subprocess(command, verbose=None, *args, **kwargs):
-    """Run command using subprocess.Popen
+    """Run command using subprocess.Popen.
 
     Run command and wait for command to complete. If the return code was zero
     then return, otherwise raise CalledProcessError.
@@ -1144,8 +1149,9 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     command : list of str | str
         Command to run as subprocess (see subprocess.Popen documentation).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to self.verbose.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        self.verbose.
     *args, **kwargs : arguments
         Additional arguments to pass to subprocess.Popen.
 
@@ -1214,7 +1220,7 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
 # LOGGING
 
 def set_log_level(verbose=None, return_old_level=False):
-    """Convenience function for setting the logging level
+    """Set the logging level.
 
     Parameters
     ----------
@@ -1250,7 +1256,7 @@ def set_log_level(verbose=None, return_old_level=False):
 
 
 def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
-    """Convenience function for setting the log to print to a file
+    """Set the log to print to a file.
 
     Parameters
     ----------
@@ -1300,12 +1306,13 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
 
 
 class catch_logging(object):
-    """Helper to store logging
+    """Helper to store logging.
 
     This will remove all other logging handlers, and return the handler to
     stdout when complete.
     """
-    def __enter__(self):
+
+    def __enter__(self):  # noqa: D105
         self._data = StringIO()
         self._lh = logging.StreamHandler(self._data)
         self._lh.setFormatter(logging.Formatter('%(message)s'))
@@ -1314,7 +1321,7 @@ class catch_logging(object):
         logger.addHandler(self._lh)
         return self._data
 
-    def __exit__(self, *args):
+    def __exit__(self, *args):  # noqa: D105
         logger.removeHandler(self._lh)
         set_log_file(None)
 
@@ -1323,7 +1330,7 @@ class catch_logging(object):
 # CONFIG / PREFS
 
 def get_subjects_dir(subjects_dir=None, raise_error=False):
-    """Safely use subjects_dir input to return SUBJECTS_DIR
+    """Safely use subjects_dir input to return SUBJECTS_DIR.
 
     Parameters
     ----------
@@ -1348,7 +1355,7 @@ _temp_home_dir = None
 
 
 def _get_extra_data_path(home_dir=None):
-    """Get path to extra data (config, tables, etc.)"""
+    """Get path to extra data (config, tables, etc.)."""
     global _temp_home_dir
     if home_dir is None:
         home_dir = os.environ.get('_MNE_FAKE_HOME_DIR')
@@ -1381,7 +1388,7 @@ def _get_extra_data_path(home_dir=None):
 
 
 def get_config_path(home_dir=None):
-    """Get path to standard mne-python config file
+    r"""Get path to standard mne-python config file.
 
     Parameters
     ----------
@@ -1421,7 +1428,7 @@ def set_cache_dir(cache_dir):
 
 
 def set_memmap_min_size(memmap_min_size):
-    """Set the minimum size for memmaping of arrays for parallel processing
+    """Set the minimum size for memmaping of arrays for parallel processing.
 
     Parameters
     ----------
@@ -1452,6 +1459,7 @@ known_config_types = (
     'MNE_DATASETS_MISC_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SOMATO_PATH',
+    'MNE_DATASETS_MULTIMODAL_PATH',
     'MNE_DATASETS_SPM_FACE_DATASETS_TESTS',
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_TESTING_PATH',
@@ -1474,7 +1482,7 @@ known_config_wildcards = (
 
 
 def _load_config(config_path, raise_error=False):
-    """Helper to safely load a config file"""
+    """Safely load a config file."""
     with open(config_path, 'r') as fid:
         try:
             config = json.load(fid)
@@ -1490,7 +1498,7 @@ def _load_config(config_path, raise_error=False):
 
 
 def get_config(key=None, default=None, raise_error=False, home_dir=None):
-    """Read mne(-python) preference from env, then mne-python config
+    """Read MNE-Python preferences from environment or config file.
 
     Parameters
     ----------
@@ -1516,7 +1524,6 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     --------
     set_config
     """
-
     if key is not None and not isinstance(key, string_types):
         raise TypeError('key must be a string')
 
@@ -1549,8 +1556,8 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     return val
 
 
-def set_config(key, value, home_dir=None, set_env=None):
-    """Set mne-python preference in config
+def set_config(key, value, home_dir=None, set_env=True):
+    """Set a MNE-Python preference key in the config file and environment.
 
     Parameters
     ----------
@@ -1564,8 +1571,8 @@ def set_config(key, value, home_dir=None, set_env=None):
         The folder that contains the .mne config folder.
         If None, it is found automatically.
     set_env : bool
-        If True, update :data:`os.environ` in addition to updating the
-        MNE-Python config file.
+        If True (default), update :data:`os.environ` in addition to
+        updating the MNE-Python config file.
 
     See Also
     --------
@@ -1582,11 +1589,6 @@ def set_config(key, value, home_dir=None, set_env=None):
     if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
         warn('Setting non-standard config type: "%s"' % key)
-    if set_env is None:
-        warnings.warn('set_env defaults to False in 0.13 but will change '
-                      'to True in 0.14, set it explicitly to avoid this '
-                      'warning', DeprecationWarning)
-        set_env = False
 
     # Read all previous values
     config_path = get_config_path(home_dir=home_dir)
@@ -1615,13 +1617,14 @@ def set_config(key, value, home_dir=None, set_env=None):
 
 
 class ProgressBar(object):
-    """Class for generating a command-line progressbar
+    """Generate a command-line progressbar.
 
     Parameters
     ----------
-    max_value : int
+    max_value : int | iterable
         Maximum value of process (e.g. number of samples to process, bytes to
-        download, etc.).
+        download, etc.). If an iterable is given, then `max_value` will be set
+        to the length of this iterable.
     initial_value : int
         Initial value of process, useful when resuming process from a specific
         value, defaults to 0.
@@ -1656,9 +1659,16 @@ class ProgressBar(object):
     template = '\r[{0}{1}] {2:.05f} {3} {4}   '
 
     def __init__(self, max_value, initial_value=0, mesg='', max_chars=40,
-                 progress_character='.', spinner=False, verbose_bool=True):
+                 progress_character='.', spinner=False,
+                 verbose_bool=True):  # noqa: D102
         self.cur_value = initial_value
-        self.max_value = max_value
+        if isinstance(max_value, (float, int)):
+            self.max_value = max_value
+            self.iterable = None
+        else:
+            # input is an iterable
+            self.max_value = len(max_value)
+            self.iterable = max_value
         self.mesg = mesg
         self.max_chars = max_chars
         self.progress_character = progress_character
@@ -1668,7 +1678,7 @@ class ProgressBar(object):
         self._do_print = verbose_bool
 
     def update(self, cur_value, mesg=None):
-        """Update progressbar with current value of process
+        """Update progressbar with current value of process.
 
         Parameters
         ----------
@@ -1713,8 +1723,7 @@ class ProgressBar(object):
             self.spinner_index = (self.spinner_index + 1) % self.n_spinner
 
     def update_with_increment_value(self, increment_value, mesg=None):
-        """Update progressbar with the value of the increment instead of the
-        current value of process as in update()
+        """Update progressbar with an increment.
 
         Parameters
         ----------
@@ -1730,9 +1739,17 @@ class ProgressBar(object):
         self.cur_value += increment_value
         self.update(self.cur_value, mesg)
 
+    def __iter__(self):
+        """Iterate to auto-increment the pbar with 1."""
+        if self.iterable is None:
+            raise ValueError("Must give an iterable to be used in a loop.")
+        for obj in self.iterable:
+            yield obj
+            self.update_with_increment_value(1)
+
 
 def _get_ftp(url, temp_file_name, initial_size, file_size, verbose_bool):
-    """Safely (resume a) download to a file from FTP"""
+    """Safely (resume a) download to a file from FTP."""
     # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
     # but with changes
 
@@ -1770,7 +1787,7 @@ def _get_ftp(url, temp_file_name, initial_size, file_size, verbose_bool):
 
 
 def _get_http(url, temp_file_name, initial_size, file_size, verbose_bool):
-    """Safely (resume a) download to a file from http(s)"""
+    """Safely (resume a) download to a file from http(s)."""
     # Actually do the reading
     req = urllib.request.Request(url)
     if initial_size > 0:
@@ -1820,7 +1837,7 @@ def _get_http(url, temp_file_name, initial_size, file_size, verbose_bool):
 
 
 def _chunk_write(chunk, local_file, progress):
-    """Write a chunk to file and update the progress bar"""
+    """Write a chunk to file and update the progress bar."""
     local_file.write(chunk)
     progress.update_with_increment_value(len(chunk))
 
@@ -1828,7 +1845,7 @@ def _chunk_write(chunk, local_file, progress):
 @verbose
 def _fetch_file(url, file_name, print_destination=True, resume=True,
                 hash_=None, timeout=10., verbose=None):
-    """Load requested file, downloading it if needed or requested
+    """Load requested file, downloading it if needed or requested.
 
     Parameters
     ----------
@@ -1847,7 +1864,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     timeout : float
         The URL open timeout.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
@@ -1911,7 +1929,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
 
 
 def sizeof_fmt(num):
-    """Turn number of bytes into human-readable str"""
+    """Turn number of bytes into human-readable str."""
     units = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB']
     decimals = [0, 0, 1, 2, 2, 2]
     """Human friendly file size"""
@@ -1929,10 +1947,11 @@ def sizeof_fmt(num):
 
 
 class SizeMixin(object):
-    """Class to estimate MNE object sizes"""
+    """Estimate MNE object sizes."""
+
     @property
     def _size(self):
-        """Estimate of the object size"""
+        """Estimate the object size."""
         try:
             size = object_size(self.info)
         except Exception:
@@ -1945,7 +1964,7 @@ class SizeMixin(object):
         return size
 
     def __hash__(self):
-        """Hash the object
+        """Hash the object.
 
         Returns
         -------
@@ -1967,7 +1986,7 @@ class SizeMixin(object):
 
 
 def _url_to_local_path(url, path):
-    """Mirror a url path in a local destination (keeping folder structure)"""
+    """Mirror a url path in a local destination (keeping folder structure)."""
     destination = urllib.parse.urlparse(url).path
     # First char should be '/', and it needs to be discarded
     if len(destination) < 2 or destination[0] != '/':
@@ -1978,7 +1997,7 @@ def _url_to_local_path(url, path):
 
 
 def _get_stim_channel(stim_channel, info, raise_error=True):
-    """Helper to determine the appropriate stim_channel
+    """Determine the appropriate stim_channel.
 
     First, 'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2', etc.
     are read. If these are not found, it will fall back to 'STI 014' if
@@ -2015,7 +2034,9 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     if ch_count > 0:
         return stim_channel
 
-    if 'STI 014' in info['ch_names']:
+    if 'STI101' in info['ch_names']:  # combination channel for newer systems
+        return ['STI101']
+    if 'STI 014' in info['ch_names']:  # for older systems
         return ['STI 014']
 
     from .io.pick import pick_types
@@ -2029,7 +2050,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
 
 
 def _check_fname(fname, overwrite=False, must_exist=False):
-    """Helper to check for file existence"""
+    """Check for file existence."""
     if not isinstance(fname, string_types):
         raise TypeError('file name is not a string')
     if must_exist and not op.isfile(fname):
@@ -2043,7 +2064,7 @@ def _check_fname(fname, overwrite=False, must_exist=False):
 
 
 def _check_subject(class_subject, input_subject, raise_error=True):
-    """Helper to get subject name from class"""
+    """Get subject name from class."""
     if input_subject is not None:
         if not isinstance(input_subject, string_types):
             raise ValueError('subject input must be a string')
@@ -2063,7 +2084,7 @@ def _check_subject(class_subject, input_subject, raise_error=True):
 
 
 def _check_pandas_installed():
-    """Aux function"""
+    """Aux function."""
     try:
         import pandas as pd
         return pd
@@ -2073,7 +2094,7 @@ def _check_pandas_installed():
 
 
 def _check_pandas_index_arguments(index, defaults):
-    """ Helper function to check pandas index arguments """
+    """Check pandas index arguments."""
     if not any(isinstance(index, k) for k in (list, tuple)):
         index = [index]
     invalid_choices = [e for e in index if e not in defaults]
@@ -2084,7 +2105,7 @@ def _check_pandas_index_arguments(index, defaults):
 
 
 def _clean_names(names, remove_whitespace=False, before_dash=True):
-    """ Remove white-space on topo matching
+    """Remove white-space on topo matching.
 
     This function handles different naming
     conventions for old VS new VectorView systems (`remove_whitespace`).
@@ -2114,7 +2135,7 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
 
 
 def _check_type_picks(picks):
-    """helper to guarantee type integrity of picks"""
+    """Guarantee type integrity of picks."""
     err_msg = 'picks must be None, a list or an array of integers'
     if picks is None:
         pass
@@ -2132,7 +2153,7 @@ def _check_type_picks(picks):
 
 @nottest
 def run_tests_if_main(measure_mem=False):
-    """Run tests in a given file if it is run as a script"""
+    """Run tests in a given file if it is run as a script."""
     local_vars = inspect.currentframe().f_back.f_locals
     if not local_vars.get('__name__', '') == '__main__':
         return
@@ -2188,13 +2209,15 @@ def run_tests_if_main(measure_mem=False):
 
 
 class ArgvSetter(object):
-    """Temporarily set sys.argv"""
-    def __init__(self, args=(), disable_stdout=True, disable_stderr=True):
+    """Temporarily set sys.argv."""
+
+    def __init__(self, args=(), disable_stdout=True,
+                 disable_stderr=True):  # noqa: D102
         self.argv = list(('python',) + args)
         self.stdout = StringIO() if disable_stdout else sys.stdout
         self.stderr = StringIO() if disable_stderr else sys.stderr
 
-    def __enter__(self):
+    def __enter__(self):  # noqa: D105
         self.orig_argv = sys.argv
         sys.argv = self.argv
         self.orig_stdout = sys.stdout
@@ -2203,14 +2226,14 @@ class ArgvSetter(object):
         sys.stderr = self.stderr
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args):  # noqa: D105
         sys.argv = self.orig_argv
         sys.stdout = self.orig_stdout
         sys.stderr = self.orig_stderr
 
 
 def md5sum(fname, block_size=1048576):  # 2 ** 20
-    """Calculate the md5sum for a file
+    """Calculate the md5sum for a file.
 
     Parameters
     ----------
@@ -2235,7 +2258,7 @@ def md5sum(fname, block_size=1048576):  # 2 ** 20
 
 
 def create_slices(start, stop, step=None, length=1):
-    """ Generate slices of time indexes
+    """Generate slices of time indexes.
 
     Parameters
     ----------
@@ -2254,7 +2277,6 @@ def create_slices(start, stop, step=None, length=1):
     slices : list
         List of slice objects.
     """
-
     # default parameters
     if step is None:
         step = length
@@ -2266,7 +2288,7 @@ def create_slices(start, stop, step=None, length=1):
 
 
 def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
-    """Helper to safely find sample boundaries"""
+    """Safely find sample boundaries."""
     orig_tmin = tmin
     orig_tmax = tmax
     tmin = -np.inf if tmin is None else tmin
@@ -2293,7 +2315,7 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
 
 
 def _get_fast_dot():
-    """"Helper to get fast dot"""
+    """"Get fast dot."""
     try:
         from sklearn.utils.extmath import fast_dot
     except ImportError:
@@ -2302,7 +2324,7 @@ def _get_fast_dot():
 
 
 def random_permutation(n_samples, random_state=None):
-    """Helper to emulate the randperm matlab function.
+    """Emulate the randperm matlab function.
 
     It returns a vector containing a random permutation of the
     integers between 0 and n_samples-1. It returns the same random numbers
@@ -2333,14 +2355,12 @@ def random_permutation(n_samples, random_state=None):
     """
     rng = check_random_state(random_state)
     idx = rng.rand(n_samples)
-
     randperm = np.argsort(idx)
-
     return randperm
 
 
 def compute_corr(x, y):
-    """Compute pearson correlations between a vector and a matrix"""
+    """Compute pearson correlations between a vector and a matrix."""
     if len(x) == 0 or len(y) == 0:
         raise ValueError('x or y has zero length')
     fast_dot = _get_fast_dot()
@@ -2356,7 +2376,7 @@ def compute_corr(x, y):
 
 
 def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
-    """Make grand average of a list evoked or AverageTFR data
+    """Make grand average of a list evoked or AverageTFR data.
 
     For evoked data, the function interpolates bad channels based on
     `interpolate_bads` parameter. If `interpolate_bads` is True, the grand
@@ -2428,7 +2448,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
 
 
 def _get_root_dir():
-    """Helper to get as close to the repo root as possible"""
+    """Get as close to the repo root as possible."""
     root_dir = op.abspath(op.dirname(__file__))
     up_dir = op.join(root_dir, '..')
     if op.isfile(op.join(up_dir, 'setup.py')) and all(
@@ -2438,7 +2458,7 @@ def _get_root_dir():
 
 
 def sys_info(fid=None, show_paths=False):
-    """Print the system information for debugging
+    """Print the system information for debugging.
 
     This function is useful for printing system information
     to help triage bugs.
@@ -2476,7 +2496,7 @@ def sys_info(fid=None, show_paths=False):
         pycuda:        2015.1.3
         skcuda:        0.5.2
 
-    """  # noqa
+    """  # noqa: E501
     ljust = 15
     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
     out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
@@ -2518,11 +2538,12 @@ def sys_info(fid=None, show_paths=False):
 
 
 class ETSContext(object):
-    """Add more meaningful message to errors generated by ETS Toolkit"""
-    def __enter__(self):
+    """Add more meaningful message to errors generated by ETS Toolkit."""
+
+    def __enter__(self):  # noqa: D105
         pass
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type, value, traceback):  # noqa: D105
         if isinstance(value, SystemExit) and value.code.\
                 startswith("This program needs access to the screen"):
             value.code += ("\nThis can probably be solved by setting "

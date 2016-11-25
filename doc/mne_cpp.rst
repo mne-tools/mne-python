@@ -21,6 +21,4 @@ For further information please visit the MNE-CPP project pages:
 
 .. raw:: html
 
-    <div>
-        <script type="text/javascript" src="http://www.openhub.net/p/687714/widgets/project_basic_stats.js"></script>
-    </div>
+    <div><script type="text/javascript" src="http://www.openhub.net/p/687714/widgets/project_basic_stats.js"></script></div>

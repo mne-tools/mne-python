@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Compare FIFF files
+"""Compare FIFF files.
 
 You can do for example:
 
@@ -13,6 +13,7 @@ import mne
 
 
 def run():
+    """Run command."""
     parser = mne.commands.utils.get_optparser(
         __file__, usage='mne compare_fiff <file_a> <file_b>')
     options, args = parser.parse_args()

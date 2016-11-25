@@ -11,13 +11,13 @@ from .multitaper import _psd_multitaper
 
 
 def _pwelch(epoch, noverlap, nfft, fs, freq_mask, welch_fun):
-    """Aux function"""
+    """Aux function."""
     return welch_fun(epoch, nperseg=nfft, noverlap=noverlap,
                      nfft=nfft, fs=fs)[1][..., freq_mask]
 
 
 def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):
-    """Compute the PSD"""
+    """Compute the PSD."""
     out = [psd(d, Fs=Fs, NFFT=n_fft, noverlap=n_overlap, pad_to=pad_to)
            for d in data]
     psd = np.array([o[0] for o in out])
@@ -28,14 +28,14 @@ def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):
 
 
 def _check_nfft(n, n_fft, n_overlap):
-    """Helper to make sure n_fft and n_overlap make sense"""
+    """Helper to make sure n_fft and n_overlap make sense."""
     n_fft = n if n_fft > n else n_fft
     n_overlap = n_fft - 1 if n_overlap >= n_fft else n_overlap
     return n_fft, n_overlap
 
 
 def _check_psd_data(inst, tmin, tmax, picks, proj):
-    """Helper to do checks on PSD data / pull arrays from inst"""
+    """Helper to do checks on PSD data / pull arrays from inst."""
     from ..io.base import _BaseRaw
     from ..epochs import _BaseEpochs
     from ..evoked import Evoked
@@ -156,7 +156,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -226,7 +227,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

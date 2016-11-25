@@ -26,6 +26,7 @@ from mne.datasets import testing
 
 data_path = testing.data_path(download=False)
 fif_dig_montage_fname = op.join(data_path, 'montage', 'eeganes07.fif')
+locs_montage_fname = op.join(data_path, 'EEGLAB', 'test_chans.locs')
 evoked_fname = op.join(data_path, 'montage', 'level2_raw-ave.fif')
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
@@ -37,33 +38,39 @@ bv_fname = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 
 
 def test_montage():
-    """Test making montages"""
+    """Test making montages."""
     tempdir = _TempDir()
     # no pep8
     input_str = [
         'FidNz 0.00000 10.56381 -2.05108\nFidT9 -7.82694 0.45386 -3.76056\n'
-        'very_very_very_long_name 7.82694 0.45386 -3.76056',
-        '// MatLab   Sphere coordinates [degrees]         Cartesian coordinates\n'  # noqa
-        '// Label       Theta       Phi    Radius         X         Y         Z       off sphere surface\n'  # noqa
-        'E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011\n'  # noqa
-        'E2      44.600      -0.880       1.000    0.7119    0.7021   -0.0154   0.00000000000000000\n'  # noqa
-        'E3      51.700      11.000       1.000    0.6084    0.7704    0.1908   0.00000000000000000',  # noqa
+        'very_very_very_long_name 7.82694 0.45386 -3.76056\nDmy 7.0 0.0 1.0',
+        '// MatLab   Sphere coordinates [degrees]         Cartesian coordinates\n'  # noqa: E501
+        '// Label       Theta       Phi    Radius         X         Y         Z       off sphere surface\n'  # noqa: E501
+        'E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011\n'  # noqa: E501
+        'E2      44.600      -0.880       1.000    0.7119    0.7021   -0.0154   0.00000000000000000\n'  # noqa: E501
+        'E3      51.700      11.000       1.000    0.6084    0.7704    0.1908   0.00000000000000000\n'  # noqa: E501
+        'E4      52.700      12.000       1.000    0.7084    0.7504    0.1508   0.00000000000000000',  # noqa: E501; dummy line
         '# ASA electrode file\nReferenceLabel  avg\nUnitPosition    mm\n'
         'NumberPositions=    68\nPositions\n-86.0761 -19.9897 -47.9860\n'
         '85.7939 -20.0093 -48.0310\n0.0083 86.8110 -39.9830\n'
-        'Labels\nLPA\nRPA\nNz\n',
+        '85 -20 -48\n'
+        'Labels\nLPA\nRPA\nNz\nDummy\n',
         '# ASA electrode file\nReferenceLabel  avg\nUnitPosition    m\n'
         'NumberPositions=    68\nPositions\n-.0860761 -.0199897 -.0479860\n'
         '.0857939 -.0200093 -.0480310\n.0000083 .00868110 -.0399830\n'
-        'Labels\nLPA\nRPA\nNz\n',
+        '.08 -.02 -.04\n'
+        'Labels\nLPA\nRPA\nNz\nDummy\n',
         'Site  Theta  Phi\nFp1  -92    -72\nFp2   92     72\n'
-        'very_very_very_long_name   -60    -51\n',
+        'very_very_very_long_name   -60    -51\n'
+        'dummy -60 -52\n',
         '346\n'
         'EEG\t      F3\t -62.027\t -50.053\t      85\n'
         'EEG\t      Fz\t  45.608\t      90\t      85\n'
-        'EEG\t      F4\t   62.01\t  50.103\t      85\n',
-        'eeg Fp1 -95.0 -31.0 -3.0\neeg AF7 -81 -59 -3\neeg AF3 -87 -41 28\n'
+        'EEG\t      F4\t   62.01\t  50.103\t      85\n'
+        'EEG\t      FCz\t   68.01\t  58.103\t      85\n',
+        'eeg Fp1 -95.0 -3. -3.\neeg AF7 -1 -1 -3\neeg A3 -2 -2 2\neeg A 0 0 0'
     ]
+
     kinds = ['test.sfp', 'test.csd', 'test_mm.elc', 'test_m.elc', 'test.txt',
              'test.elp', 'test.hpts']
     for kind, text in zip(kinds, input_str):
@@ -73,9 +80,9 @@ def test_montage():
         montage = read_montage(fname)
         if ".sfp" in kind or ".txt" in kind:
             assert_true('very_very_very_long_name' in montage.ch_names)
-        assert_equal(len(montage.ch_names), 3)
+        assert_equal(len(montage.ch_names), 4)
         assert_equal(len(montage.ch_names), len(montage.pos))
-        assert_equal(montage.pos.shape, (3, 3))
+        assert_equal(montage.pos.shape, (4, 3))
         assert_equal(montage.kind, op.splitext(kind)[0])
         if kind.endswith('csd'):
             dtype = [('label', 'S4'), ('theta', 'f8'), ('phi', 'f8'),
@@ -86,7 +93,7 @@ def test_montage():
             except TypeError:
                 table = np.loadtxt(fname, skiprows=2, dtype=dtype)
             pos2 = np.c_[table['x'], table['y'], table['z']]
-            assert_array_almost_equal(pos2, montage.pos, 4)
+            assert_array_almost_equal(pos2[:-1, :], montage.pos[:-1, :], 4)
         if kind.endswith('elc'):
             # Make sure points are reasonable distance from geometric centroid
             centroid = np.sum(montage.pos, axis=0) / montage.pos.shape[0]
@@ -95,6 +102,12 @@ def test_montage():
                 montage.pos - centroid)
             assert_array_less(distance_from_centroid, 0.2)
             assert_array_less(0.01, distance_from_centroid)
+
+    # Test reading in different letter case.
+    ch_names = ["F3", "FZ", "F4", "FC3", "FCz", "FC4", "C3", "CZ", "C4", "CP3",
+                "CPZ", "CP4", "P3", "PZ", "P4", "O1", "OZ", "O2"]
+    montage = read_montage('standard_1020', ch_names=ch_names)
+    assert_array_equal(ch_names, montage.ch_names)
 
     # test transform
     input_str = """
@@ -153,6 +166,17 @@ def test_montage():
                            ['eeg'] * (len(montage.ch_names) + 2))
         _set_montage(info, montage)
         assert_true(len(w) == 1)
+
+
+@testing.requires_testing_data
+def test_read_locs():
+    """Test reading EEGLAB locs."""
+    pos = read_montage(locs_montage_fname).pos
+    expected = [[0., 9.99779165e-01, -2.10157875e-02],
+                [3.08738197e-01, 7.27341573e-01, -6.12907052e-01],
+                [-5.67059636e-01, 6.77066318e-01, 4.69067752e-01],
+                [0., 7.14575231e-01, 6.99558616e-01]]
+    assert_allclose(pos[:4], expected, atol=1e-7)
 
 
 def test_read_dig_montage():

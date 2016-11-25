@@ -1,4 +1,4 @@
-"""Functions for statistical analysis"""
+"""Functions for statistical analysis."""
 
 from .parametric import f_threshold_mway_rm, f_mway_rm
 from .permutations import permutation_t_test

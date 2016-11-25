@@ -43,7 +43,7 @@ hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 
 def test_cov_mismatch():
-    """Test estimation with MEG<->Head mismatch"""
+    """Test estimation with MEG<->Head mismatch."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
     events = find_events(raw, stim_channel='STI 014')
     raw.pick_channels(raw.ch_names[:5])
@@ -74,7 +74,7 @@ def test_cov_mismatch():
 
 
 def test_cov_order():
-    """Test covariance ordering"""
+    """Test covariance ordering."""
     info = read_info(raw_fname)
     # add MEG channel with low enough index number to affect EEG if
     # order is incorrect
@@ -87,7 +87,7 @@ def test_cov_order():
 
 
 def test_ad_hoc_cov():
-    """Test ad hoc cov creation and I/O"""
+    """Test ad hoc cov creation and I/O."""
     tempdir = _TempDir()
     out_fname = op.join(tempdir, 'test-cov.fif')
     evoked = read_evokeds(ave_fname)[0]
@@ -99,7 +99,7 @@ def test_ad_hoc_cov():
 
 
 def test_io_cov():
-    """Test IO for noise covariance matrices"""
+    """Test IO for noise covariance matrices."""
     tempdir = _TempDir()
     cov = read_cov(cov_fname)
     cov['method'] = 'empirical'
@@ -139,7 +139,7 @@ def test_io_cov():
 
 
 def test_cov_estimation_on_raw():
-    """Test estimation from raw (typically empty room)"""
+    """Test estimation from raw (typically empty room)."""
     tempdir = _TempDir()
     raw = read_raw_fif(raw_fname, preload=True)
     cov_mne = read_cov(erm_cov_fname)
@@ -176,7 +176,7 @@ def test_cov_estimation_on_raw():
         cov = compute_raw_covariance(raw_pick, picks=picks, method=method)
         assert_snr(cov.data, cov_mne.data[picks][:, picks], 90)  # cutoff samps
         # make sure we get a warning with too short a segment
-        raw_2 = read_raw_fif(raw_fname).crop(0, 1, copy=False)
+        raw_2 = read_raw_fif(raw_fname).crop(0, 1)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             cov = compute_raw_covariance(raw_2, method=method)
@@ -185,7 +185,7 @@ def test_cov_estimation_on_raw():
         assert_raises(ValueError, compute_raw_covariance, raw, tstep=None,
                       method='empirical', reject=dict(eog=200e-6))
         # but this should work
-        cov = compute_raw_covariance(raw.copy().crop(0, 10., copy=False),
+        cov = compute_raw_covariance(raw.copy().crop(0, 10.),
                                      tstep=None, method=method,
                                      reject=dict(eog=1000e-6))
 
@@ -193,7 +193,7 @@ def test_cov_estimation_on_raw():
 @slow_test
 @requires_sklearn_0_15
 def test_cov_estimation_on_raw_reg():
-    """Test estimation from raw with regularization"""
+    """Test estimation from raw with regularization."""
     raw = read_raw_fif(raw_fname, preload=True)
     raw.info['sfreq'] /= 10.
     raw = RawArray(raw._data[:, ::10].copy(), raw.info)  # decimate for speed
@@ -208,9 +208,10 @@ def test_cov_estimation_on_raw_reg():
 
 @slow_test
 def test_cov_estimation_with_triggers():
-    """Test estimation from raw with triggers"""
+    """Test estimation from raw with triggers."""
     tempdir = _TempDir()
-    raw = read_raw_fif(raw_fname, preload=False)
+    raw = read_raw_fif(raw_fname)
+    raw.set_eeg_reference()
     events = find_events(raw, stim_channel='STI 014')
     event_ids = [1, 2, 3, 4]
     reject = dict(grad=10000e-13, mag=4e-12, eeg=80e-6, eog=150e-6)
@@ -286,7 +287,7 @@ def test_cov_estimation_with_triggers():
 
 
 def test_arithmetic_cov():
-    """Test arithmetic with noise covariance matrices"""
+    """Test arithmetic with noise covariance matrices."""
     cov = read_cov(cov_fname)
     cov_sum = cov + cov
     assert_array_almost_equal(2 * cov.nfree, cov_sum.nfree)
@@ -300,8 +301,8 @@ def test_arithmetic_cov():
 
 
 def test_regularize_cov():
-    """Test cov regularization"""
-    raw = read_raw_fif(raw_fname, preload=False)
+    """Test cov regularization."""
+    raw = read_raw_fif(raw_fname)
     raw.info['bads'].append(raw.ch_names[0])  # test with bad channels
     noise_cov = read_cov(cov_fname)
     # Regularize noise cov
@@ -314,7 +315,7 @@ def test_regularize_cov():
 
 
 def test_whiten_evoked():
-    """Test whitening of evoked data"""
+    """Test whitening of evoked data."""
     evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
                           proj=True)
     cov = read_cov(cov_fname)
@@ -340,7 +341,7 @@ def test_whiten_evoked():
 
 @slow_test
 def test_rank():
-    """Test cov rank estimation"""
+    """Test cov rank estimation."""
     # Test that our rank estimation works properly on a simple case
     evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
                           proj=False)
@@ -459,8 +460,7 @@ def test_cov_scaling():
 
 @requires_sklearn_0_15
 def test_auto_low_rank():
-    """Test probabilistic low rank estimators"""
-
+    """Test probabilistic low rank estimators."""
     n_samples, n_features, rank = 400, 20, 10
     sigma = 0.1
 
@@ -508,8 +508,7 @@ def test_auto_low_rank():
 @slow_test
 @requires_sklearn_0_15
 def test_compute_covariance_auto_reg():
-    """Test automated regularization"""
-
+    """Test automated regularization."""
     raw = read_raw_fif(raw_fname, preload=True)
     raw.resample(100, npad='auto')  # much faster estimation
     events = find_events(raw, stim_channel='STI 014')

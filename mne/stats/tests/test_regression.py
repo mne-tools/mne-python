@@ -31,8 +31,7 @@ event_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw-eve.fif'
 
 @testing.requires_testing_data
 def test_regression():
-    """Test Ordinary Least Squares Regression
-    """
+    """Test Ordinary Least Squares Regression."""
     tmin, tmax = -0.2, 0.5
     event_id = dict(aud_l=1, aud_r=2)
 
@@ -87,7 +86,7 @@ def test_regression():
 
 @testing.requires_testing_data
 def test_continuous_regression_no_overlap():
-    """Test regression without overlap correction, on real data"""
+    """Test regression without overlap correction, on real data."""
     tmin, tmax = -.1, .5
 
     raw = mne.io.read_raw_fif(raw_fname, preload=True)
@@ -122,7 +121,7 @@ def test_continuous_regression_no_overlap():
 
 
 def test_continuous_regression_with_overlap():
-    """Test regression with overlap correction"""
+    """Test regression with overlap correction."""
     signal = np.zeros(100000)
     times = [1000, 2500, 3000, 5000, 5250, 7000, 7250, 8000]
     events = np.zeros((len(times), 3), int)

@@ -29,6 +29,7 @@ Classes
    io.RawFIF
    io.RawArray
    Annotations
+   AcqParserFIF
    Epochs
    Evoked
    SourceSpaces
@@ -48,7 +49,6 @@ Classes
    preprocessing.ICA
    preprocessing.Xdawn
    decoding.CSP
-   decoding.EpochsVectorizer
    decoding.FilterEstimator
    decoding.GeneralizationAcrossTime
    decoding.PSDEstimator
@@ -76,6 +76,7 @@ Logging and Configuration
    set_log_file
    set_config
    sys_info
+   verbose
 
 :py:mod:`mne.cuda`:
 
@@ -286,6 +287,14 @@ Sample datasets
    data_path
    load_data
 
+.. currentmodule:: mne.datasets
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   fetch_hcp_mmp_parcellation
+
 
 Visualization
 =============
@@ -444,7 +453,7 @@ Functions:
 
 EEG referencing:
 
-.. currentmodule:: mne.io
+.. currentmodule:: mne
 
 .. autosummary::
    :toctree: generated/
@@ -466,12 +475,10 @@ EEG referencing:
    :toctree: generated/
    :template: function.rst
 
-   band_pass_filter
    construct_iir_filter
+   create_filter
    estimate_ringing_samples
    filter_data
-   high_pass_filter
-   low_pass_filter
    notch_filter
 
 Head position estimation:
@@ -534,6 +541,7 @@ Events
    average_movements
    combine_event_ids
    equalize_epoch_counts
+
 
 Sensor Space Data
 =================
@@ -652,6 +660,8 @@ Functions:
    :toctree: generated/
    :template: function.rst
 
+   fit_sphere_to_headshape
+   get_fitting_dig
    make_watershed_bem
    make_flash_bem
    convert_flash_mris
@@ -664,6 +674,22 @@ Functions:
 
    restrict_forward_to_label
    restrict_forward_to_stc
+
+.. currentmodule:: mne.transforms
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   SphericalSurfaceWarp
+
+.. currentmodule:: mne.surface
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   complete_surface_info
 
 Inverse Solutions
 =================
@@ -839,10 +865,8 @@ Functions that operate on ``np.ndarray`` objects:
    :template: function.rst
 
    csd_array
-   cwt_morlet
    dpss_windows
    morlet
-   single_trial_power
    stft
    istft
    stftfreq
@@ -951,6 +975,8 @@ Simulation
    simulate_sparse_stc
    select_source_in_label
 
+.. _api_decoding:
+
 Decoding
 ========
 
@@ -967,7 +993,7 @@ Classes:
    :template: class.rst
 
    CSP
-   EpochsVectorizer
+   Vectorizer
    FilterEstimator
    GeneralizationAcrossTime
    PSDEstimator

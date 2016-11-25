@@ -32,8 +32,7 @@ from .externals.h5io import read_hdf5, write_hdf5
 
 
 def _read_stc(filename):
-    """ Aux Function
-    """
+    """Aux Function."""
     fid = open(filename, 'rb')
 
     stc = dict()
@@ -73,7 +72,7 @@ def _read_stc(filename):
 
 
 def _write_stc(filename, tmin, tstep, vertices, data):
-    """Write an STC file
+    """Write an STC file.
 
     Parameters
     ----------
@@ -111,8 +110,7 @@ def _write_stc(filename, tmin, tstep, vertices, data):
 
 
 def _read_3(fid):
-    """ Read 3 byte integer from file
-    """
+    """Read 3 byte integer from file."""
     data = np.fromfile(fid, dtype=np.uint8, count=3).astype(np.int32)
 
     out = np.left_shift(data[0], 16) + np.left_shift(data[1], 8) + data[2]
@@ -121,7 +119,7 @@ def _read_3(fid):
 
 
 def _read_w(filename):
-    """Read a w file and return as dict
+    """Read a w file.
 
     w files contain activations or source reconstructions for a single time
     point.
@@ -138,7 +136,6 @@ def _read_w(filename):
            vertices       vertex indices (0 based)
            data           The data matrix (nvert long)
     """
-
     with open(filename, 'rb', buffering=0) as fid:  # buffering=0 for np bug
         # skip first 2 bytes
         fid.read(2)
@@ -162,20 +159,16 @@ def _read_w(filename):
 
 
 def _write_3(fid, val):
-    """ Write 3 byte integer to file
-    """
-
+    """Write 3 byte integer to file."""
     f_bytes = np.zeros((3), dtype=np.uint8)
-
     f_bytes[0] = (val >> 16) & 255
     f_bytes[1] = (val >> 8) & 255
     f_bytes[2] = val & 255
-
     fid.write(f_bytes.tostring())
 
 
 def _write_w(filename, vertices, data):
-    """Read a w file
+    """Write a w file.
 
     w files contain activations or source reconstructions for a single time
     point.
@@ -189,7 +182,6 @@ def _write_w(filename, vertices, data):
     data: 1D array
         The data array (nvert).
     """
-
     assert(len(vertices) == len(data))
 
     fid = open(filename, 'wb')
@@ -212,7 +204,7 @@ def _write_w(filename, vertices, data):
 
 
 def read_source_estimate(fname, subject=None):
-    """Read a soure estimate object
+    """Read a soure estimate object.
 
     Parameters
     ----------
@@ -350,9 +342,7 @@ def read_source_estimate(fname, subject=None):
 
 
 def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
-    """Helper function to generate a surface, volume or mixed source estimate
-    """
-
+    """Generate a surface, volume or mixed source estimate."""
     if isinstance(vertices, list) and len(vertices) == 2:
         # make a surface source estimate
         stc = SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep,
@@ -372,7 +362,7 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
 
 
 def _verify_source_estimate_compat(a, b):
-    """Make sure two SourceEstimates are compatible for arith. operations"""
+    """Make sure two SourceEstimates are compatible for arith. operations."""
     compat = False
     if len(a.vertices) == len(b.vertices):
         if all(np.array_equal(av, vv)
@@ -387,7 +377,7 @@ def _verify_source_estimate_compat(a, b):
 
 
 class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
-    """Abstract base class for source estimates
+    """Abstract base class for source estimates.
 
     Parameters
     ----------
@@ -406,7 +396,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -422,9 +413,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
     """
+
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
-                 subject=None, verbose=None):
+                 subject=None, verbose=None):  # noqa: D102
         kernel, sens_data = None, None
         if isinstance(data, tuple):
             if len(data) != 2:
@@ -472,12 +464,11 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     @property
     def sfreq(self):
-        """Sample rate of the data"""
+        """Sample rate of the data."""
         return 1. / self.tstep
 
     def _remove_kernel_sens_data_(self):
-        """Remove kernel and sensor space data and compute self._data
-        """
+        """Remove kernel and sensor space data and compute self._data."""
         if self._kernel is not None or self._sens_data is not None:
             self._kernel_removed = True
             self._data = np.dot(self._kernel, self._sens_data)
@@ -485,7 +476,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             self._sens_data = None
 
     def crop(self, tmin=None, tmax=None):
-        """Restrict SourceEstimate to a time interval
+        """Restrict SourceEstimate to a time interval.
 
         Parameters
         ----------
@@ -507,7 +498,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
                  verbose=None):
-        """Resample data
+        """Resample data.
 
         Parameters
         ----------
@@ -522,8 +513,9 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Notes
         -----
@@ -542,10 +534,11 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq
         self._update_times()
+        return self
 
     @property
     def data(self):
-        """Numpy array of source estimate data"""
+        """Numpy array of source estimate data."""
         if self._data is None:
             # compute the solution the first time the data is accessed and
             # remove the kernel and sensor data
@@ -554,13 +547,13 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     @property
     def shape(self):
-        """Shape of the data"""
+        """Shape of the data."""
         if self._data is not None:
             return self._data.shape
         return (self._kernel.shape[0], self._sens_data.shape[1])
 
     def _update_times(self):
-        """Update the times attribute after changing tmin, tmax, or tstep"""
+        """Update the times attribute after changing tmin, tmax, or tstep."""
         self.times = self.tmin + (self.tstep * np.arange(self.shape[1]))
 
     def __add__(self, a):
@@ -568,7 +561,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         stc += a
         return stc
 
-    def __iadd__(self, a):
+    def __iadd__(self, a):  # noqa: D105
         self._remove_kernel_sens_data_()
         if isinstance(a, _BaseSourceEstimate):
             _verify_source_estimate_compat(self, a)
@@ -594,12 +587,12 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                                   tstep=tstep, subject=self.subject)
         return mean_stc
 
-    def __sub__(self, a):
+    def __sub__(self, a):  # noqa: D105
         stc = copy.deepcopy(self)
         stc -= a
         return stc
 
-    def __isub__(self, a):
+    def __isub__(self, a):  # noqa: D105
         self._remove_kernel_sens_data_()
         if isinstance(a, _BaseSourceEstimate):
             _verify_source_estimate_compat(self, a)
@@ -608,18 +601,18 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             self._data -= a
         return self
 
-    def __truediv__(self, a):
+    def __truediv__(self, a):  # noqa: D105
         return self.__div__(a)
 
-    def __div__(self, a):
+    def __div__(self, a):  # noqa: D105
         stc = copy.deepcopy(self)
         stc /= a
         return stc
 
-    def __itruediv__(self, a):
+    def __itruediv__(self, a):  # noqa: D105
         return self.__idiv__(a)
 
-    def __idiv__(self, a):
+    def __idiv__(self, a):  # noqa: D105
         self._remove_kernel_sens_data_()
         if isinstance(a, _BaseSourceEstimate):
             _verify_source_estimate_compat(self, a)
@@ -628,12 +621,12 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             self._data /= a
         return self
 
-    def __mul__(self, a):
+    def __mul__(self, a):  # noqa: D105
         stc = copy.deepcopy(self)
         stc *= a
         return stc
 
-    def __imul__(self, a):
+    def __imul__(self, a):  # noqa: D105
         self._remove_kernel_sens_data_()
         if isinstance(a, _BaseSourceEstimate):
             _verify_source_estimate_compat(self, a)
@@ -642,39 +635,39 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             self._data *= a
         return self
 
-    def __pow__(self, a):
+    def __pow__(self, a):  # noqa: D105
         stc = copy.deepcopy(self)
         stc **= a
         return stc
 
-    def __ipow__(self, a):
+    def __ipow__(self, a):  # noqa: D105
         self._remove_kernel_sens_data_()
         self._data **= a
         return self
 
-    def __radd__(self, a):
+    def __radd__(self, a):  # noqa: D105
         return self + a
 
-    def __rsub__(self, a):
+    def __rsub__(self, a):  # noqa: D105
         return self - a
 
-    def __rmul__(self, a):
+    def __rmul__(self, a):  # noqa: D105
         return self * a
 
-    def __rdiv__(self, a):
+    def __rdiv__(self, a):  # noqa: D105
         return self / a
 
-    def __neg__(self):
+    def __neg__(self):  # noqa: D105
         stc = copy.deepcopy(self)
         stc._remove_kernel_sens_data_()
         stc._data *= -1
         return stc
 
-    def __pos__(self):
+    def __pos__(self):  # noqa: D105
         return self
 
     def sqrt(self):
-        """Take the square root
+        """Take the square root.
 
         Returns
         -------
@@ -684,11 +677,11 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return self ** (0.5)
 
     def copy(self):
-        """Return copy of SourceEstimate instance"""
+        """Return copy of SourceEstimate instance."""
         return copy.deepcopy(self)
 
     def bin(self, width, tstart=None, tstop=None, func=np.mean):
-        """Returns a SourceEstimate object with data summarized over time bins
+        """Return a SourceEstimate object with data summarized over time bins.
 
         Time bins of ``width`` seconds. This method is intended for
         visualization only. No filter is applied to the data before binning,
@@ -733,7 +726,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return stc
 
     def transform_data(self, func, idx=None, tmin_idx=None, tmax_idx=None):
-        """Get data after a linear (time) transform has been applied
+        """Get data after a linear (time) transform has been applied.
 
         The transorm is applied to each source time course independently.
 
@@ -770,7 +763,6 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
         this automatically (if possible).
         """
-
         if idx is None:
             # use all time courses by default
             idx = slice(None, None)
@@ -810,7 +802,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return data_t
 
     def transform(self, func, idx=None, tmin=None, tmax=None, copy=False):
-        """Apply linear transform
+        """Apply linear transform.
 
         The transform is applied to each source time course independently.
 
@@ -856,7 +848,6 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
         this automatically (if possible).
         """
-
         # min and max data indices to include
         times = 1000. * self.times
         t_idx = np.where(_time_mask(times, tmin, tmax, sfreq=self.sfreq))[0]
@@ -912,7 +903,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
 def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,
                     restrict_vertices):
-    """Helper to find the center of mass on a surface"""
+    """Find the center of mass on a surface."""
     if (values == 0).all() or (values < 0).any():
         raise ValueError('All values must be non-negative and at least one '
                          'must be non-zero, cannot compute COM')
@@ -937,7 +928,7 @@ def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,
 
 
 class SourceEstimate(_BaseSourceEstimate):
-    """Container for surface source estimates
+    """Container for surface source estimates.
 
     Parameters
     ----------
@@ -956,7 +947,8 @@ class SourceEstimate(_BaseSourceEstimate):
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -971,9 +963,10 @@ class SourceEstimate(_BaseSourceEstimate):
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
     """
+
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
-                 subject=None, verbose=None):
+                 subject=None, verbose=None):  # noqa: D102
 
         if not (isinstance(vertices, list) and len(vertices) == 2):
             raise ValueError('Vertices, if a list, must contain two '
@@ -985,7 +978,7 @@ class SourceEstimate(_BaseSourceEstimate):
 
     @verbose
     def save(self, fname, ftype='stc', verbose=None):
-        """Save the source estimates to a file
+        """Save the source estimates to a file.
 
         Parameters
         ----------
@@ -998,8 +991,9 @@ class SourceEstimate(_BaseSourceEstimate):
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
         """
         if ftype not in ('stc', 'w', 'h5'):
             raise ValueError('ftype must be "stc", "w", or "h5", not "%s"'
@@ -1027,10 +1021,11 @@ class SourceEstimate(_BaseSourceEstimate):
             write_hdf5(fname + '-stc.h5',
                        dict(vertices=self.vertices, data=self.data,
                             tmin=self.tmin, tstep=self.tstep,
-                            subject=self.subject), title='mnepython')
+                            subject=self.subject), title='mnepython',
+                       overwrite=True)
         logger.info('[done]')
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         if isinstance(self.vertices, list):
             nv = sum([len(v) for v in self.vertices])
         else:
@@ -1046,22 +1041,25 @@ class SourceEstimate(_BaseSourceEstimate):
 
     @property
     def lh_data(self):
+        """Left hemisphere data."""
         return self.data[:len(self.lh_vertno)]
 
     @property
     def rh_data(self):
+        """Right hemisphere data."""
         return self.data[len(self.lh_vertno):]
 
     @property
     def lh_vertno(self):
+        """Left hemisphere vertno."""
         return self.vertices[0]
 
     @property
     def rh_vertno(self):
+        """Right hemisphere vertno."""
         return self.vertices[1]
 
     def _hemilabel_stc(self, label):
-
         if label.hemi == 'lh':
             stc_vertices = self.vertices[0]
         else:
@@ -1082,7 +1080,7 @@ class SourceEstimate(_BaseSourceEstimate):
         return vertices, values
 
     def in_label(self, label):
-        """Returns a SourceEstimate object restricted to a label
+        """Get a SourceEstimate object restricted to a label.
 
         SourceEstimate contains the time course of
         activation of all sources inside the label.
@@ -1124,7 +1122,7 @@ class SourceEstimate(_BaseSourceEstimate):
         return label_stc
 
     def expand(self, vertices):
-        """Expand SourceEstimate to include more vertices
+        """Expand SourceEstimate to include more vertices.
 
         This will add rows to stc.data (zero-filled) and modify stc.vertices
         to include all vertices in stc.vertices and the input vertices.
@@ -1166,7 +1164,7 @@ class SourceEstimate(_BaseSourceEstimate):
     @verbose
     def extract_label_time_course(self, labels, src, mode='mean_flip',
                                   allow_empty=False, verbose=None):
-        """Extract label time courses for lists of labels
+        """Extract label time courses for lists of labels.
 
         This function will extract one time course for each label. The way the
         time courses are extracted depends on the mode parameter.
@@ -1201,7 +1199,9 @@ class SourceEstimate(_BaseSourceEstimate):
             Instead of emitting an error, return all-zero time course for
             labels that do not have any vertices in the source estimate.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -1221,7 +1221,7 @@ class SourceEstimate(_BaseSourceEstimate):
 
     def center_of_mass(self, subject=None, hemi=None, restrict_vertices=False,
                        subjects_dir=None, surf='sphere'):
-        """Compute the center of mass of activity
+        """Compute the center of mass of activity.
 
         This function computes the spatial center of mass on the surface
         as well as the temporal center of mass as in [1]_.
@@ -1314,17 +1314,16 @@ class SourceEstimate(_BaseSourceEstimate):
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='auto', time_label='auto',
              smoothing_steps=10, transparent=None, alpha=1.0,
-             time_viewer=False, config_opts=None, subjects_dir=None,
+             time_viewer=False, subjects_dir=None,
              figure=None, views='lat', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
-             foreground="white", initial_time=None, time_unit=None):
+             foreground="white", initial_time=None, time_unit='s'):
         brain = plot_source_estimates(self, subject, surface=surface,
                                       hemi=hemi, colormap=colormap,
                                       time_label=time_label,
                                       smoothing_steps=smoothing_steps,
                                       transparent=transparent, alpha=alpha,
                                       time_viewer=time_viewer,
-                                      config_opts=config_opts,
                                       subjects_dir=subjects_dir, figure=figure,
                                       views=views, colorbar=colorbar,
                                       clim=clim, cortex=cortex, size=size,
@@ -1337,7 +1336,7 @@ class SourceEstimate(_BaseSourceEstimate):
     @verbose
     def to_original_src(self, src_orig, subject_orig=None,
                         subjects_dir=None, verbose=None):
-        """Return a SourceEstimate from morphed source to the original subject
+        """Get a SourceEstimate from morphed source to the original subject.
 
         Parameters
         ----------
@@ -1350,7 +1349,9 @@ class SourceEstimate(_BaseSourceEstimate):
         subjects_dir : string, or None
             Path to SUBJECTS_DIR if it is not set in the environment.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         See Also
         --------
@@ -1373,7 +1374,7 @@ class SourceEstimate(_BaseSourceEstimate):
     def morph(self, subject_to, grade=5, smooth=None, subjects_dir=None,
               buffer_size=64, n_jobs=1, subject_from=None, sparse=False,
               verbose=None):
-        """Morph a source estimate from one subject to another
+        """Morph a source estimate from one subject to another.
 
         Parameters
         ----------
@@ -1409,7 +1410,9 @@ class SourceEstimate(_BaseSourceEstimate):
             parameters used are subject_to and subject_from,
             and grade has to be None.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -1427,7 +1430,7 @@ class SourceEstimate(_BaseSourceEstimate):
 
     def morph_precomputed(self, subject_to, vertices_to, morph_mat,
                           subject_from=None):
-        """Morph source estimate between subjects using a precomputed matrix
+        """Morph source estimate between subjects using a precomputed matrix.
 
         Parameters
         ----------
@@ -1452,7 +1455,7 @@ class SourceEstimate(_BaseSourceEstimate):
 
     def get_peak(self, hemi=None, tmin=None, tmax=None, mode='abs',
                  vert_as_index=False, time_as_index=False):
-        """Get location and latency of peak amplitude
+        """Get location and latency of peak amplitude.
 
         Parameters
         ----------
@@ -1494,7 +1497,7 @@ class SourceEstimate(_BaseSourceEstimate):
 
 
 class VolSourceEstimate(_BaseSourceEstimate):
-    """Container for volume source estimates
+    """Container for volume source estimates.
 
     Parameters
     ----------
@@ -1513,7 +1516,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -1532,10 +1536,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
     -----
     .. versionadded:: 0.9.0
     """
+
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
-                 subject=None, verbose=None):
-
+                 subject=None, verbose=None):  # noqa: D102
         if not (isinstance(vertices, np.ndarray) or
                 isinstance(vertices, list) and len(vertices) == 1):
             raise ValueError('Vertices must be a numpy array or a list with '
@@ -1547,7 +1551,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
     @verbose
     def save(self, fname, ftype='stc', verbose=None):
-        """Save the source estimates to a file
+        """Save the source estimates to a file.
 
         Parameters
         ----------
@@ -1558,8 +1562,9 @@ class VolSourceEstimate(_BaseSourceEstimate):
             File format to use. Allowed values are "stc" (default) and "w".
             The "w" format only supports a single time point.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
         """
         if ftype not in ['stc', 'w']:
             raise ValueError('ftype must be "stc" or "w", not "%s"' % ftype)
@@ -1579,7 +1584,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         logger.info('[done]')
 
     def save_as_volume(self, fname, src, dest='mri', mri_resolution=False):
-        """Save a volume source estimate in a nifti file
+        """Save a volume source estimate in a NIfTI file.
 
         Parameters
         ----------
@@ -1609,7 +1614,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
                            mri_resolution=mri_resolution)
 
     def as_volume(self, src, dest='mri', mri_resolution=False):
-        """Export volume source estimate as a nifti object
+        """Export volume source estimate as a nifti object.
 
         Parameters
         ----------
@@ -1636,7 +1641,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         return save_stc_as_volume(None, self, src, dest=dest,
                                   mri_resolution=mri_resolution)
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         if isinstance(self.vertices, list):
             nv = sum([len(v) for v in self.vertices])
         else:
@@ -1652,7 +1657,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
     def get_peak(self, tmin=None, tmax=None, mode='abs',
                  vert_as_index=False, time_as_index=False):
-        """Get location and latency of peak amplitude
+        """Get location and latency of peak amplitude.
 
         Parameters
         ----------
@@ -1679,7 +1684,6 @@ class VolSourceEstimate(_BaseSourceEstimate):
         latency : float
             The latency in seconds.
         """
-
         vert_idx, time_idx = _get_peak(self.data, self.times, tmin, tmax,
                                        mode)
 
@@ -1688,7 +1692,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
 
 class MixedSourceEstimate(_BaseSourceEstimate):
-    """Container for mixed surface and volume source estimates
+    """Container for mixed surface and volume source estimates.
 
     Parameters
     ----------
@@ -1707,7 +1711,8 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -1726,10 +1731,10 @@ class MixedSourceEstimate(_BaseSourceEstimate):
     -----
     .. versionadded:: 0.9.0
     """
+
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
-                 subject=None, verbose=None):
-
+                 subject=None, verbose=None):  # noqa: D102
         if not isinstance(vertices, list) or len(vertices) < 2:
             raise ValueError('Vertices must be a list of numpy arrays with '
                              'one array per source space.')
@@ -1744,7 +1749,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                      transparent=None, alpha=1.0, time_viewer=False,
                      config_opts=None, subjects_dir=None, figure=None,
                      views='lat', colorbar=True, clim='auto'):
-        """Plot surface source estimates with PySurfer
+        """Plot surface source estimates with PySurfer.
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
         which will automatically be set by this function. Plotting multiple
@@ -1801,7 +1806,6 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         brain : Brain
             A instance of surfer.viz.Brain from PySurfer.
         """
-
         # extract surface source spaces
         surf = _ensure_src(src, kind='surf')
 
@@ -1829,7 +1833,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
 @verbose
 def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
                   warn=True, verbose=None):
-    """Morph data from one subject's source space to another
+    """Morph data from one subject's source space to another.
 
     Parameters
     ----------
@@ -1851,14 +1855,14 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     warn : bool
         If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     data_morphed : array, or csr sparse matrix
         The morphed data (same type as input).
     """
-
     n_iter = 99  # max nb of smoothing iterations (minus one)
     if smooth is not None:
         if smooth <= 0:
@@ -1927,7 +1931,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
 
 
 def _morph_mult(data, e, use_sparse, idx_use_data, idx_use_out=None):
-    """Helper for morphing
+    """Helper for morphing.
 
     Equivalent to "data = (e[:, idx_use_data] * data)[idx_use_out]"
     but faster.
@@ -1961,8 +1965,7 @@ def _get_subject_sphere_tris(subject, subjects_dir):
 
 
 def _sparse_argmax_nnz_row(csr_mat):
-    """Return index of the maximum non-zero index in each row
-    """
+    """Return index of the maximum non-zero index in each row."""
     n_rows = csr_mat.shape[0]
     idx = np.empty(n_rows, dtype=np.int)
     for k in range(n_rows):
@@ -1972,7 +1975,7 @@ def _sparse_argmax_nnz_row(csr_mat):
 
 
 def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
-    """Morph sparse source estimates to an other subject
+    """Morph sparse source estimates to an other subject.
 
     Parameters
     ----------
@@ -2015,7 +2018,7 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                subjects_dir=None, buffer_size=64, n_jobs=1, warn=True,
                verbose=None):
-    """Morph a source estimate from one subject to another
+    """Morph a source estimate from one subject to another.
 
     Parameters
     ----------
@@ -2049,7 +2052,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     warn : bool
         If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2114,7 +2118,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                          smooth=None, subjects_dir=None, warn=True,
                          verbose=None):
-    """Get a matrix that morphs data from one subject to another
+    """Get a matrix that morphs data from one subject to another.
 
     Parameters
     ----------
@@ -2135,7 +2139,8 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     warn : bool
         If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2174,7 +2179,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
 @verbose
 def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
                       verbose=None):
-    """Convert a grade to source space vertices for a given subject
+    """Convert a grade to source space vertices for a given subject.
 
     Parameters
     ----------
@@ -2195,7 +2200,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     n_jobs : int
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2248,7 +2254,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
 
 def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
                            morph_mat):
-    """Morph source estimate between subjects using a precomputed matrix
+    """Morph source estimate between subjects using a precomputed matrix.
 
     Parameters
     ----------
@@ -2291,7 +2297,7 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
 
 @verbose
 def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
-    """Compute connectivity for a source space activation over time
+    """Compute connectivity for a source space activation over time.
 
     Parameters
     ----------
@@ -2304,7 +2310,8 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         source space to consider neighbors. If None, immediate neighbors
         are extracted from an ico surface.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2354,14 +2361,15 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
 
 @verbose
 def grade_to_tris(grade, verbose=None):
-    """Get tris defined for a certain grade
+    """Get tris defined for a certain grade.
 
     Parameters
     ----------
     grade : int
         Grade of an icosahedral mesh.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2377,7 +2385,7 @@ def grade_to_tris(grade, verbose=None):
 @verbose
 def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
                                       verbose=None):
-    """Compute connectivity from triangles and time instants
+    """Compute connectivity from triangles and time instants.
 
     Parameters
     ----------
@@ -2389,7 +2397,8 @@ def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
         Reassign vertex indices based on unique values. Useful
         to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2410,7 +2419,7 @@ def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
 
 @verbose
 def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
-    """Compute connectivity from distances in a source space and time instants
+    """Compute connectivity from distances in a source space and time instants.
 
     Parameters
     ----------
@@ -2424,7 +2433,8 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2450,7 +2460,7 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
 
 @verbose
 def spatial_src_connectivity(src, dist=None, verbose=None):
-    """Compute connectivity for a source space activation
+    """Compute connectivity for a source space activation.
 
     Parameters
     ----------
@@ -2461,7 +2471,8 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
         source space to consider neighbors. If None, immediate neighbors
         are extracted from an ico surface.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2473,7 +2484,7 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
 
 @verbose
 def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
-    """Compute connectivity from triangles
+    """Compute connectivity from triangles.
 
     Parameters
     ----------
@@ -2483,7 +2494,8 @@ def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
         Reassign vertex indices based on unique values. Useful
         to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2494,7 +2506,7 @@ def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
 
 
 def spatial_dist_connectivity(src, dist, verbose=None):
-    """Compute connectivity from distances in a source space
+    """Compute connectivity from distances in a source space.
 
     Parameters
     ----------
@@ -2506,7 +2518,8 @@ def spatial_dist_connectivity(src, dist, verbose=None):
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2517,7 +2530,7 @@ def spatial_dist_connectivity(src, dist, verbose=None):
 
 
 def spatial_inter_hemi_connectivity(src, dist, verbose=None):
-    """Get vertices on each hemisphere that are close to the other hemisphere
+    """Get vertices on each hemisphere that are close to the other hemisphere.
 
     Parameters
     ----------
@@ -2527,7 +2540,8 @@ def spatial_inter_hemi_connectivity(src, dist, verbose=None):
         Maximal Euclidean distance (in m) between vertices in one hemisphere
         compared to the other to consider neighbors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2550,7 +2564,7 @@ def spatial_inter_hemi_connectivity(src, dist, verbose=None):
 
 @verbose
 def _get_connectivity_from_edges(edges, n_times, verbose=None):
-    """Given edges sparse matrix, create connectivity matrix"""
+    """Given edges sparse matrix, create connectivity matrix."""
     n_vertices = edges.shape[0]
     logger.info("-- number of connected vertices : %d" % n_vertices)
     nnz = edges.col.size
@@ -2582,7 +2596,7 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
 
 
 def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
-    """Save a volume source estimate in a nifti file
+    """Save a volume source estimate in a NIfTI file.
 
     Parameters
     ----------
@@ -2660,7 +2674,7 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
 
 
 def _get_label_flip(labels, label_vertidx, src):
-    """Helper function to get sign-flip for labels"""
+    """Get sign-flip for labels."""
     # do the import here to avoid circular dependency
     from .label import label_sign_flip
     # get the sign-flip vector for every label
@@ -2680,8 +2694,7 @@ def _get_label_flip(labels, label_vertidx, src):
 @verbose
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, verbose=None):
-    """Generator for extract_label_time_course"""
-
+    """Generator for extract_label_time_course."""
     n_labels = len(labels)
 
     # get vertices from source space, they have to be the same as in the stcs
@@ -2787,7 +2800,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 def extract_label_time_course(stcs, labels, src, mode='mean_flip',
                               allow_empty=False, return_generator=False,
                               verbose=None):
-    """Extract label time course for lists of labels and source estimates
+    """Extract label time course for lists of labels and source estimates.
 
     This function will extract one time course for each label and source
     estimate. The way the time courses are extracted depends on the mode
@@ -2827,13 +2840,14 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     return_generator : bool
         If True, a generator instead of a list is returned.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose` and
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     label_tc : array | list (or generator) of array, shape=(len(labels), n_times)
         Extracted time course for each label and source estimate.
-    """  # noqa
+    """  # noqa: E501
     # convert inputs to lists
     if isinstance(stcs, SourceEstimate):
         stcs = [stcs]

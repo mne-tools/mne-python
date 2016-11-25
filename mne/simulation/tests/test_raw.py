@@ -21,7 +21,7 @@ from mne.chpi import (_calculate_chpi_positions, read_head_pos,
 from mne.tests.test_chpi import _compare_positions
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
-from mne.io import Raw, RawArray
+from mne.io import read_raw_fif, RawArray
 from mne.time_frequency import psd_welch
 from mne.utils import _TempDir, run_tests_if_main, requires_version, slow_test
 
@@ -44,7 +44,7 @@ pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_subsampled.pos')
 
 
 def _make_stc(raw, src):
-    """Helper to make a STC"""
+    """Helper to make a STC."""
     seed = 42
     sfreq = raw.info['sfreq']  # Hz
     tstep = 1. / sfreq
@@ -55,9 +55,9 @@ def _make_stc(raw, src):
 
 
 def _get_data():
-    """Helper to get some starting data"""
+    """Helper to get some starting data."""
     # raw with ECG channel
-    raw = Raw(raw_fname).crop(0., 5.0, copy=False).load_data()
+    raw = read_raw_fif(raw_fname).crop(0., 5.0).load_data()
     data_picks = pick_types(raw.info, meg=True, eeg=True)
     other_picks = pick_types(raw.info, meg=False, stim=True, eog=True)
     picks = np.sort(np.concatenate((data_picks[::16], other_picks)))
@@ -79,7 +79,7 @@ def _get_data():
 
 @testing.requires_testing_data
 def test_simulate_raw_sphere():
-    """Test simulation of raw data with sphere model"""
+    """Test simulation of raw data with sphere model."""
     seed = 42
     raw, src, stc, trans, sphere = _get_data()
     assert_true(len(pick_types(raw.info, meg=False, ecg=True)) == 1)
@@ -110,7 +110,7 @@ def test_simulate_raw_sphere():
     test_outname = op.join(tempdir, 'sim_test_raw.fif')
     raw_sim.save(test_outname)
 
-    raw_sim_loaded = Raw(test_outname, preload=True, proj=False)
+    raw_sim_loaded = read_raw_fif(test_outname, preload=True)
     assert_allclose(raw_sim_loaded[:][0], raw_sim[:][0], rtol=1e-6, atol=1e-20)
     del raw_sim, raw_sim_2
     # with no cov (no noise) but with artifacts, most time periods should match
@@ -192,9 +192,10 @@ def test_simulate_raw_sphere():
                   blink=True)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_simulate_raw_bem():
-    """Test simulation of raw data with BEM"""
+    """Test simulation of raw data with BEM."""
     raw, src, stc, trans, sphere = _get_data()
     src = setup_source_space('sample', None, 'oct1', subjects_dir=subjects_dir)
     # use different / more complete STC here
@@ -236,8 +237,8 @@ def test_simulate_raw_bem():
 @requires_version('scipy', '0.12')
 @testing.requires_testing_data
 def test_simulate_raw_chpi():
-    """Test simulation of raw data with cHPI"""
-    raw = Raw(raw_chpi_fname, allow_maxshield='yes')
+    """Test simulation of raw data with cHPI."""
+    raw = read_raw_fif(raw_chpi_fname, allow_maxshield='yes')
     sphere = make_sphere_model('auto', 'auto', raw.info)
     # make sparse spherical source space
     sphere_vol = tuple(sphere['r0'] * 1000.) + (sphere.radius * 1000.,)

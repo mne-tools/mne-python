@@ -14,7 +14,7 @@ from mne.datasets import testing
 from mne import read_forward_solution
 from mne.simulation import simulate_sparse_stc, simulate_evoked
 from mne import read_cov
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne import pick_types_forward, read_evokeds
 from mne.utils import run_tests_if_main
 
@@ -33,9 +33,9 @@ cov_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 
 @testing.requires_testing_data
 def test_simulate_evoked():
-    """ Test simulation of evoked data """
+    """Test simulation of evoked data."""
 
-    raw = Raw(raw_fname)
+    raw = read_raw_fif(raw_fname)
     fwd = read_forward_solution(fwd_fname, force_fixed=True)
     fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
     cov = read_cov(cov_fname)

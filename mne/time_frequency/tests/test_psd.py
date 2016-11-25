@@ -3,9 +3,9 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal, assert_raises
 from nose.tools import assert_true
 
-from mne import io, pick_types, Epochs, read_events
-from mne.io import RawArray
-from mne.utils import requires_version, slow_test
+from mne import pick_types, Epochs, read_events
+from mne.io import RawArray, read_raw_fif
+from mne.utils import requires_version, slow_test, run_tests_if_main
 from mne.time_frequency import psd_welch, psd_multitaper
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -15,9 +15,8 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 
 @requires_version('scipy', '0.12')
 def test_psd():
-    """Tests the welch and multitaper PSD
-    """
-    raw = io.read_raw_fif(raw_fname)
+    """Tests the welch and multitaper PSD."""
+    raw = read_raw_fif(raw_fname)
     picks_psd = [0, 1]
 
     # Populate raw with sinusoids
@@ -130,9 +129,8 @@ def test_psd():
 @slow_test
 @requires_version('scipy', '0.12')
 def test_compares_psd():
-    """Test PSD estimation on raw for plt.psd and scipy.signal.welch
-    """
-    raw = io.read_raw_fif(raw_fname)
+    """Test PSD estimation on raw for plt.psd and scipy.signal.welch."""
+    raw = read_raw_fif(raw_fname)
 
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
@@ -173,3 +171,5 @@ def test_compares_psd():
 
     assert_true(np.sum(psds_welch < 0) == 0)
     assert_true(np.sum(psds_mpl < 0) == 0)
+
+run_tests_if_main()

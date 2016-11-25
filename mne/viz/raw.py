@@ -1,5 +1,4 @@
-"""Functions to plot raw M/EEG data
-"""
+"""Functions to plot raw M/EEG data."""
 from __future__ import print_function
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
@@ -31,7 +30,7 @@ from ..annotations import _onset_to_seconds
 
 
 def _plot_update_raw_proj(params, bools):
-    """Helper only needs to be called when proj is changed"""
+    """Deal with changed proj."""
     if bools is not None:
         inds = np.where(bools)[0]
         params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
@@ -44,7 +43,7 @@ def _plot_update_raw_proj(params, bools):
 
 
 def _update_raw_data(params):
-    """Helper only needs to be called when time or proj is changed"""
+    """Deal with time or proj changed."""
     from scipy.signal import filtfilt
     start = params['t_start']
     stop = params['raw'].time_as_index(start + params['duration'])[0]
@@ -76,7 +75,7 @@ def _update_raw_data(params):
 
 
 def _pick_bad_channels(event, params):
-    """Helper for selecting / dropping bad channels onpick"""
+    """Selecting / drop bad channels onpick."""
     # Both bad lists are updated. params['info'] used for colors.
     bads = params['raw'].info['bads']
     params['info']['bads'] = _select_bads(event, params, bads)
@@ -88,7 +87,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None):
-    """Plot raw data
+    """Plot raw data.
 
     Parameters
     ----------
@@ -251,9 +250,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     for t in ['grad', 'mag']:
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
+    for t in ['hbo', 'hbr']:
+        inds += [pick_types(info, meg=False, ref_meg=False, fnirs=t,
+                            exclude=[])]
+        types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
     for key in _PICK_TYPES_KEYS:
-        if key != 'meg':
+        if key not in ['meg', 'fnirs']:
             pick_kwargs[key] = True
             inds += [pick_types(raw.info, **pick_kwargs)]
             types += [key] * len(inds[-1])
@@ -297,7 +300,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_times=n_times, event_times=event_times, inds=inds,
                   event_nums=event_nums, clipping=clipping, fig_proj=None)
 
-    if order in ['selection', 'position']:
+    if isinstance(order, string_types) and order in ['selection', 'position']:
         params['fig_selection'] = fig_selection
         params['selections'] = selections
         params['radio_clicked'] = partial(_radio_clicked, params=params)
@@ -382,7 +385,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if show_options is True:
         _toggle_options(None, params)
     # initialize the first selection set
-    if order in ['selection', 'position']:
+    if isinstance(order, string_types) and order in ['selection', 'position']:
         _radio_clicked(fig_selection.radio.labels[0]._text, params)
         callback_selection_key = partial(_selection_key_press, params=params)
         callback_selection_scroll = partial(_selection_scroll, params=params)
@@ -429,7 +432,7 @@ def _close_event(event, params):
 
 
 def _label_clicked(pos, params):
-    """Helper function for selecting bad channels."""
+    """Select bad channels."""
     labels = params['ax'].yaxis.get_ticklabels()
     offsets = np.array(params['offsets']) + params['offsets'][0]
     line_idx = np.searchsorted(offsets, pos[1])
@@ -458,7 +461,7 @@ def _label_clicked(pos, params):
 
 
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
-    """Aux function"""
+    """Set PSD plot params."""
     import matplotlib.pyplot as plt
     if area_mode not in [None, 'std', 'range']:
         raise ValueError('"area_mode" must be "std", "range", or None')
@@ -514,8 +517,9 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=2048, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, show=True, n_jobs=1, verbose=None):
-    """Plot the power spectral density across channels
+                 n_overlap=0, dB=True, average=True, show=True, n_jobs=1,
+                 line_alpha=None, verbose=None):
+    """Plot the power spectral density across channels.
 
     Parameters
     ----------
@@ -553,12 +557,19 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         is 0 (no overlap).
     dB : bool
         If True, transform data to decibels.
+    average : bool
+        If False, the PSDs of all channels is displayed. No averaging
+        is done and parameters area_mode and area_alpha are ignored.
     show : bool
         Show figure if True.
     n_jobs : int
         Number of jobs to run in parallel.
+    line_alpha : float | None
+        Alpha for the PSD line. Can be None (default) to use 1.0 when
+        ``average=True`` and 0.1 when ``average=False``.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -567,6 +578,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     """
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
+    if line_alpha is None:
+        line_alpha = 1.0 if average else 0.1
+    line_alpha = float(line_alpha)
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
@@ -577,29 +591,34 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
 
         # Convert PSDs to dB
         if dB:
-            psds = 10 * np.log10(psds)
-            if np.any(np.isinf(psds)):
-                where = np.flatnonzero(np.isinf(psds.min(1)))
+            where = np.flatnonzero(psds.min(1) <= 0)
+            if where.any():
                 chs = [raw.ch_names[i] for i in picks[where]]
                 raise ValueError("Infinite value in PSD for channel(s) %s. "
                                  "These channels might be dead." %
                                  ', '.join(chs))
+            psds = 10 * np.log10(psds)
             unit = 'dB'
         else:
             unit = 'power'
-        psd_mean = np.mean(psds, axis=0)
-        if area_mode == 'std':
-            psd_std = np.std(psds, axis=0)
-            hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
-        elif area_mode == 'range':
-            hyp_limits = (np.min(psds, axis=0), np.max(psds, axis=0))
-        else:  # area_mode is None
-            hyp_limits = None
 
-        ax.plot(freqs, psd_mean, color=color)
-        if hyp_limits is not None:
-            ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
-                            color=color, alpha=area_alpha)
+        if average:
+            psd_mean = np.mean(psds, axis=0)
+            if area_mode == 'std':
+                psd_std = np.std(psds, axis=0)
+                hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
+            elif area_mode == 'range':
+                hyp_limits = (np.min(psds, axis=0), np.max(psds, axis=0))
+            else:  # area_mode is None
+                hyp_limits = None
+
+            ax.plot(freqs, psd_mean, color=color, alpha=line_alpha)
+            if hyp_limits is not None:
+                ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
+                                color=color, alpha=area_alpha)
+        else:
+            ax.plot(freqs, psds.T, color=color, alpha=line_alpha)
+
         if make_label:
             if ii == len(picks_list) - 1:
                 ax.set_xlabel('Freq (Hz)')
@@ -615,7 +634,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
 
 def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels):
-    """Helper for setting up the mne_browse_raw window."""
+    """Set up the mne_browse_raw window."""
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     size = get_config('MNE_BROWSE_RAW_SIZE')
@@ -710,7 +729,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
 def _plot_raw_traces(params, color, bad_color, event_lines=None,
                      event_color=None):
-    """Helper for plotting raw"""
+    """Plot raw traces."""
     lines = params['lines']
     info = params['info']
     inds = params['inds']
@@ -821,7 +840,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
                       show=True, block=False, n_jobs=1, verbose=None):
-    """Function for plotting channel wise frequency spectra as topography.
+    """Plot channel-wise frequency spectra as topography.
 
     Parameters
     ----------
@@ -864,7 +883,8 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -904,7 +924,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
 
 
 def _set_custom_selection(params):
-    """Callback for setting custom selection by lasso selector."""
+    """Set custom selection by lasso selector."""
     chs = params['fig_selection'].lasso.selection
     if len(chs) == 0:
         return
@@ -916,7 +936,7 @@ def _set_custom_selection(params):
 
 
 def _setup_browser_selection(raw, kind):
-    """Helper for organizing browser selections."""
+    """Organize browser selections."""
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons
     from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
@@ -947,7 +967,7 @@ def _setup_browser_selection(raw, kind):
     misc = pick_types(raw.info, meg=False, eeg=False, stim=True, eog=True,
                       ecg=True, emg=True, ref_meg=False, misc=True, resp=True,
                       chpi=True, exci=True, ias=True, syst=True, seeg=False,
-                      bio=True, ecog=False, exclude=())
+                      bio=True, ecog=False, fnirs=False, exclude=())
     if len(misc) > 0:
         order['Misc'] = misc
     keys = np.concatenate([keys, ['Misc']])

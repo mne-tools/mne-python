@@ -48,8 +48,8 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=dict(mag=4e-12, grad=4000e-13,
-                                                    eog=150e-6))
+                    baseline=(None, 0),
+                    reject=dict(mag=4e-12, grad=4000e-13, eog=150e-6))
 
 # First, we find the most active vertex in the left auditory cortex, which
 # we will later use as seed for the connectivity computation

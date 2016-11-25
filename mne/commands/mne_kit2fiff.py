@@ -16,6 +16,7 @@ from mne.utils import ETSContext
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)

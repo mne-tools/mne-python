@@ -34,15 +34,15 @@ data_path = bst_raw.data_path()
 
 raw_fname = data_path + '/MEG/bst_raw/' + \
                         'subj001_somatosensory_20111109_01_AUX-f_raw.fif'
-raw = mne.io.read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.plot()
 
 # set EOG channel
 raw.set_channel_types({'EEG058': 'eog'})
-raw.add_eeg_average_proj()
+raw.set_eeg_reference()
 
 # show power line interference and remove it
-raw.plot_psd()
+raw.plot_psd(tmax=60.)
 raw.notch_filter(np.arange(60, 181, 60))
 
 events = mne.find_events(raw, stim_channel='UPPT001')

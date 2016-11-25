@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Create mne report for a folder
+r"""Create mne report for a folder.
 
 Example usage
 
@@ -18,10 +18,12 @@ from mne.utils import verbose, logger
 
 @verbose
 def log_elapsed(t, verbose=None):
+    """Log elapsed time."""
     logger.info('Report complete in %s seconds' % round(t, 1))
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)

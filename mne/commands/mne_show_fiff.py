@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Show the contents of a FIFF file
+"""Show the contents of a FIFF file.
 
 You can do for example:
 
@@ -14,6 +14,7 @@ import mne
 
 
 def run():
+    """Run command."""
     parser = mne.commands.utils.get_optparser(
         __file__, usage='mne show_fiff <file>')
     options, args = parser.parse_args()

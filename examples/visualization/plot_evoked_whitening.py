@@ -7,13 +7,13 @@ Evoked data are loaded and then whitened using a given noise covariance
 matrix. It's an excellent quality check to see if baseline signals match
 the assumption of Gaussian white noise from which we expect values around
 0 with less than 2 standard deviations. Covariance estimation and diagnostic
-plots are based on [1].
+plots are based on [1]_.
 
 References
 ----------
-[1] Engemann D. and Gramfort A. (2015) Automated model selection in covariance
-    estimation and spatial whitening of MEG and EEG signals, vol. 108,
-    328-342, NeuroImage.
+.. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+    covariance estimation and spatial whitening of MEG and EEG signals, vol.
+    108, 328-342, NeuroImage.
 
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -37,7 +37,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 40, method='iir', n_jobs=1)
+raw.filter(1, 40, n_jobs=1)
 raw.info['bads'] += ['MEG 2443']  # bads + 1 more
 events = mne.read_events(event_fname)
 

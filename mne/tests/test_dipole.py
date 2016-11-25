@@ -41,12 +41,14 @@ fname_trans = op.join(data_path, 'MEG', 'sample',
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 fname_xfit_dip = op.join(data_path, 'dip', 'fixed_auto.fif')
+fname_xfit_dip_txt = op.join(data_path, 'dip', 'fixed_auto.dip')
+fname_xfit_seq_txt = op.join(data_path, 'dip', 'sequential.dip')
 fname_ctf = op.join(data_path, 'CTF', 'testdata_ctf_short.ds')
 subjects_dir = op.join(data_path, 'subjects')
 
 
 def _compare_dipoles(orig, new):
-    """Compare dipole results for equivalence"""
+    """Compare dipole results for equivalence."""
     assert_allclose(orig.times, new.times, atol=1e-3, err_msg='times')
     assert_allclose(orig.pos, new.pos, err_msg='pos')
     assert_allclose(orig.amplitude, new.amplitude, err_msg='amplitude')
@@ -56,6 +58,7 @@ def _compare_dipoles(orig, new):
 
 
 def _check_dipole(dip, n_dipoles):
+    """Check dipole sizes."""
     assert_equal(len(dip), n_dipoles)
     assert_equal(dip.pos.shape, (n_dipoles, 3))
     assert_equal(dip.ori.shape, (n_dipoles, 3))
@@ -65,7 +68,7 @@ def _check_dipole(dip, n_dipoles):
 
 @testing.requires_testing_data
 def test_io_dipoles():
-    """Test IO for .dip files"""
+    """Test IO for .dip files."""
     tempdir = _TempDir()
     dipole = read_dipole(fname_dip)
     print(dipole)  # test repr
@@ -77,8 +80,8 @@ def test_io_dipoles():
 
 @testing.requires_testing_data
 def test_dipole_fitting_ctf():
-    """Test dipole fitting with CTF data"""
-    raw_ctf = read_raw_ctf(fname_ctf)
+    """Test dipole fitting with CTF data."""
+    raw_ctf = read_raw_ctf(fname_ctf).set_eeg_reference()
     events = make_fixed_length_events(raw_ctf, 1)
     evoked = Epochs(raw_ctf, events, 1, 0, 0, baseline=None).average()
     cov = make_ad_hoc_cov(evoked.info)
@@ -94,7 +97,7 @@ def test_dipole_fitting_ctf():
 @testing.requires_testing_data
 @requires_mne
 def test_dipole_fitting():
-    """Test dipole fitting"""
+    """Test dipole fitting."""
     amp = 10e-9
     tempdir = _TempDir()
     rng = np.random.RandomState(0)
@@ -177,7 +180,7 @@ def test_dipole_fitting():
 
 @testing.requires_testing_data
 def test_dipole_fitting_fixed():
-    """Test dipole fitting with a fixed position"""
+    """Test dipole fitting with a fixed position."""
     tpeak = 0.073
     sphere = make_sphere_model(head_radius=0.1)
     evoked = read_evokeds(fname_evo, baseline=(None, 0))[0]
@@ -221,7 +224,7 @@ def test_dipole_fitting_fixed():
 
 @testing.requires_testing_data
 def test_len_index_dipoles():
-    """Test len and indexing of Dipole objects"""
+    """Test len and indexing of Dipole objects."""
     dipole = read_dipole(fname_dip)
     d0 = dipole[0]
     d1 = dipole[:1]
@@ -237,7 +240,7 @@ def test_len_index_dipoles():
 
 @testing.requires_testing_data
 def test_min_distance_fit_dipole():
-    """Test dipole min_dist to inner_skull"""
+    """Test dipole min_dist to inner_skull."""
     subject = 'sample'
     raw = read_raw_fif(fname_raw, preload=True)
 
@@ -273,7 +276,7 @@ def test_min_distance_fit_dipole():
 
 
 def _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir):
-    """Compute dipole depth"""
+    """Compute dipole depth."""
     trans = _get_trans(fname_trans)[0]
     bem = read_bem_solution(fname_bem)
     surf = _bem_find_surface(bem, 'inner_skull')
@@ -285,7 +288,7 @@ def _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir):
 
 @testing.requires_testing_data
 def test_accuracy():
-    """Test dipole fitting to sub-mm accuracy"""
+    """Test dipole fitting to sub-mm accuracy."""
     evoked = read_evokeds(fname_evo)[0].crop(0., 0.,)
     evoked.pick_types(meg=True, eeg=False)
     evoked.pick_channels([c for c in evoked.ch_names[::4]])
@@ -328,13 +331,21 @@ def test_accuracy():
 
 @testing.requires_testing_data
 def test_dipole_fixed():
-    """Test reading a fixed-position dipole (from Xfit)"""
+    """Test reading a fixed-position dipole (from Xfit)."""
     dip = read_dipole(fname_xfit_dip)
     _check_roundtrip_fixed(dip)
+    with warnings.catch_warnings(record=True) as w:  # unused fields
+        dip_txt = read_dipole(fname_xfit_dip_txt)
+    assert_true(any('extra fields' in str(ww.message) for ww in w))
+    assert_allclose(dip.info['chs'][0]['loc'][:3], dip_txt.pos[0])
+    assert_allclose(dip_txt.amplitude[0], 12.1e-9)
+    with warnings.catch_warnings(record=True):  # unused fields
+        dip_txt_seq = read_dipole(fname_xfit_seq_txt)
+    assert_allclose(dip_txt_seq.gof, [27.3, 46.4, 43.7, 41., 37.3, 32.5])
 
 
 def _check_roundtrip_fixed(dip):
-    """Helper to test roundtrip IO for fixed dipoles"""
+    """Helper to test roundtrip IO for fixed dipoles."""
     tempdir = _TempDir()
     dip.save(op.join(tempdir, 'test-dip.fif.gz'))
     dip_read = read_dipole(op.join(tempdir, 'test-dip.fif.gz'))

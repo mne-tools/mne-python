@@ -20,7 +20,7 @@ _EEG_SELECTIONS = ['EEG 1-32', 'EEG 33-64', 'EEG 65-96', 'EEG 97-128']
 
 @verbose
 def read_selection(name, fname=None, info=None, verbose=None):
-    """Read channel selection from file
+    """Read channel selection from file.
 
     By default, the selections used in ``mne_browse_raw`` are supported.
     Additional selections can be added by specifying a selection file (e.g.
@@ -57,14 +57,14 @@ def read_selection(name, fname=None, info=None, verbose=None):
         of channel names to return, e.g. ``'MEG 0111'`` for old Neuromag
         systems and ``'MEG0111'`` for new ones.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     sel : list of string
         List with channel names in the selection.
     """
-
     # convert name to list of string
     if not isinstance(name, (list, tuple)):
         name = [name]
@@ -124,7 +124,7 @@ def read_selection(name, fname=None, info=None, verbose=None):
 
 
 def _divide_to_regions(info, add_stim=True):
-    """Divides channels to regions by positions."""
+    """Divide channels to regions by positions."""
     from scipy.stats import zscore
     picks = _pick_data_channels(info, exclude=[])
     chs_in_lobe = len(picks) // 4
@@ -148,12 +148,14 @@ def _divide_to_regions(info, add_stim=True):
     # Because of the way the sides are divided, there may be outliers in the
     # temporal lobes. Here we switch the sides for these outliers. For other
     # lobes it is not a big problem because of the vicinity of the lobes.
-    zs = np.abs(zscore(x[rt]))
-    outliers = np.array(rt)[np.where(zs > 2.)[0]]
+    with np.errstate(invalid='ignore'):  # invalid division, greater compare
+        zs = np.abs(zscore(x[rt]))
+        outliers = np.array(rt)[np.where(zs > 2.)[0]]
     rt = list(np.setdiff1d(rt, outliers))
 
-    zs = np.abs(zscore(x[lt]))
-    outliers = np.append(outliers, (np.array(lt)[np.where(zs > 2.)[0]]))
+    with np.errstate(invalid='ignore'):  # invalid division, greater compare
+        zs = np.abs(zscore(x[lt]))
+        outliers = np.append(outliers, (np.array(lt)[np.where(zs > 2.)[0]]))
     lt = list(np.setdiff1d(lt, outliers))
 
     l_mean = np.mean(x[lt])

@@ -15,7 +15,7 @@ from .urls import (url_match, valid_data_types, valid_data_formats,
 @verbose
 def data_path(url, path=None, force_update=False, update_path=None,
               verbose=None):
-    """Get path to local copy of MEGSIM dataset URL
+    """Get path to local copy of MEGSIM dataset URL.
 
     This is a low-level function useful for getting a local copy of a
     remote MEGSIM dataset.
@@ -38,7 +38,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
         If True, set the MNE_DATASETS_MEGSIM_PATH in mne-python
         config to the given path. If None, the user is prompted.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`).
 
     Returns
     -------
@@ -64,7 +64,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
         Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
         (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
         Realistic Simulated and Empirical Data. Neuroinform 10:141-158
-    """  # noqa
+    """  # noqa: E501
     key = 'MNE_DATASETS_MEGSIM_PATH'
     name = 'MEGSIM'
     path = _get_path(path, key, name)
@@ -103,7 +103,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
 @verbose
 def load_data(condition='visual', data_format='raw', data_type='experimental',
               path=None, force_update=False, update_path=None, verbose=None):
-    """Get path to local copy of MEGSIM dataset type
+    """Get path to local copy of MEGSIM dataset type.
 
     Parameters
     ----------
@@ -127,7 +127,7 @@ def load_data(condition='visual', data_format='raw', data_type='experimental',
         If True, set the MNE_DATASETS_MEGSIM_PATH in mne-python
         config to the given path. If None, the user is prompted.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`).
 
     Returns
     -------
@@ -150,8 +150,7 @@ def load_data(condition='visual', data_format='raw', data_type='experimental',
         Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
         (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
         Realistic Simulated and Empirical Data. Neuroinform 10:141-158
-    """  # noqa
-
+    """  # noqa: E501
     if not condition.lower() in valid_conditions:
         raise ValueError('Unknown condition "%s"' % condition)
     if data_format not in valid_data_formats:

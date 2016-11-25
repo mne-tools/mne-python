@@ -26,7 +26,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        _get_call_line, compute_corr, sys_info, verbose,
                        check_fname, requires_ftp, get_config_path,
                        object_size, buggy_mkl_svd, _get_inst_data,
-                       copy_doc, copy_function_doc_to_method_doc)
+                       copy_doc, copy_function_doc_to_method_doc, ProgressBar)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -48,13 +48,15 @@ def clean_lines(lines=[]):
 
 
 def test_buggy_mkl():
-    """Test decorator for buggy MKL issues"""
+    """Test decorator for buggy MKL issues."""
     from nose.plugins.skip import SkipTest
 
     @buggy_mkl_svd
     def foo(a, b):
         raise np.linalg.LinAlgError('SVD did not converge')
-    assert_raises(SkipTest, foo, 1, 2)
+    with warnings.catch_warnings(record=True) as w:
+        assert_raises(SkipTest, foo, 1, 2)
+    assert_true(all('convergence error' in str(ww.message) for ww in w))
 
     @buggy_mkl_svd
     def bar(c, d, e):
@@ -63,8 +65,7 @@ def test_buggy_mkl():
 
 
 def test_sys_info():
-    """Test info-showing utility
-    """
+    """Test info-showing utility."""
     out = StringIO()
     sys_info(fid=out)
     out = out.getvalue()
@@ -72,8 +73,7 @@ def test_sys_info():
 
 
 def test_get_call_line():
-    """Test getting a call line
-    """
+    """Test getting a call line."""
     @verbose
     def foo(verbose=None):
         return _get_call_line(in_verbose=True)
@@ -90,7 +90,7 @@ def test_get_call_line():
 
 
 def test_object_size():
-    """Test object size estimation"""
+    """Test object size estimation."""
     assert_true(object_size(np.ones(10, np.float32)) <
                 object_size(np.ones(10, np.float64)))
     for lower, upper, obj in ((0, 60, ''),
@@ -101,14 +101,16 @@ def test_object_size():
                               (0, 150, np.int32(1)),
                               (150, 500, np.ones(20)),
                               (100, 400, dict()),
-                              (400, 1000, dict(a=np.ones(50)))):
+                              (400, 1000, dict(a=np.ones(50))),
+                              (200, 900, sparse.eye(20, format='csc')),
+                              (200, 900, sparse.eye(20, format='csr'))):
         size = object_size(obj)
         assert_true(lower < size < upper,
                     msg='%s < %s < %s:\n%s' % (lower, size, upper, obj))
 
 
 def test_get_inst_data():
-    """Test _get_inst_data"""
+    """Test _get_inst_data."""
     raw = read_raw_fif(fname_raw)
     raw.crop(tmax=1.)
     assert_equal(_get_inst_data(raw), raw._data)
@@ -131,7 +133,7 @@ def test_get_inst_data():
 
 
 def test_misc():
-    """Test misc utilities"""
+    """Test misc utilities."""
     assert_equal(_memory_usage(-1)[0], -1)
     assert_equal(_memory_usage((clean_lines, [], {}))[0], -1)
     assert_equal(_memory_usage(clean_lines)[0], -1)
@@ -152,12 +154,12 @@ def test_misc():
 
 @requires_mayavi
 def test_check_mayavi():
-    """Test mayavi version check"""
+    """Test mayavi version check."""
     assert_raises(RuntimeError, _check_mayavi_version, '100.0.0')
 
 
 def test_run_tests_if_main():
-    """Test run_tests_if_main functionality"""
+    """Test run_tests_if_main functionality."""
     x = []
 
     def test_a():
@@ -188,7 +190,7 @@ def test_run_tests_if_main():
 
 
 def test_hash():
-    """Test dictionary hashing and comparison functions"""
+    """Test dictionary hashing and comparison functions."""
     # does hashing all of these types work:
     # {dict, list, tuple, ndarray, str, float, int, None}
     d0 = dict(a=dict(a=0.1, b='fo', c=1), b=[1, 'b'], c=(), d=np.ones(3),
@@ -270,8 +272,7 @@ def test_hash():
 
 
 def test_md5sum():
-    """Test md5sum calculation
-    """
+    """Test md5sum calculation."""
     tempdir = _TempDir()
     fname1 = op.join(tempdir, 'foo')
     fname2 = op.join(tempdir, 'bar')
@@ -285,8 +286,7 @@ def test_md5sum():
 
 
 def test_tempdir():
-    """Test TempDir
-    """
+    """Test TempDir."""
     tempdir2 = _TempDir()
     assert_true(op.isdir(tempdir2))
     x = str(tempdir2)
@@ -295,8 +295,7 @@ def test_tempdir():
 
 
 def test_estimate_rank():
-    """Test rank estimation
-    """
+    """Test rank estimation."""
     data = np.eye(10)
     assert_array_equal(estimate_rank(data, return_singular=True)[1],
                        np.ones(10))
@@ -306,15 +305,18 @@ def test_estimate_rank():
 
 
 def test_logging():
-    """Test logging (to file)
-    """
+    """Test logging (to file)."""
     assert_raises(ValueError, set_log_level, 'foo')
     tempdir = _TempDir()
     test_name = op.join(tempdir, 'test.log')
     with open(fname_log, 'r') as old_log_file:
+        # [:-1] used to strip an extra "No baseline correction applied"
         old_lines = clean_lines(old_log_file.readlines())
+        old_lines.pop(-1)
     with open(fname_log_2, 'r') as old_log_file_2:
         old_lines_2 = clean_lines(old_log_file_2.readlines())
+        old_lines_2.pop(14)
+        old_lines_2.pop(-1)
 
     if op.isfile(test_name):
         os.remove(test_name)
@@ -381,7 +383,7 @@ def test_logging():
 
 
 def test_config():
-    """Test mne-python config file support"""
+    """Test mne-python config file support."""
     tempdir = _TempDir()
     key = '_MNE_PYTHON_CONFIG_TESTING'
     value = '123456'
@@ -429,8 +431,7 @@ def test_config():
 
 @testing.requires_testing_data
 def test_show_fiff():
-    """Test show_fiff
-    """
+    """Test show_fiff."""
     # this is not exhaustive, but hopefully bugs will be found in use
     info = show_fiff(fname_evoked)
     keys = ['FIFF_EPOCH', 'FIFFB_HPI_COIL', 'FIFFB_PROJ_ITEM',
@@ -454,8 +455,7 @@ class deprecated_class(object):
 
 
 def test_deprecated():
-    """Test deprecated function
-    """
+    """Test deprecated function."""
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         deprecated_func()
@@ -467,7 +467,7 @@ def test_deprecated():
 
 
 def _test_fetch(url):
-    """Helper to test URL retrieval"""
+    """Helper to test URL retrieval."""
     tempdir = _TempDir()
     with ArgvSetter(disable_stderr=False):  # to capture stdout
         archive_name = op.join(tempdir, "download_test")
@@ -489,42 +489,38 @@ def _test_fetch(url):
 
 @requires_good_network
 def test_fetch_file_html():
-    """Test file downloading over http"""
+    """Test file downloading over http."""
     _test_fetch('http://google.com')
 
 
 @requires_ftp
 @requires_good_network
 def test_fetch_file_ftp():
-    """Test file downloading over ftp"""
+    """Test file downloading over ftp."""
     _test_fetch('ftp://speedtest.tele2.net/1KB.zip')
 
 
 def test_sum_squared():
-    """Test optimized sum of squares
-    """
+    """Test optimized sum of squares."""
     X = np.random.RandomState(0).randint(0, 50, (3, 3))
     assert_equal(np.sum(X ** 2), sum_squared(X))
 
 
 def test_sizeof_fmt():
-    """Test sizeof_fmt
-    """
+    """Test sizeof_fmt."""
     assert_equal(sizeof_fmt(0), '0 bytes')
     assert_equal(sizeof_fmt(1), '1 byte')
     assert_equal(sizeof_fmt(1000), '1000 bytes')
 
 
 def test_url_to_local_path():
-    """Test URL to local path
-    """
+    """Test URL to local path."""
     assert_equal(_url_to_local_path('http://google.com/home/why.html', '.'),
                  op.join('.', 'home', 'why.html'))
 
 
 def test_check_type_picks():
-    """Test checking type integrity checks of picks
-    """
+    """Test checking type integrity checks of picks."""
     picks = np.arange(12)
     assert_array_equal(picks, _check_type_picks(picks))
     picks = list(range(12))
@@ -538,8 +534,7 @@ def test_check_type_picks():
 
 
 def test_compute_corr():
-    """Test Anscombe's Quartett
-    """
+    """Test Anscombe's Quartett."""
     x = np.array([10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5])
     y = np.array([[8.04, 6.95, 7.58, 8.81, 8.33, 9.96,
                    7.24, 4.26, 10.84, 4.82, 5.68],
@@ -559,8 +554,7 @@ def test_compute_corr():
 
 
 def test_create_slices():
-    """Test checking the create of time create_slices
-    """
+    """Test checking the create of time create_slices."""
     # Test that create_slices default provide an empty list
     assert_true(create_slices(0, 0) == [])
     # Test that create_slice return correct number of slices
@@ -595,8 +589,7 @@ def test_create_slices():
 
 
 def test_time_mask():
-    """Test safe time masking
-    """
+    """Test safe time masking."""
     N = 10
     x = np.arange(N).astype(float)
     assert_equal(_time_mask(x, 0, N - 1).sum(), N)
@@ -623,8 +616,7 @@ def test_time_mask():
 
 
 def test_random_permutation():
-    """Test random permutation function
-    """
+    """Test random permutation function."""
     n_samples = 10
     random_state = 42
     python_randperm = random_permutation(n_samples, random_state)
@@ -636,7 +628,7 @@ def test_random_permutation():
 
 
 def test_copy_doc():
-    '''Test decorator for copying docstrings'''
+    """Test decorator for copying docstrings."""
     class A:
         def m1():
             """Docstring for m1"""
@@ -656,7 +648,7 @@ def test_copy_doc():
 
 
 def test_copy_function_doc_to_method_doc():
-    '''Test decorator for re-using function docstring as method docstrings'''
+    """Test decorator for re-using function docstring as method docstrings."""
     def f1(object, a, b, c):
         """Docstring for f1
 
@@ -752,5 +744,22 @@ def test_copy_function_doc_to_method_doc():
     assert_equal(A.method_f3.__doc__, 'Docstring for f3\n\n        ')
     assert_raises(ValueError, copy_function_doc_to_method_doc(f4), A.method_f1)
     assert_raises(ValueError, copy_function_doc_to_method_doc(f5), A.method_f1)
+
+
+def test_progressbar():
+    a = np.arange(10)
+    pbar = ProgressBar(a)
+    assert_equal(a, pbar.iterable)
+    assert_equal(10, pbar.max_value)
+
+    pbar = ProgressBar(10)
+    assert_equal(10, pbar.max_value)
+    assert_true(pbar.iterable is None)
+
+    # Make sure that non-iterable input raises an error
+    def iter_func(a):
+        for ii in a:
+            pass
+    assert_raises(ValueError, iter_func, ProgressBar(20))
 
 run_tests_if_main()

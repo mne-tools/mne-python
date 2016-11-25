@@ -1,4 +1,4 @@
-"""Tools for creating Raw objects from numpy arrays"""
+"""Tools for creating Raw objects from numpy arrays."""
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -12,7 +12,7 @@ from ...utils import verbose, logger
 
 
 class RawArray(_BaseRaw):
-    """Raw object from numpy array
+    """Raw object from numpy array.
 
     Parameters
     ----------
@@ -27,14 +27,16 @@ class RawArray(_BaseRaw):
         .. versionadded:: 0.12
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
     EpochsArray, EvokedArray, create_info
     """
+
     @verbose
-    def __init__(self, data, info, first_samp=0, verbose=None):
+    def __init__(self, data, info, first_samp=0, verbose=None):  # noqa: D102
         if not isinstance(info, Info):
             raise TypeError('info must be an instance of Info, got %s'
                             % type(info))
@@ -53,6 +55,7 @@ class RawArray(_BaseRaw):
         assert len(info['ch_names']) == info['nchan']
         if info.get('buffer_size_sec', None) is None:
             info['buffer_size_sec'] = 1.  # reasonable default
+        info = info.copy()  # do not modify original info
         super(RawArray, self).__init__(info, data,
                                        first_samps=(int(first_samp),),
                                        dtype=dtype, verbose=verbose)

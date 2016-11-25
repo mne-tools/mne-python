@@ -140,14 +140,12 @@ def test_volume_stc():
         with warnings.catch_warnings(record=True):  # nib<->numpy
             img = nib.load(vol_fname)
         assert_true(img.shape == t1_img.shape + (len(stc.times),))
-        assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
-                                  decimal=5)
+        assert_array_almost_equal(img.affine, t1_img.affine, decimal=5)
 
         # export without saving
         img = stc.as_volume(src, dest='mri', mri_resolution=True)
         assert_true(img.shape == t1_img.shape + (len(stc.times),))
-        assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
-                                  decimal=5)
+        assert_array_almost_equal(img.affine, t1_img.affine, decimal=5)
 
     except ImportError:
         print('Save as nifti test skipped, needs NiBabel')
@@ -203,6 +201,7 @@ def test_io_stc_h5():
     assert_raises(ValueError, stc.save, op.join(tempdir, 'tmp'), ftype='foo')
     out_name = op.join(tempdir, 'tmp')
     stc.save(out_name, ftype='h5')
+    stc.save(out_name, ftype='h5')  # test overwrite
     stc3 = read_source_estimate(out_name)
     stc4 = read_source_estimate(out_name + '-stc.h5')
     assert_raises(RuntimeError, read_source_estimate, out_name, subject='bar')

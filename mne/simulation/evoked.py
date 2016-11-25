@@ -16,13 +16,12 @@ from ..utils import check_random_state, verbose, _time_mask
 @verbose
 def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
                     iir_filter=None, random_state=None, verbose=None):
-    """Generate noisy evoked data
+    """Generate noisy evoked data.
 
     .. note:: No projections from ``info`` will be present in the
               output ``evoked``. You can use e.g.
               :func:`evoked.add_proj <mne.Evoked.add_proj>` or
-              :func:`evoked.add_eeg_average_proj
-              <mne.Evoked.add_eeg_average_proj>`
+              :func:`evoked.set_eeg_reference <mne.Evoked.set_eeg_reference>`
               to add them afterward as necessary.
 
     Parameters
@@ -49,7 +48,8 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -77,7 +77,7 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
 
 
 def simulate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
-    """Creates noise as a multivariate Gaussian
+    """Create noise as a multivariate Gaussian.
 
     The spatial covariance of the noise is given from the cov matrix.
 
@@ -108,7 +108,7 @@ def simulate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
 
 
 def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
-    """Helper to create spatially colored and temporally IIR-filtered noise"""
+    """Create spatially colored and temporally IIR-filtered noise."""
     from scipy.signal import lfilter
     noise_cov = pick_channels_cov(cov, include=info['ch_names'], exclude=[])
     if set(info['ch_names']) != set(noise_cov.ch_names):
@@ -133,7 +133,7 @@ def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
 
 
 def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
-    """Adds noise to evoked object with specified SNR.
+    """Add noise to evoked object with specified SNR.
 
     SNR is computed in the interval from tmin to tmax.
 

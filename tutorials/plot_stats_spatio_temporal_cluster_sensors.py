@@ -55,7 +55,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=None, reject=reject, preload=True)
 
 epochs.drop_channels(['EOG 061'])
-epochs.equalize_event_counts(event_id, copy=False)
+epochs.equalize_event_counts(event_id)
 
 condition_names = 'Aud_L', 'Aud_R', 'Vis_L', 'Vis_R'
 X = [epochs[k].get_data() for k in condition_names]  # as 3D matrix

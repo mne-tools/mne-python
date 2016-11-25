@@ -14,7 +14,7 @@ from scipy import stats
 from scipy import linalg
 
 from mne.preprocessing.infomax_ import infomax
-from mne.utils import requires_sklearn, run_tests_if_main
+from mne.utils import requires_sklearn, run_tests_if_main, check_version
 
 
 def center_and_norm(x, axis=-1):
@@ -37,7 +37,7 @@ def center_and_norm(x, axis=-1):
 def test_infomax_blowup():
     """ Test the infomax algorithm blowup condition
     """
-    from sklearn.decomposition import RandomizedPCA
+
     # scipy.stats uses the global RNG:
     np.random.seed(0)
     n_samples = 100
@@ -56,7 +56,7 @@ def test_infomax_blowup():
 
     center_and_norm(m)
 
-    X = RandomizedPCA(n_components=2, whiten=True).fit_transform(m.T)
+    X = _get_pca().fit_transform(m.T)
     k_ = infomax(X, extended=True, l_rate=0.1)
     s_ = np.dot(k_, X.T)
 
@@ -78,7 +78,6 @@ def test_infomax_blowup():
 def test_infomax_simple():
     """ Test the infomax algorithm on very simple data.
     """
-    from sklearn.decomposition import RandomizedPCA
     rng = np.random.RandomState(0)
     # scipy.stats uses the global RNG:
     np.random.seed(0)
@@ -102,7 +101,7 @@ def test_infomax_simple():
 
         algos = [True, False]
         for algo in algos:
-            X = RandomizedPCA(n_components=2, whiten=True).fit_transform(m.T)
+            X = _get_pca().fit_transform(m.T)
             k_ = infomax(X, extended=algo)
             s_ = np.dot(k_, X.T)
 
@@ -124,12 +123,24 @@ def test_infomax_simple():
                 assert_almost_equal(np.dot(s2_, s2) / n_samples, 1, decimal=1)
 
 
+def test_infomax_weights_ini():
+    """ Test the infomax algorithm when user provides an initial weights matrix.
+    """
+
+    X = np.random.random((3, 100))
+    weights = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.float64)
+
+    w1 = infomax(X, max_iter=0, weights=weights, extended=True)
+    w2 = infomax(X, max_iter=0, weights=weights, extended=False)
+
+    assert_almost_equal(w1, weights)
+    assert_almost_equal(w2, weights)
+
+
 @requires_sklearn
 def test_non_square_infomax():
     """ Test non-square infomax
     """
-    from sklearn.decomposition import RandomizedPCA
-
     rng = np.random.RandomState(0)
 
     n_samples = 200
@@ -151,9 +162,8 @@ def test_non_square_infomax():
             m += 0.1 * rng.randn(n_observed, n_samples)
 
         center_and_norm(m)
-        pca = RandomizedPCA(n_components=2, whiten=True, random_state=rng)
         m = m.T
-        m = pca.fit_transform(m)
+        m = _get_pca(rng).fit_transform(m)
         # we need extended since input signals are sub-gaussian
         unmixing_ = infomax(m, random_state=rng, extended=True)
         s_ = np.dot(unmixing_, m.T)
@@ -175,5 +185,17 @@ def test_non_square_infomax():
         if not add_noise:
             assert_almost_equal(np.dot(s1_, s1) / n_samples, 1, decimal=2)
             assert_almost_equal(np.dot(s2_, s2) / n_samples, 1, decimal=2)
+
+
+def _get_pca(rng=None):
+    if not check_version('sklearn', '0.18'):
+        from sklearn.decomposition import RandomizedPCA
+        return RandomizedPCA(n_components=2, whiten=True,
+                             random_state=rng)
+    else:
+        from sklearn.decomposition import PCA
+        return PCA(n_components=2, whiten=True, svd_solver='randomized',
+                   random_state=rng)
+
 
 run_tests_if_main()

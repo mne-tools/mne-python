@@ -19,25 +19,6 @@ For further reading:
 - For details about analysis steps: :ref:`manual`
 - For details about specific functions and classes: :ref:`api_reference`
 
-.. note:: The default location for the MNE-sample data is
-          my-path-to/mne-python/examples. If you downloaded data and an
-          example asks you whether to download it again, make sure
-          the data reside in the examples directory
-          and that you run the script from its current directory.
-
-          .. code-block:: bash
-
-              $ cd examples/preprocessing
-
-          Then in Python you can do::
-
-              In [1]: %run plot_find_ecg_artifacts.py
-
-
-          See :ref:`datasets` for a list of all available datasets and some
-          advanced configuration options, e.g. to specify a custom
-          location for storing the datasets.
-
 .. container:: span box
 
   .. raw:: html
@@ -61,6 +42,7 @@ For further reading:
     :maxdepth: 1
 
     auto_tutorials/plot_background_filtering.rst
+    auto_tutorials/plot_configuration.rst
 
 .. container:: span box
 
@@ -121,6 +103,7 @@ For further reading:
     auto_tutorials/plot_object_evoked.rst
     auto_tutorials/plot_creating_data_structures.rst
     auto_tutorials/plot_info.rst
+    auto_tutorials/plot_ecog.rst
 
 .. container:: span box
 

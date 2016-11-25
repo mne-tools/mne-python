@@ -66,7 +66,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 #    Equalize trial counts to eliminate bias (which would otherwise be
 #    introduced by the abs() performed below)
-epochs.equalize_event_counts(event_id, copy=False)
+epochs.equalize_event_counts(event_id)
 
 ###############################################################################
 # Transform to source space

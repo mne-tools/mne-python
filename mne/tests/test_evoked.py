@@ -16,9 +16,10 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
 from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
-                 grand_average, combine_evoked, create_info, read_events, io,
+                 grand_average, combine_evoked, create_info, read_events,
                  Epochs, EpochsArray)
 from mne.evoked import _get_peak, Evoked, EvokedArray
+from mne.io import read_raw_fif
 from mne.tests.common import assert_naming
 from mne.utils import (_TempDir, requires_pandas, slow_test, requires_version,
                        run_tests_if_main)
@@ -34,7 +35,7 @@ event_name = op.join(base_dir, 'test-eve.fif')
 
 
 def test_decim():
-    """Test evoked decimation"""
+    """Test evoked decimation."""
     rng = np.random.RandomState(0)
     n_epochs, n_channels, n_times = 5, 10, 20
     dec_1, dec_2 = 2, 3
@@ -54,7 +55,7 @@ def test_decim():
     assert_array_equal(data_epochs, data_epochs_3)
 
     # Now let's do it with some real data
-    raw = io.read_raw_fif(raw_fname)
+    raw = read_raw_fif(raw_fname)
     events = read_events(event_name)
     sfreq_new = raw.info['sfreq'] / decim
     raw.info['lowpass'] = sfreq_new / 4.  # suppress aliasing warnings
@@ -75,7 +76,7 @@ def test_decim():
 
 @requires_version('scipy', '0.14')
 def test_savgol_filter():
-    """Test savgol filtering"""
+    """Test savgol filtering."""
     h_freq = 10.
     evoked = read_evokeds(fname, 0)
     freqs = fftpack.fftfreq(len(evoked.times), 1. / evoked.info['sfreq'])
@@ -97,7 +98,7 @@ def test_savgol_filter():
 
 
 def test_hash_evoked():
-    """Test evoked hashing"""
+    """Test evoked hashing."""
     ave = read_evokeds(fname, 0)
     ave_2 = read_evokeds(fname, 0)
     assert_equal(hash(ave), hash(ave_2))
@@ -110,7 +111,7 @@ def test_hash_evoked():
 
 @slow_test
 def test_io_evoked():
-    """Test IO for evoked data (fif + gz) with integer and str args"""
+    """Test IO for evoked data (fif + gz) with integer and str args."""
     tempdir = _TempDir()
     ave = read_evokeds(fname, 0)
 
@@ -157,9 +158,9 @@ def test_io_evoked():
             assert_equal(av1.comment, av2.comment)
 
     # test warnings on bad filenames
+    fname2 = op.join(tempdir, 'test-bad-name.fif')
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        fname2 = op.join(tempdir, 'test-bad-name.fif')
         write_evokeds(fname2, ave)
         read_evokeds(fname2)
     assert_naming(w, 'test_evoked.py', 2)
@@ -167,9 +168,24 @@ def test_io_evoked():
     # constructor
     assert_raises(TypeError, Evoked, fname)
 
+    # MaxShield
+    fname_ms = op.join(tempdir, 'test-ave.fif')
+    assert_true(ave.info['maxshield'] is False)
+    ave.info['maxshield'] = True
+    ave.save(fname_ms)
+    assert_raises(ValueError, read_evokeds, fname_ms)
+    with warnings.catch_warnings(record=True) as w:
+        aves = read_evokeds(fname_ms, allow_maxshield=True)
+    assert_true(all('Elekta' in str(ww.message) for ww in w))
+    assert_true(all(ave.info['maxshield'] is True for ave in aves))
+    with warnings.catch_warnings(record=True) as w:
+        aves = read_evokeds(fname_ms, allow_maxshield='yes')
+    assert_equal(len(w), 0)
+    assert_true(all(ave.info['maxshield'] is True for ave in aves))
+
 
 def test_shift_time_evoked():
-    """ Test for shifting of time scale"""
+    """ Test for shifting of time scale."""
     tempdir = _TempDir()
     # Shift backward
     ave = read_evokeds(fname, 0)
@@ -209,7 +225,7 @@ def test_shift_time_evoked():
 
 
 def test_evoked_resample():
-    """Test for resampling of evoked data"""
+    """Test for resampling of evoked data."""
     tempdir = _TempDir()
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
@@ -240,7 +256,7 @@ def test_evoked_resample():
 
 
 def test_evoked_detrend():
-    """Test for detrending evoked data"""
+    """Test for detrending evoked data."""
     ave = read_evokeds(fname, 0)
     ave_normal = read_evokeds(fname, 0)
     ave.detrend(0)
@@ -252,7 +268,7 @@ def test_evoked_detrend():
 
 @requires_pandas
 def test_to_data_frame():
-    """Test evoked Pandas exporter"""
+    """Test evoked Pandas exporter."""
     ave = read_evokeds(fname, 0)
     assert_raises(ValueError, ave.to_data_frame, picks=np.arange(400))
     df = ave.to_data_frame()
@@ -264,7 +280,7 @@ def test_to_data_frame():
 
 
 def test_evoked_proj():
-    """Test SSP proj operations"""
+    """Test SSP proj operations."""
     for proj in [True, False]:
         ave = read_evokeds(fname, condition=0, proj=proj)
         assert_true(all(p['active'] == proj for p in ave.info['projs']))
@@ -292,8 +308,7 @@ def test_evoked_proj():
 
 
 def test_get_peak():
-    """Test peak getter"""
-
+    """Test peak getter."""
     evoked = read_evokeds(fname, condition=0, proj=True)
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmin=1)
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmax=0.9)
@@ -334,7 +349,7 @@ def test_get_peak():
 
 
 def test_drop_channels_mixin():
-    """Test channels-dropping functionality"""
+    """Test channels-dropping functionality."""
     evoked = read_evokeds(fname, condition=0, proj=True)
     drop_ch = evoked.ch_names[:3]
     ch_names = evoked.ch_names[3:]
@@ -356,7 +371,7 @@ def test_drop_channels_mixin():
 
 
 def test_pick_channels_mixin():
-    """Test channel-picking functionality"""
+    """Test channel-picking functionality."""
     evoked = read_evokeds(fname, condition=0, proj=True)
     ch_names = evoked.ch_names[:3]
 
@@ -380,7 +395,7 @@ def test_pick_channels_mixin():
 
 
 def test_equalize_channels():
-    """Test equalization of channels"""
+    """Test equalization of channels."""
     evoked1 = read_evokeds(fname, condition=0, proj=True)
     evoked2 = evoked1.copy()
     ch_names = evoked1.ch_names[2:]
@@ -393,7 +408,7 @@ def test_equalize_channels():
 
 
 def test_arithmetic():
-    """Test evoked arithmetic"""
+    """Test evoked arithmetic."""
     ev = read_evokeds(fname, condition=0)
     ev1 = EvokedArray(np.ones_like(ev.data), ev.info, ev.times[0], nave=20)
     ev2 = EvokedArray(-np.ones_like(ev.data), ev.info, ev.times[0], nave=10)
@@ -401,8 +416,7 @@ def test_arithmetic():
     # combine_evoked([ev1, ev2]) should be the same as ev1 + ev2:
     # data should be added according to their `nave` weights
     # nave = ev1.nave + ev2.nave
-    with warnings.catch_warnings(record=True):  # deprecation no weights
-        ev = combine_evoked([ev1, ev2])
+    ev = combine_evoked([ev1, ev2], weights='nave')
     assert_equal(ev.nave, ev1.nave + ev2.nave)
     assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
 
@@ -463,7 +477,7 @@ def test_arithmetic():
 
 
 def test_array_epochs():
-    """Test creating evoked from array"""
+    """Test creating evoked from array."""
     tempdir = _TempDir()
 
     # creating
@@ -500,7 +514,7 @@ def test_array_epochs():
 
     # test kind check
     assert_raises(TypeError, EvokedArray, data1, info, tmin=0, kind=1)
-    assert_raises(ValueError, EvokedArray, data1, info, tmin=0, kind='mean')
+    assert_raises(ValueError, EvokedArray, data1, info, kind='mean')
 
     # test match between channels info and data
     ch_names = ['EEG %03d' % (i + 1) for i in range(19)]
@@ -510,14 +524,14 @@ def test_array_epochs():
 
 
 def test_time_as_index():
-    """Test time as index"""
+    """Test time as index."""
     evoked = read_evokeds(fname, condition=0).crop(-.1, .1)
     assert_array_equal(evoked.time_as_index([-.1, .1], use_rounding=True),
                        [0, len(evoked.times) - 1])
 
 
 def test_add_channels():
-    """Test evoked splitting / re-appending channel types"""
+    """Test evoked splitting / re-appending channel types."""
     evoked = read_evokeds(fname, condition=0)
     evoked.info['buffer_size_sec'] = None
     hpi_coils = [{'event_bits': []},
@@ -550,7 +564,7 @@ def test_add_channels():
 
 
 def test_evoked_baseline():
-    """Test evoked baseline"""
+    """Test evoked baseline."""
     evoked = read_evokeds(fname, condition=0, baseline=None)
 
     # Here we create a data_set with constant data.

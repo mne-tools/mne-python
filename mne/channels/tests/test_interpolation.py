@@ -21,7 +21,7 @@ def _load_data():
     """Helper function to load data."""
     # It is more memory efficient to load data in a separate
     # function so it's loaded on-demand
-    raw = io.read_raw_fif(raw_fname, add_eeg_ref=False)
+    raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude=[])
     # select every second channel for faster speed but compensate by using
@@ -92,6 +92,15 @@ def test_interpolation():
         inst.info['bads'] = [inst.ch_names[1]]
         assert_raises(ValueError, inst.interpolate_bads)
 
+    # check that interpolation works when non M/EEG channels are present
+    # before MEG channels
+    with warnings.catch_warnings(record=True):  # change of units
+        raw.rename_channels({'MEG 0113': 'TRIGGER'})
+        raw.set_channel_types({'TRIGGER': 'stim'})
+        raw.info['bads'] = [raw.info['ch_names'][1]]
+        raw.load_data()
+        raw.interpolate_bads()
+
     # check that interpolation works for MEG
     epochs_meg.info['bads'] = ['MEG 0141']
     evoked = epochs_meg.average()
@@ -101,8 +110,7 @@ def test_interpolation():
     raw_meg = io.RawArray(data=epochs_meg._data[0], info=epochs_meg.info)
     raw_meg.info['bads'] = ['MEG 0141']
     data1 = raw_meg[pick, :][0][0]
-    # reset_bads=False here because epochs_meg appears to share the same info
-    # dict with raw and we want to test the epochs functionality too
+
     raw_meg.info.normalize_proj()
     data2 = raw_meg.interpolate_bads(reset_bads=False)[pick, :][0][0]
     assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
@@ -115,7 +123,7 @@ def test_interpolation():
     epochs_meg.interpolate_bads()
     data2 = epochs_meg.get_data()[:, pick, :].ravel()
     assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
-    assert_true(len(raw_meg.info['bads']) == 0)
+    assert_true(len(epochs_meg.info['bads']) == 0)
 
     # MEG -- evoked
     data1 = evoked.data[pick]

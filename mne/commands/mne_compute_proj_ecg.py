@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Compute SSP/PCA projections for ECG artifacts
+r"""Compute SSP/PCA projections for ECG artifacts.
 
 You can do for example:
 
@@ -19,6 +19,7 @@ import mne
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)

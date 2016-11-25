@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Conversion tool from Brain Vision EEG to FIF"""
+"""Conversion tool from Brain Vision EEG to FIF."""
 
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
@@ -26,7 +26,7 @@ from ...externals.six.moves import configparser
 
 
 class RawBrainVision(_BaseRaw):
-    """Raw object from Brain Vision EEG file
+    """Raw object from Brain Vision EEG file.
 
     Parameters
     ----------
@@ -64,17 +64,19 @@ class RawBrainVision(_BaseRaw):
         or an empty dict (default), only stimulus events are added to the
         stimulus channel. Keys are case sensitive.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                  scale=1., preload=False, response_trig_shift=0,
-                 event_id=None, verbose=None):
+                 event_id=None, verbose=None):  # noqa: D102
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
@@ -94,7 +96,7 @@ class RawBrainVision(_BaseRaw):
             orig_format=fmt, preload=preload, verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a chunk of raw data"""
+        """Read a chunk of raw data."""
         # read data
         dtype = _fmt_dtype_dict[self.orig_format]
         n_data_ch = len(self.ch_names) - 1
@@ -103,7 +105,7 @@ class RawBrainVision(_BaseRaw):
                             trigger_ch=self._event_ch)
 
     def _get_brainvision_events(self):
-        """Retrieve the events associated with the Brain Vision Raw object
+        """Retrieve the events associated with the Brain Vision Raw object.
 
         Returns
         -------
@@ -114,7 +116,7 @@ class RawBrainVision(_BaseRaw):
         return self._events.copy()
 
     def _set_brainvision_events(self, events):
-        """Set the events and update the synthesized stim channel
+        """Set the events and update the synthesized stim channel.
 
         Parameters
         ----------
@@ -125,7 +127,7 @@ class RawBrainVision(_BaseRaw):
         self._create_event_ch(events)
 
     def _create_event_ch(self, events, n_samp=None):
-        """Create the event channel"""
+        """Create the event channel."""
         if n_samp is None:
             n_samp = self.last_samp - self.first_samp + 1
         events = np.array(events, int)
@@ -139,7 +141,7 @@ class RawBrainVision(_BaseRaw):
 
 
 def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
-    """Read events from a vmrk file
+    """Read events from a vmrk file.
 
     Parameters
     ----------
@@ -247,6 +249,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
 
 
 def _check_hdr_version(header):
+    """Check the header version."""
     tags = ['Brain Vision Data Exchange Header File Version 1.0',
             'Brain Vision Data Exchange Header File Version 2.0']
     if header not in tags:
@@ -256,6 +259,7 @@ def _check_hdr_version(header):
 
 
 def _check_mrk_version(header):
+    """Check the marker version."""
     tags = ['Brain Vision Data Exchange Marker File, Version 1.0',
             'Brain Vision Data Exchange Marker File, Version 2.0']
     if header not in tags:
@@ -280,7 +284,7 @@ _unit_dict = {'V': 1.,  # V stands for Volt
 
 
 def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
-    """Extracts all the information from the header file.
+    """Extract all the information from the header file.
 
     Parameters
     ----------
@@ -361,7 +365,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     info = _empty_info(sfreq)
 
     # check binary format
-    assert cfg.get('Common Infos', 'DataFormat') == 'BINARY'
+    data_format = cfg.get('Common Infos', 'DataFormat')
+    if data_format != 'BINARY':
+        raise ValueError('Only data in binary format is supported. '
+                         'Your data are in %s.' % data_format)
     order = cfg.get('Common Infos', 'DataOrientation')
     if order not in _orientation_dict:
         raise NotImplementedError('Data Orientation %s is not supported'
@@ -496,13 +503,37 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 if hp_s:
                     info['highpass'] = 1. / info['highpass']
         else:
+            heterogeneous_hp_filter = True
             if hp_s:
-                info['highpass'] = np.min(np.array(highpass, dtype=np.float))
-                info['highpass'] = 1. / info['highpass']
-            else:
+                # We convert channels with disabled filters to having
+                # highpass relaxed / no filters
+                highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
+                            else np.Inf for filt in highpass]
                 info['highpass'] = np.max(np.array(highpass, dtype=np.float))
-            warn('Channels contain different highpass filters. Highest filter '
-                 'setting will be stored.')
+                # Coveniently enough 1 / np.Inf = 0.0, so this works for
+                # DC / no highpass filter
+                info['highpass'] = 1. / info['highpass']
+
+                # not exactly the cleanest use of FP, but this makes us
+                # more conservative in *not* warning.
+                if info['highpass'] == 0.0 and len(set(highpass)) == 1:
+                    # not actually heterogeneous in effect
+                    # ... just heterogeneously disabled
+                    heterogeneous_hp_filter = False
+            else:
+                highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
+                            else 0.0 for filt in highpass]
+                info['highpass'] = np.min(np.array(highpass, dtype=np.float))
+                if info['highpass'] == 0.0 and len(set(highpass)) == 1:
+                    # not actually heterogeneous in effect
+                    # ... just heterogeneously disabled
+                    heterogeneous_hp_filter = False
+
+            if heterogeneous_hp_filter:
+                warn('Channels contain different highpass filters. '
+                     'Lowest (weakest) filter setting (%0.2f Hz) '
+                     'will be stored.' % info['highpass'])
+
         if len(lowpass) == 0:
             pass
         elif len(set(lowpass)) == 1:
@@ -513,9 +544,55 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 if lp_s:
                     info['lowpass'] = 1. / info['lowpass']
         else:
-            info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
-            warn('Channels contain different lowpass filters. Lowest filter '
-                 'setting will be stored.')
+            heterogeneous_lp_filter = True
+            if lp_s:
+                # We convert channels with disabled filters to having
+                # infinitely relaxed / no filters
+                lowpass = [float(filt) if filt not in ('NaN', 'Off')
+                           else 0.0 for filt in lowpass]
+                info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
+                try:
+                    info['lowpass'] = 1. / info['lowpass']
+                except ZeroDivisionError:
+                    if len(set(lowpass)) == 1:
+                        # No lowpass actually set for the weakest setting
+                        # so we set lowpass to the Nyquist frequency
+                        info['lowpass'] = info['sfreq'] / 2.
+                        # not actually heterogeneous in effect
+                        # ... just heterogeneously disabled
+                        heterogeneous_lp_filter = False
+                    else:
+                        # no lowpass filter is the weakest filter,
+                        # but it wasn't the only filter
+                        pass
+            else:
+                # We convert channels with disabled filters to having
+                # infinitely relaxed / no filters
+                lowpass = [float(filt) if filt not in ('NaN', 'Off')
+                           else np.Inf for filt in lowpass]
+                info['lowpass'] = np.max(np.array(lowpass, dtype=np.float))
+
+                if np.isinf(info['lowpass']):
+                    # No lowpass actually set for the weakest setting
+                    # so we set lowpass to the Nyquist frequency
+                    info['lowpass'] = info['sfreq'] / 2.
+                    if len(set(lowpass)) == 1:
+                        # not actually heterogeneous in effect
+                        # ... just heterogeneously disabled
+                        heterogeneous_lp_filter = False
+
+            if heterogeneous_lp_filter:
+                # this isn't clean FP, but then again, we only want to provide
+                # the Nyquist hint when the lowpass filter was actually
+                # calculated from dividing the sampling frequency by 2, so the
+                # exact/direct comparison (instead of tolerance) makes sense
+                if info['lowpass'] == info['sfreq'] / 2.0:
+                    nyquist = ', Nyquist limit'
+                else:
+                    nyquist = ""
+                warn('Channels contain different lowpass filters. '
+                     'Highest (weakest) filter setting (%0.2f Hz%s) '
+                     'will be stored.' % (info['lowpass'], nyquist))
 
     # locate EEG and marker files
     path = os.path.dirname(vhdr_fname)
@@ -563,7 +640,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                          scale=1., preload=False, response_trig_shift=0,
                          event_id=None, verbose=None):
-    """Reader for Brain Vision EEG file
+    """Reader for Brain Vision EEG file.
 
     Parameters
     ----------
@@ -601,7 +678,8 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         or an empty dict (default), only stimulus events are added to the
         stimulus channel. Keys are case sensitive.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

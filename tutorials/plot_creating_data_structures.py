@@ -117,23 +117,23 @@ info = mne.create_info(
 
 ###############################################################################
 # It is necessary to supply an "events" array in order to create an Epochs
-# object. This is of `shape(n_events, 3)` where the first column is the index
-# of the event, the second column is the length of the event, and the third
-# column is the event type.
+# object. This is of `shape(n_events, 3)` where the first column is the sample
+# number (time) of the event, the second column indicates the value from which
+# the transition is made from (only used when the new value is bigger than the
+# old one), and the third column is the new event value.
 
-# Create an event matrix: 10 events with a duration of 1 sample, alternating
-# event codes
+# Create an event matrix: 10 events with alternating event codes
 events = np.array([
-    [0, 1, 1],
-    [1, 1, 2],
-    [2, 1, 1],
-    [3, 1, 2],
-    [4, 1, 1],
-    [5, 1, 2],
-    [6, 1, 1],
-    [7, 1, 2],
-    [8, 1, 1],
-    [9, 1, 2],
+    [0, 0, 1],
+    [1, 0, 2],
+    [2, 0, 1],
+    [3, 0, 2],
+    [4, 0, 1],
+    [5, 0, 2],
+    [6, 0, 1],
+    [7, 0, 2],
+    [8, 0, 1],
+    [9, 0, 2],
 ])
 
 ###############################################################################

@@ -11,8 +11,7 @@ from ..utils import sum_squared, warn
 
 
 def tridisolve(d, e, b, overwrite_b=True):
-    """
-    Symmetric tridiagonal system solver, from Golub and Van Loan pg 157
+    """Symmetric tridiagonal system solver, from Golub and Van Loan pg 157.
 
     Note: Copied from NiTime
 
@@ -59,8 +58,10 @@ def tridisolve(d, e, b, overwrite_b=True):
 
 
 def tridi_inverse_iteration(d, e, w, x0=None, rtol=1e-8):
-    """Perform an inverse iteration to find the eigenvector corresponding
-    to the given eigenvalue in a symmetric tridiagonal system.
+    """Perform an inverse iteration.
+
+    This will find the eigenvector corresponding to the given eigenvalue
+    in a symmetric tridiagonal system.
 
     Note: Copied from NiTime
 
@@ -80,7 +81,6 @@ def tridi_inverse_iteration(d, e, w, x0=None, rtol=1e-8):
 
     Returns
     -------
-
     e: ndarray
       The converged eigenvector
 
@@ -103,9 +103,10 @@ def tridi_inverse_iteration(d, e, w, x0=None, rtol=1e-8):
 
 def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
                  interp_kind='linear'):
-    """
-    Returns the Discrete Prolate Spheroidal Sequences of orders [0,Kmax-1]
-    for a given frequency-spacing multiple NW and sequence length N.
+    """Compute Discrete Prolate Spheroidal Sequences.
+
+    Will give of orders [0,Kmax-1] for a given frequency-spacing multiple
+    NW and sequence length N.
 
     Note: Copied from NiTime
 
@@ -251,9 +252,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
 def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
                           return_weights=False):
-    """
-    Perform an iterative procedure to compute the PSD from tapered spectra
-    using the optimal weights.
+    r"""Use iterative procedure to compute the PSD from tapered spectra.
 
     Note: Modified from NiTime
 
@@ -280,7 +279,6 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
 
     Notes
     -----
-
     The weights to use for making the multitaper estimate, such that
     :math:`S_{mt} = \sum_{k} |w_k|^2S_k^{mt} / \sum_{k} |w_k|^2`
     """
@@ -363,7 +361,7 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
 
 
 def _psd_from_mt(x_mt, weights):
-    """ compute PSD from tapered spectra
+    """Compute PSD from tapered spectra.
 
     Parameters
     ----------
@@ -385,7 +383,7 @@ def _psd_from_mt(x_mt, weights):
 
 
 def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
-    """ Compute CSD from tapered spectra
+    """Compute CSD from tapered spectra.
 
     Parameters
     ----------
@@ -411,7 +409,7 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
 
 
 def _mt_spectra(x, dpss, sfreq, n_fft=None):
-    """ Compute tapered spectra
+    """Compute tapered spectra.
 
     Parameters
     ----------
@@ -432,7 +430,6 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     freqs : array
         The frequency points in Hz of the spectra
     """
-
     if n_fft is None:
         n_fft = x.shape[1]
 
@@ -457,7 +454,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
                     adaptive=False, low_bias=True, normalization='length',
                     n_jobs=1):
-    """Compute power spectrum density (PSD) using a multi-taper method
+    """Compute power spectrum density (PSD) using a multi-taper method.
 
     Parameters
     ----------

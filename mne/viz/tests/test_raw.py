@@ -8,7 +8,8 @@ import warnings
 
 from numpy.testing import assert_raises, assert_equal
 
-from mne import io, read_events, pick_types, Annotations
+from mne import read_events, pick_types, Annotations
+from mne.io import read_raw_fif
 from mne.utils import requires_version, run_tests_if_main
 from mne.viz.utils import _fake_click
 from mne.viz import plot_raw, plot_sensors
@@ -25,7 +26,8 @@ event_name = op.join(base_dir, 'test-eve.fif')
 
 
 def _get_raw():
-    raw = io.read_raw_fif(raw_fname, preload=True)
+    """Get raw data."""
+    raw = read_raw_fif(raw_fname, preload=True)
     # Throws a warning about a changed unit.
     with warnings.catch_warnings(record=True):
         raw.set_channel_types({raw.ch_names[0]: 'ias'})
@@ -35,6 +37,7 @@ def _get_raw():
 
 
 def _get_events():
+    """Get events."""
     return read_events(event_name)
 
 
@@ -151,19 +154,21 @@ def test_plot_raw_psd():
     import matplotlib.pyplot as plt
     raw = _get_raw()
     # normal mode
-    raw.plot_psd(tmax=2.0)
+    with warnings.catch_warnings(record=True):  # deprecation of tmax
+        raw.plot_psd()
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
-    raw.plot_psd(picks=picks, area_mode='range')
+    raw.plot_psd(tmax=np.inf, picks=picks, area_mode='range', average=False)
+    plt.close('all')
     ax = plt.axes()
     # if ax is supplied:
     assert_raises(ValueError, raw.plot_psd, ax=ax)
-    raw.plot_psd(picks=picks, ax=ax)
+    raw.plot_psd(tmax=np.inf, picks=picks, ax=ax)
     plt.close('all')
     ax = plt.axes()
     assert_raises(ValueError, raw.plot_psd, ax=ax)
     ax = [ax, plt.axes()]
-    raw.plot_psd(ax=ax)
+    raw.plot_psd(tmax=np.inf, ax=ax)
     plt.close('all')
     # topo psd
     raw.plot_psd_topo()

@@ -6,6 +6,7 @@ recursive-include examples *.txt
 recursive-include mne *.py
 recursive-include mne/data *.dat
 recursive-include mne/data *.sel
+recursive-include mne/data *.fif
 recursive-include mne/data *.fif.gz
 recursive-include mne/channels/data/montages *.elc
 recursive-include mne/channels/data/montages *.txt

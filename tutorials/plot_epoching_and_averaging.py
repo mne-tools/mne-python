@@ -18,6 +18,7 @@ import mne
 data_path = mne.datasets.sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(fname)
+raw.set_eeg_reference()  # set EEG average reference
 
 ###############################################################################
 # To create time locked epochs, we first need a set of events that contain the
@@ -40,7 +41,8 @@ raw.plot(n_channels=10, order=order, block=True)
 # from an outside source (like a separate file of events), pay special
 # attention in aligning the events correctly with the raw data.
 events = mne.find_events(raw)
-print(events)
+print('Found %s events, first five:' % len(events))
+print(events[:5])
 
 # Plot the events to get an idea of the paradigm
 # Specify colors and an event_id dictionary for the legend.
@@ -150,7 +152,7 @@ evoked_right = epochs['Auditory/Right'].average(picks=picks)
 epochs_left = epochs['Left']
 
 # ... or to select a very specific subset. This is the same as above:
-evoked_left = epochs['Auditory', 'Left'].average(picks=picks)
+evoked_left = epochs['Left/Auditory'].average(picks=picks)
 
 ###############################################################################
 # Finally, let's plot the evoked responses.

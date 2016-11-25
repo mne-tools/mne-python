@@ -1,5 +1,4 @@
-"""Functions to plot epochs data
-"""
+"""Functions to plot epochs data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -22,7 +21,7 @@ from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show,
-                    _compute_scalings, DraggableColorbar)
+                    _compute_scalings, DraggableColorbar, _setup_cmap)
 from ..defaults import _handle_default
 
 
@@ -30,7 +29,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap='RdBu_r',
                       fig=None, axes=None, overlay_times=None):
-    """Plot Event Related Potential / Fields image
+    """Plot Event Related Potential / Fields image.
 
     Parameters
     ----------
@@ -191,17 +190,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         this_vmin = vmin * scalings[ch_type] if scale_vmin else vmin
         this_vmax = vmax * scalings[ch_type] if scale_vmax else vmax
 
-        if cmap == 'interactive':
-            cmap = ('RdBu_r', True)
-        elif not isinstance(cmap, tuple):
-            cmap = (cmap, True)
+        cmap = _setup_cmap(cmap)
         im = ax1.imshow(this_data,
                         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
                                 0, n_epochs],
                         aspect='auto', origin='lower', interpolation='nearest',
                         vmin=this_vmin, vmax=this_vmax, cmap=cmap[0])
         if this_overlay_times is not None:
-            plt.plot(1e3 * this_overlay_times, 0.5 + np.arange(len(this_data)),
+            ax1.plot(1e3 * this_overlay_times, 0.5 + np.arange(len(this_data)),
                      'k', linewidth=2)
         ax1.set_title(epochs.ch_names[idx])
         ax1.set_ylabel('Epochs')
@@ -233,7 +229,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
                   color=(0.9, 0.9, 0.9), width=0.8, ignore=('IGNORED',),
                   show=True):
-    """Show the channel stats based on a drop_log from Epochs
+    """Show the channel stats based on a drop_log from Epochs.
 
     Parameters
     ----------
@@ -292,7 +288,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
 
 def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
                       title_str, axes_handler):
-    """Aux functioin"""
+    """Handle drawing epochs axes."""
     this = axes_handler[0]
     for ii, data_, ax in zip(epoch_idx, data, axes):
         for l, d in zip(ax.lines, data_[good_ch_idx]):
@@ -327,7 +323,7 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
 
 
 def _epochs_navigation_onclick(event, params):
-    """Aux function"""
+    """Handle epochs navigation click."""
     import matplotlib.pyplot as plt
     p = params
     here = None
@@ -354,7 +350,7 @@ def _epochs_navigation_onclick(event, params):
 
 
 def _epochs_axes_onclick(event, params):
-    """Aux function"""
+    """Handle epochs axes click."""
     reject_color = (0.8, 0.8, 0.8)
     ax = event.inaxes
     if event.inaxes is None:
@@ -385,7 +381,7 @@ def _epochs_axes_onclick(event, params):
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
                 n_channels=20, title=None, show=True, block=False):
-    """ Visualize epochs
+    """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
     channels can be selected by clicking the channel name on the left side of
@@ -474,7 +470,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     normalization='length', picks=None, ax=None, color='black',
                     area_mode='std', area_alpha=0.33, dB=True, n_jobs=1,
                     show=True, verbose=None):
-    """Plot the power spectral density across epochs
+    """Plot the power spectral density across epochs.
 
     Parameters
     ----------
@@ -523,7 +519,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     show : bool
         Show figure if True.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -580,7 +577,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
 def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, order=None):
-    """Helper for setting up the mne_browse_epochs window."""
+    """Set up the mne_browse_epochs window."""
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     from matplotlib.collections import LineCollection
@@ -598,6 +595,14 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     types = list()
     for t in ['grad', 'mag']:
         idxs = pick_types(params['info'], meg=t, ref_meg=False, exclude=[])
+        if len(idxs) < 1:
+            continue
+        mask = np.in1d(idxs, picks, assume_unique=True)
+        inds.append(idxs[mask])
+        types += [t] * len(inds[-1])
+    for t in ['hbo', 'hbr']:
+        idxs = pick_types(params['info'], meg=False, ref_meg=False, fnirs=t,
+                          exclude=[])
         if len(idxs) < 1:
             continue
         mask = np.in1d(idxs, picks, assume_unique=True)
@@ -797,7 +802,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
 
 def _prepare_projectors(params):
-    """ Helper for setting up the projectors for epochs browser """
+    """Set up the projectors for epochs browser."""
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     epochs = params['epochs']
@@ -821,7 +826,7 @@ def _prepare_projectors(params):
 
 
 def _plot_traces(params):
-    """ Helper for plotting concatenated epochs """
+    """Plot concatenated epochs."""
     params['text'].set_visible(False)
     ax = params['ax']
     butterfly = params['butterfly']
@@ -958,7 +963,7 @@ def _plot_traces(params):
 
 
 def _plot_update_epochs_proj(params, bools=None):
-    """Helper only needs to be called when proj is changed"""
+    """Deal with proj changed."""
     if bools is not None:
         inds = np.where(bools)[0]
         params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
@@ -980,13 +985,14 @@ def _plot_update_epochs_proj(params, bools=None):
 
 
 def _handle_picks(epochs):
-    """Aux function to handle picks."""
+    """Handle picks."""
     if any('ICA' in k for k in epochs.ch_names):
         picks = pick_types(epochs.info, misc=True, ref_meg=False,
                            exclude=[])
     else:
         picks = pick_types(epochs.info, meg=True, eeg=True, eog=True, ecg=True,
-                           seeg=True, ecog=True, ref_meg=False, exclude=[])
+                           seeg=True, ecog=True, ref_meg=False, fnirs=True,
+                           exclude=[])
     return picks
 
 
@@ -1004,7 +1010,7 @@ def _plot_window(value, params):
 
 
 def _plot_vert_lines(params):
-    """ Helper function for plotting vertical lines."""
+    """Plot vertical lines."""
     ax = params['ax']
     while len(ax.lines) > 0:
         ax.lines.pop()
@@ -1025,7 +1031,7 @@ def _plot_vert_lines(params):
 
 
 def _pick_bad_epochs(event, params):
-    """Helper for selecting / dropping bad epochs"""
+    """Select / drop bad epochs."""
     if 'ica' in params:
         pos = (event.xdata, event.ydata)
         _pick_bad_channels(pos, params)
@@ -1058,7 +1064,7 @@ def _pick_bad_epochs(event, params):
 
 
 def _pick_bad_channels(pos, params):
-    """Helper function for selecting bad channels."""
+    """Select bad channels."""
     text, ch_idx = _label2idx(params, pos)
     if text is None:
         return
@@ -1078,7 +1084,7 @@ def _pick_bad_channels(pos, params):
 
 
 def _plot_onscroll(event, params):
-    """Function to handle scroll events."""
+    """Handle scroll events."""
     if event.key == 'control':
         if event.step < 0:
             event.key = '-'
@@ -1092,7 +1098,7 @@ def _plot_onscroll(event, params):
 
 
 def _mouse_click(event, params):
-    """Function to handle mouse click events."""
+    """Handle mouse click events."""
     if event.inaxes is None:
         if params['butterfly'] or not params['settings'][0]:
             return
@@ -1169,7 +1175,7 @@ def _mouse_click(event, params):
 
 
 def _plot_onkey(event, params):
-    """Function to handle key presses."""
+    """Handle key presses."""
     import matplotlib.pyplot as plt
     if event.key == 'down':
         if params['butterfly']:
@@ -1285,7 +1291,7 @@ def _plot_onkey(event, params):
 
 
 def _prepare_butterfly(params):
-    """Helper function for setting up butterfly plot."""
+    """Set up butterfly plot."""
     from matplotlib.collections import LineCollection
     butterfly = not params['butterfly']
     if butterfly:
@@ -1371,7 +1377,7 @@ def _prepare_butterfly(params):
 
 
 def _onpick(event, params):
-    """Helper to add a channel name on click"""
+    """Add a channel name on click."""
     if event.mouseevent.button != 2 or not params['butterfly']:
         return  # text label added with a middle mouse button
     lidx = np.where([l is event.artist for l in params['lines']])[0][0]
@@ -1386,21 +1392,21 @@ def _onpick(event, params):
 
 
 def _close_event(event, params):
-    """Function to drop selected bad epochs. Called on closing of the plot."""
+    """Drop selected bad epochs (called on closing of the plot)."""
     params['epochs'].drop(params['bads'])
     params['epochs'].info['bads'] = params['info']['bads']
     logger.info('Channels marked as bad: %s' % params['epochs'].info['bads'])
 
 
 def _resize_event(event, params):
-    """Function to handle resize event"""
+    """Handle resize event."""
     size = ','.join([str(s) for s in params['fig'].get_size_inches()])
     set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
     _layout_figure(params)
 
 
 def _update_channels_epochs(event, params):
-    """Function for changing the amount of channels and epochs per view."""
+    """Change the amount of channels and epochs per view."""
     from matplotlib.collections import LineCollection
     # Channels
     n_channels = int(np.around(params['channel_slider'].val))
@@ -1434,7 +1440,7 @@ def _update_channels_epochs(event, params):
 
 
 def _toggle_labels(label, params):
-    """Function for toggling axis labels on/off."""
+    """Toggle axis labels."""
     if label == 'Channel names visible':
         params['settings'][0] = not params['settings'][0]
         labels = params['ax'].yaxis.get_ticklabels()
@@ -1459,7 +1465,7 @@ def _toggle_labels(label, params):
 
 
 def _open_options(params):
-    """Function for opening the option window."""
+    """Open the option window."""
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     if params['fig_options'] is not None:
@@ -1508,12 +1514,12 @@ def _open_options(params):
 
 
 def _settings_closed(events, params):
-    """Function to handle close event from settings dialog."""
+    """Handle close event from settings dialog."""
     params['fig_options'] = None
 
 
 def _plot_histogram(params):
-    """Function for plotting histogram of peak-to-peak values."""
+    """Plott histogram of peak-to-peak values."""
     import matplotlib.pyplot as plt
     epochs = params['epochs']
     p2p = np.ptp(epochs.get_data(), axis=2)
@@ -1566,7 +1572,7 @@ def _plot_histogram(params):
 
 
 def _label2idx(params, pos):
-    """Aux function for click on labels. Returns channel name and idx."""
+    """Handle click on labels (returns channel name and idx)."""
     labels = params['ax'].yaxis.get_ticklabels()
     offsets = np.array(params['offsets']) + params['offsets'][0]
     line_idx = np.searchsorted(offsets, pos[1])

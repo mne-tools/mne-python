@@ -10,7 +10,7 @@ import numpy as np
 from numpy.testing import (assert_equal, assert_allclose)
 
 from mne.datasets import testing
-from mne.io import Raw, read_raw_kit, read_raw_bti, read_info
+from mne.io import read_raw_fif, read_raw_kit, read_raw_bti, read_info
 from mne.io.constants import FIFF
 from mne import (read_forward_solution, make_forward_solution,
                  convert_forward_solution, setup_volume_source_space,
@@ -96,7 +96,7 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
 def test_magnetic_dipole():
     """Test basic magnetic dipole forward calculation
     """
-    trans = Transform('mri', 'head', np.eye(4))
+    trans = Transform('mri', 'head')
     info = read_info(fname_raw)
     picks = pick_types(info, meg=True, eeg=False, exclude=[])
     info = pick_info(info, picks[:12])
@@ -190,7 +190,8 @@ def test_make_forward_solution_kit():
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
     # CTF with compensation changed in python
-    ctf_raw = Raw(fname_ctf_raw).apply_gradient_compensation(2)
+    ctf_raw = read_raw_fif(fname_ctf_raw)
+    ctf_raw.apply_gradient_compensation(2)
 
     fwd_py = make_forward_solution(ctf_raw.info, fname_trans, src,
                                    fname_bem_meg, eeg=False, meg=True)

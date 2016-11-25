@@ -10,16 +10,18 @@ from ..event import find_events
 
 
 class MockRtClient(object):
-    """Mock Realtime Client
+    """Mock Realtime Client.
 
     Parameters
     ----------
     raw : instance of Raw object
         The raw object which simulates the RtClient
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
-    def __init__(self, raw, verbose=None):
+
+    def __init__(self, raw, verbose=None):  # noqa: D102
         self.raw = raw
         self.info = copy.deepcopy(self.raw.info)
         self.verbose = verbose
@@ -28,7 +30,7 @@ class MockRtClient(object):
         self._last = dict()  # Last index for the event
 
     def get_measurement_info(self):
-        """Returns the measurement info.
+        """Return the measurement info.
 
         Returns
         -------
@@ -115,7 +117,6 @@ class MockRtClient(object):
         data : 2D array with shape [n_channels, n_times]
             The epochs that are being simulated
         """
-
         # Get the list of all events
         events = find_events(self.raw, stim_channel=stim_channel,
                              verbose=False, output='onset',
@@ -156,7 +157,7 @@ class MockRtClient(object):
             return None
 
     def register_receive_callback(self, x):
-        """API boilerplate
+        """API boilerplate.
 
         Parameters
         ----------
@@ -166,7 +167,7 @@ class MockRtClient(object):
         pass
 
     def start_receive_thread(self, x):
-        """API boilerplate
+        """API boilerplate.
 
         Parameters
         ----------
@@ -176,7 +177,7 @@ class MockRtClient(object):
         pass
 
     def unregister_receive_callback(self, x):
-        """API boilerplate
+        """API boilerplate.
 
         Parameters
         ----------
@@ -186,5 +187,5 @@ class MockRtClient(object):
         pass
 
     def _stop_receive_thread(self):
-        """API boilerplate"""
+        """API boilerplate."""
         pass

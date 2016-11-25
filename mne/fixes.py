@@ -15,11 +15,12 @@ at which the fix is no longer needed.
 from __future__ import division
 
 import inspect
+from distutils.version import LooseVersion
 import re
 import warnings
 
 import numpy as np
-from scipy import linalg
+from scipy import linalg, __version__ as sp_version
 
 
 ###############################################################################
@@ -51,7 +52,7 @@ else:
 def _safe_svd(A, **kwargs):
     """Wrapper to get around the SVD did not converge error of death"""
     # Intel has a bug with their GESVD driver:
-    #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa
+    #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa: E501
     # For SciPy 0.18 and up, we can work around it by using
     # lapack_driver='gesvd' instead.
     if kwargs.get('overwrite_a', False):
@@ -69,7 +70,85 @@ def _safe_svd(A, **kwargs):
 
 
 ###############################################################################
-# Back porting scipy.signal.sosfilt (0.17) and sosfiltfilt (0.18)
+# Backporting nibabel's read_geometry
+
+def _get_read_geometry():
+    """Get the geometry reading function."""
+    try:
+        import nibabel as nib
+        has_nibabel = True
+    except ImportError:
+        has_nibabel = False
+    if has_nibabel and LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
+        from nibabel.freesurfer import read_geometry
+    else:
+        read_geometry = _read_geometry
+    return read_geometry
+
+
+def _read_geometry(filepath, read_metadata=False, read_stamp=False):
+    """Backport from nibabel."""
+    from .surface import _fread3, _fread3_many
+    volume_info = dict()
+
+    TRIANGLE_MAGIC = 16777214
+    QUAD_MAGIC = 16777215
+    NEW_QUAD_MAGIC = 16777213
+    with open(filepath, "rb") as fobj:
+        magic = _fread3(fobj)
+        if magic in (QUAD_MAGIC, NEW_QUAD_MAGIC):  # Quad file
+            nvert = _fread3(fobj)
+            nquad = _fread3(fobj)
+            (fmt, div) = (">i2", 100.) if magic == QUAD_MAGIC else (">f4", 1.)
+            coords = np.fromfile(fobj, fmt, nvert * 3).astype(np.float) / div
+            coords = coords.reshape(-1, 3)
+            quads = _fread3_many(fobj, nquad * 4)
+            quads = quads.reshape(nquad, 4)
+            #
+            #   Face splitting follows
+            #
+            faces = np.zeros((2 * nquad, 3), dtype=np.int)
+            nface = 0
+            for quad in quads:
+                if (quad[0] % 2) == 0:
+                    faces[nface] = quad[0], quad[1], quad[3]
+                    nface += 1
+                    faces[nface] = quad[2], quad[3], quad[1]
+                    nface += 1
+                else:
+                    faces[nface] = quad[0], quad[1], quad[2]
+                    nface += 1
+                    faces[nface] = quad[0], quad[2], quad[3]
+                    nface += 1
+
+        elif magic == TRIANGLE_MAGIC:  # Triangle file
+            create_stamp = fobj.readline().rstrip(b'\n').decode('utf-8')
+            fobj.readline()
+            vnum = np.fromfile(fobj, ">i4", 1)[0]
+            fnum = np.fromfile(fobj, ">i4", 1)[0]
+            coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
+            faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
+
+            if read_metadata:
+                volume_info = _read_volume_info(fobj)
+        else:
+            raise ValueError("File does not appear to be a Freesurfer surface")
+
+    coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
+
+    ret = (coords, faces)
+    if read_metadata:
+        if len(volume_info) == 0:
+            warnings.warn('No volume information contained in the file')
+        ret += (volume_info,)
+    if read_stamp:
+        ret += (create_stamp,)
+
+    return ret
+
+
+###############################################################################
+# Backporting scipy.signal.sosfilt (0.17) and sosfiltfilt (0.18)
 
 
 def _sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
@@ -277,6 +356,68 @@ def get_sosfiltfilt():
     except ImportError:
         sosfiltfilt = _sosfiltfilt
     return sosfiltfilt
+
+
+###############################################################################
+# scipy.special.sph_harm ()
+
+def _sph_harm(order, degree, az, pol):
+    """Evaluate point in specified multipolar moment.
+
+    When using, pay close attention to inputs. Spherical harmonic notation for
+    order/degree, and theta/phi are both reversed in original SSS work compared
+    to many other sources. See mathworld.wolfram.com/SphericalHarmonic.html for
+    more discussion.
+
+    Note that scipy has ``scipy.special.sph_harm``, but that function is
+    too slow on old versions (< 0.15) for heavy use.
+
+    Parameters
+    ----------
+    order : int
+        Order of spherical harmonic. (Usually) corresponds to 'm'.
+    degree : int
+        Degree of spherical harmonic. (Usually) corresponds to 'l'.
+    az : float
+        Azimuthal (longitudinal) spherical coordinate [0, 2*pi]. 0 is aligned
+        with x-axis.
+    pol : float
+        Polar (or colatitudinal) spherical coordinate [0, pi]. 0 is aligned
+        with z-axis.
+    norm : bool
+        If True, include normalization factor.
+
+    Returns
+    -------
+    base : complex float
+        The spherical harmonic value.
+    """
+    from scipy.special import lpmv
+    from .preprocessing.maxwell import _sph_harm_norm
+
+    # Error checks
+    if np.abs(order) > degree:
+        raise ValueError('Absolute value of order must be <= degree')
+    # Ensure that polar and azimuth angles are arrays
+    az = np.asarray(az)
+    pol = np.asarray(pol)
+    if (np.abs(az) > 2 * np.pi).any():
+        raise ValueError('Azimuth coords must lie in [-2*pi, 2*pi]')
+    if(pol < 0).any() or (pol > np.pi).any():
+        raise ValueError('Polar coords must lie in [0, pi]')
+    # This is the "seismology" convention on Wikipedia, w/o Condon-Shortley
+    sph = lpmv(order, degree, np.cos(pol)) * np.exp(1j * order * az)
+    sph *= _sph_harm_norm(order, degree)
+    return sph
+
+
+def _get_sph_harm():
+    """Helper to get a usable spherical harmonic function."""
+    if LooseVersion(sp_version) < LooseVersion('0.17.1'):
+        sph_harm = _sph_harm
+    else:
+        from scipy.special import sph_harm
+    return sph_harm
 
 
 ###############################################################################

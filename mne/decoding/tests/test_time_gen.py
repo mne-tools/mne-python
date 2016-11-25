@@ -28,7 +28,7 @@ warnings.simplefilter('always')
 
 
 def make_epochs():
-    raw = io.read_raw_fif(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -59,13 +59,13 @@ def test_generalization_across_time():
     y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
     if check_version('sklearn', '0.18'):
         from sklearn.model_selection import (KFold, StratifiedKFold,
-                                             ShuffleSplit, LeaveOneLabelOut)
+                                             ShuffleSplit, LeaveOneGroupOut)
+        cv = LeaveOneGroupOut()
         cv_shuffle = ShuffleSplit()
-        cv = LeaveOneLabelOut()
         # XXX we cannot pass any other parameters than X and y to cv.split
         # so we have to build it before hand
         cv_lolo = [(train, test) for train, test in cv.split(
-                   X=y_4classes, y=y_4classes, labels=y_4classes)]
+                   y_4classes, y_4classes, y_4classes)]
 
         # With sklearn >= 0.17, `clf` can be identified as a regressor, and
         # the scoring metrics can therefore be automatically assigned.
@@ -410,7 +410,10 @@ def test_decoding_time():
     """Test TimeDecoding
     """
     from sklearn.svm import SVR
-    from sklearn.cross_validation import KFold
+    if check_version('sklearn', '0.18'):
+        from sklearn.model_selection import KFold
+    else:
+        from sklearn.cross_validation import KFold
     epochs = make_epochs()
     tg = TimeDecoding()
     assert_equal("<TimeDecoding | no fit, no prediction, no score>", '%s' % tg)

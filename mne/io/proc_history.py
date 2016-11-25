@@ -34,7 +34,7 @@ _proc_casters = [dict, dict, dict,
 
 
 def _read_proc_history(fid, tree, info):
-    """Read processing history from fiff file
+    """Read processing history from fiff file.
 
     This function reads the SSS info, the CTC correction and the
     calibaraions from the SSS processing logs inside af a raw file
@@ -110,7 +110,7 @@ def _read_proc_history(fid, tree, info):
 
 
 def _write_proc_history(fid, info):
-    """Write processing history to file"""
+    """Write processing history to file."""
     if 'proc_history' not in info:
         return
     if len(info['proc_history']) > 0:
@@ -171,7 +171,7 @@ _sss_cal_casters = (np.array, np.array)
 
 
 def _read_ctc(fname):
-    """Read cross-talk correction matrix"""
+    """Read cross-talk correction matrix."""
     if not isinstance(fname, string_types) or not op.isfile(fname):
         raise ValueError('fname must be a file that exists, not %s' % fname)
     f, tree, _ = fiff_open(fname)
@@ -190,7 +190,7 @@ def _read_ctc(fname):
 
 
 def _read_maxfilter_record(fid, tree):
-    """Read maxfilter processing record from file"""
+    """Read maxfilter processing record from file."""
     sss_info_block = dir_tree_find(tree, FIFF.FIFFB_SSS_INFO)  # 502
     sss_info = dict()
     if len(sss_info_block) > 0:
@@ -262,7 +262,7 @@ def _read_maxfilter_record(fid, tree):
 
 
 def _write_maxfilter_record(fid, record):
-    """Write maxfilter processing record to file"""
+    """Write maxfilter processing record to file."""
     sss_info = record['sss_info']
     if len(sss_info) > 0:
         start_block(fid, FIFF.FIFFB_SSS_INFO)
@@ -304,7 +304,7 @@ def _write_maxfilter_record(fid, record):
 
 
 def _get_sss_rank(sss):
-    """Get SSS rank"""
+    """Get SSS rank."""
     inside = sss['sss_info']['in_order']
     nfree = (inside + 1) ** 2 - 1
     nfree -= (len(sss['sss_info']['components'][:nfree]) -

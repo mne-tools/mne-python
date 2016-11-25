@@ -5,7 +5,7 @@
 import numpy as np
 from scipy.fftpack import fft, ifft, rfft, irfft
 
-from .utils import sizeof_fmt, logger, get_config, warn
+from .utils import sizeof_fmt, logger, get_config, warn, _explain_exception
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
@@ -14,7 +14,7 @@ _multiply_inplace_c128 = _halve_c128 = _real_c128 = None
 
 
 def _get_cudafft():
-    """Helper to deal with scikit-cuda namespace change"""
+    """Deal with scikit-cuda namespace change."""
     try:
         from skcuda import fft
     except ImportError:
@@ -26,7 +26,7 @@ def _get_cudafft():
 
 
 def get_cuda_memory():
-    """Get the amount of free memory for CUDA operations
+    """Get the amount of free memory for CUDA operations.
 
     Returns
     -------
@@ -43,7 +43,7 @@ def get_cuda_memory():
 
 
 def init_cuda(ignore_config=False):
-    """Initialize CUDA functionality
+    """Initialize CUDA functionality.
 
     This function attempts to load the necessary interfaces
     (hardware connectivity) to run CUDA-based filtering. This
@@ -64,17 +64,17 @@ def init_cuda(ignore_config=False):
     # Triage possible errors for informative messaging
     _cuda_capable = False
     try:
-        from pycuda import gpuarray, driver  # noqa
+        from pycuda import gpuarray, driver  # noqa: F401
         from pycuda.elementwise import ElementwiseKernel
     except ImportError:
         warn('module pycuda not found, CUDA not enabled')
         return
     try:
         # Initialize CUDA; happens with importing autoinit
-        import pycuda.autoinit  # noqa
+        import pycuda.autoinit  # noqa: F401
     except ImportError:
         warn('pycuda.autoinit could not be imported, likely a hardware error, '
-             'CUDA not enabled')
+             'CUDA not enabled%s' % _explain_exception())
         return
     # Make sure scikit-cuda is installed
     cudafft = _get_cudafft()
@@ -94,8 +94,9 @@ def init_cuda(ignore_config=False):
     # Make sure we can use 64-bit FFTs
     try:
         cudafft.Plan(16, np.float64, np.complex128)  # will get auto-GC'ed
-    except:
-        warn('Device does not support 64-bit FFTs, CUDA not enabled')
+    except Exception:
+        warn('Device does not appear to support 64-bit FFTs, CUDA not '
+             'enabled%s' % _explain_exception())
         return
     _cuda_capable = True
     # Figure out limit for CUDA FFT calculations
@@ -106,7 +107,7 @@ def init_cuda(ignore_config=False):
 # Repeated FFT multiplication
 
 def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
-    """Set up repeated CUDA FFT multiplication with a given filter
+    """Set up repeated CUDA FFT multiplication with a given filter.
 
     Parameters
     ----------
@@ -180,7 +181,7 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
 
 
 def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
-    """Do FFT multiplication by a filter function (possibly using CUDA)
+    """Do FFT multiplication by a filter function (possibly using CUDA).
 
     Parameters
     ----------
@@ -218,7 +219,7 @@ def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
 # FFT Resampling
 
 def setup_cuda_fft_resample(n_jobs, W, new_len):
-    """Set up CUDA FFT resampling
+    """Set up CUDA FFT resampling.
 
     Parameters
     ----------
@@ -297,7 +298,7 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
 
 def fft_resample(x, W, new_len, npads, to_removes,
                  cuda_dict=dict(use_cuda=False)):
-    """Do FFT resampling with a filter function (possibly using CUDA)
+    """Do FFT resampling with a filter function (possibly using CUDA).
 
     Parameters
     ----------
@@ -381,8 +382,7 @@ def fft_resample(x, W, new_len, npads, to_removes,
 
 # this has to go in mne.cuda instead of mne.filter to avoid import errors
 def _smart_pad(x, n_pad):
-    """Pad vector x
-    """
+    """Pad vector x."""
     if (n_pad == 0).all():
         return x
     elif (n_pad < 0).any():

@@ -42,7 +42,7 @@ picks = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False,
                     picks=picks, baseline=None, preload=True,
-                    add_eeg_ref=False, verbose=False)
+                    verbose=False)
 
 X = epochs.get_data()
 

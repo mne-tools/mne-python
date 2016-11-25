@@ -10,15 +10,14 @@ from .mixin import TransformerMixin
 from .base import BaseEstimator
 
 from .. import pick_types
-from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
-                      band_stop_filter, filter_data, _triage_filter_params)
+from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import _psd_multitaper
 from ..externals import six
-from ..utils import _check_type_picks, deprecated
+from ..utils import _check_type_picks
 
 
 class Scaler(TransformerMixin):
-    """Standardizes data across channels
+    """Standardize data across channels.
 
     Parameters
     ----------
@@ -38,8 +37,9 @@ class Scaler(TransformerMixin):
         The mean value for each channel type
     ``std_`` : dict
         The standard deviation for each channel type
-     """
-    def __init__(self, info, with_mean=True, with_std=True):
+    """
+
+    def __init__(self, info, with_mean=True, with_std=True):  # noqa: D102
         self.info = info
         self.with_mean = with_mean
         self.with_std = with_std
@@ -47,7 +47,7 @@ class Scaler(TransformerMixin):
         self.std_ = dict()  # TODO rename attribute
 
     def fit(self, epochs_data, y):
-        """Standardizes data across channels
+        """Standardize data across channels.
 
         Parameters
         ----------
@@ -88,7 +88,7 @@ class Scaler(TransformerMixin):
         return self
 
     def transform(self, epochs_data, y=None):
-        """Standardizes data across channels
+        """Standardize data across channels.
 
         Parameters
         ----------
@@ -118,7 +118,7 @@ class Scaler(TransformerMixin):
         return X
 
     def inverse_transform(self, epochs_data, y=None):
-        """ Inverse standardization of data across channels
+        """Invert standardization of data across channels.
 
         Parameters
         ----------
@@ -148,115 +148,15 @@ class Scaler(TransformerMixin):
         return X
 
 
-@deprecated("EpochsVectorizer will be deprecated in version 0.14; "
-            "use Vectorizer instead")
-class EpochsVectorizer(TransformerMixin):
-    """EpochsVectorizer transforms epoch data to fit into a scikit-learn pipeline.
-
-    Parameters
-    ----------
-    info : instance of Info
-        The measurement info.
-
-    Attributes
-    ----------
-    n_channels : int
-        The number of channels.
-    n_times : int
-        The number of time points.
-
-    """
-    def __init__(self, info=None):
-        self.info = info
-        self.n_channels = None
-        self.n_times = None
-
-    def fit(self, epochs_data, y):
-        """For each epoch, concatenate data from different channels into a single
-        feature vector.
-
-        Parameters
-        ----------
-        epochs_data : array, shape (n_epochs, n_channels, n_times)
-            The data to concatenate channels.
-        y : array, shape (n_epochs,)
-            The label for each epoch.
-
-        Returns
-        -------
-        self : instance of EpochsVectorizer
-            returns the modified instance
-        """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
-
-        return self
-
-    def transform(self, epochs_data, y=None):
-        """For each epoch, concatenate data from different channels into a single
-        feature vector.
-
-        Parameters
-        ----------
-        epochs_data : array, shape (n_epochs, n_channels, n_times)
-            The data.
-        y : None | array, shape (n_epochs,)
-            The label for each epoch.
-            If None not used. Defaults to None.
-
-        Returns
-        -------
-        X : array, shape (n_epochs, n_channels * n_times)
-            The data concatenated over channels
-        """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
-
-        epochs_data = np.atleast_3d(epochs_data)
-
-        n_epochs, n_channels, n_times = epochs_data.shape
-        X = epochs_data.reshape(n_epochs, n_channels * n_times)
-        # save attributes for inverse_transform
-        self.n_epochs = n_epochs
-        self.n_channels = n_channels
-        self.n_times = n_times
-
-        return X
-
-    def inverse_transform(self, X, y=None):
-        """For each epoch, reshape a feature vector into the original data shape
-
-        Parameters
-        ----------
-        X : array, shape (n_epochs, n_channels * n_times)
-            The feature vector concatenated over channels
-        y : None | array, shape (n_epochs,)
-            The label for each epoch.
-            If None not used. Defaults to None.
-
-        Returns
-        -------
-        epochs_data : array, shape (n_epochs, n_channels, n_times)
-            The original data
-        """
-        if not isinstance(X, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(X))
-
-        return X.reshape(-1, self.n_channels, self.n_times)
-
-
 class Vectorizer(TransformerMixin):
-    """Transforms n-dimensional array into 2D array of n_samples by n_features.
+    """Transform n-dimensional array into 2D array of n_samples by n_features.
 
     This class reshapes an n-dimensional array into an n_samples * n_features
     array, usable by the estimators and transformers of scikit-learn.
 
     Examples
     --------
-    clf = make_pipeline(SpatialFilter(), XdawnTransformer(), Vectorizer(),
+    clf = make_pipeline(SpatialFilter(), _XdawnTransformer(), Vectorizer(),
                         LogisticRegression())
 
     Attributes
@@ -266,7 +166,7 @@ class Vectorizer(TransformerMixin):
     """
 
     def fit(self, X, y=None):
-        """Stores the shape of the features of X.
+        """Store the shape of the features of X.
 
         Parameters
         ----------
@@ -351,7 +251,7 @@ class Vectorizer(TransformerMixin):
 
 
 class PSDEstimator(TransformerMixin):
-    """Compute power spectrum density (PSD) using a multi-taper method
+    """Compute power spectrum density (PSD) using a multi-taper method.
 
     Parameters
     ----------
@@ -376,15 +276,17 @@ class PSDEstimator(TransformerMixin):
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
     psd_multitaper
     """
+
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
                  adaptive=False, low_bias=True, n_jobs=1,
-                 normalization='length', verbose=None):
+                 normalization='length', verbose=None):  # noqa: D102
         self.sfreq = sfreq
         self.fmin = fmin
         self.fmax = fmax
@@ -396,7 +298,7 @@ class PSDEstimator(TransformerMixin):
         self.normalization = normalization
 
     def fit(self, epochs_data, y):
-        """Compute power spectrum density (PSD) using a multi-taper method
+        """Compute power spectrum density (PSD) using a multi-taper method.
 
         Parameters
         ----------
@@ -417,7 +319,7 @@ class PSDEstimator(TransformerMixin):
         return self
 
     def transform(self, epochs_data, y=None):
-        """Compute power spectrum density (PSD) using a multi-taper method
+        """Compute power spectrum density (PSD) using a multi-taper method.
 
         Parameters
         ----------
@@ -432,7 +334,6 @@ class PSDEstimator(TransformerMixin):
         psd : array, shape (n_signals, len(freqs)) or (len(freqs),)
             The computed PSD.
         """
-
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
@@ -445,7 +346,7 @@ class PSDEstimator(TransformerMixin):
 
 
 class FilterEstimator(TransformerMixin):
-    """Estimator to filter RtEpochs
+    """Estimator to filter RtEpochs.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
     filter to the channels selected by "picks".
@@ -495,16 +396,18 @@ class FilterEstimator(TransformerMixin):
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to self.verbose.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        self.verbose.
 
     See Also
     --------
     TemporalFilter
     """
-    def __init__(self, info, l_freq, h_freq, picks=None, filter_length='',
-                 l_trans_bandwidth=None, h_trans_bandwidth=None, n_jobs=1,
-                 method='fft', iir_params=None, verbose=None):
+
+    def __init__(self, info, l_freq, h_freq, picks=None, filter_length='auto',
+                 l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
+                 method='fft', iir_params=None, verbose=None):  # noqa: D102
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -517,7 +420,7 @@ class FilterEstimator(TransformerMixin):
         self.iir_params = iir_params
 
     def fit(self, epochs_data, y):
-        """Filters data
+        """Filter data.
 
         Parameters
         ----------
@@ -565,7 +468,7 @@ class FilterEstimator(TransformerMixin):
         return self
 
     def transform(self, epochs_data, y=None):
-        """Filters data
+        """Filter data.
 
         Parameters
         ----------
@@ -583,57 +486,17 @@ class FilterEstimator(TransformerMixin):
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
-
         epochs_data = np.atleast_3d(epochs_data)
-
-        if self.l_freq is None and self.h_freq is not None:
-            epochs_data = \
-                low_pass_filter(epochs_data, self.info['sfreq'], self.h_freq,
-                                filter_length=self.filter_length,
-                                trans_bandwidth=self.l_trans_bandwidth,
-                                method=self.method, iir_params=self.iir_params,
-                                picks=self.picks, n_jobs=self.n_jobs,
-                                copy=False, verbose=False)
-
-        if self.l_freq is not None and self.h_freq is None:
-            epochs_data = \
-                high_pass_filter(epochs_data, self.info['sfreq'], self.l_freq,
-                                 filter_length=self.filter_length,
-                                 trans_bandwidth=self.h_trans_bandwidth,
-                                 method=self.method,
-                                 iir_params=self.iir_params,
-                                 picks=self.picks, n_jobs=self.n_jobs,
-                                 copy=False, verbose=False)
-
-        if self.l_freq is not None and self.h_freq is not None:
-            if self.l_freq < self.h_freq:
-                epochs_data = \
-                    band_pass_filter(epochs_data, self.info['sfreq'],
-                                     self.l_freq, self.h_freq,
-                                     filter_length=self.filter_length,
-                                     l_trans_bandwidth=self.l_trans_bandwidth,
-                                     h_trans_bandwidth=self.h_trans_bandwidth,
-                                     method=self.method,
-                                     iir_params=self.iir_params,
-                                     picks=self.picks, n_jobs=self.n_jobs,
-                                     copy=False, verbose=False)
-            else:
-                epochs_data = \
-                    band_stop_filter(epochs_data, self.info['sfreq'],
-                                     self.h_freq, self.l_freq,
-                                     filter_length=self.filter_length,
-                                     l_trans_bandwidth=self.h_trans_bandwidth,
-                                     h_trans_bandwidth=self.l_trans_bandwidth,
-                                     method=self.method,
-                                     iir_params=self.iir_params,
-                                     picks=self.picks, n_jobs=self.n_jobs,
-                                     copy=False, verbose=False)
-        return epochs_data
+        return filter_data(
+            epochs_data, self.info['sfreq'], self.l_freq, self.h_freq,
+            self.picks, self.filter_length, self.l_trans_bandwidth,
+            self.h_trans_bandwidth, method=self.method,
+            iir_params=self.iir_params, n_jobs=self.n_jobs, copy=False,
+            verbose=False)
 
 
 class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
-    """Fit and transform with an unsupervised spatial filtering across time
-    and samples.
+    """Use unsupervised spatial filtering across time and samples.
 
     Parameters
     ----------
@@ -643,7 +506,8 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         If True, the estimator is fitted on the average across samples
         (e.g. epochs).
     """
-    def __init__(self, estimator, average=False):
+
+    def __init__(self, estimator, average=False):  # noqa: D102
         # XXX: Use _check_estimator #3381
         for attr in ('fit', 'transform', 'fit_transform'):
             if not hasattr(estimator, attr):
@@ -783,22 +647,22 @@ class TemporalFilter(TransformerMixin):
         The window to use in FIR design, can be "hamming", "hann",
         or "blackman".
     verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to self.verbose.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        self.verbose.
 
     See Also
     --------
     FilterEstimator
     Vectorizer
-    mne.filter.band_pass_filter
-    mne.filter.band_stop_filter
-    mne.filter.low_pass_filter
-    mne.filter.high_pass_filter
+    mne.filter.filter_data
     """
+
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
                  filter_length='auto', l_trans_bandwidth='auto',
                  h_trans_bandwidth='auto', n_jobs=1, method='fir',
-                 iir_params=None, fir_window='hamming', verbose=None):
+                 iir_params=None, fir_window='hamming',
+                 verbose=None):  # noqa: D102
         self.l_freq = l_freq
         self.h_freq = h_freq
         self.sfreq = sfreq
@@ -816,7 +680,7 @@ class TemporalFilter(TransformerMixin):
                              % type(self.n_jobs))
 
     def fit(self, X, y=None):
-        """Does nothing. For scikit-learn compatibility purposes.
+        """Do nothing (for scikit-learn compatibility purposes).
 
         Parameters
         ----------
@@ -834,7 +698,7 @@ class TemporalFilter(TransformerMixin):
         return self
 
     def transform(self, X):
-        """Filters data along the last dimension.
+        """Filter data along the last dimension.
 
         Parameters
         ----------

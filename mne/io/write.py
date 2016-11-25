@@ -19,6 +19,7 @@ from ..externals.six import string_types, b
 
 
 def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
+    """Write data."""
     if isinstance(data, np.ndarray):
         data_size *= data.size
 
@@ -47,49 +48,49 @@ def _get_split_size(split_size):
 
 
 def write_int(fid, kind, data):
-    """Writes a 32-bit integer tag to a fif file"""
+    """Write a 32-bit integer tag to a fif file."""
     data_size = 4
     data = np.array(data, dtype='>i4').T
     _write(fid, data, kind, data_size, FIFF.FIFFT_INT, '>i4')
 
 
 def write_double(fid, kind, data):
-    """Writes a double-precision floating point tag to a fif file"""
+    """Write a double-precision floating point tag to a fif file."""
     data_size = 8
     data = np.array(data, dtype='>f8').T
     _write(fid, data, kind, data_size, FIFF.FIFFT_DOUBLE, '>f8')
 
 
 def write_float(fid, kind, data):
-    """Writes a single-precision floating point tag to a fif file"""
+    """Write a single-precision floating point tag to a fif file."""
     data_size = 4
     data = np.array(data, dtype='>f4').T
     _write(fid, data, kind, data_size, FIFF.FIFFT_FLOAT, '>f4')
 
 
 def write_dau_pack16(fid, kind, data):
-    """Writes a dau_pack16 tag to a fif file"""
+    """Write a dau_pack16 tag to a fif file."""
     data_size = 2
     data = np.array(data, dtype='>i2').T
     _write(fid, data, kind, data_size, FIFF.FIFFT_DAU_PACK16, '>i2')
 
 
 def write_complex64(fid, kind, data):
-    """Writes a 64 bit complex floating point tag to a fif file"""
+    """Write a 64 bit complex floating point tag to a fif file."""
     data_size = 8
     data = np.array(data, dtype='>c8').T
     _write(fid, data, kind, data_size, FIFF.FIFFT_COMPLEX_FLOAT, '>c8')
 
 
 def write_complex128(fid, kind, data):
-    """Writes a 128 bit complex floating point tag to a fif file"""
+    """Write a 128 bit complex floating point tag to a fif file."""
     data_size = 16
     data = np.array(data, dtype='>c16').T
     _write(fid, data, kind, data_size, FIFF.FIFFT_COMPLEX_FLOAT, '>c16')
 
 
 def write_julian(fid, kind, data):
-    """Writes a Julian-formatted date to a FIF file"""
+    """Write a Julian-formatted date to a FIF file."""
     assert len(data) == 3
     data_size = 4
     jd = np.sum(jcal2jd(*data))
@@ -98,7 +99,7 @@ def write_julian(fid, kind, data):
 
 
 def write_string(fid, kind, data):
-    """Writes a string tag"""
+    """Write a string tag."""
     str_data = data.encode('utf-8')  # Use unicode or bytes depending on Py2/3
     data_size = len(str_data)  # therefore compute size here
     my_dtype = '>a'  # py2/3 compatible on writing -- don't ask me why
@@ -107,7 +108,7 @@ def write_string(fid, kind, data):
 
 
 def write_name_list(fid, kind, data):
-    """Writes a colon-separated list of names
+    """Write a colon-separated list of names.
 
     Parameters
     ----------
@@ -117,7 +118,7 @@ def write_name_list(fid, kind, data):
 
 
 def write_float_matrix(fid, kind, mat):
-    """Writes a single-precision floating-point matrix tag"""
+    """Write a single-precision floating-point matrix tag."""
     FIFFT_MATRIX = 1 << 30
     FIFFT_MATRIX_FLOAT = FIFF.FIFFT_FLOAT | FIFFT_MATRIX
 
@@ -137,7 +138,7 @@ def write_float_matrix(fid, kind, mat):
 
 
 def write_double_matrix(fid, kind, mat):
-    """Writes a double-precision floating-point matrix tag"""
+    """Write a double-precision floating-point matrix tag."""
     FIFFT_MATRIX = 1 << 30
     FIFFT_MATRIX_DOUBLE = FIFF.FIFFT_DOUBLE | FIFFT_MATRIX
 
@@ -157,7 +158,7 @@ def write_double_matrix(fid, kind, mat):
 
 
 def write_int_matrix(fid, kind, mat):
-    """Writes integer 32 matrix tag"""
+    """Write integer 32 matrix tag."""
     FIFFT_MATRIX = 1 << 30
     FIFFT_MATRIX_INT = FIFF.FIFFT_INT | FIFFT_MATRIX
 
@@ -178,7 +179,7 @@ def write_int_matrix(fid, kind, mat):
 
 
 def get_machid():
-    """Get (mostly) unique machine ID
+    """Get (mostly) unique machine ID.
 
     Returns
     -------
@@ -197,7 +198,7 @@ def get_machid():
 
 
 def get_new_file_id():
-    """Helper to create a new file ID tag"""
+    """Create a new file ID tag."""
     secs, usecs = divmod(time.time(), 1.)
     secs, usecs = int(secs), int(usecs * 1e6)
     return {'machid': get_machid(), 'version': FIFF.FIFFC_VERSION,
@@ -205,7 +206,7 @@ def get_new_file_id():
 
 
 def write_id(fid, kind, id_=None):
-    """Writes fiff id"""
+    """Write fiff id."""
     id_ = _generate_meas_id() if id_ is None else id_
 
     data_size = 5 * 4                       # The id comprises five integers
@@ -222,17 +223,17 @@ def write_id(fid, kind, id_=None):
 
 
 def start_block(fid, kind):
-    """Writes a FIFF_BLOCK_START tag"""
+    """Write a FIFF_BLOCK_START tag."""
     write_int(fid, FIFF.FIFF_BLOCK_START, kind)
 
 
 def end_block(fid, kind):
-    """Writes a FIFF_BLOCK_END tag"""
+    """Write a FIFF_BLOCK_END tag."""
     write_int(fid, FIFF.FIFF_BLOCK_END, kind)
 
 
 def start_file(fname, id_=None):
-    """Opens a fif file for writing and writes the compulsory header tags
+    """Open a fif file for writing and writes the compulsory header tags.
 
     Parameters
     ----------
@@ -264,7 +265,7 @@ def start_file(fname, id_=None):
 
 
 def check_fiff_length(fid, close=True):
-    """Ensure our file hasn't grown too large to work properly"""
+    """Ensure our file hasn't grown too large to work properly."""
     if fid.tell() > 2147483648:  # 2 ** 31, FIFF uses signed 32-bit locations
         if close:
             fid.close()
@@ -273,7 +274,7 @@ def check_fiff_length(fid, close=True):
 
 
 def end_file(fid):
-    """Writes the closing tags to a fif file and closes the file"""
+    """Write the closing tags to a fif file and closes the file."""
     data_size = 0
     fid.write(np.array(FIFF.FIFF_NOP, dtype='>i4').tostring())
     fid.write(np.array(FIFF.FIFFT_VOID, dtype='>i4').tostring())
@@ -284,7 +285,7 @@ def end_file(fid):
 
 
 def write_coord_trans(fid, trans):
-    """Writes a coordinate transformation structure"""
+    """Write a coordinate transformation structure."""
     data_size = 4 * 2 * 12 + 4 * 2
     fid.write(np.array(FIFF.FIFF_COORD_TRANS, dtype='>i4').tostring())
     fid.write(np.array(FIFF.FIFFT_COORD_TRANS_STRUCT, dtype='>i4').tostring())
@@ -308,7 +309,7 @@ def write_coord_trans(fid, trans):
 
 
 def write_ch_info(fid, ch):
-    """Writes a channel information record to a fif file"""
+    """Write a channel information record to a fif file."""
     data_size = 4 * 13 + 4 * 7 + 16
 
     fid.write(np.array(FIFF.FIFF_CH_INFO, dtype='>i4').tostring())
@@ -341,7 +342,7 @@ def write_ch_info(fid, ch):
 
 
 def write_dig_point(fid, dig):
-    """Writes a digitizer data point into a fif file"""
+    """Write a digitizer data point into a fif file."""
     data_size = 5 * 4
 
     fid.write(np.array(FIFF.FIFF_DIG_POINT, dtype='>i4').tostring())
@@ -356,7 +357,7 @@ def write_dig_point(fid, dig):
 
 
 def write_float_sparse_rcs(fid, kind, mat):
-    """Writes a single-precision floating-point matrix tag"""
+    """Write a single-precision floating-point matrix tag."""
     FIFFT_MATRIX = 16416 << 16
     FIFFT_MATRIX_FLOAT_RCS = FIFF.FIFFT_FLOAT | FIFFT_MATRIX
 
@@ -379,7 +380,7 @@ def write_float_sparse_rcs(fid, kind, mat):
 
 
 def _generate_meas_id():
-    """Helper to generate a new meas_id dict"""
+    """Generate a new meas_id dict."""
     id_ = dict()
     id_['version'] = FIFF.FIFFC_VERSION
     id_['machid'] = get_machid()
@@ -388,7 +389,7 @@ def _generate_meas_id():
 
 
 def _date_now():
-    """Helper to get date in secs, usecs"""
+    """Get date in secs, usecs."""
     now = time.time()
     # Get date in secs/usecs (as in `fill_measurement_info` in
     # mne/forward/forward.py)

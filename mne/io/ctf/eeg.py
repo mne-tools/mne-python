@@ -1,5 +1,4 @@
-"""Read .eeg files
-"""
+"""Read .eeg files."""
 
 # Author: Eric Larson <larson.eric.d<gmail.com>
 #
@@ -21,7 +20,7 @@ _cardinal_dict = dict(nasion=FIFF.FIFFV_POINT_NASION,
 
 
 def _read_eeg(directory):
-    """Read the .eeg file"""
+    """Read the .eeg file."""
     # Missing file is ok
     fname = _make_ctf_name(directory, 'eeg', raise_error=False)
     if fname is None:
@@ -55,8 +54,7 @@ def _read_eeg(directory):
 
 
 def _read_pos(directory, transformations):
-    """Read the .pos file and return eeg positions as digitizer extra points.
-    """
+    """Read the .pos file and return eeg positions as dig extra points."""
     fname = [join(directory, f) for f in listdir(directory) if
              f.endswith('.pos')]
     if len(fname) < 1:

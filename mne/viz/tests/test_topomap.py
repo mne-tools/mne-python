@@ -14,7 +14,8 @@ from numpy.testing import assert_raises, assert_array_equal
 from nose.tools import assert_true, assert_equal
 
 
-from mne import io, read_evokeds, read_proj
+from mne import read_evokeds, read_proj
+from mne.io import read_raw_fif, read_info
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.channels import read_layout, make_eeg_layout
@@ -38,6 +39,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg-proj.fif')
+triux_fname = op.join(data_dir, 'SSS', 'TRIUX', 'triux_bmlhus_erm_raw.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -47,15 +49,10 @@ event_name = op.join(base_dir, 'test-eve.fif')
 layout = read_layout('Vectorview-all')
 
 
-def _get_raw():
-    return io.read_raw_fif(raw_fname, preload=False)
-
-
 @slow_test
 @testing.requires_testing_data
 def test_plot_topomap():
-    """Test topomap plotting
-    """
+    """Test topomap plotting."""
     import matplotlib.pyplot as plt
     from matplotlib.patches import Circle
     # evoked
@@ -157,8 +154,14 @@ def test_plot_topomap():
     plot_projs_topomap(projs, res=res, colorbar=True)
     plt.close('all')
     ax = plt.subplot(111)
-    plot_projs_topomap([projs[0]], res=res, axes=ax)  # test axes param
+    plot_projs_topomap(projs[:1], res=res, axes=ax)  # test axes param
     plt.close('all')
+    plot_projs_topomap(read_info(triux_fname)['projs'][-1:])  # grads
+    plt.close('all')
+    # XXX This one fails due to grads being combined but this proj having
+    # all zeros in the grad values -> matplotlib contour error
+    # plot_projs_topomap(read_info(triux_fname)['projs'][:1])  # mags
+    # plt.close('all')
     for ch in evoked.info['chs']:
         if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
             ch['loc'].fill(0)
@@ -272,11 +275,10 @@ def test_plot_topomap():
 
 
 def test_plot_tfr_topomap():
-    """Test plotting of TFR data
-    """
+    """Test plotting of TFR data."""
     import matplotlib as mpl
     import matplotlib.pyplot as plt
-    raw = _get_raw()
+    raw = read_raw_fif(raw_fname)
     times = np.linspace(-0.1, 0.1, 200)
     n_freqs = 3
     nave = 1
@@ -312,6 +314,5 @@ def test_plot_tfr_topomap():
     bands = [(4, 8, 'Theta')]
     psd = np.random.rand(len(info['ch_names']), freqs.shape[0])
     plot_psds_topomap(psd, freqs, info, bands=bands, axes=[axes])
-
 
 run_tests_if_main()

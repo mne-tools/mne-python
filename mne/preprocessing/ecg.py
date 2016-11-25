@@ -9,7 +9,7 @@ import numpy as np
 from .. import pick_types, pick_channels
 from ..externals.six import string_types
 from ..utils import logger, verbose, sum_squared, warn
-from ..filter import band_pass_filter
+from ..filter import filter_data
 from ..epochs import Epochs, _BaseEpochs
 from ..io.base import _BaseRaw
 from ..evoked import Evoked
@@ -52,10 +52,8 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     """
     win_size = int(round((60.0 * sfreq) / 120.0))
 
-    filtecg = band_pass_filter(ecg, sfreq, l_freq, h_freq,
-                               filter_length=filter_length,
-                               l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                               phase='zero-double', fir_window='hann')
+    filtecg = filter_data(ecg, sfreq, l_freq, h_freq, None, filter_length,
+                          0.5, 0.5, phase='zero-double', fir_window='hann')
 
     ecg_abs = np.abs(filtecg)
     init = int(sfreq)
@@ -133,7 +131,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
 def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     l_freq=5, h_freq=35, qrs_threshold='auto',
                     filter_length='10s', return_ecg=False, verbose=None):
-    """Find ECG peaks
+    """Find ECG peaks.
 
     Parameters
     ----------
@@ -163,7 +161,8 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         Return ecg channel if synthesized. Defaults to False. If True and
         and ecg exists this will yield None.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -202,7 +201,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
 
 
 def _get_ecg_channel_index(ch_name, inst):
-    """Geting ECG channel index. If no channel found returns None."""
+    """Get ECG channel index, if no channel found returns None."""
     if ch_name is None:
         ecg_idx = pick_types(inst.info, meg=False, eeg=False, stim=False,
                              eog=False, ecg=True, emg=False, ref_meg=False,
@@ -230,7 +229,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                       tmax=0.5, l_freq=8, h_freq=16, reject=None, flat=None,
                       baseline=None, preload=True, keep_ecg=False,
                       verbose=None):
-    """Conveniently generate epochs around ECG artifact events
+    """Conveniently generate epochs around ECG artifact events.
 
     Parameters
     ----------
@@ -285,7 +284,8 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         to the epochs? Must be False when synthetic channel is not used.
         Defaults to False.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -329,8 +329,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
 
 @verbose
 def _make_ecg(inst, start, stop, verbose=None):
-    """Create ECG signal from cross channel average
-    """
+    """Create ECG signal from cross channel average."""
     if not any(c in inst for c in ['mag', 'grad']):
         raise ValueError('Unable to generate artificial ECG channel')
     for ch in ['mag', 'grad']:

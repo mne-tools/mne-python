@@ -11,7 +11,7 @@ import copy as cp
 import mne
 from mne.datasets import testing
 from mne import pick_types
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.io.proj import (make_projector, activate_proj,
                          _needs_eeg_average_ref_proj)
@@ -40,9 +40,8 @@ ecg_fname = op.join(sample_path, 'sample_audvis_ecg-proj.fif')
 
 
 def test_bad_proj():
-    """Test dealing with bad projection application
-    """
-    raw = Raw(raw_fname, preload=True)
+    """Test dealing with bad projection application."""
+    raw = read_raw_fif(raw_fname, preload=True)
     events = read_events(event_fname)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -57,7 +56,7 @@ def test_bad_proj():
 
 
 def _check_warnings(raw, events, picks, count=3):
-    """Helper to count warnings"""
+    """Helper to count warnings."""
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         Epochs(raw, events, dict(aud_l=1, vis_l=3),
@@ -69,7 +68,7 @@ def _check_warnings(raw, events, picks, count=3):
 
 @testing.requires_testing_data
 def test_sensitivity_maps():
-    """Test sensitivity map computation"""
+    """Test sensitivity map computation."""
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -118,11 +117,11 @@ def test_sensitivity_maps():
 
 
 def test_compute_proj_epochs():
-    """Test SSP computation on epochs"""
+    """Test SSP computation on epochs."""
     tempdir = _TempDir()
     event_id, tmin, tmax = 1, -0.2, 0.3
 
-    raw = Raw(raw_fname, preload=True)
+    raw = read_raw_fif(raw_fname, preload=True)
     events = read_events(event_fname)
     bad_ch = 'MEG 2443'
     picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=False,
@@ -199,7 +198,7 @@ def test_compute_proj_raw():
     tempdir = _TempDir()
     # Test that the raw projectors work
     raw_time = 2.5  # Do shorter amount for speed
-    raw = Raw(raw_fname).crop(0, raw_time)
+    raw = read_raw_fif(raw_fname).crop(0, raw_time)
     raw.load_data()
     for ii in (0.25, 0.5, 1, 2):
         with warnings.catch_warnings(record=True) as w:
@@ -262,8 +261,8 @@ def test_compute_proj_raw():
 
 
 def test_make_eeg_average_ref_proj():
-    """Test EEG average reference projection"""
-    raw = Raw(raw_fname, add_eeg_ref=False, preload=True)
+    """Test EEG average reference projection."""
+    raw = read_raw_fif(raw_fname, preload=True)
     eeg = mne.pick_types(raw.info, meg=False, eeg=True)
 
     # No average EEG reference
@@ -285,26 +284,27 @@ def test_has_eeg_average_ref_proj():
     """Test checking whether an EEG average reference exists"""
     assert_true(not _has_eeg_average_ref_proj([]))
 
-    raw = Raw(raw_fname, add_eeg_ref=True, preload=False)
+    raw = read_raw_fif(raw_fname)
+    raw.set_eeg_reference()
     assert_true(_has_eeg_average_ref_proj(raw.info['projs']))
 
 
 def test_needs_eeg_average_ref_proj():
     """Test checking whether a recording needs an EEG average reference"""
-    raw = Raw(raw_fname, add_eeg_ref=False, preload=False)
+    raw = read_raw_fif(raw_fname)
     assert_true(_needs_eeg_average_ref_proj(raw.info))
 
-    raw = Raw(raw_fname, add_eeg_ref=True, preload=False)
+    raw.set_eeg_reference()
     assert_true(not _needs_eeg_average_ref_proj(raw.info))
 
     # No EEG channels
-    raw = Raw(raw_fname, add_eeg_ref=False, preload=True)
+    raw = read_raw_fif(raw_fname, preload=True)
     eeg = [raw.ch_names[c] for c in pick_types(raw.info, meg=False, eeg=True)]
     raw.drop_channels(eeg)
     assert_true(not _needs_eeg_average_ref_proj(raw.info))
 
     # Custom ref flag set
-    raw = Raw(raw_fname, add_eeg_ref=False, preload=False)
+    raw = read_raw_fif(raw_fname)
     raw.info['custom_ref_applied'] = True
     assert_true(not _needs_eeg_average_ref_proj(raw.info))
 

@@ -1,38 +1,51 @@
 import os.path as op
-import numpy as np
-from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true, assert_equal
 
-from mne import io, pick_types
-from mne.time_frequency.ar import yule_walker, fit_iir_model_raw
-from mne.utils import requires_statsmodels, requires_patsy
+import numpy as np
+from numpy.testing import assert_array_almost_equal, assert_allclose
+from nose.tools import assert_equal
+from scipy.signal import lfilter
+
+from mne import io
+from mne.time_frequency.ar import _yule_walker, fit_iir_model_raw
+from mne.utils import requires_statsmodels, run_tests_if_main
 
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 
 
-@requires_patsy
 @requires_statsmodels
 def test_yule_walker():
-    """Test Yule-Walker against statsmodels
-    """
+    """Test Yule-Walker against statsmodels."""
     from statsmodels.regression.linear_model import yule_walker as sm_yw
     d = np.random.randn(100)
     sm_rho, sm_sigma = sm_yw(d, order=2)
-    rho, sigma = yule_walker(d, order=2)
+    rho, sigma = _yule_walker(d[np.newaxis], order=2)
     assert_array_almost_equal(sm_sigma, sigma)
     assert_array_almost_equal(sm_rho, rho)
 
 
 def test_ar_raw():
-    """Test fitting AR model on raw data
-    """
-    raw = io.read_raw_fif(raw_fname)
+    """Test fitting AR model on raw data."""
+    raw = io.read_raw_fif(raw_fname).crop(0, 2).load_data()
+    raw.pick_types(meg='grad')
     # pick MEG gradiometers
-    picks = pick_types(raw.info, meg='grad', exclude='bads')
-    picks = picks[:2]
-    tmin, tmax, order = 0, 10, 2
-    coefs = fit_iir_model_raw(raw, order, picks, tmin, tmax)[1][1:]
-    assert_equal(coefs.shape, (order,))
-    assert_true(0.9 < -coefs[0] < 1.1)
+    for order in (2, 5, 10):
+        coeffs = fit_iir_model_raw(raw, order)[1][1:]
+        assert_equal(coeffs.shape, (order,))
+        assert_allclose(-coeffs[0], 1., atol=0.5)
+    # let's make sure we're doing something reasonable: first, white noise
+    rng = np.random.RandomState(0)
+    raw._data = rng.randn(*raw._data.shape)
+    raw._data *= 1e-15
+    for order in (2, 5, 10):
+        coeffs = fit_iir_model_raw(raw, order)[1]
+        assert_allclose(coeffs, [1.] + [0.] * order, atol=2e-2)
+    # Now let's try pink noise
+    iir = [1, -1, 0.2]
+    raw._data = lfilter([1.], iir, raw._data)
+    for order in (2, 5, 10):
+        coeffs = fit_iir_model_raw(raw, order)[1]
+        assert_allclose(coeffs, iir + [0.] * (order - 2), atol=5e-2)
+
+run_tests_if_main()

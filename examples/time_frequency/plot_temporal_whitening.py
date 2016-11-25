@@ -3,7 +3,7 @@
 Temporal whitening with AR model
 ================================
 
-This script shows how to fit an AR model to data and use it
+Here we fit an AR model to the data and use it
 to temporally whiten the signals.
 
 """
@@ -35,11 +35,11 @@ raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
 picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
 
 order = 5  # define model order
-picks = picks[:5]
+picks = picks[:1]
 
 # Estimate AR models on raw data
 b, a = fit_iir_model_raw(raw, order=order, picks=picks, tmin=60, tmax=180)
-d, times = raw[0, 1e4:2e4]  # look at one channel from now on
+d, times = raw[0, 10000:20000]  # look at one channel from now on
 d = d.ravel()  # make flat vector
 innovation = signal.convolve(d, a, 'valid')
 d_ = signal.lfilter(b, a, innovation)  # regenerate the signal

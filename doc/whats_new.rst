@@ -1,8 +1,8 @@
 .. include:: links.inc
 .. _whats_new:
 
-What's new
-==========
+MNE-Python Code Updates
+=======================
 ..
     Note, we are now using links to highlight new functions and classes.
     Please be sure to follow the examples below like :func:`mne.stats.f_mway_rm`, so the whats_new page will have a link to the function/class documentation.
@@ -14,6 +14,74 @@ Current
 
 Changelog
 ~~~~~~~~~
+
+    - Add filter plotting functions :func:`mne.viz.plot_filter` and :func:`mne.viz.plot_ideal_filter` as well as filter creation function :func:`mne.filter.create_filter` by `Eric Larson`_
+
+    - Add 3D thin-plate spline warping with spherical harmonic surface approximations in :class:`mne.transforms.SphericalSurfaceWarp` by `Eric Larson`_
+
+    - Add HCP-MMP1.0 parcellation dataset downloader by `Eric Larson`_
+
+    - Add option to project EEG electrodes onto the scalp in :func:`mne.viz.plot_trans` by `Eric Larson`_
+
+    - Add option to plot individual sensors in :meth:`mne.io.Raw.plot_psd` by `Alex Gramfort`_ and `Eric Larson`_
+
+    - Add option to plot ECoG electrodes in :func:`mne.viz.plot_trans` by `Eric Larson`_
+
+    - Add convenient default values to :meth:`mne.io.Raw.apply_hilbert` and :meth:`mne.io.Raw.apply_function` by `Denis Engemann`_
+
+    - Remove MNE-C requirement for :ref:`mne make_scalp_surfaces <gen_mne_make_scalp_surfaces>` by `Eric Larson`_
+
+    - Add option to convert 3d electrode plots to a snapshot with 2d electrode positions with :func:`mne.viz.snapshot_brain_montage` by `Chris Holdgraf`_
+
+    - Add skull surface plotting option to :func:`mne.viz.plot_trans` by `Jaakko Leppakangas`_
+
+BUG
+~~~
+
+    - Fix computation of AR coefficients across channels in :func:`mne.time_frequency.fit_iir_model_raw` by `Eric Larson`_
+
+    - Fix maxfilter channel names extra space bug in :func:`mne.preprocessing.maxwell_filter` by `Sheraz Khan`_
+
+    - :func:`mne.find_layout` now leaves out the excluded channels by `Jaakko Leppakangas`_
+
+    - Array data constructors :class:`mne.io.RawArray` and :class:`mne.EvokedArray` now make a copy of the info structure by `Jaakko Leppakangas`_
+
+    - Fix bug with finding layouts in :func:`mne.viz.plot_projs_topomap` by `Eric Larson`_
+
+    - Fix bug :func:`mne.io.anonymize_info` when Info does not contain 'file_id' or 'meas_id' fields by `Jean-Remi King`_
+
+    - Fix colormap selection in :func:`mne.viz.plot_evoked_topomap` when using positive vmin with negative data by `Jaakko Leppakangas`_
+
+    - Fix channel name comparison in :func:`mne.read_montage` so that if ``ch_names`` is provided, the returned montage will have channel names in the same letter case by `Jaakko Leppakangas`_
+
+    - Fix handling of events in :class:`mne.realtime.RtEpochs` when the triggers were split between two buffers resulting in missing and/or duplicate epochs by `Mainak Jas`_ and `Antti Rantala`_
+
+    - Fix bug with automatic decimation in :func:`mne.io.read_raw_kit` by `Keith Doelling`_
+
+    - Fix bug with :func:`mne.setup_volume_source_space` where arguments ``subject`` and ``subjects_dir`` were ignored by `Jaakko Leppakangas`_
+
+    - Fix sanity check for incompatible ``threshold`` and ``tail`` values in clustering functions like :func:`mne.stats.spatio_temporal_cluster_1samp_test` by `Eric Larson`_
+
+API
+~~~
+
+    - The filtering functions ``band_pass_filter``, ``band_stop_filter``, ``low_pass_filter``, and ``high_pass_filter`` have been deprecated in favor of :func:`mne.filter.filter_data` by `Eric Larson`_
+
+    - :class:`mne.EvokedArray` now has default value ``tmin=0.`` by `Jaakko Leppakangas`_
+
+    - The ``ch_type`` argument for :func:`mne.viz.plot_trans` has been deprecated, use ``eeg_sensors`` and ``meg_sensors`` instead, by `Eric Larson`_
+
+    - The default ``tmax=60.`` in :meth:`mne.io.Raw.plot_psd` will change to ``tmax=np.inf`` in 0.15, by `Eric Larson`_
+
+.. _changes_0_13:
+
+Version 0.13
+------------
+
+Changelog
+~~~~~~~~~
+
+    - Add new class :class:`AcqParserFIF` to parse Elekta/Neuromag MEG acquisition info, allowing e.g. collecting epochs according to acquisition-defined averaging categories by `Jussi Nurminen`_
 
     - Adds automatic determination of FIR filter parameters ``filter_length``, ``l_trans_bandwidth``, and ``h_trans_bandwidth`` and adds ``phase`` argument in e.g. in :meth:`mne.io.Raw.filter` by `Eric Larson`_
 
@@ -31,7 +99,7 @@ Changelog
 
     - Add label center of mass function :func:`mne.Label.center_of_mass` by `Eric Larson`_
 
-    - Added :func:`mne.viz.plot_ica_properties` that allows ploting of independent component properties similar to ``pop_prop`` in EEGLAB. Also :class:`mne.preprocessing.ICA` has :func:`mne.preprocessing.ICA.plot_properties` method now. Added by `Mikołaj Magnuski`_
+    - Added :func:`mne.viz.plot_ica_properties` that allows plotting of independent component properties similar to ``pop_prop`` in EEGLAB. Also :class:`mne.preprocessing.ICA` has :func:`mne.preprocessing.ICA.plot_properties` method now. Added by `Mikołaj Magnuski`_
 
     - Add second-order sections (instead of ``(b, a)`` form) IIR filtering for reduced numerical error by `Eric Larson`_
 
@@ -40,6 +108,8 @@ Changelog
     - Add support for the University of Maryland KIT system by `Christian Brodbeck`_
 
     - Add support for \*.elp and \*.hsp files to the KIT2FIFF converter and :func:`mne.channels.read_dig_montage` by `Teon Brooks`_ and `Christian Brodbeck`_
+
+    - Add option to preview events in the KIT2FIFF GUI by `Christian Brodbeck`_
 
     - Add approximation of size of :class:`io.Raw`, :class:`Epochs`, and :class:`Evoked` in :func:`repr` by `Eric Larson`_
 
@@ -69,8 +139,20 @@ Changelog
 
     - Adds new function :func:`mne.viz.plot_compare_evokeds` to show multiple evoked time courses at a single location, or the mean over a ROI, or the GFP, automatically averaging and calculating a CI if multiple subjects are given, by `Jona Sassenhagen`_
 
+    - Added `transform_into` parameter into :class:`mne.decoding.CSP` to retrieve the average power of each source or the time course of each source, by `Jean-Remi King`_
+
+    - Added support for reading MaxShield (IAS) evoked data (e.g., from the acquisition machine) in :func:`mne.read_evokeds` by `Eric Larson`_
+
+    - Added support for functional near-infrared spectroscopy (fNIRS) channels by `Jaakko Leppakangas`_
+
 BUG
 ~~~
+
+    - Fixed a bug where selecting epochs using hierarchical event IDs (HIDs) was *and*-like instead of *or*-like. When doing e.g. ``epochs[('Auditory', 'Left')]``, previously all trials that contain ``'Auditory'`` *and* ``'Left'`` (like ``'Auditory/Left'``) would be selected, but now any conditions matching ``'Auditory'`` *or* ``'Left'`` will be selected (like ``'Auditory/Left'``, ``'Auditory/Right'``, and ``'Visual/Left'``). This is now consistent with how epoch selection was done without HID tags, e.g. ``epochs[['a', 'b']]`` would select all epochs of type ``'a'`` and type ``'b'``. By `Eric Larson`_
+
+    - Fixed Infomax/Extended Infomax when the user provides an initial weights matrix by `Jair Montoya Martinez`_
+
+    - Fixed the default raw FIF writing buffer size to be 1 second instead of 10 seconds by `Eric Larson`_
 
     - Fixed channel selection order when MEG channels do not come first in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
 
@@ -110,10 +192,22 @@ BUG
 
         - Use online software filter information when present
 
-        - Fix comparisons of filter settings for determining "strictest" filter
+        - Fix comparisons of filter settings for determining "strictest"/"weakest" filter
+
+        - Weakest filter is now used for heterogeneous channel filter settings, leading to more consistent behavior with filtering methods applied to a subset of channels (e.g. ``Raw.filter`` with ``picks != None``).
+
+    - Fixed plotting and timing of :class:`Annotations` and restricted addition of annotations outside data range to prevent problems with cropping and concatenating data by `Jaakko Leppakangas`_
+
+    - Fixed ICA plotting functions to refer to IC index instead of component number by `Andreas Hojlund`_ and `Jaakko Leppakangas`_
+
+    - Fixed bug with ``picks`` when interpolating MEG channels by `Mainak Jas`_.
+
+    - Fixed bug in padding of Stockwell transform for signal of length a power of 2 by `Johannes Niediek`_
 
 API
 ~~~
+
+    - The ``add_eeg_ref`` argument in core functions like :func:`mne.io.read_raw_fif` and :class:`mne.Epochs` has been deprecated in favor of using :func:`mne.set_eeg_reference` and equivalent instance methods like :meth:`raw.set_eeg_reference() <mne.io.Raw.set_eeg_reference>`. In functions like :func:`mne.io.read_raw_fif` where the default in 0.13 and older versions is ``add_eeg_ref=True``, the default will change to ``add_eeg_ref=False`` in 0.14, and the argument will be removed in 0.15.
 
     - Multiple aspects of FIR filtering in MNE-Python has been refactored:
 
@@ -163,8 +257,6 @@ API
 
     - The API of :meth:`mne.SourceEstimate.plot` and :func:`mne.viz.plot_source_estimates` has been updated to reflect current PySurfer 0.6 API. The ``config_opts`` parameter is now deprecated and will be removed in mne 0.14, and the default representation for time will change from ``ms`` to ``s`` in mne 0.14. By `Christian Brodbeck`_
 
-    - Added :class:`mne.decoding.XdawnTransformer` implementing xdawn filtering algorithm working with numpy arrays of epochs data and compatible with scikit-learn pipeline. Does not support overlap case. By `Asish Panda`_
-
     - The default dataset location has been changed from ``examples/`` in the MNE-Python root directory to ``~/mne_data`` in the user's home directory, by `Eric Larson`_
 
     - A new option ``set_env`` has been added to :func:`mne.set_config` that defaults to ``False`` in 0.13 but will change to ``True`` in 0.14, by `Eric Larson`_
@@ -186,6 +278,45 @@ API
     - Added :class:`mne.decoding.TemporalFilter` to filter data in scikit-learn pipelines, by `Asish Panda`_
 
     - :func:`mne.preprocessing.create_ecg_epochs` now includes all the channels when ``picks=None`` by `Jaakko Leppakangas`_
+
+    - :func:`mne.io.set_eeg_reference` now allows moving from a custom to an average EEG reference by `Marijn van Vliet`_
+
+Authors
+~~~~~~~
+
+The committer list for this release is the following (sorted by alphabetical order):
+
+    * Alexander Rudiuk
+    * Alexandre Barachant
+    * Alexandre Gramfort
+    * Asish Panda
+    * Camilo Lamus
+    * Chris Holdgraf
+    * Christian Brodbeck
+    * Christopher J. Bailey
+    * Christopher Mullins
+    * Clemens Brunner
+    * Denis A. Engemann
+    * Eric Larson
+    * Federico Raimondo
+    * Félix Raimundo
+    * Guillaume Dumas
+    * Jaakko Leppakangas
+    * Jair Montoya
+    * Jean-Remi King
+    * Johannes Niediek
+    * Jona Sassenhagen
+    * Jussi Nurminen
+    * Keith Doelling
+    * Mainak Jas
+    * Marijn van Vliet
+    * Michael Krause
+    * Mikolaj Magnuski
+    * Nick Foti
+    * Phillip Alday
+    * Simon-Shlomo Poil
+    * Teon Brooks
+    * Yaroslav Halchenko
 
 .. _changes_0_12:
 
@@ -1638,7 +1769,7 @@ of commits):
 
 .. _Eric Larson: http://larsoner.com
 
-.. _Denis Engemann: https://github.com/dengemann
+.. _Denis Engemann: http://denis-engemann.de
 
 .. _Christian Brodbeck: https://github.com/christianbrodbeck
 
@@ -1745,3 +1876,13 @@ of commits):
 .. _Chris Mullins: http://crmullins.com
 
 .. _Phillip Alday: http://palday.bitbucket.org
+
+.. _Andreas Hojlund: https://github.com/ahoejlund
+
+.. _Johannes Niediek: https://github.com/jniediek
+
+.. _Sheraz Khan: https://github.com/SherazKhan
+
+.. _Antti Rantala: https://github.com/Odingod
+
+.. _Keith Doelling: http://science.keithdoelling.com

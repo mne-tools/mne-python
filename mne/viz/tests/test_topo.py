@@ -12,9 +12,9 @@ from collections import namedtuple
 import numpy as np
 from numpy.testing import assert_raises
 
-from mne import io, read_events, Epochs
-from mne import pick_channels_evoked
+from mne import read_events, Epochs, pick_channels_evoked
 from mne.channels import read_layout
+from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
 
@@ -38,42 +38,41 @@ event_id, tmin, tmax = 1, -0.2, 0.2
 layout = read_layout('Vectorview-all')
 
 
-def _get_raw():
-    return io.read_raw_fif(raw_fname, preload=False)
-
-
 def _get_events():
+    """Get events."""
     return read_events(event_name)
 
 
 def _get_picks(raw):
+    """Get picks."""
     return [0, 1, 2, 6, 7, 8, 306, 340, 341, 342]  # take a only few channels
 
 
 def _get_epochs():
-    raw = _get_raw()
+    """Get epochs."""
+    raw = read_raw_fif(raw_fname)
+    raw.add_proj([], remove_existing=True)
     events = _get_events()
     picks = _get_picks(raw)
     # bad proj warning
-    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), verbose='error')
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks)
     return epochs
 
 
 def _get_epochs_delayed_ssp():
-    raw = _get_raw()
+    """Get epochs with delayed SSP."""
+    raw = read_raw_fif(raw_fname)
     events = _get_events()
     picks = _get_picks(raw)
     reject = dict(mag=4e-12)
-    epochs_delayed_ssp = Epochs(raw, events[:10], event_id, tmin, tmax,
-                                picks=picks, baseline=(None, 0),
-                                proj='delayed', reject=reject)
+    epochs_delayed_ssp = Epochs(
+        raw, events[:10], event_id, tmin, tmax, picks=picks,
+        proj='delayed', reject=reject)
     return epochs_delayed_ssp
 
 
 def test_plot_topo():
-    """Test plotting of ERP topography
-    """
+    """Test plotting of ERP topography."""
     import matplotlib.pyplot as plt
     # Show topography
     evoked = _get_epochs().average()
@@ -129,8 +128,7 @@ def test_plot_topo():
 
 
 def test_plot_topo_image_epochs():
-    """Test plotting of epochs image topography
-    """
+    """Test plotting of epochs image topography."""
     import matplotlib.pyplot as plt
     title = 'ERF images - MNE sample data'
     epochs = _get_epochs()
@@ -142,8 +140,7 @@ def test_plot_topo_image_epochs():
 
 
 def test_plot_tfr_topo():
-    """Test plotting of TFR data
-    """
+    """Test plotting of TFR data."""
     epochs = _get_epochs()
     n_freqs = 3
     nave = 1

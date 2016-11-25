@@ -69,7 +69,7 @@ epochs.pick_channels([ch_name])  # restrict example to one channel
 # We have to make sure all conditions have the same counts, as the ANOVA
 # expects a fully balanced data matrix and does not forgive imbalances that
 # generously (risk of type-I error).
-epochs.equalize_event_counts(event_id, copy=False)
+epochs.equalize_event_counts(event_id)
 
 # Factor to down-sample the temporal dimension of the TFR computed by
 # tfr_morlet.

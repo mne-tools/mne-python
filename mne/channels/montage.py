@@ -17,9 +17,8 @@ import numpy as np
 
 from ..viz import plot_montage
 from .channels import _contains_ch_type
-from ..transforms import (_sphere_to_cartesian, apply_trans,
-                          get_ras_to_neuromag_trans, _topo_to_sphere,
-                          _str_to_frame, _frame_to_str)
+from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
+                          _topo_to_sph, _str_to_frame, _frame_to_str)
 from ..io.meas_info import _make_dig_points, _read_dig_points, _read_dig_fif
 from ..io.pick import pick_types
 from ..io.open import fiff_open
@@ -31,7 +30,7 @@ from ..externals.six.moves import map
 
 
 class Montage(object):
-    """Montage for EEG cap
+    """Montage for EEG cap.
 
     Montages are typically loaded from a file using read_montage. Only use this
     class directly if you're constructing a new montage.
@@ -51,19 +50,21 @@ class Montage(object):
     -----
     .. versionadded:: 0.9.0
     """
-    def __init__(self, pos, ch_names, kind, selection):
+
+    def __init__(self, pos, ch_names, kind, selection):  # noqa: D102
         self.pos = pos
         self.ch_names = ch_names
         self.kind = kind
         self.selection = selection
 
     def __repr__(self):
+        """String representation."""
         s = ('<Montage | %s - %d channels: %s ...>'
              % (self.kind, len(self.ch_names), ', '.join(self.ch_names[:3])))
         return s
 
     def plot(self, scale_factor=1.5, show_names=False):
-        """Plot EEG sensor montage
+        """Plot EEG sensor montage.
 
         Parameters
         ----------
@@ -82,7 +83,7 @@ class Montage(object):
 
 
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
-    """Read a generic (built-in) montage from a file
+    """Read a generic (built-in) montage from a file.
 
     This function can be used to read electrode positions from a user specified
     file using the `kind` and `path` parameters. Alternatively, use only the
@@ -140,6 +141,12 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         If not all electrodes defined in the montage are present in the EEG
         data, use this parameter to select subset of electrode positions to
         load. If None (default), all defined electrode positions are returned.
+
+        .. note:: ``ch_names`` are compared to channel names in the montage
+                  file after converting them both to upper case. If a match is
+                  found, the letter case in the original ``ch_names`` is used
+                  in the returned montage.
+
     path : str | None
         The path of the folder containing the montage file. Defaults to the
         mne/channels/data/montages folder in your mne-python installation.
@@ -170,7 +177,6 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
     .. versionadded:: 0.9.0
     """
-
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'montages')
     if not op.isabs(kind):
@@ -182,10 +188,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
             raise ValueError('Could not find the montage. Please provide the '
                              'full path.')
         kind, ext = montages[0]
-        fname = op.join(path, kind + ext)
     else:
         kind, ext = op.splitext(kind)
-        fname = op.join(path, kind + ext)
+    fname = op.join(path, kind + ext)
 
     if ext == '.sfp':
         # EGI geodesic
@@ -235,11 +240,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         except TypeError:
             data = np.genfromtxt(fname, dtype='str', skiprows=1)
         ch_names_ = list(data[:, 0])
-        theta, phi = data[:, 1].astype(float), data[:, 2].astype(float)
-        x = 85. * np.cos(np.deg2rad(phi)) * np.sin(np.deg2rad(theta))
-        y = 85. * np.sin(np.deg2rad(theta)) * np.sin(np.deg2rad(phi))
-        z = 85. * np.cos(np.deg2rad(theta))
-        pos = np.c_[x, y, z]
+        az = np.deg2rad(data[:, 2].astype(float))
+        pol = np.deg2rad(data[:, 1].astype(float))
+        pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
     elif ext == '.csd':
         # CSD toolbox
         dtype = [('label', 'S4'), ('theta', 'f8'), ('phi', 'f8'),
@@ -250,10 +253,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         except TypeError:
             table = np.loadtxt(fname, skiprows=2, dtype=dtype)
         ch_names_ = table['label']
-        theta = (2 * np.pi * table['theta']) / 360.
-        phi = (2 * np.pi * table['phi']) / 360.
-        pos = _sphere_to_cartesian(theta, phi, r=1.0)
-        pos = np.asarray(pos).T
+        az = np.deg2rad(table['theta'])
+        pol = np.deg2rad(90. - table['phi'])
+        pos = _sph_to_cart(np.array([np.ones(len(az)), az, pol]).T)
     elif ext == '.elp':
         # standard BESA spherical
         dtype = np.dtype('S8, S8, f8, f8, f8')
@@ -262,46 +264,29 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         except TypeError:
             data = np.loadtxt(fname, dtype=dtype, skiprows=1)
 
+        ch_names_ = data['f1'].astype(np.str)
         az = data['f2']
         horiz = data['f3']
-
         radius = np.abs(az / 180.)
-        angles = np.array([90. - h if a >= 0. else -90. - h
-                           for h, a in zip(horiz, az)])
-
-        sph_phi = (0.5 - radius) * 180.
-        sph_theta = angles
-
-        azimuth = sph_theta / 180.0 * np.pi
-        elevation = sph_phi / 180.0 * np.pi
-        r = 85.
-
-        y, x, z = _sphere_to_cartesian(azimuth, elevation, r)
-
-        pos = np.c_[x, y, z]
-        ch_names_ = data['f1'].astype(np.str)
+        az = np.deg2rad(np.array([90. - h if a >= 0. else -90. - h
+                                  for h, a in zip(horiz, az)]))
+        pol = radius * np.pi
+        pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
     elif ext == '.hpts':
         # MNE-C specified format for generic digitizer data
         dtype = [('type', 'S8'), ('name', 'S8'),
                  ('x', 'f8'), ('y', 'f8'), ('z', 'f8')]
         data = np.loadtxt(fname, dtype=dtype)
-        pos = np.vstack((data['x'], data['y'], data['z'])).T
         ch_names_ = data['name'].astype(np.str)
+        pos = np.vstack((data['x'], data['y'], data['z'])).T
     elif ext in ('.loc', '.locs', '.eloc'):
         ch_names_ = np.loadtxt(fname, dtype='S4',
                                usecols=[3]).astype(np.str).tolist()
         dtype = {'names': ('angle', 'radius'), 'formats': ('f4', 'f4')}
-        angle, radius = np.loadtxt(fname, dtype=dtype, usecols=[1, 2],
-                                   unpack=True)
-
-        sph_phi, sph_theta = _topo_to_sphere(angle, radius)
-
-        azimuth = sph_theta / 180.0 * np.pi
-        elevation = sph_phi / 180.0 * np.pi
-        r = np.ones((len(ch_names_), ))
-
-        x, y, z = _sphere_to_cartesian(azimuth, elevation, r)
-        pos = np.c_[-y, x, z]
+        topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
+        sph = _topo_to_sph(topo)
+        pos = _sph_to_cart(sph)
+        pos[:, [0, 1]] = pos[:, [1, 0]] * [-1, 1]
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)
@@ -335,8 +320,11 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = apply_trans(neuromag_trans, pos)
 
     if ch_names is not None:
-        sel, ch_names_ = zip(*[(i, e) for i, e in enumerate(ch_names_)
-                             if e in ch_names])
+        # Ensure channels with differing case are found.
+        upper_names = [ch_name.upper() for ch_name in ch_names]
+        sel, ch_names_ = zip(*[(i, ch_names[upper_names.index(e)]) for i, e in
+                               enumerate([n.upper() for n in ch_names_])
+                               if e in upper_names])
         sel = list(sel)
         pos = pos[sel]
         selection = selection[sel]
@@ -347,7 +335,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
 
 class DigMontage(object):
-    """Montage for Digitized data
+    """Montage for Digitized data.
 
     Montages are typically loaded from a file using read_dig_montage. Only use
     this class directly if you're constructing a new montage.
@@ -382,9 +370,10 @@ class DigMontage(object):
     -----
     .. versionadded:: 0.9.0
     """
-    def __init__(self, hsp, hpi, elp, point_names,
+
+    def __init__(self, hsp=None, hpi=None, elp=None, point_names=None,
                  nasion=None, lpa=None, rpa=None, dev_head_t=None,
-                 dig_ch_pos=None):
+                 dig_ch_pos=None):  # noqa: D102
         self.hsp = hsp
         self.hpi = hpi
         self.elp = elp
@@ -400,13 +389,14 @@ class DigMontage(object):
         self.dig_ch_pos = dig_ch_pos
 
     def __repr__(self):
+        """String representation."""
         s = '<DigMontage | %d Dig Points, %d HPI points: %s ...>'
         s %= (len(self.hsp), len(self.point_names),
               ', '.join(self.point_names[:3]))
         return s
 
     def plot(self, scale_factor=1.5, show_names=False):
-        """Plot EEG sensor montage
+        """Plot EEG sensor montage.
 
         Parameters
         ----------
@@ -433,7 +423,7 @@ _cardinal_ident_mapping = {
 
 
 def _check_frame(d, frame_str):
-    """Helper to check coordinate frames"""
+    """Helper to check coordinate frames."""
     if d['coord_frame'] != _str_to_frame[frame_str]:
         raise RuntimeError('dig point must be in %s coordinate frame, got %s'
                            % (frame_str, _frame_to_str[d['coord_frame']]))
@@ -441,7 +431,7 @@ def _check_frame(d, frame_str):
 
 def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                      unit='auto', fif=None, transform=True, dev_head_t=False):
-    """Read subject-specific digitization montage from a file
+    r"""Read subject-specific digitization montage from a file.
 
     Parameters
     ----------
@@ -487,7 +477,6 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         montage. To get a proper `dev_head_t`, the hpi and the elp points
         must be in the same order. If False, an identity matrix will be added
         to the montage. Default is False.
-
 
     Returns
     -------

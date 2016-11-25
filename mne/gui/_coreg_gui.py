@@ -1,4 +1,4 @@
-"""Traits-based GUI for head-MRI coregistration"""
+"""Traits-based GUI for head-MRI coregistration."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -14,29 +14,17 @@ import warnings
 import numpy as np
 from scipy.spatial.distance import cdist
 
-# allow import without traits
-try:
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from mayavi.tools.mlab_scene_model import MlabSceneModel
-    from pyface.api import (error, confirm, OK, YES, NO, CANCEL,
-                            information, FileDialog, GUI)
-    from traits.api import (Bool, Button, cached_property, DelegatesTo,
-                            Directory, Enum, Float, HasTraits,
-                            HasPrivateTraits, Instance, Int, on_trait_change,
-                            Property, Str)
-    from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid,
-                              EnumEditor, Handler, Label, TextEditor)
-    from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
-    from tvtk.pyface.scene_editor import SceneEditor
-except Exception:
-    from ..utils import trait_wraith
-    HasTraits = HasPrivateTraits = Handler = object
-    cached_property = on_trait_change = MayaviScene = MlabSceneModel =\
-        Bool = Button = DelegatesTo = Directory = Enum = Float = Instance =\
-        Int = Property = Str = View = Item = Group = HGroup = VGroup = VGrid =\
-        EnumEditor = Label = TextEditor = Action = UndoButton = CancelButton =\
-        NoButtons = SceneEditor = trait_wraith
-
+from mayavi.core.ui.mayavi_scene import MayaviScene
+from mayavi.tools.mlab_scene_model import MlabSceneModel
+from pyface.api import (error, confirm, OK, YES, NO, CANCEL, information,
+                        FileDialog, GUI)
+from traits.api import (Bool, Button, cached_property, DelegatesTo, Directory,
+                        Enum, Float, HasTraits, HasPrivateTraits, Instance,
+                        Int, on_trait_change, Property, Str)
+from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid, EnumEditor,
+                          Handler, Label, TextEditor)
+from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
+from tvtk.pyface.scene_editor import SceneEditor
 
 from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import bem_fname, trans_fname
@@ -75,11 +63,13 @@ class CoregModel(HasPrivateTraits):
     Don't sync transforms to anything to prevent them from being recomputed
     upon every parameter change.
     """
+
     # data sources
     mri = Instance(MRIHeadWithFiducialsModel, ())
     hsp = Instance(InstSource, ())
 
     # parameters
+    guess_mri_subject = Bool(True)  # change MRI subject when dig file changes
     grow_hair = Float(label="Grow Hair [mm]", desc="Move the back of the MRI "
                       "head outwards to compensate for hair on the digitizer "
                       "head shape")
@@ -328,13 +318,14 @@ class CoregModel(HasPrivateTraits):
 
     @on_trait_change('raw_subject')
     def _on_raw_subject_change(self, subject):
-        if subject in self.mri.subject_source.subjects:
-            self.mri.subject = subject
-        elif 'fsaverage' in self.mri.subject_source.subjects:
-            self.mri.subject = 'fsaverage'
+        if self.guess_mri_subject:
+            if subject in self.mri.subject_source.subjects:
+                self.mri.subject = subject
+            elif 'fsaverage' in self.mri.subject_source.subjects:
+                self.mri.subject = 'fsaverage'
 
     def omit_hsp_points(self, distance=0, reset=False):
-        """Exclude head shape points that are far away from the MRI head
+        """Exclude head shape points that are far away from the MRI head.
 
         Parameters
         ----------
@@ -360,7 +351,7 @@ class CoregModel(HasPrivateTraits):
         mri_pts = self.transformed_mri_points
         point_distance = _point_cloud_error(hsp_pts, mri_pts)
         new_sub_filter = point_distance <= distance
-        n_excluded = np.sum(new_sub_filter == False)  # noqa
+        n_excluded = np.sum(new_sub_filter == False)  # noqa: E712
         logger.info("Coregistration: Excluding %i head shape points with "
                     "distance >= %.3f m.", n_excluded, distance)
 
@@ -377,7 +368,7 @@ class CoregModel(HasPrivateTraits):
             self.hsp.points_filter = new_filter
 
     def fit_auricular_points(self):
-        "Find rotation to fit LPA and RPA"
+        """Find rotation to fit LPA and RPA."""
         src_fid = np.vstack((self.hsp.lpa, self.hsp.rpa))
         src_fid -= self.hsp.nasion
 
@@ -393,7 +384,7 @@ class CoregModel(HasPrivateTraits):
         self.rot_x, self.rot_y, self.rot_z = rot
 
     def fit_fiducials(self):
-        "Find rotation and translation to fit all 3 fiducials"
+        """Find rotation and translation to fit all 3 fiducials."""
         src_fid = np.vstack((self.hsp.lpa, self.hsp.nasion, self.hsp.rpa))
         src_fid -= self.hsp.nasion
 
@@ -409,7 +400,7 @@ class CoregModel(HasPrivateTraits):
         self.trans_x, self.trans_y, self.trans_z = est[3:]
 
     def fit_hsp_points(self):
-        "Find rotation to fit head shapes"
+        """Find rotation to fit head shapes."""
         src_pts = self.hsp.points - self.hsp.nasion
 
         tgt_pts = self.processed_mri_points - self.mri.nasion
@@ -423,7 +414,7 @@ class CoregModel(HasPrivateTraits):
         self.rot_x, self.rot_y, self.rot_z = rot
 
     def fit_scale_auricular_points(self):
-        "Find rotation and MRI scaling based on LPA and RPA"
+        """Find rotation and MRI scaling based on LPA and RPA."""
         src_fid = np.vstack((self.hsp.lpa, self.hsp.rpa))
         src_fid -= self.hsp.nasion
 
@@ -439,7 +430,7 @@ class CoregModel(HasPrivateTraits):
         self.rot_x, self.rot_y, self.rot_z = x[:3]
 
     def fit_scale_fiducials(self):
-        "Find translation, rotation and scaling based on the three fiducials"
+        """Find translation, rotation, scaling based on the three fiducials."""
         src_fid = np.vstack((self.hsp.lpa, self.hsp.nasion, self.hsp.rpa))
         src_fid -= self.hsp.nasion
 
@@ -456,7 +447,7 @@ class CoregModel(HasPrivateTraits):
         self.trans_x, self.trans_y, self.trans_z = est[3:6]
 
     def fit_scale_hsp_points(self):
-        "Find MRI scaling and rotation to match head shape points"
+        """Find MRI scaling and rotation to match head shape points."""
         src_pts = self.hsp.points - self.hsp.nasion
 
         tgt_pts = self.processed_mri_points - self.mri.nasion
@@ -477,7 +468,7 @@ class CoregModel(HasPrivateTraits):
         self.rot_x, self.rot_y, self.rot_z = est[:3]
 
     def get_scaling_job(self, subject_to, skip_fiducials, do_bem_sol):
-        "Find all arguments needed for the scaling worker"
+        """Find all arguments needed for the scaling worker."""
         subjects_dir = self.mri.subjects_dir
         subject_from = self.mri.subject
         bem_names = []
@@ -494,7 +485,7 @@ class CoregModel(HasPrivateTraits):
                 skip_fiducials, bem_names)
 
     def load_trans(self, fname):
-        """Load the head-mri transform from a fif file
+        """Load the head-mri transform from a fif file.
 
         Parameters
         ----------
@@ -506,13 +497,13 @@ class CoregModel(HasPrivateTraits):
         self.set_trans(head_mri_trans)
 
     def reset(self):
-        """Reset all the parameters affecting the coregistration"""
+        """Reset all the parameters affecting the coregistration."""
         self.reset_traits(('grow_hair', 'n_scaling_params', 'scale_x',
                            'scale_y', 'scale_z', 'rot_x', 'rot_y', 'rot_z',
                            'trans_x', 'trans_y', 'trans_z'))
 
     def set_trans(self, head_mri_trans):
-        """Set rotation and translation parameters from a transformation matrix
+        """Set rotation and translation params from a transformation matrix.
 
         Parameters
         ----------
@@ -538,7 +529,7 @@ class CoregModel(HasPrivateTraits):
         self.trans_z = z
 
     def save_trans(self, fname):
-        """Save the head-mri transform as a fif file
+        """Save the head-mri transform as a fif file.
 
         Parameters
         ----------
@@ -551,9 +542,9 @@ class CoregModel(HasPrivateTraits):
 
 
 class CoregFrameHandler(Handler):
-    """Handler that checks for unfinished processes before closing its window
-    """
-    def close(self, info, is_ok):
+    """Check for unfinished processes before closing its window."""
+
+    def close(self, info, is_ok):  # noqa: D102
         if info.object.queue.unfinished_tasks:
             information(None, "Can not close the window while saving is still "
                         "in progress. Please wait until all MRIs are "
@@ -564,6 +555,8 @@ class CoregFrameHandler(Handler):
 
 
 class CoregPanel(HasPrivateTraits):
+    """Coregistration panel."""
+
     model = Instance(CoregModel)
 
     # parameters
@@ -754,7 +747,7 @@ class CoregPanel(HasPrivateTraits):
                        show_labels=False),
                 kind='panel', buttons=[UndoButton])
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: D102
         super(CoregPanel, self).__init__(*args, **kwargs)
 
         # Setup scaling worker
@@ -1027,6 +1020,8 @@ class CoregPanel(HasPrivateTraits):
 
 
 class NewMriDialog(HasPrivateTraits):
+    """New MRI dialog."""
+
     # Dialog to determine target subject name for a scaled MRI
     subjects_dir = Directory
     subject_to = Str
@@ -1096,7 +1091,7 @@ class NewMriDialog(HasPrivateTraits):
 
 
 def _make_view(tabbed=False, split=False, scene_width=500):
-    """Create a view for the CoregFrame
+    """Create a view for the CoregFrame.
 
     Parameters
     ----------
@@ -1114,42 +1109,40 @@ def _make_view(tabbed=False, split=False, scene_width=500):
     view : traits View
         View object for the CoregFrame.
     """
-    view_options = VGroup(Item('headview', style='custom'), 'view_options',
-                          show_border=True, show_labels=False, label='View')
+    view_options = VGroup(
+        Item('headview', style='custom'), 'view_options', show_border=True,
+        show_labels=False, label='View')
 
-    scene = VGroup(Item('scene', show_label=False,
-                        editor=SceneEditor(scene_class=MayaviScene),
-                        dock='vertical', width=scene_width),
-                   view_options)
+    scene = VGroup(
+        Item('scene', show_label=False,
+             editor=SceneEditor(scene_class=MayaviScene),
+             dock='vertical', width=scene_width), view_options)
 
-    data_panel = VGroup(VGroup(Item('subject_panel', style='custom'),
-                               label="MRI Subject", show_border=True,
-                               show_labels=False),
-                        VGroup(Item('lock_fiducials', style='custom',
-                                    editor=EnumEditor(cols=2,
-                                                      values={False: '2:Edit',
-                                                              True: '1:Lock'}),
-                                    enabled_when='fid_ok'),
-                               HGroup('hsp_always_visible',
-                                      Label("Always Show Head Shape Points"),
-                                      show_labels=False),
-                               Item('fid_panel', style='custom'),
-                               label="MRI Fiducials", show_border=True,
-                               show_labels=False),
-                        VGroup(Item('raw_src', style="custom"),
-                               HGroup(Item('distance', show_label=True),
-                                      'omit_points', 'reset_omit_points',
-                                      show_labels=False),
-                               Item('omitted_info', style='readonly',
-                                    show_label=False),
-                               label='Head Shape Source (Raw/Epochs/Evoked)',
-                               show_border=True, show_labels=False),
-                        show_labels=False, label="Data Source")
+    data_panel = VGroup(
+        VGroup(Item('subject_panel', style='custom'), label="MRI Subject",
+               show_border=True, show_labels=False),
+        VGroup(Item('lock_fiducials', style='custom',
+                    editor=EnumEditor(cols=2, values={False: '2:Edit',
+                                                      True: '1:Lock'}),
+                    enabled_when='fid_ok'),
+               HGroup('hsp_always_visible',
+                      Label("Always Show Head Shape Points"),
+                      show_labels=False),
+               Item('fid_panel', style='custom'),
+               label="MRI Fiducials",  show_border=True, show_labels=False),
+        VGroup(Item('raw_src', style="custom"),
+               HGroup('guess_mri_subject',
+                      Label('Guess MRI Subject from File Name'),
+                      show_labels=False),
+               HGroup(Item('distance', show_label=True), 'omit_points',
+                      'reset_omit_points', show_labels=False),
+               Item('omitted_info', style='readonly', show_label=False),
+               label='Head Shape Source (Raw/Epochs/Evoked)', show_border=True,
+               show_labels=False), show_labels=False, label="Data Source")
 
-    coreg_panel = VGroup(Item('coreg_panel', style='custom'),
-                         label="Coregistration", show_border=True,
-                         show_labels=False,
-                         enabled_when="fid_panel.locked")
+    coreg_panel = VGroup(
+        Item('coreg_panel', style='custom'), label="Coregistration",
+        show_border=True, show_labels=False, enabled_when="fid_panel.locked")
 
     if split:
         main_layout = 'split'
@@ -1171,6 +1164,8 @@ def _make_view(tabbed=False, split=False, scene_width=500):
 
 
 class ViewOptionsPanel(HasTraits):
+    """View options panel."""
+
     mri_obj = Instance(SurfaceObject)
     hsp_obj = Instance(PointObject)
     view = View(VGroup(Item('mri_obj', style='custom',  # show_border=True,
@@ -1181,8 +1176,8 @@ class ViewOptionsPanel(HasTraits):
 
 
 class CoregFrame(HasTraits):
-    """GUI for head-MRI coregistration
-    """
+    """GUI for head-MRI coregistration."""
+
     model = Instance(CoregModel, ())
 
     scene = Instance(MlabSceneModel, ())
@@ -1192,6 +1187,7 @@ class CoregFrame(HasTraits):
     fid_panel = Instance(FiducialsPanel)
     coreg_panel = Instance(CoregPanel)
     raw_src = DelegatesTo('model', 'hsp')
+    guess_mri_subject = DelegatesTo('model')
 
     # Omit Points
     distance = Float(5., label="Distance [mm]", desc="Maximal distance for "
@@ -1243,7 +1239,8 @@ class CoregFrame(HasTraits):
     def _headview_default(self):
         return HeadViewController(scene=self.scene, system='RAS')
 
-    def __init__(self, raw=None, subject=None, subjects_dir=None):
+    def __init__(self, raw=None, subject=None, subjects_dir=None,
+                 guess_mri_subject=None):  # noqa: D102
         super(CoregFrame, self).__init__()
 
         subjects_dir = get_subjects_dir(subjects_dir)
@@ -1252,6 +1249,9 @@ class CoregFrame(HasTraits):
 
         if subject is not None:
             self.model.mri.subject = subject
+
+        if guess_mri_subject is not None:
+            self.guess_mri_subject = guess_mri_subject
 
         if raw is not None:
             self.model.hsp.file = raw

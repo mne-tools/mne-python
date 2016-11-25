@@ -9,11 +9,10 @@ from scipy.signal import resample as sp_resample, butter
 
 from mne import create_info
 from mne.io import RawArray, read_raw_fif
-from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
-                        band_stop_filter, resample, _resample_stim_channels,
+from mne.filter import (filter_data, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
                         _overlap_add_filter, _smart_pad, design_mne_c_filter,
-                        estimate_ringing_samples, filter_data)
+                        estimate_ringing_samples, create_filter)
 
 from mne.utils import (sum_squared, run_tests_if_main, slow_test,
                        catch_logging, requires_version, _TempDir,
@@ -25,7 +24,7 @@ rng = np.random.RandomState(0)
 
 @requires_mne
 def test_mne_c_design():
-    """Test MNE-C filter design"""
+    """Test MNE-C filter design."""
     tempdir = _TempDir()
     temp_fname = op.join(tempdir, 'test_raw.fif')
     out_fname = op.join(tempdir, 'test_c_raw.fif')
@@ -56,7 +55,7 @@ def test_mne_c_design():
 
 @requires_version('scipy', '0.16')
 def test_estimate_ringing():
-    """Test our ringing estimation function"""
+    """Test our ringing estimation function."""
     # Actual values might differ based on system, so let's be approximate
     for kind in ('ba', 'sos'):
         for thresh, lims in ((0.1, (30, 60)),  # 47
@@ -73,7 +72,7 @@ def test_estimate_ringing():
 
 
 def test_1d_filter():
-    """Test our private overlap-add filtering function"""
+    """Test our private overlap-add filtering function."""
     # make some random signals and filters
     for n_signal in (1, 2, 3, 5, 10, 20, 40):
         x = rng.randn(n_signal)
@@ -140,64 +139,63 @@ def test_1d_filter():
 
 @requires_version('scipy', '0.16')
 def test_iir_stability():
-    """Test IIR filter stability check"""
+    """Test IIR filter stability check."""
     sig = np.empty(1000)
     sfreq = 1000
     # This will make an unstable filter, should throw RuntimeError
-    assert_raises(RuntimeError, high_pass_filter, sig, sfreq, 0.6,
+    assert_raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir', iir_params=dict(ftype='butter', order=8,
                                                 output='ba'))
     # This one should work just fine
-    high_pass_filter(sig, sfreq, 0.6, method='iir',
-                     iir_params=dict(ftype='butter', order=8, output='sos'))
+    filter_data(sig, sfreq, 0.6, None, method='iir',
+                iir_params=dict(ftype='butter', order=8, output='sos'))
     # bad system type
-    assert_raises(ValueError, high_pass_filter, sig, sfreq, 0.6, method='iir',
+    assert_raises(ValueError, filter_data, sig, sfreq, 0.6, None, method='iir',
                   iir_params=dict(ftype='butter', order=8, output='foo'))
     # missing ftype
-    assert_raises(RuntimeError, high_pass_filter, sig, sfreq, 0.6,
+    assert_raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir', iir_params=dict(order=8, output='sos'))
     # bad ftype
-    assert_raises(RuntimeError, high_pass_filter, sig, sfreq, 0.6,
+    assert_raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir',
                   iir_params=dict(order=8, ftype='foo', output='sos'))
     # missing gstop
-    assert_raises(RuntimeError, high_pass_filter, sig, sfreq, 0.6,
+    assert_raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir', iir_params=dict(gpass=0.5, output='sos'))
     # can't pass iir_params if method='fft'
-    assert_raises(ValueError, high_pass_filter, sig, sfreq, 0.1,
+    assert_raises(ValueError, filter_data, sig, sfreq, 0.1, None,
                   method='fft', iir_params=dict(ftype='butter', order=2,
                                                 output='sos'))
     # method must be string
-    assert_raises(TypeError, high_pass_filter, sig, sfreq, 0.1,
+    assert_raises(TypeError, filter_data, sig, sfreq, 0.1, None,
                   method=1)
     # unknown method
-    assert_raises(ValueError, high_pass_filter, sig, sfreq, 0.1,
+    assert_raises(ValueError, filter_data, sig, sfreq, 0.1, None,
                   method='blah')
     # bad iir_params
-    assert_raises(TypeError, high_pass_filter, sig, sfreq, 0.1,
+    assert_raises(TypeError, filter_data, sig, sfreq, 0.1, None,
                   method='iir', iir_params='blah')
-    assert_raises(ValueError, high_pass_filter, sig, sfreq, 0.1,
+    assert_raises(ValueError, filter_data, sig, sfreq, 0.1, None,
                   method='fft', iir_params=dict())
 
     # should pass because dafault trans_bandwidth is not relevant
     iir_params = dict(ftype='butter', order=2, output='sos')
-    x_sos = high_pass_filter(sig, 250, 0.5, method='iir',
-                             iir_params=iir_params)
+    x_sos = filter_data(sig, 250, 0.5, None, method='iir',
+                        iir_params=iir_params)
     iir_params_sos = construct_iir_filter(iir_params, f_pass=0.5, sfreq=250,
                                           btype='highpass')
-    x_sos_2 = high_pass_filter(sig, 250, 0.5, method='iir',
-                               iir_params=iir_params_sos)
+    x_sos_2 = filter_data(sig, 250, 0.5, None, method='iir',
+                          iir_params=iir_params_sos)
     assert_allclose(x_sos[100:-100], x_sos_2[100:-100])
-    x_ba = high_pass_filter(sig, 250, 0.5, method='iir',
-                            iir_params=dict(ftype='butter', order=2,
-                                            output='ba'))
+    x_ba = filter_data(sig, 250, 0.5, None, method='iir',
+                       iir_params=dict(ftype='butter', order=2, output='ba'))
     # Note that this will fail for higher orders (e.g., 6) showing the
     # hopefully decreased numerical error of SOS
     assert_allclose(x_sos[100:-100], x_ba[100:-100])
 
 
 def test_notch_filters():
-    """Test notch filters"""
+    """Test notch filters."""
     # let's use an ugly, prime sfreq for fun
     sfreq = 487.0
     sig_len_secs = 20
@@ -214,15 +212,13 @@ def test_notch_filters():
     assert_raises(ValueError, notch_filter, a, sfreq, None, 'fft')
     assert_raises(ValueError, notch_filter, a, sfreq, None, 'iir')
     methods = ['spectrum_fit', 'spectrum_fit', 'fft', 'fft', 'iir']
-    filter_lengths = [None, None, None, 8192, None]
+    filter_lengths = ['auto', 'auto', 'auto', 8192, 'auto']
     line_freqs = [None, freqs, freqs, freqs, freqs]
     tols = [2, 1, 1, 1]
     for meth, lf, fl, tol in zip(methods, line_freqs, filter_lengths, tols):
         with catch_logging() as log_file:
-            with warnings.catch_warnings(record=True):  # filter_length=None
-                b = notch_filter(a, sfreq, lf, filter_length=fl, method=meth,
-                                 phase='zero', verbose=True)
-
+            with warnings.catch_warnings(record=True):
+                b = notch_filter(a, sfreq, lf, fl, method=meth, verbose=True)
         if lf is None:
             out = log_file.getvalue().split('\n')[:-1]
             if len(out) != 2 and len(out) != 3:  # force_serial: len(out) == 3
@@ -234,7 +230,7 @@ def test_notch_filters():
 
 
 def test_resample():
-    """Test resampling"""
+    """Test resampling."""
     x = rng.normal(0, 1, (10, 10, 10))
     x_rs = resample(x, 1, 2, 10)
     assert_equal(x.shape, (10, 10, 10))
@@ -253,7 +249,7 @@ def test_resample():
 
 
 def test_resample_stim_channel():
-    """Test resampling of stim channels"""
+    """Test resampling of stim channels."""
 
     # Downsampling
     assert_array_equal(
@@ -283,7 +279,7 @@ def test_resample_stim_channel():
 @requires_version('scipy', '0.16')
 @slow_test
 def test_filters():
-    """Test low-, band-, high-pass, and band-stop filters plus resampling"""
+    """Test low-, band-, high-pass, and band-stop filters plus resampling."""
     sfreq = 100
     sig_len_secs = 15
 
@@ -291,38 +287,41 @@ def test_filters():
 
     # let's test our catchers
     for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
-        assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, fl,
-                      1.0, 1.0, phase='zero')
+        assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, fl,
+                      1.0, 1.0)
     for nj in ['blah', 0.5]:
-        assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, 100,
+        assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, 1000,
                       1.0, 1.0, n_jobs=nj, phase='zero', fir_window='hann')
-    assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, 100,
-                  1.0, 1.0, phase='zero', fir_window='foo')
+    assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, 100,
+                  1., 1., fir_window='foo')
     # > Nyq/2
-    assert_raises(ValueError, band_pass_filter, a, sfreq, 4, sfreq / 2.,
-                  100, 1.0, 1.0, phase='zero', fir_window='hann')
-    assert_raises(ValueError, low_pass_filter, a, sfreq, sfreq / 2.,
-                  100, 1.0, phase='zero', fir_window='hann')
+    assert_raises(ValueError, filter_data, a, sfreq, 4, sfreq / 2., None,
+                  100, 1.0, 1.0)
+    assert_raises(ValueError, filter_data, a, sfreq, -1, None, None,
+                  100, 1.0, 1.0)
+    # these should work
+    create_filter(a, sfreq, None, None)
+    create_filter(a, sfreq, None, None, method='iir')
+
     # check our short-filter warning:
     with warnings.catch_warnings(record=True) as w:
         # Warning for low attenuation
-        band_pass_filter(a, sfreq, 1, 8, filter_length=256, phase='zero')
+        filter_data(a, sfreq, 1, 8, filter_length=256)
     assert_true(any('attenuation' in str(ww.message) for ww in w))
     with warnings.catch_warnings(record=True) as w:
         # Warning for too short a filter
-        band_pass_filter(a, sfreq, 1, 8, filter_length='0.5s', phase='zero')
+        filter_data(a, sfreq, 1, 8, filter_length='0.5s')
     assert_true(any('Increase filter_length' in str(ww.message) for ww in w))
 
     # try new default and old default
     for fl in ['auto', '10s', '5000ms', 1024]:
-        bp = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0, phase='zero',
-                              fir_window='hamming')
-        bs = band_stop_filter(a, sfreq, 4 - 1.0, 8 + 1.0, fl, 1.0, 1.0,
-                              phase='zero', fir_window='hamming')
-        lp = low_pass_filter(a, sfreq, 8, fl, 1.0, n_jobs=2, phase='zero',
-                             fir_window='hamming')
-        hp = high_pass_filter(lp, sfreq, 4, fl, 1.0, phase='zero',
-                              fir_window='hamming')
+        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0)
+        bs = filter_data(a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0,
+                         phase='zero', fir_window='hamming')
+        lp = filter_data(a, sfreq, None, 8, None, fl, 10, 1.0, n_jobs=2,
+                         phase='zero', fir_window='hamming')
+        hp = filter_data(lp, sfreq, 4, None, None, fl, 1.0, 10, phase='zero',
+                         fir_window='hamming')
         assert_array_almost_equal(hp, bp, 4)
         assert_array_almost_equal(bp + bs, a, 4)
 
@@ -373,18 +372,16 @@ def test_filters():
     a = rng.randn(5 * sfreq, 5 * sfreq)
     b = a[:, None, :]
 
-    a_filt = band_pass_filter(a, sfreq, 4, 8, 400, 2.0, 2.0, phase='zero',
-                              fir_window='hamming')
-    b_filt = band_pass_filter(b, sfreq, 4, 8, 400, 2.0, 2.0, picks=[0],
-                              phase='zero', fir_window='hamming')
+    a_filt = filter_data(a, sfreq, 4, 8, None, 400, 2.0, 2.0)
+    b_filt = filter_data(b, sfreq, 4, 8, [0], 400, 2.0, 2.0)
 
     assert_array_equal(a_filt[:, None, :], b_filt)
 
     # check for n-dimensional case
     a = rng.randn(2, 2, 2, 2)
     with warnings.catch_warnings(record=True):  # filter too long
-        assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, 100,
-                      1.0, 1.0, picks=np.array([0, 1]), phase='zero')
+        assert_raises(ValueError, filter_data, a, sfreq, 4, 8,
+                      np.array([0, 1]), 100, 1.0, 1.0)
 
 
 def test_filter_auto():
@@ -399,21 +396,15 @@ def test_filter_auto():
     t = np.arange(N) / sfreq
     x += np.sin(2 * np.pi * sine_freq * t)
     x_orig = x.copy()
-    x_filt = low_pass_filter(x, sfreq, lp, 'auto', 'auto', phase='zero',
-                             fir_window='hamming')
+    x_filt = filter_data(x, sfreq, None, lp)
     assert_array_equal(x, x_orig)
     # the firwin2 function gets us this close
     assert_allclose(x, x_filt, rtol=1e-4, atol=1e-4)
-    assert_array_equal(x_filt, low_pass_filter(
-        x, sfreq, lp, 'auto', 'auto', phase='zero', fir_window='hamming'))
+    assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, None))
     assert_array_equal(x, x_orig)
-    assert_array_equal(x_filt, filter_data(
-        x, sfreq, None, lp, h_trans_bandwidth='auto', phase='zero',
-        fir_window='hamming', filter_length='auto'))
+    assert_array_equal(x_filt, filter_data(x, sfreq, None, lp))
     assert_array_equal(x, x_orig)
-    assert_array_equal(x_filt, filter_data(
-        x, sfreq, None, lp, h_trans_bandwidth='auto', phase='zero',
-        fir_window='hamming', filter_length='auto', copy=False))
+    assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, copy=False))
     assert_array_equal(x, x_filt)
 
     # degenerate conditions
@@ -435,31 +426,24 @@ def test_cuda():
 
     with catch_logging() as log_file:
         for fl in ['auto', '10s', 2048]:
-            bp = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0, n_jobs=1,
-                                  phase='zero', fir_window='hann')
-            bs = band_stop_filter(a, sfreq, 4 - 1.0, 8 + 1.0, fl, 1.0, 1.0,
-                                  n_jobs=1, phase='zero', fir_window='hann')
-            lp = low_pass_filter(a, sfreq, 8, fl, 1.0, n_jobs=1, phase='zero',
-                                 fir_window='hann')
-            hp = high_pass_filter(lp, sfreq, 4, fl, 1.0, n_jobs=1,
-                                  phase='zero', fir_window='hann')
-
-            bp_c = band_pass_filter(a, sfreq, 4, 8, fl, 1.0, 1.0,
-                                    n_jobs='cuda', verbose='INFO',
-                                    phase='zero', fir_window='hann')
-            bs_c = band_stop_filter(a, sfreq, 4 - 1.0, 8 + 1.0, fl, 1.0, 1.0,
-                                    n_jobs='cuda', verbose='INFO',
-                                    phase='zero', fir_window='hann')
-            lp_c = low_pass_filter(a, sfreq, 8, fl, 1.0,
-                                   n_jobs='cuda', verbose='INFO',
-                                   phase='zero', fir_window='hann')
-            hp_c = high_pass_filter(lp, sfreq, 4, fl, 1.0,
-                                    n_jobs='cuda', verbose='INFO',
-                                    phase='zero', fir_window='hann')
-
+            args = [a, sfreq, 4, 8, None, fl, 1.0, 1.0]
+            bp = filter_data(*args)
+            bp_c = filter_data(*args, n_jobs='cuda', verbose='info')
             assert_array_almost_equal(bp, bp_c, 12)
+
+            args = [a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0]
+            bs = filter_data(*args)
+            bs_c = filter_data(*args, n_jobs='cuda', verbose='info')
             assert_array_almost_equal(bs, bs_c, 12)
+
+            args = [a, sfreq, None, 8, None, fl, 1.0]
+            lp = filter_data(*args)
+            lp_c = filter_data(*args, n_jobs='cuda', verbose='info')
             assert_array_almost_equal(lp, lp_c, 12)
+
+            args = [lp, sfreq, 4, None, None, fl, 1.0]
+            hp = filter_data(*args)
+            hp_c = filter_data(*args, n_jobs='cuda', verbose='info')
             assert_array_almost_equal(hp, hp_c, 12)
 
     # check to make sure we actually used CUDA
@@ -487,7 +471,7 @@ def test_cuda():
 
 
 def test_detrend():
-    """Test zeroth and first order detrending"""
+    """Test zeroth and first order detrending."""
     x = np.arange(10)
     assert_array_almost_equal(detrend(x, 1), np.zeros_like(x))
     x = np.ones(10)

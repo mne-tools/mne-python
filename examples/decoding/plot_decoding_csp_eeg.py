@@ -57,7 +57,7 @@ raw = concatenate_raws(raw_files)
 raw.rename_channels(lambda x: x.strip('.'))
 
 # Apply band-pass filter
-raw.filter(7., 30., method='iir')
+raw.filter(7., 30.)
 
 events = find_events(raw, shortest_event=0, stim_channel='STI 014')
 
@@ -67,7 +67,7 @@ picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
 # Read epochs (train will be done only between 1 and 2s)
 # Testing will be done with a running classifier
 epochs = Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-                baseline=None, preload=True, add_eeg_ref=False)
+                baseline=None, preload=True)
 epochs_train = epochs.copy().crop(tmin=1., tmax=2.)
 labels = epochs.events[:, -1] - 2
 

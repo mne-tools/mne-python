@@ -28,7 +28,7 @@ from matplotlib import pyplot as plt
 
 data_path = mne.datasets.sample.data_path()
 # Load a dataset that contains events
-raw = mne.io.RawFIF(
+raw = mne.io.read_raw_fif(
     op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif'))
 
 # If your raw object has a stim channel, you can construct an event array

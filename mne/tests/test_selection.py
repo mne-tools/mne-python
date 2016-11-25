@@ -12,7 +12,7 @@ raw_new_fname = op.join(test_path, 'test_chpi_raw_sss.fif')
 
 
 def test_read_selection():
-    """Test reading of selections"""
+    """Test reading of selections."""
     # test one channel for each selection
     ch_names = ['MEG 2211', 'MEG 0223', 'MEG 1312', 'MEG 0412', 'MEG 1043',
                 'MEG 2042', 'MEG 2032', 'MEG 0522', 'MEG 1031']

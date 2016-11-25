@@ -6,7 +6,8 @@ from nose.tools import assert_true
 import warnings
 
 from mne.datasets import testing
-from mne import io, find_events, Epochs, pick_types
+from mne import find_events, Epochs, pick_types
+from mne.io import read_raw_fif
 from mne.utils import run_tests_if_main
 from mne.label import read_label
 from mne.minimum_norm.inverse import (read_inverse_operator,
@@ -31,12 +32,11 @@ warnings.simplefilter('always')
 
 @testing.requires_testing_data
 def test_tfr_with_inverse_operator():
-    """Test time freq with MNE inverse computation"""
-
+    """Test time freq with MNE inverse computation."""
     tmin, tmax, event_id = -0.2, 0.5, 1
 
     # Setup for reading the raw data
-    raw = io.read_raw_fif(fname_data)
+    raw = read_raw_fif(fname_data)
     events = find_events(raw, stim_channel='STI 014')
     inverse_operator = read_inverse_operator(fname_inv)
     inv = prepare_inverse_operator(inverse_operator, nave=1,
@@ -94,8 +94,8 @@ def test_tfr_with_inverse_operator():
 
 @testing.requires_testing_data
 def test_source_psd():
-    """Test source PSD computation in label"""
-    raw = io.read_raw_fif(fname_data)
+    """Test source PSD computation in label."""
+    raw = read_raw_fif(fname_data)
     inverse_operator = read_inverse_operator(fname_inv)
     label = read_label(fname_label)
     tmin, tmax = 0, 20  # seconds
@@ -114,9 +114,8 @@ def test_source_psd():
 
 @testing.requires_testing_data
 def test_source_psd_epochs():
-    """Test multi-taper source PSD computation in label from epochs"""
-
-    raw = io.read_raw_fif(fname_data)
+    """Test multi-taper source PSD computation in label from epochs."""
+    raw = read_raw_fif(fname_data)
     inverse_operator = read_inverse_operator(fname_inv)
     label = read_label(fname_label)
 

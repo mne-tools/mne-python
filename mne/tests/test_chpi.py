@@ -37,7 +37,7 @@ warnings.simplefilter('always')
 
 @testing.requires_testing_data
 def test_chpi_adjust():
-    """Test cHPI logging and adjustment"""
+    """Test cHPI logging and adjustment."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
     with catch_logging() as log:
         _get_hpi_info(raw.info, adjust=True, verbose='debug')
@@ -75,7 +75,7 @@ def test_chpi_adjust():
 
 @testing.requires_testing_data
 def test_read_write_head_pos():
-    """Test reading and writing head position quaternion parameters"""
+    """Test reading and writing head position quaternion parameters."""
     tempdir = _TempDir()
     temp_name = op.join(tempdir, 'temp.pos')
     # This isn't a 100% valid quat matrix but it should be okay for tests
@@ -96,7 +96,7 @@ def test_read_write_head_pos():
 
 @testing.requires_testing_data
 def test_hpi_info():
-    """Test getting HPI info"""
+    """Test getting HPI info."""
     tempdir = _TempDir()
     temp_name = op.join(tempdir, 'temp_raw.fif')
     for fname in (chpi_fif_fname, sss_fif_fname):
@@ -109,7 +109,7 @@ def test_hpi_info():
 
 
 def _compare_positions(a, b, max_dist=0.003, max_angle=5.):
-    """Compare estimated cHPI positions"""
+    """Compare estimated cHPI positions."""
     from scipy.interpolate import interp1d
     trans, rot, t = a
     trans_est, rot_est, t_est = b
@@ -145,7 +145,7 @@ def _compare_positions(a, b, max_dist=0.003, max_angle=5.):
 @requires_version('scipy', '0.11')
 @requires_version('numpy', '1.7')
 def test_calculate_chpi_positions():
-    """Test calculation of cHPI positions"""
+    """Test calculation of cHPI positions."""
     trans, rot, t = head_pos_to_trans_rot_t(read_head_pos(pos_fname))
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
     t -= raw.first_samp / raw.info['sfreq']
@@ -166,7 +166,7 @@ def test_calculate_chpi_positions():
     for d in raw_bad.info['dig']:
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
             d['r'] = np.ones(3)
-    raw_bad.crop(0, 1., copy=False)
+    raw_bad.crop(0, 1.)
     with warnings.catch_warnings(record=True):  # bad pos
         with catch_logging() as log_file:
             _calculate_chpi_positions(raw_bad, verbose=True)
@@ -182,16 +182,16 @@ def test_calculate_chpi_positions():
 
 @testing.requires_testing_data
 def test_chpi_subtraction():
-    """Test subtraction of cHPI signals"""
+    """Test subtraction of cHPI signals."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
     raw.info['bads'] = ['MEG0111']
     with catch_logging() as log:
         filter_chpi(raw, include_line=False, verbose=True)
     assert_true('5 cHPI' in log.getvalue())
     # MaxFilter doesn't do quite as well as our algorithm with the last bit
-    raw.crop(0, 16, copy=False)
+    raw.crop(0, 16)
     # remove cHPI status chans
-    raw_c = read_raw_fif(sss_hpisubt_fname).crop(0, 16, copy=False).load_data()
+    raw_c = read_raw_fif(sss_hpisubt_fname).crop(0, 16).load_data()
     raw_c.pick_types(
         meg=True, eeg=True, eog=True, ecg=True, stim=True, misc=True)
     assert_meg_snr(raw, raw_c, 143, 624)

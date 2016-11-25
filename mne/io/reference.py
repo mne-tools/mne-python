@@ -12,7 +12,7 @@ from .pick import pick_types
 from .base import _BaseRaw
 from ..evoked import Evoked
 from ..epochs import _BaseEpochs
-from ..utils import logger, warn
+from ..utils import logger, warn, verbose
 
 
 def _apply_reference(inst, ref_from, ref_to=None):
@@ -231,7 +231,8 @@ def add_reference_channels(inst, ref_channels, copy=True):
     return inst
 
 
-def set_eeg_reference(inst, ref_channels=None, copy=True):
+@verbose
+def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
     """Rereference EEG channels to new reference channel(s).
 
     If multiple reference channels are specified, they will be averaged. If
@@ -242,21 +243,28 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
     ref_channels : list of str | None
-        The names of the channels to use to construct the reference. If None is
-        specified here, an average reference will be applied in the form of an
-        SSP projector. If an empty list is specified, the data is assumed to
-        already have a proper reference and MNE will not attempt any
-        re-referencing of the data. Defaults to an average reference (None).
+        The names of the channels to use to construct the reference. If
+        None (default), an average reference will be added as an SSP
+        projector but not immediately applied to the data. If an empty list
+        is specified, the data is assumed to already have a proper reference
+        and MNE will not attempt any re-referencing of the data. Defaults
+        to an average reference (None).
     copy : bool
         Specifies whether the data will be copied (True) or modified in place
         (False). Defaults to True.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     inst : instance of Raw | Epochs | Evoked
-        Data with EEG channels re-referenced.
+        Data with EEG channels re-referenced. For ``ref_channels=None``,
+        an average projector will be added instead of directly subtarcting
+        data.
     ref_data : array
-        Array of reference data subtracted from EEG channels.
+        Array of reference data subtracted from EEG channels. This will
+        be None for an average reference.
 
     Notes
     -----
@@ -283,8 +291,17 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
                  'has been left untouched.')
             return inst, None
         else:
-            inst.info['custom_ref_applied'] = False
-            inst.add_proj(make_eeg_average_ref_proj(inst.info, activate=False))
+            # Creating an average reference may fail. In this case, make sure
+            # that the custom_ref_applied flag is left untouched.
+            custom_ref_applied = inst.info['custom_ref_applied']
+            try:
+                inst.info['custom_ref_applied'] = False
+                inst.add_proj(make_eeg_average_ref_proj(inst.info,
+                              activate=False))
+            except:
+                inst.info['custom_ref_applied'] = custom_ref_applied
+                raise
+
             return inst, None
     else:
         logger.info('Applying a custom EEG reference.')

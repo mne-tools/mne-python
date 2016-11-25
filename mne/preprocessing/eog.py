@@ -9,7 +9,7 @@ import numpy as np
 from .peak_finder import peak_finder
 from .. import pick_types, pick_channels
 from ..utils import logger, verbose
-from ..filter import band_pass_filter
+from ..filter import filter_data
 from ..epochs import Epochs
 from ..externals.six import string_types
 
@@ -18,7 +18,7 @@ from ..externals.six import string_types
 def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                     filter_length='10s', ch_name=None, tstart=0,
                     verbose=None):
-    """Locate EOG artifacts
+    """Locate EOG artifacts.
 
     Parameters
     ----------
@@ -37,14 +37,14 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
     tstart : float
         Start detection after tstart seconds.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     eog_events : array
         Events.
     """
-
     # Getting EOG Channel
     eog_inds = _get_eog_channel_index(ch_name, raw)
     logger.info('EOG channel index for this subject is: %s' % eog_inds)
@@ -63,26 +63,23 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
 
 def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
                      filter_length='10s', tstart=0.):
-    """Helper function"""
-
+    """Helper function."""
     logger.info('Filtering the data to remove DC offset to help '
                 'distinguish blinks from saccades')
 
     # filtering to remove dc offset so that we know which is blink and saccades
     fmax = np.minimum(45, sampling_rate / 2.0 - 0.75)  # protect Nyquist
-    filteog = np.array([band_pass_filter(
-        x, sampling_rate, 2, fmax, filter_length=filter_length,
-        l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, phase='zero-double',
-        fir_window='hann') for x in eog])
+    filteog = np.array([filter_data(
+        x, sampling_rate, 2, fmax, None, filter_length, 0.5, 0.5,
+        phase='zero-double', fir_window='hann') for x in eog])
     temp = np.sqrt(np.sum(filteog ** 2, axis=1))
 
     indexmax = np.argmax(temp)
 
     # easier to detect peaks with filtering.
-    filteog = band_pass_filter(
-        eog[indexmax], sampling_rate, l_freq, h_freq,
-        filter_length=filter_length, l_trans_bandwidth=0.5,
-        h_trans_bandwidth=0.5, phase='zero-double', fir_window='hann')
+    filteog = filter_data(
+        eog[indexmax], sampling_rate, l_freq, h_freq, None,
+        filter_length, 0.5, 0.5, phase='zero-double', fir_window='hann')
 
     # detecting eog blinks and generating event file
 
@@ -106,6 +103,7 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
 
 
 def _get_eog_channel_index(ch_name, inst):
+    """Get EOG channel index."""
     if isinstance(ch_name, string_types):
         # Check if multiple EOG Channels
         if ',' in ch_name:
@@ -145,7 +143,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
                       tmin=-0.5, tmax=0.5, l_freq=1, h_freq=10,
                       reject=None, flat=None, baseline=None,
                       preload=True, verbose=None):
-    """Conveniently generate epochs around EOG artifact events
+    """Conveniently generate epochs around EOG artifact events.
 
     Parameters
     ----------
@@ -194,7 +192,8 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
     preload : bool
         Preload epochs or not.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

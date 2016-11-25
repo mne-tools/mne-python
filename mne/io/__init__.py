@@ -1,4 +1,4 @@
-"""FIF module for IO with .fif files"""
+"""IO module for reading raw data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>

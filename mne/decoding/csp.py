@@ -15,11 +15,10 @@ from scipy import linalg
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..cov import _regularized_covariance
-from ..utils import warn
 
 
 class CSP(TransformerMixin, BaseEstimator):
-    """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
+    u"""M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
     This object can be used as a supervised decomposition to estimate
     spatial filters for feature extraction in a 2 class decoding problem.
@@ -37,14 +36,19 @@ class CSP(TransformerMixin, BaseEstimator):
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
         if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
         or Oracle Approximating Shrinkage ('oas').
-    log : bool, defaults to True
-        If true, apply log to standardize the features.
-        If false, features are just z-scored.
+    log : None | bool, defaults to None
+        If transform_into == 'average_power' and log is None or True, then
+        applies a log transform to standardize the features, else the features
+        are z-scored. If transform_into == 'csp_space', then log must be None.
     cov_est : 'concat' | 'epoch', defaults to 'concat'
         If 'concat', covariance matrices are estimated on concatenated epochs
         for each class.
         If 'epoch', covariance matrices are estimated on each epoch separately
         and then averaged over each class.
+    transform_into : {'average_power', 'csp_space'}
+        If 'average_power' then self.transform will return the average power of
+        each spatial filter. If 'csp_space' self.transform will return the data
+        in CSP space. Defaults to 'average_power'.
 
     Attributes
     ----------
@@ -71,11 +75,15 @@ class CSP(TransformerMixin, BaseEstimator):
         Transactions on Biomedical Engineering, Vol 55, no. 8, 2008.
     """
 
-    def __init__(self, n_components=4, reg=None, log=True, cov_est="concat"):
+    def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
+                 transform_into='average_power'):
         """Init of CSP."""
+        # Init default CSP
         if not isinstance(n_components, int):
             raise ValueError('n_components must be an integer.')
         self.n_components = n_components
+
+        # Init default regularization
         if (
             (reg is not None) and
             (reg not in ['oas', 'ledoit_wolf']) and
@@ -85,10 +93,28 @@ class CSP(TransformerMixin, BaseEstimator):
             raise ValueError('reg must be None, "oas", "ledoit_wolf" or a '
                              'float in between 0. and 1.')
         self.reg = reg
-        self.log = log
+
+        # Init default cov_est
         if not (cov_est == "concat" or cov_est == "epoch"):
             raise ValueError("unknown covariance estimation method")
         self.cov_est = cov_est
+
+        # Init default transform_into
+        if transform_into not in ('average_power', 'csp_space'):
+            raise ValueError('transform_into must be "average_power" or '
+                             '"csp_space".')
+        self.transform_into = transform_into
+
+        # Init default log
+        if transform_into == 'average_power':
+            if log is not None and not isinstance(log, bool):
+                raise ValueError('log must be a boolean if transform_into == '
+                                 '"average_power".')
+        else:
+            if log is not None:
+                raise ValueError('log must be a None if transform_into == '
+                                 '"csp_space".')
+        self.log = log
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
@@ -98,7 +124,7 @@ class CSP(TransformerMixin, BaseEstimator):
         if X.ndim < 3:
             raise ValueError('X must have at least 3 dimensions.')
 
-    def fit(self, X, y, epochs_data=None):
+    def fit(self, X, y):
         """Estimate the CSP decomposition on epochs.
 
         Parameters
@@ -113,7 +139,6 @@ class CSP(TransformerMixin, BaseEstimator):
         self : instance of CSP
             Returns the modified instance.
         """
-        X = _check_deprecate(epochs_data, X)
         if not isinstance(X, np.ndarray):
             raise ValueError("X should be of type ndarray (got %s)."
                              % type(X))
@@ -198,7 +223,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
         return self
 
-    def transform(self, X, epochs_data=None):
+    def transform(self, X):
         """Estimate epochs sources given the CSP filters.
 
         Parameters
@@ -208,10 +233,12 @@ class CSP(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        X : ndarray of shape (n_epochs, n_sources)
-            The CSP features averaged over time.
+        X : ndarray
+            If self.transform_into == 'average_power' then returns the power of
+            CSP features averaged over time and shape (n_epochs, n_sources)
+            If self.transform_into == 'csp_space' then returns the data in CSP
+            space and shape is (n_epochs, n_sources, n_times)
         """
-        X = _check_deprecate(epochs_data, X)
         if not isinstance(X, np.ndarray):
             raise ValueError("X should be of type ndarray (got %s)." % type(X))
         if self.filters_ is None:
@@ -222,12 +249,14 @@ class CSP(TransformerMixin, BaseEstimator):
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
 
         # compute features (mean band power)
-        X = (X ** 2).mean(axis=-1)
-        if self.log:
-            X = np.log(X)
-        else:
-            X -= self.mean_
-            X /= self.std_
+        if self.transform_into == 'average_power':
+            X = (X ** 2).mean(axis=-1)
+            log = True if self.log is None else self.log
+            if log:
+                X = np.log(X)
+            else:
+                X -= self.mean_
+                X /= self.std_
         return X
 
     def plot_patterns(self, info, components=None, ch_type=None, layout=None,
@@ -362,7 +391,6 @@ class CSP(TransformerMixin, BaseEstimator):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-
         from .. import EvokedArray
         if components is None:
             components = np.arange(self.n_components)
@@ -518,7 +546,6 @@ class CSP(TransformerMixin, BaseEstimator):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-
         from .. import EvokedArray
         if components is None:
             components = np.arange(self.n_components)
@@ -601,7 +628,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
 
                 tmp = np.sqrt(omega21 / omega12)
                 tmp1 = (tmp * g12 + g21) / (omega + 1)
-                tmp2 = (tmp * g12 - g21) / np.max(omega - 1, 1e-9)
+                tmp2 = (tmp * g12 - g21) / max(omega - 1, 1e-9)
 
                 h12 = tmp1 + tmp2
                 h21 = np.conj((tmp1 - tmp2) / tmp)
@@ -625,11 +652,3 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
             break
     D = np.reshape(A, (n_times, n_m / n_times, n_times)).transpose(1, 0, 2)
     return V, D
-
-
-def _check_deprecate(epochs_data, X):
-    """Aux. function to CSP to deal with the change param name."""
-    if epochs_data is not None:
-        X = epochs_data
-        warn('epochs_data will be deprecated in mne 0.14. Use X instead')
-    return X

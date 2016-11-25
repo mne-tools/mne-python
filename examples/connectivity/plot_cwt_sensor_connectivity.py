@@ -6,11 +6,11 @@ Compute seed based time-frequency connectivity in sensor space
 Computes the connectivity between a seed-gradiometer close to the visual cortex
 and all other gradiometers. The connectivity is computed in the time-frequency
 domain using Morlet wavelets and the debiased Squared Weighted Phase Lag Index
-[1] is used as connectivity metric.
+[1]_ is used as connectivity metric.
 
-[1] Vinck et al. "An improved index of phase-synchronization for electro-
-    physiological data in the presence of volume-conduction, noise and
-    sample-size bias" NeuroImage, vol. 55, no. 4, pp. 1548-1565, Apr. 2011.
+.. [1] Vinck et al. "An improved index of phase-synchronization for electro-
+       physiological data in the presence of volume-conduction, noise and
+       sample-size bias" NeuroImage, vol. 55, no. 4, pp. 1548-1565, Apr. 2011.
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #

@@ -39,8 +39,9 @@ def test_array_raw():
                 for ch in raw.info['ch_names']]  # change them, why not
     # del raw
     types = list()
-    for ci in range(102):
+    for ci in range(101):
         types.extend(('grad', 'grad', 'mag'))
+    types.extend(['ecog', 'seeg', 'hbo'])  # really 3 meg channels
     types.extend(['stim'] * 9)
     types.extend(['eeg'] * 60)
     # wrong length
@@ -92,7 +93,7 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.plot_psd()
+    raw2.plot_psd(tmax=np.inf)
     plt.close('all')
 
     # epoching

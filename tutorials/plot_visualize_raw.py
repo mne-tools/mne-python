@@ -6,11 +6,13 @@ Visualize Raw data
 
 """
 import os.path as op
+import numpy as np
 
 import mne
 
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample')
 raw = mne.io.read_raw_fif(op.join(data_path, 'sample_audvis_raw.fif'))
+raw.set_eeg_reference()  # set EEG average reference
 events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
 
 ###############################################################################
@@ -97,7 +99,7 @@ raw.plot()
 #
 # Raw container also lets us easily plot the power spectra over the raw data.
 # See the API documentation for more info.
-raw.plot_psd()
+raw.plot_psd(tmax=np.inf)
 
 ###############################################################################
 # Plotting channel-wise power spectra is just as easy. The layout is inferred

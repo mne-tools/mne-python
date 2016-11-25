@@ -8,7 +8,7 @@ from ..utils import _check_mayavi_version
 
 
 def combine_kit_markers():
-    """Create a new KIT marker file by interpolating two marker files
+    """Create a new KIT marker file by interpolating two marker files.
 
     Notes
     -----
@@ -24,8 +24,8 @@ def combine_kit_markers():
 
 
 def coregistration(tabbed=False, split=True, scene_width=500, inst=None,
-                   subject=None, subjects_dir=None):
-    """Coregister an MRI with a subject's head shape
+                   subject=None, subjects_dir=None, guess_mri_subject=None):
+    """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with::
 
@@ -50,6 +50,9 @@ def coregistration(tabbed=False, split=True, scene_width=500, inst=None,
     subjects_dir : None | path
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
+    guess_mri_subject : bool
+        When selecting a new head shape file, guess the subject's name based
+        on the filename and change the MRI subject accordingly (default True).
 
     Notes
     -----
@@ -64,13 +67,13 @@ def coregistration(tabbed=False, split=True, scene_width=500, inst=None,
     _check_backend()
     from ._coreg_gui import CoregFrame, _make_view
     view = _make_view(tabbed, split, scene_width)
-    gui = CoregFrame(inst, subject, subjects_dir)
+    gui = CoregFrame(inst, subject, subjects_dir, guess_mri_subject)
     gui.configure_traits(view=view)
     return gui
 
 
 def fiducials(subject=None, fid_file=None, subjects_dir=None):
-    """Set the fiducials for an MRI subject
+    """Set the fiducials for an MRI subject.
 
     Parameters
     ----------
@@ -97,7 +100,7 @@ def fiducials(subject=None, fid_file=None, subjects_dir=None):
 
 
 def kit2fiff():
-    """Convert KIT files to the fiff format
+    """Convert KIT files to the fiff format.
 
     The recommended way to use the GUI is through bash with::
 

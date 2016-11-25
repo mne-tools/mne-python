@@ -21,7 +21,7 @@ from matplotlib import pyplot as plt
 # Load an example dataset, the preload flag loads the data into memory now
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG',
                     'sample', 'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(data_path, preload=True, verbose=False)
+raw = mne.io.read_raw_fif(data_path, preload=True)
 raw = raw.crop(0, 10)
 print(raw)
 
@@ -68,9 +68,9 @@ print(raw_hilb._data.dtype)
 
 # Take the amplitude and phase
 raw_amp = raw_hilb.copy()
-raw_amp.apply_function(np.abs, hilb_picks, float, 1)
+raw_amp.apply_function(np.abs, hilb_picks)
 raw_phase = raw_hilb.copy()
-raw_phase.apply_function(np.angle, hilb_picks, float, 1)
+raw_phase.apply_function(np.angle, hilb_picks)
 
 f, (a1, a2) = plt.subplots(2, 1, figsize=(15, 10))
 a1.plot(raw_band._data[hilb_picks[0]])

@@ -51,7 +51,7 @@ def _check_covs_algebra(cov1, cov2):
 
 
 def _get_tslice(epochs, tmin, tmax):
-    """get the slice."""
+    """Get the slice."""
     mask = _time_mask(epochs.times, tmin, tmax, sfreq=epochs.info['sfreq'])
     tstart = np.where(mask)[0][0] if tmin is not None else None
     tend = np.where(mask)[0][-1] + 1 if tmax is not None else None
@@ -60,7 +60,6 @@ def _get_tslice(epochs, tmin, tmax):
 
 
 class Covariance(dict):
-
     """Noise covariance matrix.
 
     .. warning:: This class should not be instantiated directly, but
@@ -154,7 +153,7 @@ class Covariance(dict):
         end_file(fid)
 
     def copy(self):
-        """Copy the Covariance object
+        """Copy the Covariance object.
 
         Returns
         -------
@@ -184,7 +183,7 @@ class Covariance(dict):
         self['eigvec'] = None
         return self
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         if self.data.ndim == 2:
             s = 'size : %s x %s' % self.data.shape
         else:  # ndim == 1
@@ -239,7 +238,8 @@ def read_cov(fname, verbose=None):
         The name of file containing the covariance matrix. It should end with
         -cov.fif or -cov.fif.gz.
     verbose : bool, str, int, or None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -269,7 +269,8 @@ def make_ad_hoc_cov(info, verbose=None):
     info : instance of Info
         Measurement info.
     verbose : bool, str, int, or None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -405,7 +406,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         .. versionadded:: 0.12
 
     verbose : bool | str | int | None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -437,7 +439,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         pick_mask = slice(None)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
-                    preload=False, proj=False)
+                    preload=False, proj=False, add_eeg_ref=False)
     if method is None:
         method = 'empirical'
     if isinstance(method, string_types) and method == 'empirical':
@@ -453,8 +455,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
             data += np.dot(raw_segment, raw_segment.T)
             n_samples += raw_segment.shape[1]
         _check_n_samples(n_samples, len(picks))
-        mu /= n_samples
-        data -= n_samples * mu[:, None] * mu[None, :]
+        data -= mu[:, None] * (mu[None, :] / n_samples)
         data /= (n_samples - 1.0)
         logger.info("Number of samples used : %d" % n_samples)
         logger.info('[done]')
@@ -598,7 +599,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         have been processed with Maxwell filtering but not transformed
         to the same head position.
     verbose : bool | str | int | or None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -846,7 +848,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list,
                              verbose):
-    """docstring for _compute_covariance_auto."""
+    """Compute covariance auto mode."""
     try:
         from sklearn.model_selection import GridSearchCV
     except Exception:  # XXX support sklearn < 0.18
@@ -989,7 +991,7 @@ def _cross_val(data, est, cv, n_jobs):
 
 def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
                          stop_early=True, verbose=None):
-    """compute latent variable models."""
+    """Compute latent variable models."""
     method_params = cp.deepcopy(method_params)
     iter_n_components = method_params.pop('iter_n_components')
     if iter_n_components is None:
@@ -1054,7 +1056,6 @@ def _get_covariance_classes():
                                     ShrunkCovariance)
 
     class _RegCovariance(EmpiricalCovariance):
-
         """Aux class."""
 
         def __init__(self, info, grad=0.01, mag=0.01, eeg=0.0,
@@ -1080,10 +1081,10 @@ def _get_covariance_classes():
             return self
 
     class _ShrunkCovariance(ShrunkCovariance):
-
         """Aux class."""
 
-        def __init__(self, store_precision, assume_centered, shrinkage=0.1):
+        def __init__(self, store_precision, assume_centered,
+                     shrinkage=0.1):
             self.store_precision = store_precision
             self.assume_centered = assume_centered
             self.shrinkage = shrinkage
@@ -1129,8 +1130,10 @@ def _get_covariance_classes():
             return self
 
         def score(self, X_test, y=None):
-            """Compute the log-likelihood of a Gaussian data set with
-            `self.covariance_` as an estimator of its covariance matrix.
+            """Compute the log-likelihood of a Gaussian data set.
+
+            This uses `self.covariance_` as an estimator of the data's
+            covariance matrix.
 
             Parameters
             ----------
@@ -1236,7 +1239,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1356,7 +1360,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     proj : bool (default true)
         Apply or not projections to keep rank of data.
     verbose : bool | str | int | None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`).
 
     Returns
     -------
@@ -1366,7 +1370,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     See Also
     --------
     compute_covariance
-    """  # noqa
+    """  # noqa: E501
     cov = cp.deepcopy(cov)
     info._check_consistency()
 
@@ -1540,7 +1544,8 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         The rescaling method to be applied. See documentation of
         ``prepare_noise_cov`` for details.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1605,7 +1610,8 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1933,7 +1939,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
 
 def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
                             return_singular=False):
-    """Estimate rank of M/EEG covariance data, given the covariance
+    """Estimate rank of M/EEG covariance data, given the covariance.
 
     Parameters
     ----------

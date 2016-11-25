@@ -14,8 +14,8 @@ import warnings
 import mne
 from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.utils import (_TempDir, requires_traits, requires_mne,
-                       requires_freesurfer, run_tests_if_main, requires_mayavi)
+from mne.utils import (_TempDir, requires_mne, requires_freesurfer,
+                       run_tests_if_main, requires_mayavi)
 from mne.externals.six import string_types
 
 # backend needs to be set early
@@ -38,7 +38,7 @@ warnings.simplefilter('always')
 
 
 @testing.requires_testing_data
-@requires_traits
+@requires_mayavi
 def test_coreg_model():
     """Test CoregModel"""
     from mne.gui._coreg_gui import CoregModel
@@ -146,7 +146,7 @@ def test_coreg_model():
 
 
 @testing.requires_testing_data
-@requires_traits
+@requires_mayavi
 @requires_mne
 @requires_freesurfer
 def test_coreg_model_with_fsaverage():

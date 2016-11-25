@@ -9,7 +9,7 @@ from ..utils import check_fname, _check_fname
 
 
 def read_fine_calibration(fname):
-    """Read fine calibration information from a .dat file
+    """Read fine calibration information from a .dat file.
 
     The fine calibration typically includes improved sensor locations,
     calibration coefficients, and gradiometer imbalance information.
@@ -59,7 +59,7 @@ def read_fine_calibration(fname):
 
 
 def write_fine_calibration(fname, calibration):
-    """Write fine calibration information to a .dat file
+    """Write fine calibration information to a .dat file.
 
     Parameters
     ----------

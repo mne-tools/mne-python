@@ -31,7 +31,7 @@ from mne.stats.regression import linear_regression_raw
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True).pick_types(
-    meg='grad', stim=True, eeg=False).filter(1, None, method='iir')
+    meg='grad', stim=True, eeg=False).filter(1, None)  # high-pass
 
 # Set up events
 events = mne.find_events(raw)
@@ -55,7 +55,9 @@ fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
 params = dict(spatial_colors=True, show=False, ylim=dict(grad=(-200, 200)))
 epochs[cond].average().plot(axes=ax1, **params)
 evokeds[cond].plot(axes=ax2, **params)
-(evokeds[cond] - epochs[cond].average()).plot(axes=ax3, **params)
+contrast = mne.combine_evoked([evokeds[cond], -epochs[cond].average()],
+                              weights='equal')
+contrast.plot(axes=ax3, **params)
 ax1.set_title("Traditional averaging")
 ax2.set_title("rERF")
 ax3.set_title("Difference")

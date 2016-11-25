@@ -6,8 +6,8 @@ import warnings
 
 import mne
 
-from mne.io import Raw
-from mne.utils import sum_squared
+from mne.io import read_raw_fif
+from mne.utils import sum_squared, run_tests_if_main
 from mne.time_frequency import csd_epochs, csd_array, tfr_morlet
 
 warnings.simplefilter('always')
@@ -17,8 +17,8 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 
 
 def _get_data(mode='real'):
-
-    raw = Raw(raw_fname)
+    """Get data."""
+    raw = read_raw_fif(raw_fname)
     events = mne.read_events(event_fname)[0:100]
     if mode == 'real':
         # Read raw data
@@ -30,16 +30,15 @@ def _get_data(mode='real'):
 
         # Read several epochs
         event_id, tmin, tmax = 1, -0.2, 0.5
-        epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                            picks=picks, baseline=(None, 0), preload=True,
+        epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            preload=True,
                             reject=dict(grad=4000e-13, mag=4e-12))
     elif mode == 'sin':
         # Create an epochs object with one epoch and one channel of artificial
         # data
         event_id, tmin, tmax = 1, 0.0, 1.0
-        epochs = mne.Epochs(raw, events[0:5], event_id, tmin, tmax, proj=True,
-                            picks=[0], baseline=(None, 0), preload=True,
-                            reject=dict(grad=4000e-13))
+        epochs = mne.Epochs(raw, events[0:5], event_id, tmin, tmax,  picks=[0],
+                            preload=True, reject=dict(grad=4000e-13))
         freq = 10
         epochs._data = np.sin(2 * np.pi * freq *
                               epochs.times)[None, None, :]
@@ -48,7 +47,7 @@ def _get_data(mode='real'):
 
 
 def test_csd_epochs():
-    """Test computing cross-spectral density from epochs. """
+    """Test computing cross-spectral density from epochs."""
     epochs = _get_data(mode='real')
     # Check that wrong parameters are recognized
     assert_raises(ValueError, csd_epochs, epochs, mode='notamode')
@@ -112,7 +111,7 @@ def test_csd_epochs():
 
 
 def test_csd_epochs_on_artificial_data():
-    """Test computing CSD on artificial data. """
+    """Test computing CSD on artificial data."""
     epochs = _get_data(mode='sin')
     sfreq = epochs.info['sfreq']
 
@@ -164,8 +163,7 @@ def test_csd_epochs_on_artificial_data():
 
 
 def test_compute_csd():
-    """Test computing cross-spectral density from ndarray. """
-
+    """Test computing cross-spectral density from ndarray."""
     epochs = _get_data(mode='real')
 
     tmin = 0.04
@@ -316,3 +314,5 @@ def test_csd_on_artificial_data():
                     delta = 0.004
                 assert_true(abs(signal_power_per_sample -
                                 mt_power_per_sample) < delta)
+
+run_tests_if_main()

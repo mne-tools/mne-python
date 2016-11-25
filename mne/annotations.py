@@ -50,12 +50,13 @@ class Annotations(object):
 
     Notes
     -----
-    Annotations are synced to sample 0. ``raw.first_samp`` is taken
-    into account in the same way as with events.
-    """  # noqa
+    If ``orig_time`` is None, the annotations are synced to the start of the
+    data (0 seconds). Otherwise the annotations are synced to sample 0 and
+    ``raw.first_samp`` is taken into account the same way as with events.
+    """  # noqa: E501
 
-    def __init__(self, onset, duration, description, orig_time=None):
-
+    def __init__(self, onset, duration, description,
+                 orig_time=None):  # noqa: D102
         if orig_time is not None:
             if isinstance(orig_time, datetime):
                 orig_time = float(time.mktime(orig_time.timetuple()))
@@ -65,10 +66,10 @@ class Annotations(object):
                 orig_time = float(orig_time)  # np.int not serializable
         self.orig_time = orig_time
 
-        onset = np.array(onset)
+        onset = np.array(onset, dtype=float)
         if onset.ndim != 1:
             raise ValueError('Onset must be a one dimensional array.')
-        duration = np.array(duration)
+        duration = np.array(duration, dtype=float)
         if isinstance(description, string_types):
             description = np.repeat(description, len(onset))
         if duration.ndim != 1:
@@ -101,11 +102,10 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq):
         old_description = annotations[0].description
         old_orig_time = annotations[0].orig_time
 
-    if annotations[1].orig_time is None:
-        onset = (annotations[1].onset +
-                 (sum(last_samps[:-1]) - sum(first_samps[:-1])) / sfreq)
-    else:
-        onset = annotations[1].onset
+    extra_samps = len(first_samps) - 1  # Account for sample 0
+    onset = (annotations[1].onset + (sum(last_samps[:-1]) + extra_samps -
+                                     sum(first_samps[:-1])) / sfreq)
+
     onset = np.concatenate([old_onset, onset])
     duration = np.concatenate([old_duration, annotations[1].duration])
     description = np.concatenate([old_description, annotations[1].description])
@@ -113,20 +113,20 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq):
 
 
 def _onset_to_seconds(raw, onset):
-    """Helper function for adjusting annotation onsets in relation to raw data.
-    """
+    """Helper function for adjusting onsets in relation to raw data."""
     meas_date = raw.info['meas_date']
     if meas_date is None:
         meas_date = 0
     elif not np.isscalar(meas_date):
         if len(meas_date) > 1:
-            meas_date[1] /= 1e6
-        meas_date = meas_date.sum()
+            meas_date = meas_date[0] + meas_date[1] / 1000000.
+        else:
+            meas_date = meas_date[0]
     if raw.annotations.orig_time is None:
         orig_time = meas_date
     else:
-        orig_time = raw.annotations.orig_time
+        orig_time = (raw.annotations.orig_time -
+                     raw.first_samp / raw.info['sfreq'])
 
-    annot_start = (orig_time - meas_date + onset -
-                   raw.first_samp / raw.info['sfreq'])
+    annot_start = orig_time - meas_date + onset
     return annot_start

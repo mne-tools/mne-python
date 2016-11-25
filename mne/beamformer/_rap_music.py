@@ -1,6 +1,4 @@
-"""Compute a Recursively Applied and Projected MUltiple
-Signal Classification (RAP-MUSIC).
-"""
+"""Compute a Recursively Applied and Projected MUltiple Signal Classification (RAP-MUSIC)."""  # noqa
 
 # Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -19,7 +17,7 @@ from ._lcmv import _prepare_beamformer_input, _setup_picks
 
 def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
                      picks=None, return_explained_data=False):
-    """RAP-MUSIC for evoked data
+    """RAP-MUSIC for evoked data.
 
     Parameters
     ----------
@@ -50,7 +48,6 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         selected active dipoles and their estimated orientation.
         Computed only if return_explained_data is True.
     """
-
     is_free_ori, ch_names, proj, vertno, G = _prepare_beamformer_input(
         info, forward, label=None, picks=picks, pick_ori=None)
 
@@ -138,7 +135,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
 
 
 def _make_dipoles(times, poss, oris, sol, gof):
-    """Instanciates a list of Dipoles
+    """Instantiate a list of Dipoles.
 
     Parameters
     ----------
@@ -173,8 +170,7 @@ def _make_dipoles(times, poss, oris, sol, gof):
 
 
 def _compute_subcorr(G, phi_sig):
-    """ Compute the subspace correlation
-    """
+    """Compute the subspace correlation."""
     Ug, Sg, Vg = linalg.svd(G, full_matrices=False)
     tmp = np.dot(Ug.T.conjugate(), phi_sig)
     Uc, Sc, Vc = linalg.svd(tmp, full_matrices=False)
@@ -183,9 +179,7 @@ def _compute_subcorr(G, phi_sig):
 
 
 def _compute_proj(A):
-    """ Compute the orthogonal projection operation for
-    a manifold vector A.
-    """
+    """Compute the orthogonal projection operation for a manifold vector A."""
     U, _, _ = linalg.svd(A, full_matrices=False)
     return np.identity(A.shape[0]) - np.dot(U, U.T.conjugate())
 
@@ -214,7 +208,8 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -244,7 +239,6 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
 
     .. versionadded:: 0.9.0
     """
-
     info = evoked.info
     data = evoked.data
     times = evoked.times

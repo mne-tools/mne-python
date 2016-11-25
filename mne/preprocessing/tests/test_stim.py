@@ -8,7 +8,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
 
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne.io.pick import pick_types
 from mne.event import read_events
 from mne.epochs import Epochs
@@ -20,13 +20,13 @@ event_fname = op.join(data_path, 'test-eve.fif')
 
 
 def test_fix_stim_artifact():
-    """Test fix stim artifact"""
+    """Test fix stim artifact."""
     events = read_events(event_fname)
 
-    raw = Raw(raw_fname, preload=False)
+    raw = read_raw_fif(raw_fname)
     assert_raises(RuntimeError, fix_stim_artifact, raw)
 
-    raw = Raw(raw_fname, preload=True)
+    raw = read_raw_fif(raw_fname, preload=True)
 
     # use window before stimulus in epochs
     tmin, tmax, event_id = -0.2, 0.5, 1

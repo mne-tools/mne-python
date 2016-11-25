@@ -9,7 +9,7 @@ from mne.connectivity.spectral import _CohEst
 
 from mne import SourceEstimate
 from mne.utils import run_tests_if_main, slow_test
-from mne.filter import band_pass_filter
+from mne.filter import filter_data
 
 trans_bandwidth = 2.5
 filt_kwargs = dict(filter_length='auto', fir_window='hamming', phase='zero',
@@ -53,9 +53,8 @@ def test_spectral_connectivity():
     # simulate connectivity from 5Hz..15Hz
     fstart, fend = 5.0, 15.0
     for i in range(n_epochs):
-        data[i, 1, :] = band_pass_filter(data[i, 0, :],
-                                         sfreq, fstart, fend,
-                                         **filt_kwargs)
+        data[i, 1, :] = filter_data(data[i, 0, :], sfreq, fstart, fend,
+                                    **filt_kwargs)
         # add some noise, so the spectrum is not exactly zero
         data[i, 1, :] += 1e-2 * np.random.randn(n_times)
 

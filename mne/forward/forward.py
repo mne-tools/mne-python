@@ -40,20 +40,19 @@ from ..source_estimate import VolSourceEstimate
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
-                     run_subprocess, check_fname, logger, verbose, deprecated)
+                     run_subprocess, check_fname, logger, verbose)
 from ..label import Label
 
 
 class Forward(dict):
-    """Forward class to represent info from forward solution
-    """
+    """Forward class to represent info from forward solution."""
+
     def copy(self):
-        """Copy the Forward instance"""
+        """Copy the Forward instance."""
         return Forward(deepcopy(self))
 
     def __repr__(self):
-        """Summarize forward info instead of printing all"""
-
+        """Summarize forward info instead of printing all."""
         entr = '<Forward'
 
         nchan = len(pick_types(self['info'], meg=True, eeg=False, exclude=[]))
@@ -96,33 +95,8 @@ class Forward(dict):
         return entr
 
 
-@deprecated("it will be removed in mne 0.14; use mne.make_bem_solution() "
-            "instead.")
-def prepare_bem_model(bem, sol_fname=None, method='linear'):
-    """Wrapper for the mne_prepare_bem_model command line utility
-
-    Parameters
-    ----------
-    bem : str
-        The name of the file containing the triangulations of the BEM surfaces
-        and the conductivities of the compartments. The standard ending for
-        this file is -bem.fif and it is produced either with the utility
-        mne_surf2bem or the convenience script mne_setup_forward_model.
-    sol_fname : None | str
-        The output file. None (the default) will employ the standard naming
-        scheme. To conform with the standard naming conventions the filename
-        should start with the subject name and end in "-bem-sol.fif".
-    method : 'linear' | 'constant'
-        The BEM approach.
-    """
-    cmd = ['mne_prepare_bem_model', '--bem', bem, '--method', method]
-    if sol_fname is not None:
-        cmd.extend(('--sol', sol_fname))
-    run_subprocess(cmd)
-
-
 def _block_diag(A, n):
-    """Constructs a block diagonal from a packed structure
+    """Construct a block diagonal from a packed structure.
 
     You have to try it on a matrix to see what it's doing.
 
@@ -171,7 +145,7 @@ def _block_diag(A, n):
 
 
 def _inv_block_diag(A, n):
-    """Constructs an inverse block diagonal from a packed structure
+    """Construct an inverse block diagonal from a packed structure.
 
     You have to try it on a matrix to see what it's doing.
 
@@ -216,7 +190,7 @@ def _inv_block_diag(A, n):
 
 
 def _get_tag_int(fid, node, name, id_):
-    """Helper to check we have an appropriate tag"""
+    """Check we have an appropriate tag."""
     tag = find_tag(fid, node, id_)
     if tag is None:
         fid.close()
@@ -225,8 +199,7 @@ def _get_tag_int(fid, node, name, id_):
 
 
 def _read_one(fid, node):
-    """Read all interesting stuff for one forward solution
-    """
+    """Read all interesting stuff for one forward solution."""
     # This function assumes the fid is open as a context manager
     if node is None:
         return None
@@ -273,7 +246,7 @@ def _read_one(fid, node):
 
 
 def _read_forward_meas_info(tree, fid):
-    """Read light measurement info from forward operator
+    """Read light measurement info from forward operator.
 
     Parameters
     ----------
@@ -364,13 +337,13 @@ def _read_forward_meas_info(tree, fid):
 
 
 def _subject_from_forward(forward):
-    """Get subject id from inverse operator"""
+    """Get subject id from inverse operator."""
     return forward['src'][0].get('subject_his_id', None)
 
 
 @verbose
 def _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=None):
-    """Merge loaded MEG and EEG forward dicts into one dict"""
+    """Merge loaded MEG and EEG forward dicts into one dict."""
     if megfwd is not None and eegfwd is not None:
         if (megfwd['sol']['data'].shape[1] != eegfwd['sol']['data'].shape[1] or
                 megfwd['source_ori'] != eegfwd['source_ori'] or
@@ -407,7 +380,7 @@ def _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=None):
 @verbose
 def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                           include=[], exclude=[], verbose=None):
-    """Read a forward solution a.k.a. lead field
+    """Read a forward solution a.k.a. lead field.
 
     Parameters
     ----------
@@ -425,7 +398,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         List of names of channels to exclude. If empty include all
         channels.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -572,7 +546,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 @verbose
 def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
                              copy=True, verbose=None):
-    """Convert forward solution between different source orientations
+    """Convert forward solution between different source orientations.
 
     Parameters
     ----------
@@ -586,7 +560,8 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     copy : bool
         Whether to return a new instance or modify in place.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -686,7 +661,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
 
 @verbose
 def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
-    """Write forward solution to a file
+    """Write forward solution to a file.
 
     Parameters
     ----------
@@ -698,7 +673,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     overwrite : bool
         If True, overwrite destination file (if it exists).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -835,7 +811,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 
 
 def _to_fixed_ori(forward):
-    """Helper to convert the forward solution to fixed ori from free"""
+    """Convert the forward solution to fixed ori from free."""
     if not forward['surf_ori'] or is_fixed_orient(forward):
         raise ValueError('Only surface-oriented, free-orientation forward '
                          'solutions can be converted to fixed orientaton')
@@ -848,8 +824,7 @@ def _to_fixed_ori(forward):
 
 
 def is_fixed_orient(forward, orig=False):
-    """Has forward operator fixed orientation?
-    """
+    """Check if the forward operator is fixed orientation."""
     if orig:  # if we want to know about the original version
         fixed_ori = (forward['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI)
     else:  # most of the time we want to know about the current version
@@ -858,7 +833,7 @@ def is_fixed_orient(forward, orig=False):
 
 
 def write_forward_meas_info(fid, info):
-    """Write measurement info stored in forward solution
+    """Write measurement info stored in forward solution.
 
     Parameters
     ----------
@@ -901,7 +876,7 @@ def write_forward_meas_info(fid, info):
 
 @verbose
 def compute_orient_prior(forward, loose=0.2, verbose=None):
-    """Compute orientation prior
+    """Compute orientation prior.
 
     Parameters
     ----------
@@ -910,7 +885,8 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     loose : float in [0, 1] or None
         The loose orientation parameter.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -944,7 +920,7 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
 
 
 def _restrict_gain_matrix(G, info):
-    """Restrict gain matrix entries for optimal depth weighting"""
+    """Restrict gain matrix entries for optimal depth weighting."""
     # Figure out which ones have been used
     if not (len(info['chs']) == G.shape[0]):
         raise ValueError("G.shape[0] and length of info['chs'] do not match: "
@@ -971,8 +947,7 @@ def _restrict_gain_matrix(G, info):
 
 def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
                         patch_areas=None, limit_depth_chs=False):
-    """Compute weighting for depth prior
-    """
+    """Compute weighting for depth prior."""
     logger.info('Creating the depth weighting matrix...')
 
     # If possible, pick best depth-weighting channels
@@ -1026,8 +1001,7 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
 
 
 def _stc_src_sel(src, stc):
-    """ Select the vertex indices of a source space using a source estimate
-    """
+    """Select the vertex indices of a source space using a source estimate."""
     if isinstance(stc, VolSourceEstimate):
         vertices = [stc.vertices]
     else:
@@ -1047,8 +1021,7 @@ def _stc_src_sel(src, stc):
 
 
 def _fill_measurement_info(info, fwd, sfreq):
-    """ Fill the measurement info of a Raw or Evoked object
-    """
+    """Fill the measurement info of a Raw or Evoked object."""
     sel = pick_channels(info['ch_names'], fwd['sol']['row_names'])
     info = pick_info(info, sel)
     info['bads'] = []
@@ -1073,8 +1046,7 @@ def _fill_measurement_info(info, fwd, sfreq):
 
 @verbose
 def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
-    """ Apply forward model and return data, times, ch_names
-    """
+    """Apply forward model and return data, times, ch_names."""
     if not is_fixed_orient(fwd):
         raise ValueError('Only fixed-orientation forward operators are '
                          'supported.')
@@ -1114,8 +1086,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 @verbose
 def apply_forward(fwd, stc, info, start=None, stop=None,
                   verbose=None):
-    """
-    Project source space currents to sensor space using a forward operator.
+    """Project source space currents to sensor space using a forward operator.
 
     The sensor space data is computed for all channels present in fwd. Use
     pick_channels_forward or pick_types_forward to restrict the solution to a
@@ -1140,7 +1111,8 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1176,7 +1148,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
 @verbose
 def apply_forward_raw(fwd, stc, info, start=None, stop=None,
                       verbose=None):
-    """Project source space currents to sensor space using a forward operator
+    """Project source space currents to sensor space using a forward operator.
 
     The sensor space data is computed for all channels present in fwd. Use
     pick_channels_forward or pick_types_forward to restrict the solution to a
@@ -1200,7 +1172,8 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1235,7 +1208,7 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
 
 
 def restrict_forward_to_stc(fwd, stc):
-    """Restricts forward operator to active sources in a source estimate
+    """Restrict forward operator to active sources in a source estimate.
 
     Parameters
     ----------
@@ -1253,7 +1226,6 @@ def restrict_forward_to_stc(fwd, stc):
     --------
     restrict_forward_to_label
     """
-
     fwd_out = deepcopy(fwd)
     src_sel = _stc_src_sel(fwd['src'], stc)
 
@@ -1282,7 +1254,7 @@ def restrict_forward_to_stc(fwd, stc):
 
 
 def restrict_forward_to_label(fwd, labels):
-    """Restricts forward operator to labels
+    """Restrict forward operator to labels.
 
     Parameters
     ----------
@@ -1366,7 +1338,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
                          eeg=True, meg=True, fixed=False, grad=False,
                          mricoord=False, overwrite=False, subjects_dir=None,
                          verbose=None):
-    """Calculate a forward solution for a subject using MNE-C routines
+    """Calculate a forward solution for a subject using MNE-C routines.
 
     This is kept around for testing purposes.
 
@@ -1423,7 +1395,8 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -1573,7 +1546,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
 @verbose
 def average_forward_solutions(fwds, weights=None):
-    """Average forward solutions
+    """Average forward solutions.
 
     Parameters
     ----------

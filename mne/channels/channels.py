@@ -16,14 +16,14 @@ from ..externals.six import string_types
 
 from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
 from ..io.compensator import get_current_comp
+from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info
 from ..io.pick import (channel_type, pick_info, pick_types,
                        _check_excludes_includes, _PICK_TYPES_KEYS)
-from ..io.constants import FIFF
 
 
 def _get_meg_system(info):
-    """Educated guess for the helmet type based on channels"""
+    """Educated guess for the helmet type based on channels."""
     system = '306m'
     for ch in info['chs']:
         if ch['kind'] == FIFF.FIFFV_MEG_CH:
@@ -54,7 +54,7 @@ def _get_meg_system(info):
 
 
 def _contains_ch_type(info, ch_type):
-    """Check whether a certain channel type is in an info object
+    """Check whether a certain channel type is in an info object.
 
     Parameters
     ---------
@@ -73,8 +73,9 @@ def _contains_ch_type(info, ch_type):
                          '`str`'.format(actual_class=type(ch_type)))
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
+    fnirs_extras = ['hbo', 'hbr']
     valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
-                                  if key != 'meg'] + meg_extras)
+                                  if key != 'meg'] + meg_extras + fnirs_extras)
     if ch_type not in valid_channel_types:
         raise ValueError('ch_type must be one of %s, not "%s"'
                          % (valid_channel_types, ch_type))
@@ -85,7 +86,7 @@ def _contains_ch_type(info, ch_type):
 
 
 def _get_ch_type(inst, ch_type):
-    """Helper to choose a single channel type (usually for plotting)
+    """Helper to choose a single channel type (usually for plotting).
 
     Usually used in plotting to plot a single datatype, e.g. look for mags,
     then grads, then ... to plot.
@@ -102,14 +103,15 @@ def _get_ch_type(inst, ch_type):
 
 @verbose
 def equalize_channels(candidates, verbose=None):
-    """Equalize channel picks for a collection of MNE-Python objects
+    """Equalize channel picks for a collection of MNE-Python objects.
 
     Parameters
     ----------
     candidates : list
         list Raw | Epochs | Evoked | AverageTFR
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -144,10 +146,10 @@ def equalize_channels(candidates, verbose=None):
 
 
 class ContainsMixin(object):
-    """Mixin class for Raw, Evoked, Epochs
-    """
+    """Mixin class for Raw, Evoked, Epochs."""
+
     def __contains__(self, ch_type):
-        """Check channel type membership
+        """Check channel type membership.
 
         Parameters
         ----------
@@ -178,7 +180,7 @@ class ContainsMixin(object):
 
     @property
     def compensation_grade(self):
-        """The current gradient compensation grade"""
+        """The current gradient compensation grade."""
         return get_current_comp(self.info)
 
 
@@ -195,7 +197,9 @@ _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
                'stim': FIFF.FIFFV_STIM_CH,
                'syst': FIFF.FIFFV_SYST_CH,
                'bio': FIFF.FIFFV_BIO_CH,
-               'ecog': FIFF.FIFFV_ECOG_CH}
+               'ecog': FIFF.FIFFV_ECOG_CH,
+               'hbo': FIFF.FIFFV_FNIRS_CH,
+               'hbr': FIFF.FIFFV_FNIRS_CH}
 _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'eeg': FIFF.FIFF_UNIT_V,
                'emg': FIFF.FIFF_UNIT_V,
@@ -208,15 +212,18 @@ _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'stim': FIFF.FIFF_UNIT_NONE,
                'syst': FIFF.FIFF_UNIT_NONE,
                'bio': FIFF.FIFF_UNIT_V,
-               'ecog': FIFF.FIFF_UNIT_V}
+               'ecog': FIFF.FIFF_UNIT_V,
+               'hbo': FIFF.FIFF_UNIT_MOL,
+               'hbr': FIFF.FIFF_UNIT_MOL}
 _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_T: 'T',
                FIFF.FIFF_UNIT_T_M: 'T/m',
+               FIFF.FIFF_UNIT_MOL: 'M',
                FIFF.FIFF_UNIT_NONE: 'NA'}
 
 
 def _check_set(ch, projs, ch_type):
-    """Helper to make sure type change is compatible with projectors"""
+    """Helper to make sure type change is compatible with projectors."""
     new_kind = _human2fiff[ch_type]
     if ch['kind'] != new_kind:
         for proj in projs:
@@ -228,10 +235,59 @@ def _check_set(ch, projs, ch_type):
 
 
 class SetChannelsMixin(object):
-    """Mixin class for Raw, Evoked, Epochs
-    """
+    """Mixin class for Raw, Evoked, Epochs."""
+
+    @verbose
+    def set_eeg_reference(self, ref_channels=None, verbose=None):
+        """Rereference EEG channels to new reference channel(s).
+
+        If multiple reference channels are specified, they will be averaged. If
+        no reference channels are specified, an average reference will be
+        applied.
+
+        Parameters
+        ----------
+        ref_channels : list of str | None
+            The names of the channels to use to construct the reference. If
+            None (default), an average reference will be added as an SSP
+            projector but not immediately applied to the data. If an empty list
+            is specified, the data is assumed to already have a proper
+            reference and MNE will not attempt any re-referencing of the data.
+            Defaults to an average reference (None).
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            Data with EEG channels re-referenced. For ``ref_channels=None``,
+            an average projector will be added instead of directly subtarcting
+            data.
+
+        Notes
+        -----
+        1. If a reference is requested that is not the average reference, this
+           function removes any pre-existing average reference projections.
+
+        2. During source localization, the EEG signal should have an average
+           reference.
+
+        3. In order to apply a reference other than an average reference, the
+           data must be preloaded.
+
+        .. versionadded:: 0.13.0
+
+        See Also
+        --------
+        mne.set_bipolar_reference
+        """
+        from ..io.reference import set_eeg_reference
+        return set_eeg_reference(self, ref_channels, copy=False)[0]
+
     def _get_channel_positions(self, picks=None):
-        """Gets channel locations from info
+        """Get channel locations from info.
 
         Parameters
         ----------
@@ -254,7 +310,7 @@ class SetChannelsMixin(object):
         return pos
 
     def _set_channel_positions(self, pos, names):
-        """Update channel locations in info
+        """Update channel locations in info.
 
         Parameters
         ----------
@@ -288,7 +344,8 @@ class SetChannelsMixin(object):
         """Define the sensor type of channels.
 
         Note: The following sensor types are accepted:
-            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog
+            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog,
+            hbo, hbr
 
         Parameters
         ----------
@@ -303,6 +360,7 @@ class SetChannelsMixin(object):
         ch_names = self.info['ch_names']
 
         # first check and assemble clean mappings of index and name
+        unit_changes = dict()
         for ch_name, ch_type in mapping.items():
             if ch_name not in ch_names:
                 raise ValueError("This channel name (%s) doesn't exist in "
@@ -324,13 +382,23 @@ class SetChannelsMixin(object):
                                  "fix the measurement info of your data."
                                  % (ch_name, unit_old))
             if unit_old != _human2unit[ch_type]:
-                warn("The unit for channel %s has changed from %s to %s."
-                     % (ch_name, _unit2human[unit_old], _unit2human[unit_new]))
+                this_change = (_unit2human[unit_old], _unit2human[unit_new])
+                if this_change not in unit_changes:
+                    unit_changes[this_change] = list()
+                unit_changes[this_change].append(ch_name)
             self.info['chs'][c_ind]['unit'] = _human2unit[ch_type]
             if ch_type in ['eeg', 'seeg', 'ecog']:
-                self.info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_EEG
+                coil_type = FIFF.FIFFV_COIL_EEG
+            elif ch_type == 'hbo':
+                coil_type = FIFF.FIFFV_COIL_FNIRS_HBO
+            elif ch_type == 'hbr':
+                coil_type = FIFF.FIFFV_COIL_FNIRS_HBR
             else:
-                self.info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_NONE
+                coil_type = FIFF.FIFFV_COIL_NONE
+            self.info['chs'][c_ind]['coil_type'] = coil_type
+        msg = "The unit for channel(s) {0} has changed from {1} to {2}."
+        for this_change, names in unit_changes.items():
+            warn(msg.format(", ".join(sorted(names)), *this_change))
 
     def rename_channels(self, mapping):
         """Rename channels.
@@ -350,14 +418,16 @@ class SetChannelsMixin(object):
 
     @verbose
     def set_montage(self, montage, verbose=None):
-        """Set EEG sensor configuration
+        """Set EEG sensor configuration.
 
         Parameters
         ----------
         montage : instance of Montage or DigMontage
             The montage to use.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Notes
         -----
@@ -371,8 +441,7 @@ class SetChannelsMixin(object):
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
                      show_names=False, ch_groups=None, axes=None, block=False,
                      show=True):
-        """
-        Plot sensors positions.
+        """Plot sensor positions.
 
         Parameters
         ----------
@@ -450,14 +519,14 @@ class SetChannelsMixin(object):
 
 
 class UpdateChannelsMixin(object):
-    """Mixin class for Raw, Evoked, Epochs, AverageTFR
-    """
+    """Mixin class for Raw, Evoked, Epochs, AverageTFR."""
+
     def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
-                   include=[], exclude='bads', selection=None):
-        """Pick some channels by type and names
+                   fnirs=False, include=[], exclude='bads', selection=None):
+        """Pick some channels by type and names.
 
         Parameters
         ----------
@@ -502,6 +571,11 @@ class UpdateChannelsMixin(object):
             Bio channels.
         ecog : bool
             Electrocorticography channels.
+        fnirs : bool | str
+            Functional near-infrared spectroscopy channels. If True include all
+            fNIRS channels. If False (default) include none. If string it can
+            be 'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
+            include channels measuring deoxyhemoglobin).
         include : list of string
             List of additional channels to include. If empty do not include
             any.
@@ -524,12 +598,13 @@ class UpdateChannelsMixin(object):
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
-            ecog=ecog, include=include, exclude=exclude, selection=selection)
+            ecog=ecog, fnirs=fnirs, include=include, exclude=exclude,
+            selection=selection)
         self._pick_drop_channels(idx)
         return self
 
     def pick_channels(self, ch_names):
-        """Pick some channels
+        """Pick some channels.
 
         Parameters
         ----------
@@ -555,7 +630,7 @@ class UpdateChannelsMixin(object):
         return self
 
     def drop_channels(self, ch_names):
-        """Drop some channels
+        """Drop some channels.
 
         Parameters
         ----------
@@ -699,8 +774,7 @@ class UpdateChannelsMixin(object):
 
 
 class InterpolationMixin(object):
-    """Mixin class for Raw, Evoked, Epochs
-    """
+    """Mixin class for Raw, Evoked, Epochs."""
 
     def interpolate_bads(self, reset_bads=True, mode='accurate'):
         """Interpolate bad MEG and EEG channels.
@@ -796,14 +870,14 @@ def rename_channels(info, mapping):
 
 
 def _recursive_flatten(cell, dtype):
-    """Helper to unpack mat files in Python"""
+    """Helper to unpack mat files in Python."""
     while not isinstance(cell[0], dtype):
         cell = [c for d in cell for c in d]
     return cell
 
 
 def read_ch_connectivity(fname, picks=None):
-    """Parse FieldTrip neighbors .mat file
+    """Parse FieldTrip neighbors .mat file.
 
     More information on these neighbor definitions can be found on the
     related FieldTrip documentation pages:
@@ -862,7 +936,7 @@ def read_ch_connectivity(fname, picks=None):
 
 
 def _ch_neighbor_connectivity(ch_names, neighbors):
-    """Compute sensor connectivity matrix
+    """Compute sensor connectivity matrix.
 
     Parameters
     ----------
@@ -901,7 +975,7 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
 
 
 def fix_mag_coil_types(info):
-    """Fix magnetometer coil types
+    """Fix magnetometer coil types.
 
     Parameters
     ----------
@@ -938,7 +1012,7 @@ def fix_mag_coil_types(info):
 
 
 def _get_T1T2_mag_inds(info):
-    """Helper to find T1/T2 magnetometer coil types"""
+    """Helper to find T1/T2 magnetometer coil types."""
     picks = pick_types(info, meg='mag')
     old_mag_inds = []
     for ii in picks:

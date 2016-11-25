@@ -8,7 +8,7 @@ from nose.tools import assert_equal, assert_true
 
 from mne import concatenate_raws
 from mne.datasets import testing
-from mne.io import Raw
+from mne.io import read_raw_fif
 from mne.utils import _TempDir
 
 
@@ -64,7 +64,7 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     # Test saving and reading
     out_fname = op.join(tempdir, 'test_raw.fif')
     raw.save(out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1)
-    raw3 = Raw(out_fname)
+    raw3 = read_raw_fif(out_fname)
     assert_equal(set(raw.info.keys()), set(raw3.info.keys()))
     assert_allclose(raw3[0:20][0], full_data[0:20], rtol=1e-6,
                     atol=1e-20)  # atol is very small but > 0
@@ -88,7 +88,7 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
 
 
 def _test_concat(reader, *args):
-    """Test concatenation of raw classes that allow not preloading"""
+    """Test concatenation of raw classes that allow not preloading."""
     data = None
 
     for preload in (True, False):
@@ -107,10 +107,10 @@ def _test_concat(reader, *args):
             for last_preload in (True, False):
                 t_crops = raw.times[np.argmin(np.abs(raw.times - 0.5)) +
                                     [0, 1]]
-                raw1 = raw.copy().crop(0, t_crops[0], copy=False)
+                raw1 = raw.copy().crop(0, t_crops[0])
                 if preloads[0]:
                     raw1.load_data()
-                raw2 = raw.copy().crop(t_crops[1], None, copy=False)
+                raw2 = raw.copy().crop(t_crops[1], None)
                 if preloads[1]:
                     raw2.load_data()
                 raw1.append(raw2)
@@ -121,10 +121,10 @@ def _test_concat(reader, *args):
 
 @testing.requires_testing_data
 def test_time_index():
-    """Test indexing of raw times"""
+    """Test indexing of raw times."""
     raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                         'data', 'test_raw.fif')
-    raw = Raw(raw_fname)
+    raw = read_raw_fif(raw_fname)
 
     # Test original (non-rounding) indexing behavior
     orig_inds = raw.time_as_index(raw.times)

@@ -15,8 +15,9 @@ import numpy as np
 from numpy.testing import assert_raises
 
 
-from mne import io, read_events, Epochs, pick_types, read_cov
+from mne import read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
+from mne.io import read_raw_fif
 from mne.utils import slow_test, run_tests_if_main
 from mne.viz.evoked import _butterfly_onselect, plot_compare_evokeds
 from mne.viz.utils import _fake_click
@@ -38,49 +39,40 @@ n_chan = 6
 layout = read_layout('Vectorview-all')
 
 
-def _get_raw():
-    return io.read_raw_fif(raw_fname, preload=False)
-
-
-def _get_events():
-    return read_events(event_name)
-
-
 def _get_picks(raw):
+    """Get picks."""
     return pick_types(raw.info, meg=True, eeg=False, stim=False,
                       ecg=False, eog=False, exclude='bads')
 
 
 def _get_epochs():
-    raw = _get_raw()
+    """Get epochs."""
+    raw = read_raw_fif(raw_fname)
     raw.add_proj([], remove_existing=True)
-    events = _get_events()
+    events = read_events(event_name)
     picks = _get_picks(raw)
     # Use a subset of channels for plotting speed
     picks = picks[np.round(np.linspace(0, len(picks) - 1, n_chan)).astype(int)]
     picks[0] = 2  # make sure we have a magnetometer
-    with warnings.catch_warnings(record=True):  # proj
-        epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0))
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks)
     epochs.info['bads'] = [epochs.ch_names[-1]]
     return epochs
 
 
 def _get_epochs_delayed_ssp():
-    raw = _get_raw()
-    events = _get_events()
+    """Get epochs with delayed SSP."""
+    raw = read_raw_fif(raw_fname)
+    events = read_events(event_name)
     picks = _get_picks(raw)
     reject = dict(mag=4e-12)
     epochs_delayed_ssp = Epochs(raw, events[:10], event_id, tmin, tmax,
-                                picks=picks, baseline=(None, 0),
-                                proj='delayed', reject=reject)
+                                picks=picks, proj='delayed', reject=reject)
     return epochs_delayed_ssp
 
 
 @slow_test
 def test_plot_evoked():
-    """Test plotting of evoked
-    """
+    """Test plotting of evoked."""
     import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     with warnings.catch_warnings(record=True):

@@ -4,7 +4,6 @@
 """Open the coregistration GUI.
 
 example usage:  $ mne coreg
-
 """
 
 import sys
@@ -14,6 +13,7 @@ from mne.utils import ETSContext
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -28,13 +28,19 @@ def run():
                       default=False, help="Option for small screens: Combine "
                       "the data source panel and the coregistration panel "
                       "into a single panel with tabs.")
+    parser.add_option("--no-guess-mri", dest="guess_mri_subject",
+                      action='store_false', default=True,
+                      help="Prevent the GUI from automatically guessing and "
+                      "changing the MRI subject when a new head shape source "
+                      "file is selected.")
 
     options, args = parser.parse_args()
 
     with ETSContext():
         mne.gui.coregistration(options.tabbed, inst=options.inst,
                                subject=options.subject,
-                               subjects_dir=options.subjects_dir)
+                               subjects_dir=options.subjects_dir,
+                               guess_mri_subject=options.guess_mri_subject)
     if is_main:
         sys.exit(0)
 

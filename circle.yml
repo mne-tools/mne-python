@@ -37,11 +37,6 @@ dependencies:
       else
         echo "Conda already set up.";
       fi
-    # Te get around "raise EOFError" from Sphinx, we can follow
-    # https://github.com/sphinx-doc/sphinx/issues/2670 and do:
-    - if conda list -n circleenv sphinx; then
-        conda remove -n circleenv --yes sphinx;
-      fi;
     - conda install -n circleenv --yes numpy scipy scikit-learn mayavi matplotlib sphinx pillow six IPython pandas;
     - ls -al /home/ubuntu/miniconda;
     - ls -al /home/ubuntu/miniconda/bin;
@@ -52,38 +47,58 @@ dependencies:
     - pip install --upgrade pyface;
     - git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
     - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
-    - pip install sphinx_bootstrap_theme PySurfer nilearn neo numpydoc;
+    - pip install sphinx_bootstrap_theme git+git://github.com/nipy/PySurfer.git nilearn neo numpydoc;
 
   override:
     # Figure out if we should run a full, pattern, or noplot version
     - cd /home/ubuntu/mne-python && python setup.py develop;
-    - git branch -a
+    - if ! git remote -v | grep upstream ; then git remote add upstream git://github.com/mne-tools/mne-python.git; fi;
+    - git fetch upstream;
+    - git branch -a;
+    - mkdir -p ~/mne_data;
     - PATTERN="";
       if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
         echo html_dev > build.txt;
-      elif [ "$CIRCLE_BRANCH" == "maint/0.12" ]; then
+      elif [ "$CIRCLE_BRANCH" == "maint/0.13" ]; then
         echo html_stable > build.txt;
       else
-        FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH origin/master));
+        FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
         echo FNAMES="$FNAMES";
         for FNAME in $FNAMES; do
           if [[ `expr match $FNAME "\(tutorials\|examples\)/.*plot_.*\.py"` ]] ; then
             echo "Checking example $FNAME ...";
             PATTERN=`basename $FNAME`"\\|"$PATTERN;
             if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
-              python -c "import mne; print(mne.datasets.sample.data_path())";
+              python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*somato.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.somato.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*eegbci.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.eegbci.load_data(1, [6, 10, 14], update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_auditory.*" | wc -l) -gt 0 ]]; then
-              python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path())" --accept-brainstorm-license;
+              python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path(update_path=True))" --accept-brainstorm-license;
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_raw.*" | wc -l) -gt 0 ]]; then
-              python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path())" --accept-brainstorm-license;
+              python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path(update_path=True))" --accept-brainstorm-license;
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_ctf.*" | wc -l) -gt 0 ]]; then
-              python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_ctf.data_path())" --accept-brainstorm-license;
+              python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_ctf.data_path(update_path=True))" --accept-brainstorm-license;
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_elekta.*" | wc -l) -gt 0 ]]; then
-              python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path())" --accept-brainstorm-license;
+              python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path(update_path=True))" --accept-brainstorm-license;
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*megsim.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.megsim.load_data(condition='visual', data_format='single-trial', data_type='simulation', update_path=True))";
+              python -c "import mne; print(mne.datasets.megsim.load_data(condition='visual', data_format='raw', data_type='experimental', update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*hcp_mmp_parcellation.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
+              SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation())" --accept-hcpmmp-license;
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";
             fi;
           fi;
         done;
@@ -98,10 +113,9 @@ dependencies:
       fi;
       echo "$PATTERN" > pattern.txt;
     - echo BUILD="$(cat build.txt)"
-    - mkdir -p ~/mne_data;
     - ls -al ~/mne_data;
     - if [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
-        python -c "import mne; mne.datasets._download_all_example_data()";
+        SUBJECTS_DIR=/home/ubuntu/mne_data/MNE-sample-data/subjects python -c "import mne; mne.datasets._download_all_example_data()";
       fi;
     - python -c "import mne; mne.sys_info()";
     - >
@@ -133,7 +147,7 @@ deployment:
       - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
   stable:
-    branch: maint/0.12
+    branch: maint/0.13
     commands:
       - git config --global user.email "circle@mne.com"
       - git config --global user.name "Circle Ci"
