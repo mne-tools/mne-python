@@ -356,7 +356,7 @@ class ICA(ContainsMixin):
         self : instance of ICA
             Returns the modified instance.
         """
-        if isinstance(inst, BaseRaw) or isinstance(inst, BaseEpochs):
+        if isinstance(inst, (BaseRaw, BaseEpochs)):
             _check_for_unsupported_ica_channels(picks, inst.info)
             if isinstance(inst, BaseRaw):
                 self._fit_raw(inst, picks, start, stop, decim, reject, flat,
@@ -867,7 +867,7 @@ class ICA(ContainsMixin):
             # auto target selection
             if verbose is None:
                 verbose = self.verbose
-            if isinstance(inst, (BaseRaw, BaseRaw)):
+            if isinstance(inst, BaseRaw):
                 sources, target = _band_pass_filter(self, sources, target,
                                                     l_freq, h_freq, verbose)
 
