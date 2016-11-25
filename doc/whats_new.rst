@@ -39,6 +39,8 @@ Changelog
 
     - Add support for reading ASCII BrainVision files in :func:`mne.io.read_raw_brainvision` by `Eric Larson`_
 
+    - Add option to plot events in :func:`mne.viz.plot_epochs` by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
@@ -193,7 +195,7 @@ BUG
     - Fixed bug with :func:`mne.realtime.FieldTripClient.get_data_as_epoch` when ``picks=None`` which crashed the function by `Mainak Jas`_
 
     - Fixed reading of units in ``.elc`` montage files (from ``UnitsPosition`` field) so that :class:`mne.channels.Montage` objects are now returned with the ``pos`` attribute correctly in meters, by `Chris Mullins`_
-
+/
     - Fixed reading of BrainVision files by `Phillip Alday`_:
 
         - Greater support for BVA files, especially older ones: alternate text coding schemes with fallback to Latin-1 as well as units in column headers

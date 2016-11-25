@@ -379,8 +379,8 @@ def _epochs_axes_onclick(event, params):
     ax.get_figure().canvas.draw()
 
 
-def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
-                n_channels=20, title=None, show=True, block=False):
+def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
+                title=None, events=(), show=True, block=False):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -413,6 +413,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     title : str | None
         The title of the window. If None, epochs name will be displayed.
         Defaults to None.
+    events : array shape (n_events, 3)
+        Events to show with vertical bars.
     show : bool
         Show figure if True. Defaults to True
     block : bool
@@ -450,7 +452,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'histogram': None}
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
-                               title, picks)
+                               title, picks, events=events)
     _prepare_projectors(params)
     _layout_figure(params)
 
@@ -576,7 +578,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
 
 def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
-                               title, picks, order=None):
+                               title, picks, events=(), order=None):
     """Set up the mne_browse_epochs window."""
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -781,7 +783,9 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'help_button': help_button,  # reference needed for clicks
                    'fig_options': None,
                    'settings': [True, True, True, True],
-                   'image_plot': None})
+                   'image_plot': None,
+                   'events': events,
+                   'ev_lines': list()})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 
@@ -880,8 +884,7 @@ def _plot_traces(params):
             # subtraction here gets correct orientation for flipped ylim
             ydata = offset - this_data
             xdata = params['times'][:params['duration']]
-            num_epochs = np.min([params['n_epochs'],
-                                len(epochs.events)])
+            num_epochs = np.min([params['n_epochs'], len(epochs.events)])
             segments = np.split(np.array((xdata, ydata)).T, num_epochs)
 
             ch_name = params['ch_names'][ch_idx]
@@ -953,6 +956,27 @@ def _plot_traces(params):
         ax.set_yticklabels(labels, fontsize=12, color='black')
     else:
         ax.set_yticklabels(tick_list, fontsize=12)
+
+    if len(params['events']) > 0:  # vertical lines for events.
+        for ev_line in params['ev_lines']:
+            ax.lines.remove(ev_line)  # clear the view first
+        params['ev_lines'] = list()
+        t_zero = np.where(epochs.times == 0.)[0]  # idx of 0s
+        if len(t_zero) == 0:
+            t_zero = epochs.times[0] * -1000  # extra samples if tmin > 0
+        end = params['n_epochs'] + start_idx
+        samp_times = params['events'][:, 0]
+        for idx, event in enumerate(epochs.events[start_idx:end]):
+            event_mask = ((event[0] - t_zero < samp_times) &
+                          (samp_times < event[0] + n_times - t_zero))
+            for ev in samp_times[event_mask]:
+                if ev == event[0]:  # don't redraw the zeroline
+                    continue
+                pos = [idx * n_times + ev - event[0] + t_zero,
+                       idx * n_times + ev - event[0] + t_zero]
+                params['ev_lines'].append(ax.plot(pos, ax.get_ylim(),
+                                                  zorder=3, color='g')[0])
+
     params['vsel_patch'].set_y(ch_start)
     params['fig'].canvas.draw()
     # XXX This is a hack to make sure this figure gets drawn last
@@ -1020,7 +1044,7 @@ def _plot_vert_lines(params):
     epochs = params['epochs']
     if params['settings'][3]:  # if zeroline visible
         t_zero = np.where(epochs.times == 0.)[0]
-        if len(t_zero) == 1:
+        if len(t_zero) == 1:  # not True if tmin > 0
             for event_idx in range(len(epochs.events)):
                 pos = [event_idx * len(epochs.times) + t_zero[0],
                        event_idx * len(epochs.times) + t_zero[0]]
