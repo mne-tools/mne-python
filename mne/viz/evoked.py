@@ -120,8 +120,9 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
         axarr[0][idx].set_title(title)
         vmin = min(this_data) if psd else None
         vmax = max(this_data) if psd else None  # All negative for dB psd.
-        plot_topomap(this_data, pos, vmin=vmin, vmax=vmax, axes=axarr[0][idx],
-                     show=False)
+        cmap = 'viridis' if psd else None
+        plot_topomap(this_data, pos, cmap=cmap, vmin=vmin, vmax=vmax,
+                     axes=axarr[0][idx], show=False)
 
     unit = 'Hz' if psd else 'ms'
     fig.suptitle('Average over %.2f%s - %.2f%s' % (xmin, unit, xmax, unit),
