@@ -854,7 +854,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         The figure object(s).
     """
     from ..io import _BaseRaw
-    from ..epochs import _BaseEpochs
+    from ..epochs import BaseEpochs
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid import make_axes_locatable
     from ..channels import _get_ch_type
@@ -929,7 +929,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.95)
     fig.canvas.draw()
-    if isinstance(inst, (_BaseRaw, _BaseEpochs)):
+    if isinstance(inst, (_BaseRaw, BaseEpochs)):
         def onclick(event, ica=ica, inst=inst):
             # check which component to plot
             label = event.inaxes.get_label()

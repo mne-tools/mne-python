@@ -14,7 +14,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 from mne import (pick_channels, pick_types, Evoked, Epochs, read_events,
                  set_eeg_reference, set_bipolar_reference,
                  add_reference_channels)
-from mne.epochs import _BaseEpochs
+from mne.epochs import BaseEpochs
 from mne.io import read_raw_fif
 from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj
@@ -60,7 +60,7 @@ def _test_reference(raw, reref, ref_data, ref_from):
     reref_other_data = _reref[..., picks_other, :]
 
     # Undo rereferencing of EEG channels
-    if isinstance(raw, _BaseEpochs):
+    if isinstance(raw, BaseEpochs):
         unref_eeg_data = reref_eeg_data + ref_data[:, np.newaxis, :]
     else:
         unref_eeg_data = reref_eeg_data + ref_data

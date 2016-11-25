@@ -10,7 +10,7 @@ from .. import pick_types, pick_channels
 from ..externals.six import string_types
 from ..utils import logger, verbose, sum_squared, warn
 from ..filter import filter_data
-from ..epochs import Epochs, _BaseEpochs
+from ..epochs import Epochs, BaseEpochs
 from ..io.base import _BaseRaw
 from ..evoked import Evoked
 from ..io import RawArray
@@ -341,7 +341,7 @@ def _make_ecg(inst, start, stop, verbose=None):
     picks = pick_types(inst.info, meg=ch, eeg=False, ref_meg=False)
     if isinstance(inst, _BaseRaw):
         ecg, times = inst[picks, start:stop]
-    elif isinstance(inst, _BaseEpochs):
+    elif isinstance(inst, BaseEpochs):
         ecg = np.hstack(inst.copy().crop(start, stop).get_data())
         times = inst.times
     elif isinstance(inst, Evoked):

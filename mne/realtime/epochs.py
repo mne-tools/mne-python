@@ -12,11 +12,11 @@ import numpy as np
 
 from .. import pick_channels
 from ..utils import logger, verbose
-from ..epochs import _BaseEpochs
+from ..epochs import BaseEpochs
 from ..event import _find_events
 
 
-class RtEpochs(_BaseEpochs):
+class RtEpochs(BaseEpochs):
     """Realtime Epochs.
 
     Can receive epochs in real time from an RtClient.
@@ -147,7 +147,7 @@ class RtEpochs(_BaseEpochs):
 
         verbose = client.verbose if verbose is None else verbose
 
-        # call _BaseEpochs constructor
+        # call BaseEpochs constructor
         super(RtEpochs, self).__init__(
             info, None, None, event_id, tmin, tmax, baseline, picks=picks,
             name=name, reject=reject, flat=flat, decim=decim,

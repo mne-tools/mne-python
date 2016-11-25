@@ -79,7 +79,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     """
     from ..io.base import _BaseRaw
     from ..evoked import Evoked
-    from ..epochs import _BaseEpochs
+    from ..epochs import BaseEpochs
 
     if exclude is None:
         exclude = ica.exclude
@@ -89,7 +89,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         fig = _plot_sources_raw(ica, inst, picks, exclude, start=start,
                                 stop=stop, show=show, title=title,
                                 block=block)
-    elif isinstance(inst, _BaseEpochs):
+    elif isinstance(inst, BaseEpochs):
         fig = _plot_sources_epochs(ica, inst, picks, exclude, start=start,
                                    stop=stop, show=show, title=title,
                                    block=block)
@@ -175,10 +175,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     .. versionadded:: 0.13
     """
     from ..io.base import _BaseRaw
-    from ..epochs import _BaseEpochs
+    from ..epochs import BaseEpochs
     from ..preprocessing import ICA
 
-    if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
+    if not isinstance(inst, (_BaseRaw, BaseEpochs)):
         raise ValueError('inst should be an instance of Raw or Epochs,'
                          ' got %s instead.' % type(inst))
     if not isinstance(ica, ICA):

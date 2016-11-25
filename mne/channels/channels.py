@@ -118,11 +118,11 @@ def equalize_channels(candidates, verbose=None):
     This function operates inplace.
     """
     from ..io.base import _BaseRaw
-    from ..epochs import _BaseEpochs
+    from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
 
-    if not all(isinstance(c, (_BaseRaw, _BaseEpochs, Evoked, AverageTFR))
+    if not all(isinstance(c, (_BaseRaw, BaseEpochs, Evoked, AverageTFR))
                for c in candidates):
         valid = ['Raw', 'Epochs', 'Evoked', 'AverageTFR']
         raise ValueError('candidates must be ' + ' or '.join(valid))
@@ -675,11 +675,11 @@ class UpdateChannelsMixin(object):
     def _pick_drop_channels(self, idx):
         # avoid circular imports
         from ..io.base import _BaseRaw
-        from ..epochs import _BaseEpochs
+        from ..epochs import BaseEpochs
         from ..evoked import Evoked
         from ..time_frequency import AverageTFR
 
-        if isinstance(self, (_BaseRaw, _BaseEpochs)):
+        if isinstance(self, (_BaseRaw, BaseEpochs)):
             if not self.preload:
                 raise RuntimeError('If Raw or Epochs, data must be preloaded '
                                    'to drop or pick channels')
@@ -700,7 +700,7 @@ class UpdateChannelsMixin(object):
 
         if isinstance(self, _BaseRaw) and inst_has('_data'):
             self._data = self._data.take(idx, axis=0)
-        elif isinstance(self, _BaseEpochs) and inst_has('_data'):
+        elif isinstance(self, BaseEpochs) and inst_has('_data'):
             self._data = self._data.take(idx, axis=1)
         elif isinstance(self, AverageTFR) and inst_has('data'):
             self.data = self.data.take(idx, axis=0)
@@ -729,22 +729,22 @@ class UpdateChannelsMixin(object):
         """
         # avoid circular imports
         from ..io import _BaseRaw, _merge_info
-        from ..epochs import _BaseEpochs
+        from ..epochs import BaseEpochs
 
         if not isinstance(add_list, (list, tuple)):
             raise AssertionError('Input must be a list or tuple of objs')
 
         # Object-specific checks
-        if isinstance(self, (_BaseRaw, _BaseEpochs)):
+        if isinstance(self, (_BaseRaw, BaseEpochs)):
             if not all([inst.preload for inst in add_list] + [self.preload]):
                 raise AssertionError('All data must be preloaded')
             data_name = '_data'
             if isinstance(self, _BaseRaw):
                 con_axis = 0
                 comp_class = _BaseRaw
-            elif isinstance(self, _BaseEpochs):
+            elif isinstance(self, BaseEpochs):
                 con_axis = 1
-                comp_class = _BaseEpochs
+                comp_class = BaseEpochs
         else:
             data_name = 'data'
             con_axis = 0

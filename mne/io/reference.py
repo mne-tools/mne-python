@@ -11,7 +11,7 @@ from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .pick import pick_types
 from .base import _BaseRaw
 from ..evoked import Evoked
-from ..epochs import _BaseEpochs
+from ..epochs import BaseEpochs
 from ..utils import logger, warn, verbose
 
 
@@ -106,7 +106,7 @@ def _apply_reference(inst, ref_from, ref_to=None):
     if len(ref_from) > 0:
         ref_data = data[..., ref_from, :].mean(-2)
 
-        if isinstance(inst, _BaseEpochs):
+        if isinstance(inst, BaseEpochs):
             data[:, ref_to, :] -= ref_data[:, np.newaxis, :]
         else:
             data[ref_to] -= ref_data
@@ -174,7 +174,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         refs = np.zeros((len(ref_channels), data.shape[1]))
         data = np.vstack((data, refs))
         inst._data = data
-    elif isinstance(inst, _BaseEpochs):
+    elif isinstance(inst, BaseEpochs):
         data = inst._data
         x, y, z = data.shape
         refs = np.zeros((x * len(ref_channels), z))

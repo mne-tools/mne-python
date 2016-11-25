@@ -14,7 +14,7 @@ from scipy import linalg, sparse
 
 from ..externals.six import string_types
 from ..source_estimate import SourceEstimate
-from ..epochs import _BaseEpochs
+from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..utils import logger, _reject_data_segments, warn
 from ..io.pick import pick_types, pick_info
@@ -60,7 +60,7 @@ def linear_regression(inst, design_matrix, names=None):
     if names is None:
         names = ['x%i' % i for i in range(design_matrix.shape[1])]
 
-    if isinstance(inst, _BaseEpochs):
+    if isinstance(inst, BaseEpochs):
         picks = pick_types(inst.info, meg=True, eeg=True, ref_meg=True,
                            stim=False, eog=False, ecg=False,
                            emg=False, exclude=['bads'])

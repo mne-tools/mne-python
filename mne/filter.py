@@ -2246,12 +2246,12 @@ class FilterMixin(object):
                Procedures". Analytical Chemistry 36 (8): 1627-39.
         """  # noqa: E501
         from .evoked import Evoked
-        from .epochs import _BaseEpochs
+        from .epochs import BaseEpochs
         inst = self.copy() if copy else self
         if isinstance(inst, Evoked):
             data = inst.data
             axis = 1
-        elif isinstance(inst, _BaseEpochs):
+        elif isinstance(inst, BaseEpochs):
             if not inst.preload:
                 raise RuntimeError('data must be preloaded to filter')
             data = inst._data

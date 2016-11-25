@@ -99,7 +99,7 @@ class ToDataFrameMixin(object):
             depend on the object type being converted, but should be
             human-readable.
         """
-        from ..epochs import _BaseEpochs
+        from ..epochs import BaseEpochs
         from ..evoked import Evoked
         from ..source_estimate import _BaseSourceEstimate
 
@@ -126,9 +126,9 @@ class ToDataFrameMixin(object):
             else:
                 # volume source estimates
                 col_names = ['VOL {0}'.format(vert) for vert in self.vertices]
-        elif isinstance(self, (_BaseEpochs, _BaseRaw, Evoked)):
+        elif isinstance(self, (BaseEpochs, _BaseRaw, Evoked)):
             picks = self._get_check_picks(picks, self.ch_names)
-            if isinstance(self, _BaseEpochs):
+            if isinstance(self, BaseEpochs):
                 default_index = ['condition', 'epoch', 'time']
                 data = self.get_data()[:, picks, :]
                 times = self.times

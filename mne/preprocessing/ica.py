@@ -32,7 +32,7 @@ from ..io.tag import read_tag
 from ..io.meas_info import write_meas_info, read_meas_info
 from ..io.constants import Bunch, FIFF
 from ..io.base import _BaseRaw
-from ..epochs import _BaseEpochs
+from ..epochs import BaseEpochs
 from ..viz import (plot_ica_components, plot_ica_scores,
                    plot_ica_sources, plot_ica_overlay)
 from ..viz.ica import plot_ica_properties
@@ -356,12 +356,12 @@ class ICA(ContainsMixin):
         self : instance of ICA
             Returns the modified instance.
         """
-        if isinstance(inst, _BaseRaw) or isinstance(inst, _BaseEpochs):
+        if isinstance(inst, _BaseRaw) or isinstance(inst, BaseEpochs):
             _check_for_unsupported_ica_channels(picks, inst.info)
             if isinstance(inst, _BaseRaw):
                 self._fit_raw(inst, picks, start, stop, decim, reject, flat,
                               tstep, verbose)
-            elif isinstance(inst, _BaseEpochs):
+            elif isinstance(inst, BaseEpochs):
                 self._fit_epochs(inst, picks, decim, verbose)
         else:
             raise ValueError('Data input must be of Raw or Epochs type')
@@ -693,7 +693,7 @@ class ICA(ContainsMixin):
         """
         if isinstance(inst, _BaseRaw):
             sources = self._sources_as_raw(inst, add_channels, start, stop)
-        elif isinstance(inst, _BaseEpochs):
+        elif isinstance(inst, BaseEpochs):
             sources = self._sources_as_epochs(inst, add_channels, False)
         elif isinstance(inst, Evoked):
             sources = self._sources_as_evoked(inst, add_channels)
@@ -851,7 +851,7 @@ class ICA(ContainsMixin):
         """
         if isinstance(inst, _BaseRaw):
             sources = self._transform_raw(inst, start, stop)
-        elif isinstance(inst, _BaseEpochs):
+        elif isinstance(inst, BaseEpochs):
             sources = self._transform_epochs(inst, concatenate=True)
         elif isinstance(inst, Evoked):
             sources = self._transform_evoked(inst)
@@ -886,7 +886,7 @@ class ICA(ContainsMixin):
                 pick = _get_target_ch(inst, target)
                 target, _ = inst[pick, start:stop]
 
-        elif isinstance(inst, _BaseEpochs):
+        elif isinstance(inst, BaseEpochs):
             if isinstance(target, string_types):
                 pick = _get_target_ch(inst, target)
                 target = inst.get_data()[:, pick]
@@ -992,7 +992,7 @@ class ICA(ContainsMixin):
                 threshold = 0.25
             if isinstance(inst, _BaseRaw):
                 sources = self.get_sources(create_ecg_epochs(inst)).get_data()
-            elif isinstance(inst, _BaseEpochs):
+            elif isinstance(inst, BaseEpochs):
                 sources = self.get_sources(inst).get_data()
             else:
                 raise ValueError('With `ctps` only Raw and Epochs input is '
@@ -1151,7 +1151,7 @@ class ICA(ContainsMixin):
                                   exclude=exclude,
                                   n_pca_components=n_pca_components,
                                   start=start, stop=stop)
-        elif isinstance(inst, _BaseEpochs):
+        elif isinstance(inst, BaseEpochs):
             out = self._apply_epochs(epochs=inst, include=include,
                                      exclude=exclude,
                                      n_pca_components=n_pca_components)
@@ -1656,14 +1656,14 @@ def _ica_explained_variance(ica, inst, normalize=False):
     # check if ica is ICA and whether inst is Raw or Epochs
     if not isinstance(ica, ICA):
         raise TypeError('first argument must be an instance of ICA.')
-    if not isinstance(inst, (_BaseRaw, _BaseEpochs, Evoked)):
+    if not isinstance(inst, (_BaseRaw, BaseEpochs, Evoked)):
         raise TypeError('second argument must an instance of either Raw, '
                         'Epochs or Evoked.')
 
     source_data = _get_inst_data(ica.get_sources(inst))
 
     # if epochs - reshape to channels x timesamples
-    if isinstance(inst, _BaseEpochs):
+    if isinstance(inst, BaseEpochs):
         n_epochs, n_chan, n_samp = source_data.shape
         source_data = source_data.transpose(1, 0, 2).reshape(
             (n_chan, n_epochs * n_samp))

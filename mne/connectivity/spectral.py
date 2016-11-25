@@ -12,7 +12,7 @@ from .utils import check_indices
 from ..fixes import _get_args
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
-from ..epochs import _BaseEpochs
+from ..epochs import BaseEpochs
 from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
@@ -765,7 +765,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     # if none of the comp_con functions needs the PSD, we don't estimate it
     accumulate_psd = any(n == 5 for n in n_comp_args)
 
-    if isinstance(data, _BaseEpochs):
+    if isinstance(data, BaseEpochs):
         times_in = data.times  # input times for Epochs input type
         sfreq = data.info['sfreq']
 

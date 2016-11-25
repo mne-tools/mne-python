@@ -138,9 +138,9 @@ def _save_split(epochs, fname, part_idx, n_parts):
     end_file(fid)
 
 
-class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
-                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                  ToDataFrameMixin, TimeMixin, SizeMixin):
+class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
+                 SetChannelsMixin, InterpolationMixin, FilterMixin,
+                 ToDataFrameMixin, TimeMixin, SizeMixin):
     """Abstract base class for Epochs-type classes.
 
     This class provides basic functionality and should never be instantiated
@@ -430,7 +430,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if not self.preload:
             # Eventually we can relax this restriction, but it will require
             # more careful checking of baseline (e.g., refactor with the
-            # _BaseEpochs.__init__ checks)
+            # BaseEpochs.__init__ checks)
             raise RuntimeError('Data must be loaded to apply a new baseline')
         _check_baseline(baseline, self.tmin, self.tmax, self.info['sfreq'])
 
@@ -1225,7 +1225,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                       for k, v in sorted(self.event_id.items())]
             s += ',\n %s' % ', '.join(counts)
         class_name = self.__class__.__name__
-        class_name = 'Epochs' if class_name == '_BaseEpochs' else class_name
+        class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
         return '<%s  |  %s>' % (class_name, s)
 
     def _keys_to_idx(self, keys):
@@ -1650,7 +1650,7 @@ def _dep_eeg_ref(add_eeg_ref):
     return add_eeg_ref
 
 
-class Epochs(_BaseEpochs):
+class Epochs(BaseEpochs):
     """Epochs extracted from a Raw instance.
 
     Parameters
@@ -1814,7 +1814,7 @@ class Epochs(_BaseEpochs):
         proj = proj or raw.proj
 
         self.reject_by_annotation = reject_by_annotation
-        # call _BaseEpochs constructor
+        # call BaseEpochs constructor
         super(Epochs, self).__init__(
             info, None, events, event_id, tmin, tmax, baseline=baseline,
             raw=raw, picks=picks, name=name, reject=reject, flat=flat,
@@ -1849,7 +1849,7 @@ class Epochs(_BaseEpochs):
         return data
 
 
-class EpochsArray(_BaseEpochs):
+class EpochsArray(BaseEpochs):
     """Epochs object from numpy array.
 
     Parameters
@@ -2040,7 +2040,7 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
         list. If 'mintime', timing differences between each event list will be
         minimized.
     """
-    if not all(isinstance(e, _BaseEpochs) for e in epochs_list):
+    if not all(isinstance(e, BaseEpochs) for e in epochs_list):
         raise ValueError('All inputs must be Epochs instances')
 
     # make sure bad epochs are dropped
@@ -2322,7 +2322,7 @@ class _RawContainer(object):
         self.fid.close()
 
 
-class EpochsFIF(_BaseEpochs):
+class EpochsFIF(BaseEpochs):
     """Epochs read from disk.
 
     Parameters
@@ -2375,7 +2375,7 @@ class EpochsFIF(_BaseEpochs):
                 _read_one_epoch_file(fid, tree, fname, preload)
             # here we ignore missing events, since users should already be
             # aware of missing events if they have saved data that way
-            epoch = _BaseEpochs(
+            epoch = BaseEpochs(
                 info, data, events, event_id, tmin, tmax, baseline,
                 on_missing='ignore', selection=selection, drop_log=drop_log,
                 proj=False, verbose=False)
@@ -2406,7 +2406,7 @@ class EpochsFIF(_BaseEpochs):
                         drop_log[k] = b
         drop_log = drop_log[:step]
 
-        # call _BaseEpochs constructor
+        # call BaseEpochs constructor
         super(EpochsFIF, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline, raw=raw,
             name=name, proj=proj, add_eeg_ref=add_eeg_ref,
@@ -2592,7 +2592,7 @@ def _concatenate_epochs(epochs_list, with_data=True):
         raise TypeError('epochs_list must be a list or tuple, got %s'
                         % (type(epochs_list),))
     for ei, epochs in enumerate(epochs_list):
-        if not isinstance(epochs, _BaseEpochs):
+        if not isinstance(epochs, BaseEpochs):
             raise TypeError('epochs_list[%d] must be an instance of Epochs, '
                             'got %s' % (ei, type(epochs)))
     out = epochs_list[0]
@@ -2630,7 +2630,7 @@ def _finish_concat(info, data, events, event_id, tmin, tmax, baseline,
     """Helper to finish concatenation for epochs not read from disk."""
     events[:, 0] = np.arange(len(events))  # arbitrary after concat
     selection = np.where([len(d) == 0 for d in drop_log])[0]
-    out = _BaseEpochs(
+    out = BaseEpochs(
         info, data, events, event_id, tmin, tmax, baseline=baseline,
         selection=selection, drop_log=drop_log, proj=False,
         on_missing='ignore', verbose=verbose)
@@ -2769,7 +2769,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     if head_pos is None:
         raise TypeError('head_pos must be provided and cannot be None')
     from .chpi import head_pos_to_trans_rot_t
-    if not isinstance(epochs, _BaseEpochs):
+    if not isinstance(epochs, BaseEpochs):
         raise TypeError('epochs must be an instance of Epochs, not %s'
                         % (type(epochs),))
     orig_sfreq = epochs.info['sfreq'] if orig_sfreq is None else orig_sfreq
