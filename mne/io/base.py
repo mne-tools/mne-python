@@ -249,15 +249,57 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
               TimeMixin, SizeMixin):
     """Base class for Raw data.
 
+    Parameters
+    ----------
+    info : dict
+        foo
+    preload : bool | str | ndarray
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory). If preload is an
+        ndarray, the data are taken from that array. If False, data are not read
+        until save.
+    first_samps : iterable
+        Iterable of the first sample number from each raw file. For unsplit raw
+        files this should be a length-one list or tuple.
+    last_samps : iterable | None
+        Iterable of the last sample number from each raw file. For unsplit raw
+        files this should be a length-one list or tuple. If None, then preload
+        must be an ndarray.
+    filenames : tuple
+        Tuple of length one (for unsplit raw files) or length > 1 (for split raw
+        files).
+    raw_extras : list
+        Whatever data is necessary for on-demand reads. For `RawFIF` this means 
+        a list of variables formerly known as ``_rawdirs``.
+    orig_format : str
+        The data format of the original raw file (e.g., ``'double'``).
+    dtype : dtype | None
+        The dtype of the raw data. If preload is an ndarray, its dtype must
+        match what is passed here.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    The `BaseRaw` class is public to allow for stable type-checking in user code
+    (i.e., ``isinstance(my_raw_object, BaseRaw)``) but should not be used as a
+    constructor for `Raw` objects (use instead one of the subclass constructors,
+    or one of the ``mne.io.read_raw_*`` functions).
+
     Subclasses must provide the following methods:
 
         * _read_segment_file(self, data, idx, fi, start, stop, cals, mult)
           (only needed for types that support on-demand disk reads)
 
-    The `BaseRaw._raw_extras` list can contain whatever data is necessary for
-    such on-demand reads. For `RawFIF` this means a list of variables formerly
-    known as ``_rawdirs``.
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
+
 
     @verbose
     def __init__(self, info, preload=False,
