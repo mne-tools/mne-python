@@ -145,6 +145,68 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     This class provides basic functionality and should never be instantiated
     directly. See Epochs below for an explanation of the parameters.
+
+    Parameters
+    ----------
+    info : dict
+        A copy of the info dict from the raw object.
+    data : ndarray | None
+        If ``None``, data will be read from the Raw object. If ndarray, must be
+        of shape (n_epochs, n_channels, n_times).
+    events : array of int, shape (n_events, 3)
+        See `Epochs` docstring.
+    event_id : int | list of int | dict | None
+        See `Epochs` docstring.
+    tmin : float
+        See `Epochs` docstring.
+    tmax : float
+        See `Epochs` docstring.
+    baseline : None or tuple of length 2 (default (None, 0))
+        See `Epochs` docstring.
+    raw : Raw object
+        An instance of Raw.
+    picks : array-like of int | None (default)
+        See `Epochs` docstring.
+    name : string
+        See `Epochs` docstring.
+    reject : dict | None
+        See `Epochs` docstring.
+    flat : dict | None
+        See `Epochs` docstring.
+    decim : int
+        See `Epochs` docstring.
+    reject_tmin : scalar | None
+        See `Epochs` docstring.
+    reject_tmax : scalar | None
+        See `Epochs` docstring.
+    detrend : int | None
+        See `Epochs` docstring.
+    add_eeg_ref : bool
+        See `Epochs` docstring.
+    proj : bool | 'delayed'
+        See `Epochs` docstring.
+    on_missing : str
+        See `Epochs` docstring.
+    preload_at_end : bool
+        Load all epochs from disk when creating the object
+        or wait before accessing each epoch (more memory
+        efficient but can be slower).
+    selection : iterable | None
+        Iterable of indices of selected epochs. If ``None``, will be
+        automatically generated, corresponding to all non-zero events.
+    drop_log : list | None
+        List of lists of strings indicating which epochs have been marked to be
+        ignored.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        raw.verbose.
+
+    Notes
+    -----
+    The `BaseEpochs` class is public to allow for stable type-checking in user
+    code (i.e., ``isinstance(my_epochs, BaseEpochs)``) but should not be used as
+    a constructor for Epochs objects (use instead `mne.Epochs`).
     """
 
     def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
