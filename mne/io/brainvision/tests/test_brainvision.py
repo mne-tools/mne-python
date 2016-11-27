@@ -79,7 +79,7 @@ def test_ascii():
                 elif line.startswith(b'[Binary Infos]'):
                     skipping = True
                     fout.write(b'[ASCII Infos]\nDecimalSymbol=.\nSkipLines=1\n'
-                               'SkipColumns=0\n\n')
+                               b'SkipColumns=0\n\n')
                 elif skipping and line.startswith(b'['):
                     skipping = False
                 if not skipping:
@@ -89,7 +89,7 @@ def test_ascii():
     with open(ascii_vhdr_path.replace('.vhdr', '.dat'), 'wb') as fid:
         fid.write(b' '.join(ch_name.encode('ASCII')
                   for ch_name in raw.ch_names) + b'\n')
-        fid.write(b'\n'.join(' '.join('%.3f' % dd for dd in d)
+        fid.write(b'\n'.join(b' '.join(b'%.3f' % dd for dd in d)
                   for d in data[:-1].T / raw._cals[:-1]))
     raw = read_raw_brainvision(ascii_vhdr_path, event_id=event_id)
     data_new, times_new = raw[:]

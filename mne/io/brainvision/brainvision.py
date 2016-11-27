@@ -120,8 +120,9 @@ class RawBrainVision(BaseRaw):
                 fid.seek(offsets[start])
                 block = np.empty((len(self.ch_names), stop - start))
                 for ii in range(stop - start):
-                    line = fid.readline().strip().replace(',', '.').split()
-                    block[:-1, ii] = map(float, line)
+                    line = fid.readline().decode('ASCII')
+                    line = line.strip().replace(',', '.').split()
+                    block[:-1, ii] = list(map(float, line))
             block[-1] = self._event_ch[start:stop]
             _mult_cal_one(data, block, idx, cals, mult)
 
