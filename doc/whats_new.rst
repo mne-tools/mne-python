@@ -35,6 +35,8 @@ Changelog
 
     - Add skull surface plotting option to :func:`mne.viz.plot_trans` by `Jaakko Leppakangas`_
 
+    - Add minimum-phase filtering option in :meth:`mne.io.Raw.filter` by `Eric Larson`_
+
 BUG
 ~~~
 
