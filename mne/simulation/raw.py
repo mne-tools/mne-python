@@ -15,7 +15,7 @@ from ..io.pick import pick_types, pick_info, pick_channels
 from ..source_estimate import VolSourceEstimate
 from ..cov import make_ad_hoc_cov, read_cov
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
-from ..io import RawArray, _BaseRaw
+from ..io import RawArray, BaseRaw
 from ..chpi import read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info
 from ..io.constants import FIFF
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
@@ -169,7 +169,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     .. [1] Bentivoglio et al. "Analysis of blink rate patterns in normal
            subjects" Movement Disorders, 1997 Nov;12(6):1028-34.
     """
-    if not isinstance(raw, _BaseRaw):
+    if not isinstance(raw, BaseRaw):
         raise TypeError('raw should be an instance of Raw')
     times, info, first_samp = raw.times, raw.info, raw.first_samp
     raw_verbose = raw.verbose

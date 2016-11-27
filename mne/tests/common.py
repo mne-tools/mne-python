@@ -8,14 +8,14 @@ from numpy.testing import assert_allclose, assert_equal, assert_array_equal
 from scipy import linalg
 
 from .. import pick_types, Evoked
-from ..io import _BaseRaw
+from ..io import BaseRaw
 from ..io.constants import FIFF
 from ..bem import fit_sphere_to_headshape
 
 
 def _get_data(x, ch_idx):
     """Helper to get the (n_ch, n_times) data array"""
-    if isinstance(x, _BaseRaw):
+    if isinstance(x, BaseRaw):
         return x[ch_idx][0]
     elif isinstance(x, Evoked):
         return x.data[ch_idx]

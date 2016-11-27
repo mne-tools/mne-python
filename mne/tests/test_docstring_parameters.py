@@ -99,7 +99,7 @@ def check_parameters_match(func, doc=None):
 
 @requires_numpydoc
 def test_docstring_parameters():
-    """Test module docsting formatting"""
+    """Test module docstring formatting"""
     from numpydoc import docscrape
 
     # skip modules that require mayavi if mayavi is not installed

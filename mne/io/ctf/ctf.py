@@ -12,7 +12,7 @@ import numpy as np
 from ...utils import verbose, logger
 from ...externals.six import string_types
 
-from ..base import _BaseRaw
+from ..base import BaseRaw
 from ..utils import _mult_cal_one, _blk_read_lims
 
 from .res4 import _read_res4, _make_ctf_name
@@ -62,7 +62,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
     return RawCTF(directory, system_clock, preload=preload, verbose=verbose)
 
 
-class RawCTF(_BaseRaw):
+class RawCTF(BaseRaw):
     """Raw object from CTF directory.
 
     Parameters

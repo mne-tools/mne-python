@@ -1492,11 +1492,11 @@ def combine_tfr(all_tfr, weights='nave'):
 
 def _get_data(inst, return_itc):
     """Get data from Epochs or Evoked instance as epochs x ch x time."""
-    from ..epochs import _BaseEpochs
+    from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    if not isinstance(inst, (_BaseEpochs, Evoked)):
+    if not isinstance(inst, (BaseEpochs, Evoked)):
         raise TypeError('inst must be Epochs or Evoked')
-    if isinstance(inst, _BaseEpochs):
+    if isinstance(inst, BaseEpochs):
         data = inst.get_data()
     else:
         if return_itc:

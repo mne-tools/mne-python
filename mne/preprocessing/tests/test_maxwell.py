@@ -15,7 +15,7 @@ from mne.forward import _prep_meg_channels
 from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.io import (read_raw_fif, proc_history, read_info, read_raw_bti,
-                    read_raw_kit, _BaseRaw)
+                    read_raw_kit, BaseRaw)
 from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
@@ -743,7 +743,7 @@ def test_head_translation():
 def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
     """Helper to assert a minimum shielding factor using empty-room power."""
     picks = pick_types(raw_sss.info, meg=meg, ref_meg=False)
-    if isinstance(erm_power, _BaseRaw):
+    if isinstance(erm_power, BaseRaw):
         picks_erm = pick_types(raw_sss.info, meg=meg, ref_meg=False)
         assert_allclose(picks, picks_erm)
         erm_power = np.sqrt((erm_power[picks_erm][0] ** 2).sum())

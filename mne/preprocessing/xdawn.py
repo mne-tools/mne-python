@@ -11,8 +11,8 @@ from .ica import _get_fast_dot
 from .. import EvokedArray, Evoked
 from ..cov import Covariance, _regularized_covariance
 from ..decoding import TransformerMixin, BaseEstimator
-from ..epochs import _BaseEpochs, EpochsArray
-from ..io import _BaseRaw
+from ..epochs import BaseEpochs, EpochsArray
+from ..io import BaseRaw
 from ..io.pick import _pick_data_channels
 from ..utils import logger
 from ..externals.six import iteritems, itervalues
@@ -441,7 +441,7 @@ class Xdawn(_XdawnTransformer):
             The Xdawn instance.
         """
         # Check data
-        if not isinstance(epochs, _BaseEpochs):
+        if not isinstance(epochs, BaseEpochs):
             raise ValueError('epochs must be an Epochs object.')
         X = epochs.get_data()
         X = X[:, _pick_data_channels(epochs.info), :]
@@ -505,7 +505,7 @@ class Xdawn(_XdawnTransformer):
         X : ndarray, shape (n_epochs, n_components * n_event_types, n_times)
             Spatially filtered signals.
         """
-        if isinstance(epochs, _BaseEpochs):
+        if isinstance(epochs, BaseEpochs):
             X = epochs.get_data()
         elif isinstance(epochs, np.ndarray):
             X = epochs
@@ -551,7 +551,7 @@ class Xdawn(_XdawnTransformer):
         if event_id is None:
             event_id = self.event_id_
 
-        if not isinstance(inst, (_BaseRaw, _BaseEpochs, Evoked)):
+        if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
             raise ValueError('Data input must be Raw, Epochs or Evoked type')
         picks = _pick_data_channels(inst.info)
 
@@ -562,10 +562,10 @@ class Xdawn(_XdawnTransformer):
         else:
             exclude = list(set(list(default_exclude) + list(exclude)))
 
-        if isinstance(inst, _BaseRaw):
+        if isinstance(inst, BaseRaw):
             out = self._apply_raw(raw=inst, include=include, exclude=exclude,
                                   event_id=event_id, picks=picks)
-        elif isinstance(inst, _BaseEpochs):
+        elif isinstance(inst, BaseEpochs):
             out = self._apply_epochs(epochs=inst, include=include, picks=picks,
                                      exclude=exclude, event_id=event_id)
         elif isinstance(inst, Evoked):

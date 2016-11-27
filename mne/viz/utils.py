@@ -1329,9 +1329,9 @@ def _compute_scalings(scalings, inst):
     scalings : dict
         A scalings dictionary with updated values
     """
-    from ..io.base import _BaseRaw
-    from ..epochs import _BaseEpochs
-    if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
+    from ..io.base import BaseRaw
+    from ..epochs import BaseEpochs
+    if not isinstance(inst, (BaseRaw, BaseEpochs)):
         raise ValueError('Must supply either Raw or Epochs')
     if scalings is None:
         # If scalings is None just return it and do nothing
@@ -1349,7 +1349,7 @@ def _compute_scalings(scalings, inst):
     scalings = deepcopy(scalings)
 
     if inst.preload is False:
-        if isinstance(inst, _BaseRaw):
+        if isinstance(inst, BaseRaw):
             # Load a window of data from the center up to 100mb in size
             n_times = 1e8 // (len(inst.ch_names) * 8)
             n_times = np.clip(n_times, 1, inst.n_times)
@@ -1358,7 +1358,7 @@ def _compute_scalings(scalings, inst):
             tmin = np.clip(time_middle - n_secs / 2., inst.times.min(), None)
             tmax = np.clip(time_middle + n_secs / 2., None, inst.times.max())
             data = inst._read_segment(tmin, tmax)
-        elif isinstance(inst, _BaseEpochs):
+        elif isinstance(inst, BaseEpochs):
             # Load a random subset of epochs up to 100mb in size
             n_epochs = 1e8 // (len(inst.ch_names) * len(inst.times) * 8)
             n_epochs = int(np.clip(n_epochs, 1, len(inst)))
@@ -1366,7 +1366,7 @@ def _compute_scalings(scalings, inst):
             inst = inst.copy()[ixs_epochs].load_data()
     else:
         data = inst._data
-    if isinstance(inst, _BaseEpochs):
+    if isinstance(inst, BaseEpochs):
         data = inst._data.reshape([len(inst.ch_names), -1])
     # Iterate through ch types and update scaling if ' auto'
     for key, value in scalings.items():

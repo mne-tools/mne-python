@@ -9,7 +9,7 @@ import calendar
 
 from ...utils import logger
 from ..utils import _read_segments_file, _find_channels, _create_chs
-from ..base import _BaseRaw, _check_update_montage
+from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info
 from ..constants import FIFF
 
@@ -126,7 +126,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     return info, header_info
 
 
-class RawNicolet(_BaseRaw):
+class RawNicolet(BaseRaw):
     """Raw object from Nicolet file.
 
     Parameters

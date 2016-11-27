@@ -138,15 +138,15 @@ class ProjMixin(object):
         self : instance of Raw | Epochs | Evoked
             The instance.
         """
-        from ..epochs import _BaseEpochs
-        from .base import _BaseRaw
+        from ..epochs import BaseEpochs
+        from .base import BaseRaw
         if self.info['projs'] is None or len(self.info['projs']) == 0:
             logger.info('No projector specified for this dataset. '
                         'Please consider the method self.add_proj.')
             return self
 
         # Exit delayed mode if you apply proj
-        if isinstance(self, _BaseEpochs) and self._do_delayed_proj:
+        if isinstance(self, BaseEpochs) and self._do_delayed_proj:
             logger.info('Leaving delayed SSP mode.')
             self._do_delayed_proj = False
 
@@ -163,10 +163,10 @@ class ProjMixin(object):
                         ' Doing nothing.')
             return self
         self._projector, self.info = _projector, info
-        if isinstance(self, _BaseRaw):
+        if isinstance(self, BaseRaw):
             if self.preload:
                 self._data = np.dot(self._projector, self._data)
-        elif isinstance(self, _BaseEpochs):
+        elif isinstance(self, BaseEpochs):
             if self.preload:
                 for ii, e in enumerate(self._data):
                     self._data[ii] = self._project_epoch(e)

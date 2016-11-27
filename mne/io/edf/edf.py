@@ -14,14 +14,14 @@ import numpy as np
 
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
-from ..base import _BaseRaw, _check_update_montage
+from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info
 from ..constants import FIFF
 from ...filter import resample
 from ...externals.six.moves import zip
 
 
-class RawEDF(_BaseRaw):
+class RawEDF(BaseRaw):
     """Raw object from EDF, EDF+, BDF file.
 
     Parameters

@@ -25,7 +25,7 @@ from ..surface import _normalize_vectors
 from ..io.constants import FIFF
 from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, _date_now
-from ..io import _loc_to_coil_trans, _BaseRaw
+from ..io import _loc_to_coil_trans, BaseRaw
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..utils import verbose, logger, _clean_names, warn, _time_mask
 from ..fixes import _get_args, _safe_svd, _get_sph_harm
@@ -247,7 +247,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
     # triage inputs ASAP to avoid late-thrown errors
-    if not isinstance(raw, _BaseRaw):
+    if not isinstance(raw, BaseRaw):
         raise TypeError('raw must be Raw, not %s' % type(raw))
     _check_usable(raw)
     _check_regularize(regularize)

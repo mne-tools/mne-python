@@ -14,7 +14,7 @@ from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
 from ..utils import _mult_cal_one, _find_channels, _create_chs
 from ..meas_info import _empty_info
-from ..base import _BaseRaw, _check_update_montage
+from ..base import BaseRaw, _check_update_montage
 from ..utils import read_str
 
 
@@ -291,7 +291,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     return info, cnt_info
 
 
-class RawCNT(_BaseRaw):
+class RawCNT(BaseRaw):
     """Raw object from Neuroscan CNT file.
 
     .. Note::

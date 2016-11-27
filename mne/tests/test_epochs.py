@@ -25,7 +25,7 @@ from mne.baseline import rescale
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
-    EpochsArray, concatenate_epochs, _BaseEpochs, average_movements)
+    EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
 from mne.utils import (_TempDir, requires_pandas, slow_test,
                        run_tests_if_main, requires_version)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
@@ -403,13 +403,13 @@ def test_decim():
 def test_base_epochs():
     """Test base epochs class."""
     raw = _get_data()[0]
-    epochs = _BaseEpochs(raw.info, None, np.ones((1, 3), int),
-                         event_id, tmin, tmax)
+    epochs = BaseEpochs(raw.info, None, np.ones((1, 3), int),
+                        event_id, tmin, tmax)
     assert_raises(NotImplementedError, epochs.get_data)
     # events with non integers
-    assert_raises(ValueError, _BaseEpochs, raw.info, None,
+    assert_raises(ValueError, BaseEpochs, raw.info, None,
                   np.ones((1, 3), float), event_id, tmin, tmax)
-    assert_raises(ValueError, _BaseEpochs, raw.info, None,
+    assert_raises(ValueError, BaseEpochs, raw.info, None,
                   np.ones((1, 3, 2), int), event_id, tmin, tmax)
 
 
@@ -651,7 +651,7 @@ def test_read_write_epochs():
         epochs_no_bl_read = read_epochs(temp_fname_no_bl)
         assert_raises(ValueError, epochs.apply_baseline, baseline=[1, 2, 3])
         epochs_with_bl = epochs_no_bl_read.copy().apply_baseline(baseline)
-        assert_true(isinstance(epochs_with_bl, _BaseEpochs))
+        assert_true(isinstance(epochs_with_bl, BaseEpochs))
         assert_true(epochs_with_bl.baseline == baseline)
         assert_true(epochs_no_bl_read.baseline != baseline)
         assert_true(str(epochs_read).startswith('<Epochs'))

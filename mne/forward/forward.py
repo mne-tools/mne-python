@@ -30,9 +30,9 @@ from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
 from ..io.write import (write_int, start_block, end_block,
                         write_coord_trans, write_ch_info, write_name_list,
                         write_string, start_file, end_file, write_id)
-from ..io.base import _BaseRaw
+from ..io.base import BaseRaw
 from ..evoked import Evoked, EvokedArray
-from ..epochs import _BaseEpochs
+from ..epochs import BaseEpochs
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi,
                             _write_source_spaces_to_fid)
@@ -1423,7 +1423,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     if isinstance(meas, string_types):
         if not op.isfile(meas):
             raise IOError('measurement file "%s" could not be found' % meas)
-    elif isinstance(meas, (_BaseRaw, _BaseEpochs, Evoked)):
+    elif isinstance(meas, (BaseRaw, BaseEpochs, Evoked)):
         meas_file = op.join(temp_dir, 'info.fif')
         write_info(meas_file, meas.info)
         meas = meas_file

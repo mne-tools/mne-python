@@ -19,9 +19,9 @@ from ...coreg import fit_matched_points, _decimate_points
 from ...utils import verbose, logger, warn
 from ...transforms import (apply_trans, als_ras_trans,
                            get_ras_to_neuromag_trans, Transform)
-from ..base import _BaseRaw
+from ..base import BaseRaw
 from ..utils import _mult_cal_one
-from ...epochs import _BaseEpochs
+from ...epochs import BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
 from .constants import KIT, KIT_CONSTANTS, SYSNAMES
@@ -30,7 +30,7 @@ from ...externals.six import string_types
 from ...event import read_events
 
 
-class RawKIT(_BaseRaw):
+class RawKIT(BaseRaw):
     """Raw object from KIT SQD file.
 
     Parameters
@@ -289,7 +289,7 @@ def _make_stim_channel(trigger_chs, slope, threshold, stim_code,
     return np.array(trig_chs.sum(axis=0), ndmin=2)
 
 
-class EpochsKIT(_BaseEpochs):
+class EpochsKIT(BaseEpochs):
     """Epochs Array object from KIT SQD file.
 
     Parameters

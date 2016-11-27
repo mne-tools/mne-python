@@ -99,7 +99,7 @@ class ToDataFrameMixin(object):
             depend on the object type being converted, but should be
             human-readable.
         """
-        from ..epochs import _BaseEpochs
+        from ..epochs import BaseEpochs
         from ..evoked import Evoked
         from ..source_estimate import _BaseSourceEstimate
 
@@ -126,9 +126,9 @@ class ToDataFrameMixin(object):
             else:
                 # volume source estimates
                 col_names = ['VOL {0}'.format(vert) for vert in self.vertices]
-        elif isinstance(self, (_BaseEpochs, _BaseRaw, Evoked)):
+        elif isinstance(self, (BaseEpochs, BaseRaw, Evoked)):
             picks = self._get_check_picks(picks, self.ch_names)
-            if isinstance(self, _BaseEpochs):
+            if isinstance(self, BaseEpochs):
                 default_index = ['condition', 'epoch', 'time']
                 data = self.get_data()[:, picks, :]
                 times = self.times
@@ -144,9 +144,9 @@ class ToDataFrameMixin(object):
                               np.repeat(np.arange(n_epochs), n_times)))
                 col_names = [self.ch_names[k] for k in picks]
 
-            elif isinstance(self, (_BaseRaw, Evoked)):
+            elif isinstance(self, (BaseRaw, Evoked)):
                 default_index = ['time']
-                if isinstance(self, _BaseRaw):
+                if isinstance(self, BaseRaw):
                     data, times = self[picks, start:stop]
                 elif isinstance(self, Evoked):
                     data = self.data[picks, :]
@@ -244,19 +244,60 @@ def _check_fun(fun, d, *args, **kwargs):
     return d
 
 
-class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
-               SetChannelsMixin, InterpolationMixin, ToDataFrameMixin,
-               TimeMixin, SizeMixin):
+class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
+              SetChannelsMixin, InterpolationMixin, ToDataFrameMixin,
+              TimeMixin, SizeMixin):
     """Base class for Raw data.
+
+    Parameters
+    ----------
+    info : dict
+        A dict passed from the subclass.
+    preload : bool | str | ndarray
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory). If preload is an
+        ndarray, the data are taken from that array. If False, data are not
+        read until save.
+    first_samps : iterable
+        Iterable of the first sample number from each raw file. For unsplit raw
+        files this should be a length-one list or tuple.
+    last_samps : iterable | None
+        Iterable of the last sample number from each raw file. For unsplit raw
+        files this should be a length-one list or tuple. If None, then preload
+        must be an ndarray.
+    filenames : tuple
+        Tuple of length one (for unsplit raw files) or length > 1 (for split
+        raw files).
+    raw_extras : list
+        Whatever data is necessary for on-demand reads. For `RawFIF` this means
+        a list of variables formerly known as ``_rawdirs``.
+    orig_format : str
+        The data format of the original raw file (e.g., ``'double'``).
+    dtype : dtype | None
+        The dtype of the raw data. If preload is an ndarray, its dtype must
+        match what is passed here.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    The `BaseRaw` class is public to allow for stable type-checking in user
+    code (i.e., ``isinstance(my_raw_object, BaseRaw)``) but should not be used
+    as a constructor for `Raw` objects (use instead one of the subclass
+    constructors, or one of the ``mne.io.read_raw_*`` functions).
 
     Subclasses must provide the following methods:
 
         * _read_segment_file(self, data, idx, fi, start, stop, cals, mult)
           (only needed for types that support on-demand disk reads)
 
-    The `_BaseRaw._raw_extras` list can contain whatever data is necessary for
-    such on-demand reads. For `RawFIF` this means a list of variables formerly
-    known as ``_rawdirs``.
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
 
     @verbose

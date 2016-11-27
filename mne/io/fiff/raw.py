@@ -18,7 +18,7 @@ from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
 from ..tag import read_tag, read_tag_info
 from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
-from ..base import (_BaseRaw, _RawShell, _check_raw_compatibility,
+from ..base import (BaseRaw, _RawShell, _check_raw_compatibility,
                     _check_maxshield)
 from ..utils import _mult_cal_one
 
@@ -26,7 +26,7 @@ from ...annotations import Annotations, _combine_annotations
 from ...utils import check_fname, logger, verbose, warn
 
 
-class Raw(_BaseRaw):
+class Raw(BaseRaw):
     """Raw data in FIF format.
 
     Parameters
