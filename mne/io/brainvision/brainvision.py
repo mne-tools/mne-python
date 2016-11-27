@@ -120,7 +120,7 @@ class RawBrainVision(BaseRaw):
                 fid.seek(offsets[start])
                 block = np.empty((len(self.ch_names), stop - start))
                 for ii in range(stop - start):
-                    line = fid.readline().strip().split().replace(',', '.')
+                    line = fid.readline().strip().replace(',', '.').split()
                     block[:-1, ii] = map(float, line)
             block[-1] = self._event_ch[start:stop]
             _mult_cal_one(data, block, idx, cals, mult)
@@ -339,14 +339,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         Events from the corresponding vmrk file.
     """
     scale = float(scale)
-    vhdr_fname = os.path.abspath(vhdr_fname)
     ext = os.path.splitext(vhdr_fname)[-1]
-    if ext == '':  # lazy user gives filename with no extension
-        ext = '.vhdr'
-        vhdr_fname += ext
     if ext != '.vhdr':
         raise IOError("The header file must be given to read the data, "
-                      "not the '%s' file." % ext)
+                      "not a file with extension '%s'." % ext)
     with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
         header = f.readline()
