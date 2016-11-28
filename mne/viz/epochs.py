@@ -22,6 +22,7 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show,
                     _compute_scalings, DraggableColorbar, _setup_cmap)
+from .misc import _handle_event_colors
 from ..defaults import _handle_default
 
 
@@ -380,7 +381,8 @@ def _epochs_axes_onclick(event, params):
 
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
-                title=None, events=(), show=True, block=False):
+                title=None, events=None, event_colors=None, show=True,
+                block=False):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -413,8 +415,12 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     title : str | None
         The title of the window. If None, epochs name will be displayed.
         Defaults to None.
-    events : array shape (n_events, 3)
+    events : None, array, shape (n_events, 3)
         Events to show with vertical bars.
+    event_colors : None, dict
+        Dictionary of event_id value and its associated color. If None,
+        colors are automatically drawn from a default list (cycled through if
+        number of events longer than list of default colors).
     show : bool
         Show figure if True. Defaults to True
     block : bool
@@ -452,7 +458,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
               'histogram': None}
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
-                               title, picks, events=events)
+                               title, picks, events=events,
+                               event_colors=event_colors)
     _prepare_projectors(params)
     _layout_figure(params)
 
@@ -578,7 +585,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
 
 def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
-                               title, picks, events=(), order=None):
+                               title, picks, events=None, event_colors=None,
+                               order=None):
     """Set up the mne_browse_epochs window."""
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -746,6 +754,11 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    ha='left', fontweight='bold')
     text.set_visible(False)
 
+    if events is not None:
+        event_set = set(events[:, 2])
+        event_colors = _handle_event_colors(event_set, event_colors, event_set)
+            # event_colors = {k: v for k, v in zip(event_set, cycle(COLORS))}
+
     params.update({'fig': fig,
                    'ax': ax,
                    'ax2': ax2,
@@ -785,6 +798,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'settings': [True, True, True, True],
                    'image_plot': None,
                    'events': events,
+                   'event_colors': event_colors,
                    'ev_lines': list()})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
@@ -957,25 +971,27 @@ def _plot_traces(params):
     else:
         ax.set_yticklabels(tick_list, fontsize=12)
 
-    if len(params['events']) > 0:  # vertical lines for events.
+    if params['events'] is not None:  # vertical lines for events.
+        color = params['event_colors']
         for ev_line in params['ev_lines']:
             ax.lines.remove(ev_line)  # clear the view first
         params['ev_lines'] = list()
         t_zero = np.where(epochs.times == 0.)[0]  # idx of 0s
         if len(t_zero) == 0:
-            t_zero = epochs.times[0] * -1000  # extra samples if tmin > 0
+            t_zero = epochs.times[0] * -1 * epochs.info['sfreq']  # if tmin > 0
         end = params['n_epochs'] + start_idx
         samp_times = params['events'][:, 0]
         for idx, event in enumerate(epochs.events[start_idx:end]):
             event_mask = ((event[0] - t_zero < samp_times) &
                           (samp_times < event[0] + n_times - t_zero))
-            for ev in samp_times[event_mask]:
-                if ev == event[0]:  # don't redraw the zeroline
+            for ev in params['events'][event_mask]:
+                if ev[0] == event[0]:  # don't redraw the zeroline
                     continue
-                pos = [idx * n_times + ev - event[0] + t_zero,
-                       idx * n_times + ev - event[0] + t_zero]
+                pos = [idx * n_times + ev[0] - event[0] + t_zero,
+                       idx * n_times + ev[0] - event[0] + t_zero]
+                kwargs = {} if ev[2] not in color else {'color': color[ev[2]]}
                 params['ev_lines'].append(ax.plot(pos, ax.get_ylim(),
-                                                  zorder=3, color='g')[0])
+                                                  zorder=3, **kwargs)[0])
 
     params['vsel_patch'].set_y(ch_start)
     params['fig'].canvas.draw()
