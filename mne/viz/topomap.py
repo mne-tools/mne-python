@@ -1422,7 +1422,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         if unit is not None:
             cax.set_title(unit)
         cbar = fig.colorbar(images[-1], ax=cax, cax=cax, format=cbar_fmt)
-        cbar.set_ticks([cbar.vmin, 0, cbar.vmax])
+        cbar.set_ticks(cn.levels)
+        cbar.ax.tick_params(labelsize=7)
+
         if cmap[1]:
             for im in images:
                 im.axes.CB = DraggableColorbar(cbar, im)
