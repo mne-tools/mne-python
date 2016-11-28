@@ -268,8 +268,6 @@ def test_set_dig_montage():
         assert_allclose(lpa_dig.ravel(), lpa_point, atol=1e-7)
         assert_allclose(rpa_dig.ravel(), rpa_point, atol=1e-7)
         assert_allclose(hpi_dig, hpi_points, atol=1e-7)
-        assert_allclose(use_mon.dev_head_t, info['dev_head_t']['trans'],
-                        atol=1e-7)
 
 
 @testing.requires_testing_data

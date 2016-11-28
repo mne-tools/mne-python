@@ -479,7 +479,7 @@ class DigMontage(object):
             dig_points=self.hsp, dig_ch_pos=self.dig_ch_pos)
 
     def save(self, fname):
-        """Save digitization points to FIF
+        """Save digitization points to FIF.
 
         Parameters
         ----------
