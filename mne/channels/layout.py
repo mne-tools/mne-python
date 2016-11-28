@@ -853,7 +853,7 @@ def _pair_grad_sensors_from_ch_names(ch_names):
 
 
 def _merge_grad_data(data, method='rms'):
-    """Merge data from channel pairs using the RMS (or mean if psd=True).
+    """Merge data from channel pairs using the RMS or mean.
 
     Parameters
     ----------
