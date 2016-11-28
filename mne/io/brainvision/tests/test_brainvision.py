@@ -5,8 +5,9 @@ from __future__ import print_function
 #
 # License: BSD (3-clause)
 
-import os.path as op
 import inspect
+import os.path as op
+import shutil
 import warnings
 
 from nose.tools import assert_equal, assert_raises, assert_true
@@ -51,8 +52,49 @@ vhdr_mixed_lowpass_s_path = op.join(data_dir, 'test_mixed_lowpass_s.vhdr')
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
+event_id = {'Sync On': 5}
 
 warnings.simplefilter('always')
+
+
+def test_ascii():
+    """Test ASCII BV reading."""
+    raw = read_raw_brainvision(vhdr_path, event_id=event_id)
+    tempdir = _TempDir()
+    ascii_vhdr_path = op.join(tempdir, op.split(vhdr_path)[-1])
+    # copy marker file
+    shutil.copy(vhdr_path.replace('.vhdr', '.vmrk'),
+                ascii_vhdr_path.replace('.vhdr', '.vmrk'))
+    # modify header file
+    skipping = False
+    with open(ascii_vhdr_path, 'wb') as fout:
+        with open(vhdr_path, 'rb') as fin:
+            for line in fin:
+                # Common Infos section
+                if line.startswith(b'DataFormat'):
+                    line = b'DataFormat=ASCII\n'
+                elif line.startswith(b'DataFile='):
+                    line = b'DataFile=test.dat\n'
+                # Replace the "'Binary Infos'" section
+                elif line.startswith(b'[Binary Infos]'):
+                    skipping = True
+                    fout.write(b'[ASCII Infos]\nDecimalSymbol=.\nSkipLines=1\n'
+                               b'SkipColumns=0\n\n')
+                elif skipping and line.startswith(b'['):
+                    skipping = False
+                if not skipping:
+                    fout.write(line)
+    # create the .dat file
+    data, times = raw[:]
+    with open(ascii_vhdr_path.replace('.vhdr', '.dat'), 'wb') as fid:
+        fid.write(b' '.join(ch_name.encode('ASCII')
+                  for ch_name in raw.ch_names) + b'\n')
+        fid.write(b'\n'.join(b' '.join(b'%.3f' % dd for dd in d)
+                  for d in data[:-1].T / raw._cals[:-1]))
+    raw = read_raw_brainvision(ascii_vhdr_path, event_id=event_id)
+    data_new, times_new = raw[:]
+    assert_allclose(data_new, data, atol=1e-15)
+    assert_allclose(times_new, times)
 
 
 def test_brainvision_data_highpass_filters():
@@ -71,37 +113,34 @@ def test_brainvision_data_highpass_filters():
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_path,
-            montage=montage, eog=eog)
+            montage=montage, eog=eog, event_id=event_id)
 
-    trigger_warning = ['parse triggers that' in str(ww.message)
-                       for ww in w]
     lowpass_warning = ['different lowpass filters' in str(ww.message)
                        for ww in w]
     highpass_warning = ['different highpass filters' in str(ww.message)
                         for ww in w]
 
-    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+    expected_warnings = zip(lowpass_warning, highpass_warning)
 
-    assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+    assert_true(all(any([lp, hp]) for lp, hp in expected_warnings))
 
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
 
     # Homogeneous highpass in Hertz
-    with warnings.catch_warnings(record=True) as w:  # event parsing
+    with warnings.catch_warnings(record=True):  # filter settings
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_highpass_hz_path,
-            montage=montage, eog=eog)
-    assert_true(all('parse triggers that' in str(ww.message) for ww in w))
+            montage=montage, eog=eog, event_id=event_id)
 
     assert_equal(raw.info['highpass'], 10.)
     assert_equal(raw.info['lowpass'], 250.)
 
     # Heterogeneous highpass in Hertz
-    with warnings.catch_warnings(record=True) as w:  # event parsing
+    with warnings.catch_warnings(record=True):  # filter settings
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_hz_path,
-            montage=montage, eog=eog)
+            montage=montage, eog=eog, event_id=event_id)
 
     trigger_warning = ['parse triggers that' in str(ww.message)
                        for ww in w]
@@ -119,14 +158,12 @@ def test_brainvision_data_highpass_filters():
 
 
 def test_brainvision_data_lowpass_filters():
-    """Test reading raw Brain Vision files with amplifier LP filter settings"""
+    """Test files with amplifier LP filter settings."""
 
     # Homogeneous lowpass in Hertz (default measurement unit)
-    with warnings.catch_warnings(record=True) as w:  # event parsing
-        raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_lowpass_path,
-            montage=montage, eog=eog)
-    assert_true(all('parse triggers that' in str(ww.message) for ww in w))
+    raw = _test_raw_reader(
+        read_raw_brainvision, vhdr_fname=vhdr_lowpass_path,
+        montage=montage, eog=eog, event_id=event_id)
 
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
@@ -135,57 +172,49 @@ def test_brainvision_data_lowpass_filters():
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_path,
-            montage=montage, eog=eog)
+            montage=montage, eog=eog, event_id=event_id)
 
-    trigger_warning = ['parse triggers that' in str(ww.message)
-                       for ww in w]
     lowpass_warning = ['different lowpass filters' in str(ww.message)
                        for ww in w]
     highpass_warning = ['different highpass filters' in str(ww.message)
                         for ww in w]
 
-    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+    expected_warnings = zip(lowpass_warning, highpass_warning)
 
-    assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+    assert_true(all(any([lp, hp]) for lp, hp in expected_warnings))
 
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
 
     # Homogeneous lowpass in seconds
-    with warnings.catch_warnings(record=True) as w:  # event parsing
-        raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_lowpass_s_path,
-            montage=montage, eog=eog)
-    assert_true(all('parse triggers that' in str(ww.message) for ww in w))
+    raw = _test_raw_reader(
+        read_raw_brainvision, vhdr_fname=vhdr_lowpass_s_path,
+        montage=montage, eog=eog, event_id=event_id)
 
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
 
     # Heterogeneous lowpass in seconds
-    with warnings.catch_warnings(record=True) as w:  # event parsing
+    with warnings.catch_warnings(record=True) as w:  # filter settings
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_s_path,
-            montage=montage, eog=eog)
+            montage=montage, eog=eog, event_id=event_id)
 
-    trigger_warning = ['parse triggers that' in str(ww.message)
-                       for ww in w]
     lowpass_warning = ['different lowpass filters' in str(ww.message)
                        for ww in w]
     highpass_warning = ['different highpass filters' in str(ww.message)
                         for ww in w]
 
-    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+    expected_warnings = zip(lowpass_warning, highpass_warning)
 
-    assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+    assert_true(all(any([lp, hp]) for lp, hp in expected_warnings))
 
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
 
 
 def test_brainvision_data_partially_disabled_hw_filters():
-    """Test reading raw Brain Vision files with heterogeneous amplifier
-       filter settings including non-numeric values
-    """
+    """Test heterogeneous filter settings including non-numeric values."""
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision,
@@ -225,11 +254,9 @@ def test_brainvision_data():
     assert_raises(ValueError, read_raw_brainvision, vhdr_path, montage,
                   preload=True, scale="foo")
 
-    with warnings.catch_warnings(record=True) as w:  # event parsing
-        raw_py = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_path, montage=montage,
-            eog=eog, misc='auto')
-    assert_true(all('parse triggers that' in str(ww.message) for ww in w))
+    raw_py = _test_raw_reader(
+        read_raw_brainvision, vhdr_fname=vhdr_path, montage=montage,
+        eog=eog, misc='auto', event_id=event_id)
 
     assert_true('RawBrainVision' in repr(raw_py))
 
@@ -275,82 +302,75 @@ def test_events():
     tempdir = _TempDir()
 
     # check that events are read and stim channel is synthesized correcly
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True)
-        events = raw._get_brainvision_events()
-        assert_array_equal(events, [[487, 1, 253],
-                                    [497, 1, 255],
-                                    [1770, 1, 254],
-                                    [1780, 1, 255],
-                                    [3253, 1, 254],
-                                    [3263, 1, 255],
-                                    [4936, 1, 253],
-                                    [4946, 1, 255],
-                                    [6000, 1, 255],
-                                    [6620, 1, 254],
-                                    [6630, 1, 255]])
-        assert_equal(len(w), 1)  # for dropping Sync & R255 events
+    raw = read_raw_brainvision(vhdr_path, eog=eog, event_id=event_id)
+    events = raw._get_brainvision_events()
+    events = events[events[:, 2] != event_id['Sync On']]
+    assert_array_equal(events, [[487, 1, 253],
+                                [497, 1, 255],
+                                [1770, 1, 254],
+                                [1780, 1, 255],
+                                [3253, 1, 254],
+                                [3263, 1, 255],
+                                [4936, 1, 253],
+                                [4946, 1, 255],
+                                [6000, 1, 255],
+                                [6620, 1, 254],
+                                [6630, 1, 255]])
 
     # check that events are read and stim channel is synthesized correcly and
     # response triggers are shifted like they're supposed to be.
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
-                                   response_trig_shift=1000)
-        events = raw._get_brainvision_events()
-        assert_array_equal(events, [[487, 1, 253],
-                                    [497, 1, 255],
-                                    [1770, 1, 254],
-                                    [1780, 1, 255],
-                                    [3253, 1, 254],
-                                    [3263, 1, 255],
-                                    [4936, 1, 253],
-                                    [4946, 1, 255],
-                                    [6000, 1, 1255],
-                                    [6620, 1, 254],
-                                    [6630, 1, 255]])
-        assert_equal(len(w), 1)  # for dropping Sync & R255 events
+    raw = read_raw_brainvision(vhdr_path, eog=eog,
+                               response_trig_shift=1000, event_id=event_id)
+    events = raw._get_brainvision_events()
+    events = events[events[:, 2] != event_id['Sync On']]
+    assert_array_equal(events, [[487, 1, 253],
+                                [497, 1, 255],
+                                [1770, 1, 254],
+                                [1780, 1, 255],
+                                [3253, 1, 254],
+                                [3263, 1, 255],
+                                [4936, 1, 253],
+                                [4946, 1, 255],
+                                [6000, 1, 1255],
+                                [6620, 1, 254],
+                                [6630, 1, 255]])
 
     # check that events are read and stim channel is synthesized correcly and
     # response triggers are ignored.
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
+    with warnings.catch_warnings(record=True):  # ignored events
+        raw = read_raw_brainvision(vhdr_path, eog=eog,
                                    response_trig_shift=None)
-        events = raw._get_brainvision_events()
-        assert_array_equal(events, [[487, 1, 253],
-                                    [497, 1, 255],
-                                    [1770, 1, 254],
-                                    [1780, 1, 255],
-                                    [3253, 1, 254],
-                                    [3263, 1, 255],
-                                    [4936, 1, 253],
-                                    [4946, 1, 255],
-                                    [6620, 1, 254],
-                                    [6630, 1, 255]])
-        assert_equal(len(w), 1)  # for dropping Sync & R255 events
+    events = raw._get_brainvision_events()
+    events = events[events[:, 2] != event_id['Sync On']]
+    assert_array_equal(events, [[487, 1, 253],
+                                [497, 1, 255],
+                                [1770, 1, 254],
+                                [1780, 1, 255],
+                                [3253, 1, 254],
+                                [3263, 1, 255],
+                                [4936, 1, 253],
+                                [4946, 1, 255],
+                                [6620, 1, 254],
+                                [6630, 1, 255]])
 
     # check that events are read properly when event_id is specified for
     # auxiliary events
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with warnings.catch_warnings(record=True):  # dropped events
         raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
                                    response_trig_shift=None,
-                                   event_id={'Sync On': 5})
-        events = raw._get_brainvision_events()
-        assert_array_equal(events, [[487, 1, 253],
-                                    [497, 1, 255],
-                                    [1770, 1, 254],
-                                    [1780, 1, 255],
-                                    [3253, 1, 254],
-                                    [3263, 1, 255],
-                                    [4936, 1, 253],
-                                    [4946, 1, 255],
-                                    [6620, 1, 254],
-                                    [6630, 1, 255],
-                                    [7630, 1, 5]])
-        assert_equal(len(w), 1)  # parsing Sync event, missing R255
+                                   event_id=event_id)
+    events = raw._get_brainvision_events()
+    assert_array_equal(events, [[487, 1, 253],
+                                [497, 1, 255],
+                                [1770, 1, 254],
+                                [1780, 1, 255],
+                                [3253, 1, 254],
+                                [3263, 1, 255],
+                                [4936, 1, 253],
+                                [4946, 1, 255],
+                                [6620, 1, 254],
+                                [6630, 1, 255],
+                                [7630, 1, 5]])
 
     assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
                   preload=True, response_trig_shift=0.1)
@@ -358,15 +378,10 @@ def test_events():
                   preload=True, response_trig_shift=np.nan)
 
     # Test that both response_trig_shit and event_id can be set
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        read_raw_brainvision(vhdr_path, eog=eog, preload=False,
-                             response_trig_shift=100,
-                             event_id={'Sync On': 5})
-
-        mne_events = find_events(raw, stim_channel='STI 014')
-        assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
-        assert_equal(len(w), 0)  # parsing the Sync event
+    read_raw_brainvision(vhdr_path, eog=eog, preload=False,
+                         response_trig_shift=100, event_id=event_id)
+    mne_events = find_events(raw, stim_channel='STI 014')
+    assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
 
     # modify events and check that stim channel is updated
     index = events[:, 2] == 255

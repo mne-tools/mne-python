@@ -19,9 +19,10 @@ from ...utils import verbose, logger, warn
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
-from ..utils import _read_segments_file, _synthesize_stim_channel
+from ..utils import (_read_segments_file, _synthesize_stim_channel,
+                     _mult_cal_one)
 
-from ...externals.six import StringIO
+from ...externals.six import StringIO, string_types
 from ...externals.six.moves import configparser
 
 
@@ -85,24 +86,45 @@ class RawBrainVision(BaseRaw):
         events = _read_vmrk_events(mrk_fname, event_id, response_trig_shift)
         _check_update_montage(info, montage)
         with open(info['filename'], 'rb') as f:
-            f.seek(0, os.SEEK_END)
-            n_samples = f.tell()
-        dtype_bytes = _fmt_byte_dict[fmt]
+            if isinstance(fmt, dict):  # ASCII, this will be slow :(
+                n_skip = 0
+                for ii in range(int(fmt['skiplines'])):
+                    n_skip += len(f.readline())
+                offsets = np.cumsum([n_skip] + [len(line) for line in f])
+                n_samples = len(offsets) - 1
+            else:
+                f.seek(0, os.SEEK_END)
+                n_samples = f.tell()
+                dtype_bytes = _fmt_byte_dict[fmt]
+                offsets = None
+                n_samples = n_samples // (dtype_bytes * (info['nchan'] - 1))
         self.preload = False  # so the event-setting works
-        last_samps = [(n_samples // (dtype_bytes * (info['nchan'] - 1))) - 1]
-        self._create_event_ch(events, last_samps[0] + 1)
+        self._create_event_ch(events, n_samples)
         super(RawBrainVision, self).__init__(
-            info, last_samps=last_samps, filenames=[info['filename']],
-            orig_format=fmt, preload=preload, verbose=verbose)
+            info, last_samps=[n_samples - 1], filenames=[info['filename']],
+            orig_format=fmt, preload=preload, verbose=verbose,
+            raw_extras=[offsets])
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         # read data
-        dtype = _fmt_dtype_dict[self.orig_format]
-        n_data_ch = len(self.ch_names) - 1
-        _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
-                            dtype=dtype, n_channels=n_data_ch,
-                            trigger_ch=self._event_ch)
+        if isinstance(self.orig_format, string_types):
+            dtype = _fmt_dtype_dict[self.orig_format]
+            n_data_ch = len(self.ch_names) - 1
+            _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
+                                dtype=dtype, n_channels=n_data_ch,
+                                trigger_ch=self._event_ch)
+        else:
+            offsets = self._raw_extras[fi]
+            with open(self._filenames[fi], 'rb') as fid:
+                fid.seek(offsets[start])
+                block = np.empty((len(self.ch_names), stop - start))
+                for ii in range(stop - start):
+                    line = fid.readline().decode('ASCII')
+                    line = line.strip().replace(',', '.').split()
+                    block[:-1, ii] = list(map(float, line))
+            block[-1] = self._event_ch[start:stop]
+            _mult_cal_one(data, block, idx, cals, mult)
 
     def _get_brainvision_events(self):
         """Retrieve the events associated with the Brain Vision Raw object.
@@ -318,11 +340,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         Events from the corresponding vmrk file.
     """
     scale = float(scale)
-
     ext = os.path.splitext(vhdr_fname)[-1]
     if ext != '.vhdr':
         raise IOError("The header file must be given to read the data, "
-                      "not the '%s' file." % ext)
+                      "not a file with extension '%s'." % ext)
     with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
         header = f.readline()
@@ -364,21 +385,21 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     sfreq = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
     info = _empty_info(sfreq)
 
-    # check binary format
-    data_format = cfg.get('Common Infos', 'DataFormat')
-    if data_format != 'BINARY':
-        raise ValueError('Only data in binary format is supported. '
-                         'Your data are in %s.' % data_format)
     order = cfg.get('Common Infos', 'DataOrientation')
     if order not in _orientation_dict:
         raise NotImplementedError('Data Orientation %s is not supported'
                                   % order)
     order = _orientation_dict[order]
 
-    fmt = cfg.get('Binary Infos', 'BinaryFormat')
-    if fmt not in _fmt_dict:
-        raise NotImplementedError('Datatype %s is not supported' % fmt)
-    fmt = _fmt_dict[fmt]
+    data_format = cfg.get('Common Infos', 'DataFormat')
+    if data_format == 'BINARY':
+        fmt = cfg.get('Binary Infos', 'BinaryFormat')
+        if fmt not in _fmt_dict:
+            raise NotImplementedError('Datatype %s is not supported' % fmt)
+        fmt = _fmt_dict[fmt]
+    else:
+        fmt = dict((key, cfg.get('ASCII Infos', key))
+                   for key in cfg.options('ASCII Infos'))
 
     # load channel labels
     nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1
