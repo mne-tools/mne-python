@@ -37,6 +37,8 @@ Changelog
 
     - Add minimum-phase filtering option in :meth:`mne.io.Raw.filter` by `Eric Larson`_
 
+    - Add support for reading ASCII BrainVision files in :func:`mne.io.read_raw_brainvision` by `Eric Larson`_
+
 BUG
 ~~~
 
