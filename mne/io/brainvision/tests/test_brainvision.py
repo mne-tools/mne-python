@@ -214,7 +214,7 @@ def test_brainvision_data_lowpass_filters():
 
 
 def test_brainvision_data_partially_disabled_hw_filters():
-    """Test rheterogeneous filter settings including non-numeric values."""
+    """Test heterogeneous filter settings including non-numeric values."""
     with warnings.catch_warnings(record=True) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision,
