@@ -49,6 +49,8 @@ Changelog
 
     - Add dipole definitions for older phantom at Otaniemi in :func:`mne.dipole.get_phantom_dipoles` by `Eric Larson`_
 
+    - Add spatial colors option for :func:`mne.viz.plot_raw_psd` by `Jaakko Leppakangas`_
+
 BUG
 ~~~
     - Fix reading multi-file CTF recordings in :class:`mne.io.ctf.RawCTF` by `Niklas Wilming`_
