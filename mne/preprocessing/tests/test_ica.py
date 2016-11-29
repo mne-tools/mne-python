@@ -673,7 +673,7 @@ def test_eog_channel():
         assert_false(any('EOG' in ch for ch in ica.ch_names))
 
 def test_get_sources_repr():
-    '''tests __repr__ from Raw object created by ica (test for #3804)'''
+    """Test __repr__ from Raw object created by ica (test for #3804)"""
     raw = read_raw_fif(raw_fname, preload=True).crop(0.5, stop).load_data()
     n_components = 0.9
     ica = ICA(n_components=n_components, method='fastica').fit(raw)
