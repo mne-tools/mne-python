@@ -871,6 +871,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         raise ValueError('pos must be provided if ori is not None')
 
     data = evoked.data
+    if not np.isfinite(data).all():
+        raise ValueError('Evoked data must be finite')
     info = evoked.info
     times = evoked.times.copy()
     comment = evoked.comment
