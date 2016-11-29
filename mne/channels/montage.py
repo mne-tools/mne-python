@@ -416,7 +416,8 @@ class DigMontage(object):
         """String representation."""
         s = ('<DigMontage | %d extras (headshape), %d HPIs, %d fiducials, %d '
              'channels>' %
-             (len(self.hsp), len(self.point_names),
+             (len(self.hsp) if self.hsp is not None else 0,
+              len(self.point_names) if self.point_names is not None else 0,
               sum(x is not None for x in (self.lpa, self.rpa, self.nasion)),
               len(self.dig_ch_pos) if self.dig_ch_pos is not None else 0,))
         return s
@@ -620,8 +621,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                 _check_frame(d, 'head')
                 dig_ch_pos['EEG%03d' % d['ident']] = d['r']
         fids = [fids.get(key) for key in ('nasion', 'lpa', 'rpa')]
-        hsp = np.array(hsp)
-        elp = np.array(elp)
+        hsp = np.array(hsp) if len(hsp) else None
+        elp = np.array(elp) if len(elp) else None
         coord_frame = 'head'
     else:
         fids = [None] * 3

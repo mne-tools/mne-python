@@ -233,11 +233,10 @@ def test_set_dig_montage():
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
     hsp_points = _read_dig_points(hsp)
     elp_points = _read_dig_points(elp)
-    hpi_points = read_mrk(hpi)
-    p0, p1, p2 = elp_points[:3]
-    nm_trans = get_ras_to_neuromag_trans(p0, p1, p2)
+    nasion, lpa, rpa = elp_points[:3]
+    nm_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
     elp_points = apply_trans(nm_trans, elp_points)
-    nasion_point, lpa_point, rpa_point = elp_points[:3]
+    nasion, lpa, rpa = elp_points[:3]
     hsp_points = apply_trans(nm_trans, hsp_points)
 
     montage = read_dig_montage(hsp, hpi, elp, names, transform=True,
@@ -263,15 +262,13 @@ def test_set_dig_montage():
         rpa_dig = np.array([p['r'] for p in info['dig']
                             if all([p['ident'] == FIFF.FIFFV_POINT_RPA,
                                     p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
-        # hpi_dig = np.array([p['r'] for p in info['dig']
-        #                     if p['kind'] == FIFF.FIFFV_POINT_HPI])
+        hpi_dig = np.array([p['r'] for p in info['dig']
+                            if p['kind'] == FIFF.FIFFV_POINT_HPI])
         assert_allclose(hs, hsp_points, atol=1e-7)
-        assert_allclose(nasion_dig.ravel(), nasion_point, atol=1e-7)
-        assert_allclose(lpa_dig.ravel(), lpa_point, atol=1e-7)
-        assert_allclose(rpa_dig.ravel(), rpa_point, atol=1e-7)
-        # This does not actually match because the HPI points after
-        # conversion are in head coordinates!
-        # assert_allclose(hpi_dig, hpi_points, atol=1e-7)
+        assert_allclose(nasion_dig.ravel(), nasion, atol=1e-7)
+        assert_allclose(lpa_dig.ravel(), lpa, atol=1e-7)
+        assert_allclose(rpa_dig.ravel(), rpa, atol=1e-7)
+        assert_allclose(hpi_dig, elp_points[3:], atol=1e-7)
 
 
 @testing.requires_testing_data
