@@ -469,6 +469,9 @@ class DigMontage(object):
     def compute_dev_head_t(self):
         """Compute the Neuromag dev_head_t from matched points."""
         from ..coreg import fit_matched_points
+        if self.elp is None or self.hpi is None:
+            raise RuntimeError('must have both elp and hpi to compute the '
+                               'device to head transform')
         self.dev_head_t = fit_matched_points(tgt_pts=self.elp,
                                              src_pts=self.hpi, out='trans')
 
