@@ -654,8 +654,8 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     n_jobs : int, defaults to 1
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None
-        The indices of the channels to plot. If None, all available
-        channels are displayed.
+        The indices of the channels to decompose. If None, all available
+        channels are decomposed.
     zero_mean : bool, defaults to True
         Make sure the wavelet has a mean of zero.
 
@@ -671,7 +671,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     Returns
     -------
     power : AverageTFR | EpochsTFR
-        The averaged power.
+        The averaged or single-trial power.
     itc : AverageTFR | EpochsTFR
         The inter-trial coherence (ITC). Only returned if return_itc
         is True.
@@ -711,7 +711,8 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     use_fft : bool, defaults to True
         The fft based convolution or not.
     return_itc : bool, defaults to True
-        Return inter-trial coherence (ITC) as well as averaged power.
+        Return inter-trial coherence (ITC) as well as averaged (or
+        single-trial) power.
     decim : int | slice, defaults to 1
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
@@ -723,8 +724,8 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     n_jobs : int,  defaults to 1
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None
-        The indices of the channels to plot. If None, all available
-        channels are displayed.
+        The indices of the channels to decompose. If None, all available
+        channels are decomposed.
     average : bool, defaults to True
         If True average across Epochs.
 
@@ -736,7 +737,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     Returns
     -------
     power : AverageTFR | EpochsTFR
-        The averaged power.
+        The averaged or single-trial power.
     itc : AverageTFR | EpochsTFR
         The inter-trial coherence (ITC). Only returned if return_itc
         is True.
