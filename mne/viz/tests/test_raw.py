@@ -177,6 +177,11 @@ def test_plot_raw_psd():
     # topo psd
     raw.plot_psd_topo()
     plt.close('all')
+    # with channel information not available
+    for idx in range(len(raw.info['chs'])):
+        raw.info['chs'][idx]['loc'] = np.zeros(12)
+    with warnings.catch_warnings(record=True):  # missing channel locations
+        raw.plot_psd(spatial_colors=True, average=False)
     # with a flat channel
     raw[5, :] = 0
     assert_raises(ValueError, raw.plot_psd)

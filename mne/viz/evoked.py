@@ -120,7 +120,7 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
         axarr[0][idx].set_title(title)
         vmin = min(this_data) if psd else None
         vmax = max(this_data) if psd else None  # All negative for dB psd.
-        cmap = 'Reds' if psd else None
+        cmap = 'inferno' if psd else None
         plot_topomap(this_data, pos, cmap=cmap, vmin=vmin, vmax=vmax,
                      axes=axarr[0][idx], show=False)
 
@@ -326,9 +326,13 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             D = this_scaling * data[idx, :]
             gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
             if not gfp_only:
+                chs = [info['chs'][i] for i in idx]
+                locs3d = np.array([ch['loc'][:3] for ch in chs])
+                if spatial_colors is True and (locs3d == 0).all():
+                    warn('Channel locations not available. Disabling spatial '
+                         'colors.')
+                    spatial_colors = selectable = False
                 if spatial_colors is True and len(idx) != 1:
-                    chs = [info['chs'][i] for i in idx]
-                    locs3d = np.array([ch['loc'][:3] for ch in chs])
                     x, y, z = locs3d.T
                     colors = _rgb(info, x, y, z)
                     if this_type in ('meg', 'mag', 'grad', 'eeg'):
