@@ -70,6 +70,8 @@ BUG
 
     - Fix a bug in :meth:`mne.time_frequency.AverageTFR.plot` when plotting without a colorbar by `Jaakko Leppakangas`_
 
+    - Fix ``_filenames`` attribute in creation of :class:`mne.io.RawArray` with :func:`mne.preporcessing.ica._sources_as_raw` by `Paul Pasler`_
+
 API
 ~~~
 
@@ -1751,7 +1753,7 @@ Changelog
    - SourceEstimate now supports algebra by `Alex Gramfort`_.
 
 API changes summary
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 Here are the code migration instructions when upgrading from mne-python
 version 0.1:
