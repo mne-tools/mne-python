@@ -268,7 +268,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         az = data['f2']
         horiz = data['f3']
         radius = np.abs(az / 180.)
-        az = np.deg2rad(np.array([90. - h if a >= 0. else -90. - h
+        az = np.deg2rad(np.array([h if a >= 0. else 180 + h
                                   for h, a in zip(horiz, az)]))
         pol = radius * np.pi
         pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
