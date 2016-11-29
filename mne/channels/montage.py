@@ -480,7 +480,7 @@ class DigMontage(object):
     def _get_dig(self):
         """Get the digitization list."""
         return _make_dig_points(
-            nasion=self.nasion, lpa=self.lpa, rpa=self.rpa, hpi=self.hpi,
+            nasion=self.nasion, lpa=self.lpa, rpa=self.rpa, hpi=self.elp,
             extra_points=self.hsp, dig_ch_pos=self.dig_ch_pos)
 
     def save(self, fname):
@@ -526,7 +526,9 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     hpi : None | str | array, shape (n_hpi, 3)
         If str, this corresponds to the filename of Head Position Indicator
         (HPI) points. If numpy.array, this corresponds to an array
-        of HPI points. These points are in device space.
+        of HPI points. These points are in device space, and are only
+        necessary if computation of a ``dev_head_t`` by the
+        :class:`DigMontage` is required.
     elp : None | str | array, shape (n_fids + n_hpi, 3)
         If str, this corresponds to the filename of electrode position
         points. This is typically used with the Polhemus FastSCAN system.
