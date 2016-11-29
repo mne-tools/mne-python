@@ -553,7 +553,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
         will be plotted. If 'range', the min and max (across channels) will be
         plotted. Bad channels will be excluded from these calculations.
-        If None, no area will be plotted.
+        If None, no area will be plotted. If average=False, no area is plotted.
     area_alpha : float
         Alpha for the area.
     n_overlap : int
@@ -590,8 +590,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                          'simultaneously.')
     elif spatial_colors is None:
         # XXX: deprecation
-        warn('In version 0.14 average defaults to False and spatial_colors '
-             'defaults to True')
+        warn('In version 0.15 average will default to False and '
+             'spatial_colors to True.')
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
     if line_alpha is None:
@@ -602,9 +602,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
         psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
-                                fmin=fmin, fmax=fmax, proj=proj,
-                                n_fft=n_fft, n_overlap=n_overlap,
-                                n_jobs=n_jobs)
+                                fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
+                                n_overlap=n_overlap, n_jobs=n_jobs)
 
         # Convert PSDs to dB
         if dB:
@@ -673,7 +672,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                     unit, units=units, scalings=None, hline=None, gfp=False,
                     types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
                     ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
-                    ch_types_used=ch_types_used, selectable=True, psd=True)
+                    ch_types_used=ch_types_used, selectable=True, psd=True,
+                    line_alpha=line_alpha)
         tight_layout(fig=fig)
     plt_show(show)
     return fig

@@ -120,7 +120,7 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
         axarr[0][idx].set_title(title)
         vmin = min(this_data) if psd else None
         vmax = max(this_data) if psd else None  # All negative for dB psd.
-        cmap = 'viridis' if psd else None
+        cmap = 'Reds' if psd else None
         plot_topomap(this_data, pos, cmap=cmap, vmin=vmin, vmax=vmax,
                      axes=axarr[0][idx], show=False)
 
@@ -262,7 +262,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         _plot_lines(evoked.data, info, picks, fig, axes, spatial_colors, unit,
                     units, scalings, hline, gfp, types, zorder, xlim, ylim,
                     times, bad_ch_idx, titles, ch_types_used, selectable,
-                    False)
+                    False, line_alpha=1.)
         for ax in axes:
             ax.set_xlabel('time (ms)')
 
@@ -291,7 +291,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
 def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 scalings, hline, gfp, types, zorder, xlim, ylim, times,
-                bad_ch_idx, titles, ch_types_used, selectable, psd):
+                bad_ch_idx, titles, ch_types_used, selectable, psd,
+                line_alpha):
     """Function for plotting data as butterfly plot."""
     from matplotlib import patheffects
     from matplotlib.widgets import SpanSelector
@@ -388,7 +389,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                     line_list.append(
                         ax.plot(times, D[ch_idx], picker=3.,
                                 zorder=z + 1 if spatial_colors is True else 1,
-                                color=colors[ch_idx])[0])
+                                color=colors[ch_idx], alpha=line_alpha)[0])
 
             if gfp:  # 'only' or boolean True
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
@@ -404,7 +405,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 ax.fill_between(times, y_offset, this_gfp, color='none',
                                 facecolor=gfp_color, zorder=1, alpha=0.25)
                 line_list.append(ax.plot(times, this_gfp, color=gfp_color,
-                                         zorder=3)[0])
+                                         zorder=3, alpha=line_alpha)[0])
                 ax.text(times[0] + 0.01 * (times[-1] - times[0]),
                         this_gfp[0] + 0.05 * np.diff(ax.get_ylim())[0],
                         'GFP', zorder=4, color=gfp_color,
