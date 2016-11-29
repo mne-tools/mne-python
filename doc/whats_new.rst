@@ -1753,7 +1753,7 @@ Changelog
    - SourceEstimate now supports algebra by `Alex Gramfort`_.
 
 API changes summary
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 Here are the code migration instructions when upgrading from mne-python
 version 0.1:
@@ -1898,3 +1898,5 @@ of commits):
 .. _Antti Rantala: https://github.com/Odingod
 
 .. _Keith Doelling: http://science.keithdoelling.com
+
+.. _Paul Pasler: https://github.com/ppasler
