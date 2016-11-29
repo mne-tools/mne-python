@@ -602,7 +602,9 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     # drawn. To avoid rescalings, we will always draw contours.
     # But if no contours are desired we only draw one and make it invisible .
     no_contours = False
-    if contours in (False, None):
+    if isinstance(contours, (np.ndarray, list)):
+        pass  # contours precomputed
+    elif contours in (False, None):
         contours, no_contours = 1, True
     cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
                       linewidths=linewidth)
@@ -1388,6 +1390,12 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     vmax = np.max(vlims)
     cmap = _setup_cmap(cmap, n_axes=len(times), norm=vmin >= 0)
 
+    if isinstance(contours, int):
+        from matplotlib import ticker
+        # nbins = ticks - 1, since 2 of the ticks are vmin and vmax, the
+        # correct number of bins equals to contours + 1.
+        locator = ticker.MaxNLocator(nbins=contours + 1)
+        contours = locator.tick_values(vmin, vmax)
     for idx, time in enumerate(times):
         tp, cn = plot_topomap(data[:, idx], pos, vmin=vmin, vmax=vmax,
                               sensors=sensors, res=res, names=names,
