@@ -248,7 +248,9 @@ def test_set_dig_montage():
     montage_read = read_dig_montage(fif=fname_temp)
     for use_mon in (montage, montage_read):
         info = create_info(['Test Ch'], 1e3, ['eeg'])
-        _set_montage(info, use_mon)
+        with warnings.catch_warnings(record=True) as w:  # test ch pos not set
+            _set_montage(info, use_mon)
+        assert_true(all('not set' in str(ww.message) for ww in w))
         hs = np.array([p['r'] for i, p in enumerate(info['dig'])
                        if p['kind'] == FIFF.FIFFV_POINT_EXTRA])
         nasion_dig = np.array([p['r'] for p in info['dig']
@@ -278,13 +280,7 @@ def test_fif_dig_montage():
     # test round-trip IO
     temp_dir = _TempDir()
     fname_temp = op.join(temp_dir, 'test.fif')
-    dig_montage.save(fname_temp)
-    dig_montage_2 = read_dig_montage(fif=fname_temp)
-    for kind in ('elp', 'hsp', 'nasion', 'lpa', 'rpa'):
-        assert_allclose(getattr(dig_montage_2, kind),
-                        getattr(dig_montage, kind))
-    assert_equal(dig_montage.coord_frame, 'head')
-    assert_equal(dig_montage_2.coord_frame, 'head')
+    _check_roundtrip(dig_montage, fname_temp)
 
     # Make a BrainVision file like the one the user would have had
     with warnings.catch_warnings(record=True) as w:
@@ -320,5 +316,24 @@ def test_fif_dig_montage():
             assert_equal(ch_py['coord_frame'], FIFF.FIFFV_COORD_HEAD)
             assert_allclose(ch_py['loc'], ch_c['loc'], atol=1e-7)
         assert_dig_allclose(raw_bv.info, evoked.info)
+
+    # Roundtrip of non-FIF start
+    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
+    montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
+    assert_raises(RuntimeError, montage.save, fname_temp)  # must be head coord
+    montage = read_dig_montage(hsp, hpi, elp, names)
+    _check_roundtrip(montage, fname_temp)
+
+
+def _check_roundtrip(montage, fname):
+    """Check roundtrip writing."""
+    assert_equal(montage.coord_frame, 'head')
+    montage.save(fname)
+    montage_read = read_dig_montage(fif=fname)
+    assert_equal(str(montage), str(montage_read))
+    for kind in ('elp', 'hsp', 'nasion', 'lpa', 'rpa'):
+        assert_allclose(getattr(montage, kind),
+                        getattr(montage_read, kind), err_msg=kind)
+    assert_equal(montage_read.coord_frame, 'head')
 
 run_tests_if_main()

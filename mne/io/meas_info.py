@@ -470,7 +470,7 @@ def _write_dig_points(fname, dig_points):
 
 
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
-                     dig_points=None, dig_ch_pos=None):
+                     extra_points=None, dig_ch_pos=None):
     """Construct digitizer info for the info.
 
     Parameters
@@ -483,7 +483,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         Point designated as the right auricular point.
     hpi : array-like | numpy.ndarray, shape (n_points, 3) | None
         Points designated as head position indicator points.
-    dig_points : array-like | numpy.ndarray, shape (n_points, 3)
+    extra_points : array-like | numpy.ndarray, shape (n_points, 3)
         Points designed as the headshape points.
     dig_ch_pos : dict
         Dict of EEG channel positions.
@@ -496,56 +496,46 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
     dig = []
     if lpa is not None:
         lpa = np.asarray(lpa)
-        if lpa.shape == (3,):
-            dig.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('LPA should have the shape (3,) instead of %s'
-                   % (lpa.shape,))
-            raise ValueError(msg)
+        if lpa.shape != (3,):
+            raise ValueError('LPA should have the shape (3,) instead of %s'
+                             % (lpa.shape,))
+        dig.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
+                    'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
     if nasion is not None:
         nasion = np.asarray(nasion)
-        if nasion.shape == (3,):
-            dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('Nasion should have the shape (3,) instead of %s'
-                   % (nasion.shape,))
-            raise ValueError(msg)
+        if nasion.shape != (3,):
+            raise ValueError('Nasion should have the shape (3,) instead of %s'
+                             % (nasion.shape,))
+        dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
+                    'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
     if rpa is not None:
         rpa = np.asarray(rpa)
-        if rpa.shape == (3,):
-            dig.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('RPA should have the shape (3,) instead of %s'
-                   % (rpa.shape,))
-            raise ValueError(msg)
+        if rpa.shape != (3,):
+            raise ValueError('RPA should have the shape (3,) instead of %s'
+                             % (rpa.shape,))
+        dig.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
+                    'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
     if hpi is not None:
         hpi = np.asarray(hpi)
-        if hpi.shape[1] == 3:
-            for idx, point in enumerate(hpi):
-                dig.append({'r': point, 'ident': idx + 1,
-                            'kind': FIFF.FIFFV_POINT_HPI,
-                            'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('HPI should have the shape (n_points, 3) instead of '
-                   '%s' % (hpi.shape,))
-            raise ValueError(msg)
-    if dig_points is not None:
-        dig_points = np.asarray(dig_points)
-        if dig_points.shape[1] == 3:
-            for idx, point in enumerate(dig_points):
-                dig.append({'r': point, 'ident': idx + 1,
-                            'kind': FIFF.FIFFV_POINT_EXTRA,
-                            'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('Points should have the shape (n_points, 3) instead of '
-                   '%s' % (dig_points.shape,))
-            raise ValueError(msg)
+        if hpi.ndim != 2 or hpi.shape[1] != 3:
+            raise ValueError('HPI should have the shape (n_points, 3) instead '
+                             'of %s' % (hpi.shape,))
+        for idx, point in enumerate(hpi):
+            dig.append({'r': point, 'ident': idx + 1,
+                        'kind': FIFF.FIFFV_POINT_HPI,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
+    if extra_points is not None:
+        extra_points = np.asarray(extra_points)
+        if extra_points.shape[1] != 3:
+            raise ValueError('Points should have the shape (n_points, 3) '
+                             'instead of %s' % (extra_points.shape,))
+        for idx, point in enumerate(extra_points):
+            dig.append({'r': point, 'ident': idx + 1,
+                        'kind': FIFF.FIFFV_POINT_EXTRA,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
     if dig_ch_pos is not None:
         keys = sorted(dig_ch_pos.keys())
         try:  # use the last 3 as int if possible (e.g., EEG001->1)

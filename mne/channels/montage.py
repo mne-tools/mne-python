@@ -414,9 +414,11 @@ class DigMontage(object):
 
     def __repr__(self):
         """String representation."""
-        s = '<DigMontage | %d Dig Points, %d HPI points: %s ...>'
-        s %= (len(self.hsp), len(self.point_names),
-              ', '.join(self.point_names[:3]))
+        s = ('<DigMontage | %d extras (headshape), %d HPIs, %d fiducials, %d '
+             'channels>' %
+             (len(self.hsp), len(self.point_names),
+              sum(x is not None for x in (self.lpa, self.rpa, self.nasion)),
+              len(self.dig_ch_pos) if self.dig_ch_pos is not None else 0,))
         return s
 
     @copy_function_doc_to_method_doc(plot_montage)
@@ -479,7 +481,7 @@ class DigMontage(object):
         """Get the digitization list."""
         return _make_dig_points(
             nasion=self.nasion, lpa=self.lpa, rpa=self.rpa, hpi=self.hpi,
-            dig_points=self.hsp, dig_ch_pos=self.dig_ch_pos)
+            extra_points=self.hsp, dig_ch_pos=self.dig_ch_pos)
 
     def save(self, fname):
         """Save digitization points to FIF.
@@ -489,6 +491,9 @@ class DigMontage(object):
         fname : str
             The filename to use. Should end in .fif or .fif.gz.
         """
+        if self.coord_frame != 'head':
+            raise RuntimeError('Can only write out digitization points in '
+                               'head coordinates.')
         write_dig(fname, self._get_dig())
 
 
@@ -612,7 +617,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             elif d['kind'] == FIFF.FIFFV_POINT_EEG:
                 _check_frame(d, 'head')
                 dig_ch_pos['EEG%03d' % d['ident']] = d['r']
-        fids = np.array([fids[key] for key in ('nasion', 'lpa', 'rpa')])
+        fids = [fids.get(key) for key in ('nasion', 'lpa', 'rpa')]
         hsp = np.array(hsp)
         elp = np.array(elp)
         coord_frame = 'head'
