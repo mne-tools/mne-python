@@ -68,6 +68,8 @@ BUG
 
     - Fix ``_bad_dropped`` not being set when loading eeglab epoched files via :func:`mne.io.eeglab.read_epochs_eeglab` which resulted in ``len()`` not working for :class:`mne.io.eeglab.EpochsEEGLAB`; by `Mikołaj Magnuski`_
 
+    - Fix a bug in :meth:`mne.time_frequency.AverageTFR.plot` when plotting without a colorbar by `Jaakko Leppakangas`_
+
 API
 ~~~
 
