@@ -680,6 +680,6 @@ def test_get_sources_repr():
     ica_raw = ica.get_sources(raw)
     
     assert_equal(ica_raw._filenames, [None])
-    print(repr(ica_raw)) 
+    print(ica_raw) 
 
 run_tests_if_main()
