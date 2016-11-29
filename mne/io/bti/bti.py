@@ -1208,7 +1208,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
         elif chan_4d.startswith('M'):
             chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
-            chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_MAG
+            chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_REF_MAG
             chan_info['coord_frame'] = meg_frame
             chan_info['unit'] = FIFF.FIFF_UNIT_T
 
@@ -1217,9 +1217,10 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
             chan_info['coord_frame'] = meg_frame
             chan_info['unit'] = FIFF.FIFF_UNIT_T_M
             if chan_4d in ('GxxA', 'GyyA'):
-                chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA
+                chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_REF_GRAD
             elif chan_4d in ('GyxA', 'GzxA', 'GzyA'):
-                chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_OFF
+                chan_info['coil_type'] = \
+                    FIFF.FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD
 
         elif chan_4d.startswith('EEG'):
             chan_info['kind'] = FIFF.FIFFV_EEG_CH
