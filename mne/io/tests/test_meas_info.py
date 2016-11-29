@@ -209,20 +209,20 @@ def test_io_dig_points():
 
 def test_make_dig_points():
     """Test application of Polhemus HSP to info."""
-    dig_points = _read_dig_points(hsp_fname)
+    extra_points = _read_dig_points(hsp_fname)
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    info['dig'] = _make_dig_points(dig_points=dig_points)
+    info['dig'] = _make_dig_points(extra_points=extra_points)
     assert_true(info['dig'])
     assert_allclose(info['dig'][0]['r'], [-.10693, .09980, .06881])
 
-    dig_points = _read_dig_points(elp_fname)
-    nasion, lpa, rpa = dig_points[:3]
+    elp_points = _read_dig_points(elp_fname)
+    nasion, lpa, rpa = elp_points[:3]
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    info['dig'] = _make_dig_points(nasion, lpa, rpa, dig_points[3:], None)
+    info['dig'] = _make_dig_points(nasion, lpa, rpa, elp_points[3:], None)
     assert_true(info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
     assert_array_equal(info['dig'][idx]['r'],
@@ -231,9 +231,9 @@ def test_make_dig_points():
     assert_raises(ValueError, _make_dig_points, None, lpa[:2])
     assert_raises(ValueError, _make_dig_points, None, None, rpa[:2])
     assert_raises(ValueError, _make_dig_points, None, None, None,
-                  dig_points[:, :2])
+                  elp_points[:, :2])
     assert_raises(ValueError, _make_dig_points, None, None, None, None,
-                  dig_points[:, :2])
+                  elp_points[:, :2])
 
 
 def test_redundant():
@@ -332,7 +332,7 @@ def test_check_consistency():
 
 
 def test_anonymize():
-    """Checks that sensitive information can be anonymized."""
+    """Test that sensitive information can be anonymized."""
     assert_raises(ValueError, anonymize_info, 'foo')
 
     # Fake some subject data
