@@ -654,7 +654,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     n_jobs : int, defaults to 1
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None
-        The indices of the channels to work on. If None, all available
+        The indices of the channels to decompose. If None, all available
         channels are decomposed.
     zero_mean : bool, defaults to True
         Make sure the wavelet has a mean of zero.
@@ -724,7 +724,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     n_jobs : int,  defaults to 1
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None
-        The indices of the channels to work on. If None, all available
+        The indices of the channels to decompose. If None, all available
         channels are decomposed.
     average : bool, defaults to True
         If True average across Epochs.
