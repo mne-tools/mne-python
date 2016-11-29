@@ -417,6 +417,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         Defaults to None.
     events : None, array, shape (n_events, 3)
         Events to show with vertical bars.
+
+        .. warning::  If the epochs have been resampled, the events no longer
+            align with the data.
     event_colors : None, dict
         Dictionary of event_id value and its associated color. If None,
         colors are automatically drawn from a default list (cycled through if
@@ -757,7 +760,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     if events is not None:
         event_set = set(events[:, 2])
         event_colors = _handle_event_colors(event_set, event_colors, event_set)
-            # event_colors = {k: v for k, v in zip(event_set, cycle(COLORS))}
 
     params.update({'fig': fig,
                    'ax': ax,
