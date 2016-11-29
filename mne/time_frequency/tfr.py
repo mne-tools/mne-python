@@ -1006,8 +1006,6 @@ class AverageTFR(_BaseTFR):
                         colorbar=colorbar, picker=False, cmap=cmap)
             if title:
                 fig.suptitle(title)
-            # Only draw 1 cbar. For interactive mode we pass the ref to cbar.
-            colorbar = ax.CB if cmap[1] else False
 
         plt_show(show)
         return fig
