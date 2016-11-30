@@ -252,8 +252,8 @@ def test_rotation3d_align_z_axis():
                 [-0.38169517, 0.683832, -0.62183808],
                 [0.75071668, 0.62183808, 0.22302888]]]
 
-    for i, z in enumerate(inp_zs):
-        assert_allclose(exp_res[i], rotation3d_align_z_axis(z), atol=1e-7)
+    for res, z in zip(exp_res, inp_zs):
+        assert_allclose(res, rotation3d_align_z_axis(z), atol=1e-7)
 
 
 @testing.requires_testing_data

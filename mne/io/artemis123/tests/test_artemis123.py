@@ -4,7 +4,7 @@
 # License: BSD (3-clause)
 
 import os.path as op
-from numpy.testing import assert_allclose, assert_equal, assert_almost_equal
+from numpy.testing import assert_allclose, assert_equal
 
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_artemis123
@@ -27,7 +27,7 @@ def test_data():
     raw = read_raw_artemis123(short_no_HPI_fname, preload=True)
     meg_picks = pick_types(raw.info, meg=True, eeg=False)
     # checked against matlab reader.
-    assert_almost_equal(raw[meg_picks[12]][0][0][123], 3.0725106596946721e-11)
+    assert_allclose(raw[meg_picks[12]][0][0][123], 3.072510659694672e-11)
 
 
 def test_utils():
