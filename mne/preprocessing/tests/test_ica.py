@@ -216,12 +216,13 @@ def test_ica_core():
             ica.fit(raw, picks=pcks, start=start, stop=stop)
         assert_array_almost_equal(unmixing1, ica.unmixing_matrix_)
 
-        sources = ica.get_sources(raw)[:, :][0]
-        assert_true(sources.shape[0] == ica.n_components_)
-
+        raw_sources = ica.get_sources(raw)
         # test for #3804
-        assert_equal(sources._filenames, [None])
-        print(sources)
+        assert_equal(raw_sources._filenames, [None])
+        print(raw_sources)
+        
+        sources = raw_sources[:, :][0]
+        assert_true(sources.shape[0] == ica.n_components_)
 
         # test preload filter
         raw3 = raw.copy()
