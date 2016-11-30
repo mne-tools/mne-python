@@ -1162,6 +1162,7 @@ class ICA(ContainsMixin):
         else:
             raise ValueError('Data input must be of Raw, Epochs or Evoked '
                              'type')
+        return out
 
     def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop):
         """Aux method."""
