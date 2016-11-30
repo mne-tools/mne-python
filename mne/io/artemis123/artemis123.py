@@ -218,6 +218,11 @@ def _get_artemis123_info(fname):
             raise ValueError('Channel does not match expected' +
                              ' channel Types:"%s"' % chan['name'])
 
+        # incorporate unit mulitplier (unit_mul) into calabraion number
+        t['cal'] = t['cal'] * pow(10, (t['unit_mul']))
+        t['unit_mul'] = FIFF.FIFF_UNITM_NONE
+
+        # append this channel to the info
         info['chs'].append(t)
         if (chan['FLL_ResetLock'] == 'TRUE'):
             info['bads'].append(t['ch_name'])
