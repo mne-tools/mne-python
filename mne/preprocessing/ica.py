@@ -1128,7 +1128,7 @@ class ICA(ContainsMixin):
         Parameters
         ----------
         inst : instance of Raw, Epochs or Evoked
-            The data to be processed.
+            The data to be processed. The instance is modified inplace.
         include : array_like of int.
             The indices referring to columns in the ummixing matrix. The
             components to be kept.
@@ -1162,7 +1162,6 @@ class ICA(ContainsMixin):
         else:
             raise ValueError('Data input must be of Raw, Epochs or Evoked '
                              'type')
-        return out
 
     def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop):
         """Aux method."""
