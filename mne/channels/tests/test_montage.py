@@ -8,6 +8,8 @@ import warnings
 from nose.tools import assert_equal, assert_true, assert_raises
 
 import numpy as np
+from scipy.io import savemat
+
 from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose, assert_array_almost_equal,
                            assert_array_less)
@@ -211,7 +213,7 @@ def test_read_dig_montage():
     assert_array_equal(montage.elp, elp_points)
     assert_array_equal(montage.hsp, hsp_points)
     assert_array_equal(montage.hpi, hpi_points)
-    assert_array_equal(montage.dev_head_t, np.identity(4))
+    assert_true(montage.dev_head_t is None)
     montage = read_dig_montage(hsp, hpi, elp, names,
                                transform=True, dev_head_t=True)
     # check coordinate transformation
@@ -233,8 +235,11 @@ def test_read_dig_montage():
                           names)
     assert_allclose(m3.hsp, montage.hsp)
 
-    # test unit parameter
-    montage_cm = read_dig_montage(hsp, hpi, elp, names, unit='cm')
+    # test unit parameter and .mat support
+    tempdir = _TempDir()
+    mat_hsp = op.join(tempdir, 'test.mat')
+    savemat(mat_hsp, dict(Points=(1000 * hsp_points).T))
+    montage_cm = read_dig_montage(mat_hsp, hpi, elp, names, unit='cm')
     assert_allclose(montage_cm.hsp, montage.hsp * 10.)
     assert_allclose(montage_cm.elp, montage.elp * 10.)
     assert_array_equal(montage_cm.hpi, montage.hpi)
@@ -243,48 +248,59 @@ def test_read_dig_montage():
 
 
 def test_set_dig_montage():
-    """Test applying DigMontage to inst
-    """
+    """Test applying DigMontage to inst."""
     # Extensive testing of applying `dig` to info is done in test_meas_info
     # with `test_make_dig_points`.
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
     hsp_points = _read_dig_points(hsp)
     elp_points = _read_dig_points(elp)
-    hpi_points = read_mrk(hpi)
-    p0, p1, p2 = elp_points[:3]
-    nm_trans = get_ras_to_neuromag_trans(p0, p1, p2)
+    nasion, lpa, rpa = elp_points[:3]
+    nm_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
     elp_points = apply_trans(nm_trans, elp_points)
-    nasion_point, lpa_point, rpa_point = elp_points[:3]
+    nasion, lpa, rpa = elp_points[:3]
     hsp_points = apply_trans(nm_trans, hsp_points)
 
-    montage = read_dig_montage(hsp, hpi, elp, names, transform=True)
-    info = create_info(['Test Ch'], 1e3, ['eeg'])
-    _set_montage(info, montage)
-    hs = np.array([p['r'] for i, p in enumerate(info['dig'])
-                   if p['kind'] == FIFF.FIFFV_POINT_EXTRA])
-    nasion_dig = np.array([p['r'] for p in info['dig']
-                           if all([p['ident'] == FIFF.FIFFV_POINT_NASION,
-                                   p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
-    lpa_dig = np.array([p['r'] for p in info['dig']
-                        if all([p['ident'] == FIFF.FIFFV_POINT_LPA,
-                                p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
-    rpa_dig = np.array([p['r'] for p in info['dig']
-                        if all([p['ident'] == FIFF.FIFFV_POINT_RPA,
-                                p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
-    hpi_dig = np.array([p['r'] for p in info['dig']
-                        if p['kind'] == FIFF.FIFFV_POINT_HPI])
-    assert_array_equal(hs, hsp_points)
-    assert_array_equal(nasion_dig.ravel(), nasion_point)
-    assert_array_equal(lpa_dig.ravel(), lpa_point)
-    assert_array_equal(rpa_dig.ravel(), rpa_point)
-    assert_array_equal(hpi_dig, hpi_points)
-    assert_array_equal(montage.dev_head_t, info['dev_head_t']['trans'])
+    montage = read_dig_montage(hsp, hpi, elp, names, transform=True,
+                               dev_head_t=True)
+    temp_dir = _TempDir()
+    fname_temp = op.join(temp_dir, 'test.fif')
+    montage.save(fname_temp)
+    montage_read = read_dig_montage(fif=fname_temp)
+    for use_mon in (montage, montage_read):
+        info = create_info(['Test Ch'], 1e3, ['eeg'])
+        with warnings.catch_warnings(record=True) as w:  # test ch pos not set
+            _set_montage(info, use_mon)
+        assert_true(all('not set' in str(ww.message) for ww in w))
+        hs = np.array([p['r'] for i, p in enumerate(info['dig'])
+                       if p['kind'] == FIFF.FIFFV_POINT_EXTRA])
+        nasion_dig = np.array([p['r'] for p in info['dig']
+                               if all([p['ident'] == FIFF.FIFFV_POINT_NASION,
+                                       p['kind'] == FIFF.FIFFV_POINT_CARDINAL])
+                               ])
+        lpa_dig = np.array([p['r'] for p in info['dig']
+                            if all([p['ident'] == FIFF.FIFFV_POINT_LPA,
+                                    p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
+        rpa_dig = np.array([p['r'] for p in info['dig']
+                            if all([p['ident'] == FIFF.FIFFV_POINT_RPA,
+                                    p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
+        hpi_dig = np.array([p['r'] for p in info['dig']
+                            if p['kind'] == FIFF.FIFFV_POINT_HPI])
+        assert_allclose(hs, hsp_points, atol=1e-7)
+        assert_allclose(nasion_dig.ravel(), nasion, atol=1e-7)
+        assert_allclose(lpa_dig.ravel(), lpa, atol=1e-7)
+        assert_allclose(rpa_dig.ravel(), rpa, atol=1e-7)
+        assert_allclose(hpi_dig, elp_points[3:], atol=1e-7)
 
 
 @testing.requires_testing_data
 def test_fif_dig_montage():
-    """Test FIF dig montage support"""
+    """Test FIF dig montage support."""
     dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
+
+    # test round-trip IO
+    temp_dir = _TempDir()
+    fname_temp = op.join(temp_dir, 'test.fif')
+    _check_roundtrip(dig_montage, fname_temp)
 
     # Make a BrainVision file like the one the user would have had
     with warnings.catch_warnings(record=True) as w:
@@ -301,19 +317,43 @@ def test_fif_dig_montage():
     raw_bv.drop_channels(['STI 014'])
     raw_bv.add_channels([raw_bv_2])
 
-    # Set the montage
-    raw_bv.set_montage(dig_montage)
+    for ii in range(2):
+        if ii == 1:
+            dig_montage.transform_to_head()  # should have no meaningful effect
 
-    # Check the result
-    evoked = read_evokeds(evoked_fname)[0]
+        # Set the montage
+        raw_bv.set_montage(dig_montage)
 
-    assert_equal(len(raw_bv.ch_names), len(evoked.ch_names))
-    for ch_py, ch_c in zip(raw_bv.info['chs'], evoked.info['chs']):
-        assert_equal(ch_py['ch_name'], ch_c['ch_name'].replace('EEG ', 'EEG'))
-        # C actually says it's unknown, but it's not (?):
-        # assert_equal(ch_py['coord_frame'], ch_c['coord_frame'])
-        assert_equal(ch_py['coord_frame'], FIFF.FIFFV_COORD_HEAD)
-        assert_allclose(ch_py['loc'], ch_c['loc'])
-    assert_dig_allclose(raw_bv.info, evoked.info)
+        # Check the result
+        evoked = read_evokeds(evoked_fname)[0]
+
+        assert_equal(len(raw_bv.ch_names), len(evoked.ch_names))
+        for ch_py, ch_c in zip(raw_bv.info['chs'], evoked.info['chs']):
+            assert_equal(ch_py['ch_name'],
+                         ch_c['ch_name'].replace('EEG ', 'EEG'))
+            # C actually says it's unknown, but it's not (?):
+            # assert_equal(ch_py['coord_frame'], ch_c['coord_frame'])
+            assert_equal(ch_py['coord_frame'], FIFF.FIFFV_COORD_HEAD)
+            assert_allclose(ch_py['loc'], ch_c['loc'], atol=1e-7)
+        assert_dig_allclose(raw_bv.info, evoked.info)
+
+    # Roundtrip of non-FIF start
+    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
+    montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
+    assert_raises(RuntimeError, montage.save, fname_temp)  # must be head coord
+    montage = read_dig_montage(hsp, hpi, elp, names)
+    _check_roundtrip(montage, fname_temp)
+
+
+def _check_roundtrip(montage, fname):
+    """Check roundtrip writing."""
+    assert_equal(montage.coord_frame, 'head')
+    montage.save(fname)
+    montage_read = read_dig_montage(fif=fname)
+    assert_equal(str(montage), str(montage_read))
+    for kind in ('elp', 'hsp', 'nasion', 'lpa', 'rpa'):
+        assert_allclose(getattr(montage, kind),
+                        getattr(montage_read, kind), err_msg=kind)
+    assert_equal(montage_read.coord_frame, 'head')
 
 run_tests_if_main()
