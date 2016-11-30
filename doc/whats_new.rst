@@ -31,7 +31,7 @@ Changelog
 
     - Remove MNE-C requirement for :ref:`mne make_scalp_surfaces <gen_mne_make_scalp_surfaces>` by `Eric Larson`_
 
-    - Add support for FastTrack Polhemus ``.mat`` file outputs in ``hpts`` argument of :func:`mne.channels.read_dig_montage` by `Eric Larson`_
+    - Add support for FastTrack Polhemus ``.mat`` file outputs in ``hsp`` argument of :func:`mne.channels.read_dig_montage` by `Eric Larson`_
 
     - Add option to convert 3d electrode plots to a snapshot with 2d electrode positions with :func:`mne.viz.snapshot_brain_montage` by `Chris Holdgraf`_
 
