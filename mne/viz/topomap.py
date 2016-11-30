@@ -1390,12 +1390,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     vmax = np.max(vlims)
     cmap = _setup_cmap(cmap, n_axes=len(times), norm=vmin >= 0)
 
-    if isinstance(contours, int):
-        from matplotlib import ticker
-        # nbins = ticks - 1, since 2 of the ticks are vmin and vmax, the
-        # correct number of bins equals to contours + 1.
-        locator = ticker.MaxNLocator(nbins=contours + 1)
-        contours = locator.tick_values(vmin, vmax)
+    locator, contours = _set_contour_locator(vmin, vmax, contours)
+
     for idx, time in enumerate(times):
         tp, cn = plot_topomap(data[:, idx], pos, vmin=vmin, vmax=vmax,
                               sensors=sensors, res=res, names=names,
@@ -2104,3 +2100,15 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         params['line'].remove()
 
     return fig, anim
+
+
+def _set_contour_locator(vmin, vmax, contours):
+    """Function for setting correct contour levels."""
+    locator = None
+    if isinstance(contours, int):
+        from matplotlib import ticker
+        # nbins = ticks - 1, since 2 of the ticks are vmin and vmax, the
+        # correct number of bins is equal to contours + 1.
+        locator = ticker.MaxNLocator(nbins=contours + 1)
+        contours = locator.tick_values(vmin, vmax)
+    return locator, contours
