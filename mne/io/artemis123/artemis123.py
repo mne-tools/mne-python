@@ -10,7 +10,7 @@ import calendar
 from .utils import _load_mne_locs
 from ...utils import logger, warn
 from ..utils import _read_segments_file
-from ..base import _BaseRaw
+from ..base import BaseRaw
 from ..meas_info import _empty_info
 from ..constants import FIFF
 
@@ -228,7 +228,7 @@ def _get_artemis123_info(fname):
     return info, header_info
 
 
-class RawArtemis123(_BaseRaw):
+class RawArtemis123(BaseRaw):
     """Raw object from Artemis123 file.
 
     Parameters
