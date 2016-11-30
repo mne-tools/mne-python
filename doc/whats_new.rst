@@ -70,7 +70,7 @@ BUG
 
     - Fix a bug in :meth:`mne.time_frequency.AverageTFR.plot` when plotting without a colorbar by `Jaakko Leppakangas`_
 
-    - Fix ``_filenames`` attribute in creation of :class:`mne.io.RawArray` with :func:`mne.preporcessing.ica._sources_as_raw` by `Paul Pasler`_
+    - Fix the initialisation of the ``_filenames`` field while creation of :class:`mne.io.RawArray` in :func:`mne.preporcessing.ica._sources_as_raw` by `Paul Pasler`_
 
 API
 ~~~
