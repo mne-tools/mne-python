@@ -120,7 +120,7 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
         axarr[0][idx].set_title(title)
         vmin = min(this_data) if psd else None
         vmax = max(this_data) if psd else None  # All negative for dB psd.
-        cmap = 'inferno' if psd else None
+        cmap = 'Reds' if psd else None
         plot_topomap(this_data, pos, cmap=cmap, vmin=vmin, vmax=vmax,
                      axes=axarr[0][idx], show=False)
 
