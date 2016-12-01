@@ -364,12 +364,13 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
             warn('Channel names are not unique, found duplicates for: %s. '
                  'Adding running numbers to duplicate channel names.'
                  % tal_ch_name)
-            for idx, tal_ch in enumerate(tal_chs[1:]):
-                ch_names[tal_ch] = ch_names[tal_ch] + '-%s' % (idx + 1)
+            for idx, tal_ch in enumerate(tal_chs[1:], 1):
+                ch_names[tal_ch] = ch_names[tal_ch] + '-%s' % idx
         tal_channel = ch_names.index(tal_ch_name)
     else:
         tal_channel = None
     edf_info['tal_channel'] = tal_channel
+
     if tal_channel is not None and stim_channel is not None and not preload:
         raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
                                    ' parsed completely on loading.'
@@ -413,7 +414,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
             units[idx] = 1
             if isinstance(stim_channel, str):
                 stim_channel = idx
-        if tal_channel == idx:
+        if tal_channel == idx or idx in tal_chs:
             chan_info['range'] = 1
             chan_info['cal'] = 1
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
