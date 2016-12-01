@@ -801,7 +801,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'image_plot': None,
                    'events': events,
                    'event_colors': event_colors,
-                   'ev_lines': list()})
+                   'ev_lines': list(),
+                   'ev_texts': list()})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 
@@ -975,8 +976,10 @@ def _plot_traces(params):
 
     if params['events'] is not None:  # vertical lines for events.
         color = params['event_colors']
-        for ev_line in params['ev_lines']:
+        for ev_line, ev_text in zip(params['ev_lines'], params['ev_texts']):
             ax.lines.remove(ev_line)  # clear the view first
+            ax.texts.remove(ev_text)
+        params['ev_texts'] = list()
         params['ev_lines'] = list()
         t_zero = np.where(epochs.times == 0.)[0]  # idx of 0s
         if len(t_zero) == 0:
@@ -994,6 +997,9 @@ def _plot_traces(params):
                 kwargs = {} if ev[2] not in color else {'color': color[ev[2]]}
                 params['ev_lines'].append(ax.plot(pos, ax.get_ylim(),
                                                   zorder=3, **kwargs)[0])
+                params['ev_texts'].append(ax.text(pos[0], ax.get_ylim()[0],
+                                                  ev[2], color=color[ev[2]],
+                                                  ha='center', va='top'))
 
     params['vsel_patch'].set_y(ch_start)
     params['fig'].canvas.draw()
