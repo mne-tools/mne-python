@@ -416,14 +416,21 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         The title of the window. If None, epochs name will be displayed.
         Defaults to None.
     events : None, array, shape (n_events, 3)
-        Events to show with vertical bars.
+        Events to show with vertical bars. If events are provided, the epoch
+        numbering is off by default to prevent overlap. You can toggle epoch
+        numbering through options (press 'o' key).
 
         .. warning::  If the epochs have been resampled, the events no longer
             align with the data.
+
+        .. versionadded:: 0.14.0
     event_colors : None, dict
         Dictionary of event_id value and its associated color. If None,
         colors are automatically drawn from a default list (cycled through if
-        number of events longer than list of default colors).
+        number of events longer than list of default colors). Uses the same
+        coloring scheme as :func:`mne.viz.plot_events`.
+
+        .. versionadded:: 0.14.0
     show : bool
         Show figure if True. Defaults to True
     block : bool
@@ -443,8 +450,12 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     keys, but this depends on the backend matplotlib is configured to use
     (e.g., mpl.use(``TkAgg``) should work). Full screen mode can be toggled
     with f11 key. The amount of epochs and channels per view can be adjusted
-    with home/end and page down/page up keys. Butterfly plot can be toggled
-    with ``b`` key. Right mouse click adds a vertical line to the plot.
+    with home/end and page down/page up keys. These can also be set through
+    options dialog by pressing ``o`` key. ``h`` key plots a histogram of
+    peak-to-peak values along with the used rejection thresholds. Butterfly
+    plot can be toggled with ``b`` key. Right mouse click adds a vertical line
+    to the plot. Click 'help' button at bottom left corner of the plotter to
+    view all the options.
 
     .. versionadded:: 0.10.0
     """
@@ -729,7 +740,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ax2.set_xticks(ticks[:n_epochs])
     labels = list(range(1, len(ticks) + 1))  # epoch numbers
     ax.set_xticklabels(labels)
-    ax2.set_xticklabels(labels)
     xlim = epoch_times[-1] + len(epochs.times)
     ax_hscroll.set_xlim(0, xlim)
     vertline_t = ax_hscroll.text(0, 1, '', color='y', va='bottom', ha='right')
@@ -757,9 +767,13 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    ha='left', fontweight='bold')
     text.set_visible(False)
 
+    epoch_nr = True
     if events is not None:
         event_set = set(events[:, 2])
         event_colors = _handle_event_colors(event_set, event_colors, event_set)
+        epoch_nr = False  # epoch number off by default to avoid overlap
+        for label in ax.xaxis.get_ticklabels():
+            label.set_visible(False)
 
     params.update({'fig': fig,
                    'ax': ax,
@@ -797,7 +811,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'ax_help_button': ax_help_button,  # needed for positioning
                    'help_button': help_button,  # reference needed for clicks
                    'fig_options': None,
-                   'settings': [True, True, True, True],
+                   'settings': [True, True, epoch_nr, True],
                    'image_plot': None,
                    'events': events,
                    'event_colors': event_colors,
