@@ -109,7 +109,7 @@ class RawEDF(BaseRaw):
         data_size = self._raw_extras[fi]['data_size']
         data_offset = self._raw_extras[fi]['data_offset']
         stim_channel = self._raw_extras[fi]['stim_channel']
-        tal_channel = self._raw_extras[fi]['tal_channel']
+        tal_channels = self._raw_extras[fi]['tal_channel']
         annot = self._raw_extras[fi]['annot']
         annotmap = self._raw_extras[fi]['annotmap']
         subtype = self._raw_extras[fi]['subtype']
@@ -126,8 +126,9 @@ class RawEDF(BaseRaw):
         digital_min = self._raw_extras[fi]['digital_min']
 
         offsets = np.atleast_2d(physical_min - (digital_min * gains)).T
-        if tal_channel is not None:
-            offsets[tal_channel] = 0
+        if tal_channels is not None:
+            for tal_channel in tal_channels:
+                offsets[tal_channel] = 0
 
         block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
         read_size = len(r_lims) * buf_len
@@ -153,14 +154,14 @@ class RawEDF(BaseRaw):
                     else:
                         # read in all the data and triage appropriately
                         ch_data = _read_ch(fid, subtype, n_samp, data_size)
-                        if ci == tal_channel:
-                            # don't resample tal_channel,
+                        if ci in tal_channels:
+                            # don't resample tal_channels,
                             # pad with zeros instead.
                             n_missing = int(buf_len - n_samp)
                             ch_data = np.hstack([ch_data, [0] * n_missing])
                             ch_data = ch_data[r_sidx:r_eidx]
                         elif ci == stim_channel:
-                            if annot and annotmap or tal_channel is not None:
+                            if annot and annotmap or tal_channels is not None:
                                 # don't bother with resampling the stim ch
                                 # because it gets overwritten later on.
                                 ch_data = np.zeros(n_buf_samp)
@@ -188,8 +189,8 @@ class RawEDF(BaseRaw):
                 evts = _read_annot(annot, annotmap, sfreq,
                                    self._last_samps[fi])
                 data[stim_channel_idx, :] = evts[start:stop + 1]
-            elif tal_channel is not None:
-                tal_channel_idx = np.where(sel == tal_channel)[0][0]
+            elif tal_channels is not None:
+                tal_channel_idx = np.intersect1d(sel, tal_channels)
                 evts = _parse_tal_channel(data[tal_channel_idx])
                 self._raw_extras[fi]['events'] = evts
 
@@ -237,7 +238,7 @@ def _parse_tal_channel(tal_channel_data):
 
     Parameters
     ----------
-    tal_channel_data : ndarray, shape = [n_samples]
+    tal_channel_data : ndarray, shape = [n_chans, n_samples]
         channel data in EDF+ TAL format
 
     Returns
@@ -251,9 +252,10 @@ def _parse_tal_channel(tal_channel_data):
     """
     # convert tal_channel to an ascii string
     tals = bytearray()
-    for s in tal_channel_data:
-        i = int(s)
-        tals.extend(np.uint8([i % 256, i // 256]))
+    for chan in tal_channel_data:
+        for s in chan:
+            i = int(s)
+            tals.extend(np.uint8([i % 256, i // 256]))
 
     regex_tal = '([+-]\d+\.?\d*)(\x15(\d+\.?\d*))?(\x14.*?)\x14\x00'
     # use of latin-1 because characters are only encoded for the first 256
@@ -364,9 +366,9 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
             warn('Channel names are not unique, found duplicates for: %s. '
                  'Adding running numbers to duplicate channel names.'
                  % tal_ch_name)
-            for idx, tal_ch in enumerate(tal_chs[1:], 1):
-                ch_names[tal_ch] = ch_names[tal_ch] + '-%s' % idx
-        tal_channel = ch_names.index(tal_ch_name)
+        for idx, tal_ch in enumerate(tal_chs, 1):
+            ch_names[tal_ch] = ch_names[tal_ch] + '-%s' % idx
+        tal_channel = tal_chs
     else:
         tal_channel = None
     edf_info['tal_channel'] = tal_channel
@@ -414,7 +416,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
             units[idx] = 1
             if isinstance(stim_channel, str):
                 stim_channel = idx
-        if tal_channel == idx or idx in tal_chs:
+        if tal_channel is not None and idx in tal_channel:
             chan_info['range'] = 1
             chan_info['cal'] = 1
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
