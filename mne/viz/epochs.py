@@ -975,31 +975,7 @@ def _plot_traces(params):
         ax.set_yticklabels(tick_list, fontsize=12)
 
     if params['events'] is not None:  # vertical lines for events.
-        color = params['event_colors']
-        for ev_line, ev_text in zip(params['ev_lines'], params['ev_texts']):
-            ax.lines.remove(ev_line)  # clear the view first
-            ax.texts.remove(ev_text)
-        params['ev_texts'] = list()
-        params['ev_lines'] = list()
-        t_zero = np.where(epochs.times == 0.)[0]  # idx of 0s
-        if len(t_zero) == 0:
-            t_zero = epochs.times[0] * -1 * epochs.info['sfreq']  # if tmin > 0
-        end = params['n_epochs'] + start_idx
-        samp_times = params['events'][:, 0]
-        for idx, event in enumerate(epochs.events[start_idx:end]):
-            event_mask = ((event[0] - t_zero < samp_times) &
-                          (samp_times < event[0] + n_times - t_zero))
-            for ev in params['events'][event_mask]:
-                if ev[0] == event[0]:  # don't redraw the zeroline
-                    continue
-                pos = [idx * n_times + ev[0] - event[0] + t_zero,
-                       idx * n_times + ev[0] - event[0] + t_zero]
-                kwargs = {} if ev[2] not in color else {'color': color[ev[2]]}
-                params['ev_lines'].append(ax.plot(pos, ax.get_ylim(),
-                                                  zorder=3, **kwargs)[0])
-                params['ev_texts'].append(ax.text(pos[0], ax.get_ylim()[0],
-                                                  ev[2], color=color[ev[2]],
-                                                  ha='center', va='top'))
+        _draw_event_lines(params)
 
     params['vsel_patch'].set_y(ch_start)
     params['fig'].canvas.draw()
@@ -1063,6 +1039,7 @@ def _plot_vert_lines(params):
     while len(ax.lines) > 0:
         ax.lines.pop()
     params['vert_lines'] = list()
+    params['ev_lines'] = list()
     params['vertline_t'].set_text('')
 
     epochs = params['epochs']
@@ -1076,6 +1053,8 @@ def _plot_vert_lines(params):
     for epoch_idx in range(len(epochs.events)):
         pos = [epoch_idx * len(epochs.times), epoch_idx * len(epochs.times)]
         ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=2)
+    if params['events'] is not None:
+        _draw_event_lines(params)
 
 
 def _pick_bad_epochs(event, params):
@@ -1629,3 +1608,37 @@ def _label2idx(params, pos):
         return None, None
     ch_idx = params['ch_start'] + line_idx
     return text, ch_idx
+
+
+def _draw_event_lines(params):
+    """Function for drawing event lines."""
+    epochs = params['epochs']
+    n_times = len(epochs.times)
+    start_idx = int(params['t_start'] / n_times)
+    color = params['event_colors']
+    ax = params['ax']
+    for ev_line in params['ev_lines']:
+        ax.lines.remove(ev_line)  # clear the view first
+    for ev_text in params['ev_texts']:
+        ax.texts.remove(ev_text)
+    params['ev_texts'] = list()
+    params['ev_lines'] = list()
+    t_zero = np.where(epochs.times == 0.)[0]  # idx of 0s
+    if len(t_zero) == 0:
+        t_zero = epochs.times[0] * -1 * epochs.info['sfreq']  # if tmin > 0
+    end = params['n_epochs'] + start_idx
+    samp_times = params['events'][:, 0]
+    for idx, event in enumerate(epochs.events[start_idx:end]):
+        event_mask = ((event[0] - t_zero < samp_times) &
+                      (samp_times < event[0] + n_times - t_zero))
+        for ev in params['events'][event_mask]:
+            if ev[0] == event[0]:  # don't redraw the zeroline
+                continue
+            pos = [idx * n_times + ev[0] - event[0] + t_zero,
+                   idx * n_times + ev[0] - event[0] + t_zero]
+            kwargs = {} if ev[2] not in color else {'color': color[ev[2]]}
+            params['ev_lines'].append(ax.plot(pos, ax.get_ylim(),
+                                              zorder=3, **kwargs)[0])
+            params['ev_texts'].append(ax.text(pos[0], ax.get_ylim()[0],
+                                              ev[2], color=color[ev[2]],
+                                              ha='center', va='top'))
