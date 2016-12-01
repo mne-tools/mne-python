@@ -358,7 +358,14 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
     chs = list()
 
     tal_ch_name = 'EDF Annotations'
-    if tal_ch_name in ch_names:
+    tal_chs = np.where(np.array(ch_names) == tal_ch_name)[0]
+    if len(tal_chs) > 0:
+        if len(tal_chs) > 1:
+            warn('Channel names are not unique, found duplicates for: %s. '
+                 'Adding running numbers to duplicate channel names.'
+                 % tal_ch_name)
+            for idx, tal_ch in enumerate(tal_chs[1:]):
+                ch_names[tal_ch] = ch_names[tal_ch] + '-%s' % (idx + 1)
         tal_channel = ch_names.index(tal_ch_name)
     else:
         tal_channel = None
