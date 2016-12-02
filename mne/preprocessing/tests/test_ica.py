@@ -220,7 +220,7 @@ def test_ica_core():
         # test for #3804
         assert_equal(raw_sources._filenames, [None])
         print(raw_sources)
-        
+
         sources = raw_sources[:, :][0]
         assert_true(sources.shape[0] == ica.n_components_)
 
