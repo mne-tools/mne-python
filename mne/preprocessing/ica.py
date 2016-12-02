@@ -1128,7 +1128,7 @@ class ICA(ContainsMixin):
         Parameters
         ----------
         inst : instance of Raw, Epochs or Evoked
-            The data to be processed.
+            The data to be processed. The instance is modified inplace.
         include : array_like of int.
             The indices referring to columns in the ummixing matrix. The
             components to be kept.
