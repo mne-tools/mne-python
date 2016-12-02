@@ -74,6 +74,8 @@ BUG
 
     - Fix a bug in :meth:`mne.time_frequency.AverageTFR.plot` when plotting without a colorbar by `Jaakko Leppakangas`_
 
+    - Fix ``_filenames`` attribute in creation of :class:`mne.io.RawArray` with :func:`mne.preporcessing.ica._sources_as_raw` by `Paul Pasler`_
+
 API
 ~~~
 
@@ -1900,3 +1902,5 @@ of commits):
 .. _Antti Rantala: https://github.com/Odingod
 
 .. _Keith Doelling: http://science.keithdoelling.com
+
+.. _Paul Pasler: https://github.com/ppasler

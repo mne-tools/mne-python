@@ -726,7 +726,7 @@ class ICA(ContainsMixin):
             _, times_ = raw[0, start:stop]
         out._data = data_
         out._times = times_
-        out._filenames = list()
+        out._filenames = [None]
         out.preload = True
 
         # update first and last samples
