@@ -897,7 +897,7 @@ def _handle_event_colors(unique_events, color, unique_events_id):
                  'of unique colors.')
         colors = cycle(COLORS)
         color = dict()
-        for this_event, this_color in zip(unique_events_id, colors):
+        for this_event, this_color in zip(sorted(unique_events_id), colors):
             color[this_event] = this_color
     else:
         for this_event in color:

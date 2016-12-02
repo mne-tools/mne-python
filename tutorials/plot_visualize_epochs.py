@@ -31,16 +31,31 @@ epochs.plot(block=True)
 ###############################################################################
 # The numbers at the top refer to the event id of the epoch. We only have
 # events with id numbers of 1 and 2 since we included only those when
-# constructing the epochs.
+# constructing the epochs. The number at the bottom is the running numbering
+# for the epochs.
 #
+# It is possible to plot event markers on epoched data by passing ``events``
+# keyword to the epochs plotter. The events are plotted as vertical lines and
+# they follow the same coloring scheme as :func:`mne.viz.plot_events`. Here we
+# only have one event (32) overlapping with the epochs, but the events plotter
+# gives you all the events with a rough idea of the timing. Since the colors
+# are the same, the event plotter can also function as a legend for the epochs
+# plotter events. It is also possible to pass your own colors via
+# ``event_colors`` keyword.
+#
+# When events are passed, the epoch numbering at the bottom is switched off by
+# default to avoid overlaps. You can turn it back on via settings dialog by
+# pressing `o` key. You should check out `help` at the lower left corner of the
+# window for more information about the interactive features.
+mne.viz.plot_events(events)
+epochs.plot(events=events, block=True)
+
 # Since we did no artifact correction or rejection, there are epochs
-# contaminated with blinks and saccades. For instance, epoch number 9 (see
-# numbering at the bottom) seems to be contaminated by a blink (scroll to the
-# bottom to view the EOG channel). This epoch can be marked for rejection by
-# clicking on top of the browser window. The epoch should turn red when you
-# click it. This means that it will be dropped as the browser window is closed.
-# You should check out `help` at the lower left corner of the window for more
-# information about the interactive features.
+# contaminated with blinks and saccades. For instance, epoch number 9 seems to
+# be contaminated by a blink (scroll to the bottom to view the EOG channel).
+# This epoch can be marked for rejection by clicking on top of the browser
+# window. The epoch should turn red when you click it. This means that it will
+# be dropped as the browser window is closed.
 #
 # To plot individual channels as an image, where you see all the epochs at one
 # glance, you can use function :func:`mne.Epochs.plot_image`. It shows the
