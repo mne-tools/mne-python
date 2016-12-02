@@ -592,6 +592,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         # XXX: deprecation
         warn('In version 0.15 average will default to False and '
              'spatial_colors to True.')
+        if not average:
+            spatial_colors = True
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
     if line_alpha is None:

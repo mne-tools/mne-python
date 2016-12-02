@@ -1612,7 +1612,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  proj=False, n_fft=2048, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
                  n_overlap=0, dB=True, average=True, show=True,
-                 n_jobs=1, line_alpha=None, spatial_colors=False,
+                 n_jobs=1, line_alpha=None, spatial_colors=None,
                  verbose=None):
         if tmax is None:
             tmax = 60.
