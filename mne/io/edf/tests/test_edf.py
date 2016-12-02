@@ -170,7 +170,7 @@ def test_parse_annotation():
     annot = [a for a in iterbytes(annot)]
     annot[1::2] = [a * 256 for a in annot[1::2]]
     tal_channel = map(sum, zip(annot[0::2], annot[1::2]))
-    assert_equal(_parse_tal_channel(tal_channel),
+    assert_equal(_parse_tal_channel([tal_channel]),
                  [[180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
                   [180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
                   [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])

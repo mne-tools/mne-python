@@ -154,7 +154,7 @@ class RawEDF(BaseRaw):
                     else:
                         # read in all the data and triage appropriately
                         ch_data = _read_ch(fid, subtype, n_samp, data_size)
-                        if ci in tal_channels:
+                        if tal_channels is not None and ci in tal_channels:
                             # don't resample tal_channels,
                             # pad with zeros instead.
                             n_missing = int(buf_len - n_samp)
@@ -191,7 +191,7 @@ class RawEDF(BaseRaw):
                 data[stim_channel_idx, :] = evts[start:stop + 1]
             elif tal_channels is not None:
                 tal_channel_idx = np.intersect1d(sel, tal_channels)
-                evts = _parse_tal_channel(data[tal_channel_idx])
+                evts = _parse_tal_channel(np.atleast_2d(data[tal_channel_idx]))
                 self._raw_extras[fi]['events'] = evts
 
                 unique_annots = sorted(set([e[2] for e in evts]))
