@@ -173,7 +173,10 @@ def _get_artemis123_info(fname):
         if (chan['name'].startswith('MEG')):
             t['coil_type'] = FIFF.FIFFV_COIL_ARTEMIS123_GRAD
             t['kind'] = FIFF.FIFFV_MEG_CH
-            # TODO Shouldn't gradiometers be in T/m (Not sure if it matters)
+            # While gradiometer units are T/m, use T here as values are more
+            # similar to what you get with neuromag magnetometers in terms of
+            # scale due to long baseline.
+            # This choice also matches the one used for CTF
             t['unit'] = FIFF.FIFF_UNIT_T
             t['unit_mul'] = FIFF.FIFF_UNITM_F
 
@@ -188,7 +191,10 @@ def _get_artemis123_info(fname):
         elif (chan['name'] in ref_grad_names):
             t['coil_type'] = FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD
             t['kind'] = FIFF.FIFFV_REF_MEG_CH
-            # TODO Shouldn't gradiometers be in T/m (Not sure if it matters)
+            # While gradiometer units are T/m, use T here as values are more
+            # similar to what you get with neuromag magnetometers in terms of
+            # scale due to long baseline.
+            # This choice also matches the one used for CTF
             t['unit'] = FIFF.FIFF_UNIT_T
             t['unit_mul'] = FIFF.FIFF_UNITM_F
 
@@ -219,7 +225,7 @@ def _get_artemis123_info(fname):
                              ' channel Types:"%s"' % chan['name'])
 
         # incorporate unit mulitplier (unit_mul) into calabraion number
-        t['cal'] = t['cal'] * pow(10, (t['unit_mul']))
+        t['cal'] *= 10 ** t['unit_mul']
         t['unit_mul'] = FIFF.FIFF_UNITM_NONE
 
         # append this channel to the info
