@@ -10,7 +10,7 @@ from mne.utils import _TempDir, run_tests_if_main, requires_good_network
 def test_datasets():
     """Test simple dataset functions
     """
-    for dname in ('sample', 'somato', 'spm_face', 'testing',
+    for dname in ('sample', 'somato', 'spm_face', 'testing', 'cichy',
                   'bst_raw', 'bst_auditory', 'bst_resting'):
         if dname.startswith('bst'):
             dataset = getattr(datasets.brainstorm, dname)
