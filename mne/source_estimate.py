@@ -2775,7 +2775,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 
         if any(np.any(svn != vn) for svn, vn in zip(stc.vertices, vertno)):
             raise ValueError('stc not compatible with source space')
-        if not (sum(nvert)) == stc.shape[0]:
+        if sum(nvert) != stc.shape[0]:
             raise ValueError('stc not compatible with source space. '
                              'stc has %s vertices but the source space '
                              'has %s vertices'

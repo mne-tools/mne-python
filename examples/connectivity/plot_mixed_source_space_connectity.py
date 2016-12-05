@@ -54,7 +54,7 @@ labels_vol = ['Left-Amygdala',
 
 # Setup a surface-based source space
 src = setup_source_space(subject, subjects_dir=subjects_dir,
-                         spacing='oct6', add_dist=False, overwrite=True)
+                         spacing='oct6', add_dist=False)
 
 # Setup a volume source space
 # set pos=7.0 for speed issue

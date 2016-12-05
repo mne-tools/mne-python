@@ -53,7 +53,7 @@ labels_vol = ['Left-Amygdala',
 
 # Setup a surface-based source space
 src = setup_source_space(subject, subjects_dir=subjects_dir,
-                         spacing='oct6', add_dist=False, overwrite=True)
+                         spacing='oct6', add_dist=False)
 
 # We create a mixed src space adding to the surface src space the volume
 # regions specified in the list labels_vol. First, read the aseg file and the
@@ -79,12 +79,11 @@ write_source_spaces(fname_mixed_src, src)
 nii_fname = op.join(bem_dir, '%s-mixed-src.nii' % subject)
 src.export_volume(nii_fname, mri_resolution=True)
 
-plotting.plot_img(nii_fname)
+plotting.plot_img(nii_fname, cmap=plt.cm.spectral)
 plt.show()
 
 # Compute the fwd matrix
 fwd = make_forward_solution(fname_evoked, fname_trans, src, fname_bem,
-                            fname_fwd,
                             mindist=5.0,  # ignore sources<=5mm from innerskull
                             meg=True, eeg=False,
                             n_jobs=1,
