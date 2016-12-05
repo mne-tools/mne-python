@@ -72,6 +72,7 @@ epochs.plot(events=events, block=True)
 # button. Hitting space bar resets the scale.
 epochs.plot_image(189, cmap='interactive')
 
+###############################################################################
 # You also have functions for plotting channelwise information arranged into a
 # shape of the channel array. The image plotting uses automatic scaling by
 # default, but noisy channels and different channel types can cause the scaling
