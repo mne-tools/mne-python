@@ -161,6 +161,8 @@ Changelog
 
     - Added support for functional near-infrared spectroscopy (fNIRS) channels by `Jaakko Leppakangas`_
 
+    - Added :attr:`mne.io.Raw.acqparser` convenience attribute for :class:`mne.AcqParserFIF` by `Eric Larson`_
+
 BUG
 ~~~
 

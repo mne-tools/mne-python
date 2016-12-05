@@ -60,7 +60,7 @@ class Raw(BaseRaw):
     Attributes
     ----------
     info : dict
-        Measurement info.
+        :class:`Measurement info <mne.io.info>`.
     ch_names : list of string
         List of channels' names.
     n_times : int
@@ -417,7 +417,12 @@ class Raw(BaseRaw):
 
     @property
     def acqparser(self):
-        """The AcqParserFIF for the measurement info."""
+        """The AcqParserFIF for the measurement info.
+
+        See Also
+        --------
+        mne.AcqParserFIF
+        """
         if getattr(self, '_acqparser', None) is None:
             self._acqparser = AcqParserFIF(self.info)
         return self._acqparser
