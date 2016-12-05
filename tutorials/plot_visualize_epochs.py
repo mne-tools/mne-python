@@ -12,15 +12,19 @@ import mne
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample')
 raw = mne.io.read_raw_fif(op.join(data_path, 'sample_audvis_raw.fif'))
 raw.set_eeg_reference()  # set EEG average reference
-events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
-picks = mne.pick_types(raw.info, meg='grad')
-epochs = mne.Epochs(raw, events, [1, 2], picks=picks)
+events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'),
+                         include=[5, 32])
+epochs = mne.Epochs(raw, events, 5, tmin=-0.2, tmax=1.)
 
 ###############################################################################
 # This tutorial focuses on visualization of epoched data. All of the functions
 # introduced here are basically high level matplotlib functions with built in
 # intelligence to work with epoched data. All the methods return a handle to
 # matplotlib figure instance.
+#
+# Events used for constructing the epochs here are the triggers for subject
+# being presented a smiley face at the center of the visual field. More of the
+# paradigm at :ref:`BABDHIFJ`.
 #
 # All plotting functions start with ``plot``. Let's start with the most
 # obvious. :func:`mne.Epochs.plot` offers an interactive browser that allows
@@ -30,18 +34,18 @@ epochs.plot(block=True)
 
 ###############################################################################
 # The numbers at the top refer to the event id of the epoch. We only have
-# events with id numbers of 1 and 2 since we included only those when
+# events with id number of 5 (smiley faces) since we included only those when
 # constructing the epochs. The number at the bottom is the running numbering
 # for the epochs.
 #
 # It is possible to plot event markers on epoched data by passing ``events``
 # keyword to the epochs plotter. The events are plotted as vertical lines and
-# they follow the same coloring scheme as :func:`mne.viz.plot_events`. Here we
-# only have one event (32) overlapping with the epochs, but the events plotter
-# gives you all the events with a rough idea of the timing. Since the colors
-# are the same, the event plotter can also function as a legend for the epochs
-# plotter events. It is also possible to pass your own colors via
-# ``event_colors`` keyword.
+# they follow the same coloring scheme as :func:`mne.viz.plot_events`. The
+# events plotter gives you all the events with a rough idea of the timing.
+# Since the colors are the same, the event plotter can also function as a
+# legend for the epochs plotter events. It is also possible to pass your own
+# colors via ``event_colors`` keyword. Here we can plot the reaction times
+# between seeing the smiley face and the button press (event 32).
 #
 # When events are passed, the epoch numbering at the bottom is switched off by
 # default to avoid overlaps. You can turn it back on via settings dialog by
@@ -50,8 +54,9 @@ epochs.plot(block=True)
 mne.viz.plot_events(events)
 epochs.plot(events=events, block=True)
 
+###############################################################################
 # Since we did no artifact correction or rejection, there are epochs
-# contaminated with blinks and saccades. For instance, epoch number 9 seems to
+# contaminated with blinks and saccades. For instance, epoch number 1 seems to
 # be contaminated by a blink (scroll to the bottom to view the EOG channel).
 # This epoch can be marked for rejection by clicking on top of the browser
 # window. The epoch should turn red when you click it. This means that it will
@@ -59,13 +64,13 @@ epochs.plot(events=events, block=True)
 #
 # To plot individual channels as an image, where you see all the epochs at one
 # glance, you can use function :func:`mne.Epochs.plot_image`. It shows the
-# amplitude of the signal over all the epochs plus an average of the
-# activation. We explicitly set interactive colorbar on (it is also on by
-# default for plotting functions with a colorbar except the topo plots). In
+# amplitude of the signal over all the epochs plus an average (evoked response)
+# of the activation. We explicitly set interactive colorbar on (it is also on
+# by default for plotting functions with a colorbar except the topo plots). In
 # interactive mode you can scale and change the colormap with mouse scroll and
 # up/down arrow keys. You can also drag the colorbar with left/right mouse
 # button. Hitting space bar resets the scale.
-epochs.plot_image(97, cmap='interactive')
+epochs.plot_image(189, cmap='interactive')
 
 # You also have functions for plotting channelwise information arranged into a
 # shape of the channel array. The image plotting uses automatic scaling by
