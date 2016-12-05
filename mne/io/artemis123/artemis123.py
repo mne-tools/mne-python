@@ -173,10 +173,11 @@ def _get_artemis123_info(fname):
         if (chan['name'].startswith('MEG')):
             t['coil_type'] = FIFF.FIFFV_COIL_ARTEMIS123_GRAD
             t['kind'] = FIFF.FIFFV_MEG_CH
-            # While gradiometer units are T/m, use T here as values are more
-            # similar to what you get with neuromag magnetometers in terms of
-            # scale due to long baseline.
-            # This choice also matches the one used for CTF
+            # While gradiometer units are T/m, the meg sensors refered to as
+            # gradiometers report the field difference between 2 pick-up coils.
+            # Therefore the units of the measurements should be T
+            # *AND* the baseline (difference between pickup coils)
+            # should not be used in leadfield / forwardfield computations.
             t['unit'] = FIFF.FIFF_UNIT_T
             t['unit_mul'] = FIFF.FIFF_UNITM_F
 
@@ -191,10 +192,11 @@ def _get_artemis123_info(fname):
         elif (chan['name'] in ref_grad_names):
             t['coil_type'] = FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD
             t['kind'] = FIFF.FIFFV_REF_MEG_CH
-            # While gradiometer units are T/m, use T here as values are more
-            # similar to what you get with neuromag magnetometers in terms of
-            # scale due to long baseline.
-            # This choice also matches the one used for CTF
+            # While gradiometer units are T/m, the meg sensors refered to as
+            # gradiometers report the field difference between 2 pick-up coils.
+            # Therefore the units of the measurements should be T
+            # *AND* the baseline (difference between pickup coils)
+            # should not be used in leadfield / forwardfield computations.
             t['unit'] = FIFF.FIFF_UNIT_T
             t['unit_mul'] = FIFF.FIFF_UNITM_F
 
@@ -205,26 +207,18 @@ def _get_artemis123_info(fname):
             t['unit'] = FIFF.FIFF_UNIT_V
             info['bads'].append(t['ch_name'])
 
-        elif (chan['name'].startswith('AUX')):
+        elif (chan['name'].startswith(('AUX', 'TRG', 'MIO'))):
             t['coil_type'] = FIFF.FIFFV_COIL_NONE
-            t['kind'] = FIFF.FIFFV_MISC_CH
             t['unit'] = FIFF.FIFF_UNIT_V
-
-        elif (chan['name'].startswith('TRG')):
-            t['coil_type'] = FIFF.FIFFV_COIL_NONE
-            t['kind'] = FIFF.FIFFV_STIM_CH
-            t['unit'] = FIFF.FIFF_UNIT_V
-
-        elif (chan['name'].startswith('MIO')):
-            t['coil_type'] = FIFF.FIFFV_COIL_NONE
-            t['kind'] = FIFF.FIFFV_MISC_CH
-            t['unit'] = FIFF.FIFF_UNIT_V
-
+            if (chan['name'].startswith('TRG')):
+                t['kind'] = FIFF.FIFFV_STIM_CH
+            else:
+                t['kind'] = FIFF.FIFFV_MISC_CH
         else:
             raise ValueError('Channel does not match expected' +
                              ' channel Types:"%s"' % chan['name'])
 
-        # incorporate unit mulitplier (unit_mul) into calabraion number
+        # incorporate mulitplier (unit_mul) into calibration
         t['cal'] *= 10 ** t['unit_mul']
         t['unit_mul'] = FIFF.FIFF_UNITM_NONE
 
