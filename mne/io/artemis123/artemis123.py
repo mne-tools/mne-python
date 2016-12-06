@@ -173,7 +173,7 @@ def _get_artemis123_info(fname):
         if (chan['name'].startswith('MEG')):
             t['coil_type'] = FIFF.FIFFV_COIL_ARTEMIS123_GRAD
             t['kind'] = FIFF.FIFFV_MEG_CH
-            # While gradiometer units are T/m, the meg sensors refered to as
+            # While gradiometer units are T/m, the meg sensors referred to as
             # gradiometers report the field difference between 2 pick-up coils.
             # Therefore the units of the measurements should be T
             # *AND* the baseline (difference between pickup coils)
@@ -192,7 +192,7 @@ def _get_artemis123_info(fname):
         elif (chan['name'] in ref_grad_names):
             t['coil_type'] = FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD
             t['kind'] = FIFF.FIFFV_REF_MEG_CH
-            # While gradiometer units are T/m, the meg sensors refered to as
+            # While gradiometer units are T/m, the meg sensors referred to as
             # gradiometers report the field difference between 2 pick-up coils.
             # Therefore the units of the measurements should be T
             # *AND* the baseline (difference between pickup coils)
