@@ -2354,7 +2354,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     if threshold == 'auto':
         threshold = np.arange(60, 95, dtype=np.float64) / 100.
 
-    all_maps = all_maps = [ica.get_components().T for ica in icas]
+    all_maps = [ica.get_components().T for ica in icas]
 
     # check if template is an index to one IC in one ICA object, or an array
     if len(template) == 2:
