@@ -417,7 +417,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         Defaults to None.
     events : None, array, shape (n_events, 3)
         Events to show with vertical bars. If events are provided, the epoch
-        numbering is off by default to prevent overlap. You can toggle epoch
+        numbers are not shown to prevent overlap. You can toggle epoch
         numbering through options (press 'o' key). You can use
         :func:`mne.viz.plot_events` as a legend for the colors. By default, the
         coloring scheme is the same.
