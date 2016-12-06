@@ -248,6 +248,47 @@ def rotation3d(x=0, y=0, z=0):
     return r
 
 
+def rotation3d_align_z_axis(target_z_axis):
+    """Compute a rotation matrix to align [ 0 0 1] with supplied target z axis.
+
+    Parameters
+    ----------
+    target_z_axis : array, shape (1, 3)
+        z axis. computed matrix (r) will map [0 0 1] to target_z_axis
+
+    Returns
+    -------
+    r : array, shape (3, 3)
+        The rotation matrix.
+    """
+    target_z_axis = target_z_axis / np.linalg.norm(target_z_axis)
+    r = np.zeros((3, 3))
+    if ((1. + target_z_axis[2]) < 1E-12):
+        r[0, 0] = 1.
+        r[1, 1] = -1.
+        r[2, 2] = -1.
+    else:
+        f = 1. / (1. + target_z_axis[2])
+        r[0, 0] = 1. - 1. * f * target_z_axis[0] * target_z_axis[0]
+        r[0, 1] = -1. * f * target_z_axis[0] * target_z_axis[1]
+        r[0, 2] = target_z_axis[0]
+        r[1, 0] = -1. * f * target_z_axis[0] * target_z_axis[1]
+        r[1, 1] = 1. - 1. * f * target_z_axis[1] * target_z_axis[1]
+        r[1, 2] = target_z_axis[1]
+        r[2, 0] = -target_z_axis[0]
+        r[2, 1] = -target_z_axis[1]
+        r[2, 2] = 1. - f * (target_z_axis[0] * target_z_axis[0] +
+                            target_z_axis[1] * target_z_axis[1])
+
+    # assert that r is a rotation matrix r^t * r = I and det(r) = 1
+    assert(np.any((r.dot(r.T) - np.identity(3)) < 1E-12))
+    assert((linalg.det(r) - 1.0) < 1E-12)
+    # assert that r maps [0 0 1] on the device z axis (target_z_axis)
+    assert(linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12)
+
+    return r
+
+
 def rotation_angles(m):
     """Find rotation angles from a transformation matrix.
 

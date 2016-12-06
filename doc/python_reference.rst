@@ -113,6 +113,7 @@ Functions:
   :toctree: generated/
   :template: function.rst
 
+  read_raw_artemis123
   read_raw_bti
   read_raw_cnt
   read_raw_ctf
