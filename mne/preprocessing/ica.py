@@ -663,7 +663,7 @@ class ICA(ContainsMixin):
         return sources
 
     def get_components(self):
-        """Get ICA topomap for components as numpy arrays
+        """Get ICA topomap for components as numpy arrays.
 
         Returns
         -------
