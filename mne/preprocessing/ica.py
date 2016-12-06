@@ -662,6 +662,18 @@ class ICA(ContainsMixin):
 
         return sources
 
+    def get_components(self):
+        """Get ICA topomap for components as numpy arrays
+
+        Returns
+        -------
+        components : array (n_channels, n_components)
+            The ICA components (maps).
+        """
+        fast_dot = _get_fast_dot()
+        return fast_dot(self.mixing_matrix_[:, :self.n_components_].T,
+                        self.pca_components_[:self.n_components_]).T
+
     def get_sources(self, inst, add_channels=None, start=None, stop=None):
         """Estimate sources given the unmixing matrix.
 
@@ -2149,16 +2161,6 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
 # #############################################################################
 # CORRMAP
 
-def _get_ica_map(ica, components=None):
-    """Get ICA topomap for components."""
-    fast_dot = _get_fast_dot()
-    if components is None:
-        components = list(range(ica.n_components_))
-    maps = fast_dot(ica.mixing_matrix_[:, components].T,
-                    ica.pca_components_[:ica.n_components_])
-    return maps
-
-
 def _find_max_corrs(all_maps, target, threshold):
     """Compute correlations between template and target components."""
     all_corrs = [compute_corr(target, subj.T) for subj in all_maps]
@@ -2352,7 +2354,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     if threshold == 'auto':
         threshold = np.arange(60, 95, dtype=np.float64) / 100.
 
-    all_maps = [_get_ica_map(ica) for ica in icas]
+    all_maps = all_maps = [ica.get_components().T for ica in icas]
 
     # check if template is an index to one IC in one ICA object, or an array
     if len(template) == 2:
@@ -2422,7 +2424,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
                 ica.labels_[label] = list(set(list(max_corr) +
                                           ica.labels_.get(label, list())))
             if plot is True:
-                allmaps.extend(_get_ica_map(ica, components=max_corr))
+                allmaps.extend(ica.get_components()[:, max_corr].T)
                 subjs.extend([ii] * len(max_corr))
                 indices.extend(max_corr)
         else:
