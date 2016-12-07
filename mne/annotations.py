@@ -84,6 +84,12 @@ class Annotations(object):
         self.duration = duration
         self.description = np.array(description, dtype=str)
 
+    def append(self, onset, duration, description):
+        """Add an annotated segment. Operates inplace."""
+        self.onset = np.append(self.onset, onset)
+        self.duration = np.append(self.duration, duration)
+        self.description = np.append(self.description, description)
+
 
 def _combine_annotations(annotations, last_samps, first_samps, sfreq):
     """Helper for combining a tuple of annotations."""

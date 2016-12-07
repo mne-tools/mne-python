@@ -26,9 +26,8 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _helper_raw_resize, _select_bads, _onclick_help,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
-                    _change_channel_group)
+                    _change_channel_group, _plot_annotations)
 from ..defaults import _handle_default
-from ..annotations import _onset_to_seconds
 from .evoked import _plot_lines
 
 
@@ -81,6 +80,8 @@ def _update_raw_data(params):
 def _pick_bad_channels(event, params):
     """Selecting / drop bad channels onpick."""
     # Both bad lists are updated. params['info'] used for colors.
+    if params['annotation_fig'] is not None:
+        return
     bads = params['raw'].info['bads']
     params['info']['bads'] = _select_bads(event, params, bads)
     _plot_update_raw_proj(params, None)
@@ -331,31 +332,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                                  bad_color=bad_color, event_lines=event_lines,
                                  event_color=event_color)
 
-    if raw.annotations is not None:
-        segments = list()
-        segment_colors = dict()
-        # sort the segments by start time
-        ann_order = raw.annotations.onset.argsort(axis=0)
-        descriptions = raw.annotations.description[ann_order]
-        color_keys = set(descriptions)
-        color_vals = np.linspace(0, 1, len(color_keys))
-        for idx, key in enumerate(color_keys):
-            if key.lower().startswith('bad'):
-                segment_colors[key] = 'red'
-            else:
-                segment_colors[key] = plt.cm.summer(color_vals[idx])
-        params['segment_colors'] = segment_colors
-        for idx, onset in enumerate(raw.annotations.onset[ann_order]):
-            annot_start = _onset_to_seconds(raw, onset) + first_time
-            annot_end = annot_start + raw.annotations.duration[ann_order][idx]
-            segments.append([annot_start, annot_end])
-            ylim = params['ax_hscroll'].get_ylim()
-            dscr = descriptions[idx]
-            params['ax_hscroll'].fill_betweenx(ylim, annot_start, annot_end,
-                                               alpha=0.3,
-                                               color=segment_colors[dscr])
-        params['segments'] = np.array(segments)
-        params['annot_description'] = descriptions
+    _plot_annotations(raw, params)
 
     params['update_fun'] = partial(_update_raw_data, params=params)
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
@@ -785,6 +762,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
                        for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
+    params['annotation_fig'] = None
 
 
 def _plot_raw_traces(params, color, bad_color, event_lines=None,

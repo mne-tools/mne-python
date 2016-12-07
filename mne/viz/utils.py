@@ -27,6 +27,7 @@ from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
+from ..annotations import Annotations, _onset_to_seconds
 
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
@@ -716,6 +717,30 @@ def _plot_raw_onkey(event, params):
     elif event.key == 'f11':
         mng = plt.get_current_fig_manager()
         mng.full_screen_toggle()
+    elif event.key == 'a':
+        if params['annotation_fig'] is None:
+            from matplotlib.widgets import SpanSelector
+            fig = figure_nobar(figsize=(5.5, 0.8))
+            annotations_closed = partial(_annotations_closed, params=params)
+            fig.canvas.mpl_connect('close_event', annotations_closed)
+            text = ('Select annotations by dragging on top of the plot.\n'
+                    'When done, close this window.')
+            plt.text(0.5, 0.5, text, fontname='STIXGeneral', va='center',
+                     weight='bold', ha='center', fontsize=18)
+            plt.axis('off')
+
+            fig.show()
+
+            ax = params['ax']
+            callback_onselect = partial(_annotate_select, params=params)
+            selector = SpanSelector(ax, callback_onselect, 'horizontal',
+                                    minspan=0.1,
+                                    rectprops=dict(alpha=0.5, facecolor='red'))
+            params['ax'].selector = selector
+            params['annotation_fig'] = fig
+        else:
+            plt.close(params['annotation_fig'])
+            params['annotation_fig'] = None
 
 
 def _mouse_click(event, params):
@@ -1585,3 +1610,56 @@ class SelectFromCollection(object):
         self.fc[:, -1] = 1
         self.collection.set_facecolors(self.fc)
         self.canvas.draw_idle()
+
+
+def _annotate_select(vmin, vmax, params):
+    """"""
+    raw = params['raw']
+    onset = vmin
+    duration = vmax - vmin
+    if raw.annotations is None:
+        annot = Annotations([onset], [duration], ['BAD'])
+        raw.annotations = annot
+    else:
+        raw.annotations.append(onset, duration, 'BAD')
+    _plot_annotations(params['raw'], params)
+    params['plot_fun']()
+
+
+def _plot_annotations(raw, params):
+    """Function for plotting annotations on top of the raw browser."""
+    import matplotlib.pyplot as plt
+    if raw.annotations is not None:
+        segments = list()
+        segment_colors = dict()
+        # sort the segments by start time
+        ann_order = raw.annotations.onset.argsort(axis=0)
+        descriptions = raw.annotations.description[ann_order]
+        color_keys = set(descriptions)
+        color_vals = np.linspace(0, 1, len(color_keys))
+        for idx, key in enumerate(color_keys):
+            if key.lower().startswith('bad'):
+                segment_colors[key] = 'red'
+            else:
+                segment_colors[key] = plt.cm.summer(color_vals[idx])
+        params['segment_colors'] = segment_colors
+        for idx, onset in enumerate(raw.annotations.onset[ann_order]):
+            annot_start = _onset_to_seconds(raw, onset) + params['first_time']
+            annot_end = annot_start + raw.annotations.duration[ann_order][idx]
+            segments.append([annot_start, annot_end])
+            ylim = params['ax_hscroll'].get_ylim()
+            dscr = descriptions[idx]
+            params['ax_hscroll'].fill_betweenx(ylim, annot_start, annot_end,
+                                               alpha=0.3,
+                                               color=segment_colors[dscr])
+        params['segments'] = np.array(segments)
+        params['annot_description'] = descriptions
+
+
+def _annotations_closed(event, params):
+    """Callback for cleaning annotation dialog on close."""
+    import matplotlib.pyplot as plt
+    plt.close(params['annotation_fig'])
+    params['ax'].selector.disconnect_events()
+    params['ax'].selector = None
+    params['annotation_fig'] = None
