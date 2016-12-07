@@ -4,6 +4,7 @@
 
 import numpy as np
 
+from ..externals.six import string_types
 from ..parallel import parallel_func
 from ..io.pick import _pick_data_channels
 from ..utils import logger, verbose, _time_mask
@@ -335,6 +336,9 @@ def _spectral_helper(x, fs, window='hann', nperseg=256, noverlap=None,
       `scipy.signal.welch`)
     * mode is always 'psd' so `mode` argument is removed
     """
+    from scipy import fftpack
+    from scipy.signal import signaltools
+    from scipy.signal.windows import get_window
 
     axis = int(axis)
 
@@ -471,6 +475,8 @@ def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft):
     -----
     Copied from scipy.signal.spectral which was adapted from matplotlib.mlab
     """
+    from scipy import fftpack
+
     # Created strided array of data segments
     if nperseg == 1 and noverlap == 0:
         result = x[..., np.newaxis]
