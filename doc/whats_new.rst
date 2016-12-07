@@ -43,6 +43,8 @@ Changelog
 
     - Add support for reading ASCII BrainVision files in :func:`mne.io.read_raw_brainvision` by `Eric Larson`_
 
+    - Add option to plot events in :func:`mne.viz.plot_epochs` by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
