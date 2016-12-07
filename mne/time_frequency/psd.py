@@ -17,17 +17,6 @@ def _pwelch(epoch, noverlap, nfft, fs, freq_mask):
                             )[2][..., freq_mask, :]
 
 
-def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):
-    """Compute the PSD."""
-    out = [psd(d, Fs=Fs, NFFT=n_fft, noverlap=n_overlap, pad_to=pad_to)
-           for d in data]
-    psd = np.array([o[0] for o in out])
-    freqs = out[0][1]
-    mask = (freqs >= fmin) & (freqs <= fmax)
-    freqs = freqs[mask]
-    return psd[:, mask], freqs
-
-
 def _check_nfft(n, n_fft, n_overlap):
     """Helper to make sure n_fft and n_overlap make sense."""
     n_fft = n if n_fft > n else n_fft
