@@ -43,6 +43,8 @@ Changelog
 
     - Add support for reading ASCII BrainVision files in :func:`mne.io.read_raw_brainvision` by `Eric Larson`_
 
+    - Add method of ICA objects for retrieving the component maps :func:`mne.preprocessing.ica.get_components` by `Jona Sassenhagen`_
+
 BUG
 ~~~
 
