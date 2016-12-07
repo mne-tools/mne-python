@@ -52,7 +52,7 @@ labels_vol = ['Left-Amygdala',
               'Right-Cerebellum-Cortex']
 
 # Setup a surface-based source space
-src = setup_source_space(subject, subjects_dir=subjects_dir,
+src = setup_source_space(subject, fname=None, subjects_dir=subjects_dir,
                          spacing='oct6', add_dist=False)
 
 # We create a mixed src space adding to the surface src space the volume
@@ -131,4 +131,12 @@ label_ts = mne.extract_label_time_course([stcs], labels_parc, src,
                                          allow_empty=True,
                                          return_generator=False)
 
-# TODO some plot
+# plot the times series of 2 labels
+fig, axes = plt.subplots(1)
+axes.plot(1e3 * stcs.times, label_ts[0][0, :], 'k', label='bankssts-lh')
+axes.plot(1e3 * stcs.times, label_ts[0][71, :].T, 'r',
+          label='Brain-stem')
+axes.set(xlabel='Time (ms)', ylabel='MNE current (nAm)')
+axes.legend()
+mne.viz.tight_layout()
+plt.show()
