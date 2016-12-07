@@ -89,7 +89,8 @@ def test_plot_topomap():
     mask[[1, 5], :] = True
     evoked.plot_topomap(ch_type='mag', outlines=None)
     times = [0.1]
-    evoked.plot_topomap(times, ch_type='eeg', res=res, scale=1)
+    evoked.plot_topomap(times, ch_type='eeg', res=res, scale=1,
+                        contours=[-100, 0, 100])  # contours as a list
     evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res)
     evoked.plot_topomap(times, ch_type='planar1', res=res)
     evoked.plot_topomap(times, ch_type='planar2', res=res)

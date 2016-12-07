@@ -80,6 +80,8 @@ BUG
 
     - Fix ``_filenames`` attribute in creation of :class:`mne.io.RawArray` with :func:`mne.preporcessing.ica._sources_as_raw` by `Paul Pasler`_
 
+    - Fix contour levels in :func:`mne.viz.plot_evoked_topomap` to be uniform across topomaps by `Jaakko Leppakangas`_
+
 API
 ~~~
 

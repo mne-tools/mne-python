@@ -459,8 +459,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     image_mask : ndarray of bool, shape (res, res) | None
         The image mask to cover the interpolated surface. If None, it will be
         computed from the outline.
-    contours : int | False | None
+    contours : int | False | array of float | None
         The number of contour lines to draw. If 0, no contours will be drawn.
+        If an array, the values represent the levels for the contours. The
+        values are in uV for EEG, fT for magnetometers and fT/m for
+        gradiometers.
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
@@ -602,7 +605,9 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     # drawn. To avoid rescalings, we will always draw contours.
     # But if no contours are desired we only draw one and make it invisible .
     no_contours = False
-    if contours in (False, None):
+    if isinstance(contours, (np.ndarray, list)):
+        pass  # contours precomputed
+    elif contours in (False, None):
         contours, no_contours = 1, True
     cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
                       linewidths=linewidth)
@@ -1248,8 +1253,12 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
-    contours : int | False | None
+    contours : int | False | array of float | None
         The number of contour lines to draw. If 0, no contours will be drawn.
+        If an array, the values represent the levels for the contours. The
+        values are in uV for EEG, fT for magnetometers and fT/m for
+        gradiometers. If colorbar=True, the ticks in colorbar correspond to the
+        contour levels.
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
@@ -1388,6 +1397,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     vmax = np.max(vlims)
     cmap = _setup_cmap(cmap, n_axes=len(times), norm=vmin >= 0)
 
+    if not isinstance(contours, (list, np.ndarray)):
+        _, contours = _set_contour_locator(vmin, vmax, contours)
+
     for idx, time in enumerate(times):
         tp, cn = plot_topomap(data[:, idx], pos, vmin=vmin, vmax=vmax,
                               sensors=sensors, res=res, names=names,
@@ -1422,7 +1434,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         if unit is not None:
             cax.set_title(unit)
         cbar = fig.colorbar(images[-1], ax=cax, cax=cax, format=cbar_fmt)
-        cbar.set_ticks([cbar.vmin, 0, cbar.vmax])
+        cbar.set_ticks(cn.levels)
+        cbar.ax.tick_params(labelsize=7)
+
         if cmap[1]:
             for im in images:
                 im.axes.CB = DraggableColorbar(cbar, im)
@@ -2094,3 +2108,15 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         params['line'].remove()
 
     return fig, anim
+
+
+def _set_contour_locator(vmin, vmax, contours):
+    """Function for setting correct contour levels."""
+    locator = None
+    if isinstance(contours, int):
+        from matplotlib import ticker
+        # nbins = ticks - 1, since 2 of the ticks are vmin and vmax, the
+        # correct number of bins is equal to contours + 1.
+        locator = ticker.MaxNLocator(nbins=contours + 1)
+        contours = locator.tick_values(vmin, vmax)
+    return locator, contours
