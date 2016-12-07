@@ -7,7 +7,7 @@ import numpy as np
 from ..externals.six import string_types
 from ..parallel import parallel_func
 from ..io.pick import _pick_data_channels
-from ..utils import logger, verbose, _time_mask
+from ..utils import logger, verbose, _time_mask, warn
 from .multitaper import _psd_multitaper
 
 
@@ -83,7 +83,6 @@ def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
     """
-    from scipy.signal import welch
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
     x = x.reshape(-1, n_times)
@@ -258,6 +257,7 @@ def _spectral_helper(x, fs, window='hann', nperseg=256, noverlap=None,
                      axis=-1):
     """
     Calculate various forms of windowed FFTs for PSD.
+
     This is a helper function that was adapted from scipy.
     It is not designed to be called externally. The windows are not averaged
     over; the result from each window is returned.
@@ -302,7 +302,7 @@ def _spectral_helper(x, fs, window='hann', nperseg=256, noverlap=None,
     t : ndarray
         Array of times corresponding to each data segment
     result : ndarray
-        Array of output data, contents dependant on *mode* kwarg.
+        Array of output data.
 
     References
     ----------
@@ -343,8 +343,8 @@ def _spectral_helper(x, fs, window='hann', nperseg=256, noverlap=None,
 
     # test nperseg
     if x.shape[-1] < nperseg:
-        warnings.warn('nperseg = {0:d}, is greater than input length = {1:d}, '
-                      'using nperseg = {1:d}'.format(nperseg, x.shape[-1]))
+        warn('nperseg = {0:d}, is greater than input length = {1:d}, '
+             'using nperseg = {1:d}'.format(nperseg, x.shape[-1]))
         nperseg = x.shape[-1]
 
     nperseg = int(nperseg)
@@ -392,31 +392,30 @@ def _spectral_helper(x, fs, window='hann', nperseg=256, noverlap=None,
             raise ValueError('window must have length of nperseg')
 
     if scaling == 'density':
-        scale = 1.0 / (fs * (win*win).sum())
+        scale = 1.0 / (fs * (win * win).sum())
     elif scaling == 'spectrum':
         scale = 1.0 / win.sum()**2
     else:
         raise ValueError('Unknown scaling: %r' % scaling)
 
     if nfft % 2:
-        num_freqs = (nfft + 1)//2
+        num_freqs = (nfft + 1) // 2
     else:
-        num_freqs = nfft//2 + 1
-
+        num_freqs = nfft // 2 + 1
 
     # Perform the windowed FFTs
     result = _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft)
     result = result[..., :num_freqs]
-    freqs = fftpack.fftfreq(nfft, 1/fs)[:num_freqs]
+    freqs = fftpack.fftfreq(nfft, 1 / fs)[:num_freqs]
 
     result = (np.conjugate(result) * result).real
     result *= scale
 
     if nfft % 2:
-        result[...,1:] *= 2
+        result[..., 1:] *= 2
     else:
         # Last point is unpaired Nyquist freq point, don't double
-        result[...,1:-1] *= 2
+        result[..., 1:-1] *= 2
 
     t = np.arange(nperseg / 2, x.shape[-1] - nperseg / 2 + 1,
                   nperseg - noverlap) / float(fs)
@@ -429,7 +428,7 @@ def _spectral_helper(x, fs, window='hann', nperseg=256, noverlap=None,
     if axis != -1:
         # Specify as positive axis index
         if axis < 0:
-            axis = len(result.shape)-1-axis
+            axis = len(result.shape) - 1 - axis
 
         # Roll frequency axis back to axis where the data came from
         result = np.rollaxis(result, -1, axis)
@@ -442,8 +441,8 @@ def _spectral_helper(x, fs, window='hann', nperseg=256, noverlap=None,
 
 def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft):
     """
-    Calculate windowed FFT, for internal use by
-    `mne.time_frequency.psd._spectral_helper`.
+    Calculate windowed FFT, for internal use by `_spectral_helper`.
+
     This is a helper function that does the main FFT calculation for
     _spectral helper. All input valdiation is performed there, and the data
     axis is assumed to be the last axis of x. It is not designed to be called
