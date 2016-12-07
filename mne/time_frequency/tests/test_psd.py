@@ -180,9 +180,8 @@ def test_compares_psd():
     assert_raises(ValueError, _spectral_helper, data, sfreq, nperseg=120,
                   nfft=60)
 
-
     # compare mne _spectral_helper with scipy's csd
-    from scipy.signal.spectral import csd
+    from scipy.signal.spectral import welch
 
     def win_avg(data):
         # Average over windows.
@@ -195,14 +194,14 @@ def test_compares_psd():
 
     kwargs = dict(window='blackman', nperseg=int(sfreq))
     freqs_mne, _, psds_mne = _spectral_helper(data, sfreq, **kwargs)
-    freqs_scipy, psds_scipy = csd(data, data, fs=sfreq, **kwargs)
+    freqs_scipy, psds_scipy = welch(data, fs=sfreq, **kwargs)
     assert_array_almost_equal(freqs_mne, freqs_scipy)
     assert_array_almost_equal(win_avg(psds_mne), psds_scipy)
 
     kwargs = dict(window=np.ones(120), nperseg=120, noverlap=80, nfft=240,
                   detrend=False, scaling='spectrum')
     freqs_mne, _, psds_mne = _spectral_helper(data, sfreq, **kwargs)
-    freqs_scipy, psds_scipy = csd(data, data, fs=sfreq, **kwargs)
+    freqs_scipy, psds_scipy = welch(data, fs=sfreq, **kwargs)
     assert_array_almost_equal(freqs_mne, freqs_scipy)
     assert_array_almost_equal(win_avg(psds_mne), psds_scipy)
 
