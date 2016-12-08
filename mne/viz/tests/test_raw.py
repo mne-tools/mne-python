@@ -90,6 +90,14 @@ def test_plot_raw():
         fig.canvas.key_press_event('end')
         fig.canvas.key_press_event('?')
         fig.canvas.key_press_event('f11')
+        fig.canvas.key_press_event('a')  # annotation mode
+        _fake_click(fig, data_ax, [1., 1.], button=1, kind='press')  # create
+        _fake_click(fig, data_ax, [5., 1.], button=1, kind='motion')
+        _fake_click(fig, data_ax, [5., 1.], button=1, kind='release')
+        _fake_click(fig, data_ax, [5., 1.], button=1, kind='press')  # modify
+        _fake_click(fig, data_ax, [0.5, 1.], button=1, kind='motion')
+        _fake_click(fig, data_ax, [0.5, 1.], button=1, kind='release')
+        _fake_click(fig, data_ax, [0.7, 1.], button=3, kind='press')  # delete
         fig.canvas.key_press_event('escape')
         # Color setting
         assert_raises(KeyError, raw.plot, event_color={0: 'r'})
