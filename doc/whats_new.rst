@@ -47,6 +47,7 @@ Changelog
 
 BUG
 ~~~
+    - Fix reading multi-file CTF recordings in :class:`mne.io.ctf.RawCTF` by `Niklas Wilming`_
 
     - Fix computation of AR coefficients across channels in :func:`mne.time_frequency.fit_iir_model_raw` by `Eric Larson`_
 
@@ -1912,3 +1913,5 @@ of commits):
 .. _Keith Doelling: http://science.keithdoelling.com
 
 .. _Paul Pasler: https://github.com/ppasler
+
+.. _Niklas Wilming: https://github.com/nwilming
