@@ -138,7 +138,7 @@ class RawCTF(BaseRaw):
             last_samps.append(sample_info['n_samp'] - 1)
             raw_extras.append(sample_info)
         super(RawCTF, self).__init__(
-            info, preload, last_samps=last_samps, filenames=fnames,
+            info, preload, first_samps=(0,)*len(last_samps), last_samps=last_samps, filenames=fnames,
             raw_extras=raw_extras, orig_format='int', verbose=verbose)
 
     @verbose
