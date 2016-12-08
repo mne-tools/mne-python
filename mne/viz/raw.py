@@ -763,6 +763,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                        for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
     params['annotation_fig'] = None
+    params['segment_line'] = None
 
 
 def _plot_raw_traces(params, color, bad_color, event_lines=None,

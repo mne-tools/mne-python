@@ -738,9 +738,12 @@ def _plot_raw_onkey(event, params):
                                     rectprops=dict(alpha=0.5, facecolor='red'))
             params['ax'].selector = selector
             params['annotation_fig'] = fig
+            hover_callback = partial(_on_hover, params=params)
+            params['hover_callback'] = params['fig'].canvas.mpl_connect(
+                'motion_notify_event', hover_callback)
+
         else:
             plt.close(params['annotation_fig'])
-            params['annotation_fig'] = None
 
 
 def _mouse_click(event, params):
@@ -1613,8 +1616,9 @@ class SelectFromCollection(object):
 
 
 def _annotate_select(vmin, vmax, params):
-    """"""
+    """Callback for annotation span selector."""
     raw = params['raw']
+
     onset = vmin
     duration = vmax - vmin
     if raw.annotations is None:
@@ -1627,9 +1631,11 @@ def _annotate_select(vmin, vmax, params):
 
 
 def _plot_annotations(raw, params):
-    """Function for plotting annotations on top of the raw browser."""
+    """Function for setting up annotations for plotting in raw browser."""
     import matplotlib.pyplot as plt
     if raw.annotations is not None:
+        while len(params['ax_hscroll'].collections) > 0:
+            params['ax_hscroll'].collections.pop()
         segments = list()
         segment_colors = dict()
         # sort the segments by start time
@@ -1657,9 +1663,131 @@ def _plot_annotations(raw, params):
 
 
 def _annotations_closed(event, params):
-    """Callback for cleaning annotation dialog on close."""
+    """Callback for cleaning up on annotation dialog close."""
     import matplotlib.pyplot as plt
     plt.close(params['annotation_fig'])
     params['ax'].selector.disconnect_events()
     params['ax'].selector = None
     params['annotation_fig'] = None
+    if params['segment_line'] is not None:
+        params['segment_line'].remove()
+        params['segment_line'] = None
+    params['fig'].canvas.mpl_disconnect(params['hover_callback'])
+    params['annotation_fig'] = None
+    params['fig'].canvas.draw()
+
+
+def _on_hover(event, params):
+    """Callback for hover event."""
+    if event.button is not None or event.xdata is None:
+        return
+    for coll in params['ax'].collections:
+        if coll.contains(event)[0]:
+            path = coll.get_paths()[-1]
+            mn = min(path.vertices[:, 0])
+            mx = max(path.vertices[:, 0])
+            x = mn if abs(event.xdata - mn) < abs(event.xdata - mx) else mx
+            ylim = params['ax'].get_ylim()
+            if params['segment_line'] is None:
+                modify_callback = partial(_annotation_modify, params=params)
+                line = params['ax'].plot([x, x], ylim, color='r',
+                                         linewidth=3, picker=5.)[0]
+                dl = DraggableLine(line, modify_callback)
+                params['segment_line'] = dl
+            else:
+                params['segment_line'].set_x(x)
+            params['ax'].selector.active = False
+            params['fig'].canvas.draw()
+            return
+    if params['segment_line'] is not None:
+        params['segment_line'].remove()
+        params['segment_line'] = None
+        params['ax'].selector.active = True
+
+
+def _annotation_modify(old_x, new_x, params):
+    """Modify annotation."""
+    segment = np.array(np.where(params['segments'] == old_x))
+    if segment.shape[1] == 0:
+        return
+    idx = [segment[0][0], segment[1][0]]
+    onset = params['segments'][idx[0]][0]
+    ann_idx = np.where(params['raw'].annotations.onset == onset)[0]
+    if idx[1] == 0:  # start of annotation
+        onset = new_x
+        duration = params['raw'].annotations.duration[ann_idx] + old_x - new_x
+    else:  # end of annotation
+        onset = params['raw'].annotations.onset[ann_idx]
+        duration = new_x - onset
+
+    if duration < 0:
+        onset += duration
+        duration *= -1.
+
+    params['raw'].annotations.onset[ann_idx] = onset
+    params['raw'].annotations.duration[ann_idx] = duration
+    _plot_annotations(params['raw'], params)
+    params['plot_fun']()
+
+
+class DraggableLine:
+    """Custom mpl line for moving around by drag and drop.
+
+    Parameters
+    ----------
+    line : instance of matplotlib Line2D
+        Line to add interactivity to.
+    callback : function
+        Callback to call when line is released.
+    """
+    def __init__(self, line, callback):
+        self.line = line
+        self.press = None
+        self.x0 = line.get_xdata()[0]
+        self.callback = callback
+        self.cidpress = self.line.figure.canvas.mpl_connect(
+            'button_press_event', self.on_press)
+        self.cidrelease = self.line.figure.canvas.mpl_connect(
+            'button_release_event', self.on_release)
+        self.cidmotion = self.line.figure.canvas.mpl_connect(
+            'motion_notify_event', self.on_motion)
+
+    def set_x(self, x):
+        """Function for repositioning the line."""
+        self.line.set_xdata([x, x])
+        self.x0 = x
+
+    def on_press(self, event):
+        """Store button press if on top of the line."""
+        if event.inaxes != self.line.axes or not self.line.contains(event)[0]:
+            return
+        x0 = self.line.get_xdata()
+        y0 = self.line.get_ydata()
+        self.press = x0, y0, event.xdata, event.ydata
+
+    def on_motion(self, event):
+        """Function for moving the line on drag."""
+        if self.press is None:
+            return
+        if event.inaxes != self.line.axes:
+            return
+        x0, y0, xpress, ypress = self.press
+        dx = event.xdata - xpress
+        self.line.set_xdata(x0 + dx)
+        self.line.figure.canvas.draw()
+
+    def on_release(self, event):
+        """Callback for release."""
+        if event.inaxes != self.line.axes or self.press is None:
+            return
+        self.press = None
+        self.line.figure.canvas.draw()
+        self.callback(self.x0, event.xdata)
+        self.x0 = event.xdata
+
+    def remove(self):
+        """Remove the line."""
+        self.line.figure.canvas.mpl_disconnect(self.cidpress)
+        self.line.figure.canvas.mpl_disconnect(self.cidrelease)
+        self.line.figure.canvas.mpl_disconnect(self.cidmotion)
+        self.line.figure.axes[0].lines.remove(self.line)
