@@ -97,10 +97,22 @@ class Annotations(object):
         description : str
             Description for the annotation. To reject epochs, use description
             starting with keyword 'bad'
-"""
+        """
         self.onset = np.append(self.onset, onset)
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
+
+    def delete(self, idx):
+        """Remove an annotation. Operates inplace.
+
+        Parameters
+        ----------
+        idx : int
+            Index of the annotation to remove.
+        """
+        self.onset = np.delete(self.onset, idx)
+        self.duration = np.delete(self.duration, idx)
+        self.description = np.delete(self.description, idx)
 
 
 def _combine_annotations(annotations, last_samps, first_samps, sfreq):

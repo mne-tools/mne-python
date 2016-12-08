@@ -748,8 +748,25 @@ def _plot_raw_onkey(event, params):
 
 def _mouse_click(event, params):
     """Vertical select callback."""
-    if event.button != 1:
+    if event.button not in (1, 3):
         return
+    if event.button == 3:
+        if params['annotation_fig'] is None:
+            return
+        for coll in params['ax'].collections:
+            if coll.contains(event)[0]:
+                path = coll.get_paths()[-1]
+                mn = min(path.vertices[:, 0])
+                mx = max(path.vertices[:, 0])
+                ann_idx = np.where(params['raw'].annotations.onset == mn)[0]
+                for idx in ann_idx:
+                    if params['raw'].annotations.duration[idx] == mx - mn:
+                        params['raw'].annotations.delete(idx)
+        _remove_segment_line(params)
+        _plot_annotations(params['raw'], params)
+        params['plot_fun']()
+        return
+
     if event.inaxes is None:
         if params['n_channels'] > 100:
             return
@@ -1699,6 +1716,11 @@ def _on_hover(event, params):
             params['ax'].selector.active = False
             params['fig'].canvas.draw()
             return
+    _remove_segment_line(params)
+
+
+def _remove_segment_line(params):
+    """Function for removing annotation line from the view."""
     if params['segment_line'] is not None:
         params['segment_line'].remove()
         params['segment_line'] = None
@@ -1740,7 +1762,8 @@ class DraggableLine:
     callback : function
         Callback to call when line is released.
     """
-    def __init__(self, line, callback):
+
+    def __init__(self, line, callback):  # noqa: D102
         self.line = line
         self.press = None
         self.x0 = line.get_xdata()[0]
