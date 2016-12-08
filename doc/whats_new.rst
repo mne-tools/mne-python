@@ -338,7 +338,6 @@ The committer list for this release is the following (sorted by alphabetical ord
     * Michael Krause
     * Mikolaj Magnuski
     * Nick Foti
-    * Niklas Wilming
     * Phillip Alday
     * Simon-Shlomo Poil
     * Teon Brooks
@@ -1914,3 +1913,5 @@ of commits):
 .. _Keith Doelling: http://science.keithdoelling.com
 
 .. _Paul Pasler: https://github.com/ppasler
+
+.. _Niklas Wilming: https://github.com/nwilming
