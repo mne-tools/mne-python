@@ -137,7 +137,7 @@ class RawCTF(BaseRaw):
             fnames.append(meg4_name)
             last_samps.append(sample_info['n_samp'] - 1)
             raw_extras.append(sample_info)
-            first_samps = [0, ] * len(last_samps)
+            first_samps = [0] * len(last_samps)
         super(RawCTF, self).__init__(
             info, preload, first_samps=first_samps,
             last_samps=last_samps, filenames=fnames,
