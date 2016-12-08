@@ -338,6 +338,7 @@ The committer list for this release is the following (sorted by alphabetical ord
     * Michael Krause
     * Mikolaj Magnuski
     * Nick Foti
+    * Niklas Wilming
     * Phillip Alday
     * Simon-Shlomo Poil
     * Teon Brooks
