@@ -785,6 +785,10 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
     #
     #   Pick the correct channels from the data
     #
+    # XXX _pick_channels_inverse_operator does a set-like operation, so
+    # this (and all other calls with _pick_channels_inverse_operator)
+    # will fail if users have reordered their channels
+    # (or if e.g., one recording has a different order from another)
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
     logger.info('Picked %d channels from the data' % len(sel))
     logger.info('Computing inverse...')

@@ -8,7 +8,7 @@ from ..epochs import BaseEpochs
 from ..io import BaseRaw
 from ..event import find_events
 
-from ..io.pick import pick_channels
+from ..io.pick import _pick_data_channels
 
 
 def _get_window(start, end):
@@ -84,8 +84,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     window = None
     if mode == 'window':
         window = _get_window(s_start, s_end)
-    ch_names = inst.info['ch_names']
-    picks = pick_channels(ch_names, ch_names)
+    picks = _pick_data_channels(inst.info)
 
     if isinstance(inst, BaseRaw):
         _check_preload(inst)

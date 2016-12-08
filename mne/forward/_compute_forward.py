@@ -19,7 +19,7 @@ from copy import deepcopy
 from ..surface import fast_cross_3d, _project_onto_surface
 from ..io.constants import FIFF
 from ..transforms import apply_trans
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _pl
 from ..parallel import parallel_func
 from ..io.compensator import get_current_comp, make_compensator
 from ..io.pick import pick_types
@@ -791,8 +791,7 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
         # Do the actual forward calculation for a list MEG/EEG sensors
         logger.info('Computing %s at %d source location%s '
                     '(free orientations)...'
-                    % (coil_type.upper(), len(rr),
-                       '' if len(rr) == 1 else 's'))
+                    % (coil_type.upper(), len(rr), _pl(rr)))
         # Calculate forward solution using spherical or BEM model
         B = fun(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
                 coil_type)

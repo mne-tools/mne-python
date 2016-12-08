@@ -339,6 +339,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
+        bad = np.where(cals == 0)[0]
+        if len(bad) > 0:
+            raise ValueError('Bad cals for channels %s'
+                             % dict((ii, self.ch_names[ii]) for ii in bad))
         self.verbose = verbose
         self._cals = cals
         self._raw_extras = list(raw_extras)

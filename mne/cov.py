@@ -32,7 +32,7 @@ from .epochs import Epochs
 from .event import make_fixed_length_events
 from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_version, _time_mask, warn,
-                    copy_function_doc_to_method_doc)
+                    copy_function_doc_to_method_doc, _pl)
 from . import viz
 
 from .externals.six.moves import zip
@@ -426,8 +426,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     tstep = tmax - tmin if tstep is None else float(tstep)
     tstep_m1 = tstep - 1. / raw.info['sfreq']  # inclusive!
     events = make_fixed_length_events(raw, 1, tmin, tmax, tstep)
-    pl = 's' if len(events) != 1 else ''
-    logger.info('Using up to %s segment%s' % (len(events), pl))
+    logger.info('Using up to %s segment%s' % (len(events), _pl(events)))
 
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
@@ -1442,6 +1441,9 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         C[np.ix_(idx, idx)] = this_C
 
     # Put data back in correct locations
+    # XXX because this uses pick_channels it is not immune to reordering,
+    # but hopefully won't be a problem in practice so long as users don't
+    # reorder their data...
     idx = pick_channels(cov.ch_names, info_ch_names, exclude=exclude)
     cov['data'][np.ix_(idx, idx)] = C
 
@@ -1632,6 +1634,8 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
                        scalings=None, verbose=None):
     """Get whitening matrix for a set of data."""
     ch_names = [info['ch_names'][k] for k in picks]
+    # XXX this relies on pick_channels, which does not respect order,
+    # so this could create problems if users have reordered their data
     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
     if len(noise_cov['data']) != len(ch_names):
         missing = list(set(ch_names) - set(noise_cov['names']))

@@ -16,7 +16,7 @@ from scipy import sparse
 
 from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import split_list, logger, verbose, ProgressBar, warn
+from ..utils import split_list, logger, verbose, ProgressBar, warn, _pl
 from ..source_estimate import SourceEstimate
 
 
@@ -847,10 +847,10 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             n_step_downs += 1
             if step_down_p > 0:
                 a_text = 'additional ' if n_step_downs > 1 else ''
-                pl = '' if n_removed == 1 else 's'
                 logger.info('Step-down-in-jumps iteration #%i found %i %s'
                             'cluster%s to exclude from subsequent iterations'
-                            % (n_step_downs, n_removed, a_text, pl))
+                            % (n_step_downs, n_removed, a_text,
+                               _pl(n_removed)))
         logger.info('Done.')
         # The clusters should have the same shape as the samples
         clusters = _reshape_clusters(clusters, sample_shape)

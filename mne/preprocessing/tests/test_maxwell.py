@@ -421,6 +421,14 @@ def test_basic():
     assert_raises(ValueError, maxwell_filter, raw, origin='foo')
     assert_raises(ValueError, maxwell_filter, raw, origin=[0] * 4)
     assert_raises(ValueError, maxwell_filter, raw, mag_scale='foo')
+    raw_missing = raw.copy().load_data()
+    raw_missing.info['bads'] = ['MEG0111']
+    raw_missing.pick_types(meg=True)  # will be missing the bad
+    maxwell_filter(raw_missing)
+    with warnings.catch_warnings(record=True) as w:
+        maxwell_filter(raw_missing, calibration=fine_cal_fname)
+    assert_equal(len(w), 1)
+    assert_true('not in data' in str(w[0].message))
 
 
 @testing.requires_testing_data
