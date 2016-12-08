@@ -85,6 +85,8 @@ BUG
 
     - Fix bug in :func:`mne.preprocessing.maxwell_filter` where fine calibration indices were mismatched leading to an ``AssertionError`` by `Eric Larson`_
 
+    - Fix bug in :func:`mne.preprocessing.fix_stim_artifact` where non-data channels were interpolated by `Eric Larson`_
+
 API
 ~~~
 

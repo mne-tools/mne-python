@@ -33,7 +33,7 @@ def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
     from scipy.interpolate import interp1d
     if mode == 'linear':
         x = np.array([first_samp, last_samp])
-        f = interp1d(x, data[:, (first_samp, last_samp)])
+        f = interp1d(x, data[:, (first_samp, last_samp)][picks])
         xnew = np.arange(first_samp, last_samp)
         interp_data = f(xnew)
         data[picks, first_samp:last_samp] = interp_data
