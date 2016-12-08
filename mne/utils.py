@@ -74,7 +74,7 @@ _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
 
 def _pl(x):
     """Determine if plural should be used."""
-    len_x = x if isinstance(x, integer_types) else len(x)
+    len_x = x if isinstance(x, (integer_types, np.generic)) else len(x)
     return '' if len_x == 1 else 's'
 
 
