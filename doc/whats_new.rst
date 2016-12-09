@@ -83,7 +83,7 @@ BUG
 
     - Fix contour levels in :func:`mne.viz.plot_evoked_topomap` to be uniform across topomaps by `Jaakko Leppakangas`_
 
-    - :meth:`mne.Epochs.get_data` now makes a copy of the data by `Jaakko Leppakangas`_
+    - Fix :func:`mne.viz.plot_topo_image_epochs` so that it no longer modifies the epoch data by `Jaakko Leppakangas`_
 
 API
 ~~~
