@@ -80,7 +80,6 @@ install:
           conda install --yes --quiet $ENSURE_PACKAGES statsmodels pandas$PANDAS;
           pip install nitime faulthandler;
           if [ "${NUMPY}" != "=1.8" ]; then
-            # conda install --yes --quiet $ENSURE_PACKAGES mayavi$MAYAVI;
             conda install apptools=4.4.0 envisage=4.5.1 pango=1.39.0 pyface=5.1.0 traits=4.6.0 traitsui=5.1.0 vtk=5.10.1;
             pip install mayavi pysurfer;
           fi;
