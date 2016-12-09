@@ -95,7 +95,7 @@ script:
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
         nosetests -a '!slow_test' --with-timer --timer-top-n 30 --verbosity=2 $COVERAGE;
       else
-        nosetests -a '!ultra_slow_test' --with-timer --timer-top-n 30 --verbosity=2 $COVERAGE;
+        nosetests -a '!ultra_slow_test' --with-timer --timer-top-n 30 --verbosity=2 $COVERAGE -s;
       fi;
     - if [ "${DEPS}" == "nodata" ]; then
         make flake;
