@@ -2489,12 +2489,10 @@ def sys_info(fid=None, show_paths=False):
 
         sklearn:       0.18.dev0
         nibabel:       2.1.0dev
-        nitime:        0.6
         mayavi:        4.3.1
-        nose:          1.3.7
-        pandas:        0.17.1+25.g547750a
         pycuda:        2015.1.3
         skcuda:        0.5.2
+        pandas:        0.17.1+25.g547750a
 
     """  # noqa: E501
     ljust = 15
@@ -2518,8 +2516,8 @@ def sys_info(fid=None, show_paths=False):
     libs = ', '.join(libs)
     version_texts = dict(pycuda='VERSION_TEXT')
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
-                     'sklearn', 'nibabel', 'nitime', 'mayavi', 'nose',
-                     'pandas', 'pycuda', 'skcuda'):
+                     'sklearn', 'nibabel', 'mayavi', 'pycuda', 'skcuda',
+                     'pandas'):
         if mod_name == '':
             out += '\n'
             continue

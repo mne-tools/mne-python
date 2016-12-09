@@ -122,7 +122,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         for k, (idx, name, unit, scaling) in enumerate(idx_names):
             s = linalg.svd(C[idx][:, idx], compute_uv=False)
             # Protect against true zero singular values
-            s[s == 0] = 1e-10 * s[s > 0].min()
+            s[s <= 0] = 1e-10 * s[s > 0].min()
             axes[k].semilogy(np.sqrt(s) * scaling)
             axes[k].set(ylabel='Noise std (%s)' % unit,
                         xlabel='Eigenvalue index', title=name)
