@@ -694,7 +694,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         Figure distributing one image per channel across sensor topography.
     """
     scalings = _handle_default('scalings', scalings)
-    data = epochs.get_data()
+    data = epochs.get_data().copy()
     scale_coeffs = list()
     for idx in range(epochs.info['nchan']):
         ch_type = channel_type(epochs.info, idx)
