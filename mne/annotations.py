@@ -107,7 +107,7 @@ class Annotations(object):
 
         Parameters
         ----------
-        idx : int
+        idx : int | list of int
             Index of the annotation to remove.
         """
         self.onset = np.delete(self.onset, idx)

@@ -1645,7 +1645,8 @@ def _annotate_select(vmin, vmax, params):
         annot = Annotations([onset], [duration], ['BAD'])
         raw.annotations = annot
     else:
-        raw.annotations.append(onset, duration, 'BAD')
+        _merge_annotations(onset, onset + duration, 'BAD', raw.annotations)
+
     _plot_annotations(params['raw'], params)
     params['plot_fun']()
 
@@ -1735,24 +1736,40 @@ def _annotation_modify(old_x, new_x, params):
     segment = np.array(np.where(params['segments'] == old_x))
     if segment.shape[1] == 0:
         return
+    annotations = params['raw'].annotations
     idx = [segment[0][0], segment[1][0]]
     onset = params['segments'][idx[0]][0]
-    ann_idx = np.where(params['raw'].annotations.onset == onset)[0]
+    ann_idx = np.where(annotations.onset == onset)[0]
     if idx[1] == 0:  # start of annotation
         onset = new_x
-        duration = params['raw'].annotations.duration[ann_idx] + old_x - new_x
+        duration = annotations.duration[ann_idx] + old_x - new_x
     else:  # end of annotation
-        onset = params['raw'].annotations.onset[ann_idx]
+        onset = annotations.onset[ann_idx]
         duration = new_x - onset
 
     if duration < 0:
         onset += duration
         duration *= -1.
 
-    params['raw'].annotations.onset[ann_idx] = onset
-    params['raw'].annotations.duration[ann_idx] = duration
+    _merge_annotations(onset, onset + duration,
+                       annotations.description[ann_idx], annotations)
     _plot_annotations(params['raw'], params)
     params['plot_fun']()
+
+
+def _merge_annotations(start, stop, description, annotations):
+    """Merges the intersecting annotations."""
+    ends = annotations.onset + annotations.duration
+    idx = np.intersect1d(np.where(ends >= start)[0],
+                         np.where(annotations.onset <= stop)[0])
+    idx = np.intersect1d(idx,
+                         np.where(annotations.description == description)[0])
+    end = max(np.append((annotations.onset[idx] + annotations.duration[idx]),
+                        stop))
+    onset = min(np.append(annotations.onset[idx], start))
+    duration = end - onset
+    annotations.delete(idx)
+    annotations.append(onset, duration, description)
 
 
 class DraggableLine:
