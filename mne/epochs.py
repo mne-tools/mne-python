@@ -1170,7 +1170,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         data : array of shape (n_epochs, n_channels, n_times)
             A copy of the epochs data.
         """
-        return self._get_data()
+        return self._get_data().copy()
 
     def __len__(self):
         """The number of epochs.
