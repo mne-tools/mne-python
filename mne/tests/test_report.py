@@ -73,7 +73,7 @@ def test_render_report():
     epochs.average().save(evoked_fname)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
-                    verbose=True)
+                    verbose='debug')
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         report.parse_folder(data_path=tempdir, on_error='raise')
