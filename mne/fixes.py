@@ -478,11 +478,7 @@ def _get_sph_harm():
 
 ###############################################################################
 # Scipy spectrogram (for mne.time_frequency.psd_welch) needed for scipy < 0.16
-def get_spectrogram():
-    from .utils import check_version
-    if check_version('scipy', '0.16.0'):
-        from scipy.signal import spectrogram
-    return spectrogram
+
 
 
 def spectrogram(x, fs=1.0, window=('tukey',.25), nperseg=256, noverlap=None,
@@ -903,6 +899,13 @@ def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft):
     result = fftpack.fft(result, n=nfft)
 
     return result
+
+
+def get_spectrogram():
+    from .utils import check_version
+    if check_version('scipy', '0.16.0'):
+        from scipy.signal import spectrogram
+    return spectrogram
 
 
 ###############################################################################
