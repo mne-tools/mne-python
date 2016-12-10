@@ -7,6 +7,7 @@ import numpy as np
 from ..parallel import parallel_func
 from ..io.pick import _pick_data_channels
 from ..utils import logger, verbose, _time_mask
+from ..fixes import get_spectrogram
 from .multitaper import _psd_multitaper
 
 
@@ -82,7 +83,7 @@ def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
     """
-    from scipy.signal import spectrogram
+    spectrogram = get_spectrogram()
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
     x = x.reshape(-1, n_times)
