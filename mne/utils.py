@@ -409,7 +409,7 @@ class _TempDir(str):
     """
 
     def __new__(self):  # noqa: D105
-        new = str.__new__(self, tempfile.mkdtemp())
+        new = str.__new__(self, tempfile.mkdtemp(prefix='tmp_mne_tempdir_'))
         return new
 
     def __init__(self):  # noqa: D102
@@ -2315,7 +2315,7 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
 
 
 def _get_fast_dot():
-    """"Get fast dot."""
+    """Get fast dot."""
     try:
         from sklearn.utils.extmath import fast_dot
     except ImportError:

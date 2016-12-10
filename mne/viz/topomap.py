@@ -31,7 +31,7 @@ from ..io.meas_info import Info
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
-    """"Prepare topo plot."""
+    """Prepare topo plot."""
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
 
     if layout is None and ch_type is not 'eeg':
@@ -490,6 +490,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     from matplotlib.widgets import RectangleSelector
 
     data = np.asarray(data)
+    logger.debug('Plotting topomap for data shape %s' % (data.shape,))
 
     if isinstance(pos, Info):  # infer pos from Info object
         picks = _pick_data_channels(pos)  # pick only data channels

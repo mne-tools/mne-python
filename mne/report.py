@@ -1575,7 +1575,7 @@ class Report(object):
             global_id = self._get_id()
 
             kwargs = dict(show=False)
-            logger.debug('Evoked: Plotting and extracting instance %s/%s'
+            logger.debug('Evoked: Plotting instance %s/%s'
                          % (ei + 1, len(evokeds)))
             img = _fig_to_img(ev.plot, **kwargs)
 
@@ -1596,8 +1596,8 @@ class Report(object):
             if len(pick_types(ev.info, meg='mag', eeg=False)) > 0:
                 has_types.append('mag')
             for ch_type in has_types:
-                kwargs.update(ch_type=ch_type)
-                img = _fig_to_img(ev.plot_topomap, **kwargs)
+                logger.debug('    Topomap type %s' % ch_type)
+                img = _fig_to_img(ev.plot_topomap, ch_type=ch_type, **kwargs)
                 caption = u'Topomap (ch_type = %s)' % ch_type
                 html.append(image_template.substitute(img=img,
                                                       div_klass=div_klass,
