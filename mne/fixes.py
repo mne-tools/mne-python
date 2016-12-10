@@ -20,9 +20,9 @@ import re
 import warnings
 
 import numpy as np
-from scipy import linalg, fftpack, __version__ as sp_version
-from scipy.signal import signaltools
-from scipy.signal.windows import get_window
+from scipy import linalg, __version__ as sp_version
+
+from .externals.six import string_types
 
 
 ###############################################################################
@@ -633,7 +633,7 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=256,
     t : ndarray
         Array of times corresponding to each data segment
     result : ndarray
-        Array of output data, contents dependant on *mode* kwarg.
+        Array of output data, contents dependent on *mode* kwarg.
 
     References
     ----------
@@ -647,6 +647,10 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=256,
     Adapted from matplotlib.mlab
     .. versionadded:: 0.16.0
     """
+    from scipy import fftpack
+    from scipy.signal import signaltools
+    from scipy.signal.windows import get_window
+
     if mode not in ['psd', 'complex', 'magnitude', 'angle', 'phase']:
         raise ValueError("Unknown value for mode %s, must be one of: "
                          "'default', 'psd', 'complex', "
@@ -694,7 +698,7 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=256,
             if not same_data and y.ndim > 1:
                 y = np.rollaxis(y, axis, len(y.shape))
 
-    # Check if x and y are the same length, zero-pad if neccesary
+    # Check if x and y are the same length, zero-pad if necessary
     if not same_data:
         if x.shape[-1] != y.shape[-1]:
             if x.shape[-1] < y.shape[-1]:
@@ -870,6 +874,8 @@ def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft):
     Adapted from matplotlib.mlab
     .. versionadded:: 0.16.0
     """
+    from scipy import fftpack
+
     # Created strided array of data segments
     if nperseg == 1 and noverlap == 0:
         result = x[..., np.newaxis]
