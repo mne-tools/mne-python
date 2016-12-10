@@ -481,13 +481,14 @@ def _get_sph_harm():
 
 
 
-def spectrogram(x, fs=1.0, window=('tukey',.25), nperseg=256, noverlap=None,
+def _spectrogram(x, fs=1.0, window=('tukey',.25), nperseg=256, noverlap=None,
                 nfft=None, detrend='constant', return_onesided=True,
                 scaling='density', axis=-1, mode='psd'):
     """
     Compute a spectrogram with consecutive Fourier transforms.
     Spectrograms can be used as a way of visualizing the change of a
     nonstationary signal's frequency content over time.
+
     Parameters
     ----------
     x : array_like
@@ -527,6 +528,7 @@ def spectrogram(x, fs=1.0, window=('tukey',.25), nperseg=256, noverlap=None,
     mode : str, optional
         Defines what kind of return values are expected. Options are ['psd',
         'complex', 'magnitude', 'angle', 'phase'].
+
     Returns
     -------
     f : ndarray
@@ -536,12 +538,14 @@ def spectrogram(x, fs=1.0, window=('tukey',.25), nperseg=256, noverlap=None,
     Sxx : ndarray
         Spectrogram of x. By default, the last axis of Sxx corresponds to the
         segment times.
+
     See Also
     --------
     periodogram: Simple, optionally modified periodogram
     lombscargle: Lomb-Scargle periodogram for unevenly sampled data
     welch: Power spectral density by Welch's method.
     csd: Cross spectral density by Welch's method.
+
     Notes
     -----
     An appropriate amount of overlap will depend on the choice of window
@@ -550,31 +554,11 @@ def spectrogram(x, fs=1.0, window=('tukey',.25), nperseg=256, noverlap=None,
     perhaps none at all) when computing a spectrogram, to maintain some
     statistical independence between individual segments.
     .. versionadded:: 0.16.0
+
     References
     ----------
     .. [1] Oppenheim, Alan V., Ronald W. Schafer, John R. Buck "Discrete-Time
            Signal Processing", Prentice Hall, 1999.
-    Examples
-    --------
-    >>> from scipy import signal
-    >>> import matplotlib.pyplot as plt
-    Generate a test signal, a 2 Vrms sine wave whose frequency linearly changes
-    with time from 1kHz to 2kHz, corrupted by 0.001 V**2/Hz of white noise
-    sampled at 10 kHz.
-    >>> fs = 10e3
-    >>> N = 1e5
-    >>> amp = 2 * np.sqrt(2)
-    >>> noise_power = 0.001 * fs / 2
-    >>> time = np.arange(N) / fs
-    >>> freq = np.linspace(1e3, 2e3, N)
-    >>> x = amp * np.sin(2*np.pi*freq*time)
-    >>> x += np.random.normal(scale=np.sqrt(noise_power), size=time.shape)
-    Compute and plot the spectrogram.
-    >>> f, t, Sxx = signal.spectrogram(x, fs)
-    >>> plt.pcolormesh(t, f, Sxx)
-    >>> plt.ylabel('Frequency [Hz]')
-    >>> plt.xlabel('Time [sec]')
-    >>> plt.show()
     """
     # Less overlap than welch, so samples are more statisically independent
     if noverlap is None:
@@ -597,6 +581,7 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=256,
     psd, csd, and spectrogram functions. It is not designed to be called
     externally. The windows are not averaged over; the result from each window
     is returned.
+
     Parameters
     ---------
     x : array_like
@@ -640,6 +625,7 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=256,
     mode : str, optional
         Defines what kind of return values are expected. Options are ['psd',
         'complex', 'magnitude', 'angle', 'phase'].
+
     Returns
     -------
     freqs : ndarray
@@ -648,12 +634,14 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=256,
         Array of times corresponding to each data segment
     result : ndarray
         Array of output data, contents dependant on *mode* kwarg.
+
     References
     ----------
     .. [1] Stack Overflow, "Rolling window for 1D arrays in Numpy?",
         http://stackoverflow.com/a/6811241
     .. [2] Stack Overflow, "Using strides for an efficient moving average
         filter", http://stackoverflow.com/a/4947453
+
     Notes
     -----
     Adapted from matplotlib.mlab
@@ -866,14 +854,17 @@ def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft):
     axis is assumed to be the last axis of x. It is not designed to be called
     externally. The windows are not averaged over; the result from each window
     is returned.
+
     Returns
     -------
     result : ndarray
         Array of FFT data
+
     References
     ----------
     .. [1] Stack Overflow, "Repeat NumPy array without replicating data?",
         http://stackoverflow.com/a/5568169
+
     Notes
     -----
     Adapted from matplotlib.mlab
@@ -902,9 +893,12 @@ def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft):
 
 
 def get_spectrogram():
+    '''helper function to get relevant spectrogram'''
     from .utils import check_version
     if check_version('scipy', '0.16.0'):
         from scipy.signal import spectrogram
+    else:
+        spectrogram = _spectrogram
     return spectrogram
 
 
