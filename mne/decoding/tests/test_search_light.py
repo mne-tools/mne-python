@@ -58,6 +58,10 @@ def test_SearchLight():
     assert_true(score.dtype == float)
 
     # change score method
+    sl = _SearchLight(LogisticRegression(), scoring='foo')
+    sl.fit(X, y)
+    assert_raises(ValueError, sl.score, X, y)
+
     sl1 = _SearchLight(LogisticRegression(), scoring=roc_auc_score)
     sl1.fit(X, y)
     score1 = sl1.score(X, y)
@@ -119,6 +123,7 @@ def test_GeneralizationLight():
     """Test _GeneralizationLight"""
     from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import roc_auc_score
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # fit
@@ -144,6 +149,12 @@ def test_GeneralizationLight():
     assert_array_equal(score.shape, [n_time, 3])
     assert_true(np.sum(np.abs(score)) != 0)
     assert_true(score.dtype == float)
+    gl = _GeneralizationLight(LogisticRegression(), scoring=roc_auc_score)
+    gl.fit(X, y)
+    score = gl.score(X, y)
+    gl = _GeneralizationLight(LogisticRegression(), scoring='foo')
+    gl.fit(X, y)
+    assert_raises(ValueError, gl.score, X, y)
 
     # n_jobs
     gl = _GeneralizationLight(LogisticRegression(), n_jobs=2)
