@@ -726,10 +726,12 @@ def _plot_raw_onkey(event, params):
             return
         if params['annotation_fig'] is None:
             from matplotlib.widgets import SpanSelector
-            fig = figure_nobar(figsize=(5.5, 0.8))
+            fig = figure_nobar(figsize=(5.5, 1.5))
             annotations_closed = partial(_annotations_closed, params=params)
             fig.canvas.mpl_connect('close_event', annotations_closed)
-            text = ('Select annotations by dragging on top of the plot.\n'
+            text = ('Annotate bad data by dragging on top of the plot.\n'
+                    'Use left mouse button to draw/modify annotation.\n'
+                    'Right click removes an existing annotation.\n'
                     'When done, close this window.')
             plt.text(0.5, 0.5, text, fontname='STIXGeneral', va='center',
                      weight='bold', ha='center', fontsize=18)
@@ -1756,6 +1758,8 @@ def _annotation_modify(old_x, new_x, params):
     _merge_annotations(onset, onset + duration,
                        annotations.description[ann_idx], annotations, ann_idx)
     _plot_annotations(params['raw'], params)
+    _remove_segment_line(params)
+
     params['plot_fun']()
 
 

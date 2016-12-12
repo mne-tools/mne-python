@@ -38,8 +38,15 @@ raw.plot(block=True)
 # with parameter ``scalings``. If you don't know the scaling factor for
 # channels, you can automatically set them by passing scalings='auto'. With
 # ``pageup/pagedown`` and ``home/end`` keys you can adjust the amount of data
-# viewed at once. To see all the interactive features, hit ``?`` or click
-# ``help`` in the lower left corner of the browser window.
+# viewed at once.
+#
+# You can annotate bad segments of data interactively by pressing ``a`` key.
+# This enters annotation mode where you can draw bad data left mouse button.
+# Existing annotations can be deleted with right mouse button. Annotation mode
+# is exited by pressing ``a`` again or closing the annotation window. See also
+# :class:`mne.Annotations` and :ref:`marking_bad_segments`. To see all the
+# interactive features, hit ``?`` key or click ``help`` in the lower left
+# corner of the browser window.
 #
 # The channels are sorted by channel type by default. You can use the ``order``
 # parameter of :func:`raw.plot <mne.io.Raw.plot>` to group the channels in a
