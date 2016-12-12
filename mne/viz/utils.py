@@ -1050,11 +1050,11 @@ def _process_times(inst, times, n_peaks=None, few=False):
     if isinstance(times, string_types):
         if times == "peaks":
             if n_peaks is None:
-                n_peaks = 3 if few else 7
+                n_peaks = min(3 if few else 7, len(times))
             times = _find_peaks(inst, n_peaks)
         elif times == "auto":
             if n_peaks is None:
-                n_peaks = 5 if few else 10
+                n_peaks = min(5 if few else 10, len(times))
             times = np.linspace(inst.times[0], inst.times[-1], n_peaks)
         else:
             raise ValueError("Got an unrecognized method for `times`. Only "
@@ -1063,7 +1063,7 @@ def _process_times(inst, times, n_peaks=None, few=False):
     elif np.isscalar(times):
         times = [times]
 
-    times = np.array(times)
+    times = np.array(times, float)
 
     if times.ndim != 1:
         raise ValueError('times must be 1D, got %d dimensions' % times.ndim)
