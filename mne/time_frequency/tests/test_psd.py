@@ -7,6 +7,7 @@ from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
 from mne.utils import requires_version, slow_test, run_tests_if_main
 from mne.time_frequency import psd_welch, psd_multitaper
+from mne.time_frequency.psd import _spectral_helper
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -129,7 +130,8 @@ def test_psd():
 @slow_test
 @requires_version('scipy', '0.12')
 def test_compares_psd():
-    """Test PSD estimation on raw for plt.psd and scipy.signal.welch."""
+    """Test PSD estimation on raw for plt.psd and scipy.signal.welch
+    compare mne's _spectral_helper with scipy csd outputs"""
     raw = read_raw_fif(raw_fname)
 
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
@@ -151,8 +153,9 @@ def test_compares_psd():
     # Compute psds with plt.psd
     start, stop = raw.time_as_index([tmin, tmax])
     data, times = raw[picks, start:(stop + 1)]
+    sfreq = raw.info['sfreq']
     from matplotlib.pyplot import psd
-    out = [psd(d, Fs=raw.info['sfreq'], NFFT=n_fft) for d in data]
+    out = [psd(d, Fs=sfreq, NFFT=n_fft) for d in data]
     freqs_mpl = out[0][1]
     psds_mpl = np.array([o[0] for o in out])
 
@@ -171,5 +174,35 @@ def test_compares_psd():
 
     assert_true(np.sum(psds_welch < 0) == 0)
     assert_true(np.sum(psds_mpl < 0) == 0)
+
+    # test _spectral_helper errors and warnings
+    assert_raises(ValueError, _spectral_helper, data, sfreq, nperseg=0)
+    assert_raises(ValueError, _spectral_helper, data, sfreq, nperseg=120,
+                  nfft=60)
+
+    # compare mne _spectral_helper with scipy's csd
+    from scipy.signal.spectral import welch
+
+    def win_avg(data):
+        # Average over windows.
+        if len(data.shape) >= 2 and data.size > 0:
+            if data.shape[-1] > 1:
+                data = data.mean(axis=-1)
+            else:
+                data = np.reshape(data, data.shape[:-1])
+        return data
+
+    kwargs = dict(window='blackman', nperseg=int(sfreq))
+    freqs_mne, _, psds_mne = _spectral_helper(data, sfreq, **kwargs)
+    freqs_scipy, psds_scipy = welch(data, fs=sfreq, **kwargs)
+    assert_array_almost_equal(freqs_mne, freqs_scipy)
+    assert_array_almost_equal(win_avg(psds_mne), psds_scipy)
+
+    kwargs = dict(window=np.ones(120), nperseg=120, noverlap=80, nfft=240,
+                  detrend=False, scaling='spectrum')
+    freqs_mne, _, psds_mne = _spectral_helper(data, sfreq, **kwargs)
+    freqs_scipy, psds_scipy = welch(data, fs=sfreq, **kwargs)
+    assert_array_almost_equal(freqs_mne, freqs_scipy)
+    assert_array_almost_equal(win_avg(psds_mne), psds_scipy)
 
 run_tests_if_main()
