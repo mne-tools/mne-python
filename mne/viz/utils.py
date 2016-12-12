@@ -1764,7 +1764,7 @@ def _annotation_modify(old_x, new_x, params):
 
 
 def _merge_annotations(start, stop, description, annotations, current=()):
-    """Merges the intersecting annotations."""
+    """Merge intersecting annotations."""
     ends = annotations.onset + annotations.duration
     idx = np.intersect1d(np.where(ends >= start)[0],
                          np.where(annotations.onset <= stop)[0])
