@@ -141,9 +141,9 @@ class Scaler(TransformerMixin):
 
         for key, this_pick in six.iteritems(self.picks_list_):
             if self.with_mean:
-                X[:, this_pick, :] += self.ch_mean_[key]
-            if self.with_std:
                 X[:, this_pick, :] *= self.std_[key]
+            if self.with_std:
+                X[:, this_pick, :] += self.ch_mean_[key]
 
         return X
 
