@@ -107,7 +107,7 @@ class Scaler(TransformerMixin):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
 
-        X = np.atleast_3d(epochs_data)
+        X = np.atleast_3d(epochs_data).copy()
 
         for key, this_pick in six.iteritems(self.picks_list_):
             if self.with_mean:
@@ -137,7 +137,7 @@ class Scaler(TransformerMixin):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
 
-        X = np.atleast_3d(epochs_data)
+        X = np.atleast_3d(epochs_data).copy()
 
         for key, this_pick in six.iteritems(self.picks_list_):
             if self.with_mean:
