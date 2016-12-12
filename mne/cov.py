@@ -1334,12 +1334,12 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     channel type separately. Special care is taken to keep the
     rank of the data constant.
 
-    **Note:** This function is kept for reasons of backward-compatibility.
-    Please consider explicitly using the ``method`` parameter in
-    `compute_covariance` to directly combine estimation with regularization
-    in a data-driven fashion see the
-    `faq <http://martinos.org/mne/dev/faq.html#how-should-i-regularize-the-covariance-matrix>`_
-    for more information.
+    .. note:: This function is kept for reasons of backward-compatibility.
+              Please consider explicitly using the ``method`` parameter in
+              :func:`mne.compute_covariance` to directly combine estimation
+              with regularization in a data-driven fashion.
+              See the `faq <http://martinos.org/mne/dev/faq.html#how-should-i-regularize-the-covariance-matrix>`_
+              for more information.
 
     Parameters
     ----------
@@ -1390,6 +1390,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     ch_names_eeg = [info_ch_names[i] for i in sel_eeg]
     ch_names_mag = [info_ch_names[i] for i in sel_mag]
     ch_names_grad = [info_ch_names[i] for i in sel_grad]
+    del sel_eeg, sel_mag, sel_grad
 
     # This actually removes bad channels from the cov, which is not backward
     # compatible, so let's leave all channels in
@@ -1441,9 +1442,6 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         C[np.ix_(idx, idx)] = this_C
 
     # Put data back in correct locations
-    # XXX because this uses pick_channels it is not immune to reordering,
-    # but hopefully won't be a problem in practice so long as users don't
-    # reorder their data...
     idx = pick_channels(cov.ch_names, info_ch_names, exclude=exclude)
     cov['data'][np.ix_(idx, idx)] = C
 
