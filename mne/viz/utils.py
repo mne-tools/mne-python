@@ -262,10 +262,10 @@ def _get_help_text(params):
     """Aux function for customizing help dialogs text."""
     text, text2 = list(), list()
 
-    text.append(u'\u2190 : \n')
-    text.append(u'\u2192 : \n')
-    text.append(u'\u2193 : \n')
-    text.append(u'\u2191 : \n')
+    text.append(u'\u2190 : \n')  # left arrow
+    text.append(u'\u2192 : \n')  # right arrow
+    text.append(u'\u2193 : \n')  # down arrow
+    text.append(u'\u2191 : \n')  # up arrow
     text.append(u'- : \n')
     text.append(u'+ or = : \n')
     text.append(u'Home : \n')
@@ -306,9 +306,11 @@ def _get_help_text(params):
             text.append(u'click channel name :\n')
             text2.insert(2, 'Navigate channels down\n')
             text2.insert(3, 'Navigate channels up\n')
+            text.insert(6, u'a : \n')
+            text2.insert(6, 'Toggle annotation mode\n')
             if 'fig_selection' not in params:
-                text2.insert(8, 'Reduce the number of channels per view\n')
-                text2.insert(9, 'Increase the number of channels per view\n')
+                text2.insert(9, 'Reduce the number of channels per view\n')
+                text2.insert(10, 'Increase the number of channels per view\n')
             text2.append('Mark bad channel\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
@@ -1752,21 +1754,22 @@ def _annotation_modify(old_x, new_x, params):
         duration *= -1.
 
     _merge_annotations(onset, onset + duration,
-                       annotations.description[ann_idx], annotations)
+                       annotations.description[ann_idx], annotations, ann_idx)
     _plot_annotations(params['raw'], params)
     params['plot_fun']()
 
 
-def _merge_annotations(start, stop, description, annotations):
+def _merge_annotations(start, stop, description, annotations, current=()):
     """Merges the intersecting annotations."""
     ends = annotations.onset + annotations.duration
     idx = np.intersect1d(np.where(ends >= start)[0],
                          np.where(annotations.onset <= stop)[0])
     idx = np.intersect1d(idx,
                          np.where(annotations.description == description)[0])
-    end = max(np.append((annotations.onset[idx] + annotations.duration[idx]),
-                        stop))
-    onset = min(np.append(annotations.onset[idx], start))
+    new_idx = np.setdiff1d(idx, current)  # don't include modified annotation
+    end = max(np.append((annotations.onset[new_idx] +
+                         annotations.duration[new_idx]), stop))
+    onset = min(np.append(annotations.onset[new_idx], start))
     duration = end - onset
     annotations.delete(idx)
     annotations.append(onset, duration, description)
