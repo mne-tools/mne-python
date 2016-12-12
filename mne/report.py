@@ -79,8 +79,11 @@ def _fig_to_img(function=None, fig=None, image_format='png',
     output = BytesIO()
     if scale is not None:
         _scale_mpl_figure(fig, scale)
-    fig.savefig(output, format=image_format, bbox_inches='tight',
-                dpi=fig.get_dpi())
+    logger.debug('Saving figure %s with dpi %s'
+                 % (fig.get_size_inches(), fig.get_dpi()))
+    # We don't use bbox_inches='tight' here because it can break
+    # newer matplotlib, and should only save a little bit of space
+    fig.savefig(output, format=image_format, dpi=fig.get_dpi())
     plt.close(fig)
     output = output.getvalue()
     return (output if image_format == 'svg' else
