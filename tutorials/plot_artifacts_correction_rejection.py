@@ -133,8 +133,8 @@ raw.annotations = mne.Annotations(onset, duration, ['bad blink'] * n_blinks,
 raw.plot(events=eog_events)  # To see the annotated segments.
 
 ###############################################################################
-# It is also possible to draw bad segments interactively using ``raw.plot``
-# (see :ref:`tut_viz_raw`).
+# It is also possible to draw bad segments interactively using
+# :func:`raw.plot <mne.viz.plot_raw>` (see :ref:`tut_viz_raw`).
 #
 # As the data is epoched, all the epochs overlapping with segments whose
 # description starts with 'bad' are rejected by default. To turn rejection off,
