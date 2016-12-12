@@ -1197,7 +1197,7 @@ def _unpack_epochs(epochs):
 
 
 def _get_ch_whitener(A, pca, ch_type, rank):
-    """"Get whitener params for a set of channels."""
+    """Get whitener params for a set of channels."""
     # whitening operator
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
     eigvec = eigvec.T

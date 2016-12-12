@@ -31,7 +31,7 @@ from ..io.meas_info import Info
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
-    """"Prepare topo plot."""
+    """Prepare topo plot."""
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
 
     if layout is None and ch_type is not 'eeg':
@@ -490,6 +490,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     from matplotlib.widgets import RectangleSelector
 
     data = np.asarray(data)
+    logger.debug('Plotting topomap for data shape %s' % (data.shape,))
 
     if isinstance(pos, Info):  # infer pos from Info object
         picks = _pick_data_channels(pos)  # pick only data channels
@@ -1159,10 +1160,10 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         The Evoked object.
     times : float | array of floats | "auto" | "peaks".
         The time point(s) to plot. If "auto", the number of ``axes`` determines
-        the amount of time point(s). If ``axes`` is also None, 10 topographies
-        will be shown with a regular time spacing between the first and last
-        time instant. If "peaks", finds time points automatically by checking
-        for local maxima in global field power.
+        the amount of time point(s). If ``axes`` is also None, at most 10
+        topographies will be shown with a regular time spacing between the
+        first and last time instant. If "peaks", finds time points
+        automatically by checking for local maxima in global field power.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the RMS for each pair is plotted.

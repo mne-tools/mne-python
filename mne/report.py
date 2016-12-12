@@ -54,10 +54,11 @@ def _fig_to_img(function=None, fig=None, image_format='png',
         mlab = None
         try:
             from mayavi import mlab  # noqa: F401
-        except:  # on some systems importing Mayavi raises SystemExit (!)
-            warn('Could not import mayavi. Trying to render'
+        # on some systems importing Mayavi raises SystemExit (!)
+        except Exception as e:
+            warn('Could not import mayavi (%r). Trying to render'
                  '`mayavi.core.scene.Scene` figure instances'
-                 ' will throw an error.')
+                 ' will throw an error.' % (e,))
         tempdir = _TempDir()
         temp_fname = op.join(tempdir, 'test')
         if fig.scene is not None:
@@ -78,8 +79,11 @@ def _fig_to_img(function=None, fig=None, image_format='png',
     output = BytesIO()
     if scale is not None:
         _scale_mpl_figure(fig, scale)
-    fig.savefig(output, format=image_format, bbox_inches='tight',
-                dpi=fig.get_dpi())
+    logger.debug('Saving figure %s with dpi %s'
+                 % (fig.get_size_inches(), fig.get_dpi()))
+    # We don't use bbox_inches='tight' here because it can break
+    # newer matplotlib, and should only save a little bit of space
+    fig.savefig(output, format=image_format, dpi=fig.get_dpi())
     plt.close(fig)
     output = output.getvalue()
     return (output if image_format == 'svg' else
@@ -1566,13 +1570,16 @@ class Report(object):
 
     def _render_evoked(self, evoked_fname, baseline=None, figsize=None):
         """Render evoked."""
+        logger.debug('Evoked: Reading %s' % evoked_fname)
         evokeds = read_evokeds(evoked_fname, baseline=baseline, verbose=False)
 
         html = []
-        for ev in evokeds:
+        for ei, ev in enumerate(evokeds):
             global_id = self._get_id()
 
             kwargs = dict(show=False)
+            logger.debug('Evoked: Plotting instance %s/%s'
+                         % (ei + 1, len(evokeds)))
             img = _fig_to_img(ev.plot, **kwargs)
 
             caption = u'Evoked : %s (%s)' % (evoked_fname, ev.comment)
@@ -1592,15 +1599,15 @@ class Report(object):
             if len(pick_types(ev.info, meg='mag', eeg=False)) > 0:
                 has_types.append('mag')
             for ch_type in has_types:
-                kwargs.update(ch_type=ch_type)
-                img = _fig_to_img(ev.plot_topomap, **kwargs)
+                logger.debug('    Topomap type %s' % ch_type)
+                img = _fig_to_img(ev.plot_topomap, ch_type=ch_type, **kwargs)
                 caption = u'Topomap (ch_type = %s)' % ch_type
                 html.append(image_template.substitute(img=img,
                                                       div_klass=div_klass,
                                                       img_klass=img_klass,
                                                       caption=caption,
                                                       show=show))
-
+        logger.debug('Evoked: done')
         return '\n'.join(html)
 
     def _render_eve(self, eve_fname, sfreq=None):
