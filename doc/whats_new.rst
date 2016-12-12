@@ -45,8 +45,12 @@ Changelog
 
     - Add method of ICA objects for retrieving the component maps :func:`mne.preprocessing.ica.get_components` by `Jona Sassenhagen`_
 
+    - Add option to plot events in :func:`mne.viz.plot_epochs` by `Jaakko Leppakangas`_
+
+
 BUG
 ~~~
+    - Fix reading multi-file CTF recordings in :class:`mne.io.ctf.RawCTF` by `Niklas Wilming`_
 
     - Fix computation of AR coefficients across channels in :func:`mne.time_frequency.fit_iir_model_raw` by `Eric Larson`_
 
@@ -79,6 +83,8 @@ BUG
     - Fix a bug in :meth:`mne.time_frequency.AverageTFR.plot` when plotting without a colorbar by `Jaakko Leppakangas`_
 
     - Fix ``_filenames`` attribute in creation of :class:`mne.io.RawArray` with :func:`mne.preporcessing.ica._sources_as_raw` by `Paul Pasler`_
+
+    - Fix contour levels in :func:`mne.viz.plot_evoked_topomap` to be uniform across topomaps by `Jaakko Leppakangas`_
 
 API
 ~~~
@@ -1910,3 +1916,5 @@ of commits):
 .. _Keith Doelling: http://science.keithdoelling.com
 
 .. _Paul Pasler: https://github.com/ppasler
+
+.. _Niklas Wilming: https://github.com/nwilming

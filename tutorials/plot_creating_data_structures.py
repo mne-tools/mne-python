@@ -32,7 +32,7 @@ import numpy as np
 # Create some dummy metadata
 n_channels = 32
 sampling_rate = 200
-info = mne.create_info(32, sampling_rate)
+info = mne.create_info(n_channels, sampling_rate)
 print(info)
 
 ###############################################################################

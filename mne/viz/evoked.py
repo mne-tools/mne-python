@@ -20,12 +20,14 @@ from ..io.pick import (channel_type, pick_types, _picks_by_type,
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
-                    plt_show, _process_times, DraggableColorbar, _setup_cmap)
+                    plt_show, _process_times, DraggableColorbar, _setup_cmap,
+                    _setup_vmin_vmax)
 from ..utils import logger, _clean_names, warn
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
-                      _draw_outlines, _prepare_topomap, _topomap_animation)
+                      _draw_outlines, _prepare_topomap, _topomap_animation,
+                      _set_contour_locator)
 from ..channels import find_layout
 from ..channels.layout import (_pair_grad_sensors, generate_2d_layout,
                                _auto_topomap_coords)
@@ -1034,8 +1036,8 @@ def _connection_line(x, fig, sourceax, targetax):
 
 
 def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
-                      exclude=None,
-                      show=True, ts_args=None, topomap_args=None):
+                      exclude=None, show=True, ts_args=None,
+                      topomap_args=None):
     """Plot evoked data as butterfly plot and add topomaps for time points.
 
     Parameters
@@ -1111,10 +1113,10 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
         figs = list()
-        for t in ch_types:  # pick only the corresponding channel type
+        for this_type in ch_types:  # pick only the corresponding channel type
             ev_ = evoked.copy().pick_channels(
                 [info['ch_names'][idx] for idx in range(info['nchan'])
-                 if channel_type(info, idx) == t])
+                 if channel_type(info, idx) == this_type])
             if len(set([channel_type(ev_.info, idx)
                         for idx in range(ev_.info['nchan'])
                         if channel_type(ev_.info, idx) in data_types])) > 1:
@@ -1166,17 +1168,29 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     cbar_ax = plt.subplot(4, 3 * (ts + 1), 6 * (ts + 1))
 
     # topomap
+    contours = topomap_args.get('contours', 6)
+    ch_type = ch_types.pop()  # set should only contain one element
+    # Since the data has all the ch_types, we get the limits from the plot.
+    vmin, vmax = ts_ax.get_ylim()
+    norm = ch_type == 'grad'
+    vmin = 0 if norm else vmin
+    vmin, vmax = _setup_vmin_vmax(evoked.data, vmin, vmax, norm)
+    locator, contours = _set_contour_locator(vmin, vmax, contours)
+
     topomap_args_pass = dict((k, v) for k, v in topomap_args.items() if
                              k not in ['times', 'axes', 'show', 'colorbar'])
     topomap_args_pass['outlines'] = (topomap_args['outlines'] if 'outlines'
                                      in topomap_args else 'skirt')
-    evoked.plot_topomap(times=times, axes=map_ax, show=False,
-                        colorbar=False, **topomap_args_pass)
+    topomap_args_pass['contours'] = contours
+    evoked.plot_topomap(times=times, axes=map_ax, show=False, colorbar=False,
+                        **topomap_args_pass)
 
     if topomap_args.get('colorbar', True):
         from matplotlib import ticker
         cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
-        cbar.locator = ticker.MaxNLocator(nbins=5)
+        if locator is None:
+            locator = ticker.MaxNLocator(nbins=5)
+        cbar.locator = locator
         cbar.update_ticks()
 
     plt.subplots_adjust(left=.1, right=.93, bottom=.14,

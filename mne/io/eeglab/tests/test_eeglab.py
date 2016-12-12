@@ -32,15 +32,16 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 def test_io_set():
     """Test importing EEGLAB .set files"""
     from scipy import io
-    with warnings.catch_warnings(record=True) as w1:
+    with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # main tests, and test missing event_id
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
                          montage=montage)
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
                          montage=montage)
-        assert_equal(len(w1), 20)
-        # f3 or preload_false and a lot for dropping events
+    for want in ('Events like', 'consist entirely', 'could not be mapped',
+                 'string preload is not supported'):
+        assert_true(any(want in str(ww.message) for ww in w))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # test finding events in continuous data
