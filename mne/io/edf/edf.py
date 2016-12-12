@@ -291,7 +291,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
                                                        fid.read(8).decode())]
         hour, minute, sec = [int(x) for x in re.findall('(\d+)',
                                                         fid.read(8).decode())]
-        date = datetime.datetime(year + 2000, month, day, hour, minute, sec)
+        century = 2000 if year < 50 else 1900
+        date = datetime.datetime(year + century, month, day, hour, minute, sec)
 
         edf_info['data_offset'] = header_nbytes = int(fid.read(8).decode())
         subtype = fid.read(44).strip().decode()[:5]
