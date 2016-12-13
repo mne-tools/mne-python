@@ -66,9 +66,12 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
 
     Cm = data_csd.data
 
-    # Calculating regularized inverse, equivalent to an inverse operation after
-    # regularization: Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
-    Cm_inv = linalg.pinv(Cm, reg)
+    # Tikhonov regularization using reg parameter to control for trade-off between spatial resolution and noise sensitivity
+    # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
+    Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
+
+    # Compute pseudoinverse of Cm
+    Cm_inv = linalg.pinv(Cm)
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
@@ -379,10 +382,12 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
         Cm = data_csd.data
 
-        # Calculating regularized inverse, equivalent to an inverse operation
-        # after the following regularization:
-        # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
-        Cm_inv = linalg.pinv(Cm, reg)
+        # Tikhonov regularization using reg parameter to control for trade-off between spatial resolution and noise sensitivity
+        # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
+        Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
+
+        # Compute pseudoinverse of Cm
+        Cm_inv = linalg.pinv(Cm)
 
         # Compute spatial filters
         W = np.dot(G.T, Cm_inv)
