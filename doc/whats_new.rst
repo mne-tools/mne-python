@@ -45,6 +45,8 @@ Changelog
 
     - Add option to plot events in :func:`mne.viz.plot_epochs` by `Jaakko Leppakangas`_
 
+    - Add dipole definitions for older phantom at Otaniemi in :func:`mne.dipole.get_phantom_dipoles` by `Eric Larson`_
+
 BUG
 ~~~
     - Fix reading multi-file CTF recordings in :class:`mne.io.ctf.RawCTF` by `Niklas Wilming`_
@@ -86,6 +88,9 @@ BUG
     - Fix bug in :func:`mne.preprocessing.maxwell_filter` where fine calibration indices were mismatched leading to an ``AssertionError`` by `Eric Larson`_
 
     - Fix bug in :func:`mne.preprocessing.fix_stim_artifact` where non-data channels were interpolated by `Eric Larson`_
+
+    - Fix :func:`mne.viz.plot_topo_image_epochs` and :class:`mne.decoding.transformer.Scaler` so that they no longer modify the data in-place and fix to :class:`mne.decoding.transformer.Scaler.inverse_transform` so that the data is scaled before centering by `Jaakko Leppakangas`_
+
 
 API
 ~~~

@@ -53,7 +53,7 @@ def test_scaler():
     # Test inverse_transform
     with warnings.catch_warnings(record=True):  # invalid value in mult
         Xi = scaler.inverse_transform(X, y)
-    assert_array_equal(epochs_data, Xi)
+    assert_array_almost_equal(epochs_data, Xi)
 
     # Test init exception
     assert_raises(ValueError, scaler.fit, epochs, y)
