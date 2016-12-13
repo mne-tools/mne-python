@@ -45,6 +45,8 @@ Changelog
 
     - Add option to plot events in :func:`mne.viz.plot_epochs` by `Jaakko Leppakangas`_
 
+    - Add dipole definitions for older phantom at Otaniemi in :func:`mne.dipole.get_phantom_dipoles` by `Eric Larson`_
+
 BUG
 ~~~
     - Fix reading multi-file CTF recordings in :class:`mne.io.ctf.RawCTF` by `Niklas Wilming`_
