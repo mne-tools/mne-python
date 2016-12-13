@@ -55,6 +55,11 @@ def test_scaler():
         Xi = scaler.inverse_transform(X, y)
     assert_array_almost_equal(epochs_data, Xi)
 
+    for kwargs in [{'with_mean': False}, {'with_std': False}]:
+        scaler = Scaler(epochs.info, **kwargs)
+        scaler.fit(epochs_data, y)
+        assert_array_almost_equal(
+            X, scaler.inverse_transform(scaler.transform(X)))
     # Test init exception
     assert_raises(ValueError, scaler.fit, epochs, y)
     assert_raises(ValueError, scaler.transform, epochs, y)
