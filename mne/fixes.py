@@ -479,8 +479,6 @@ def _get_sph_harm():
 ###############################################################################
 # Scipy spectrogram (for mne.time_frequency.psd_welch) needed for scipy < 0.16
 
-
-
 def _spectrogram(x, fs=1.0, window=('tukey',.25), nperseg=256, noverlap=None,
                 nfft=None, detrend='constant', return_onesided=True,
                 scaling='density', axis=-1, mode='psd'):
