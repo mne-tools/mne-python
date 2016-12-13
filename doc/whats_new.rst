@@ -43,6 +43,8 @@ Changelog
 
     - Add support for reading ASCII BrainVision files in :func:`mne.io.read_raw_brainvision` by `Eric Larson`_
 
+    - Add method of ICA objects for retrieving the component maps :func:`mne.preprocessing.ica.get_components` by `Jona Sassenhagen`_
+
     - Add option to plot events in :func:`mne.viz.plot_epochs` by `Jaakko Leppakangas`_
 
     - Add dipole definitions for older phantom at Otaniemi in :func:`mne.dipole.get_phantom_dipoles` by `Eric Larson`_
