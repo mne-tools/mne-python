@@ -102,6 +102,11 @@ class Scaler(TransformerMixin):
         -------
         X : array, shape (n_epochs, n_channels, n_times)
             The data concatenated over channels.
+
+        Notes
+        -----
+        This function makes a copy of the data before the operations and the
+        memory usage may be large with big data.
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
@@ -132,6 +137,11 @@ class Scaler(TransformerMixin):
         -------
         X : array, shape (n_epochs, n_channels, n_times)
             The data concatenated over channels.
+
+        Notes
+        -----
+        This function makes a copy of the data before the operations and the
+        memory usage may be large with big data.
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
