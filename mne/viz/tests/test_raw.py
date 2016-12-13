@@ -54,6 +54,26 @@ def test_plot_raw():
         x = fig.get_axes()[0].lines[1].get_xdata().mean()
         y = fig.get_axes()[0].lines[1].get_ydata().mean()
         data_ax = fig.get_axes()[0]
+
+        # XXX: for some reason if annotation mode gets tested later the events
+        # get registered to the wrong axes.
+        fig.canvas.key_press_event('a')  # annotation mode
+        _fake_click(fig, fig.axes[0], [1., 1.], xform='data', button=1,
+                    kind='press')  # create
+        _fake_click(fig, fig.axes[0], [5., 1.], xform='data', button=1,
+                    kind='motion')
+        _fake_click(fig, fig.axes[0], [5., 1.], xform='data', button=1,
+                    kind='release')
+        _fake_click(fig, fig.axes[0], [5., 1.], xform='data', button=1,
+                    kind='press')  # modify
+        _fake_click(fig, fig.axes[0], [2.5, 1.], xform='data', button=1,
+                    kind='motion')
+        _fake_click(fig, fig.axes[0], [2.5, 1.], xform='data', button=1,
+                    kind='release')
+        _fake_click(fig, fig.axes[0], [1.5, 1.], xform='data', button=3,
+                    kind='press')  # delete
+        fig.canvas.key_press_event('a')  # exit annotation mode
+
         _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
         _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
         _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
@@ -90,14 +110,6 @@ def test_plot_raw():
         fig.canvas.key_press_event('end')
         fig.canvas.key_press_event('?')
         fig.canvas.key_press_event('f11')
-        fig.canvas.key_press_event('a')  # annotation mode
-        _fake_click(fig, data_ax, [1., 1.], button=1, kind='press')  # create
-        _fake_click(fig, data_ax, [5., 1.], button=1, kind='motion')
-        _fake_click(fig, data_ax, [5., 1.], button=1, kind='release')
-        _fake_click(fig, data_ax, [5., 1.], button=1, kind='press')  # modify
-        _fake_click(fig, data_ax, [0.5, 1.], button=1, kind='motion')
-        _fake_click(fig, data_ax, [0.5, 1.], button=1, kind='release')
-        _fake_click(fig, data_ax, [0.7, 1.], button=3, kind='press')  # delete
         fig.canvas.key_press_event('escape')
         # Color setting
         assert_raises(KeyError, raw.plot, event_color={0: 'r'})
