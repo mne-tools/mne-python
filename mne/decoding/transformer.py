@@ -102,12 +102,17 @@ class Scaler(TransformerMixin):
         -------
         X : array, shape (n_epochs, n_channels, n_times)
             The data concatenated over channels.
+
+        Notes
+        -----
+        This function makes a copy of the data before the operations and the
+        memory usage may be large with big data.
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
 
-        X = np.atleast_3d(epochs_data)
+        X = np.atleast_3d(epochs_data).copy()
 
         for key, this_pick in six.iteritems(self.picks_list_):
             if self.with_mean:
@@ -132,18 +137,23 @@ class Scaler(TransformerMixin):
         -------
         X : array, shape (n_epochs, n_channels, n_times)
             The data concatenated over channels.
+
+        Notes
+        -----
+        This function makes a copy of the data before the operations and the
+        memory usage may be large with big data.
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
 
-        X = np.atleast_3d(epochs_data)
+        X = np.atleast_3d(epochs_data).copy()
 
         for key, this_pick in six.iteritems(self.picks_list_):
             if self.with_mean:
-                X[:, this_pick, :] += self.ch_mean_[key]
-            if self.with_std:
                 X[:, this_pick, :] *= self.std_[key]
+            if self.with_std:
+                X[:, this_pick, :] += self.ch_mean_[key]
 
         return X
 

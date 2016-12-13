@@ -10,7 +10,7 @@ import warnings
 from collections import namedtuple
 
 import numpy as np
-from numpy.testing import assert_raises
+from numpy.testing import assert_raises, assert_equal
 
 from mne import read_events, Epochs, pick_channels_evoked
 from mne.channels import read_layout
@@ -132,9 +132,12 @@ def test_plot_topo_image_epochs():
     import matplotlib.pyplot as plt
     title = 'ERF images - MNE sample data'
     epochs = _get_epochs()
+    epochs.load_data()
     cmap = mne_analyze_colormap(format='matplotlib')
+    data_min = epochs._data.min()
     fig = plot_topo_image_epochs(epochs, sigma=0.5, vmin=-200, vmax=200,
                                  colorbar=True, title=title, cmap=cmap)
+    assert_equal(epochs._data.min(), data_min)
     _fake_click(fig, fig.axes[2], (0.08, 0.64))
     plt.close('all')
 
