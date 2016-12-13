@@ -64,6 +64,10 @@ def test_plot_raw():
                     kind='motion')
         _fake_click(fig, fig.axes[0], [5., 1.], xform='data', button=1,
                     kind='release')
+        _fake_click(fig, fig.axes[0], [4.5, 1.], xform='data', button=None,
+                    kind='motion')  # hover
+        _fake_click(fig, fig.axes[0], [4.7, 1.], xform='data', button=None,
+                    kind='motion')  # hover
         _fake_click(fig, fig.axes[0], [5., 1.], xform='data', button=1,
                     kind='press')  # modify
         _fake_click(fig, fig.axes[0], [2.5, 1.], xform='data', button=1,
