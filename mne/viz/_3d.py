@@ -17,6 +17,7 @@ from itertools import cycle
 import os.path as op
 import warnings
 from functools import partial
+from types import MethodType
 
 import numpy as np
 from scipy import linalg
@@ -1400,7 +1401,7 @@ def _sensor_shape(coil):
     return rrs, tris
 
 
-def _limits_to_control_points(clim, stc_data, colormap):
+def _limits_to_control_points(clim, stc_data, colormap, transparent):
     """Convert limits (values or percentiles) to control points.
 
     Note: If using 'mne', generate cmap control points for a directly
@@ -1411,13 +1412,22 @@ def _limits_to_control_points(clim, stc_data, colormap):
     ----------
     clim : str | dict
         Desired limits use to set cmap control points.
+    stc_data : 2D Array (n_vertices, n_samples)
+        The data in source space.
+    colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+        The desired colormap.
+    transparent : boolean
+        if True: use a linear transparency between fmin and fmid.
 
     Returns
     -------
-    ctrl_pts : list (length 3)
+    scale_pts : list (length 3)
         Array of floats corresponding to values to use as cmap control points.
+        (min, mid, max)
     colormap : str
-        The colormap.
+        The colormap to use.
+    transparent : bool
+        Whether to use transparency.
     """
     # Based on type of limits specified, get cmap control points
     if colormap == 'auto':
@@ -1468,7 +1478,94 @@ def _limits_to_control_points(clim, stc_data, colormap):
             bump = 1e-5 if ctrl_pts[0] == ctrl_pts[1] else -1e-5
             ctrl_pts[1] = ctrl_pts[0] + bump * (ctrl_pts[2] - ctrl_pts[0])
 
-    return ctrl_pts, colormap
+    # Construct cmap manually if 'mne' and get cmap bounds
+    # and triage transparent argument
+    if colormap in ('mne', 'mne_analyze'):
+        colormap = mne_analyze_colormap(ctrl_pts)
+        scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
+        transparent = False if transparent is None else transparent
+    else:
+        scale_pts = ctrl_pts
+        transparent = True if transparent is None else transparent
+
+    return scale_pts, colormap, transparent
+
+
+def _scale_mayavi_lut(lut_manager, fmin, fmid, fmax, transparent,
+                      verbose=None):
+    """Scale a mayavi colormap LUT to a given fmin, fmid and fmax.
+
+    This function operates on a Mayavi LUTManager. This manager can be obtained
+    through the traits interface of mayavi. For example:
+    ``x.module_manager.vector_lut_manager``.
+
+    Parameters
+    ----------
+    lut : LUTManager
+        The Mayavi lookup table manager used to scale the colormap.
+    fmin : float
+        minimum value of colormap.
+    fmid : float
+        value corresponding to color midpoint.
+    fmax : float
+        maximum value for colormap.
+    transparent : boolean
+        if True: use a linear transparency between fmin and fmid.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    lut_table : 2D array (n_colors, 4)
+        The re-scaled color lookup table
+
+    Notes
+    -----
+    Much of this code was taken from PySurfer's scale_data_colormap function.
+    """
+    if not (fmin < fmid) and (fmid < fmax):
+        raise ValueError("Invalid colormap, we need fmin<fmid<fmax")
+
+    # Cast inputs to float to prevent integer division
+    fmin = float(fmin)
+    fmid = float(fmid)
+    fmax = float(fmax)
+
+    logger.info("colormap: fmin=%0.2e fmid=%0.2e fmax=%0.2e "
+                "transparent=%d" % (fmin, fmid, fmax, transparent))
+
+    # Get the original colormap
+    lut_table = lut_manager.lut.table.to_array()
+
+    # Add transparency if needed
+    if transparent:
+        n_colors = lut_table.shape[0]
+        n_colors2 = int(n_colors / 2)
+        lut_table[:n_colors2, -1] = np.linspace(0, 255, n_colors2)
+        lut_table[n_colors2:, -1] = 255 * np.ones(n_colors - n_colors2)
+
+    # Scale the colormap
+    lut_table_new = lut_table.copy()
+    n_colors = lut_table.shape[0]
+    n_colors2 = n_colors // 2
+
+    # Index of fmid in new colorbar
+    fmid_idx = int(np.round(n_colors * ((fmid - fmin) /
+                                        (fmax - fmin))) - 1)
+
+    # Go through channels
+    for i in range(4):
+        part1 = np.interp(np.linspace(0, n_colors2 - 1, fmid_idx + 1),
+                          np.arange(n_colors),
+                          lut_table[:, i])
+        lut_table_new[:fmid_idx + 1, i] = part1
+        part2 = np.interp(np.linspace(n_colors2, n_colors - 1,
+                                      n_colors - fmid_idx - 1),
+                          np.arange(n_colors),
+                          lut_table[:, i])
+        lut_table_new[fmid_idx + 1:, i] = part2
+
+    return lut_table_new
 
 
 def _handle_time(time_label, time_unit, times):
@@ -1685,8 +1782,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     Parameters
     ----------
-    stc : SourceEstimates
-        The source estimates to plot.
+    stc : SourceEstimate
+        The source estimate to plot.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. If None stc.subject will be used. If that
@@ -1848,17 +1945,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
-    ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
-
-    # Construct cmap manually if 'mne' and get cmap bounds
-    # and triage transparent argument
-    if colormap in ('mne', 'mne_analyze'):
-        colormap = mne_analyze_colormap(ctrl_pts)
-        scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
-        transparent = False if transparent is None else transparent
-    else:
-        scale_pts = ctrl_pts
-        transparent = True if transparent is None else transparent
+    scale_pts, colormap, transparent = _limits_to_control_points(
+        clim, stc.data, colormap, transparent)
 
     if hemi in ['both', 'split']:
         hemis = ['lh', 'rh']
@@ -1872,6 +1960,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
                       views=views)
+
+    _toggle_mlab_render(brain._figures, False)
 
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
@@ -1893,6 +1983,285 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     if initial_time is not None:
         brain.set_time(initial_time)
+
+    _toggle_mlab_render(brain._figures, True)
+
+    if time_viewer:
+        TimeViewer(brain)
+
+    return brain
+
+
+def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='auto',
+                                 time_label='auto', smoothing_steps=10,
+                                 transparent=None, alpha=1.0, vector_alpha=1.0,
+                                 brain_alpha=0.4, scale_factor=None,
+                                 time_viewer=False, subjects_dir=None,
+                                 figure=None, views='lat', colorbar=True,
+                                 clim='auto', cortex='classic', size=800,
+                                 background='black', foreground='white',
+                                 initial_time=None, time_unit='s'):
+    """Plot VectorSourceEstimates with PySurfer.
+
+    A "glass brain" is drawn and all dipoles defined in the source estimate
+    are shown using arrows, depicting the direction and magnitude of the
+    current moment at the dipole.
+
+    Parameters
+    ----------
+    stc : VectorSourceEstimate
+        The vector source estimate to plot.
+    subject : str | None
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT. If None stc.subject will be used. If that
+        is None, the environment will be used.
+    hemi : str, 'lh' | 'rh' | 'split' | 'both'
+        The hemisphere to display.
+    colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+        Name of colormap to use or a custom look up table. If array, must
+        be (n x 3) or (n x 4) array for with RGB or RGBA values between
+        0 and 255. If 'auto', either 'hot' or 'mne' will be chosen
+        based on whether 'lims' or 'pos_lims' are specified in `clim`.
+    time_label : str | callable | None
+        Format of the time label (a format string, a function that maps
+        floating point time values to strings, or None for no label). The
+        default is ``time=%0.2f ms``.
+    smoothing_steps : int
+        The amount of smoothing
+    transparent : bool | None
+        If True, use a linear transparency between fmin and fmid.
+        None will choose automatically based on colormap type.
+    alpha : float
+        Alpha value to apply globally to the overlay.
+    vector_alpha : float
+        Alpha value to apply globally to the vector glyphs. Defaults to 1.
+    brain_alpha : float
+        Alpha value to apply globally to the surface meshes. Defaults to 0.4.
+    scale_factor : float | None
+        Scaling factor for the vector glyphs. By default, an attempt is made to
+        automatically determine a sane value.
+    time_viewer : bool
+        Display time viewer GUI.
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    figure : instance of mayavi.core.scene.Scene | list | int | None
+        If None, a new figure will be created. If multiple views or a
+        split view is requested, this must be a list of the appropriate
+        length. If int is provided it will be used to identify the Mayavi
+        figure by it's id or create a new figure with the given id.
+    views : str | list
+        View to use. See surfer.Brain().
+    colorbar : bool
+        If True, display colorbar on scene.
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+
+            ``kind`` : str
+                Flag to specify type of limits. 'value' or 'percent'.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Note: Only use this if 'colormap' is not 'mne'.
+                Left, middle, and right bound for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Note: Only use this if 'colormap' is 'mne'.
+                Left, middle, and right bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
+
+    cortex : str or tuple
+        specifies how binarized curvature values are rendered.
+        either the name of a preset PySurfer cortex colorscheme (one of
+        'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
+        name of mayavi colormap, or a tuple with values (colormap, min,
+        max, reverse) to fully specify the curvature colors.
+    size : float or pair of floats
+        The size of the window, in pixels. can be one number to specify
+        a square window, or the (width, height) of a rectangular window.
+    background : matplotlib color
+        Color of the background of the display window.
+    foreground : matplotlib color
+        Color of the foreground of the display window.
+    initial_time : float | None
+        The time to display on the plot initially. ``None`` to display the
+        first time sample (default).
+    time_unit : 's' | 'ms'
+        Whether time is represented in seconds ("s", default) or
+        milliseconds ("ms").
+
+    Returns
+    -------
+    brain : Brain
+        A instance of surfer.viz.Brain from PySurfer.
+
+    Notes
+    -----
+    PySurfer currently needs the SUBJECTS_DIR environment variable,
+    which will automatically be set by this function. Plotting multiple
+    SourceEstimates with different values for subjects_dir will cause
+    PySurfer to use the wrong FreeSurfer surfaces when using methods of
+    the returned Brain object. It is therefore recommended to set the
+    SUBJECTS_DIR environment variable or always use the same value for
+    subjects_dir (within the same Python session).
+    """
+    from mayavi import mlab
+    from surfer import Brain, TimeViewer
+    from scipy.interpolate import interp1d
+
+    magnitude = stc.magnitude()
+    brain = plot_source_estimates(
+        stc=magnitude, subject=subject, surface='white', hemi=hemi,
+        colormap=colormap, time_label=time_label,
+        smoothing_steps=smoothing_steps, transparent=transparent, alpha=alpha,
+        time_viewer=False, subjects_dir=subjects_dir, figure=figure,
+        views=views, colorbar=colorbar, clim=clim, cortex=cortex, size=size,
+        background=background, foreground=foreground,
+        initial_time=initial_time, time_unit=time_unit
+    )
+
+    _toggle_mlab_render(brain._figures, False)
+
+    # Set the transparancy of the surface meshes
+    with warnings.catch_warnings(record=True):  # traits warnings
+        for row in brain._figures:
+            for fig in row:
+                for child in fig.children:
+                    props = child.children[0].children[0].actor.property
+                    props.trait_set(opacity=brain_alpha, backface_culling=True)
+
+    scale_pts, colormap, transparent = _limits_to_control_points(
+        clim, magnitude.data, colormap, transparent)
+
+    # Compute a sane scale_factor. This is done by taking the size of the
+    # bounding box, and dividing it by the cubic root of the number of points.
+    # Implementation derived from Mayavi's internal tools._typical_distance().
+    if scale_factor is None:
+        distance = np.sum([stc.data[:, dim, :].ptp(axis=0).max() ** 2
+                           for dim in range(3)])
+        if distance == 0:
+            scale_factor = 1
+        else:
+            scale_factor = 0.4 * distance / (4 * stc.data.shape[0] ** (0.33))
+
+    # Glyphs are scaled in relation to the maximum value in the entire stc.
+    data_max = magnitude.data.max()
+
+    def _plot_hemi_glyphs(figure, geo, t):
+        """Plot the glyphs of a single hemisphere."""
+        if geo.hemi == 'lh':
+            rr = brain.geo['lh'].coords[stc.lh_vertno]
+            data = stc.lh_data
+            scalars = magnitude.lh_data[:, t]
+        else:
+            rr = brain.geo['rh'].coords[stc.rh_vertno]
+            data = stc.rh_data
+            scalars = magnitude.rh_data[:, t]
+
+        q = mlab.quiver3d(
+            rr[:, 0],
+            rr[:, 1],
+            rr[:, 2],
+            data[:, 0, t],
+            data[:, 1, t],
+            data[:, 2, t],
+            scalars=scalars,
+            colormap='hot',
+            vmin=scale_pts[0],
+            vmax=scale_pts[2],
+            figure=figure,
+        )
+
+        # Scale colormap used for the glyphs
+        lut_table = _scale_mayavi_lut(q.parent.vector_lut_manager,
+                                      scale_pts[0], scale_pts[1],
+                                      scale_pts[2], transparent,
+                                      verbose=verbose)
+        lut_manager = q.parent.vector_lut_manager
+        lut_manager.lut.trait_set(table=lut_table)
+        lut_manager.trait_set(
+            data_range=np.array([scale_pts[0], scale_pts[2]]))
+
+        # Enable backface culling
+        q.actor.property.trait_set(backface_culling=True)
+
+        # Compute scaling for the glyphs
+        scale = scalars.max() / data_max
+        q.glyph.glyph.trait_set(scale_factor=scale_factor * scale)
+
+        return q
+
+    # Plot the vector glyphs
+    figures = np.ravel(brain._figures)
+    glyphs = []
+    for i, geo in enumerate(brain.brains):
+        if hemi == 'both':
+            figure = figures[i // 2]
+        else:
+            figure = figures[i]
+
+        glyphs.append(_plot_hemi_glyphs(figure, geo, t=0))
+
+    # Monkey-patch for the set_data_time_index function of our Brain instance.
+    def _set_data_time_index(self, time_idx, interpolation='quadratic'):
+        """Modify the plot to show data for a new time point.
+
+        Calling this function to update an existing plot is much faster than
+        re-plotting everything from scratch.
+
+        Parameters
+        ----------
+        time_idx : int | float
+            The new time index for which to plot the data. Can be a float, in
+            which case the data is interpolated from the closest samples.
+        interpolation : str
+            The type of interpolation to use. Can be any type accepted by the
+            :func:`scipy.interpolate.interp1d` function. Defaults to
+            'quadratic'.
+        """
+        # Call the original function
+        Brain.set_data_time_index(self, time_idx, interpolation=interpolation)
+
+        # Update the vector glyphs
+        views = brain._toggle_render(False)
+        for q, geo in zip(glyphs, brain.brains):
+            if geo.hemi == 'lh':
+                vector_data = stc.lh_data
+                scalar_data = magnitude.lh_data
+            else:
+                vector_data = stc.rh_data
+                scalar_data = magnitude.rh_data
+
+            # Interpolate data if necessary
+            if isinstance(time_idx, float):
+                times = np.arange(self.n_times)
+                vector_data = interp1d(times, vector_data, interpolation,
+                                       axis=2)(time_idx)
+                scalar_data = interp1d(times, scalar_data, interpolation,
+                                       axis=2)(time_idx)
+            else:
+                vector_data = vector_data[:, :, time_idx]
+                scalar_data = scalar_data[:, time_idx]
+
+            # Update glyphs
+            q.mlab_source.trait_set(vectors=vector_data, scalars=scalar_data)
+
+            # Update color of the glyphs
+            lut_manager = q.parent.vector_lut_manager
+            lut_manager.trait_set(
+                data_range=np.array([scale_pts[0], scale_pts[2]]))
+
+            # Update scaling of the glyphs
+            scale = scalar_data.max() / data_max
+            q.glyph.glyph.trait_set(scale_factor=scale_factor * scale)
+        brain._toggle_render(True, views)
+    brain.set_data_time_index = MethodType(_set_data_time_index, brain)
+
+    # Update glyphs to the requested initial time
+    if initial_time is not None:
+        brain.set_time(initial_time)
+
+    _toggle_mlab_render(brain._figures, True)
+
     if time_viewer:
         TimeViewer(brain)
     return brain
@@ -2075,7 +2444,11 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 def _toggle_mlab_render(fig, render):
     mlab = _import_mlab()
     if mlab.options.backend != 'test':
-        fig.scene.disable_render = not render
+        if isinstance(fig, list):
+            for f in fig:
+                _toggle_mlab_render(f, render)
+        else:
+            fig.scene.disable_render = not render
 
 
 def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,

@@ -751,6 +751,7 @@ Source Space Data
    Label
    MixedSourceEstimate
    SourceEstimate
+   VectorSourceEstimate
    VolSourceEstimate
 
 .. autosummary::
