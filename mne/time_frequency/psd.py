@@ -3,28 +3,22 @@
 # License : BSD 3-clause
 
 import numpy as np
+from ..externals.six import string_types
+
+from scipy import fftpack
+from scipy.signal import signaltools
+from scipy.signal.windows import get_window
 
 from ..parallel import parallel_func
 from ..io.pick import _pick_data_channels
-from ..utils import logger, verbose, _time_mask
+from ..utils import logger, verbose, _time_mask, get_reduction
 from .multitaper import _psd_multitaper
 
 
-def _pwelch(epoch, noverlap, nfft, fs, freq_mask, welch_fun):
+def _pwelch(epoch, noverlap, nfft, fs, freq_mask, padding):
     """Aux function."""
-    return welch_fun(epoch, nperseg=nfft, noverlap=noverlap,
-                     nfft=nfft, fs=fs)[1][..., freq_mask]
-
-
-def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):
-    """Compute the PSD."""
-    out = [psd(d, Fs=Fs, NFFT=n_fft, noverlap=n_overlap, pad_to=pad_to)
-           for d in data]
-    psd = np.array([o[0] for o in out])
-    freqs = out[0][1]
-    mask = (freqs >= fmin) & (freqs <= fmax)
-    freqs = freqs[mask]
-    return psd[:, mask], freqs
+    return _spectral_helper(epoch, fs, nperseg=nfft, noverlap=noverlap,
+                    nfft=padding)[2][..., freq_mask, :]
 
 
 def _check_nfft(n, n_fft, n_overlap):
@@ -63,7 +57,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
 
 
 def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-               n_jobs=1):
+               padding=None, reduction='mean', n_jobs=1):
     """Compute power spectral density (PSD) using Welch's method.
 
     x : array, shape=(..., n_times)
@@ -82,6 +76,18 @@ def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     n_overlap : int
         The number of points of overlap between blocks. Will be adjusted
         to be <= n_fft. The default value is 0.
+    padding : int | None
+        Number of samples to zero-pad the signal to. The default is None, which
+        does not perform padding. padding has to be > n_fft
+    reduction : str | float | callable | None
+        The type of reduction to perform on windows. If string it can be 'mean'
+        or 'median'. If float it is understood as % of values to trim before
+        performing mean (has to be > 0 and < 0.5) ie. trimmed-mean. If function
+        it has to perform the reduction along last dimension. If None - no
+        reduction is performed and psd's for individual windows are returned
+        (so that the output psds are of shape (windows, channels, frequencies)
+        for 2d input data and (windows, epochs, channels, frequencies) for 3d
+        input data)
     n_jobs : int
         Number of CPUs to use in the computation.
 
@@ -93,16 +99,19 @@ def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
     """
-    from scipy.signal import welch
+
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
     x = x.reshape(-1, n_times)
 
     # Prep the PSD
     n_fft, n_overlap = _check_nfft(n_times, n_fft, n_overlap)
+    if padding is not None and padding < n_fft:
+        raise ValueError('padding must be more that n_fft.')
     win_size = n_fft / float(sfreq)
     logger.info("Effective window size : %0.3f (s)" % win_size)
-    freqs = np.arange(n_fft // 2 + 1, dtype=float) * (sfreq / n_fft)
+    pnts = padding if padding is not None else n_fft
+    freqs = np.arange(pnts // 2 + 1, dtype=float) * (sfreq / pnts)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
 
@@ -111,18 +120,26 @@ def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     x_splits = np.array_split(x, n_jobs)
     f_psd = parallel(my_pwelch(d, noverlap=n_overlap, nfft=n_fft,
                      fs=sfreq, freq_mask=freq_mask,
-                     welch_fun=welch)
+                     padding=padding)
                      for d in x_splits)
 
     # Combining/reshaping to original data shape
     psds = np.concatenate(f_psd, axis=0)
-    psds = psds.reshape(np.hstack([dshape, -1]))
+    n_windows = psds.shape[-1]
+    if reduction is not None:
+        red_fun = get_reduction(reduction)
+        psds = red_fun(psds).reshape(np.hstack([dshape, -1]))
+    else:
+        psds = psds.reshape(np.hstack([dshape, -1, n_windows]))
+        psds = np.moveaxis(psds, -1, 0)
+
     return psds, freqs
 
 
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
-              n_overlap=0, picks=None, proj=False, n_jobs=1, verbose=None):
+              n_overlap=0, padding=None, reduction='mean', picks=None,
+              proj=False, n_jobs=1, verbose=None):
     """Compute the power spectral density (PSD) using Welch's method.
 
     Calculates periodigrams for a sliding window over the
@@ -180,7 +197,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
     return _psd_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
-                      n_overlap=n_overlap, n_jobs=n_jobs)
+                      n_overlap=n_overlap, padding=padding,
+                      reduction=reduction, n_jobs=n_jobs)
 
 
 @verbose
@@ -263,3 +281,162 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                            bandwidth=bandwidth, adaptive=adaptive,
                            low_bias=low_bias,
                            normalization=normalization,  n_jobs=n_jobs)
+
+
+def _spectral_helper(x, fs, window='hann', nperseg=256,
+                    noverlap=None, nfft=None, detrend='constant',
+                    scaling='density', axis=-1):
+    '''will need to copy the docstring here'''
+    axis = int(axis)
+
+    # Ensure we have np.arrays
+    x = np.asarray(x)
+
+    if x.size == 0:
+        return np.empty(x.shape), np.empty(x.shape), np.empty(x.shape)
+
+    if x.ndim > 1:
+        if axis != -1:
+            x = np.rollaxis(x, axis, len(x.shape))
+
+    # test nperseg
+    if x.shape[-1] < nperseg:
+        warnings.warn('nperseg = {0:d}, is greater than input length = {1:d}, '
+                      'using nperseg = {1:d}'.format(nperseg, x.shape[-1]))
+        nperseg = x.shape[-1]
+
+    nperseg = int(nperseg)
+    if nperseg < 1:
+        raise ValueError('nperseg must be a positive integer')
+
+    if nfft is None:
+        nfft = nperseg
+    elif nfft < nperseg:
+        raise ValueError('nfft must be greater than or equal to nperseg.')
+    else:
+        nfft = int(nfft)
+
+    if noverlap is None:
+        noverlap = nperseg // 2
+    elif noverlap >= nperseg:
+        raise ValueError('noverlap must be less than nperseg.')
+    else:
+        noverlap = int(noverlap)
+
+    # Handle detrending and window functions
+    if not detrend:
+        def detrend_func(d):
+            return d
+    elif not hasattr(detrend, '__call__'):
+        def detrend_func(d):
+            return signaltools.detrend(d, type=detrend, axis=-1)
+    elif axis != -1:
+        # Wrap this function so that it receives a shape that it could
+        # reasonably expect to receive.
+        def detrend_func(d):
+            d = np.rollaxis(d, -1, axis)
+            d = detrend(d)
+            return np.rollaxis(d, axis, len(d.shape))
+    else:
+        detrend_func = detrend
+
+    if isinstance(window, string_types) or type(window) is tuple:
+        win = get_window(window, nperseg)
+    else:
+        win = np.asarray(window)
+        if len(win.shape) != 1:
+            raise ValueError('window must be 1-D')
+        if win.shape[0] != nperseg:
+            raise ValueError('window must have length of nperseg')
+
+    if scaling == 'density':
+        scale = 1.0 / (fs * (win*win).sum())
+    elif scaling == 'spectrum':
+        scale = 1.0 / win.sum()**2
+    else:
+        raise ValueError('Unknown scaling: %r' % scaling)
+
+    if nfft % 2:
+        num_freqs = (nfft + 1)//2
+    else:
+        num_freqs = nfft//2 + 1
+
+
+    # Perform the windowed FFTs
+    result = _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft)
+    result = result[..., :num_freqs]
+    freqs = fftpack.fftfreq(nfft, 1/fs)[:num_freqs]
+
+    result = (np.conjugate(result) * result).real
+    result *= scale
+
+    if nfft % 2:
+        result[...,1:] *= 2
+    else:
+        # Last point is unpaired Nyquist freq point, don't double
+        result[...,1:-1] *= 2
+
+    t = np.arange(nperseg / 2, x.shape[-1] - nperseg / 2 + 1,
+                  nperseg - noverlap) / float(fs)
+
+    if not nfft % 2:
+        # get the last value correctly, it is negative otherwise
+        freqs[-1] *= -1
+
+    # Output is going to have new last axis for window index
+    if axis != -1:
+        # Specify as positive axis index
+        if axis < 0:
+            axis = len(result.shape)-1-axis
+
+        # Roll frequency axis back to axis where the data came from
+        result = np.rollaxis(result, -1, axis)
+    else:
+        # Make sure window/time index is last axis
+        result = np.rollaxis(result, -1, -2)
+
+    return freqs, t, result
+
+
+# fft helper
+def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft):
+    """
+    Calculate windowed FFT, for internal use by scipy.signal._spectral_helper
+    This is a helper function that does the main FFT calculation for
+    _spectral helper. All input valdiation is performed there, and the data
+    axis is assumed to be the last axis of x. It is not designed to be called
+    externally. The windows are not averaged over; the result from each window
+    is returned.
+    Returns
+    -------
+    result : ndarray
+        Array of FFT data
+    References
+    ----------
+    .. [1] Stack Overflow, "Repeat NumPy array without replicating data?",
+        http://stackoverflow.com/a/5568169
+    Notes
+    -----
+    Copied from scipy.signal.spectral which was adapted from matplotlib.mlab
+    .. versionadded:: 0.16.0
+    """
+    # Created strided array of data segments
+    if nperseg == 1 and noverlap == 0:
+        result = x[..., np.newaxis]
+    else:
+        step = nperseg - noverlap
+        shape = x.shape[:-1] + ((x.shape[-1] - noverlap) // step, nperseg)
+        strides = x.strides[:-1] + (step * x.strides[-1], x.strides[-1])
+        result = np.lib.stride_tricks.as_strided(x, shape=shape,
+                                                 strides=strides)
+
+    # Detrend each data segment individually
+    result = detrend_func(result)
+
+    # Apply window by multiplication
+    result = win * result
+
+    # Perform the fft. Acts on last axis by default. Zero-pads automatically
+    result = fftpack.fft(result, n=nfft)
+
+    return result
