@@ -667,7 +667,7 @@ class ICA(ContainsMixin):
 
         Returns
         -------
-        components : array (n_channels, n_components)
+        components : array, shape (n_channels, n_components)
             The ICA components (maps).
         """
         fast_dot = _get_fast_dot()
