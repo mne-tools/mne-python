@@ -32,7 +32,8 @@ from .bem import _bem_find_surface, _bem_explain_surface
 from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
-from .utils import logger, verbose, _time_mask, warn, _check_fname, check_fname
+from .utils import (logger, verbose, _time_mask, warn, _check_fname,
+                    check_fname, _pl)
 
 
 class Dipole(object):
@@ -1058,8 +1059,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     guess_data = dict(fwd=guess_fwd, fwd_svd=guess_fwd_svd,
                       fwd_orig=guess_fwd_orig, scales=guess_fwd_scales)
     del guess_fwd, guess_fwd_svd, guess_fwd_orig, guess_fwd_scales  # destroyed
-    pl = '' if guess_src['nuse'] == 1 else 's'
-    logger.info('[done %d source%s]' % (guess_src['nuse'], pl))
+    logger.info('[done %d source%s]' % (guess_src['nuse'],
+                                        _pl(guess_src['nuse'])))
 
     # Do actual fits
     data = data[picks]

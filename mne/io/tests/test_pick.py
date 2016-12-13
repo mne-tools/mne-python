@@ -25,8 +25,7 @@ fname_mc = op.join(data_path, 'SSS', 'test_move_anon_movecomp_raw_sss.fif')
 
 
 def test_pick_refs():
-    """Test picking of reference sensors
-    """
+    """Test picking of reference sensors."""
     infos = list()
     # KIT
     kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
@@ -210,7 +209,7 @@ def test_pick_forward_seeg_ecog():
 
 
 def test_picks_by_channels():
-    """Test creating pick_lists"""
+    """Test creating pick_lists."""
     rng = np.random.RandomState(909)
 
     test_data = rng.random_sample((4, 2000))
@@ -237,6 +236,9 @@ def test_picks_by_channels():
     sfreq = 250.0
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
     raw = RawArray(test_data, info)
+    # This acts as a set, not an order
+    assert_array_equal(pick_channels(info['ch_names'], ['MEG 002', 'MEG 001']),
+                       [0, 1])
 
     # Make sure checks for list input work.
     assert_raises(ValueError, pick_channels, ch_names, 'MEG 001')
@@ -254,7 +256,7 @@ def test_picks_by_channels():
 
 
 def test_clean_info_bads():
-    """Test cleaning info['bads'] when bad_channels are excluded """
+    """Test cleaning info['bads'] when bad_channels are excluded."""
 
     raw_file = op.join(op.dirname(__file__), 'io', 'tests', 'data',
                        'test_raw.fif')

@@ -8,7 +8,7 @@ import numpy as np
 
 from .peak_finder import peak_finder
 from .. import pick_types, pick_channels
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _pl
 from ..filter import filter_data
 from ..epochs import Epochs
 from ..externals.six import string_types
@@ -117,8 +117,7 @@ def _get_eog_channel_index(ch_name, inst):
             raise ValueError('%s not in channel list' % ch_name)
         else:
             logger.info('Using channel %s as EOG channel%s' % (
-                        " and ".join(ch_name),
-                        '' if len(eog_inds) < 2 else 's'))
+                        " and ".join(ch_name), _pl(eog_inds)))
     elif ch_name is None:
 
         eog_inds = pick_types(inst.info, meg=False, eeg=False, stim=False,

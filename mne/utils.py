@@ -33,7 +33,7 @@ import numpy as np
 from scipy import linalg, sparse
 
 from .externals.six.moves import urllib
-from .externals.six import string_types, StringIO, BytesIO
+from .externals.six import string_types, StringIO, BytesIO, integer_types
 from .externals.decorator import decorator
 
 from .fixes import _get_args
@@ -70,6 +70,12 @@ _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
 
 ###############################################################################
 # RANDOM UTILITIES
+
+
+def _pl(x):
+    """Determine if plural should be used."""
+    len_x = x if isinstance(x, (integer_types, np.generic)) else len(x)
+    return '' if len_x == 1 else 's'
 
 
 def _explain_exception(start=-1, stop=None, prefix='> '):

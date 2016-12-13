@@ -42,7 +42,7 @@ from .fixes import _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
-                    _time_mask, check_random_state, warn,
+                    _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc)
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
@@ -1048,7 +1048,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._data = np.delete(self._data, indices, axis=0)
 
         count = len(indices)
-        logger.info('Dropped %d epoch%s' % (count, '' if count == 1 else 's'))
+        logger.info('Dropped %d epoch%s' % (count, _pl(count)))
         return self
 
     def _get_epoch_from_raw(self, idx, verbose=None):

@@ -22,7 +22,7 @@ from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
                     _setup_vmin_vmax)
-from ..utils import logger, _clean_names, warn
+from ..utils import logger, _clean_names, warn, _pl
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -403,8 +403,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                     ax.set_ylim(ylim[t])
                 elif plot_type == 'image':
                     im.set_clim(ylim[t])
-            ax.set_title(titles[t] + ' (%d channel%s)' % (
-                         len(D), 's' if len(D) > 1 else ''))
+            ax.set_title(titles[t] + ' (%d channel%s)' % (len(D), _pl(D)))
             ax.set_xlabel('time (ms)')
 
             if (plot_type == 'butterfly') and (hline is not None):

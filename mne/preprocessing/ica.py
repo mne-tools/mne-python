@@ -46,7 +46,7 @@ from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
                      _get_fast_dot, compute_corr, _get_inst_data,
-                     copy_function_doc_to_method_doc)
+                     copy_function_doc_to_method_doc, _pl)
 from ..fixes import _get_args
 from ..filter import filter_data
 from .bads import find_outliers
@@ -1971,7 +1971,7 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
         else:
             found = list(np.atleast_1d(abs(scores).argsort()[node.criterion]))
 
-        case = (len(found), 's' if len(found) > 1 else '', node.name)
+        case = (len(found), _pl(found), node.name)
         logger.info('    found %s artifact%s by %s' % case)
         ica.exclude += found
 

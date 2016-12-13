@@ -168,6 +168,11 @@ def _get_artemis123_info(fname):
              'logno': i + 1, 'scanno': i + 1, 'range': 1.0,
              'unit_mul': FIFF.FIFF_UNITM_NONE,
              'coord_frame': FIFF.FIFFV_COORD_DEVICE}
+        # REF_018 has a zero cal which can cause problems. Let's set it to
+        # a value of another ref channel to make writers/readers happy.
+        if t['cal'] == 0:
+            t['cal'] = 4.716e-10
+            info['bads'].append(t['ch_name'])
         t['loc'] = loc_dict.get(chan['name'], np.zeros(12))
 
         if (chan['name'].startswith('MEG')):
@@ -224,7 +229,7 @@ def _get_artemis123_info(fname):
 
         # append this channel to the info
         info['chs'].append(t)
-        if (chan['FLL_ResetLock'] == 'TRUE'):
+        if chan['FLL_ResetLock'] == 'TRUE':
             info['bads'].append(t['ch_name'])
 
     # reduce info['bads'] to unique set
