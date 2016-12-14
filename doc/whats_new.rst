@@ -107,6 +107,8 @@ API
 
     - Base classes :class:`mne.io.BaseRaw` and :class:`mne.BaseEpochs` are now public to allow easier typechecking, by `Daniel McCloy`_
 
+    - :func:`mne.io.read_raw_edf` now combines triggers from multiple tal channels to 'STI 014' by `Jaakko Leppakangas`_
+
 .. _changes_0_13:
 
 Version 0.13
