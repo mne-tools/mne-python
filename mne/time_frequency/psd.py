@@ -7,24 +7,14 @@ import numpy as np
 from ..parallel import parallel_func
 from ..io.pick import _pick_data_channels
 from ..utils import logger, verbose, _time_mask
+from ..fixes import get_spectrogram
 from .multitaper import _psd_multitaper
 
 
 def _pwelch(epoch, noverlap, nfft, fs, freq_mask, welch_fun):
     """Aux function."""
-    return welch_fun(epoch, nperseg=nfft, noverlap=noverlap,
-                     nfft=nfft, fs=fs)[1][..., freq_mask]
-
-
-def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):
-    """Compute the PSD."""
-    out = [psd(d, Fs=Fs, NFFT=n_fft, noverlap=n_overlap, pad_to=pad_to)
-           for d in data]
-    psd = np.array([o[0] for o in out])
-    freqs = out[0][1]
-    mask = (freqs >= fmin) & (freqs <= fmax)
-    freqs = freqs[mask]
-    return psd[:, mask], freqs
+    return welch_fun(epoch, fs=fs, nperseg=nfft, noverlap=noverlap,
+                     nfft=nfft, window='hann')[2][..., freq_mask, :]
 
 
 def _check_nfft(n, n_fft, n_overlap):
@@ -93,7 +83,7 @@ def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
     """
-    from scipy.signal import welch
+    spectrogram = get_spectrogram()
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
     x = x.reshape(-1, n_times)
@@ -111,11 +101,11 @@ def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     x_splits = np.array_split(x, n_jobs)
     f_psd = parallel(my_pwelch(d, noverlap=n_overlap, nfft=n_fft,
                      fs=sfreq, freq_mask=freq_mask,
-                     welch_fun=welch)
+                     welch_fun=spectrogram)
                      for d in x_splits)
 
-    # Combining/reshaping to original data shape
-    psds = np.concatenate(f_psd, axis=0)
+    # Combining, reducing windows and reshaping to original data shape
+    psds = np.concatenate(f_psd, axis=0).mean(axis=-1)
     psds = psds.reshape(np.hstack([dshape, -1]))
     return psds, freqs
 
