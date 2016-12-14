@@ -55,29 +55,6 @@ def test_plot_raw():
         y = fig.get_axes()[0].lines[1].get_ydata().mean()
         data_ax = fig.axes[0]
 
-        # XXX: for some reason if annotation mode gets tested later the events
-        # get registered to the wrong axes.
-        fig.canvas.key_press_event('a')  # annotation mode
-        _fake_click(fig, data_ax, [1., 1.], xform='data', button=1,
-                    kind='press')  # create
-        _fake_click(fig, data_ax, [5., 1.], xform='data', button=1,
-                    kind='motion')
-        _fake_click(fig, data_ax, [5., 1.], xform='data', button=1,
-                    kind='release')
-        _fake_click(fig, data_ax, [4.5, 1.], xform='data', button=None,
-                    kind='motion')  # hover
-        _fake_click(fig, data_ax, [4.7, 1.], xform='data', button=None,
-                    kind='motion')  # hover
-        _fake_click(fig, data_ax, [5., 1.], xform='data', button=1,
-                    kind='press')  # modify
-        _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1,
-                    kind='motion')
-        _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1,
-                    kind='release')
-        _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3,
-                    kind='press')  # delete
-        fig.canvas.key_press_event('a')  # exit annotation mode
-
         _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
         _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
         _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
@@ -156,6 +133,51 @@ def test_plot_raw():
                                       [5], ['bad'])
         raw.plot()
         plt.close('all')
+
+
+@requires_version('matplotlib', '1.2')
+def test_plot_annotations():
+    """Test annotation mode of the plotter."""
+    import matplotlib.pyplot as plt
+    raw = _get_raw()
+    fig = raw.plot()
+    data_ax = fig.axes[0]
+    fig.canvas.key_press_event('a')  # annotation mode
+    # draw annotation
+    _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
+    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='motion')
+    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='release')
+    # hover event
+    _fake_click(fig, data_ax, [4.5, 1.], xform='data', button=None,
+                kind='motion')
+    _fake_click(fig, data_ax, [4.7, 1.], xform='data', button=None,
+                kind='motion')
+    # modify annotation from end
+    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='press')
+    _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1, kind='motion')
+    _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1,
+                kind='release')
+    # modify annotation from beginning
+    _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
+    _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1, kind='motion')
+    _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1,
+                kind='release')
+    assert_equal(len(raw.annotations.onset), 1)
+    assert_equal(len(raw.annotations.duration), 1)
+    assert_equal(len(raw.annotations.description), 1)
+
+    # draw another annotation merging the two
+    _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')
+    _fake_click(fig, data_ax, [2., 1.], xform='data', button=1, kind='motion')
+    _fake_click(fig, data_ax, [2., 1.], xform='data', button=1, kind='release')
+    # delete the annotation
+    _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3, kind='press')
+    fig.canvas.key_press_event('a')  # exit annotation mode
+    plt.close('all')
+
+    assert_equal(len(raw.annotations.onset), 0)
+    assert_equal(len(raw.annotations.duration), 0)
+    assert_equal(len(raw.annotations.description), 0)
 
 
 @requires_version('scipy', '0.10')
