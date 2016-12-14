@@ -53,28 +53,28 @@ def test_plot_raw():
         # test mouse clicks
         x = fig.get_axes()[0].lines[1].get_xdata().mean()
         y = fig.get_axes()[0].lines[1].get_ydata().mean()
-        data_ax = fig.get_axes()[0]
+        data_ax = fig.axes[0]
 
         # XXX: for some reason if annotation mode gets tested later the events
         # get registered to the wrong axes.
         fig.canvas.key_press_event('a')  # annotation mode
-        _fake_click(fig, fig.axes[0], [1., 1.], xform='data', button=1,
+        _fake_click(fig, data_ax, [1., 1.], xform='data', button=1,
                     kind='press')  # create
-        _fake_click(fig, fig.axes[0], [5., 1.], xform='data', button=1,
+        _fake_click(fig, data_ax, [5., 1.], xform='data', button=1,
                     kind='motion')
-        _fake_click(fig, fig.axes[0], [5., 1.], xform='data', button=1,
+        _fake_click(fig, data_ax, [5., 1.], xform='data', button=1,
                     kind='release')
-        _fake_click(fig, fig.axes[0], [4.5, 1.], xform='data', button=None,
+        _fake_click(fig, data_ax, [4.5, 1.], xform='data', button=None,
                     kind='motion')  # hover
-        _fake_click(fig, fig.axes[0], [4.7, 1.], xform='data', button=None,
+        _fake_click(fig, data_ax, [4.7, 1.], xform='data', button=None,
                     kind='motion')  # hover
-        _fake_click(fig, fig.axes[0], [5., 1.], xform='data', button=1,
+        _fake_click(fig, data_ax, [5., 1.], xform='data', button=1,
                     kind='press')  # modify
-        _fake_click(fig, fig.axes[0], [2.5, 1.], xform='data', button=1,
+        _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1,
                     kind='motion')
-        _fake_click(fig, fig.axes[0], [2.5, 1.], xform='data', button=1,
+        _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1,
                     kind='release')
-        _fake_click(fig, fig.axes[0], [1.5, 1.], xform='data', button=3,
+        _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3,
                     kind='press')  # delete
         fig.canvas.key_press_event('a')  # exit annotation mode
 

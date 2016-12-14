@@ -750,7 +750,8 @@ def _plot_raw_onkey(event, params):
             params['hover_callback'] = params['fig'].canvas.mpl_connect(
                 'motion_notify_event', hover_callback)
         else:
-            plt.close(params['annotation_fig'])
+            params['annotation_fig'].canvas.close_event()
+            #plt.close(params['annotation_fig'])
 
 
 def _mouse_click(event, params):
