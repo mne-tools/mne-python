@@ -575,7 +575,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         ``average=True`` and 0.1 when ``average=False``.
     spatial_colors : bool
         Whether to use spatial colors. Only works when average=False. Defaults
-        to False.
+        to False when average=False, but this will change to True in 0.15.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -589,11 +589,11 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         raise ValueError('Average and spatial_colors cannot be enabled '
                          'simultaneously.')
     elif spatial_colors is None:
-        # XXX: deprecation
-        warn('In version 0.15 average will default to False and '
-             'spatial_colors to True.')
         if not average:
             spatial_colors = True
+        else:
+            warn('In version 0.15 average will default to False and '
+                 'spatial_colors to True.')  # XXX: deprecation
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
     if line_alpha is None:

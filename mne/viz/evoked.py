@@ -434,8 +434,8 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 ax.set_xlim(xlim)
             if ylim is not None and this_type in ylim:
                 ax.set_ylim(ylim[this_type])
-            ax.set_title(titles[this_type] + ' (%d channel%s)' % (
-                         len(D), 's' if len(D) > 1 else ''))
+            ax.set_title(titles[this_type] + ' (%d channel%s)' % (len(D),
+                                                                  _pl(D)))
 
             if hline is not None:
                 for h in hline:
@@ -456,7 +456,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                         data=data, times=times, text=text,
                                         psd=psd)
             blit = False if plt.get_backend() == 'MacOSX' else True
-            minspan = times[1] - times[0]  # Click does not draw an area.
+            minspan = 0 if len(times) < 2 else times[1] - times[0]
             ax._span_selector = SpanSelector(
                 ax, callback_onselect, 'horizontal', minspan=minspan,
                 useblit=blit, rectprops=dict(alpha=0.5, facecolor='red'))
@@ -490,7 +490,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         ax.CB = DraggableColorbar(cbar, im)
     ax.set_ylabel('channels (index)')
     ax.set_title(titles[this_type] + ' (%d channel%s)' % (
-                 len(data), 's' if len(data) > 1 else ''))
+                 len(data), _pl(data)))
     ax.set_xlabel('time (ms)')
 
 

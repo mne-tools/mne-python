@@ -101,7 +101,7 @@ raw.plot()
 # Here we plot the data using `spatial_colors` to map the line colors to
 # channel locations (default in versions >= 0.15.0). Other option is to use the
 # `average` (default in < 0.15.0). See the API documentation for more info.
-raw.plot_psd(tmax=np.inf, spatial_colors=True, average=False)
+raw.plot_psd(tmax=np.inf, average=False)
 
 ###############################################################################
 # Plotting channel-wise power spectra is just as easy. The layout is inferred

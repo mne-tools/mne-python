@@ -31,7 +31,7 @@ from ..io.meas_info import Info
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
-    """"Prepare topo plot."""
+    """Prepare topo plot."""
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
 
     if layout is None and ch_type is not 'eeg':
@@ -573,7 +573,6 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
-
     Zi = _griddata(pos_x, pos_y, data, Xi, Yi)
 
     if outlines is None:
