@@ -749,7 +749,7 @@ def _plot_raw_onkey(event, params):
             params['annotation_fig'] = fig
             if LooseVersion(mpl.__version__) < LooseVersion('1.5'):
                 # XXX: Hover event messes up callback ids in old mpl.
-                warn('Modifying existing annotations is not possible for'
+                warn('Modifying existing annotations is not possible for '
                      'matplotlib versions < 1.4. Upgrade matplotlib.')
                 return
             hover_callback = partial(_on_hover, params=params)
