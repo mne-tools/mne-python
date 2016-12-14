@@ -747,7 +747,7 @@ def _plot_raw_onkey(event, params):
                                     rectprops=dict(alpha=0.5, facecolor='red'))
             params['ax'].selector = selector
             params['annotation_fig'] = fig
-            if LooseVersion(mpl.__version__) < LooseVersion('1.4'):
+            if LooseVersion(mpl.__version__) < LooseVersion('1.5'):
                 # XXX: Hover event messes up callback ids in old mpl.
                 warn('Modifying existing annotations is not possible for'
                      'matplotlib versions < 1.4. Upgrade matplotlib.')
@@ -769,8 +769,8 @@ def _mouse_click(event, params):
         for coll in params['ax'].collections:
             if coll.contains(event)[0]:
                 path = coll.get_paths()[-1]
-                mn = min(path.vertices[:4, 0])
-                mx = max(path.vertices[:4, 0])
+                mn = min(path.vertices[:, 0])
+                mx = max(path.vertices[:, 0])
                 ann_idx = np.where(params['raw'].annotations.onset == mn)[0]
                 for idx in ann_idx:
                     if params['raw'].annotations.duration[idx] == mx - mn:
@@ -1704,7 +1704,7 @@ def _annotations_closed(event, params):
     if params['segment_line'] is not None:
         params['segment_line'].remove()
         params['segment_line'] = None
-    if LooseVersion(mpl.__version__) >= LooseVersion('1.4'):
+    if LooseVersion(mpl.__version__) >= LooseVersion('1.5'):
         params['fig'].canvas.mpl_disconnect(params['hover_callback'])
     params['annotation_fig'] = None
     params['fig'].canvas.draw()

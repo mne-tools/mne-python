@@ -853,8 +853,8 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 break  # Since the segments are sorted by t_start
             if segment[1] < times[0] + params['first_time']:
                 continue
-            start = segment[0]
-            end = segment[1]
+            start = max(segment[0], times[0])
+            end = min(times[-1], segment[1])
             dscr = params['annot_description'][idx]
             segment_color = params['segment_colors'][dscr]
             params['ax'].fill_betweenx(ylim, start, end, color=segment_color,
