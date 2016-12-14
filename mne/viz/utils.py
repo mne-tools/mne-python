@@ -654,6 +654,7 @@ def _handle_change_selection(event, params):
 
 def _plot_raw_onkey(event, params):
     """Interpret key presses."""
+    import matplotlib as mpl
     import matplotlib.pyplot as plt
     if event.key == 'escape':
         plt.close(params['fig'])
@@ -746,12 +747,16 @@ def _plot_raw_onkey(event, params):
                                     rectprops=dict(alpha=0.5, facecolor='red'))
             params['ax'].selector = selector
             params['annotation_fig'] = fig
+            if LooseVersion(mpl.__version__) < LooseVersion('1.4'):
+                # XXX: Hover event messes up callback ids in old mpl.
+                warn('Modifying existing annotations is not possible for'
+                     'matplotlib versions < 1.4. Upgrade matplotlib.')
+                return
             hover_callback = partial(_on_hover, params=params)
             params['hover_callback'] = params['fig'].canvas.mpl_connect(
                 'motion_notify_event', hover_callback)
         else:
             params['annotation_fig'].canvas.close_event()
-            #plt.close(params['annotation_fig'])
 
 
 def _mouse_click(event, params):
@@ -764,8 +769,8 @@ def _mouse_click(event, params):
         for coll in params['ax'].collections:
             if coll.contains(event)[0]:
                 path = coll.get_paths()[-1]
-                mn = min(path.vertices[:, 0])
-                mx = max(path.vertices[:, 0])
+                mn = min(path.vertices[:4, 0])
+                mx = max(path.vertices[:4, 0])
                 ann_idx = np.where(params['raw'].annotations.onset == mn)[0]
                 for idx in ann_idx:
                     if params['raw'].annotations.duration[idx] == mx - mn:
@@ -1690,6 +1695,7 @@ def _plot_annotations(raw, params):
 
 def _annotations_closed(event, params):
     """Callback for cleaning up on annotation dialog close."""
+    import matplotlib as mpl
     import matplotlib.pyplot as plt
     plt.close(params['annotation_fig'])
     params['ax'].selector.disconnect_events()
@@ -1698,14 +1704,16 @@ def _annotations_closed(event, params):
     if params['segment_line'] is not None:
         params['segment_line'].remove()
         params['segment_line'] = None
-    params['fig'].canvas.mpl_disconnect(params['hover_callback'])
+    if LooseVersion(mpl.__version__) >= LooseVersion('1.4'):
+        params['fig'].canvas.mpl_disconnect(params['hover_callback'])
     params['annotation_fig'] = None
     params['fig'].canvas.draw()
 
 
 def _on_hover(event, params):
     """Callback for hover event."""
-    if event.button is not None or event.xdata is None:
+    if (event.button is not None or
+            event.inaxes != params['ax'] or event.xdata is None):
         return
     for coll in params['ax'].collections:
         if coll.contains(event)[0]:
