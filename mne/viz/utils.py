@@ -769,8 +769,8 @@ def _mouse_click(event, params):
         for coll in params['ax'].collections:
             if coll.contains(event)[0]:
                 path = coll.get_paths()[-1]
-                mn = min(path.vertices[:, 0])
-                mx = max(path.vertices[:, 0])
+                mn = min(path.vertices[:4, 0])  # check the four corners
+                mx = max(path.vertices[:4, 0])
                 ann_idx = np.where(params['raw'].annotations.onset == mn)[0]
                 for idx in ann_idx:
                     if params['raw'].annotations.duration[idx] == mx - mn:
