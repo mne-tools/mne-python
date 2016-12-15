@@ -133,7 +133,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     stcs = dict()
 
     subject = _subject_from_inverse(inverse_operator)
-    _log_rescale(baseline, baseline_mode)
+    _log_rescale(baseline, baseline_mode)  # for early failure
     for name, band in six.iteritems(bands):
         idx = [k for k, f in enumerate(frequencies) if band[0] <= f <= band[1]]
 
