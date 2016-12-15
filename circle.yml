@@ -37,7 +37,9 @@ dependencies:
       else
         echo "Conda already set up.";
       fi
-    - conda install -n circleenv --yes numpy scipy scikit-learn mayavi matplotlib sphinx=1.4.1 pillow six IPython pandas;
+    - conda install -n circleenv --yes numpy scipy scikit-learn matplotlib sphinx=1.4.1 pillow six IPython pandas;
+    - conda install -n circleenv --yes traits=4.6.0 traitsui=5.1.0;
+    - conda install -n circleenv --yes mayavi;
     - ls -al /home/ubuntu/miniconda;
     - ls -al /home/ubuntu/miniconda/bin;
     - echo $PATH;
