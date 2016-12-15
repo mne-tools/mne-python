@@ -103,8 +103,8 @@ def test_dics():
     tmax = stc.times[np.argmax(max_stc)]
 
     # Incorrect due to limited number of epochs
-    assert_true(0.04 < tmax < 0.05)
-    assert_true(10 < np.max(max_stc) < 13)
+    assert_true(0.014 < tmax < 0.016)
+    assert_true(3. < np.max(max_stc) < 4.)
 
     # Test picking normal orientation
     stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
@@ -154,7 +154,7 @@ def test_dics():
     max_stc = stc_avg[idx]
     tmax = stc.times[np.argmax(max_stc)]
 
-    assert_true(0.045 < tmax < 0.06)  # incorrect due to limited # of epochs
+    assert_true(0.120 < tmax < 0.140)  # incorrect due to limited # of epochs
     assert_true(12 < np.max(max_stc) < 18.5)
 
 
@@ -172,8 +172,8 @@ def test_dics_source_power():
     max_source_power = np.max(stc_source_power.data)
 
     # TODO: Maybe these could be more directly compared to dics() results?
-    assert_true(max_source_idx == 0)
-    assert_true(0.5 < max_source_power < 1.15)
+    assert_true(max_source_idx == 1)
+    assert_true(0.0034 < max_source_power < 0.0036)
 
     # Test picking normal orientation and using a list of CSD matrices
     stc_normal = dics_source_power(epochs.info, forward_surf_ori,

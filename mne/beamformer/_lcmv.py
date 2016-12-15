@@ -112,10 +112,12 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         Cm = np.dot(proj, np.dot(Cm, proj.T))
     Cm = np.dot(whitener, np.dot(Cm, whitener.T))
 
-    # Calculating regularized inverse, equivalent to an inverse operation after
-    # the following regularization:
-    # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
-    Cm_inv = linalg.pinv(Cm, reg)
+    # Tikhonov regularization using reg parameter to control for
+    # trade-off between spatial resolution and noise sensitivity
+    Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
+
+    # Compute pseudoinverse of Cm
+    Cm_inv = linalg.pinv(Cm)
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
@@ -600,10 +602,12 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
         Cm = np.dot(proj, np.dot(Cm, proj.T))
     Cm = np.dot(whitener, np.dot(Cm, whitener.T))
 
-    # Calculating regularized inverse, equivalent to an inverse operation after
-    # the following regularization:
-    # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
-    Cm_inv = linalg.pinv(Cm, reg)
+    # Tikhonov regularization using reg parameter to control for
+    # trade-off between spatial resolution and noise sensitivity
+    Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
+
+    # Compute pseudoinverse of Cm
+    Cm_inv = linalg.pinv(Cm)
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)

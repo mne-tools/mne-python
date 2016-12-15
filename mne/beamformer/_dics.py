@@ -64,7 +64,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
     is_free_ori, _, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
-    Cm = data_csd.data
+    Cm = data_csd.data.copy()
 
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
@@ -381,7 +381,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
             logger.info('    computing DICS spatial filter %d out of %d' %
                         (i + 1, n_csds))
 
-        Cm = data_csd.data
+        Cm = data_csd.data.copy()
 
         # Tikhonov regularization using reg parameter to control for
         # trade-off between spatial resolution and noise sensitivity
