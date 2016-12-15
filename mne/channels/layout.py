@@ -652,6 +652,9 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
         The measurement info.
     picks : list of int
         The channel indices to generate topomap coords for.
+    ignore_overlap : bool
+        Whether to ignore overlapping positions in the layout. If False and
+        positions overlap, an error is thrown.
 
     Returns
     -------
@@ -849,21 +852,28 @@ def _pair_grad_sensors_from_ch_names(ch_names):
     return grad_chs
 
 
-def _merge_grad_data(data):
-    """Merge data from channel pairs using the RMS.
+def _merge_grad_data(data, method='rms'):
+    """Merge data from channel pairs using the RMS or mean.
 
     Parameters
     ----------
     data : array, shape = (n_channels, n_times)
         Data for channels, ordered in pairs.
+    method : str
+        Can be 'rms' or 'mean'.
 
     Returns
     -------
     data : array, shape = (n_channels / 2, n_times)
-        The root mean square for each pair.
+        The root mean square or mean for each pair.
     """
     data = data.reshape((len(data) // 2, 2, -1))
-    data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
+    if method == 'mean':
+        data = np.mean(data, axis=1)
+    elif method == 'rms':
+        data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
+    else:
+        raise ValueError('method must be "rms" or "mean, got %s.' % method)
     return data
 
 

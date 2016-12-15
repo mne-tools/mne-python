@@ -8,13 +8,15 @@ from __future__ import print_function
 
 import copy
 from functools import partial
+from warnings import warn
 
 import numpy as np
 
 from ..externals.six import string_types
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
-                       _PICK_TYPES_KEYS, pick_channels)
+                       _PICK_TYPES_KEYS, pick_channels, channel_type)
 from ..io.proj import setup_proj
+from ..io.meas_info import create_info
 from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
@@ -27,6 +29,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _change_channel_group)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
+from .evoked import _plot_lines
 
 
 def _plot_update_raw_proj(params, bools):
@@ -516,9 +519,9 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 @verbose
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=2048, picks=None, ax=None, color='black',
-                 area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, average=True, show=True, n_jobs=1,
-                 line_alpha=None, verbose=None):
+                 area_mode='std', area_alpha=0.33, n_overlap=0, dB=True,
+                 average=True, show=True, n_jobs=1, line_alpha=None,
+                 spatial_colors=None, verbose=None):
     """Plot the power spectral density across channels.
 
     Parameters
@@ -544,12 +547,13 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     ax : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
     color : str | tuple
-        A matplotlib-compatible color to use.
+        A matplotlib-compatible color to use. Has no effect when
+        spatial_colors=True.
     area_mode : str | None
         Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
         will be plotted. If 'range', the min and max (across channels) will be
         plotted. Bad channels will be excluded from these calculations.
-        If None, no area will be plotted.
+        If None, no area will be plotted. If average=False, no area is plotted.
     area_alpha : float
         Alpha for the area.
     n_overlap : int
@@ -559,7 +563,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         If True, transform data to decibels.
     average : bool
         If False, the PSDs of all channels is displayed. No averaging
-        is done and parameters area_mode and area_alpha are ignored.
+        is done and parameters area_mode and area_alpha are ignored. When
+        False, it is possible to paint an area (hold left mouse button and
+        drag) to plot a topomap.
     show : bool
         Show figure if True.
     n_jobs : int
@@ -567,6 +573,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     line_alpha : float | None
         Alpha for the PSD line. Can be None (default) to use 1.0 when
         ``average=True`` and 0.1 when ``average=False``.
+    spatial_colors : bool
+        Whether to use spatial colors. Only works when average=False. Defaults
+        to False when average=False, but this will change to True in 0.15.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -576,18 +585,27 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     fig : instance of matplotlib figure
         Figure with frequency spectra of the data channels.
     """
+    if average and spatial_colors:
+        raise ValueError('Average and spatial_colors cannot be enabled '
+                         'simultaneously.')
+    elif spatial_colors is None:
+        if not average:
+            spatial_colors = True
+        else:
+            warn('In version 0.15 average will default to False and '
+                 'spatial_colors to True.')  # XXX: deprecation
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
     if line_alpha is None:
         line_alpha = 1.0 if average else 0.1
     line_alpha = float(line_alpha)
 
+    psd_list = list()
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
         psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
-                                fmin=fmin, fmax=fmax, proj=proj,
-                                n_fft=n_fft, n_overlap=n_overlap,
-                                n_jobs=n_jobs)
+                                fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
+                                n_overlap=n_overlap, n_jobs=n_jobs)
 
         # Convert PSDs to dB
         if dB:
@@ -617,7 +635,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                 ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
                                 color=color, alpha=area_alpha)
         else:
-            ax.plot(freqs, psds.T, color=color, alpha=line_alpha)
+            psd_list.append(psds)
 
         if make_label:
             if ii == len(picks_list) - 1:
@@ -626,8 +644,39 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                 ax.set_ylabel('Power Spectral Density (%s/Hz)' % unit)
             ax.set_title(title)
             ax.set_xlim(freqs[0], freqs[-1])
+
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
+
+    if not average:
+        picks = np.concatenate(picks_list)
+
+        psd_list = np.concatenate(psd_list)
+        types = np.array([channel_type(raw.info, idx) for idx in picks])
+        # Needed because the data does not match the info anymore.
+        info = create_info([raw.ch_names[p] for p in picks], raw.info['sfreq'],
+                           types)
+        info['chs'] = [raw.info['chs'][p] for p in picks]
+        valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
+                               'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
+                               'hbr', 'misc']
+        ch_types_used = list()
+        for this_type in valid_channel_types:
+            if this_type in types:
+                ch_types_used.append(this_type)
+        units = {t: 'PSD (%s/Hz)' % unit for t in
+                 ch_types_used}
+        titles = {c: t for c, t in zip(ch_types_used, titles_list)}
+        picks = np.arange(len(psd_list))
+        if not spatial_colors:
+            spatial_colors = color
+        _plot_lines(psd_list, info, picks, fig, ax_list, spatial_colors,
+                    unit, units=units, scalings=None, hline=None, gfp=False,
+                    types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
+                    ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
+                    ch_types_used=ch_types_used, selectable=True, psd=True,
+                    line_alpha=line_alpha)
+        tight_layout(fig=fig)
     plt_show(show)
     return fig
 

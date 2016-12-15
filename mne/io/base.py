@@ -1612,7 +1612,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  proj=False, n_fft=2048, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
                  n_overlap=0, dB=True, average=True, show=True,
-                 n_jobs=1, line_alpha=None, verbose=None):
+                 n_jobs=1, line_alpha=None, spatial_colors=None,
+                 verbose=None):
         if tmax is None:
             tmax = 60.
             warn('tmax defaults to 60. in 0.14 but will change to np.inf in '
@@ -1623,7 +1624,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                             color=color, area_mode=area_mode,
                             area_alpha=area_alpha, n_overlap=n_overlap,
                             dB=dB, average=average, show=show, n_jobs=n_jobs,
-                            line_alpha=line_alpha)
+                            line_alpha=line_alpha,
+                            spatial_colors=spatial_colors)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
