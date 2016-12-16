@@ -79,6 +79,13 @@ def test_SearchLight():
     sl = _SearchLight(LogisticRegression())
     assert_equal(sl.scoring, None)
 
+    # test LabelEncoder changes y only in score
+    y_temp = y + 2
+    sl = _SearchLight(LogisticRegression(), scoring='roc_auc')
+    sl.fit(X, y_temp)
+    assert_array_equal(np.unique(sl.predict(X)), [2, 3])
+    assert_array_equal(np.unique(sl.score(X, y)), [1.0])
+
     # n_jobs
     sl = _SearchLight(LogisticRegression(), n_jobs=2)
     sl.fit(X, y)
@@ -112,6 +119,13 @@ def test_SearchLight():
         features_shape = pipe.estimators_[0].steps[0][1].features_shape_
         assert_array_equal(features_shape, [3, 4])
     assert_array_equal(y_preds[0], y_preds[1])
+
+    # Test when 'roc_auc' for binary labels
+    X = np.random.rand(5, 20, 2)
+    y = [4, 4, 3, 3, 3]
+    sl = _SearchLight(LogisticRegression(), scoring='roc_auc')
+    sl.fit(X, y)
+    sl.score(X, y)
 
 
 @requires_sklearn_0_15
