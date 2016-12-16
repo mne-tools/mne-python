@@ -33,20 +33,20 @@ fname_label_lh = data_path + '/MEG/sample/labels/%s.label' % label_name_lh
 event_id, tmin, tmax = 1, -0.2, 0.5
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
-# Load data
+# Load data.
 inverse_operator = read_inverse_operator(fname_inv)
 label_lh = mne.read_label(fname_label_lh)
 raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
-# Add a bad channel
+# Add a bad channel.
 raw.info['bads'] += ['MEG 2443']
 
-# pick MEG channels
+# pick MEG channels.
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
                        exclude='bads')
 
-# Read epochs
+# Read epochs.
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0),
                     reject=dict(mag=4e-12, grad=4000e-13, eog=150e-6))
