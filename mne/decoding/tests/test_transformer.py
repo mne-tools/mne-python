@@ -1,5 +1,6 @@
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #         Romain Trachel <trachelr@gmail.com>
+#         Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -190,6 +191,13 @@ def test_unsupervised_spatial_filter():
     usf = UnsupervisedSpatialFilter(PCA(4), average=True)
     usf.fit_transform(X)
     assert_raises(ValueError, UnsupervisedSpatialFilter, PCA(4), 2)
+
+    # Test partial_fit
+    from sklearn.decomposition import IncrementalPCA
+    usf = UnsupervisedSpatialFilter(PCA(4), average=True)
+    assert_raises(AttributeError, usf.partial_fit, X)
+    usf = UnsupervisedSpatialFilter(IncrementalPCA(4), average=True)
+    usf.partial_fit(X)
 
 
 def test_temporal_filter():

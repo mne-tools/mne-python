@@ -2,6 +2,7 @@
 # Authors: Gael Varoquaux <gael.varoquaux@normalesup.org>
 #          Romain Trachel <trachelr@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -723,3 +724,11 @@ def _check_estimator(estimator, get_params=True):
         raise ValueError('estimator must be a scikit-learn transformer or an '
                          'estimator with the get_params method that allows '
                          'cloning.')
+
+
+def _check_partial_fit(estimator):
+    """Check whether the estimator can apply a partial fit"""
+    if hasattr(estimator, 'steps'):
+        estimator = estimator.steps[-1][1]
+    if not hasattr(estimator, 'partial_fit'):
+        raise AttributeError('The estimator does not support partial_fit.')

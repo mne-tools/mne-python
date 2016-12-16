@@ -113,6 +113,22 @@ def test_SearchLight():
         assert_array_equal(features_shape, [3, 4])
     assert_array_equal(y_preds[0], y_preds[1])
 
+    # test partial_fit
+    from sklearn.linear_model import SGDClassifier
+    for n_jobs in (1, 2):
+        # with SGD
+        sl = SearchLight(SGDClassifier())
+        sl.partial_fit(X, y)  # init
+        sl.partial_fit(X, y)
+        # with pipeline
+        sl = SearchLight(make_pipeline(SGDClassifier()))
+        sl.partial_fit(X, y)  # init
+        sl.partial_fit(X, y)
+
+    for est in (LogisticRegression(), make_pipeline(LogisticRegression())):
+        sl = SearchLight(est)
+        assert_raises(AttributeError, sl.partial_fit, X, y)
+
 
 @requires_sklearn_0_15
 def test_GeneralizationLight():

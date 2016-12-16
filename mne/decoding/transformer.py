@@ -1,13 +1,14 @@
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Romain Trachel <trachelr@gmail.com>
+#          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
 import numpy as np
 
 from .mixin import TransformerMixin
-from .base import BaseEstimator
+from .base import BaseEstimator, _check_partial_fit
 
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
@@ -546,15 +547,38 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         self : Instance of UnsupervisedSpatialFilter
             Return the modified instance.
         """
+        self.estimator.fit(self._preproc_X(X))
+        return self
+
+    def _preproc_X(self, X):
+        """Preprocess X by average across epochs or concatenating epochs as
+        time samples"""
         if self.average:
             X = np.mean(X, axis=0).T
         else:
             n_epochs, n_channels, n_times = X.shape
             # trial as time samples
-            X = np.transpose(X, (1, 0, 2)).reshape((n_channels, n_epochs *
-                                                    n_times)).T
-        self.estimator.fit(X)
-        return self
+            X = np.transpose(X, (1, 0, 2))
+            X = X.reshape(n_channels, n_epochs * n_times).T
+        return X
+
+    def partial_fit(self, X, y=None):
+        """Fit the spatial filters.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data to be filtered.
+        y : None | array, shape (n_samples,)
+            Used for scikit-learn compatibility.
+
+        Returns
+        -------
+        self : Instance of UnsupervisedSpatialFilter
+            Return the modified instance.
+        """
+        _check_partial_fit(self.estimator)
+        self.estimator.partial_fit(self._preproc_X(X))
 
     def fit_transform(self, X, y=None):
         """Transform the data to its filtered components after fitting.
