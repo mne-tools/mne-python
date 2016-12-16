@@ -130,59 +130,68 @@ class RawEDF(BaseRaw):
             for tal_channel in tal_channels:
                 offsets[tal_channel] = 0
 
+        # We could read this one EDF block at a time, which would be this:
+        ch_offsets = np.cumsum(np.concatenate([[0], n_samps]))
         block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
-        read_size = len(r_lims) * buf_len
+        # But to speed it up, we really need to read multiple blocks at once,
+        # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
+        # Let's do ~10 MB chunks:
+        n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * data_size), 1)
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
             start_offset = (data_offset +
                             block_start_idx * buf_len * n_chan * data_size)
-            ch_offsets = np.cumsum(np.concatenate([[0], n_samps * data_size]))
-            this_data = np.empty((len(sel), buf_len))
-            for bi in range(len(r_lims)):
-                block_offset = bi * ch_offsets[-1]
-                d_sidx, d_eidx = d_lims[bi]
-                r_sidx, r_eidx = r_lims[bi]
-                n_buf_samp = r_eidx - r_sidx
+            for ai in range(0, len(r_lims), n_per):
+                block_offset = ai * ch_offsets[-1] * data_size
+                n_read = min(len(r_lims) - ai, n_per)
+                fid.seek(start_offset + block_offset, 0)
+                # Read and reshape to (n_chunks_read, ch0_ch1_ch2_ch3...)
+                many_chunk = _read_ch(fid, subtype, ch_offsets[-1] * n_read,
+                                      data_size).reshape(n_read, -1)
                 for ii, ci in enumerate(sel):
-                    n_samp = n_samps[ci]
-                    # bdf data: 24bit data
-                    fid.seek(start_offset + block_offset + ch_offsets[ci], 0)
-                    if n_samp == buf_len:
-                        # use faster version with skips built in
-                        fid.seek(r_sidx * data_size, 1)
-                        ch_data = _read_ch(fid, subtype, n_buf_samp, data_size)
-                    else:
-                        # read in all the data and triage appropriately
-                        ch_data = _read_ch(fid, subtype, n_samp, data_size)
+                    # This now has size (n_chunks_read, n_samp[ci])
+                    ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
+                    r_sidx = r_lims[ai][0]
+                    r_eidx = (buf_len * (n_read - 1) +
+                              r_lims[ai + n_read - 1][1])
+                    d_sidx = d_lims[ai][0]
+                    d_eidx = d_lims[ai + n_read - 1][1]
+                    if n_samps[ci] != buf_len:
                         if tal_channels is not None and ci in tal_channels:
-                            # don't resample tal_channels,
-                            # pad with zeros instead.
-                            n_missing = int(buf_len - n_samp)
-                            ch_data = np.hstack([ch_data, [0] * n_missing])
-                            ch_data = ch_data[r_sidx:r_eidx]
+                            # don't resample tal_channels, zero-pad instead.
+                            if n_samps[ci] < buf_len:
+                                z = np.zeros((len(ch_data),
+                                              buf_len - n_samps[ci]))
+                                ch_data = np.append(ch_data, z, -1)
+                            else:
+                                ch_data = ch_data[:, :buf_len]
                         elif ci == stim_channel:
                             if annot and annotmap or tal_channels is not None:
-                                # don't bother with resampling the stim ch
-                                # because it gets overwritten later on.
-                                ch_data = np.zeros(n_buf_samp)
+                                # don't resample, it gets overwritten later
+                                ch_data = np.zeros((len(ch_data, buf_len)))
                             else:
                                 # Stim channel will be interpolated
-                                oldrange = np.linspace(0, 1, n_samp + 1, True)
-                                newrange = np.linspace(0, 1, buf_len, False)
-                                newrange = newrange[r_sidx:r_eidx]
-                                ch_data = interp1d(
-                                    oldrange, np.append(ch_data, 0),
-                                    kind='zero')(newrange)
+                                old = np.linspace(0, 1, n_samps[ci] + 1, True)
+                                new = np.linspace(0, 1, buf_len, False)
+                                ch_data = np.append(
+                                    ch_data, np.zeros((len(ch_data), 1)), -1)
+                                ch_data = interp1d(old, ch_data,
+                                                   kind='zero', axis=-1)(new)
                         else:
-                            ch_data = resample(ch_data, buf_len, n_samp,
-                                               npad=0)[r_sidx:r_eidx]
-                    this_data[ii, :n_buf_samp] = ch_data
-                data[:, d_sidx:d_eidx] = this_data[:, :n_buf_samp]
+                            # XXX resampling each chunk isn't great,
+                            # it forces edge artifacts to appear at
+                            # each buffer boundary :(
+                            # it can also be very slow...
+                            ch_data = resample(
+                                ch_data, buf_len, n_samps[ci], npad=0, axis=-1)
+                    assert ch_data.shape == (len(ch_data), buf_len)
+                    data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
         data *= gains.T[sel]
         data += offsets[sel]
 
         # only try to read the stim channel if it's not None and it's
         # actually one of the requested channels
+        read_size = len(r_lims) * buf_len
         if stim_channel is not None and (sel == stim_channel).sum() > 0:
             stim_channel_idx = np.where(sel == stim_channel)[0]
             if annot and annotmap:
