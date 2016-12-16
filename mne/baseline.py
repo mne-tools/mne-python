@@ -19,7 +19,7 @@ def _log_rescale(baseline, mode='mean'):
         msg = 'Applying baseline correction (mode: %s)' % mode
     else:
         msg = 'No baseline correction applied'
-    logger.info(msg)
+    return msg
 
 
 @verbose
@@ -63,7 +63,8 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         Array of same shape as data after rescaling.
     """  # noqa: E501
     data = data.copy() if copy else data
-    _log_rescale(baseline, mode)
+    msg = _log_rescale(baseline, mode)
+    logger.info(msg)
     if baseline is None:
         return data
 
@@ -95,10 +96,10 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         mean = 0  # otherwise we get an ugly nan
     if mode == 'mean':
         data -= mean
-    if mode == 'logratio':
+    elif mode == 'logratio':
         data /= mean
         data = np.log10(data)  # a value of 1 means 10 times bigger
-    if mode == 'ratio':
+    elif mode == 'ratio':
         data /= mean
     elif mode == 'zscore':
         std = np.std(data[..., imin:imax], axis=-1)[..., None]
