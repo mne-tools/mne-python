@@ -1937,3 +1937,5 @@ of commits):
 .. _Niklas Wilming: https://github.com/nwilming
 
 .. _Annalisa Pascarella: http://www.iac.rm.cnr.it/~pasca/
+
+.. _Luke Bloy: https://scholar.google.com/citations?hl=en&user=Ad_slYcAAAAJ&view_op=list_works&sortby=pubdate

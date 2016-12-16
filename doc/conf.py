@@ -104,6 +104,16 @@ unused_docs = []
 # for source files.
 exclude_trees = ['_build']
 exclude_patterns = ['source/generated']
+"""
+    'auto_examples/index.rst',
+    'auto_tutorials/index.rst',
+    '/manual/index.rst',
+    '/manual/preprocessing/bads.rst',
+    '/manual/preprocessing/filter.rst',
+    '/manual/preprocessing/overview.rst',
+    '/manual/sample_dataset.rst',
+    'manual/visualization.rst',
+"""
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.

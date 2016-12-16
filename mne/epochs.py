@@ -1846,6 +1846,8 @@ class Epochs(BaseEpochs):
         names of channels that exceeded the amplitude threshold;
         'EQUALIZED_COUNTS' (see equalize_event_counts);
         or 'USER' for user-defined reasons (see drop method).
+    filename : str
+        The filename of the object.
     verbose : bool, str, int, or None
         See above.
 

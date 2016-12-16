@@ -1,3 +1,5 @@
+:orphan:
+
 .. include:: links.inc
 
 .. _get_started:

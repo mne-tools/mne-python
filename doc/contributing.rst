@@ -1,3 +1,5 @@
+:orphan:
+
 .. _contributing:
 
 Contribute to MNE
@@ -128,7 +130,7 @@ General code guidelines
      >>> run_tests_if_main()
 
   For more details see troubleshooting_.
-  
+
 * Update relevant documentation. Update :doc:`whats_new.rst <whats_new>` for new features and :doc:`python_reference.rst <python_reference>` for new classes and standalone functions. :doc:`whats_new.rst <whats_new>` is organized in chronological order with the last feature at the end of the document.
 
 Checking and building documentation

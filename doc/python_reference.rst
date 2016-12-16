@@ -1,3 +1,5 @@
+:orphan:
+
 .. _api_reference:
 
 ====================
@@ -28,8 +30,10 @@ Classes
    io.Raw
    io.RawFIF
    io.RawArray
+   io.BaseRaw
    Annotations
    AcqParserFIF
+   BaseEpochs
    Epochs
    Evoked
    SourceSpaces
@@ -340,6 +344,8 @@ Functions:
    plot_evoked_joint
    plot_evoked_field
    plot_evoked_white
+   plot_filter
+   plot_ideal_filter
    plot_compare_evokeds
    plot_ica_sources
    plot_ica_components
@@ -387,6 +393,14 @@ Projections:
    compute_proj_raw
    read_proj
    write_proj
+
+.. currentmodule:: mne.preprocessing
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   fix_stim_artifact
 
 .. currentmodule:: mne.preprocessing.ssp
 

@@ -1,3 +1,5 @@
+:orphan:
+
 .. _inside_martinos:
 
 Martinos Center setup
@@ -27,7 +29,7 @@ Then type::
 
     >>> import mne
 
-If you get a new prompt with no error messages, you should be good to go. 
+If you get a new prompt with no error messages, you should be good to go.
 
 We encourage all Martinos center Python users to subscribe to the
 `Martinos Python mailing list`_.

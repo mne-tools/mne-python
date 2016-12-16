@@ -1,3 +1,5 @@
+:orphan:
+
 .. include:: links.inc
 
 .. _faq:
