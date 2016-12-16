@@ -373,7 +373,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # more memory safe in most instances
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
-        self.filename = str(filename) if filename is not None else filename
+        self._filename = str(filename) if filename is not None else filename
 
     def load_data(self):
         """Load the data if not already preloaded.
@@ -1272,6 +1272,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self.times[0]
 
     @property
+    def filename(self):
+        """The filename."""
+        return self._filename
+
+    @property
     def tmax(self):
         """Last time point."""
         return self.times[-1]
@@ -1823,7 +1828,7 @@ class Epochs(BaseEpochs):
 
     Attributes
     ----------
-    info: dict
+    info : instance of Info
         Measurement info.
     event_id : dict
         Names of conditions corresponding to event_ids.

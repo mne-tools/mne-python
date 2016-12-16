@@ -1,3 +1,5 @@
+:orphan:
+
 .. include:: links.inc
 .. _whats_new:
 
@@ -72,7 +74,7 @@ BUG
 
     - Fix colormap selection in :func:`mne.viz.plot_evoked_topomap` when using positive vmin with negative data by `Jaakko Leppakangas`_
 
-    - Fix channel name comparison in :func:`read_montage` so that if ``ch_names`` is provided, the returned montage will have channel names in the same letter case by `Jaakko Leppakangas`_
+    - Fix channel name comparison in :func:`mne.channels.read_montage` so that if ``ch_names`` is provided, the returned montage will have channel names in the same letter case by `Jaakko Leppakangas`_
 
     - Fix :meth:`inst.set_montage(montage) <mne.io.Raw.set_montage>` to only set ``inst.info['dev_head_t']`` if ``dev_head_t=True`` in :func:`mne.channels.read_dig_montage` by `Eric Larson`_
 
@@ -84,7 +86,7 @@ BUG
 
     - Fix sanity check for incompatible ``threshold`` and ``tail`` values in clustering functions like :func:`mne.stats.spatio_temporal_cluster_1samp_test` by `Eric Larson`_
 
-    - Fix ``_bad_dropped`` not being set when loading eeglab epoched files via :func:`mne.io.eeglab.read_epochs_eeglab` which resulted in ``len()`` not working for :class:`mne.io.eeglab.EpochsEEGLAB`; by `Mikołaj Magnuski`_
+    - Fix ``_bad_dropped`` not being set when loading eeglab epoched files via :func:`mne.io.read_epochs_eeglab` which resulted in :func:`len` not working by `Mikołaj Magnuski`_
 
     - Fix a bug in :meth:`mne.time_frequency.AverageTFR.plot` when plotting without a colorbar by `Jaakko Leppakangas`_
 
@@ -96,7 +98,7 @@ BUG
 
     - Fix bug in :func:`mne.preprocessing.fix_stim_artifact` where non-data channels were interpolated by `Eric Larson`_
 
-    - Fix :func:`mne.viz.plot_topo_image_epochs` and :class:`mne.decoding.transformer.Scaler` so that they no longer modify the data in-place and fix to :class:`mne.decoding.transformer.Scaler.inverse_transform` so that the data is scaled before centering by `Jaakko Leppakangas`_
+    - Fix :func:`mne.viz.plot_topo_image_epochs` and :class:`mne.decoding.Scaler` so that they no longer modify the data in-place and fix to :class:`mne.decoding.Scaler.inverse_transform` so that the data is scaled before centering by `Jaakko Leppakangas`_
 
 
 API
