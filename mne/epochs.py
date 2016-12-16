@@ -197,6 +197,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     drop_log : list | None
         List of lists of strings indicating which epochs have been marked to be
         ignored.
+    filename : str | None
+        The filename (if the epochs are read from disk).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
