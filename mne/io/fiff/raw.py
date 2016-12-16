@@ -182,9 +182,6 @@ class Raw(BaseRaw):
             if len(raw_node) == 1:
                 raw_node = raw_node[0]
 
-            #   Set up the output structure
-            info['filename'] = fname
-
             #   Process the directory
             directory = raw_node['directory']
             nent = raw_node['nent']

@@ -215,7 +215,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
                  add_eeg_ref=False, proj=True, on_missing='error',
                  preload_at_end=False, selection=None, drop_log=None,
-                 verbose=None):  # noqa: D102
+                 filename=None, verbose=None):  # noqa: D102
         self.verbose = verbose
         self.name = name
 
@@ -373,6 +373,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # more memory safe in most instances
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
+        self.filename = str(filename) if filename is not None else filename
 
     def load_data(self):
         """Load the data if not already preloaded.
@@ -2223,12 +2224,11 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
             return False, bad_list
 
 
-def _read_one_epoch_file(f, tree, fname, preload):
+def _read_one_epoch_file(f, tree, preload):
     """Read a single FIF file."""
     with f as fid:
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree, clean_bads=True)
-        info['filename'] = fname
 
         events, mappings = _read_events_fif(fid, tree)
 
@@ -2436,7 +2436,7 @@ class EpochsFIF(BaseEpochs):
             next_fname = _get_next_fname(fid, fname, tree)
             (info, data, data_tag, events, event_id, tmin, tmax, baseline,
              name, selection, drop_log, epoch_shape, cals) = \
-                _read_one_epoch_file(fid, tree, fname, preload)
+                _read_one_epoch_file(fid, tree, preload)
             # here we ignore missing events, since users should already be
             # aware of missing events if they have saved data that way
             epoch = BaseEpochs(
@@ -2475,7 +2475,7 @@ class EpochsFIF(BaseEpochs):
             info, data, events, event_id, tmin, tmax, baseline, raw=raw,
             name=name, proj=proj, add_eeg_ref=add_eeg_ref,
             preload_at_end=False, on_missing='ignore', selection=selection,
-            drop_log=drop_log, verbose=verbose)
+            drop_log=drop_log, filename=fname, verbose=verbose)
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True

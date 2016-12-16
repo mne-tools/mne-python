@@ -648,6 +648,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Annotations for marking segments of data."""
         return self._annotations
 
+    @property
+    def filenames(self):
+        """The filenames used."""
+        return tuple(self._filenames)
+
     @annotations.setter
     def annotations(self, annotations):
         """Setter for annotations.
@@ -1780,10 +1785,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 if not force:
                     raise ValueError('Bad channels from:\n%s\n not found '
                                      'in:\n%s' % (bad_file,
-                                                  self._filenames[0]))
+                                                  self.filenames[0]))
                 else:
                     warn('%d bad channels from:\n%s\nnot found in:\n%s'
-                         % (count_diff, bad_file, self._filenames[0]))
+                         % (count_diff, bad_file, self.filenames[0]))
             self.info['bads'] = names_there
         else:
             self.info['bads'] = []
@@ -1887,7 +1892,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return deepcopy(self)
 
     def __repr__(self):  # noqa: D105
-        name = self._filenames[0]
+        name = self.filenames[0]
         name = 'None' if name is None else op.basename(name)
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
         size_str += ', data%s loaded' % ('' if self.preload else ' not')

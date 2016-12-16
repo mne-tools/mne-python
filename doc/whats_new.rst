@@ -55,15 +55,16 @@ Changelog
 
 BUG
 ~~~
+
     - Fix reading multi-file CTF recordings in :class:`mne.io.ctf.RawCTF` by `Niklas Wilming`_
 
     - Fix computation of AR coefficients across channels in :func:`mne.time_frequency.fit_iir_model_raw` by `Eric Larson`_
 
     - Fix maxfilter channel names extra space bug in :func:`mne.preprocessing.maxwell_filter` by `Sheraz Khan`_
 
-    - :func:`mne.find_layout` now leaves out the excluded channels by `Jaakko Leppakangas`_
+    - :func:`find_layout` now leaves out the excluded channels by `Jaakko Leppakangas`_
 
-    - Array data constructors :class:`mne.io.RawArray` and :class:`mne.EvokedArray` now make a copy of the info structure by `Jaakko Leppakangas`_
+    - Array data constructors :class:`mne.io.RawArray` and :class:`EvokedArray` now make a copy of the info structure by `Jaakko Leppakangas`_
 
     - Fix bug with finding layouts in :func:`mne.viz.plot_projs_topomap` by `Eric Larson`_
 
@@ -71,7 +72,7 @@ BUG
 
     - Fix colormap selection in :func:`mne.viz.plot_evoked_topomap` when using positive vmin with negative data by `Jaakko Leppakangas`_
 
-    - Fix channel name comparison in :func:`mne.read_montage` so that if ``ch_names`` is provided, the returned montage will have channel names in the same letter case by `Jaakko Leppakangas`_
+    - Fix channel name comparison in :func:`read_montage` so that if ``ch_names`` is provided, the returned montage will have channel names in the same letter case by `Jaakko Leppakangas`_
 
     - Fix :meth:`inst.set_montage(montage) <mne.io.Raw.set_montage>` to only set ``inst.info['dev_head_t']`` if ``dev_head_t=True`` in :func:`mne.channels.read_dig_montage` by `Eric Larson`_
 
@@ -79,7 +80,7 @@ BUG
 
     - Fix bug with automatic decimation in :func:`mne.io.read_raw_kit` by `Keith Doelling`_
 
-    - Fix bug with :func:`mne.setup_volume_source_space` where arguments ``subject`` and ``subjects_dir`` were ignored by `Jaakko Leppakangas`_
+    - Fix bug with :func:`setup_volume_source_space` where arguments ``subject`` and ``subjects_dir`` were ignored by `Jaakko Leppakangas`_
 
     - Fix sanity check for incompatible ``threshold`` and ``tail`` values in clustering functions like :func:`mne.stats.spatio_temporal_cluster_1samp_test` by `Eric Larson`_
 
@@ -103,7 +104,7 @@ API
 
     - The filtering functions ``band_pass_filter``, ``band_stop_filter``, ``low_pass_filter``, and ``high_pass_filter`` have been deprecated in favor of :func:`mne.filter.filter_data` by `Eric Larson`_
 
-    - :class:`mne.EvokedArray` now has default value ``tmin=0.`` by `Jaakko Leppakangas`_
+    - :class:`EvokedArray` now has default value ``tmin=0.`` by `Jaakko Leppakangas`_
 
     - The ``ch_type`` argument for :func:`mne.viz.plot_trans` has been deprecated, use ``eeg_sensors`` and ``meg_sensors`` instead, by `Eric Larson`_
 
@@ -112,6 +113,8 @@ API
     - Base classes :class:`mne.io.BaseRaw` and :class:`mne.BaseEpochs` are now public to allow easier typechecking, by `Daniel McCloy`_
 
     - :func:`mne.io.read_raw_edf` now combines triggers from multiple tal channels to 'STI 014' by `Jaakko Leppakangas`_
+
+    - The measurement info :class:`Info` no longer contains a potentially misleading ``info['filename']`` entry. Use class properties like :attr:`mne.io.Raw.filenames` or :attr:`mne.Epochs.filename` instead by `Eric Larson`_
 
 .. _changes_0_13:
 

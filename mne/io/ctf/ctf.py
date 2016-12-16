@@ -133,7 +133,6 @@ class RawCTF(BaseRaw):
             if len(fnames) == 0:
                 info['buffer_size_sec'] = \
                     sample_info['block_size'] / info['sfreq']
-                info['filename'] = directory
             fnames.append(meg4_name)
             last_samps.append(sample_info['n_samp'] - 1)
             raw_extras.append(sample_info)

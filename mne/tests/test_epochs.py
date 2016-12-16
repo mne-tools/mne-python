@@ -1705,7 +1705,7 @@ def test_contains():
     seeg = RawArray(np.zeros((1, len(raw.times))),
                     create_info(['SEEG 001'], raw.info['sfreq'], 'seeg'))
     for key in ('dev_head_t', 'buffer_size_sec', 'highpass', 'lowpass',
-                'filename', 'dig', 'description', 'acq_pars', 'experimenter',
+                'dig', 'description', 'acq_pars', 'experimenter',
                 'proj_name'):
         seeg.info[key] = raw.info[key]
     raw.add_channels([seeg])
@@ -1838,7 +1838,6 @@ def test_add_channels_epochs():
     add_channels_epochs([epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs2.info['filename'] = epochs2.info['filename'].upper()
     epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()

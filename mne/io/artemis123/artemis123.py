@@ -145,7 +145,7 @@ def _get_artemis123_info(fname):
     desc += 'Comments : {}'.format(header_info['comments'])
 
     info = _empty_info(float(header_info['Rate Out']))
-    info.update({'filename': fname, 'meas_date': meas_date,
+    info.update({'meas_date': meas_date,
                  'description': desc, 'buffer_size_sec': 1.,
                  'subject_info': subject_info,
                  'proj_name': header_info['Project Name']})
