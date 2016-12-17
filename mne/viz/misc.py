@@ -121,6 +121,8 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     fig_svd = None
     if show_svd:
         fig_svd, axes = plt.subplots(1, len(idx_names))
+        if isinstance(axes, plt.Axes):
+            axes = [axes]
         for k, (idx, name, unit, scaling) in enumerate(idx_names):
             s = linalg.svd(C[idx][:, idx], compute_uv=False)
             # Protect against true zero singular values
