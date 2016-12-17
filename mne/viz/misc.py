@@ -110,6 +110,8 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
 
     fig_cov, axes = plt.subplots(1, len(idx_names),
                                  figsize=(2.5 * len(idx_names), 2.7))
+    if isinstance(axes, plt.Axes):
+        axes = [axes]
     for k, (idx, name, _, _) in enumerate(idx_names):
         axes[k].imshow(C[idx][:, idx], interpolation="nearest", cmap='RdBu_r')
         axes[k].set(title=name)
