@@ -70,6 +70,7 @@ def test_SearchLight():
             ('predict_proba', 'roc_auc'), ('predict', roc_auc_score)]:
         sl1 = _SearchLight(LogisticRegression(), scoring=scoring)
         sl1.fit(X, y)
+        np.random.seed(0)
         X = np.random.randn(*X.shape)  # randomize X to avoid AUCs in [0, 1]
         score_sl = sl1.score(X, y)
         assert_array_equal(score_sl.shape, [n_time])
