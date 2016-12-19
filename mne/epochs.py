@@ -248,8 +248,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 raise ValueError('events must be an array of type int')
             if events.ndim != 2 or events.shape[1] != 3:
                 raise ValueError('events must be 2D with 3 columns')
-            if len(np.unique(events[:, 0])) != len(events):
-                raise RuntimeError('Event time samples were not unique')
             for key, val in self.event_id.items():
                 if val not in events[:, 2]:
                     msg = ('No matching events found for %s '
@@ -273,6 +271,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 self.drop_log = drop_log
             events = events[selected]
+            if len(np.unique(events[:, 0])) != len(events):
+                raise RuntimeError('Event time samples were not unique')
             n_events = len(events)
             if n_events > 1:
                 if np.diff(events.astype(np.int64)[:, 0]).min() <= 0:
