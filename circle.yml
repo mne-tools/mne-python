@@ -37,8 +37,8 @@ dependencies:
       else
         echo "Conda already set up.";
       fi
-    - conda install -n circleenv --yes numpy scipy scikit-learn matplotlib sphinx=1.4.1 pillow six IPython pandas apptools=4.4.0 envisage=4.5.1 pyface=5.1.0 traits=4.6.0 traitsui=5.1.0 vtk=5.10.1;
-    - pip install mayavi==4.4.4;
+    # Let's use old Mayavi because 4.5.0 (as of 2016/12/20) breaks plot_mne_inverse_coherence_epochs.py
+    - conda install -n circleenv --yes numpy scipy scikit-learn matplotlib sphinx pillow six IPython pandas mayavi vtk;
     - ls -al /home/ubuntu/miniconda;
     - ls -al /home/ubuntu/miniconda/bin;
     - echo $PATH;
