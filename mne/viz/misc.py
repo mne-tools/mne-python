@@ -108,28 +108,25 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
 
     import matplotlib.pyplot as plt
 
-    fig_cov, axes = plt.subplots(1, len(idx_names),
+    fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
                                  figsize=(2.5 * len(idx_names), 2.7))
-    if isinstance(axes, plt.Axes):
-        axes = [axes]
     for k, (idx, name, _, _) in enumerate(idx_names):
-        axes[k].imshow(C[idx][:, idx], interpolation="nearest", cmap='RdBu_r')
-        axes[k].set(title=name)
+        axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
+                          cmap='RdBu_r')
+        axes[0, k].set(title=name)
     fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
     tight_layout(fig=fig_cov)
 
     fig_svd = None
     if show_svd:
-        fig_svd, axes = plt.subplots(1, len(idx_names))
-        if isinstance(axes, plt.Axes):
-            axes = [axes]
+        fig_svd, axes = plt.subplots(1, len(idx_names), squeeze=False)
         for k, (idx, name, unit, scaling) in enumerate(idx_names):
             s = linalg.svd(C[idx][:, idx], compute_uv=False)
             # Protect against true zero singular values
             s[s <= 0] = 1e-10 * s[s > 0].min()
-            axes[k].semilogy(np.sqrt(s) * scaling)
-            axes[k].set(ylabel='Noise std (%s)' % unit,
-                        xlabel='Eigenvalue index', title=name)
+            axes[0, k].semilogy(np.sqrt(s) * scaling)
+            axes[0, k].set(ylabel='Noise std (%s)' % unit,
+                           xlabel='Eigenvalue index', title=name)
         tight_layout(fig=fig_svd)
 
     plt_show(show)

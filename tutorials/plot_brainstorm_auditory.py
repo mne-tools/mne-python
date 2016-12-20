@@ -10,6 +10,7 @@ tutorial dataset. For comparison, see [1]_ and:
     http://neuroimage.usc.edu/brainstorm/Tutorials/Auditory
 
 Experiment:
+
     - One subject, 2 acquisition runs 6 minutes each.
     - Each run contains 200 regular beeps and 40 easy deviant beeps.
     - Random ISI: between 0.7s and 1.7s seconds, uniformly distributed.
