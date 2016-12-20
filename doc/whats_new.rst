@@ -51,6 +51,8 @@ Changelog
 
     - Add spatial colors option for :func:`mne.viz.plot_raw_psd` by `Jaakko Leppakangas`_
 
+    - Add functions like :func:`get_volume_labels_from_src` to handle mixed source spaces by `Annalisa Pascarella`_
+
 BUG
 ~~~
     - Fix reading multi-file CTF recordings in :class:`mne.io.ctf.RawCTF` by `Niklas Wilming`_
@@ -1930,3 +1932,5 @@ of commits):
 .. _Paul Pasler: https://github.com/ppasler
 
 .. _Niklas Wilming: https://github.com/nwilming
+
+.. _Annalisa Pascarella: http://www.iac.rm.cnr.it/~pasca/
