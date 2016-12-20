@@ -64,7 +64,8 @@ from .source_space import (read_source_spaces, vertex_to_mni,
                            write_source_spaces, setup_source_space,
                            setup_volume_source_space, SourceSpaces,
                            add_source_space_distances, morph_source_spaces,
-                           get_volume_labels_from_aseg)
+                           get_volume_labels_from_aseg,
+                           get_volume_labels_from_src)
 from .annotations import Annotations
 from .epochs import (BaseEpochs, Epochs, EpochsArray, read_epochs,
                      concatenate_epochs)

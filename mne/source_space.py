@@ -42,7 +42,8 @@ def _get_lut():
     data_dir = op.join(op.dirname(__file__), 'data')
     lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
     return np.genfromtxt(lut_fname, dtype=None,
-                         usecols=(0, 1), names=['id', 'name'])
+                         usecols=(0, 1, 2, 3, 4, 5),
+                         names=['id', 'name', 'R', 'G', 'B', 'A'])
 
 
 def _get_lut_id(lut, label, use_lut):
@@ -1404,7 +1405,7 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
         :func:`mne.write_source_spaces` instead.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    volume_label : str | None
+    volume_label : str | list | None
         Region of interest corresponding with freesurfer lookup table.
     add_interpolator : bool
         If True and ``mri`` is not None, then an interpolation matrix
@@ -1457,11 +1458,17 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
         if mri is None:
             raise RuntimeError('"mri" must be provided if "volume_label" is '
                                'not None')
+        if not isinstance(volume_label, list):
+                volume_label = [volume_label]
+
         # Check that volume label is found in .mgz file
         volume_labels = get_volume_labels_from_aseg(mri)
-        if volume_label not in volume_labels:
-            raise ValueError('Volume %s not found in file %s. Double check '
-                             'freesurfer lookup table.' % (volume_label, mri))
+
+        for label in volume_label:
+            if label not in volume_labels:
+                raise ValueError('Volume %s not found in file %s. Double '
+                                 'check  freesurfer lookup table.'
+                                 % (label, mri))
 
     sphere = np.asarray(sphere)
     if sphere.size != 4:
@@ -1551,24 +1558,39 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
             surf['rr'] *= sphere[3] / 1000.0  # scale by radius
             surf['rr'] += sphere[:3] / 1000.0  # move by center
         # Make the grid of sources in MRI space
-        sp = _make_volume_source_space(surf, pos, exclude, mindist, mri,
-                                       volume_label)
+        if volume_label is not None:
+            sp = []
+            for label in volume_label:
+                vol_sp = _make_volume_source_space(surf, pos, exclude, mindist,
+                                                   mri, label)
+                sp.append(vol_sp)
+        else:
+            sp = _make_volume_source_space(surf, pos, exclude, mindist, mri,
+                                           volume_label)
 
     # Compute an interpolation matrix to show data in MRI_VOXEL coord frame
-    if mri is not None:
-        _add_interpolator(sp, mri, add_interpolator)
-    elif sp['type'] == 'vol':
-        # If there is no interpolator, it's actually a discrete source space
-        sp['type'] = 'discrete'
+    if not isinstance(sp, list):
+        sp = [sp]
 
-    if 'vol_dims' in sp:
-        del sp['vol_dims']
+    if mri is not None:
+        for s in sp:
+            _add_interpolator(s, mri, add_interpolator)
+    elif sp[0]['type'] == 'vol':
+        # If there is no interpolator, it's actually a discrete source space
+        sp[0]['type'] = 'discrete'
+
+    for s in sp:
+        if 'vol_dims' in s:
+            del s['vol_dims']
 
     # Save it
-    sp.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
-                   dist_limit=None, pinfo=None, ntri=0, nearest_dist=None,
-                   nuse_tri=0, tris=None, subject_his_id=subject))
-    sp = SourceSpaces([sp], dict(working_dir=os.getcwd(), command_line='None'))
+    for s in sp:
+        s.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
+                      dist_limit=None, pinfo=None, ntri=0, nearest_dist=None,
+                      nuse_tri=0, tris=None, subject_his_id=subject))
+
+    sp = SourceSpaces(sp, dict(working_dir=os.getcwd(), command_line='None'))
+
     if fname is not None:
         write_source_spaces(fname, sp, verbose=False)
     return sp
@@ -2320,20 +2342,23 @@ def _do_src_distances(con, vertno, run_inds, limit):
     return d, min_idx, min_dist
 
 
-def get_volume_labels_from_aseg(mgz_fname):
-    """Get a list of names of segmented volumes.
+def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
+    """Return a list of names and colors of segmented volumes.
 
     Parameters
     ----------
     mgz_fname : str
         Filename to read. Typically aseg.mgz or some variant in the freesurfer
         pipeline.
+    return_colors : bool
+        If True returns also the labels colors
 
     Returns
     -------
     label_names : list of str
         The names of segmented volumes included in this mgz file.
-
+    label_colors : list of str
+        The RGB colors of the labels included in this mgz file.
     Notes
     -----
     .. versionadded:: 0.9.0
@@ -2345,10 +2370,90 @@ def get_volume_labels_from_aseg(mgz_fname):
 
     # Get the unique label names
     lut = _get_lut()
+
     label_names = [lut[lut['id'] == ii]['name'][0].decode('utf-8')
                    for ii in np.unique(mgz_data)]
-    label_names = sorted(label_names, key=lambda n: n.lower())
-    return label_names
+    label_colors = [[lut[lut['id'] == ii]['R'][0],
+                     lut[lut['id'] == ii]['G'][0],
+                     lut[lut['id'] == ii]['B'][0],
+                     lut[lut['id'] == ii]['A'][0]]
+                    for ii in np.unique(mgz_data)]
+
+    order = np.argsort(label_names)
+    label_names = [label_names[k] for k in order]
+    label_colors = [label_colors[k] for k in order]
+
+    if return_colors:
+        return label_names, label_colors
+    else:
+        return label_names
+
+
+def get_volume_labels_from_src(src, subject, subjects_dir):
+    """Return a list of Label of segmented volumes included in the src space.
+
+    Parameters
+    ----------
+    src : instance of SourceSpaces
+        The source space containing the volume regions
+    subject: str
+        Subject name
+    subjects_dir: str
+        Freesurfer folder of the subjects
+
+    Returns
+    -------
+    labels_aseg : list of Label
+        List of Label of segmented volumes included in src space.
+
+    """
+    import os.path as op
+    import numpy as np
+
+    from . import Label
+    from . import get_volume_labels_from_aseg
+
+    # Read the aseg file
+    aseg_fname = op.join(subjects_dir, subject, 'mri', 'aseg.mgz')
+    if not op.isfile(aseg_fname):
+        raise IOError('aseg file "%s" not found' % aseg_fname)
+    all_labels_aseg = get_volume_labels_from_aseg(aseg_fname,
+                                                  return_colors=True)
+
+    # Create a list of Label
+    if len(src) < 2:
+        raise ValueError('No vol src space in src')
+
+    if any(np.any(s['type'] != 'vol') for s in src[2:]):
+            raise ValueError('source spaces have to be of vol type')
+
+    labels_aseg = list()
+    for nr in range(2, len(src)):
+        vertices = src[nr]['vertno']
+
+        pos = src[nr]['rr'][src[nr]['vertno'], :]
+        roi_str = src[nr]['seg_name']
+        try:
+            ind = all_labels_aseg[0].index(roi_str)
+            color = np.array(all_labels_aseg[1][ind]) / 255
+        except ValueError:
+            pass
+
+        if 'left' in roi_str.lower():
+            hemi = 'lh'
+            roi_str = roi_str.replace('Left-', '') + '-lh'
+        elif 'right' in roi_str.lower():
+            hemi = 'rh'
+            roi_str = roi_str.replace('Right-', '') + '-rh'
+        else:
+            hemi = 'both'
+
+        label = Label(vertices=vertices, pos=pos, hemi=hemi,
+                      name=roi_str, color=color,
+                      subject=subject)
+        labels_aseg.append(label)
+
+    return labels_aseg
 
 
 def _get_hemi(s):

@@ -2695,7 +2695,22 @@ def _get_label_flip(labels, label_vertidx, src):
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, verbose=None):
     """Generator for extract_label_time_course."""
-    n_labels = len(labels)
+    # if src is a mixed src space, the first 2 src spaces are surf type and
+    # the other ones are vol type. For mixed source space n_labels will be the
+    # given by the number of ROIs of the cortical parcellation plus the number
+    # of vol src space
+
+    if len(src) > 2:
+        if src[0]['type'] != 'surf' or src[1]['type'] != 'surf':
+            raise ValueError('The first 2 source spaces have to be surf type')
+        if any(np.any(s['type'] != 'vol') for s in src[2:]):
+            raise ValueError('source spaces have to be of vol type')
+
+        n_aparc = len(labels)
+        n_aseg = len(src[2:])
+        n_labels = n_aparc + n_aseg
+    else:
+        n_labels = len(labels)
 
     # get vertices from source space, they have to be the same as in the stcs
     vertno = [s['vertno'] for s in src]
@@ -2739,10 +2754,10 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
         pass  # we have this here to catch invalid values for mode
     elif mode == 'mean_flip':
         # get the sign-flip vector for every label
-        label_flip = _get_label_flip(labels, label_vertidx, src)
+        label_flip = _get_label_flip(labels, label_vertidx, src[:2])
     elif mode == 'pca_flip':
         # get the sign-flip vector for every label
-        label_flip = _get_label_flip(labels, label_vertidx, src)
+        label_flip = _get_label_flip(labels, label_vertidx, src[:2])
     elif mode == 'max':
         pass  # we calculate the maximum value later
     else:
@@ -2751,11 +2766,20 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     # loop through source estimates and extract time series
     for stc in stcs:
         # make sure the stc is compatible with the source space
-        if len(stc.vertices[0]) != nvert[0] or \
-                len(stc.vertices[1]) != nvert[1]:
-            raise ValueError('stc not compatible with source space')
+        for i in range(len(src)):
+            if len(stc.vertices[i]) != nvert[i]:
+                raise ValueError('stc not compatible with source space. '
+                                 'stc has %s time series but there are %s '
+                                 'vertices in source space'
+                                 % (len(stc.vertices[i]), nvert[i]))
+
         if any(np.any(svn != vn) for svn, vn in zip(stc.vertices, vertno)):
             raise ValueError('stc not compatible with source space')
+        if sum(nvert) != stc.shape[0]:
+            raise ValueError('stc not compatible with source space. '
+                             'stc has %s vertices but the source space '
+                             'has %s vertices'
+                             % (stc.shape[0], sum(nvert)))
 
         logger.info('Extracting time courses for %d labels (mode: %s)'
                     % (n_labels, mode))
@@ -2791,6 +2815,18 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                     label_tc[i] = np.max(np.abs(stc.data[vertidx, :]), axis=0)
         else:
             raise ValueError('%s is an invalid mode' % mode)
+
+        # extract label time series for the vol src space
+        if len(src) > 2:
+            v1 = nvert[0] + nvert[1]
+            for i, nv in enumerate(nvert[2:]):
+
+                v2 = v1 + nv
+                v = range(v1, v2)
+                if nv != 0:
+                    label_tc[n_aparc + i] = np.mean(stc.data[v, :], axis=0)
+
+                v1 = v2
 
         # this is a generator!
         yield label_tc

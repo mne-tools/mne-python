@@ -20,6 +20,7 @@ from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mri_header, _get_mgz_header
 from mne.externals.six.moves import zip
 from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
+                              get_volume_labels_from_src,
                               _compare_source_spaces)
 from mne.tests.common import assert_naming
 from mne.io.constants import FIFF
@@ -456,8 +457,11 @@ def test_get_volume_label_names():
     """Test reading volume label names
     """
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names = get_volume_labels_from_aseg(aseg_fname)
+    label_names, label_colors = get_volume_labels_from_aseg(aseg_fname,
+                                                            return_colors=True)
     assert_equal(label_names.count('Brain-Stem'), 1)
+
+    assert_equal(len(label_colors), len(label_names))
 
 
 @testing.requires_testing_data
@@ -494,6 +498,38 @@ def test_source_space_from_label():
     write_source_spaces(out_name, src)
     src_from_file = read_source_spaces(out_name)
     _compare_source_spaces(src, src_from_file, mode='approx')
+
+
+@testing.requires_testing_data
+@requires_freesurfer
+@requires_nibabel()
+def test_read_volume_from_src():
+    """Test reading volumes from a mixed source space
+    """
+    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+    labels_vol = ['Left-Amygdala',
+                  'Brain-Stem',
+                  'Right-Amygdala']
+
+    src = read_source_spaces(fname)
+
+    # Setup a volume source space
+    vol_src = setup_volume_source_space('sample', mri=aseg_fname,
+                                        pos=5.0,
+                                        bem=fname_bem,
+                                        volume_label=labels_vol,
+                                        subjects_dir=subjects_dir)
+    # Generate the mixed source space
+    src += vol_src
+
+    volume_src = get_volume_labels_from_src(src, 'sample', subjects_dir)
+    volume_label = volume_src[0].name
+    volume_label = 'Left-' + volume_label.replace('-lh', '')
+
+    # Test
+    assert_equal(volume_label, src[2]['seg_name'])
+
+    assert_equal(src[2]['type'], 'vol')
 
 
 @testing.requires_testing_data
