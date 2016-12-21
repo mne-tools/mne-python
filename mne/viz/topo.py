@@ -381,9 +381,9 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
     if sigma > 0.:
         this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
 
-    ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
-              origin='lower', vmin=vmin, vmax=vmax, picker=True, cmap=cmap,
-              interpolation='nearest')
+    img = ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], 
+                    aspect='auto', origin='lower', vmin=vmin, vmax=vmax, 
+                    picker=True, cmap=cmap, interpolation='nearest')
 
     ax = plt.gca()
     if x_label is not None:
@@ -391,7 +391,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
     if y_label is not None:
         ax.set_ylabel(y_label)
     if colorbar:
-        plt.colorbar()
+        plt.colorbar(mappable=img)
 
 
 def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
