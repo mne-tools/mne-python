@@ -58,6 +58,8 @@ Changelog
 BUG
 ~~~
 
+    - Fix callback function call in :func:`mne.viz.topo._plot_topo_onpick` by `Erkka Heinila`_
+
     - Fix reading multi-file CTF recordings in :class:`mne.io.ctf.RawCTF` by `Niklas Wilming`_
 
     - Fix computation of AR coefficients across channels in :func:`mne.time_frequency.fit_iir_model_raw` by `Eric Larson`_
@@ -1941,3 +1943,5 @@ of commits):
 .. _Annalisa Pascarella: http://www.iac.rm.cnr.it/~pasca/
 
 .. _Luke Bloy: https://scholar.google.com/citations?hl=en&user=Ad_slYcAAAAJ&view_op=list_works&sortby=pubdate
+
+.. _Erkka Heinila: https://github.com/Teekuningas
