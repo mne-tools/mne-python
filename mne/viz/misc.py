@@ -111,7 +111,8 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
                                  figsize=(2.5 * len(idx_names), 2.7))
     for k, (idx, name, _, _) in enumerate(idx_names):
-        axes[0, k].imshow(C[idx][:, idx], interpolation="nearest", cmap='RdBu_r')
+        axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
+                          cmap='RdBu_r')
         axes[0, k].set(title=name)
     fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
     tight_layout(fig=fig_cov)
