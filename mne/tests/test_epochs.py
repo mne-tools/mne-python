@@ -453,7 +453,7 @@ def test_epochs_hash():
 
 
 def test_event_ordering():
-    """Test event order"""
+    """Test event order."""
     raw, events = _get_data()[:2]
     events2 = events.copy()
     rng.shuffle(events2)
@@ -465,6 +465,13 @@ def test_event_ordering():
             assert_equal(len(w), ii)
             if ii > 0:
                 assert_true('chronologically' in '%s' % w[-1].message)
+    # Duplicate events should be an error...
+    events2 = events[[0, 0]]
+    events2[:, 2] = [1, 2]
+    assert_raises(RuntimeError, Epochs, raw, events2, event_id=None)
+    # But only if duplicates are actually used by event_id
+    assert_equal(len(Epochs(raw, events2, event_id=dict(a=1), preload=True)),
+                 1)
 
 
 def test_epochs_bad_baseline():
