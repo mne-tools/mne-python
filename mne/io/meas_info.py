@@ -423,6 +423,10 @@ def _read_dig_points(fname, comments='%', unit='auto'):
         dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
         if unit == 'auto':
             unit = 'mm'
+        if dig_points.shape[1] > 3:
+            warn('Found %d columns instead of 3, using first 3 for XYZ '
+                 'coordinates' % (dig_points.shape[1],))
+            dig_points = dig_points[:, :3]
 
     if dig_points.shape[-1] != 3:
         err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)

@@ -245,6 +245,21 @@ def test_read_dig_montage():
     assert_array_equal(montage_cm.hpi, montage.hpi)
     assert_raises(ValueError, read_dig_montage, hsp, hpi, elp, names,
                   unit='km')
+    # extra columns
+    extra_hsp = op.join(tempdir, 'test.txt')
+    with open(hsp, 'rb') as fin:
+        with open(extra_hsp, 'wb') as fout:
+            for line in fin:
+                if line.startswith(b'%'):
+                    fout.write(line)
+                else:
+                    # extra column
+                    fout.write(line.rstrip() + b' 0.0 0.0 0.0\n')
+    with warnings.catch_warnings(record=True) as w:
+        montage_extra = read_dig_montage(extra_hsp, hpi, elp, names)
+    assert_true(len(w) == 1 and all('columns' in str(ww.message) for ww in w))
+    assert_allclose(montage_extra.hsp, montage.hsp)
+    assert_allclose(montage_extra.elp, montage.elp)
 
 
 def test_set_dig_montage():
