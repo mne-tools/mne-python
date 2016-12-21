@@ -126,7 +126,7 @@ saccades_events = df[df['label'] == 'saccade'].values[:, :3].astype(int)
 # Conversion from samples to times:
 onsets = annotations_df['onset'].values / raw.info['sfreq']
 durations = annotations_df['duration'].values / raw.info['sfreq']
-descriptions = map(str, annotations_df['label'].values)
+descriptions = annotations_df['label'].values
 
 annotations = mne.Annotations(onsets, durations, descriptions)
 raw.annotations = annotations
@@ -258,7 +258,7 @@ if use_precomputed:
     notches = [60, 120, 180]
     for evoked in (evoked_std, evoked_dev):
         evoked.data[:] = notch_filter(evoked.data, sfreq, notches)
-        evoked.data[:] = filter_data(evoked_std.data, sfreq, None, 100)
+        evoked.data[:] = filter_data(evoked.data, sfreq, None, 100)
 
 ###############################################################################
 # Here we plot the ERF of standard and deviant conditions. In both conditions
@@ -270,6 +270,7 @@ if use_precomputed:
 # painting an area with clicking and holding the left mouse button.
 evoked_std.plot(window_title='Standard', gfp=True)
 evoked_dev.plot(window_title='Deviant', gfp=True)
+
 
 ###############################################################################
 # Show activations as topography figures.
