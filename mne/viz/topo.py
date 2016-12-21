@@ -220,7 +220,7 @@ def _plot_topo_onpick(event, show_func):
         ax.set_axis_bgcolor(face_color)
 
         # allow custom function to override parameters
-        show_func(plt, ch_idx)
+        show_func(ax, ch_idx)
 
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers,
