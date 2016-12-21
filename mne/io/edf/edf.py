@@ -434,7 +434,6 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
     # sfreq defined as the max sampling rate of eeg
     sfreq = n_samps.max() / record_length
     info = _empty_info(sfreq)
-    info['filename'] = fname
     info['meas_date'] = calendar.timegm(date.utctimetuple())
     info['chs'] = chs
 

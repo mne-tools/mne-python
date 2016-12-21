@@ -81,11 +81,11 @@ class RawBrainVision(BaseRaw):
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
-        info, fmt, self._order, mrk_fname, montage = _get_vhdr_info(
-            vhdr_fname, eog, misc, scale, montage)
+        info, data_filename, fmt, self._order, mrk_fname, montage = \
+            _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
         events = _read_vmrk_events(mrk_fname, event_id, response_trig_shift)
         _check_update_montage(info, montage)
-        with open(info['filename'], 'rb') as f:
+        with open(data_filename, 'rb') as f:
             if isinstance(fmt, dict):  # ASCII, this will be slow :(
                 n_skip = 0
                 for ii in range(int(fmt['skiplines'])):
@@ -101,7 +101,7 @@ class RawBrainVision(BaseRaw):
         self.preload = False  # so the event-setting works
         self._create_event_ch(events, n_samples)
         super(RawBrainVision, self).__init__(
-            info, last_samps=[n_samples - 1], filenames=[info['filename']],
+            info, last_samps=[n_samples - 1], filenames=[data_filename],
             orig_format=fmt, preload=preload, verbose=verbose,
             raw_extras=[offsets])
 
@@ -617,7 +617,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     # locate EEG and marker files
     path = os.path.dirname(vhdr_fname)
-    info['filename'] = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
+    data_filename = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
     info['meas_date'] = int(time.time())
     info['buffer_size_sec'] = 1.  # reasonable default
 
@@ -654,7 +654,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     mrk_fname = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
     info._update_redundant()
     info._check_consistency()
-    return info, fmt, order, mrk_fname, montage
+    return info, data_filename, fmt, order, mrk_fname, montage
 
 
 def read_raw_brainvision(vhdr_fname, montage=None,

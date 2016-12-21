@@ -315,6 +315,10 @@ def test_check_consistency():
     info2['lowpass'] = 'foo'
     assert_raises(ValueError, info2._check_consistency)
 
+    info2 = info.copy()
+    info2['filename'] = 'foo'
+    assert_raises(KeyError, info2._check_consistency)
+
     # Silent type conversion to float
     info2 = info.copy()
     info2['sfreq'] = 1

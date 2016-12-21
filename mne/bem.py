@@ -1166,19 +1166,19 @@ def _extract_volume_info(mgz, raise_error=True):
     except ImportError:
         return  # warning raised elsewhere
     header = nib.load(mgz).header
-    new_info = dict()
+    vol_info = dict()
     version = header['version']
     if version == 1:
         version = '%s  # volume info valid' % version
     else:
         raise ValueError('Volume info invalid.')
-    new_info['valid'] = version
-    new_info['filename'] = mgz
-    new_info['volume'] = header['dims'][:3]
-    new_info['voxelsize'] = header['delta']
-    new_info['xras'], new_info['yras'], new_info['zras'] = header['Mdc'].T
-    new_info['cras'] = header['Pxyz_c']
-    return new_info
+    vol_info['valid'] = version
+    vol_info['filename'] = mgz
+    vol_info['volume'] = header['dims'][:3]
+    vol_info['voxelsize'] = header['delta']
+    vol_info['xras'], vol_info['yras'], vol_info['zras'] = header['Mdc'].T
+    vol_info['cras'] = header['Pxyz_c']
+    return vol_info
 
 
 # ############################################################################

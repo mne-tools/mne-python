@@ -128,8 +128,6 @@ class Info(dict):
     file_id : dict | None
         The fif ID datastructure of the measurement file.
         See: :ref:`faq` for details.
-    filename : str | None
-        The name of the file that provided the raw data.
     highpass : float | None
         Highpass corner frequency in Hertz. Zero indicates a DC recording.
     hpi_meas : list of dict | None
@@ -195,9 +193,6 @@ class Info(dict):
                 if len(v) > 10:
                     # get rid of of half printed ch names
                     entr = _summarize_str(entr)
-            elif k == 'filename' and v:
-                path, fname = op.split(v)
-                entr = path[:10] + '.../' + fname
             elif k == 'projs' and v:
                 entr = ', '.join(p['desc'] + ': o%s' %
                                  {0: 'ff', 1: 'n'}[p['active']] for p in v)
@@ -259,6 +254,8 @@ class Info(dict):
                        for x in np.setdiff1d(range(self['nchan']), unique_ids))
             raise RuntimeError('Channel names are not unique, found '
                                'duplicates for: %s' % dups)
+        if 'filename' in self:
+            raise KeyError('info should not have "filename" key')
 
     def _update_redundant(self):
         """Update the redundant entries."""
@@ -1397,7 +1394,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     # other fields
     other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
                     'comps', 'custom_ref_applied', 'description', 'dig',
-                    'experimenter', 'file_id', 'filename', 'highpass',
+                    'experimenter', 'file_id', 'highpass',
                     'hpi_results', 'hpi_meas', 'hpi_subsystem', 'events',
                     'line_freq', 'lowpass', 'meas_date', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq',
@@ -1503,7 +1500,7 @@ RAW_INFO_FIELDS = (
     'acq_pars', 'acq_stim', 'bads', 'buffer_size_sec', 'ch_names', 'chs',
     'comps', 'ctf_head_t', 'custom_ref_applied', 'description', 'dev_ctf_t',
     'dev_head_t', 'dig', 'experimenter', 'events',
-    'file_id', 'filename', 'highpass', 'hpi_meas', 'hpi_results',
+    'file_id', 'highpass', 'hpi_meas', 'hpi_results',
     'hpi_subsystem', 'kit_system_id', 'line_freq', 'lowpass', 'meas_date',
     'meas_id', 'nchan', 'proj_id', 'proj_name', 'projs', 'sfreq',
     'subject_info', 'xplotter_layout',
@@ -1516,7 +1513,7 @@ def _empty_info(sfreq):
     _none_keys = (
         'acq_pars', 'acq_stim', 'buffer_size_sec', 'ctf_head_t', 'description',
         'dev_ctf_t', 'dig', 'experimenter',
-        'file_id', 'filename', 'highpass', 'hpi_subsystem', 'kit_system_id',
+        'file_id', 'highpass', 'hpi_subsystem', 'kit_system_id',
         'line_freq', 'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
         'subject_info', 'xplotter_layout',
     )

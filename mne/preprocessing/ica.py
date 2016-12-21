@@ -1848,8 +1848,6 @@ def read_ica(fname):
                     'Functionality requiring the info won\'t be'
                     ' available.')
         info = None
-    else:
-        info['filename'] = fname
 
     ica_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ICA)
     if len(ica_data) == 0:
