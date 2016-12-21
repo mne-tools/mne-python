@@ -1,17 +1,16 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.linear_model import Ridge
-from .base import get_coefs
+from .base import get_coefs, BaseEstimator, _check_estimator
+from ..utils import warn
 
 
-class ReceptiveField(object):
+class ReceptiveField(BaseEstimator):
     """Fit a receptive field model.
 
     Parameters
     ----------
     stim_features : array, shape (n_features,)
         Names for the input features to the model.
-    lags : array, shape (n_lags)
+    lags : array, shape (n_lags,)
         Time lags to be included in the model. This will be combined
         with `sfreq` to convert these values into indices in the data.
         If `sfreq` == 1, then these should be indices. If not, then
@@ -21,11 +20,22 @@ class ReceptiveField(object):
     model : instance of sklearn model | None
         The model used in fitting inputs and outputs. This can be any
         sklearn-style model that contains a fit and predict method.
+
+    Attributes
+    ----------
+    coef_ : array, shape (n_features, n_lags)
+        The coefficients from the model fit, reshaped for easy visualization.
+        If you want the raw (2d) coefficients, use `mne.decoding.get_coefs`
+        on `self.model`.
     """
-    def __init__(self, stim_features, lags, sfreq=1., model=None):
+
+    def __init__(self, stim_features, lags,
+                 sfreq=1., model=None):  # noqa: D102
+        from sklearn.linear_model import Ridge
         self.stim_features = stim_features
         self.lags = lags
         self.model = Ridge() if model is None else model
+        _check_estimator(self.model)
         self.sfreq = sfreq
 
     def fit(self, X, y):
@@ -58,29 +68,8 @@ class ReceptiveField(object):
         self.model.fit(X_del.T, y.T)
         self.msk_remove = msk
 
-    def transform(self, X=None, y=None):
-        """Does nothing, used for sklearn compatibility.
-
-        Parameters
-        ----------
-        X : None
-            Used for sklearn compatibility.
-        y : None
-            Used for sklearn compatibility.
-        """
-        return self
-
-    def fit_transform(self, X=None, y=None):
-        """Does nothing, used for sklearn compatibility.
-
-        Parameters
-        ----------
-        X : None
-            Used for sklearn compatibility.
-        y : None
-            Used for sklearn compatibility.
-        """
-        return self
+        coefs = get_coefs(self.model)
+        self.coef_ = coefs.reshape([len(self.stim_features), len(self.lags)])
 
     def predict(self, X, y=None):
         """Make predictions using a receptive field.
@@ -105,74 +94,43 @@ class ReceptiveField(object):
 
     def _delay_for_fit(self, X):
         # First delay
-        X_del = delay_time_series(
-            X, self.lags, self.sfreq)
+        X_del = delay_time_series(X, self.lags, self.sfreq)
 
         # Mask for removing edges later
         msk_helper = np.ones(X.shape[-1])
         msk_helper = delay_time_series(msk_helper, self.lags, self.sfreq)
-        msk = (msk_helper == 0).any(axis=0)
+        msk = np.any(msk_helper == 0, axis=0)
         return X_del, msk
 
-    def plot_coefs(self, ax=None):
-        """Plot the fitted model coefficients.
 
-        Parameters
-        ----------
-        ax : instance of matplotlib axis object | None
-            The axis to use for plotting.
-
-        Returns
-        -------
-        ax : instance of matplotlib axis object
-            The axis used for plotting.
-        """
-        coefs = self.coefs
-
-        # Plot
-        if ax is None:
-            fig, ax = plt.subplots()
-        ax.pcolormesh(self.lags, self.stim_features,
-                      coefs, cmap='coolwarm')
-        _ = plt.setp(ax,
-                     xlim=[self.lags.min(), self.lags.max()],
-                     ylim=[self.stim_features.min(), self.stim_features.max()])
-        return ax
-
-    @property
-    def coefs(self):
-        """Return the model coefficients."""
-        coefs = get_coefs(self.model)
-        coefs = coefs.reshape([len(self.stim_features), len(self.lags)])
-        return coefs
-
-
-def delay_time_series(X, delays, sfreq=1.):
+def delay_time_series(X, delays, sfreq=1., newaxis=0):
     """Return a time-lagged input time series.
 
     Parameters
     ----------
-    X: array, shape ([n_epochs], n_features, n_times)
+    X : array, shape ([n_epochs], n_features, n_times)
         The time series to delay.
-    delays: array of floats, shape (n_delays,)
+    delays : array of floats, shape (n_delays,)
         The time (in seconds) of each delay for specifying
         pre-defined delays. Negative means time points in the past,
         positive means time points in the future.
-    sfreq: int | float
+    sfreq : int | float
         The sampling frequency of the series. Defaults to 1.0.
+    newaxis : int
+        The axis in the output array that corresponds to time lags.
+        Defaults to 0, for the first axis.
 
     Returns
     -------
-    delayed: array, shape((n_delays,) + X.shape)
-        The delayed data. An extra dimension is created (now the 1st dimension)
-        corresponding to each delay.
+    delayed: array, shape(..., n_delays, ...)
+        The delayed data. It has the same shape as X, with an extra dimension
+        created at ``newaxis`` that corresponds to each delay.
     """
-
     delays, delays_ixs, sfreq = _check_delayer_params(delays, sfreq)
 
     # XXX : add Vectorize=True parameter to switch on/off 2D output
     # Iterate through indices and append
-    delayed = np.zeros((len(delays),) + X.shape)  # Adding delays as 1st dim.
+    delayed = np.zeros((len(delays),) + X.shape)
     for ii, ix_delay in enumerate(delays_ixs):
         # Create zeros to populate w/ delays
         if ix_delay <= 0:
@@ -182,12 +140,15 @@ def delay_time_series(X, delays, sfreq=1.):
         delayed[ii, ..., i_slice] = np.roll(
             X, -ix_delay, axis=-1)[..., i_slice]
 
+    # Now swapaxes so that the new axis is in the right place
+    for ii in range(newaxis):
+        delayed = delayed.swapaxes(ii, ii + 1)
+
     return delayed
 
 
 def _check_delayer_params(delays, sfreq):
-    """Check delayer input parameters.
-    """
+    """Check delayer input parameters."""
     if not isinstance(sfreq, (int, float, np.int_)):
         raise ValueError('`sfreq` must be an integer or float')
     sfreq = float(sfreq)

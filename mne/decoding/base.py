@@ -699,3 +699,28 @@ def _get_final_est(estimator):
         estimator = getattr(estimator, attributes[0])
         estimator = _get_final_est(estimator)
     return estimator
+
+
+def get_coefs(estimator, coef_name='coef_'):
+    """Pull coefficients from an estimator object.
+
+    Parameters
+    ----------
+    estimator : a sklearn estimator
+        The estimator from which to pull the coefficients.
+    coef_name : string
+        The name of the attribute corresponding to the coefficients created
+        after fitting. Defaults to 'coef_'
+
+    Returns
+    -------
+    coefs : array, shape (n_targets, n_coefs)
+        The output coefficients.
+    """
+    estimator = _get_final_est(estimator)
+    if not hasattr(estimator, coef_name):
+        raise ValueError('Estimator either is not fit or does not use'
+                         ' coefficient name: %s' % coef_name)
+    coefs = np.atleast_2d(getattr(estimator, coef_name))
+    return coefs
+>>>>>>> addressing comments, updating example, moving to tutorials

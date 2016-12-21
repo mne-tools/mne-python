@@ -8,11 +8,10 @@ from nose.tools import assert_raises, assert_true, assert_equal
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from mne import io, read_events, pick_types
-from mne.utils import (requires_sklearn, run_tests_if_main)
-from mne.encoding import (SubsetEstimator, EventsBinarizer,
-                          FeatureDelayer, get_coefs)
-from mne.encoding.model import _check_regressor, _get_final_est
+from mne import io, pick_types
+from mne.utils import requires_sklearn_0_15, run_tests_if_main
+from mne.decoding import ReceptiveField, get_coefs, delay_time_series
+from mne.decoding.base import _get_final_est
 
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -33,69 +32,65 @@ picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
 picks = picks[0:2]
 
 
-@requires_sklearn
-def test_feature():
-    from sklearn.cross_validation import cross_val_score, cross_val_predict
-    from sklearn.linear_model import Ridge
-    events = read_events(event_name)
-    events[:, 0] -= raw.first_samp
+def test_time_delay():
+    from scipy.sparse import csr_matrix
 
-    # --- Feature Delayer ---
     # Explicit delays + sfreq
-    X = np.random.randn(1000, 2)
-    X_sp = np.zeros([10, 2])
-    X_sp[1, 0] = 1
+    X = np.random.randn(2, 1000)
+    X_sp = np.zeros([2, 10])
+    X_sp[0, 1] = 1
     X_sp = csr_matrix(X_sp)
-    for idel, isfreq in [[[0, 1, 2], 1], [[0, .1, .2], 10]]:
-        delayer = FeatureDelayer(delays=idel, sfreq=isfreq)
+    for idel, isfreq in [([0, 1, 2], 1), ([0, .1, .2], 10)]:
         # sfreq must be int/float
-        assert_raises(ValueError, FeatureDelayer, sfreq=[1])
+        assert_raises(ValueError, delay_time_series, X, idel, sfreq=[1])
         # Delays must be 1D
-        assert_raises(ValueError, FeatureDelayer, delays=[idel])
+        assert_raises(ValueError, delay_time_series, X, [idel])
         # Delays must be int/float
-        assert_raises(ValueError, FeatureDelayer,
-                      delays=np.array(idel, dtype=np.complex))
+        assert_raises(ValueError, delay_time_series, X,
+                      np.array(idel, dtype=np.complex))
+        # Make sure swapaxes works
+        delayed = delay_time_series(X, idel, isfreq, newaxis=2)
+        assert_equal(delayed.shape[2], len(idel))
 
         for idata in [X, X_sp]:
-            X_delayed = delayer.transform(X)
-            assert_array_equal(X_delayed[:, 0, 0], X[:, 0])
-            assert_array_equal(X_delayed[:-1, 0, 1], X[1:, 0])
-            assert_equal(X_delayed.shape[-1], len(idel))
+            X_delayed = delay_time_series(X, idel, isfreq)
+            assert_array_equal(X_delayed[0], X)
+            assert_array_equal(X_delayed[1][0, :-1], X[0, 1:])
+            assert_equal(len(X_delayed), len(idel))
 
 
-@requires_sklearn
-def test_encoding():
+@requires_sklearn_0_15
+def test_receptive_field():
     from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import Ridge
     # Make sure estimator pulling works
     mod = Ridge()
     pipe = make_pipeline(Ridge())
-    samp = SubsetEstimator(pipe)
     est = _get_final_est(pipe)
     assert_true(isinstance(est, type(mod)))
-    est = _get_final_est(samp)
-    assert_true(isinstance(est, type(mod)))
+
     # Est must be fit first
     assert_raises(ValueError, get_coefs, est)
     # Coefs are correctly taken
     est.fit([[1, 2], [3, 4]], [1, 2])
-    coefs = get_coefs(samp, 'coef_')
+    coefs = get_coefs(pipe, 'coef_')
     assert_equal(coefs.shape[-1], 2)
     # Incorrect coefficient name
     assert_raises(ValueError, get_coefs, est, 'foo')
 
-    # Make sure the checks are working
-    mod = _check_regressor(Ridge())
-    assert_true(isinstance(mod, Ridge))
-    # None returns Ridge instance
-    assert_true(isinstance(_check_regressor(None), Ridge))
-    assert_true(isinstance(_get_final_est(_check_regressor(None)), Ridge))
-    # Correct ridge solver
-    assert_equal(_get_final_est(_check_regressor('lsqr')).solver, 'lsqr')
-    assert_true(isinstance(_get_final_est(_check_regressor('lsqr')), Ridge))
-    # Incorrect string type
-    assert_raises(ValueError, _check_regressor, 'foo')
-    # Estimator must have fit/predict methods
-    assert_raises(ValueError, _check_regressor, lambda a: a + 1)
+    # Test the receptive field model
+    # Define parameters for the model and simulate inputs + weights
+    delays = np.array([0, 2, 4])
+    w = np.random.randn(9)
+    X = np.random.randn(3, 10000)
+    # Delay inputs and cut off first 4 values since they'll be cut in the fit
+    X_del = np.vstack(delay_time_series(X, delays))
+    y = np.dot(w, X_del)
+    # Fit the model and test values
+    rf = ReceptiveField(['one', 'two', 'three'], delays, model=mod)
+    rf.fit(X, y)
+    y_pred = rf.predict(X)
+    assert_array_almost_equal(y[:-4], y_pred.squeeze(), 3)
+    assert_array_almost_equal(np.hstack(rf.coef_), w, 3)
 
 run_tests_if_main()
