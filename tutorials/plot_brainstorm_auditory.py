@@ -258,7 +258,7 @@ if use_precomputed:
     notches = [60, 120, 180]
     for evoked in (evoked_std, evoked_dev):
         evoked.data[:] = notch_filter(evoked.data, sfreq, notches)
-        evoked.data[:] = filter_data(evoked.data, sfreq, None, 100)
+        evoked.data[:] = filter_data(evoked.data, sfreq, l_freq=None, h_freq=100.)
 
 ###############################################################################
 # Here we plot the ERF of standard and deviant conditions. In both conditions
