@@ -120,6 +120,8 @@ API
 
     - The measurement info :class:`Info` no longer contains a potentially misleading ``info['filename']`` entry. Use class properties like :attr:`mne.io.Raw.filenames` or :attr:`mne.Epochs.filename` instead by `Eric Larson`_
 
+    - :class:`mne.decoding.Scaler` now accepts parameter `scalings`  which describes the method to scale data with, by `Asish Panda`_ and `Jean-Remi King`_
+
 .. _changes_0_13:
 
 Version 0.13
