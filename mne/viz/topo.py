@@ -381,8 +381,8 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
     if sigma > 0.:
         this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
 
-    img = ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], 
-                    aspect='auto', origin='lower', vmin=vmin, vmax=vmax, 
+    img = ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)],
+                    aspect='auto', origin='lower', vmin=vmin, vmax=vmax,
                     picker=True, cmap=cmap, interpolation='nearest')
 
     ax = plt.gca()
