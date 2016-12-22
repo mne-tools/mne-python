@@ -395,11 +395,16 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     """
     from scipy.spatial.distance import cdist
     hpi, last = _setup_chpi_fits(raw.info, t_window, t_step_min)
-    fit_idxs = raw.time_as_index(np.arange(0., raw.times[-1], t_step_min),
+    
+    t_begin   = raw.times[0]
+    t_end     = raw.times[-1]    
+    #t_begin   = 127
+    #t_end     = 130
+    fit_idxs = raw.time_as_index(np.arange(t_begin+t_window / 2, t_end, t_step_min),
                                  use_rounding=True)
     quats = []
     logger.info('Fitting up to %s time points (%0.1f sec duration)'
-                % (len(fit_idxs), raw.times[-1]))
+                % (len(fit_idxs), t_end-t_begin))
     pos_0 = None
     n_freqs = len(hpi['freqs'])
     for midpt in fit_idxs:
@@ -411,9 +416,10 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         time_sl = slice(max(time_sl, 0),
                         min(time_sl + hpi['n_window'], len(raw.times)))
         with use_log_level(False):
-            meg_chpi_data = raw[hpi['picks'], time_sl][0]
-        this_data = meg_chpi_data[:-1]
-        chpi_data = meg_chpi_data[-1]
+            meg_chpi_data = raw[hpi['picks'], time_sl][0] # loads good channels with hpi_stim
+        mchpi_data = np.mean(meg_chpi_data[:-1],axis=1,keepdims=True)     
+        this_data = meg_chpi_data[:-1]-mchpi_data
+        chpi_data = meg_chpi_data[-1] # copies hpi_stim
         ons = (np.round(chpi_data).astype(np.int) &
                hpi['on'][:, np.newaxis]).astype(bool)
         n_on = np.sum(ons, axis=0)
@@ -429,19 +435,26 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
             model = hpi['model'][:this_len]
             inv_model = linalg.pinv(model)
         X = np.dot(inv_model, this_data.T)
-        data_diff = np.dot(model, X).T - this_data
-        del model, inv_model
-        data_diff *= data_diff
-        this_data *= this_data
-        g_chan = (1 - np.sqrt(data_diff.sum(axis=1) / this_data.sum(axis=1)))
-        g_sin = (1 - np.sqrt(data_diff.sum() / this_data.sum()))
-        del data_diff, this_data
+        #del data_diff, this_data
         X_sin, X_cos = X[:n_freqs], X[n_freqs:2 * n_freqs]
-        signs = np.sign(np.arctan2(X_sin, X_cos))
-        X_sin *= X_sin
-        X_cos *= X_cos
-        X_sin += X_cos
-        sin_fit = np.sqrt(X_sin)
+        
+        sinfitsvd = np.zeros((n_freqs,X_sin.shape[1]))
+        for nc in range(0,n_freqs):
+            (u,s,vt) = np.linalg.svd(np.vstack((X_sin[nc,:],X_cos[nc,:])), full_matrices=False, compute_uv=1)
+            s[1]     = 0;
+#            zwischen = np.multiply.outer(u[:,0],vt[0,:])*s[0]
+            zwischen      = (u.dot(np.diag(s))).dot(vt)
+            X[nc,:]         = zwischen[0,:]
+            X[nc+n_freqs,:] = zwischen[1,:]
+            sinfitsvd[nc,:] = vt[0,:]
+
+        data_diff = np.dot(model, X).T - this_data
+        #del model, inv_model
+
+        g_sin  = 1 - np.sqrt((data_diff**2).sum() / (this_data**2).sum())
+        g_chan = 1 - np.sqrt((data_diff**2).sum(axis=1) / (this_data**2).sum(axis=1))
+
+        sin_fit = sinfitsvd
         if last['sin_fit'] is not None:  # first iteration
             corr = np.corrcoef(sin_fit.ravel(), last['sin_fit'].ravel())[0, 1]
             # check to see if we need to continue
@@ -449,16 +462,16 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                     corr * corr > 0.98:
                 continue  # don't need to re-fit data
         last['sin_fit'] = sin_fit.copy()  # save *before* inplace sign mult
-        sin_fit *= signs
-        del signs, X_sin, X_cos, X
+
+        del X_sin, X_cos, X
 
         #
         # 2. Fit magnetic dipole for each coil to obtain coil positions
         #    in device coordinates
         #
         logger.debug('    HPI amplitude correlation %0.3f: %0.3f '
-                     '(%s chnls > 0.950)' % (fit_time, np.sqrt(g_sin),
-                                             (np.sqrt(g_chan) > 0.95).sum()))
+                     '(%s chnls > 0.90)' % (fit_time, g_sin,
+                                             (g_chan > 0.90).sum()))
         outs = [_fit_magnetic_dipole(f, pos, hpi['coils'], hpi['scale'],
                                      hpi['method'])
                 for f, pos in zip(sin_fit, last['coil_dev_rrs'])]
@@ -479,8 +492,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                     break  # failure
                 # exclude next worst point
                 badness = (d * d_bad).sum(axis=0)
-                exclude = np.where(use_mask)[0][np.argmax(badness)]
-                use_mask[exclude] = False
+                exclude_coils = np.where(use_mask)[0][np.argmax(badness)]
+                use_mask[exclude_coils] = False
         good = use_mask.sum() >= 3
         if not good:
             warn(_time_prefix(fit_time) + '%s/%s good HPI fits, '
@@ -504,7 +517,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
              this_quat[3:][:, np.newaxis]), axis=1)
         this_dev_head_t = np.concatenate((this_dev_head_t, [[0, 0, 0, 1.]]))
         # velocities, in device coords, of HPI coils
-        dt = fit_time - last['fit_time']
+        # dt = fit_time - last['fit_time'] # 
+        dt = t_window
         vs = tuple(1000. * np.sqrt(np.sum((last['coil_dev_rrs'] -
                                            this_coil_dev_rrs) ** 2,
                                           axis=1)) / dt)
@@ -516,7 +530,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
         errs = 1000. * np.sqrt(((hpi['coil_head_rrs'] -
                                  est_coil_head_rrs) ** 2).sum(axis=-1))
-        e = errs.mean() / 1000.  # mm -> m
+        e = errs[use_mask].mean() / 1000.  # mm -> m
         d = 100 * np.sqrt(np.sum(last['quat'][3:] - this_quat[3:]) ** 2)  # cm
         r = _angle_between_quats(last['quat'][:3], this_quat[:3]) / dt
         v = d / dt  # cm/sec
@@ -540,7 +554,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                 log_str += '{8:6.1f} {9:6.1f} {10:6.1f}'
             vals = np.concatenate((1000 * hpi['coil_head_rrs'][ii],
                                    1000 * est_coil_head_rrs[ii],
-                                   [g_coils[ii], errs[ii]]))
+                                   [g_coils[ii], errs[ii]]))  # errs in mm
             if ii <= 2:
                 vals = np.concatenate((vals, this_dev_head_t[ii, :3]))
             elif ii == 3:
@@ -549,7 +563,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         logger.debug('    #t = %0.3f, #e = %0.2f cm, #g = %0.3f, '
                      '#v = %0.2f cm/s, #r = %0.2f rad/s, #d = %0.2f cm'
                      % (fit_time, 100 * e, g, v, r, d))
-        quats.append(np.concatenate(([fit_time], this_quat, [g], [e], [v])))
+        quats.append(np.concatenate(([fit_time], this_quat, [g], [e*100], [v])))  # e in centimeters
         last['fit_time'] = fit_time
         last['quat'] = this_quat
         last['coil_dev_rrs'] = this_coil_dev_rrs
