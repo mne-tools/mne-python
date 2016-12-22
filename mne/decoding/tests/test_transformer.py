@@ -7,7 +7,7 @@ import warnings
 import os.path as op
 import numpy as np
 
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_equal
 from numpy.testing import (assert_array_equal, assert_equal,
                            assert_array_almost_equal, assert_allclose)
 
@@ -15,7 +15,7 @@ from mne import io, read_events, Epochs, pick_types
 from mne.decoding import Scaler, FilterEstimator
 from mne.decoding import (PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)
-from mne.utils import requires_sklearn_0_15, run_tests_if_main
+from mne.utils import requires_sklearn_0_15, run_tests_if_main, check_version
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -39,26 +39,25 @@ def test_scaler():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
-    scaler = Scaler(epochs.info)
     y = epochs.events[:, -1]
 
-    X = scaler.fit_transform(epochs_data, y)
-    assert_true(X.shape == epochs_data.shape)
-    X2 = scaler.fit(epochs_data, y).transform(epochs_data)
-    assert_array_equal(X2, X)
-    # these should be across time
-    assert_allclose(X.std(axis=-2), 1.)
-    assert_allclose(X.mean(axis=-2), 0., atol=1e-12)
+    methods = (None, 'mean', dict(mag=1e14, grad=1e12, eeg=1e5),
+               'median')
+    for method in methods:
+        if method == 'median' and not check_version('sklearn', '0.17'):
+            continue
+        scaler = Scaler(method, epochs.info)
+        X = scaler.fit_transform(epochs_data, y)
+        assert_equal(X.shape, epochs_data.shape)
+        X2 = scaler.fit(epochs_data, y).transform(epochs_data)
+        assert_array_equal(X, X2)
+        assert_equal(scaler.ch_mean_.shape[0], X.shape[1])
+        assert_equal(scaler.scale_.shape[0], X.shape[1])
 
-    # Test inverse_transform
-    Xi = scaler.inverse_transform(X, y)
-    assert_array_almost_equal(epochs_data, Xi)
+        # inverse_transform
+        Xi = scaler.inverse_transform(X, y)
+        assert_array_almost_equal(epochs_data, Xi)
 
-    for kwargs in [{'with_mean': False}, {'with_std': False}]:
-        scaler = Scaler(epochs.info, **kwargs)
-        scaler.fit(epochs_data, y)
-        assert_array_almost_equal(
-            X, scaler.inverse_transform(scaler.transform(X)))
     # Test init exception
     assert_raises(ValueError, scaler.fit, epochs, y)
     assert_raises(ValueError, scaler.transform, epochs, y)

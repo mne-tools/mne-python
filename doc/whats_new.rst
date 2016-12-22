@@ -187,6 +187,8 @@ API
 
     - :meth:`mne.preprocessing.ICA.fit` now rejects data annotated bad by default. Turn off with ``reject_by_annotation=False``, by `Jaakko Leppakangas`_
 
+    - :class:`mne.decoding.Scaler` now accepts parameter ``scalings`` that describes the data scaling method (default is ``None`` to use channel-type-based scaling), by `Asish Panda`_, `Jean-Remi King`_, and `Eric Larson`_
+
 
 .. _changes_0_13:
 
