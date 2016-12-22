@@ -648,11 +648,13 @@ def _fix_auc(scoring, y):
     # This fixes sklearn's inability to compute roc_auc when y not in [0, 1]
     # scikit-learn/scikit-learn#6874
     if scoring is not None:
-        if hasattr(scoring, '_score_func'):
-            if hasattr(scoring._score_func, '__name__'):
-                if scoring._score_func.__name__ == 'roc_auc_score':
-                    if np.ndim(y) != 1 or len(set(y)) != 2:
-                        raise ValueError('roc_auc scoring can only be computed'
-                                         ' for two-class problems.')
-                    y = LabelEncoder().fit_transform(y)
+        if (
+            hasattr(scoring, '_score_func') and
+            hasattr(scoring._score_func, '__name__') and
+            scoring._score_func.__name__ == 'roc_auc_score'
+        ):
+            if np.ndim(y) != 1 or len(set(y)) != 2:
+                raise ValueError('roc_auc scoring can only be computed for '
+                                 'two-class problems.')
+            y = LabelEncoder().fit_transform(y)
     return y

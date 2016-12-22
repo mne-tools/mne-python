@@ -75,7 +75,9 @@ def test_SearchLight():
     # -- 2 class problem not in [0, 1]
     y = np.arange(len(X)) % 2 + 1
     sl.fit(X, y)
-    sl.score(X, y)
+    score = sl.score(X, y)
+    assert_array_equal(score, [roc_auc_score(y - 1, _y_pred - 1)
+                               for _y_pred in sl.decision_function(X).T])
     y = np.arange(len(X)) % 2
 
     for method, scoring in [
@@ -186,7 +188,10 @@ def test_GeneralizationLight():
     # -- 2 class problem not in [0, 1]
     y = np.arange(len(X)) % 2 + 1
     gl.fit(X, y)
-    gl.score(X, y)
+    score = gl.score(X, y)
+    manual_score = [[roc_auc_score(y - 1, _y_pred) for _y_pred in _y_preds]
+                    for _y_preds in gl.decision_function(X).transpose(1, 2, 0)]
+    assert_array_equal(score, manual_score)
 
     # n_jobs
     gl = _GeneralizationLight(LogisticRegression(), n_jobs=2)
