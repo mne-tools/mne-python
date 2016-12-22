@@ -66,6 +66,18 @@ def test_SearchLight():
         sl.fit(X, y)
         assert_raises(err, sl.score, X, y)
 
+    # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
+    # -- 3 class problem
+    sl = _SearchLight(LogisticRegression(), scoring='roc_auc')
+    y = np.arange(len(X)) % 3
+    sl.fit(X, y)
+    assert_raises(ValueError, sl.score, X, y)
+    # -- 2 class problem not in [0, 1]
+    y = np.arange(len(X)) % 2 + 1
+    sl.fit(X, y)
+    sl.score(X, y)
+    y = np.arange(len(X)) % 2
+
     for method, scoring in [
             ('predict_proba', 'roc_auc'), ('predict', roc_auc_score)]:
         sl1 = _SearchLight(LogisticRegression(), scoring=scoring)
@@ -164,6 +176,17 @@ def test_GeneralizationLight():
         gl = _GeneralizationLight(LogisticRegression(), scoring=scoring)
         gl.fit(X, y)
         assert_raises(err, gl.score, X, y)
+
+    # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
+    # -- 3 class problem
+    gl = _GeneralizationLight(LogisticRegression(), scoring='roc_auc')
+    y = np.arange(len(X)) % 3
+    gl.fit(X, y)
+    assert_raises(ValueError, gl.score, X, y)
+    # -- 2 class problem not in [0, 1]
+    y = np.arange(len(X)) % 2 + 1
+    gl.fit(X, y)
+    gl.score(X, y)
 
     # n_jobs
     gl = _GeneralizationLight(LogisticRegression(), n_jobs=2)

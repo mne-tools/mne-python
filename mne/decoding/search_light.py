@@ -237,6 +237,7 @@ class _SearchLight(BaseEstimator, TransformerMixin):
                              'X.shape[-1]')
 
         scoring = _make_scorer(self.scoring)
+        y = _fix_auc(scoring, y)
 
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
@@ -534,6 +535,8 @@ class _GeneralizationLight(_SearchLight):
         n_jobs = min(n_jobs, X.shape[-1])
         X_splits = np.array_split(X, n_jobs, axis=-1)
         scoring = _make_scorer(self.scoring)
+        y = _fix_auc(scoring, y)
+
         score = parallel(p_func(self.estimators_, scoring, x, y)
                          for x in X_splits)
 
@@ -638,3 +641,18 @@ def _gl_score(estimators, scoring, X, y):
                 score = np.zeros(shape, dtype)
             score[ii, jj, ...] = _score
     return score
+
+
+def _fix_auc(scoring, y):
+    from sklearn.preprocessing import LabelEncoder
+    # This fixes sklearn's inability to compute roc_auc when y not in [0, 1]
+    # scikit-learn/scikit-learn#6874
+    if scoring is not None:
+        if hasattr(scoring, '_score_func'):
+            if hasattr(scoring._score_func, '__name__'):
+                if scoring._score_func.__name__ == 'roc_auc_score':
+                    if np.ndim(y) != 1 or len(set(y)) != 2:
+                        raise ValueError('roc_auc scoring can only be computed'
+                                         ' for two-class problems.')
+                    y = LabelEncoder().fit_transform(y)
+    return y
