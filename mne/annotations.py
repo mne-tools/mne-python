@@ -82,7 +82,7 @@ class Annotations(object):
 
         self.onset = onset
         self.duration = duration
-        self.description = np.array(description)
+        self.description = np.array(description, dtype=str)
 
 
 def _combine_annotations(annotations, last_samps, first_samps, sfreq):
