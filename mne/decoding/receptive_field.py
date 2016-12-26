@@ -8,13 +8,13 @@ class ReceptiveField(BaseEstimator):
 
     Parameters
     ----------
-    stim_features : array, shape (n_features,)
-        Names for the input features to the model.
     lags : array, shape (n_lags,)
         Time lags to be included in the model. This will be combined
         with `sfreq` to convert these values into indices in the data.
         If `sfreq` == 1, then these should be indices. If not, then
         time lags should be in seconds.
+    feature_names : array, shape (n_features,)
+        Names for the input features to the model.
     sfreq : float
         The sampling frequency of the data.
     model : instance of sklearn model | None
@@ -27,27 +27,39 @@ class ReceptiveField(BaseEstimator):
         The coefficients from the model fit, reshaped for easy visualization.
         If you want the raw (2d) coefficients, use `mne.decoding.get_coefs`
         on `self.model`.
+    mask_pred : array, dtype bool, shape (n_times,)
+        A mask with True values corresponding to datapoints that were used
+        in generating model predictions. Creating time lags necessitates that
+        datapoints at the beginning / end of the input are not used.
     """
 
-    def __init__(self, stim_features, lags,
-                 sfreq=1., model=None):  # noqa: D102
+    def __init__(self, lags, feature_names=None, sfreq=1., model=None):  # noqa: D102
         from sklearn.linear_model import Ridge
-        self.stim_features = stim_features
+        self.feature_names = feature_names
         self.lags = lags
         self.model = Ridge() if model is None else model
         _check_estimator(self.model)
         self.sfreq = sfreq
+
+    def __repr__(self):  # noqa: D105
+        str_features = self.feature_names
+        s = "features : [%s, %s]" % (str_features[0], str_features[-1])
+        s += ", lags : [%f, %f]" % (self.lags[0], self.lags[-1])
+        s += ", model : %s" % str(self.model)
+        s += ", sfreq : %s" % self.sfreq
+        return "<ReceptiveField  |  %s>" % s
 
     def fit(self, X, y):
         """Fit a receptive field model.
 
         Parameters
         ----------
-        X : array, shape ([n_epochs], n_channels, n_times)
+        X : array, shape ([n_epochs], n_features, n_times)
             The input features for the model.
         y : array, shape ([n_epochs], n_times)
             The output feature for the model.
         """
+        n_feats = X.shape[1] if X.ndim == 3 else X.shape[0]
         X_del, msk = self._delay_for_fit(X)
 
         # Reshape so we have times x features
@@ -61,6 +73,13 @@ class ReceptiveField(BaseEstimator):
             X_del = np.hstack(X_del)
             y = np.hstack(y)
 
+        # Update feature names if we have none
+        if self.feature_names is None:
+            self.feature_names = ['feature_%s' % ii for ii in range(n_feats)]
+        if len(self.feature_names) != n_feats:
+            raise ValueError('n_features in X does not match feature names '
+                             '(%s != %s)' % (n_feats, len(self.feature_names)))
+
         # Reshape so time is last dimension
         X_del = X_del.reshape([-1, X_del.shape[-1]])
         y = y.reshape([-1, X_del.shape[-1]])
@@ -69,7 +88,7 @@ class ReceptiveField(BaseEstimator):
         self.msk_remove = msk
 
         coefs = get_coefs(self.model)
-        self.coef_ = coefs.reshape([len(self.stim_features), len(self.lags)])
+        self.coef_ = coefs.reshape([len(self.feature_names), len(self.lags)])
 
     def predict(self, X, y=None):
         """Make predictions using a receptive field.
@@ -90,6 +109,7 @@ class ReceptiveField(BaseEstimator):
         X_del = X_del[..., ~msk]
         X_del = X_del.reshape([-1, X_del.shape[-1]]).T
         y_pred = self.model.predict(X_del)
+        self.mask_pred = ~msk
         return y_pred
 
     def _delay_for_fit(self, X):

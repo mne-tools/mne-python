@@ -29,7 +29,7 @@ import mne
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
-from mne.decoding.receptive_field import ReceptiveField, delay_time_series
+from mne.decoding import ReceptiveField, delay_time_series
 from sklearn.preprocessing import scale
 np.random.seed(1337)  # To make this example reproducible
 
@@ -123,7 +123,7 @@ y_train = y[train]
 y_test = y[test]
 
 # Model the simulated data as a function of the spectrogram input
-mod = ReceptiveField(freqs, lags, sfreq=sfreq_new)
+mod = ReceptiveField(lags, freqs, sfreq=sfreq_new)
 mod.fit(X_train, y_train)
 
 # Now make predictions about the model output, given input stimuli.
@@ -132,7 +132,7 @@ y_pred = mod.predict(X_test).squeeze()
 # Plot the actual response and the predicted response on a held out stimulus
 fig, axs = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
 axs[0].pcolormesh(lags, freqs, weights, cmap='coolwarm')
-axs[1].pcolormesh(mod.lags, mod.stim_features, mod.coef_, cmap='coolwarm')
+axs[1].pcolormesh(mod.lags, mod.feature_names, mod.coef_, cmap='coolwarm')
 plt.autoscale(tight=True)
 axs[0].set_title('Original STRF')
 axs[1].set_title('Reconstructed STRF')

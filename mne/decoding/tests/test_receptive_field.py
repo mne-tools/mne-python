@@ -87,10 +87,16 @@ def test_receptive_field():
     X_del = np.vstack(delay_time_series(X, delays))
     y = np.dot(w, X_del)
     # Fit the model and test values
-    rf = ReceptiveField(['one', 'two', 'three'], delays, model=mod)
+    rf = ReceptiveField(delays, ['one', 'two', 'three'], model=mod)
     rf.fit(X, y)
     y_pred = rf.predict(X)
     assert_array_almost_equal(y[:-4], y_pred.squeeze(), 3)
     assert_array_almost_equal(np.hstack(rf.coef_), w, 3)
+    # stim features must match length of input data
+    assert_raises(ValueError, rf.fit, X[:1], y)
+    # auto-naming features
+    rf = ReceptiveField(delays, model=mod)
+    rf.fit(X, y)
+    assert_equal(rf.feature_names, ['feature_%s' % ii for ii in [0, 1, 2]])
 
 run_tests_if_main()
