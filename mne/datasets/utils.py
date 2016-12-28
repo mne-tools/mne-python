@@ -10,6 +10,7 @@ import shutil
 import tarfile
 import stat
 import sys
+import zipfile
 
 from .. import __version__ as mne_version
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
@@ -220,16 +221,13 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'testing': 'MNE_DATASETS_TESTING_PATH',
         'multimodal': 'MNE_DATASETS_MULTIMODAL_PATH',
         'visual_92_categories': 'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
+        'mtrf': 'MNE_DATASETS_MTRF_PATH'
     }[name]
 
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-<<<<<<< HEAD
     releases = dict(testing='0.31', misc='0.3')
-=======
-    releases = dict(testing='0.27', misc='0.4')
->>>>>>> addressing comments, updating example, moving to tutorials
     # And also update the "hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -243,6 +241,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         multimodal='MNE-multimodal-data.tar.gz',
         fake='foo.tgz',
         visual_92_categories='MNE-visual_92_categories.tar.gz',
+        mtrf='mTRF_1.5.zip'
     )
     if archive_name is not None:
         archive_names.update(archive_name)
@@ -250,6 +249,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         brainstorm='MNE-brainstorm-data',
         fake='foo',
         misc='MNE-misc-data',
+        mtrf='mTRF_1.5',
         sample='MNE-sample-data',
         somato='MNE-somato-data',
         multimodal='MNE-multimodal-data',
@@ -271,6 +271,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                 'tar.gz/%s' % releases['testing'],
         multimodal='https://ndownloader.figshare.com/files/5999598',
         visual_92_categories='https://mne-tools.s3.amazonaws.com/datasets/%s',
+        mtrf="https://superb-dca2.dl.sourceforge.net/project/aespa/%s"
     )
     hashes = dict(
         brainstorm=None,
@@ -282,6 +283,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='037711ea367c610bd673c11b9b2325ca',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         visual_92_categories='46c7e590f4a48596441ce001595d5e58',
+        mtrf='273a390ebbc48da2c3184b01a82e4636',
     )
     folder_origs = dict(  # not listed means None
         misc='mne-misc-data-%s' % releases['misc'],
@@ -360,16 +362,20 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
 
         logger.info('Decompressing the archive: %s' % archive_name)
         logger.info('(please be patient, this can take some time)')
-        for ext in ['gz', 'bz2']:  # informed guess (and the only 2 options).
-            try:
-                if name != 'brainstorm':
-                    extract_path = path
-                tf = tarfile.open(archive_name, 'r:%s' % ext)
-                tf.extractall(path=extract_path)
-                tf.close()
-                break
-            except tarfile.ReadError as err:
-                logger.info('%s is %s trying "bz2"' % (archive_name, err))
+        if name != 'brainstorm':
+            extract_path = path
+        if archive_name.endswith('.zip'):
+            with zipfile.ZipFile(archive_name, 'r') as ff:
+                ff.extractall(extract_path)
+        else:
+            for ext in ['gz', 'bz2']:  # informed guess
+                try:
+                    tf = tarfile.open(archive_name, 'r:%s' % ext)
+                    tf.extractall(path=extract_path)
+                    tf.close()
+                    break
+                except tarfile.ReadError as err:
+                    logger.info('%s is %s trying "bz2"' % (archive_name, err))
         if folder_orig is not None:
             shutil.move(op.join(path, folder_orig), folder_path)
 
@@ -431,13 +437,14 @@ def _download_all_example_data(verbose=True):
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
-                   eegbci, multimodal)
+                   eegbci, multimodal, mtrf)
     sample.data_path()
     testing.data_path()
     misc.data_path()
     spm_face.data_path()
     somato.data_path()
     multimodal.data_path()
+    mtrf.data_path()
     sys.argv += ['--accept-brainstorm-license']
     try:
         brainstorm.bst_raw.data_path()

@@ -33,7 +33,8 @@ class ReceptiveField(BaseEstimator):
         datapoints at the beginning / end of the input are not used.
     """
 
-    def __init__(self, lags, feature_names=None, sfreq=1., model=None):  # noqa: D102
+    def __init__(self, lags, feature_names=None,
+                 sfreq=1., model=None):  # noqa: D102
         from sklearn.linear_model import Ridge
         self.feature_names = feature_names
         self.lags = lags

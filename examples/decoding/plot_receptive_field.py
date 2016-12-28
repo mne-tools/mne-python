@@ -9,10 +9,12 @@ class can perform a similar function along with scikit-learn. We'll fit
 a linear encoding model using the continuously-varying speech envelope to
 predict activity of a 128 channel EEG system.
 
-[1] Crosse, M. J., Di Liberto, G. M., Bednar, A. & Lalor, E. C.
-    The Multivariate Temporal Response Function (mTRF) Toolbox:
-    A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
-    Front. Hum. Neurosci. 10, 604 (2016). doi:10.3389/fnhum.2016.00604
+References
+----------
+[1] Crosse, M. J., Di Liberto, G. M., Bednar, A. & Lalor, E. C. (2016).
+The Multivariate Temporal Response Function (mTRF) Toolbox:
+A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
+Frontiers in Human Neuroscience 10, 604. doi:10.3389/fnhum.2016.00604
 """
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #
@@ -30,9 +32,10 @@ import mne
 import scipy.io as si
 
 
+###############################################################################
 # Load the data from the publication
-path_data = '/Users/choldgraf/Dropbox/lalor_example/mTRF_1.5/speech_data.mat'
-data = si.loadmat(path_data)
+path = mne.datasets.mtrf.data_path()
+data = si.loadmat(path + '/speech_data.mat')
 eeg = data['EEG'].T
 speech = data['envelope'].T
 sfreq = float(data['Fs'].squeeze())
@@ -45,11 +48,15 @@ info = mne.create_info(mon.ch_names[:128], sfreq, 'eeg', montage=mon)
 lt = mne.channels.make_eeg_layout(info)
 eeg = mne.io.RawArray(eeg, info)
 
+###############################################################################
 # Plot a sample of brain and stimulus activity
 fig, ax = plt.subplots()
 _ = ax.plot(scale(eeg[:][0][..., :800].T), color='k', alpha=.1)
 ax.plot(scale(speech[0, :800]), color='r', lw=2)
 ax.set(title="Sample brain and stimulus activity", xlabel="Time (s)")
+
+###############################################################################
+# Create and fit a receptive field model
 
 # Define the lags that we'll use in the receptive field
 step_lag = .02
@@ -85,19 +92,24 @@ ax.plot(ix_chs, mn_scores)
 ax.axhline(0, ls='--', color='r')
 ax.set(title="Mean prediction score", xlabel="Channel", ylabel="Score ($r$)")
 
-# Print mean coefficients across all time lags / channels
-time_plot = -.18
-ix_plot = np.argmin(np.abs(time_plot - lags))
+###############################################################################
+# Investigate model coefficients
+
+# Print mean coefficients across all time lags / channels (see Fig 1 in [1])
+time_plot = -.18  # For highlighting a specific time.
 fig, ax = plt.subplots(figsize=(3, 6))
-ax.pcolormesh(lags, ix_chs, mn_coefs, cmap='viridis')
-ax.axvline(time_plot, ls='--', color='r')
+ax.pcolormesh(lags, ix_chs, mn_coefs, cmap='RdBu_r')
+ax.axvline(time_plot, ls='--', color='k', lw=2)
 ax.set(xlabel='Lag (s)', ylabel='Channel', title="Mean Model\nCoefficients",
        xlim=[lags.min(), lags.max()], ylim=[0, len(ix_chs)])
 plt.setp(ax.get_xticklabels(), rotation=45)
+plt.tight_layout()
 
-# Make a topographic map of coefficients for a given lag
+# Make a topographic map of coefficients for a given lag (see Fig 2C in [1])
+ix_plot = np.argmin(np.abs(time_plot - lags))
 fig, ax = plt.subplots()
-mne.viz.plot_topomap(mn_coefs[:, ix_plot], pos=lt.pos)
-ax.set(title="Topomap of model coefficicients for lag %s" % time_plot)
+mne.viz.plot_topomap(mn_coefs[:, ix_plot], pos=lt.pos, axes=ax, show=False)
+ax.set(title="Topomap of model coefficicients\nfor lag %s" % time_plot)
 
 plt.tight_layout()
+plt.show()
