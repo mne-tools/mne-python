@@ -37,6 +37,8 @@ from scipy.stats import multivariate_normal
 import scipy.io as si
 from mne.decoding import ReceptiveField, delay_time_series
 from sklearn.preprocessing import scale
+from sklearn.linear_model import Ridge
+from sklearn.metrics import r2_score
 np.random.seed(1337)  # To make this example reproducible
 
 ###############################################################################
@@ -89,7 +91,7 @@ plt.autoscale(tight=True)
 # Reshape audio to split into epochs, then make epochs the first dimension.
 n_epochs, len_epoch = 30, 3
 n_freqs = audio.shape[0]
-audio = audio[:, :len_epoch * sfreq * n_epochs]
+audio = audio[:, :int(len_epoch * sfreq * n_epochs)]
 X = audio.reshape([n_freqs, n_epochs, -1]).swapaxes(0, 1)
 n_times = X.shape[-1]
 
@@ -105,7 +107,7 @@ y = np.zeros([n_features, n_delays])
 # import IPython; IPython.embed()
 for ii, iep in enumerate(X_del):
     # Simulate this epoch and add random noise
-    noise_amp = .0001
+    noise_amp = .0005
     y[ii] = np.dot(weights_sim, iep) + noise_amp * np.random.randn(n_delays)
 
 # Plot the first 3 trials of audio and the simulated electrode activity
@@ -122,7 +124,7 @@ axs[1].set(xlim=[time.min(), time.max()], title='Simulated response',
 
 ###############################################################################
 # Fit a model to recover this receptive field
-# -----------------
+# -------------------------------------------
 #
 # Finally, we'll use the `ReceptiveField` class to recover the linear receptive
 # field of this signal. Note that properties of the receptive field (e.g.
@@ -136,27 +138,69 @@ y_train = y[train]
 y_test = y[test]
 
 # Model the simulated data as a function of the spectrogram input
-mod = ReceptiveField(lags, freqs, sfreq=sfreq)
-mod.fit(X_train, y_train)
+alphas = np.logspace(-5, 0, 10)
+scores = np.zeros(len(alphas))
+models = []
+for ii, alpha in enumerate(alphas):
+    mod = ReceptiveField(lags, freqs, sfreq=sfreq, model=Ridge(alpha))
+    mod.fit(X_train, y_train)
 
-# Now make predictions about the model output, given input stimuli.
-y_pred = mod.predict(X_test).squeeze()
+    # Now make predictions about the model output, given input stimuli.
+    y_pred = mod.predict(X_test).squeeze()
+    scores[ii] = r2_score(y_pred, y_test[~mod.msk_remove])
+    models.append(mod)
+
+# Choose the model that performed best on the held out data
+ix_best_alpha = np.argmax(scores)
+best_mod = models[ix_best_alpha]
+coefs = best_mod.coef_
+best_pred = best_mod.predict(X_test).squeeze()
 
 # Plot the original STRF, and the one that we recovered with modeling.
 fig, axs = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
-axs[0].pcolormesh(lags, freqs, weights, cmap='coolwarm')
-axs[1].pcolormesh(mod.lags, mod.feature_names, mod.coef_, cmap='coolwarm')
+axs[0].pcolormesh(lags, freqs, weights, cmap='RdBu_r')
+axs[1].pcolormesh(mod.lags, mod.feature_names, coefs, cmap='RdBu_r')
 plt.autoscale(tight=True)
 axs[0].set_title('Original STRF')
-axs[1].set_title('Reconstructed STRF')
+axs[1].set_title('Best Reconstructed STRF')
 plt.setp([iax.get_xticklabels() for iax in axs], rotation=45)
 
 # Plot the actual response and the predicted response on a held out stimulus
 time_pred = np.arange(y_pred.shape[0]) / sfreq
 fig, ax = plt.subplots()
 ax.plot(time_pred, y_test[~mod.msk_remove], color='k', alpha=.2, lw=4)
-ax.plot(time_pred, y_pred, color='r', lw=1)
+ax.plot(time_pred, best_pred, color='r', lw=1)
 plt.autoscale(tight=True)
 ax.set(title='Original and predicted activity', xlabel='Time (s)')
 ax.legend(['Original', 'Predicted'])
+
+###############################################################################
+# Visualize the effects of regularization
+# ---------------------------------------
+#
+# Above we fit a `ReceptiveField` model for one of many values for the "ridge"
+# parameter. Here we will plot the model score as well as the model
+# coefficients for each value, in order to visualize how coefficients change
+# with different levels of regularization.
+
+# Plot model score for each ridge parameter
+fig = plt.figure(figsize=(20, 4))
+ax = plt.subplot2grid([2, 10], [1, 0], 1, 10)
+ax.scatter(range(len(alphas)), scores, s=40, color='r')
+ax.annotate('Best parameter', (ix_best_alpha, scores[ix_best_alpha]),
+            (ix_best_alpha - 1, scores[ix_best_alpha] - .1),
+            arrowprops={'arrowstyle': '->'})
+plt.xticks(range(len(alphas)), ["%.0e" % ii for ii in alphas])
+ax.set(xlabel="Ridge Parameter Value", ylabel="Score ($R^2$)",
+       ylim=[.75, .95], xlim=[-.4, len(alphas) - .6])
+
+# Plot the STRF of each ridge parameter
+for ii, (mod, i_alpha) in enumerate(zip(models, alphas)):
+    ax = plt.subplot2grid([2, 10], [0, ii], 1, 1)
+    ax.pcolormesh(mod.lags, mod.feature_names, mod.coef_, cmap='RdBu_r')
+    plt.xticks([], [])
+    plt.yticks([], [])
+    plt.autoscale(tight=True)
+plt.tight_layout()
+fig.suptitle('Model coefficients / scores for many ridge parameters', y=1)
 plt.show()
