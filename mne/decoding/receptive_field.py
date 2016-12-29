@@ -8,18 +8,17 @@ class ReceptiveField(BaseEstimator):
 
     Parameters
     ----------
-    lags : array, shape (n_lags,)
-        Time lags to be included in the model. This will be combined
-        with `sfreq` to convert these values into indices in the data.
-        If `sfreq` == 1, then these should be indices. If not, then
-        time lags should be in seconds.
-    feature_names : array, shape (n_features,)
-        Names for the input features to the model.
-    sfreq : float
-        The sampling frequency of the data.
-    model : instance of sklearn model | None
+    lags : array, shape (n_lags,), dtype int
+        Time lags to be included in the model. They should be in samples
+        (not seconds).
+    feature_names : array, shape (n_features,) | None
+        Names for input features to the model. If None, feature names will
+        be auto-generated from the shape of input data after running `fit`.
+    model : instance of sklearn model | string | None
         The model used in fitting inputs and outputs. This can be any
-        sklearn-style model that contains a fit and predict method.
+        sklearn-style model that contains a fit and predict method. Currently
+        the only supported string is 'ridge', which uses the default
+        :mod:`sklearn` ridge model. This is also what `None` defaults to.
 
     Attributes
     ----------
@@ -33,21 +32,28 @@ class ReceptiveField(BaseEstimator):
         datapoints at the beginning / end of the input are not used.
     """
 
-    def __init__(self, lags, feature_names=None,
-                 sfreq=1., model=None):  # noqa: D102
+    def __init__(self, lags, feature_names=None, model=None):  # noqa: D102
         from sklearn.linear_model import Ridge
+        model_dict = dict(ridge=Ridge())
+        if isinstance(model, str):
+            if model not in list(model_dict.keys()):
+                raise ValueError('If string, model must be one'
+                                 ' of %s' % model_dict.keys())
+            model = model_dict[model]
         self.feature_names = feature_names
+
+        lags = np.asarray(lags)
+        if not np.issubdtype(lags.dtype, int):
+            raise ValueError('lags must be dtype `int`, not %s' % lags.dtype)
         self.lags = lags
         self.model = Ridge() if model is None else model
         _check_estimator(self.model)
-        self.sfreq = sfreq
 
     def __repr__(self):  # noqa: D105
         str_features = self.feature_names
         s = "features : [%s, %s]" % (str_features[0], str_features[-1])
         s += ", lags : [%f, %f]" % (self.lags[0], self.lags[-1])
         s += ", model : %s" % str(self.model)
-        s += ", sfreq : %s" % self.sfreq
         return "<ReceptiveField  |  %s>" % s
 
     def fit(self, X, y):
@@ -115,11 +121,11 @@ class ReceptiveField(BaseEstimator):
 
     def _delay_for_fit(self, X):
         # First delay
-        X_del = delay_time_series(X, self.lags, self.sfreq)
+        X_del = delay_time_series(X, self.lags, 1)
 
         # Mask for removing edges later
         msk_helper = np.ones(X.shape[-1])
-        msk_helper = delay_time_series(msk_helper, self.lags, self.sfreq)
+        msk_helper = delay_time_series(msk_helper, self.lags, 1)
         msk = np.any(msk_helper == 0, axis=0)
         return X_del, msk
 

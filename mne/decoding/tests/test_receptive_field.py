@@ -86,6 +86,8 @@ def test_receptive_field():
     # Delay inputs and cut off first 4 values since they'll be cut in the fit
     X_del = np.vstack(delay_time_series(X, delays))
     y = np.dot(w, X_del)
+    # delays must be ints
+    assert_raises(ValueError, ReceptiveField, delays.astype(float))
     # Fit the model and test values
     rf = ReceptiveField(delays, ['one', 'two', 'three'], model=mod)
     rf.fit(X, y)
@@ -98,5 +100,10 @@ def test_receptive_field():
     rf = ReceptiveField(delays, model=mod)
     rf.fit(X, y)
     assert_equal(rf.feature_names, ['feature_%s' % ii for ii in [0, 1, 2]])
+    # String becomes ridge
+    rf = ReceptiveField(delays, ['one', 'two', 'three'], model='ridge')
+    assert_true(isinstance(rf.model, Ridge))
+    # Correct strings
+    assert_raises(ValueError, ReceptiveField, delays, model='foo')
 
 run_tests_if_main()

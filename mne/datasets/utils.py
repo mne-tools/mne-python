@@ -276,7 +276,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     hashes = dict(
         brainstorm=None,
         fake='3194e9f7b46039bb050a74f3e1ae9908',
-        misc='a37a16e9ecb258bac3015ab64c18729c',
+        misc='d822a720ef94302467cb6ad1d320b669',
         sample='1d5da3a809fded1ef5734444ab5bf857',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
         spm='f61041e3f3f2ba0def8a2ca71592cc41',
