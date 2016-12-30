@@ -1,7 +1,7 @@
 """
-=============================================
-Receptive field estimation on continuous data
-=============================================
+=====================================================================
+Spectro-temporal receptive field (STRF) estimation on continuous data
+=====================================================================
 
 This demonstrates how an encoding model can be fit with multiple continuous
 inputs. In this case, we simulate the model behind a spectro-temporal receptive
@@ -10,22 +10,24 @@ spectro-temporal space onto an output, representing neural activity. We fit
 a receptive field model that attempts to recover the original linear filter
 that was used to create this data.
 
+References
+----------
 Estimation of spectro-temporal and spatio-temporal receptive fields using
 modeling with continuous inputs is described in:
 
-    .. [1] Theunissen, F. E. et al. Estimating spatio-temporal receptive
-           fields of auditory and visual neurons from their responses to
-           natural stimuli. Network 12, 289-316 (2001).
+.. [1] Theunissen, F. E. et al. Estimating spatio-temporal receptive
+       fields of auditory and visual neurons from their responses to
+       natural stimuli. Network 12, 289-316 (2001).
 
-    .. [2] Willmore, B. & Smyth, D. Methods for first-order kernel
-           estimation: simple-cell receptive fields from responses to
-           natural scenes. Network 14, 553-77 (2003).
+.. [2] Willmore, B. & Smyth, D. Methods for first-order kernel
+       estimation: simple-cell receptive fields from responses to
+       natural scenes. Network 14, 553-77 (2003).
 
-    .. [3] Crosse, M. J., Di Liberto, G. M., Bednar, A. & Lalor, E. C. (2016).
-           The Multivariate Temporal Response Function (mTRF) Toolbox:
-           A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
-           Frontiers in Human Neuroscience 10, 604.
-           doi:10.3389/fnhum.2016.00604
+.. [3] Crosse, M. J., Di Liberto, G. M., Bednar, A. & Lalor, E. C. (2016).
+       The Multivariate Temporal Response Function (mTRF) Toolbox:
+       A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
+       Frontiers in Human Neuroscience 10, 604.
+       doi:10.3389/fnhum.2016.00604
 """
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #
@@ -54,6 +56,9 @@ path_audio = mne.datasets.mtrf.data_path()
 data = loadmat(path_audio + '/speech_data.mat')
 audio = data['spectrogram'].T
 sfreq = float(data['Fs'].squeeze())
+n_decim = 2
+audio = mne.filter.resample(audio, 1, n_decim, 'auto')
+sfreq /= n_decim
 
 ###############################################################################
 # Create a receptive field
@@ -62,25 +67,30 @@ sfreq = float(data['Fs'].squeeze())
 # We'll simulate a linear receptive field for a theoretical neural signal. This
 # defines how the signal will respond to power in this receptive field space.
 n_freqs = 16
-n_lags = 20
-lags_sec = np.linspace(0, .4, n_lags)
-lags_samp = (lags_sec * sfreq).astype(int)
+tmin, tmax = -.4, 0.
+
+# To simulate the data we'll create explicit delays here
+delays_samp = np.arange(np.round(tmin * sfreq),
+                        np.round(tmax * sfreq) + 1).astype(int)
+delays_sec = delays_samp / sfreq
 freqs = np.logspace(2, np.log10(5000), n_freqs)
-grid = np.array(np.meshgrid(lags_sec, freqs))
+grid = np.array(np.meshgrid(delays_sec, freqs))
 
 # We need data to be shaped as n_epochs, n_features, n_times, so swap axes here
 grid = grid.swapaxes(0, -1).swapaxes(0, 1)
 
 # Simulate a temporal receptive field with a Gabor filter
-means_high = [.1, 1000]
-means_low = [.15, 2000]
+means_high = [-.1, 1000]
+means_low = [-.15, 2000]
 cov = [[.0005, 0], [0, 200000]]
 gauss_high = multivariate_normal.pdf(grid, means_high, cov)
 gauss_low = -1 * multivariate_normal.pdf(grid, means_low, cov)
 weights = gauss_high + gauss_low  # Combine to create the "true" STRF
+
 fig, ax = plt.subplots()
-ax.pcolormesh(lags_sec, freqs, weights, cmap='RdBu_r')
+ax.pcolormesh(delays_sec, freqs, weights, cmap='RdBu_r')
 ax.set(title='Simulated STRF', xlabel='Time Lags (s)', ylabel='Frequency (Hz)')
+plt.setp(ax.get_xticklabels(), rotation=45)
 plt.autoscale(tight=True)
 mne.viz.tight_layout()
 
@@ -94,37 +104,35 @@ mne.viz.tight_layout()
 
 # Reshape audio to split into epochs, then make epochs the first dimension.
 n_epochs, len_epoch = 30, 3
-n_freqs = audio.shape[0]
 audio = audio[:, :int(len_epoch * sfreq * n_epochs)]
 X = audio.reshape([n_freqs, n_epochs, -1]).swapaxes(0, 1)
 n_times = X.shape[-1]
 
-# Delay the spectrogram according to lagsso it can be combined w/ the STRF
-# Lags will now be in the 1st dimension, then we reshape to vectorize
-X_del = delay_time_series(X, lags_samp, newaxis=1)
+# Delay the spectrogram according to delays so it can be combined w/ the STRF
+# Lags will now be in axis 1, then we reshape to vectorize
+X_del = delay_time_series(X, tmin, tmax, sfreq, newaxis=1)
 X_del = X_del.reshape([n_epochs, -1, n_times])
-n_epochs, n_features, n_delays = X_del.shape
+n_features = X_del.shape[1]
 weights_sim = weights.ravel()
 
 # Simulate a neural response to the sound, given this STRF
-y = np.zeros([n_features, n_delays])
-# import IPython; IPython.embed()
+y = np.zeros([n_epochs, n_times])
 for ii, iep in enumerate(X_del):
     # Simulate this epoch and add random noise
     noise_amp = .0005
-    y[ii] = np.dot(weights_sim, iep) + noise_amp * rng.randn(n_delays)
+    y[ii] = np.dot(weights_sim, iep) + noise_amp * rng.randn(n_times)
 
-# Plot the first 3 trials of audio and the simulated electrode activity
-X_plt = scale(np.hstack(X[:3]).T).T
-y_plt = scale(np.hstack(y[:3]))
+# Plot the first 2 trials of audio and the simulated electrode activity
+X_plt = scale(np.hstack(X[:2]).T).T
+y_plt = scale(np.hstack(y[:2]))
 time = np.arange(X_plt.shape[-1]) / sfreq
 fig, axs = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
 axs[0].pcolormesh(time, freqs, X_plt, vmin=0, vmax=4, cmap='viridis')
 axs[0].set_title('Input auditory features')
-axs[0].set(ylim=[freqs.min(), freqs.max()])
+axs[0].set(ylim=[freqs.min(), freqs.max()], ylabel='Frequency (Hz)')
 axs[1].plot(time, y_plt)
 axs[1].set(xlim=[time.min(), time.max()], title='Simulated response',
-           xlabel='Time (s)')
+           xlabel='Time (s)', ylabel='Activity (a.u.)')
 mne.viz.tight_layout()
 
 
@@ -145,17 +153,18 @@ y_train = y[train]
 y_test = y[test]
 
 # Model the simulated data as a function of the spectrogram input
-alphas = np.logspace(-5, 0, 10)
+alphas = np.logspace(-4, 0, 10)
 scores = np.zeros(len(alphas))
 models = []
 for ii, alpha in enumerate(alphas):
-    mod = ReceptiveField(lags_samp, freqs, model=Ridge(alpha))
+    mod = ReceptiveField(tmin, tmax, sfreq, freqs, model=Ridge(alpha))
     mod.fit(X_train, y_train)
 
     # Now make predictions about the model output, given input stimuli.
     y_pred = mod.predict(X_test).squeeze()
-    scores[ii] = r2_score(y_pred, y_test[~mod.msk_remove])
+    scores[ii] = r2_score(y_pred, y_test[~mod.mask_remove])
     models.append(mod)
+lag_sec_mod = mod.delays / sfreq
 
 # Choose the model that performed best on the held out data
 ix_best_alpha = np.argmax(scores)
@@ -165,8 +174,8 @@ best_pred = best_mod.predict(X_test).squeeze()
 
 # Plot the original STRF, and the one that we recovered with modeling.
 fig, axs = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
-axs[0].pcolormesh(lags_sec, freqs, weights, cmap='RdBu_r')
-axs[1].pcolormesh(lags_sec, mod.feature_names, coefs, cmap='RdBu_r')
+axs[0].pcolormesh(delays_sec, freqs, weights, cmap='RdBu_r')
+axs[1].pcolormesh(lag_sec_mod, mod.feature_names, coefs, cmap='RdBu_r')
 axs[0].set_title('Original STRF')
 axs[1].set_title('Best Reconstructed STRF')
 plt.setp([iax.get_xticklabels() for iax in axs], rotation=45)
@@ -176,7 +185,7 @@ mne.viz.tight_layout()
 # Plot the actual response and the predicted response on a held out stimulus
 time_pred = np.arange(y_pred.shape[0]) / sfreq
 fig, ax = plt.subplots()
-ax.plot(time_pred, y_test[~mod.msk_remove], color='k', alpha=.2, lw=4)
+ax.plot(time_pred, y_test[~mod.mask_remove], color='k', alpha=.2, lw=4)
 ax.plot(time_pred, best_pred, color='r', lw=1)
 ax.set(title='Original and predicted activity', xlabel='Time (s)')
 ax.legend(['Original', 'Predicted'])
@@ -203,13 +212,13 @@ ax.annotate('Best parameter', (ix_best_alpha, scores[ix_best_alpha]),
             arrowprops={'arrowstyle': '->'})
 plt.xticks(range(len(alphas)), ["%.0e" % ii for ii in alphas])
 ax.set(xlabel="Ridge regularization value", ylabel="Score ($R^2$)",
-       ylim=[.9, .95], xlim=[-.4, len(alphas) - .6])
+       ylim=[.9, .96], xlim=[-.4, len(alphas) - .6])
 mne.viz.tight_layout()
 
 # Plot the STRF of each ridge parameter
 for ii, (mod, i_alpha) in enumerate(zip(models, alphas)):
     ax = plt.subplot2grid([2, 10], [0, ii], 1, 1)
-    ax.pcolormesh(lags_sec, mod.feature_names, mod.coef_, cmap='RdBu_r')
+    ax.pcolormesh(lag_sec_mod, mod.feature_names, mod.coef_, cmap='RdBu_r')
     plt.xticks([], [])
     plt.yticks([], [])
     plt.autoscale(tight=True)

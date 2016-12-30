@@ -4,7 +4,7 @@ Receptive Field Estimation and Prediction
 =========================================
 
 This example re-creates figures from a paper from the Lalor group which
-demos the mTRF toolbox in Matlab _[1]. We will show how the
+demos the mTRF toolbox in Matlab [1]_. We will show how the
 :class:`mne.decoding.ReceptiveField` class can perform a similar function
 along with :mod:`sklearn`. We'll fit a linear encoding model using the
 continuously-varying speech envelope to predict activity of a 128 channel
@@ -36,10 +36,15 @@ import mne
 ###############################################################################
 # Load the data from the publication
 path = mne.datasets.mtrf.data_path()
+n_decim = 2  # To speed up computation
 data = loadmat(path + '/speech_data.mat')
 raw = data['EEG'].T
 speech = data['envelope'].T
 sfreq = float(data['Fs'].squeeze())
+sfreq /= n_decim
+speech = mne.filter.resample(speech, 1, n_decim, 'auto')
+raw = mne.filter.resample(raw, 1, n_decim, 'auto')
+
 
 # Read in channel positions and create our MNE objects from the raw data
 mon = mne.channels.read_montage('biosemi128')
@@ -60,22 +65,20 @@ mne.viz.tight_layout()
 ###############################################################################
 # Create and fit a receptive field model
 
-# Define the lags that we'll use in the receptive field
-step_lag = .02
-lags_time = np.arange(.2, -.4, -step_lag)
-lags_sample = (lags_time * sfreq).astype(int)
-n_lags = len(lags_sample)
+# Define the delays that we'll use in the receptive field
+tmin, tmax = -.4, .2
 
 # Initialize the model
 spec_names = ['freq_%s' % ii for ii in range(speech.shape[0])]
 mod = Ridge()
-rf = ReceptiveField(lags_sample, spec_names)
+rf = ReceptiveField(tmin, tmax, sfreq, spec_names)
+delays_time = rf.delays / float(sfreq)
 
 n_cv = 3
 kf = KFold(n_cv)
 
 # Iterate through folds, fit the model, and predict/test on held-out data
-coefs = np.zeros([n_cv, len(raw.ch_names), len(lags_sample)])
+coefs = np.zeros([n_cv, len(raw.ch_names), len(delays_time)])
 scores = np.zeros([n_cv, len(raw.ch_names)])
 for ii, (tr, tt) in enumerate(kf.split(speech.T)):
     print('CV iteration %s' % ii)
@@ -84,7 +87,6 @@ for ii, (tr, tt) in enumerate(kf.split(speech.T)):
         preds = rf.predict(speech[..., tt]).squeeze()
         scores[ii, jj] = np.corrcoef(preds, i_ch[tt][rf.mask_pred])[1, 0]
         coefs[ii, jj] = rf.coef_
-
 mn_coefs = coefs.mean(0)
 mn_scores = scores.mean(0)
 
@@ -102,18 +104,18 @@ mne.viz.tight_layout()
 # Here we'll look at how coefficients are distributed across time lag as well
 # as across the scalp. We'll recreate figures 1 and 2C in [1]_
 
-# Print mean coefficients across all time lags / channels (see Fig 1 in [1])
+# Print mean coefficients across all time delays / channels (see Fig 1 in [1])
 time_plot = -.18  # For highlighting a specific time.
 fig, ax = plt.subplots(figsize=(4, 8))
-ax.pcolormesh(lags_time, ix_chs, mn_coefs, cmap='RdBu_r')
+ax.pcolormesh(delays_time, ix_chs, mn_coefs, cmap='RdBu_r')
 ax.axvline(time_plot, ls='--', color='k', lw=2)
 ax.set(xlabel='Lag (s)', ylabel='Channel', title="Mean Model\nCoefficients",
-       xlim=[lags_time.min(), lags_time.max()], ylim=[0, len(ix_chs)])
+       xlim=[delays_time.min(), delays_time.max()], ylim=[0, len(ix_chs)])
 plt.setp(ax.get_xticklabels(), rotation=45)
 mne.viz.tight_layout()
 
 # Make a topographic map of coefficients for a given lag (see Fig 2C in [1])
-ix_plot = np.argmin(np.abs(time_plot - lags_time))
+ix_plot = np.argmin(np.abs(time_plot - delays_time))
 fig, ax = plt.subplots()
 mne.viz.plot_topomap(mn_coefs[:, ix_plot], pos=layout.pos, axes=ax, show=False)
 ax.set(title="Topomap of model coefficicients\nfor lag %s" % time_plot)

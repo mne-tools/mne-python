@@ -62,6 +62,7 @@ Classes
    decoding.PSDEstimator
    decoding.Scaler
    decoding.TimeDecoding
+   decoding.ReceptiveField
    realtime.RtEpochs
    realtime.RtClient
    realtime.MockRtClient
@@ -362,6 +363,20 @@ Datasets
    :no-inherited-members:
 
 .. currentmodule:: mne.datasets.visual_92_categories
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   data_path
+
+:py:mod:`mne.datasets.mtrf`:
+
+.. automodule:: mne.datasets.mtrf
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.datasets.mtrf
 
 .. autosummary::
    :toctree: generated/
@@ -1105,12 +1120,17 @@ Classes:
 
 Functions:
 
+   ReceptiveField
+
+Functions that assist with decoding and model fitting:
+
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
    compute_ems
    get_coef
+   delay_time_series
 
 Realtime
 ========
