@@ -461,7 +461,7 @@ def test_ica_additional():
         assert_array_almost_equal(_raw1[:, :][0], _raw2[:, :][0])
 
     os.remove(test_ica_fname)
-    # check scrore funcs
+    # check score funcs
     for name, func in get_score_funcs().items():
         if name in score_funcs_unsuited:
             continue
@@ -504,10 +504,8 @@ def test_ica_additional():
         assert_raises(ValueError, ica.find_bads_ecg, raw,
                       method='crazy-coupling')
 
-        # check that nonsense ecg ch_name means bad output -
-        # i.e., that find_bads_ecg recognizes the ch_name arg
-        idx2, _ = ica.find_bads_ecg(epochs, raw.ch_names[0], method='ctps')
-        assert_true(set(idx2) != set(idx))
+        # check passing a ch_name to find_bads_ecg
+        ica.find_bads_ecg(epochs, raw.ch_names[0], method='ctps')
 
         idx, scores = ica.find_bads_eog(raw)
         assert_equal(len(scores), ica.n_components_)
