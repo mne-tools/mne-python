@@ -1032,6 +1032,7 @@ class ICA(ContainsMixin):
                 sources = self.get_sources(create_ecg_epochs(
                     inst, ch_name, keep_ecg=False,
                     reject_by_annotation=reject_by_annotation)).get_data()
+
                 if sources.shape[0] == 0:
                     warn('No ECG activity detected. Consider changing '
                          'the input parameters.')
