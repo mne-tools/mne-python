@@ -1,5 +1,5 @@
 import numpy as np
-from .base import get_coefs, BaseEstimator, _check_estimator
+from .base import _get_final_est, BaseEstimator, _check_estimator
 
 
 class ReceptiveField(BaseEstimator):
@@ -11,11 +11,11 @@ class ReceptiveField(BaseEstimator):
     Parameters
     ----------
     tmin : int | float
-        The tmining lag. Negative values correspond to times in the past.
+        The starting lag. Negative values correspond to times in the past.
     tmax : int | float
         The ending lag. Positive values correspond to times in the future.
         Must be >= tmin.
-    sfreq : int | float
+    sfreq : float
         The sampling frequency used to convert times into samples.
     feature_names : array, shape (n_features,) | None
         Names for input features to the model. If None, feature names will
@@ -30,12 +30,14 @@ class ReceptiveField(BaseEstimator):
     ----------
     coef_ : array, shape (n_features, n_delays)
         The coefficients from the model fit, reshaped for easy visualization.
-        If you want the raw (2d) coefficients, use `mne.decoding.get_coefs`
-        on `self.model`.
-    mask_pred : array, dtype bool, shape (n_times,)
+        If you want the raw (1d) coefficients, access them from the estimator
+        stored in `self.estimator_`.
+    mask_pred_ : array of bool, shape (n_times,)
         A mask with True values corresponding to datapoints that were used
         in generating model predictions. Creating time delays necessitates that
-        datapoints at the beginning / end of the input are not used.
+        datapoints at edges of the input do not have matching time-lagged
+        datapoints for all lags, and are thus removed in model fitting.
+
 
     References
     ----------
@@ -56,29 +58,28 @@ class ReceptiveField(BaseEstimator):
 
     def __init__(self, tmin, tmax, sfreq,
                  feature_names=None, model=None):  # noqa: D102
-        from sklearn.linear_model import Ridge
-        model_dict = dict(ridge=Ridge())
-
         self.feature_names = feature_names
-        self.sfreq = sfreq
-
-        self.delays = _times_to_delays(tmin, tmax, sfreq)
+        self.sfreq = float(sfreq)
         self.tmin = tmin
         self.tmax = tmax
-
-        if isinstance(model, str):
-            if model not in list(model_dict.keys()):
-                raise ValueError('If string, model must be one'
-                                 ' of %s' % model_dict.keys())
-            model = model_dict[model]
-        self.model = Ridge() if model is None else model
-        _check_estimator(self.model)
+        self.model = 'ridge' if model is None else model
 
     def __repr__(self):  # noqa: D105
-        str_features = self.feature_names
-        s = "features : [%s, %s]" % (str_features[0], str_features[-1])
-        s += ", delays : [%f, %f]" % (self.delays[0], self.delays[-1])
-        s += ", model : %s" % str(self.model)
+        s = "tmin, tmax : (%.3f, %.3f), " % (self.tmin, self.tmax)
+        if isinstance(self.model, str):
+            model = self.model
+        else:
+            model = str(type(self.model))
+        s += "model : %s, " % str(model)
+        if hasattr(self, 'delays_'):
+            feats = self.feature_names
+            if len(feats) == 1:
+                s += "feature: %s, " % feats[0]
+            else:
+                s += "features : [%s, ..., %s], " % (feats[0], feats[-1])
+            s += "fit: True"
+        else:
+            s += "fit: False"
         return "<ReceptiveField  |  %s>" % s
 
     def fit(self, X, y):
@@ -91,13 +92,45 @@ class ReceptiveField(BaseEstimator):
         y : array, shape ([n_epochs], n_times)
             The output feature for the model.
         """
-        if X.ndim == 2:
+        from sklearn.linear_model import Ridge
+        model_dict = dict(ridge=Ridge())
+        if X.ndim == 1:
+            raise ValueError('X must be shape ([n_epochs],'
+                             ' n_features, n_times)')
+        elif X.ndim == 2:
             # Ensure we have a 3D input
             X = X[np.newaxis, ...]
+            if y.ndim == 1:
+                y = y[np.newaxis, np.newaxis, :]  # Add epochs and outputs dim
+            else:
+                y = y[np.newaxis, :]  # Only add epochs dim
+        elif X.ndim == 3 and y.ndim == 2:
+            y = y[:, np.newaxis, :]  # Add an outputs dim
+        else:
+            raise ValueError('X must be of shape '
+                             '([n_epochs], n_features, n_times)')
         if X.shape[-1] != y.shape[-1]:
             raise ValueError('X any y do not have the same n_times\n'
                              '%s != %s' % (X.shape[-1], y.shape[-1]))
+        if X.shape[0] != y.shape[0]:
+            raise ValueError('X any y do not have the same n_epochs\n'
+                             '%s != %s' % (X.shape[0], y.shape[0]))
+        # Initialize delays and model
+        self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq)
+
+        if isinstance(self.model, str):
+            if self.model not in list(model_dict.keys()):
+                raise ValueError('If string, model must be one'
+                                 ' of %s' % model_dict.keys())
+            model = model_dict[self.model]
+        else:
+            model = self.model
+        self.estimator_ = model
+        _check_estimator(self.estimator_)
+
+        # Create input features
         n_epochs, n_feats, n_times = X.shape
+        n_outputs = y.shape[1]
         X_del, msk = self._delay_for_fit(X)
 
         # Reshape so we have times x features
@@ -116,11 +149,13 @@ class ReceptiveField(BaseEstimator):
             raise ValueError('n_features in X does not match feature names '
                              '(%s != %s)' % (n_feats, len(self.feature_names)))
 
-        self.model.fit(X_del.T, y.T)
+        self.estimator_.fit(X_del.T, y.T)
         self.mask_remove = msk
 
-        coefs = get_coefs(self.model)
-        self.coef_ = coefs.reshape([len(self.feature_names), len(self.delays)])
+        coefs = _get_final_est(self.estimator_).coef_
+        self.coef_ = coefs.reshape([n_outputs, n_feats, len(self.delays_)])
+        if n_outputs == 1:
+            self.coef_ = self.coef_[0]
 
     def predict(self, X, y=None):
         """Make predictions using a receptive field.
@@ -140,8 +175,8 @@ class ReceptiveField(BaseEstimator):
         X_del, msk = self._delay_for_fit(X)
         X_del = X_del[..., ~msk]
         X_del = X_del.reshape([-1, X_del.shape[-1]]).T
-        y_pred = self.model.predict(X_del)
-        self.mask_pred = ~msk
+        y_pred = self.estimator_.predict(X_del)
+        self.mask_pred_ = ~msk
         return y_pred
 
     def _delay_for_fit(self, X):
@@ -164,7 +199,7 @@ def delay_time_series(X, tmin, tmax, sfreq, newaxis=0):
     X : array, shape ([n_epochs], n_features, n_times)
         The time series to delay.
     tmin : int | float
-        The tmining lag. Negative values correspond to times in the past.
+        The starting lag. Negative values correspond to times in the past.
     tmax : int | float
         The ending lag. Positive values correspond to times in the future.
         Must be >= tmin.

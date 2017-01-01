@@ -10,7 +10,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from mne import io, pick_types
 from mne.utils import requires_sklearn_0_15, run_tests_if_main
-from mne.decoding import ReceptiveField, get_coefs, delay_time_series
+from mne.decoding import ReceptiveField, delay_time_series
 from mne.decoding.base import _get_final_est
 
 
@@ -70,15 +70,6 @@ def test_receptive_field():
     est = _get_final_est(pipe)
     assert_true(isinstance(est, type(mod)))
 
-    # Est must be fit first
-    assert_raises(ValueError, get_coefs, est)
-    # Coefs are correctly taken
-    est.fit([[1, 2], [3, 4]], [1, 2])
-    coefs = get_coefs(pipe, 'coef_')
-    assert_equal(coefs.shape[-1], 2)
-    # Incorrect coefficient name
-    assert_raises(ValueError, get_coefs, est, 'foo')
-
     # Test the receptive field model
     # Define parameters for the model and simulate inputs + weights
     tmin, tmax = 0, 10
@@ -94,8 +85,15 @@ def test_receptive_field():
                         ['feature_%i' % ii for ii in [0, 1, 2]], model=mod)
     rf.fit(X, y)
     y_pred = rf.predict(X)
-    assert_array_almost_equal(y[rf.mask_pred], y_pred.squeeze(), 2)
+    assert_array_almost_equal(y[rf.mask_pred_], y_pred.squeeze(), 2)
     assert_array_almost_equal(np.hstack(rf.coef_), w, 2)
+    # Make sure different input shapes work
+    rf.fit(X[np.newaxis, ...], y[np.newaxis, ...])
+    rf.fit(X, y[np.newaxis, :])
+    assert_raises(ValueError, rf.fit, X[np.newaxis, ...], y)
+    assert_raises(ValueError, rf.fit, X[0], y)
+    assert_raises(ValueError, rf.fit, X[np.newaxis, ...],
+                  np.tile(y[np.newaxis, ...], [2, 1, 1]))
     # stim features must match length of input data
     assert_raises(ValueError, rf.fit, X[:1], y)
     # auto-naming features
@@ -106,9 +104,19 @@ def test_receptive_field():
     assert_raises(ValueError, rf.fit, X, y[..., :-2])
     # String becomes ridge
     rf = ReceptiveField(tmin, tmax, 1, ['one', 'two', 'three'], model='ridge')
-    assert_true(isinstance(rf.model, Ridge))
+    str(rf)  # repr works before fit
+    rf.fit(X, y)
+    assert_true(isinstance(rf.estimator_, Ridge))
+    str(rf)  # repr works after fit
+    rf = ReceptiveField(tmin, tmax, 1, ['one'], model='ridge')
+    rf.fit(X[[0]], y)
+    str(rf)  # repr with one feature
     # Correct strings
-    assert_raises(ValueError, ReceptiveField, 1, tmin, tmax, model='foo')
+    rf = ReceptiveField(tmin, tmax, 1, model='foo')
+    assert_raises(ValueError, rf.fit, X, y)
+    # tmin must be <= tmax
+    rf = ReceptiveField(5, 4, 1)
+    assert_raises(ValueError, rf.fit, X, y)
 
 
 run_tests_if_main()

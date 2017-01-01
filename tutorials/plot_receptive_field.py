@@ -33,13 +33,14 @@ modeling with continuous inputs is described in:
 #
 # License: BSD (3-clause)
 
-import mne
 import numpy as np
 import matplotlib.pyplot as plt
 
+import mne
+from mne.decoding import ReceptiveField, delay_time_series
+
 from scipy.stats import multivariate_normal
 from scipy.io import loadmat
-from mne.decoding import ReceptiveField, delay_time_series
 from sklearn.preprocessing import scale
 from sklearn.linear_model import Ridge
 from sklearn.metrics import r2_score
@@ -55,9 +56,9 @@ rng = np.random.RandomState(1337)  # To make this example reproducible
 path_audio = mne.datasets.mtrf.data_path()
 data = loadmat(path_audio + '/speech_data.mat')
 audio = data['spectrogram'].T
-sfreq = float(data['Fs'].squeeze())
+sfreq = float(data['Fs'][0, 0])
 n_decim = 2
-audio = mne.filter.resample(audio, 1, n_decim, 'auto')
+audio = mne.filter.resample(audio, down=n_decim, npad='auto')
 sfreq /= n_decim
 
 ###############################################################################
@@ -103,8 +104,8 @@ mne.viz.tight_layout()
 # a stimulus.
 
 # Reshape audio to split into epochs, then make epochs the first dimension.
-n_epochs, len_epoch = 30, 3
-audio = audio[:, :int(len_epoch * sfreq * n_epochs)]
+n_epochs, n_seconds = 30, 3
+audio = audio[:, :int(n_seconds * sfreq * n_epochs)]
 X = audio.reshape([n_freqs, n_epochs, -1]).swapaxes(0, 1)
 n_times = X.shape[-1]
 
@@ -140,21 +141,18 @@ mne.viz.tight_layout()
 # Fit a model to recover this receptive field
 # -------------------------------------------
 #
-# Finally, we'll use the :class:`mne.decoding.ReceptiveField`class to recover
+# Finally, we'll use the :class:`mne.decoding.ReceptiveField` class to recover
 # the linear receptive field of this signal. Note that properties of the
 # receptive field (e.g. smoothness) will depend on the autocorrelation in the
 # inputs and outputs.
 
 # Create training and testing data
 train, test = range(20), 21
-X_train = X[train]
-X_test = X[test]
-y_train = y[train]
-y_test = y[test]
+X_train, X_test, y_train, y_test = X[train], X[test], y[train], y[test]
 
 # Model the simulated data as a function of the spectrogram input
 alphas = np.logspace(-4, 0, 10)
-scores = np.zeros(len(alphas))
+scores = np.zeros_like(alphas)
 models = []
 for ii, alpha in enumerate(alphas):
     mod = ReceptiveField(tmin, tmax, sfreq, freqs, model=Ridge(alpha))
@@ -164,7 +162,7 @@ for ii, alpha in enumerate(alphas):
     y_pred = mod.predict(X_test).squeeze()
     scores[ii] = r2_score(y_pred, y_test[~mod.mask_remove])
     models.append(mod)
-lag_sec_mod = mod.delays / sfreq
+delay_sec_mod = mod.delays_ / sfreq
 
 # Choose the model that performed best on the held out data
 ix_best_alpha = np.argmax(scores)
@@ -173,12 +171,12 @@ coefs = best_mod.coef_
 best_pred = best_mod.predict(X_test).squeeze()
 
 # Plot the original STRF, and the one that we recovered with modeling.
-fig, axs = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
-axs[0].pcolormesh(delays_sec, freqs, weights, cmap='RdBu_r')
-axs[1].pcolormesh(lag_sec_mod, mod.feature_names, coefs, cmap='RdBu_r')
-axs[0].set_title('Original STRF')
-axs[1].set_title('Best Reconstructed STRF')
-plt.setp([iax.get_xticklabels() for iax in axs], rotation=45)
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
+ax1.pcolormesh(delays_sec, freqs, weights, cmap='RdBu_r')
+ax2.pcolormesh(delay_sec_mod, mod.feature_names, coefs, cmap='RdBu_r')
+ax1.set_title('Original STRF')
+ax2.set_title('Best Reconstructed STRF')
+plt.setp([iax.get_xticklabels() for iax in [ax1, ax2]], rotation=45)
 plt.autoscale(tight=True)
 mne.viz.tight_layout()
 
@@ -218,7 +216,7 @@ mne.viz.tight_layout()
 # Plot the STRF of each ridge parameter
 for ii, (mod, i_alpha) in enumerate(zip(models, alphas)):
     ax = plt.subplot2grid([2, 10], [0, ii], 1, 1)
-    ax.pcolormesh(lag_sec_mod, mod.feature_names, mod.coef_, cmap='RdBu_r')
+    ax.pcolormesh(delay_sec_mod, mod.feature_names, mod.coef_, cmap='RdBu_r')
     plt.xticks([], [])
     plt.yticks([], [])
     plt.autoscale(tight=True)

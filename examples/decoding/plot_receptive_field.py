@@ -3,12 +3,11 @@
 Receptive Field Estimation and Prediction
 =========================================
 
-This example re-creates figures from a paper from the Lalor group which
-demos the mTRF toolbox in Matlab [1]_. We will show how the
-:class:`mne.decoding.ReceptiveField` class can perform a similar function
-along with :mod:`sklearn`. We'll fit a linear encoding model using the
-continuously-varying speech envelope to predict activity of a 128 channel
-EEG system.
+This example reproduces figures from Lalor et al's mTRF toolbox in
+matlab [1]_. We will show how the :class:`mne.decoding.ReceptiveField` class
+can perform a similar function along with :mod:`sklearn`. We will fit a
+linear encoding model using the continuously-varying speech envelope to
+predict activity of a 128 channel EEG system.
 
 References
 ----------
@@ -22,15 +21,16 @@ References
 # License: BSD (3-clause)
 
 
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.io import loadmat
+from scipy.stats import pearsonr
+
+import mne
 from mne.decoding import ReceptiveField
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import scale
-from scipy.io import loadmat
-
-import numpy as np
-import matplotlib.pyplot as plt
-import mne
 
 
 ###############################################################################
@@ -42,17 +42,16 @@ raw = data['EEG'].T
 speech = data['envelope'].T
 sfreq = float(data['Fs'].squeeze())
 sfreq /= n_decim
-speech = mne.filter.resample(speech, 1, n_decim, 'auto')
-raw = mne.filter.resample(raw, 1, n_decim, 'auto')
+speech = mne.filter.resample(speech, down=n_decim, npad='auto')
+raw = mne.filter.resample(raw, down=n_decim, npad='auto')
 
 
 # Read in channel positions and create our MNE objects from the raw data
-mon = mne.channels.read_montage('biosemi128')
-mon.selection = mon.selection[:128]
-layout = mne.channels.read_layout('Vectorview-all')
-info = mne.create_info(mon.ch_names[:128], sfreq, 'eeg', montage=mon)
-layout = mne.channels.make_eeg_layout(info)
+montage = mne.channels.read_montage('biosemi128')
+montage.selection = montage.selection[:128]
+info = mne.create_info(montage.ch_names[:128], sfreq, 'eeg', montage=montage)
 raw = mne.io.RawArray(raw, info)
+n_channels = len(raw.ch_names)
 
 ###############################################################################
 # Plot a sample of brain and stimulus activity
@@ -65,34 +64,41 @@ mne.viz.tight_layout()
 ###############################################################################
 # Create and fit a receptive field model
 
-# Define the delays that we'll use in the receptive field
+# Define the delays that we will use in the receptive field
 tmin, tmax = -.4, .2
 
 # Initialize the model
 spec_names = ['freq_%s' % ii for ii in range(speech.shape[0])]
-mod = Ridge()
-rf = ReceptiveField(tmin, tmax, sfreq, spec_names)
-delays_time = rf.delays / float(sfreq)
+rf = ReceptiveField(tmin, tmax, sfreq,
+                    feature_names=spec_names, model=Ridge(alpha=1.))
+n_delays = int((tmax - tmin) * sfreq) + 2  # +2 to account for 0 + end
 
-n_cv = 3
-kf = KFold(n_cv)
+n_splits = 3
+cv = KFold(n_splits)
+
+Y, _ = raw[:]  # Outputs for the model
 
 # Iterate through folds, fit the model, and predict/test on held-out data
-coefs = np.zeros([n_cv, len(raw.ch_names), len(delays_time)])
-scores = np.zeros([n_cv, len(raw.ch_names)])
-for ii, (tr, tt) in enumerate(kf.split(speech.T)):
+coefs = np.zeros([n_splits, n_channels, n_delays])
+scores = np.zeros([n_splits, n_channels])
+for ii, (train, test) in enumerate(cv.split(speech.T)):
     print('CV iteration %s' % ii)
-    for jj, i_ch in enumerate(raw[:][0]):
-        rf.fit(speech[..., tr], i_ch[tr])
-        preds = rf.predict(speech[..., tt]).squeeze()
-        scores[ii, jj] = np.corrcoef(preds, i_ch[tt][rf.mask_pred])[1, 0]
-        coefs[ii, jj] = rf.coef_
+    rf.fit(speech[..., train], Y[..., train])
+    preds = rf.predict(speech[..., test])
+
+    # mask_pred tells us which points were removed / kept in time delaying
+    for jj, i_ch in enumerate(Y):
+        scores[ii, jj] = pearsonr(Y[jj][test][rf.mask_pred_], preds[:, jj])[0]
+    # Remove features dimension because there's only one item in it
+    coefs[ii] = rf.coef_[:, 0, :]
+delays_time = rf.delays_ / float(sfreq)
+# Average scores and coefficients across CV splits
 mn_coefs = coefs.mean(0)
 mn_scores = scores.mean(0)
 
 # Plot mean prediction scores across all channels
 fig, ax = plt.subplots()
-ix_chs = range(len(raw.ch_names))
+ix_chs = range(n_channels)
 ax.plot(ix_chs, mn_scores)
 ax.axhline(0, ls='--', color='r')
 ax.set(title="Mean prediction score", xlabel="Channel", ylabel="Score ($r$)")
@@ -101,11 +107,12 @@ mne.viz.tight_layout()
 ###############################################################################
 # Investigate model coefficients
 #
-# Here we'll look at how coefficients are distributed across time lag as well
-# as across the scalp. We'll recreate figures 1 and 2C in [1]_
+# Here we will look at how linear the linear coefficients, sometimes referred
+# to as beta values, are distributed across time delays as well as across the
+# scalp. We will recreate figures 1 and 2C in [1]_
 
 # Print mean coefficients across all time delays / channels (see Fig 1 in [1])
-time_plot = -.18  # For highlighting a specific time.
+time_plot = -.180  # For highlighting a specific time.
 fig, ax = plt.subplots(figsize=(4, 8))
 ax.pcolormesh(delays_time, ix_chs, mn_coefs, cmap='RdBu_r')
 ax.axvline(time_plot, ls='--', color='k', lw=2)
@@ -114,11 +121,11 @@ ax.set(xlabel='Lag (s)', ylabel='Channel', title="Mean Model\nCoefficients",
 plt.setp(ax.get_xticklabels(), rotation=45)
 mne.viz.tight_layout()
 
-# Make a topographic map of coefficients for a given lag (see Fig 2C in [1])
+# Make a topographic map of coefficients for a given delay (see Fig 2C in [1])
 ix_plot = np.argmin(np.abs(time_plot - delays_time))
 fig, ax = plt.subplots()
-mne.viz.plot_topomap(mn_coefs[:, ix_plot], pos=layout.pos, axes=ax, show=False)
-ax.set(title="Topomap of model coefficicients\nfor lag %s" % time_plot)
+mne.viz.plot_topomap(mn_coefs[:, ix_plot], pos=info, axes=ax, show=False)
+ax.set(title="Topomap of model coefficicients\nfor delay %s" % time_plot)
 mne.viz.tight_layout()
 
 plt.show()
