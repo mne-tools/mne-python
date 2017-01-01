@@ -22,13 +22,13 @@ class Scaler(TransformerMixin, BaseEstimator):  # noqa: D208
 
     Parameters
     ----------
-    scalings : dict, string, defaults to "standard"
+    scalings : dict, string, defaults to "mean"
       Scaling method to be applied to data channel wise.
-      * if scalings is 'robust' :py:class:`sklearn.proprocessing.RobustScaler`
+      * if scalings is 'median' :py:class:`sklearn.proprocessing.RobustScaler`
         is used. robust requires sklearn version 0.17.
-      * if scalings is 'standard'
+      * if scalings is 'mean'
         :py:class:`sklearn.preprocessing.StandardScaler` is used.
-      * if scalings is 'mne_default', scales
+      * if scalings is 'default_constant', scales
 
           * mag by 1e15
           * grad by 1e13
@@ -44,15 +44,6 @@ class Scaler(TransformerMixin, BaseEstimator):  # noqa: D208
     with_centering: boolean, True by default
         If True, center the data using median before scaling.
         This is only valid(used) in robust method.
-
-    Attributes
-    ----------
-    ``ch_mean_`` : dict
-        The mean value for each channel type
-    ``ch_median_`` : dict
-        The median value for each channel type
-    ``scale_`` : dict
-        The standard deviation for each channel type
      """
 
     def __init__(self, scalings='standard', info=None, with_mean=True,
@@ -63,7 +54,7 @@ class Scaler(TransformerMixin, BaseEstimator):  # noqa: D208
         self.with_centering = with_centering
 
         if (isinstance(scalings, str) and scalings not in
-                      ('robust', 'standard', 'mne_default')):
+                      ('mean', 'median', 'default_constant')):
             raise ValueError("Invalid method for scaling")
 
         if not isinstance(scalings, (dict, str)):
@@ -77,6 +68,17 @@ class Scaler(TransformerMixin, BaseEstimator):  # noqa: D208
         self.scalings = scalings
         picks = _pick_data_channels(self.info)
         self._pick_types = _picks_by_type(pick_info(self.info, picks))
+
+    def _pick_apply(self, X, sc, n_channels):
+        """Pick by channel type and fit in each scaler object."""
+        from sklearn.base import clone
+
+        self.scalers_ = list()
+        X = X.reshape(n_channels, -1)
+        for _, pick in self._pick_types:
+            scaler = clone(sc)
+            scaler.fit(X[pick].T)
+            self.scalers_.append(scaler)
 
     def fit(self, epochs_data, y):
         """Standardize data across channels based on scaler parameter.
@@ -93,7 +95,6 @@ class Scaler(TransformerMixin, BaseEstimator):  # noqa: D208
         self : instance of Scaler
             Returns the modified instance.
         """
-        from sklearn.base import clone
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
@@ -103,42 +104,26 @@ class Scaler(TransformerMixin, BaseEstimator):  # noqa: D208
         X = X.transpose(1, 0, 2)
         self.ch_mean_ = np.zeros(n_channels)
         self.scale_ = np.zeros(n_channels)
-        self.ch_median_ = np.zeros(n_channels)
 
-        if self.scalings == 'standard':
+        if self.scalings == "mean":
             from sklearn.preprocessing import StandardScaler
+
             std_scaler = StandardScaler(self.with_mean, self.with_std)
-            self.scalers_ = list()
-            X = X.reshape(n_channels, -1)
-            for _, pick in self._pick_types:
-                scaler = clone(std_scaler)
-                scaler.fit(X[pick].T)
-                self.scalers_.append(scaler)
+            self._pick_apply(X, std_scaler, n_channels)
 
-                # StandardScaler scale_ attribute introduced in version 0.18
-                if hasattr(scaler, "scale_"):
-                    self.ch_mean_[pick], self.scale_[pick] = (
-                        scaler.mean_, scaler.scale_)
-                else:
-                    self.ch_mean_[pick], self.scale_[pick] = (
-                        scaler.mean_, scaler.std_)
+        elif self.scalings == 'median':
+            from sklearn.preprocessing import RobustScaler
 
-        elif self.scalings == 'mne_default':
-            scaling_dict = dict(mag=1e15, grad=1e13, eeg=1e6)
+            rob_scaler = RobustScaler(self.with_centering, self.with_std)
+            self._pick_apply(X, rob_scaler, n_channels)
+
+        elif self.scalings == 'default_constant':
+            from ..defaults import _handle_default
+
+            scaling_dict = _handle_default("scalings")
             for typ, pick in self._pick_types:
                 if typ in scaling_dict:
                     self.scale_[pick] = scaling_dict[typ]
-
-        elif self.scalings == 'robust':
-            from sklearn.preprocessing import RobustScaler
-            rob_scaler = RobustScaler(self.with_centering, self.with_std)
-            X = X.reshape(n_channels, -1)
-            self.scalers_ = list()
-            for _, pick in self._pick_types:
-                scaler = clone(rob_scaler)
-                scaler.fit(X[pick].T)
-                self.ch_median_[pick], self.scale_[pick] = (
-                    scaler.center_, scaler.scale_)
 
         elif isinstance(self.scalings, dict):
             for typ, pick in self._pick_types:
@@ -179,12 +164,12 @@ class Scaler(TransformerMixin, BaseEstimator):  # noqa: D208
         n_epochs, n_channels, n_times = X.shape
         X = X.transpose(1, 0, 2)
 
-        if self.scalings == 'standard' or self.scalings == 'robust':
+        if self.scalings == 'mean' or self.scalings == 'median':
             X = X.reshape(n_channels, -1)
             for scaler, (_, picks) in zip(self.scalers_, self._pick_types):
                 X[picks] = scaler.transform(X[picks].T).T
 
-        elif self.scalings == 'mne_default':
+        elif self.scalings == 'default_constant':
             _apply_scaling_array(X, self._pick_types, dict())
 
         elif isinstance(self.scalings, dict):
@@ -224,12 +209,13 @@ class Scaler(TransformerMixin, BaseEstimator):  # noqa: D208
         n_epochs, n_channels, n_times = X.shape
         X = X.transpose(1, 0, 2)
 
-        if self.scalings in ['standard', 'robust']:
+        if self.scalings in ['median', 'mean']:
             X = X.reshape(n_channels, -1)
             for scaler, (_, picks) in zip(self.scalers_, self._pick_types):
                 X[picks] = scaler.inverse_transform(X[picks].T).T
 
-        elif self.scalings == 'mne_default' or isinstance(self.scalings, dict):
+        elif (self.scalings == 'default_constant' or
+              isinstance(self.scalings, dict)):
             _undo_scaling_array(X, self._pick_types, dict())
 
         return X.reshape(n_channels, n_epochs, n_times).transpose(1, 0, 2)

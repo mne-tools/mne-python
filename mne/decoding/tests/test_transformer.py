@@ -43,11 +43,11 @@ def test_scaler():
     epochs_data = epochs.get_data()
     y = epochs.events[:, -1]
 
-    methods = ('mne_default', 'robust', dict(mag=1e14, grad=1e12, eeg=1e5),
-               'standard')
+    methods = ('default_constant', 'mean', dict(mag=1e14, grad=1e12, eeg=1e5),
+               'median')
     for method in methods:
 
-        if method == 'robust':
+        if method == 'median':
             if not check_version('sklearn', '0.17'):
                 continue
 
