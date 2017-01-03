@@ -151,7 +151,7 @@ def _fit_lm(data, design_matrix, names):
 
 def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                           covariates=None, reject=None, flat=None, tstep=1.,
-                          decim=1, picks=None, solver='ridge'):
+                          decim=1, picks=None, solver='cholesky'):
     """Estimate regression-based evoked potentials/fields by linear modeling.
 
     This models the full M/EEG time course, including correction for
