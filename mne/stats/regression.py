@@ -253,6 +253,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         if solver == 'ridge':
             try:
                 from sklearn.linear_model.ridge import ridge_regression
+
                 def solver(X, y):
                     return ridge_regression(X, y, solver='cholesky', alpha=1.)
             except ImportError:
