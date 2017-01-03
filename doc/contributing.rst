@@ -175,6 +175,11 @@ MNE-Python specific coding guidelines
 * Avoid unnecessary cosmetic changes if they are not the goal of the PR, this will help keep the diff clean and facilitate reviewing.
 * Use underscores to separate words in non class names: n_samples rather than nsamples.
 * Use CamelCase for class names.
+* Import packages in the order:
+  1. builtin modules
+  2. standard scientific modules (numpy as np, scipy modules, etc)
+  3. other modules
+  4. mne
 * Use relative imports for references inside mne-python.
 * Use nested imports (i.e., within a function or method instead of at the top of a file) for ``matplotlib``, ``sklearn``, and ``pandas``.
 * Use ``RdBu_r`` colormap for signed data and ``Reds`` for unsigned data in visualization functions and examples.
