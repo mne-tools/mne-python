@@ -49,11 +49,12 @@ def test_time_delay():
         assert_raises(ValueError, delay_time_series, X,
                       np.complex(tmin), tmax, 1)
         # Make sure swapaxes works
-        delayed = delay_time_series(X, tmin, tmax, isfreq, newaxis=2)
+        delayed = delay_time_series(X, tmin, tmax, isfreq,
+                                    newaxis=2, axis=-1)
         assert_equal(delayed.shape[2], 3)
 
         for idata in [X, X_sp]:
-            X_delayed = delay_time_series(X, tmin, tmax, isfreq)
+            X_delayed = delay_time_series(X, tmin, tmax, isfreq, axis=-1)
             assert_array_equal(X_delayed[0], X)
             assert_array_equal(X_delayed[1][0, :-1], X[0, 1:])
             assert_equal(len(X_delayed), (tmax - tmin) * isfreq + 1)
@@ -78,30 +79,32 @@ def test_receptive_field():
     w = rng.randn((tmax - tmin + 1) * n_feats)
 
     # Delay inputs and cut off first 4 values since they'll be cut in the fit
-    X_del = np.vstack(delay_time_series(X, tmin, tmax, 1.))
+    X_del = np.vstack(delay_time_series(X, tmin, tmax, 1., axis=-1))
     y = np.dot(w, X_del)
+    X = np.rollaxis(X, -1, 0)  # time to first dimension
+
     # Fit the model and test values
-    rf = ReceptiveField(tmin, tmax, 1,
-                        ['feature_%i' % ii for ii in [0, 1, 2]], model=mod)
+    feature_names = ['feature_%i' % ii for ii in [0, 1, 2]]
+    rf = ReceptiveField(tmin, tmax, 1, feature_names, model=mod)
     rf.fit(X, y)
     y_pred = rf.predict(X)
-    assert_array_almost_equal(y[rf.mask_pred_], y_pred.squeeze(), 2)
+    assert_array_almost_equal(y[rf.mask_predict_], y_pred.squeeze(), 2)
     assert_array_almost_equal(np.hstack(rf.coef_), w, 2)
     # Make sure different input shapes work
-    rf.fit(X[np.newaxis, ...], y[np.newaxis, ...])
-    rf.fit(X, y[np.newaxis, :])
-    assert_raises(ValueError, rf.fit, X[np.newaxis, ...], y)
-    assert_raises(ValueError, rf.fit, X[0], y)
-    assert_raises(ValueError, rf.fit, X[np.newaxis, ...],
-                  np.tile(y[np.newaxis, ...], [2, 1, 1]))
+    rf.fit(X[:, np.newaxis:, ], y[:, np.newaxis])
+    rf.fit(X, y[:, np.newaxis])
+    assert_raises(ValueError, rf.fit, X[..., np.newaxis], y)
+    assert_raises(ValueError, rf.fit, X[:, 0], y)
+    assert_raises(ValueError, rf.fit, X[..., np.newaxis],
+                  np.tile(y[..., np.newaxis], [2, 1, 1]))
     # stim features must match length of input data
-    assert_raises(ValueError, rf.fit, X[:1], y)
+    assert_raises(ValueError, rf.fit, X[:, :1], y)
     # auto-naming features
     rf = ReceptiveField(tmin, tmax, 1, model=mod)
     rf.fit(X, y)
     assert_equal(rf.feature_names, ['feature_%s' % ii for ii in [0, 1, 2]])
     # X/y same n timepoints
-    assert_raises(ValueError, rf.fit, X, y[..., :-2])
+    assert_raises(ValueError, rf.fit, X, y[:-2])
     # String becomes ridge
     rf = ReceptiveField(tmin, tmax, 1, ['one', 'two', 'three'], model='ridge')
     str(rf)  # repr works before fit
@@ -109,7 +112,7 @@ def test_receptive_field():
     assert_true(isinstance(rf.estimator_, Ridge))
     str(rf)  # repr works after fit
     rf = ReceptiveField(tmin, tmax, 1, ['one'], model='ridge')
-    rf.fit(X[[0]], y)
+    rf.fit(X[:, [0]], y)
     str(rf)  # repr with one feature
     # Correct strings
     rf = ReceptiveField(tmin, tmax, 1, model='foo')

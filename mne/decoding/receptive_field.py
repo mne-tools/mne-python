@@ -32,11 +32,14 @@ class ReceptiveField(BaseEstimator):
         The coefficients from the model fit, reshaped for easy visualization.
         If you want the raw (1d) coefficients, access them from the estimator
         stored in `self.estimator_`.
-    mask_pred_ : array of bool, shape (n_times,)
+    mask_fit_ : array of bool, shape (n_times,)
         A mask with True values corresponding to datapoints that were used
-        in generating model predictions. Creating time delays necessitates that
+        in fitting the model. Creating time delays necessitates that
         datapoints at edges of the input do not have matching time-lagged
         datapoints for all lags, and are thus removed in model fitting.
+    mask_pred_ : array of bool, shape (n_times_pred,)
+        A mask with True values corresponding to datapoints that were used
+        in generating model predictions. Created after calling `predict`.
 
 
     References
@@ -87,34 +90,15 @@ class ReceptiveField(BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape ([n_epochs], n_features, n_times)
+        X : array, shape (n_times, [n_epochs], n_features)
             The input features for the model.
-        y : array, shape ([n_epochs], n_times)
-            The output feature for the model.
+        y : array, shape (n_times, [n_epochs], n_outputs)
+            The output features for the model.
         """
         from sklearn.linear_model import Ridge
         model_dict = dict(ridge=Ridge())
-        if X.ndim == 1:
-            raise ValueError('X must be shape ([n_epochs],'
-                             ' n_features, n_times)')
-        elif X.ndim == 2:
-            # Ensure we have a 3D input
-            X = X[np.newaxis, ...]
-            if y.ndim == 1:
-                y = y[np.newaxis, np.newaxis, :]  # Add epochs and outputs dim
-            else:
-                y = y[np.newaxis, :]  # Only add epochs dim
-        elif X.ndim == 3 and y.ndim == 2:
-            y = y[:, np.newaxis, :]  # Add an outputs dim
-        else:
-            raise ValueError('X must be of shape '
-                             '([n_epochs], n_features, n_times)')
-        if X.shape[-1] != y.shape[-1]:
-            raise ValueError('X any y do not have the same n_times\n'
-                             '%s != %s' % (X.shape[-1], y.shape[-1]))
-        if X.shape[0] != y.shape[0]:
-            raise ValueError('X any y do not have the same n_epochs\n'
-                             '%s != %s' % (X.shape[0], y.shape[0]))
+        X, y = self._check_dimensions(X, y)
+
         # Initialize delays and model
         self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq)
 
@@ -129,18 +113,18 @@ class ReceptiveField(BaseEstimator):
         _check_estimator(self.estimator_)
 
         # Create input features
-        n_epochs, n_feats, n_times = X.shape
-        n_outputs = y.shape[1]
+        n_times, n_epochs, n_feats = X.shape
+        n_outputs = y.shape[-1]
         X_del, msk = self._delay_for_fit(X)
+        n_delays = len(self.delays_)
 
-        # Reshape so we have times x features
-        X_del = X_del[..., ~msk]
-        y = y[..., ~msk]
+        # Remove timepoints that don't have lag data after delaying
+        X_del = X_del[msk]
+        y = y[msk]
 
-        # Convert to 2d by making epochs 1st axis and hstacking
-        X_del = X_del.swapaxes(0, 1).reshape(n_epochs, -1, X_del.shape[-1])
-        X_del = np.hstack(X_del)
-        y = np.hstack(y)
+        # Convert to 2d by making epochs 1st axis and vstacking
+        X_del = X_del.reshape([-1, n_delays * n_feats], order='F')
+        y = y.reshape([-1, n_outputs], order='F')
 
         # Update feature names if we have none
         if self.feature_names is None:
@@ -149,20 +133,19 @@ class ReceptiveField(BaseEstimator):
             raise ValueError('n_features in X does not match feature names '
                              '(%s != %s)' % (n_feats, len(self.feature_names)))
 
-        self.estimator_.fit(X_del.T, y.T)
-        self.mask_remove = msk
+        self.estimator_.fit(X_del, y)
+        self.mask_fit_ = msk
 
         coefs = _get_final_est(self.estimator_).coef_
-        self.coef_ = coefs.reshape([n_outputs, n_feats, len(self.delays_)])
-        if n_outputs == 1:
-            self.coef_ = self.coef_[0]
+        coefs = coefs.reshape([n_outputs, n_feats, len(self.delays_)])
+        self.coef_ = coefs.squeeze()
 
     def predict(self, X, y=None):
         """Make predictions using a receptive field.
 
         Parameters
         ----------
-        X : array, shape ([n_epochs], n_channels, n_times)
+        X : array, shape (n_times, [n_epochs], n_channels)
             The input features for the model.
         y : None
             Used for sklearn compatibility.
@@ -172,31 +155,62 @@ class ReceptiveField(BaseEstimator):
         y_pred : array, shape (n_times * n_epochs)
             The output predictions with time concatenated.
         """
+        if not hasattr(self, 'delays_'):
+            raise ValueError('Estimator has not been fit yet.')
         X_del, msk = self._delay_for_fit(X)
-        X_del = X_del[..., ~msk]
-        X_del = X_del.reshape([-1, X_del.shape[-1]]).T
+        X_del = X_del[msk]
+        X_del = X_del.reshape([-1, len(self.delays_) * X.shape[-1]], order='F')
         y_pred = self.estimator_.predict(X_del)
-        self.mask_pred_ = ~msk
+        self.mask_predict_ = msk
         return y_pred
 
     def _delay_for_fit(self, X):
         # First delay
-        X_del = delay_time_series(X, self.tmin, self.tmax, self.sfreq)
+        X_del = delay_time_series(X, self.tmin, self.tmax, self.sfreq,
+                                  newaxis=X.ndim)
 
         # Mask for removing edges later
-        msk_helper = np.ones(X.shape[-1])
-        msk_helper = delay_time_series(msk_helper, self.tmin,
-                                       self.tmax, self.sfreq)
-        msk = np.any(msk_helper == 0, axis=0)
+        msk_helper = np.ones(X.shape[0])
+        msk_helper = delay_time_series(msk_helper, self.tmin, self.tmax,
+                                       self.sfreq)
+        msk = ~np.any(msk_helper == 0, axis=0)
         return X_del, msk
 
+    def _check_dimensions(self, X, y):
+        if X.ndim == 1:
+            raise ValueError('X must be shape (n_times, [n_epochs],'
+                             ' n_features)')
+        elif X.ndim == 2:
+            # Ensure we have a 3D input by adding singleton epochs dimension
+            X = X[:, np.newaxis, :]
+            if y.ndim == 1:
+                y = y[:, np.newaxis, np.newaxis]  # Add epochs and outputs dim
+            elif y.ndim == 2:
+                y = y[:, np.newaxis]  # Only add epochs dim
+        elif X.ndim == 3:
+            if y.ndim != 2:
+                raise ValueError('If X has 3 dimensions, '
+                                 'y must be at least 2 dimensions')
+            if y.ndim == 2:
+                y = y[:, :, np.newaxis]  # Add an outputs dim
+        else:
+            raise ValueError('X must be of shape '
+                             '(n_times, [n_epochs], n_features)')
+        if X.shape[0] != y.shape[0]:
+            raise ValueError('X any y do not have the same n_times\n'
+                             '%s != %s' % (X.shape[0], y.shape[0]))
+        if X.shape[1] != y.shape[1]:
+            raise ValueError('X any y do not have the same n_epochs\n'
+                             '%s != %s' % (X.shape[1], y.shape[1]))
+        return X, y
 
-def delay_time_series(X, tmin, tmax, sfreq, newaxis=0):
+
+def delay_time_series(X, tmin, tmax, sfreq, newaxis=0, axis=0):
     """Return a time-lagged input time series.
 
     Parameters
     ----------
-    X : array, shape ([n_epochs], n_features, n_times)
+    X : array, shape (n_times, [n_epochs], n_features)
         The time series to delay.
     tmin : int | float
         The starting lag. Negative values correspond to times in the past.
@@ -208,6 +222,8 @@ def delay_time_series(X, tmin, tmax, sfreq, newaxis=0):
     newaxis : int
         The axis in the output array that corresponds to time delays.
         Defaults to 0, for the first axis.
+    axis : int
+        The axis corresponding to the time dimension.
 
     Returns
     -------
@@ -217,22 +233,25 @@ def delay_time_series(X, tmin, tmax, sfreq, newaxis=0):
     """
     _check_delayer_params(tmin, tmax, sfreq)
     delays = _times_to_delays(tmin, tmax, sfreq)
-
     # XXX : add Vectorize=True parameter to switch on/off 2D output
     # Iterate through indices and append
     delayed = np.zeros((len(delays),) + X.shape)
     for ii, ix_delay in enumerate(delays):
+        take = [slice(None)] * X.ndim
+        put = [slice(None)] * X.ndim
         # Create zeros to populate w/ delays
-        if ix_delay <= 0:
-            i_slice = slice(-ix_delay, None)
+        if ix_delay < 0:
+            take[axis] = slice(None, ix_delay)
+            put[axis] = slice(-ix_delay, None)
+        elif ix_delay > 0:
+            take[axis] = slice(ix_delay, None)
+            put[axis] = slice(None, -ix_delay)
         else:
-            i_slice = slice(None, -ix_delay)
-        delayed[ii, ..., i_slice] = np.roll(
-            X, -ix_delay, axis=-1)[..., i_slice]
+            pass
+        delayed[ii][put] = X[take]
 
     # Now swapaxes so that the new axis is in the right place
-    for ii in range(newaxis):
-        delayed = delayed.swapaxes(ii, ii + 1)
+    delayed = np.rollaxis(delayed, 0, newaxis + 1)
     return delayed
 
 

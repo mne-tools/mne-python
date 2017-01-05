@@ -87,9 +87,11 @@ cov = [[.0005, 0], [0, 200000]]
 gauss_high = multivariate_normal.pdf(grid, means_high, cov)
 gauss_low = -1 * multivariate_normal.pdf(grid, means_low, cov)
 weights = gauss_high + gauss_low  # Combine to create the "true" STRF
+kwargs = dict(vmax=np.abs(weights).max(), vmin=-np.abs(weights).max(),
+              cmap='RdBu_r')
 
 fig, ax = plt.subplots()
-ax.pcolormesh(delays_sec, freqs, weights, cmap='RdBu_r')
+ax.pcolormesh(delays_sec, freqs, weights, **kwargs)
 ax.set(title='Simulated STRF', xlabel='Time Lags (s)', ylabel='Frequency (Hz)')
 plt.setp(ax.get_xticklabels(), rotation=45)
 plt.autoscale(tight=True)
@@ -111,7 +113,7 @@ n_times = X.shape[-1]
 
 # Delay the spectrogram according to delays so it can be combined w/ the STRF
 # Lags will now be in axis 1, then we reshape to vectorize
-X_del = delay_time_series(X, tmin, tmax, sfreq, newaxis=1)
+X_del = delay_time_series(X, tmin, tmax, sfreq, newaxis=1, axis=-1)
 X_del = X_del.reshape([n_epochs, -1, n_times])
 n_features = X_del.shape[1]
 weights_sim = weights.ravel()
@@ -147,9 +149,10 @@ mne.viz.tight_layout()
 # inputs and outputs.
 
 # Create training and testing data
-train, test = range(20), 21
+train, test = np.arange(20), 21
 X_train, X_test, y_train, y_test = X[train], X[test], y[train], y[test]
-
+X_train, X_test, y_train, y_test = [np.rollaxis(ii, -1, 0) for ii in
+                                    (X_train, X_test, y_train, y_test)]
 # Model the simulated data as a function of the spectrogram input
 alphas = np.logspace(-4, 0, 10)
 scores = np.zeros_like(alphas)
@@ -160,7 +163,7 @@ for ii, alpha in enumerate(alphas):
 
     # Now make predictions about the model output, given input stimuli.
     y_pred = mod.predict(X_test).squeeze()
-    scores[ii] = r2_score(y_pred, y_test[~mod.mask_remove])
+    scores[ii] = r2_score(y_pred, y_test[mod.mask_predict_])
     models.append(mod)
 delay_sec_mod = mod.delays_ / sfreq
 
@@ -172,8 +175,8 @@ best_pred = best_mod.predict(X_test).squeeze()
 
 # Plot the original STRF, and the one that we recovered with modeling.
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
-ax1.pcolormesh(delays_sec, freqs, weights, cmap='RdBu_r')
-ax2.pcolormesh(delay_sec_mod, mod.feature_names, coefs, cmap='RdBu_r')
+ax1.pcolormesh(delays_sec, freqs, weights, **kwargs)
+ax2.pcolormesh(delay_sec_mod, mod.feature_names, coefs, **kwargs)
 ax1.set_title('Original STRF')
 ax2.set_title('Best Reconstructed STRF')
 plt.setp([iax.get_xticklabels() for iax in [ax1, ax2]], rotation=45)
@@ -183,7 +186,7 @@ mne.viz.tight_layout()
 # Plot the actual response and the predicted response on a held out stimulus
 time_pred = np.arange(y_pred.shape[0]) / sfreq
 fig, ax = plt.subplots()
-ax.plot(time_pred, y_test[~mod.mask_remove], color='k', alpha=.2, lw=4)
+ax.plot(time_pred, y_test[mod.mask_predict_], color='k', alpha=.2, lw=4)
 ax.plot(time_pred, best_pred, color='r', lw=1)
 ax.set(title='Original and predicted activity', xlabel='Time (s)')
 ax.legend(['Original', 'Predicted'])
@@ -204,11 +207,11 @@ mne.viz.tight_layout()
 # Plot model score for each ridge parameter
 fig = plt.figure(figsize=(20, 4))
 ax = plt.subplot2grid([2, 10], [1, 0], 1, 10)
-ax.scatter(range(len(alphas)), scores, s=40, color='r')
+ax.plot(np.arange(len(alphas)), scores, marker='o', color='r')
 ax.annotate('Best parameter', (ix_best_alpha, scores[ix_best_alpha]),
             (ix_best_alpha - 1, scores[ix_best_alpha] - .02),
             arrowprops={'arrowstyle': '->'})
-plt.xticks(range(len(alphas)), ["%.0e" % ii for ii in alphas])
+plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
 ax.set(xlabel="Ridge regularization value", ylabel="Score ($R^2$)",
        ylim=[.9, .96], xlim=[-.4, len(alphas) - .6])
 mne.viz.tight_layout()
@@ -216,7 +219,7 @@ mne.viz.tight_layout()
 # Plot the STRF of each ridge parameter
 for ii, (mod, i_alpha) in enumerate(zip(models, alphas)):
     ax = plt.subplot2grid([2, 10], [0, ii], 1, 1)
-    ax.pcolormesh(delay_sec_mod, mod.feature_names, mod.coef_, cmap='RdBu_r')
+    ax.pcolormesh(delay_sec_mod, mod.feature_names, mod.coef_, **kwargs)
     plt.xticks([], [])
     plt.yticks([], [])
     plt.autoscale(tight=True)
