@@ -85,10 +85,14 @@ def test_receptive_field():
 
     # Fit the model and test values
     feature_names = ['feature_%i' % ii for ii in [0, 1, 2]]
-    rf = ReceptiveField(tmin, tmax, 1, feature_names, model=mod)
+    rf = ReceptiveField(tmin, tmax, 1, feature_names, estimator=mod)
+    assert_array_equal(rf._delays, np.arange(tmin, tmax + 1))
     rf.fit(X, y)
     y_pred = rf.predict(X)
-    assert_array_almost_equal(y[rf.mask_predict_], y_pred.squeeze(), 2)
+    assert_array_almost_equal(y[rf.mask_predict_],
+                              y_pred.squeeze()[rf.mask_predict_], 2)
+    scores = rf.score(X, y)
+    assert_true(scores > .99)
     assert_array_almost_equal(np.hstack(rf.coef_), w, 2)
     # Make sure different input shapes work
     rf.fit(X[:, np.newaxis:, ], y[:, np.newaxis])
@@ -100,22 +104,23 @@ def test_receptive_field():
     # stim features must match length of input data
     assert_raises(ValueError, rf.fit, X[:, :1], y)
     # auto-naming features
-    rf = ReceptiveField(tmin, tmax, 1, model=mod)
+    rf = ReceptiveField(tmin, tmax, 1, estimator=mod)
     rf.fit(X, y)
     assert_equal(rf.feature_names, ['feature_%s' % ii for ii in [0, 1, 2]])
     # X/y same n timepoints
     assert_raises(ValueError, rf.fit, X, y[:-2])
     # String becomes ridge
-    rf = ReceptiveField(tmin, tmax, 1, ['one', 'two', 'three'], model='ridge')
+    rf = ReceptiveField(tmin, tmax, 1, ['one', 'two', 'three'],
+                        estimator='ridge')
     str(rf)  # repr works before fit
     rf.fit(X, y)
     assert_true(isinstance(rf.estimator_, Ridge))
     str(rf)  # repr works after fit
-    rf = ReceptiveField(tmin, tmax, 1, ['one'], model='ridge')
+    rf = ReceptiveField(tmin, tmax, 1, ['one'], estimator='ridge')
     rf.fit(X[:, [0]], y)
     str(rf)  # repr with one feature
     # Correct strings
-    rf = ReceptiveField(tmin, tmax, 1, model='foo')
+    rf = ReceptiveField(tmin, tmax, 1, estimator='foo')
     assert_raises(ValueError, rf.fit, X, y)
     # tmin must be <= tmax
     rf = ReceptiveField(5, 4, 1)

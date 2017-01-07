@@ -37,6 +37,11 @@ from sklearn.model_selection import KFold
 from sklearn.preprocessing import scale
 
 
+# Create a correlation sklearn-style scorer
+def corr_score(y_true, y, multioutput=None):
+    return [pearsonr(y_true[:, ii], y[:, ii])[0] for ii in range(y.shape[-1])]
+
+
 ###############################################################################
 # Load the data from the publication
 # ----------------------------------
@@ -85,17 +90,17 @@ tmin, tmax = -.4, .2
 
 # Initialize the model
 spec_names = ['freq_%s' % ii for ii in range(speech.shape[0])]
-rf = ReceptiveField(tmin, tmax, sfreq,
-                    feature_names=spec_names, model=Ridge(alpha=1.))
+rf = ReceptiveField(tmin, tmax, sfreq, feature_names=spec_names,
+                    estimator=Ridge(alpha=1.), scorer=corr_score)
 n_delays = int((tmax - tmin) * sfreq) + 2  # +2 to account for 0 + end
 
 n_splits = 3
 cv = KFold(n_splits)
 
-# Prepare model data
+# Prepare model data (make time the first dimension)
+speech = speech.T
 Y, _ = raw[:]  # Outputs for the model
-Y = np.rollaxis(Y, -1, 0)  # Make time the first dimension
-speech = np.rollaxis(speech, -1, 0)
+Y = Y.T
 
 # Iterate through folds, fit the model, and predict/test on held-out data
 coefs = np.zeros([n_splits, n_channels, n_delays])
@@ -103,23 +108,17 @@ scores = np.zeros([n_splits, n_channels])
 for ii, (train, test) in enumerate(cv.split(speech)):
     print('CV iteration %s' % ii)
     rf.fit(speech[train], Y[train])
-    preds = rf.predict(speech[test])
-
-    # mask_pred tells us which points were removed / kept in time delaying
-    for jj, i_ch in enumerate(Y.T):
-        scores[ii, jj] = pearsonr(Y[:, jj][test][rf.mask_predict_],
-                                  preds[:, jj])[0]
-    # Remove features dimension because there's only one item in it
+    scores[ii] = rf.score(speech[test], Y[test])
     coefs[ii] = rf.coef_
-delays_time = rf.delays_ / float(sfreq)
+
 # Average scores and coefficients across CV splits
-mn_coefs = coefs.mean(0)
-mn_scores = scores.mean(0)
+mean_coefs = coefs.mean(0)
+mean_scores = scores.mean(0)
 
 # Plot mean prediction scores across all channels
 fig, ax = plt.subplots()
 ix_chs = np.arange(n_channels)
-ax.plot(ix_chs, mn_scores)
+ax.plot(ix_chs, mean_scores)
 ax.axhline(0, ls='--', color='r')
 ax.set(title="Mean prediction score", xlabel="Channel", ylabel="Score ($r$)")
 mne.viz.tight_layout()
@@ -135,20 +134,21 @@ mne.viz.tight_layout()
 # Print mean coefficients across all time delays / channels (see Fig 1 in [1])
 time_plot = -.180  # For highlighting a specific time.
 fig, ax = plt.subplots(figsize=(4, 8))
-vmax = np.abs(mn_coefs.max())
+vmax = np.abs(mean_coefs.max())
 vmin = -vmax
-ax.pcolormesh(delays_time, ix_chs, mn_coefs, cmap='RdBu_r',
+ax.pcolormesh(rf.times, ix_chs, mean_coefs, cmap='RdBu_r',
               vmin=vmin, vmax=vmax)
 ax.axvline(time_plot, ls='--', color='k', lw=2)
-ax.set(xlabel='Lag (s)', ylabel='Channel', title="Mean Model\nCoefficients",
-       xlim=[delays_time.min(), delays_time.max()], ylim=[len(ix_chs) - 1, 0])
+ax.set(xlabel='Delay (s)', ylabel='Channel', title="Mean Model\nCoefficients",
+       xlim=[rf.times.min(), rf.times.max()], ylim=[len(ix_chs) - 1, 0],
+       xticks=np.arange(tmin, tmax + .2, .2))
 plt.setp(ax.get_xticklabels(), rotation=45)
 mne.viz.tight_layout()
 
 # Make a topographic map of coefficients for a given delay (see Fig 2C in [1])
-ix_plot = np.argmin(np.abs(time_plot - delays_time))
+ix_plot = np.argmin(np.abs(time_plot - rf.times))
 fig, ax = plt.subplots()
-mne.viz.plot_topomap(mn_coefs[:, ix_plot], pos=info, axes=ax, show=False,
+mne.viz.plot_topomap(mean_coefs[:, ix_plot], pos=info, axes=ax, show=False,
                      vmin=vmin, vmax=vmax)
 ax.set(title="Topomap of model coefficicients\nfor delay %s" % time_plot)
 mne.viz.tight_layout()

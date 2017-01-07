@@ -28,6 +28,10 @@ modeling with continuous inputs is described in:
        A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
        Frontiers in Human Neuroscience 10, 604.
        doi:10.3389/fnhum.2016.00604
+
+.. [4] Holdgraf, C. R. et al. Rapid tuning shifts in human auditory cortex
+       enhance speech intelligibility. Nature Communications, 7, 13654 (2016).
+       doi:10.1038/ncomms13654
 """
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #
@@ -43,7 +47,6 @@ from scipy.stats import multivariate_normal
 from scipy.io import loadmat
 from sklearn.preprocessing import scale
 from sklearn.linear_model import Ridge
-from sklearn.metrics import r2_score
 rng = np.random.RandomState(1337)  # To make this example reproducible
 
 ###############################################################################
@@ -158,14 +161,12 @@ alphas = np.logspace(-4, 0, 10)
 scores = np.zeros_like(alphas)
 models = []
 for ii, alpha in enumerate(alphas):
-    mod = ReceptiveField(tmin, tmax, sfreq, freqs, model=Ridge(alpha))
-    mod.fit(X_train, y_train)
+    rf = ReceptiveField(tmin, tmax, sfreq, freqs, estimator=Ridge(alpha))
+    rf.fit(X_train, y_train)
 
     # Now make predictions about the model output, given input stimuli.
-    y_pred = mod.predict(X_test).squeeze()
-    scores[ii] = r2_score(y_pred, y_test[mod.mask_predict_])
-    models.append(mod)
-delay_sec_mod = mod.delays_ / sfreq
+    scores[ii] = rf.score(X_test, y_test)
+    models.append(rf)
 
 # Choose the model that performed best on the held out data
 ix_best_alpha = np.argmax(scores)
@@ -176,7 +177,7 @@ best_pred = best_mod.predict(X_test).squeeze()
 # Plot the original STRF, and the one that we recovered with modeling.
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
 ax1.pcolormesh(delays_sec, freqs, weights, **kwargs)
-ax2.pcolormesh(delay_sec_mod, mod.feature_names, coefs, **kwargs)
+ax2.pcolormesh(rf.times, rf.feature_names, coefs, **kwargs)
 ax1.set_title('Original STRF')
 ax2.set_title('Best Reconstructed STRF')
 plt.setp([iax.get_xticklabels() for iax in [ax1, ax2]], rotation=45)
@@ -184,9 +185,9 @@ plt.autoscale(tight=True)
 mne.viz.tight_layout()
 
 # Plot the actual response and the predicted response on a held out stimulus
-time_pred = np.arange(y_pred.shape[0]) / sfreq
+time_pred = np.arange(best_pred.shape[0]) / sfreq
 fig, ax = plt.subplots()
-ax.plot(time_pred, y_test[mod.mask_predict_], color='k', alpha=.2, lw=4)
+ax.plot(time_pred, y_test, color='k', alpha=.2, lw=4)
 ax.plot(time_pred, best_pred, color='r', lw=1)
 ax.set(title='Original and predicted activity', xlabel='Time (s)')
 ax.legend(['Original', 'Predicted'])
@@ -217,9 +218,9 @@ ax.set(xlabel="Ridge regularization value", ylabel="Score ($R^2$)",
 mne.viz.tight_layout()
 
 # Plot the STRF of each ridge parameter
-for ii, (mod, i_alpha) in enumerate(zip(models, alphas)):
+for ii, (rf, i_alpha) in enumerate(zip(models, alphas)):
     ax = plt.subplot2grid([2, 10], [0, ii], 1, 1)
-    ax.pcolormesh(delay_sec_mod, mod.feature_names, mod.coef_, **kwargs)
+    ax.pcolormesh(rf.times, rf.feature_names, rf.coef_, **kwargs)
     plt.xticks([], [])
     plt.yticks([], [])
     plt.autoscale(tight=True)
