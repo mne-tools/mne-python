@@ -133,7 +133,7 @@ def test_montage():
     montage = read_montage('standard_1020', ch_names=ch_names)
     assert_array_equal(ch_names, montage.ch_names)
 
-    # test transform 
+    # test transform
     input_strs = ["""
     eeg Fp1 -95.0 -31.0 -3.0
     eeg AF7 -81 -59 -3
@@ -181,7 +181,8 @@ def test_montage():
         assert_array_equal(montage.pos[0], pos * 1e-3)
 
         # test with last
-        info = create_info(montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
+        info = create_info(montage.ch_names, 1e3,
+                           ['eeg'] * len(montage.ch_names))
         _set_montage(info, montage)
         pos2 = np.array([c['loc'][:3] for c in info['chs']])
         assert_array_equal(pos2, montage.pos)
@@ -197,7 +198,7 @@ def test_montage():
         assert_array_equal(pos3, montage.pos)
         assert_equal(montage.ch_names, evoked.info['ch_names'])
 
-        # Warning should be raised when some EEG are not specified in the montage
+        # Warning should be raised when some EEG are not specified in montage
         with warnings.catch_warnings(record=True) as w:
             info = create_info(montage.ch_names + ['foo', 'bar'], 1e3,
                                ['eeg'] * (len(montage.ch_names) + 2))
