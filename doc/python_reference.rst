@@ -74,9 +74,9 @@ Logging and Configuration
    :toctree: generated/
    :template: function.rst
 
-   docs
    get_config_path
    get_config
+   open_docs
    set_log_level
    set_log_file
    set_config

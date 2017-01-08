@@ -8,7 +8,7 @@ import os
 import warnings
 import webbrowser
 
-from mne import read_evokeds, docs
+from mne import read_evokeds, open_docs
 from mne.datasets import testing
 from mne.externals.six.moves import StringIO
 from mne.io import show_fiff, read_raw_fif
@@ -764,17 +764,17 @@ def test_progressbar():
     assert_raises(ValueError, iter_func, ProgressBar(20))
 
 
-def test_docs():
+def test_open_docs():
     """Test doc launching."""
     old_tab = webbrowser.open_new_tab
     try:
         # monkey patch temporarily to prevent tabs from actually spawning
         webbrowser.open_new_tab = lambda x: assert_true('martinos' in x)
-        docs()
-        docs('tutorials', 'dev')
-        docs('examples', 'stable')
-        assert_raises(ValueError, docs, 'foo')
-        assert_raises(ValueError, docs, 'api', 'foo')
+        open_docs()
+        open_docs('tutorials', 'dev')
+        open_docs('examples', 'stable')
+        assert_raises(ValueError, open_docs, 'foo')
+        assert_raises(ValueError, open_docs, 'api', 'foo')
     finally:
         webbrowser.open_new_tab = old_tab
 

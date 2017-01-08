@@ -2556,7 +2556,7 @@ class ETSContext(object):
                            "ETS_TOOLKIT=qt4\n\nand run the command again.")
 
 
-def docs(kind=None, version=None):
+def open_docs(kind=None, version=None):
     """Launch a new web browser tab with the MNE documentation.
 
     Parameters

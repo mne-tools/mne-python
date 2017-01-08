@@ -55,7 +55,7 @@ Changelog
 
     - Add functions like :func:`get_volume_labels_from_src` to handle mixed source spaces by `Annalisa Pascarella`_
 
-    - Add convenience function for opening MNE documentation :func:`docs` by `Eric Larson`_
+    - Add convenience function for opening MNE documentation :func:`open_docs` by `Eric Larson`_
 
 BUG
 ~~~
