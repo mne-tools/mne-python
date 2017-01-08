@@ -28,6 +28,7 @@ import tempfile
 import time
 import traceback
 import warnings
+import webbrowser
 
 import numpy as np
 from scipy import linalg, sparse
@@ -2553,3 +2554,34 @@ class ETSContext(object):
             value.code += ("\nThis can probably be solved by setting "
                            "ETS_TOOLKIT=qt4. On bash, type\n\n    $ export "
                            "ETS_TOOLKIT=qt4\n\nand run the command again.")
+
+
+def open_docs(kind=None, version=None):
+    """Launch a new web browser tab with the MNE documentation.
+
+    Parameters
+    ----------
+    kind : str | None
+        Can be "api" (default), "tutorials", or "examples".
+        The default can be changed by setting the configuration value
+        MNE_DOCS_KIND.
+    version : str | None
+        Can be "stable" (default) or "dev".
+        The default can be changed by setting the configuration value
+        MNE_DOCS_VERSION.
+    """
+    if kind is None:
+        kind = get_config('MNE_DOCS_KIND', 'api')
+    help_dict = dict(api='python_reference.html', tutorials='tutorials.html',
+                     examples='auto_examples/index.html')
+    if kind not in help_dict:
+        raise ValueError('kind must be one of %s, got %s'
+                         % (sorted(help_dict.keys()), kind))
+    kind = help_dict[kind]
+    if version is None:
+        version = get_config('MNE_DOCS_VERSION', 'stable')
+    versions = ('stable', 'dev')
+    if version not in versions:
+        raise ValueError('version must be one of %s, got %s'
+                         % (version, versions))
+    webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
