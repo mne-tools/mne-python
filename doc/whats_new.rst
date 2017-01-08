@@ -120,6 +120,8 @@ API
 
     - The measurement info :class:`Info` no longer contains a potentially misleading ``info['filename']`` entry. Use class properties like :attr:`mne.io.Raw.filenames` or :attr:`mne.Epochs.filename` instead by `Eric Larson`_
 
+    - Default fiducial name change from 'nz' to 'nasion' in :func:`mne.channels.read_montage`, so that it is the same for both :class: `mne.channels.Montage` and :class: `mne.channels.DigMontage` by `Leonardo Barbosa`_
+
 .. _changes_0_13:
 
 Version 0.13
@@ -1943,3 +1945,5 @@ of commits):
 .. _Annalisa Pascarella: http://www.iac.rm.cnr.it/~pasca/
 
 .. _Luke Bloy: https://scholar.google.com/citations?hl=en&user=Ad_slYcAAAAJ&view_op=list_works&sortby=pubdate
+
+.. _Leonardo Barbosa: https://github.com/noreun
