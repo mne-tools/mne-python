@@ -146,15 +146,11 @@ def _topo_closed(events, ax, lines, fill):
     ax.get_figure().canvas.draw()
 
 
-def _rgb(info, x, y, z):
+def _rgb(x, y, z):
     """Transform x, y, z values into RGB colors."""
-    all_pos = np.array([ch['loc'][:3] for ch in info['chs']])
-    for idx, dim in enumerate([x, y, z]):
-        this_pos = all_pos[:, idx]
-        dim_min = this_pos.min()
-        dim_max = (this_pos - dim_min).max()
-        dim -= dim_min
-        dim /= dim_max
+    for dim in [x, y, z]:
+        dim -= dim.min()
+        dim /= dim.max()
     return np.asarray([x, y, z]).T
 
 
@@ -334,7 +330,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                     spatial_colors = selectable = False
                 if spatial_colors is True and len(idx) != 1:
                     x, y, z = locs3d.T
-                    colors = _rgb(info, x, y, z)
+                    colors = _rgb(x, y, z)
                     if this_type in ('meg', 'mag', 'grad', 'eeg'):
                         layout = find_layout(info, ch_type=this_type,
                                              exclude=[])
