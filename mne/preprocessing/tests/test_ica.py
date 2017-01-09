@@ -331,6 +331,13 @@ def test_ica_additional():
             ch_type="mag")
     assert_true(ica2.labels_["blinks"] == ica3.labels_["blinks"])
 
+    # test #3886
+    tempLabels_ = ica2.labels_
+    ica2.labels_ = None
+    corrmap([ica, ica2], (0, 0), threshold='auto', label='blinks', plot=True,
+            ch_type="mag")
+    ica2.labels_ = tempLabels_
+
     plt.close('all')
 
     # test warnings on bad filenames
