@@ -1781,7 +1781,7 @@ def _write_ica(fid, ica):
     # samples on fit
     n_samples = getattr(ica, 'n_samples_', None)
     ica_misc = {'n_samples_': (None if n_samples is None else int(n_samples)),
-                'labels_': getattr(ica, 'labels_', dict()),
+                'labels_': getattr(ica, 'labels_', None),
                 'method': getattr(ica, 'method', None)}
 
     write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
@@ -1914,7 +1914,9 @@ def read_ica(fname):
     if 'n_samples_' in ica_misc:
         ica.n_samples_ = ica_misc['n_samples_']
     if 'labels_' in ica_misc:
-        ica.labels_ = ica_misc['labels_']
+        labels_ = ica_misc['labels_']
+        if labels_ is not None:
+            ica.labels_ = labels_ 
     if 'method' in ica_misc:
         ica.method = ica_misc['method']
 
