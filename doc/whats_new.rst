@@ -55,8 +55,12 @@ Changelog
 
     - Add functions like :func:`get_volume_labels_from_src` to handle mixed source spaces by `Annalisa Pascarella`_
 
+    - Add convenience function for opening MNE documentation :func:`open_docs` by `Eric Larson`_
+
 BUG
 ~~~
+
+    - Fix callback function call in :func:`mne.viz.topo._plot_topo_onpick` by `Erkka Heinila`_
 
     - Fix reading multi-file CTF recordings in :class:`mne.io.ctf.RawCTF` by `Niklas Wilming`_
 
@@ -1947,3 +1951,5 @@ of commits):
 .. _Luke Bloy: https://scholar.google.com/citations?hl=en&user=Ad_slYcAAAAJ&view_op=list_works&sortby=pubdate
 
 .. _Leonardo Barbosa: https://github.com/noreun
+
+.. _Erkka Heinila: https://github.com/Teekuningas
