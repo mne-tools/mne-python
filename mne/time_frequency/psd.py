@@ -57,6 +57,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
                     n_jobs=1, verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
+    Parameters
+    ----------
     x : array, shape=(..., n_times)
         The data to compute PSD from.
     sfreq : float
