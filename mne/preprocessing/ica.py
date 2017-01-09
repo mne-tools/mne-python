@@ -2413,7 +2413,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         logger.info('Displaying selected ICs per subject.')
 
     for ii, (ica, max_corr) in enumerate(zip(icas, mx)):
-        if (label is not None) and ((not hasattr(ica, 'labels_')) or ica.labels_ == None):
+        if (label is not None) and \
+            ((not hasattr(ica, 'labels_')) or ica.labels_ is None):
             ica.labels_ = dict()
         if len(max_corr) > 0:
             if isinstance(max_corr[0], np.ndarray):
