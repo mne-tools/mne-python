@@ -590,7 +590,7 @@ def _radio_clicked(label, params):
     colors = np.zeros((len(types), 4))  # alpha = 0 by default
     locs3d = np.array([ch['loc'][:3] for ch in params['info']['chs']])
     x, y, z = locs3d.T
-    color_vals = _rgb(params['info'], x, y, z)
+    color_vals = _rgb(x, y, z)
     for color_idx, pick in enumerate(types):
         if pick in channels:  # set color and alpha = 1
             colors[color_idx] = np.append(color_vals[pick], 1.)
@@ -1196,7 +1196,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 if len(color_picks) == 0:
                     continue
                 x, y, z = pos[color_picks].T
-                color = np.mean(_rgb(info, x, y, z), axis=0)
+                color = np.mean(_rgb(x, y, z), axis=0)
                 color_vals[idx, :3] = color  # mean of spatial color
         else:
             import matplotlib.pyplot as plt
