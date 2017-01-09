@@ -9,7 +9,8 @@ import os
 import os.path as op
 import warnings
 
-from nose.tools import assert_true, assert_raises, assert_equal, assert_false, assert_not_equal
+from nose.tools import assert_true, assert_raises, assert_equal, assert_false,\
+assert_not_equal
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
@@ -165,6 +166,7 @@ def test_ica_reset():
     ica._reset()
     assert_true(not any(hasattr(ica, attr) for attr in run_time_attrs))
     assert_not_equal(ica.labels_, None)
+
 
 @requires_sklearn
 def test_ica_core():

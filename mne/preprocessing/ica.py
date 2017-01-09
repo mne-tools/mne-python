@@ -1916,7 +1916,7 @@ def read_ica(fname):
     if 'labels_' in ica_misc:
         labels_ = ica_misc['labels_']
         if labels_ is not None:
-            ica.labels_ = labels_ 
+            ica.labels_ = labels_
     if 'method' in ica_misc:
         ica.method = ica_misc['method']
 
