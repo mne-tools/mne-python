@@ -75,6 +75,9 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         to be <= n_fft. The default value is 0.
     n_jobs : int
         Number of CPUs to use in the computation.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -83,6 +86,10 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         be the same as input.
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
+
+    Notes
+    -----
+    .. versionadded:: 0.14.0
     """
     spectrogram = get_spectrogram()
     dshape = x.shape[:-1]

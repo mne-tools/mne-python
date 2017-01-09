@@ -177,6 +177,8 @@ API
 
     - The :class:`mne.decoding.LinearModel` class will no longer support `plot_filters` and `plot_patterns`, use :class:`mne.EvokedArray` with :func:`mne.decoding.get_coef` instead, by `Jean-Remi King`_
 
+    - Made functions :func:`mne.time_frequency.psd_array_multitaper` and :func:`mne.time_frequency.psd_array_welch` public to allow computing psd on numpy arrays by `Jaakko Leppakangas`_
+
 .. _changes_0_13:
 
 Version 0.13
