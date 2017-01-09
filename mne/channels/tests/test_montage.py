@@ -134,61 +134,76 @@ def test_montage():
     assert_array_equal(ch_names, montage.ch_names)
 
     # test transform
-    input_str = """
+    input_strs = ["""
     eeg Fp1 -95.0 -31.0 -3.0
     eeg AF7 -81 -59 -3
     eeg AF3 -87 -41 28
     cardinal 2 -91 0 -42
     cardinal 1 0 -91 -42
     cardinal 3 0 91 -42
-    """
-    fname = op.join(tempdir, 'test_fid.hpts')
-    with open(fname, 'w') as fid:
-        fid.write(input_str)
-    montage = read_montage(op.join(tempdir, 'test_fid.hpts'), transform=True)
-    # check coordinate transformation
-    pos = np.array([-95.0, -31.0, -3.0])
-    nasion = np.array([-91, 0, -42])
-    lpa = np.array([0, -91, -42])
-    rpa = np.array([0, 91, -42])
-    fids = np.vstack((nasion, lpa, rpa))
-    trans = get_ras_to_neuromag_trans(fids[0], fids[1], fids[2])
-    pos = apply_trans(trans, pos)
-    assert_array_equal(montage.pos[0], pos)
-    idx = montage.ch_names.index('2')
-    assert_array_equal(montage.pos[idx, [0, 2]], [0, 0])
-    idx = montage.ch_names.index('1')
-    assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
-    idx = montage.ch_names.index('3')
-    assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
-    pos = np.array([-95.0, -31.0, -3.0])
-    montage_fname = op.join(tempdir, 'test_fid.hpts')
-    montage = read_montage(montage_fname, unit='mm')
-    assert_array_equal(montage.pos[0], pos * 1e-3)
+    """, """
+    Fp1 -95.0 -31.0 -3.0
+    AF7 -81 -59 -3
+    AF3 -87 -41 28
+    nasion -91 0 -42
+    lpa 0 -91 -42
+    rpa 0 91 -42
+    """]
 
-    # test with last
-    info = create_info(montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
-    _set_montage(info, montage)
-    pos2 = np.array([c['loc'][:3] for c in info['chs']])
-    assert_array_equal(pos2, montage.pos)
-    assert_equal(montage.ch_names, info['ch_names'])
+    all_fiducials = [['2', '1', '3'], ['nasion', 'lpa', 'rpa']]
 
-    info = create_info(
-        montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
+    kinds = ['test_fid.hpts',  'test_fid.sfp']
 
-    evoked = EvokedArray(
-        data=np.zeros((len(montage.ch_names), 1)), info=info, tmin=0)
-    evoked.set_montage(montage)
-    pos3 = np.array([c['loc'][:3] for c in evoked.info['chs']])
-    assert_array_equal(pos3, montage.pos)
-    assert_equal(montage.ch_names, evoked.info['ch_names'])
+    for kind, fiducials, input_str in zip(kinds, all_fiducials, input_strs):
+        fname = op.join(tempdir, kind)
+        with open(fname, 'w') as fid:
+            fid.write(input_str)
+        montage = read_montage(op.join(tempdir, kind), transform=True)
 
-    # Warning should be raised when some EEG are not specified in the montage
-    with warnings.catch_warnings(record=True) as w:
-        info = create_info(montage.ch_names + ['foo', 'bar'], 1e3,
-                           ['eeg'] * (len(montage.ch_names) + 2))
+        # check coordinate transformation
+        pos = np.array([-95.0, -31.0, -3.0])
+        nasion = np.array([-91, 0, -42])
+        lpa = np.array([0, -91, -42])
+        rpa = np.array([0, 91, -42])
+        fids = np.vstack((nasion, lpa, rpa))
+        trans = get_ras_to_neuromag_trans(fids[0], fids[1], fids[2])
+        pos = apply_trans(trans, pos)
+        assert_array_equal(montage.pos[0], pos)
+        idx = montage.ch_names.index(fiducials[0])
+        assert_array_equal(montage.pos[idx, [0, 2]], [0, 0])
+        idx = montage.ch_names.index(fiducials[1])
+        assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
+        idx = montage.ch_names.index(fiducials[2])
+        assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
+        pos = np.array([-95.0, -31.0, -3.0])
+        montage_fname = op.join(tempdir, kind)
+        montage = read_montage(montage_fname, unit='mm')
+        assert_array_equal(montage.pos[0], pos * 1e-3)
+
+        # test with last
+        info = create_info(montage.ch_names, 1e3,
+                           ['eeg'] * len(montage.ch_names))
         _set_montage(info, montage)
-        assert_true(len(w) == 1)
+        pos2 = np.array([c['loc'][:3] for c in info['chs']])
+        assert_array_equal(pos2, montage.pos)
+        assert_equal(montage.ch_names, info['ch_names'])
+
+        info = create_info(
+            montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
+
+        evoked = EvokedArray(
+            data=np.zeros((len(montage.ch_names), 1)), info=info, tmin=0)
+        evoked.set_montage(montage)
+        pos3 = np.array([c['loc'][:3] for c in evoked.info['chs']])
+        assert_array_equal(pos3, montage.pos)
+        assert_equal(montage.ch_names, evoked.info['ch_names'])
+
+        # Warning should be raised when some EEG are not specified in montage
+        with warnings.catch_warnings(record=True) as w:
+            info = create_info(montage.ch_names + ['foo', 'bar'], 1e3,
+                               ['eeg'] * (len(montage.ch_names) + 2))
+            _set_montage(info, montage)
+            assert_true(len(w) == 1)
 
 
 @testing.requires_testing_data
