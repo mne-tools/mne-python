@@ -9,8 +9,8 @@ import os
 import os.path as op
 import warnings
 
-from nose.tools import assert_true, assert_raises, assert_equal, assert_false,\
-assert_not_equal
+from nose.tools import (assert_true, assert_raises, assert_equal, assert_false,
+                        assert_not_equal)
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
