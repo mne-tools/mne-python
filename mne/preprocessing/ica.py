@@ -2411,8 +2411,6 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         logger.info('Displaying selected ICs per subject.')
 
     for ii, (ica, max_corr) in enumerate(zip(icas, mx)):
-        if label is not None:
-            ica.labels_ = dict()
         if len(max_corr) > 0:
             if isinstance(max_corr[0], np.ndarray):
                 max_corr = max_corr[0]
