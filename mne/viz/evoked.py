@@ -148,11 +148,10 @@ def _topo_closed(events, ax, lines, fill):
 
 def _rgb(x, y, z):
     """Transform x, y, z values into RGB colors."""
-    r, g, b = x.copy(), y.copy(), z.copy()
-    for dim in [r, g, b]:
-        dim -= dim.min()
-        dim /= dim.max()
-    return np.asarray([r, g, b]).T
+    rgb = np.array([x, y, z]).T
+    rgb -= rgb.min(0)
+    rgb /= rgb.max(0)
+    return rgb
 
 
 def _plot_legend(pos, colors, axis, bads, outlines, loc):
