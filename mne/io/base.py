@@ -630,8 +630,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._times.flags.writeable = False
 
     @property
-    def _first_time(self):
-        return self.first_samp / float(self.info['sfreq'])
+    def _first_time(self, ignore_first_samp=False):
+        first_samp = 0 if ignore_first_samp else self.first_samp
+        return first_samp / float(self.info['sfreq'])
 
     @property
     def first_samp(self):
@@ -1609,11 +1610,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=None):
+             highpass=None, lowpass=None, filtorder=4, clipping=None,
+             ignore_first_samp=True):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
-                        lowpass, filtorder, clipping)
+                        lowpass, filtorder, clipping, ignore_first_samp)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)

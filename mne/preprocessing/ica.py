@@ -1380,10 +1380,12 @@ class ICA(ContainsMixin):
 
     @copy_function_doc_to_method_doc(plot_ica_sources)
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
-                     stop=None, title=None, show=True, block=False):
+                     stop=None, title=None, show=True, block=False,
+                     ignore_first_samp=True):
         return plot_ica_sources(self, inst=inst, picks=picks, exclude=exclude,
                                 start=start, stop=stop, title=title, show=show,
-                                block=block)
+                                block=block,
+                                ignore_first_samp=ignore_first_samp)
 
     @copy_function_doc_to_method_doc(plot_ica_scores)
     def plot_scores(self, scores, exclude=None, labels=None, axhline=None,

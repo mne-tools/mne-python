@@ -565,12 +565,12 @@ def _plot_raw_time(value, params):
     """Deal with changed time value."""
     info = params['info']
     max_times = params['n_times'] / float(info['sfreq']) + \
-        params['raw']._first_time - params['duration']
+        params['first_time'] - params['duration']
     if value > max_times:
         value = params['n_times'] / float(info['sfreq']) + \
-            params['raw']._first_time - params['duration']
-    if value < params['raw']._first_time:
-        value = params['raw']._first_time
+            params['first_time'] - params['duration']
+    if value < params['first_time']:
+        value = params['first_time']
     if params['t_start'] != value:
         params['t_start'] = value
         params['hsel_patch'].set_x(value)

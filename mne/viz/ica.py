@@ -28,7 +28,8 @@ from ..time_frequency.psd import psd_multitaper
 
 
 def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
-                     stop=None, title=None, show=True, block=False):
+                     stop=None, title=None, show=True, block=False,
+                     ignore_first_samp=True):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -63,6 +64,8 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         Whether to halt program execution until the figure is closed.
         Useful for interactive selection of components in raw and epoch
         plotter. For evoked, this parameter has no effect. Defaults to False.
+    ignore_first_samp : bool
+        If False, show time axis relative to the ``raw.first_samp``.
 
     Returns
     -------
@@ -88,7 +91,8 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     if isinstance(inst, BaseRaw):
         fig = _plot_sources_raw(ica, inst, picks, exclude, start=start,
                                 stop=stop, show=show, title=title,
-                                block=block)
+                                block=block,
+                                ignore_first_samp=ignore_first_samp)
     elif isinstance(inst, BaseEpochs):
         fig = _plot_sources_epochs(ica, inst, picks, exclude, start=start,
                                    stop=stop, show=show, title=title,
@@ -738,7 +742,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 
 def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
-                      block):
+                      block, ignore_first_samp):
     """Plot the ICA components as raw array."""
     color = _handle_default('color', (0., 0., 0.))
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
@@ -787,11 +791,13 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     inds = list(range(len(picks)))
     data = np.array(data)
     n_channels = min([20, len(picks)])
-    start += raw._first_time
+    first_time = 0 if ignore_first_samp else raw._first_time
+    start += first_time
     params = dict(raw=raw, orig_data=data, data=data[:, 0:t_end], inds=inds,
                   ch_start=0, t_start=start, info=info, duration=duration,
                   ica=ica, n_channels=n_channels, times=times, types=types,
-                  n_times=raw.n_times, bad_color=bad_color, picks=picks)
+                  n_times=raw.n_times, bad_color=bad_color, picks=picks,
+                  first_time=first_time)
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
@@ -826,7 +832,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
 def _update_data(params):
     """Prepare the data on horizontal shift of the viewport."""
     sfreq = params['info']['sfreq']
-    start = int((params['t_start'] - params['raw']._first_time) * sfreq)
+    start = int((params['t_start'] - params['first_time']) * sfreq)
     end = int((params['t_start'] + params['duration']) * sfreq)
     params['data'] = params['orig_data'][:, start:end]
     params['times'] = params['raw'].times[start:end]
