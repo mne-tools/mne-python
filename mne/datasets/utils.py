@@ -25,15 +25,14 @@ _data_path_doc = """Get path to local copy of {name} dataset.
     path : None | str
         Location of where to look for the {name} dataset.
         If None, the environment variable or config parameter
-        {conf} is used. If it doesn't exist, the
-        "mne-python/examples" directory is used. If the {name} dataset
-        is not found under the given path (e.g., as
-        "mne-python/examples/MNE-{name}-data"), the data
+        ``{conf}`` is used. If it doesn't exist, the
+        "~/mne_data" directory is used. If the {name} dataset
+        is not found under the given path, the data
         will be automatically downloaded to the specified folder.
     force_update : bool
         Force update of the {name} dataset even if a local copy exists.
     update_path : bool | None
-        If True, set the {conf} in mne-python
+        If True, set the ``{conf}`` in mne-python
         config to the given path. If None, the user is prompted.
     download : bool
         If False and the {name} dataset has not been downloaded yet,
@@ -468,9 +467,8 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, verbose=None):
 
     Notes
     -----
-    Use of this parcellation is subject to terms of use on the HCP-MMP webpage:
-
-        https://balsa.wustl.edu/WN56
+    Use of this parcellation is subject to terms of use on the
+    `HCP-MMP webpage <https://balsa.wustl.edu/WN56>`_.
 
     References
     ----------

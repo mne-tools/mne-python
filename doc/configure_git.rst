@@ -2,7 +2,7 @@
 
 .. include:: links.inc
 
-.. _using_github::
+.. _using_github:
 
 Using GitHub to make a Pull Request
 -----------------------------------
@@ -41,7 +41,7 @@ Creating a fork
 
 You need to do this only once for each package you want to contribute to. The
 instructions here are very similar to the instructions at
-https://help.github.com/fork-a-repo/ |emdash| please see that page for more
+https://help.github.com/fork-a-repo/ -- please see that page for more
 details. We're repeating some of it here just to give the specifics for the
 mne-python_ project, and to suggest some default names.
 
@@ -52,7 +52,7 @@ Set up and configure a GitHub account
 
 If you don't have a GitHub account, go to the GitHub page, and make one.
 
-You then need to configure your account to allow write access |emdash| see
+You then need to configure your account to allow write access -- see
 the *Generating SSH keys* help on `GitHub Help`_.
 
 Create your own fork of a repository
@@ -172,7 +172,7 @@ sections.
 * When you are starting a new set of changes, fetch any changes from the
   trunk, and start a new *feature branch* from that.
 
-* Make a new branch for each separable set of changes |emdash| "one task, one
+* Make a new branch for each separable set of changes -- "one task, one
   branch" (`ipython git workflow`_).
 
 * Name your branch for the purpose of the changes - e.g.

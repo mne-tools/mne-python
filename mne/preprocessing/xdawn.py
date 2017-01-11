@@ -142,22 +142,6 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
         The Xdawn patterns used to restore the signals for each event type.
     evokeds : array, shape (n_class, n_components, n_times)
         The independent evoked responses per condition.
-
-    References
-    ----------
-    [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
-    algorithm to enhance evoked potentials: application to brain-computer
-    interface. Biomedical Engineering, IEEE Transactions on, 56(8), 2035-2043.
-    [2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J. (2011,
-    August). Theoretical analysis of xDAWN algorithm: application to an
-    efficient sensor selection in a P300 BCI. In Signal Processing Conference,
-    2011 19th European (pp. 1382-1386). IEEE.
-
-
-    See Also
-    --------
-    CSP
-    XDawn
     """
     n_epochs, n_channels, n_times = epochs_data.shape
 
@@ -239,21 +223,6 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         The Xdawn components used to decompose the data for each event type.
     patterns_ : array, shape (n_channels, n_channels)
         The Xdawn patterns used to restore the signals for each event type.
-
-    References
-    ----------
-    [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
-    algorithm to enhance evoked potentials: application to brain-computer
-    interface. Biomedical Engineering, IEEE Transactions on, 56(8), 2035-2043.
-    [2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J. (2011,
-    August). Theoretical analysis of xDAWN algorithm: application to an
-    efficient sensor selection in a P300 BCI. In Signal Processing Conference,
-    2011 19th European (pp. 1382-1386). IEEE.
-
-    See Also
-    --------
-    Xdawn
-    CSD
     """
 
     def __init__(self, n_components=2, reg=None, signal_cov=None):
@@ -358,11 +327,11 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
 class Xdawn(_XdawnTransformer):
     """Implementation of the Xdawn Algorithm.
 
-    Xdawn is a spatial filtering method designed to improve the signal
-    to signal + noise ratio (SSNR) of the ERP responses. Xdawn was originally
-    designed for P300 evoked potential by enhancing the target response with
-    respect to the non-target response. This implementation is a generalization
-    to any type of ERP.
+    Xdawn [1]_ [2]_ is a spatial filtering method designed to improve the
+    signal to signal + noise ratio (SSNR) of the ERP responses. Xdawn was
+    originally designed for P300 evoked potential by enhancing the target
+    response with respect to the non-target response. This implementation
+    is a generalization to any type of ERP.
 
     Parameters
     ----------
@@ -402,18 +371,20 @@ class Xdawn(_XdawnTransformer):
 
     See Also
     --------
-    CSP
+    mne.decoding.CSP
 
     References
     ----------
-    [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
-    algorithm to enhance evoked potentials: application to brain-computer
-    interface. Biomedical Engineering, IEEE Transactions on, 56(8), 2035-2043.
+    .. [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
+           algorithm to enhance evoked potentials: application to
+           brain-computer interface. Biomedical Engineering, IEEE Transactions
+           on, 56(8), 2035-2043.
 
-    [2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J. (2011,
-    August). Theoretical analysis of xDAWN algorithm: application to an
-    efficient sensor selection in a P300 BCI. In Signal Processing Conference,
-    2011 19th European (pp. 1382-1386). IEEE.
+    .. [2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J.
+           (2011, August). Theoretical analysis of xDAWN algorithm:
+           application to an efficient sensor selection in a P300 BCI. In
+           Signal Processing Conference, 2011 19th European (pp. 1382-1386).
+           IEEE.
     """
 
     def __init__(self, n_components=2, signal_cov=None, correct_overlap='auto',

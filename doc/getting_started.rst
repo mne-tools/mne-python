@@ -7,6 +7,8 @@
 Get started
 ============
 
+.. _what_can_you_do:
+
 Installation
 ------------
 
@@ -45,8 +47,6 @@ the :ref:`MNE<install_python_and_mne_python>` and
 .. container:: row
 
   .. container:: col-md-8
-
-    .. _what_can_you_do:
 
     .. raw:: html
 

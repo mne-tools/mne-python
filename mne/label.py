@@ -271,10 +271,12 @@ class Label(object):
         n_vert = len(self)
         return "<Label  |  %s, %s : %i vertices>" % (name, self.hemi, n_vert)
 
-    def __len__(self):  # noqa: D105
+    def __len__(self):
+        """The number of vertices."""
         return len(self.vertices)
 
-    def __add__(self, other):  # noqa: D105
+    def __add__(self, other):
+        """Add BiHemiLabels."""
         if isinstance(other, BiHemiLabel):
             return other + self
         elif isinstance(other, Label):
@@ -343,7 +345,8 @@ class Label(object):
                       self.subject, color, verbose)
         return label
 
-    def __sub__(self, other):  # noqa: D105
+    def __sub__(self, other):
+        """Subtract BiHemiLabels."""
         if isinstance(other, BiHemiLabel):
             if self.hemi == 'lh':
                 return self - other.lh
@@ -795,10 +798,12 @@ class BiHemiLabel(object):
         name += repr(self.name) if self.name is not None else "unnamed"
         return temp % (name, len(self.lh), len(self.rh))
 
-    def __len__(self):  # noqa: D105
+    def __len__(self):
+        """The number of vertices."""
         return len(self.lh) + len(self.rh)
 
-    def __add__(self, other):  # noqa: D105
+    def __add__(self, other):
+        """Add labels."""
         if isinstance(other, Label):
             if other.hemi == 'lh':
                 lh = self.lh + other
@@ -816,7 +821,8 @@ class BiHemiLabel(object):
         color = _blend_colors(self.color, other.color)
         return BiHemiLabel(lh, rh, name, color)
 
-    def __sub__(self, other):  # noqa: D105
+    def __sub__(self, other):
+        """Subtract labels."""
         if isinstance(other, Label):
             if other.hemi == 'lh':
                 lh = self.lh - other

@@ -1399,7 +1399,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
     See Also
     --------
-    forward.make_forward_solution
+    make_forward_solution
 
     Returns
     -------

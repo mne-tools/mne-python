@@ -1,4 +1,4 @@
-"""MNE for MEG and EEG data analysis."""
+"""MNE software for MEG and EEG data analysis."""
 
 # PEP0440 compatible formatted version, see:
 # https://www.python.org/dev/peps/pep-0440/
@@ -93,6 +93,7 @@ from . import connectivity
 from . import coreg
 from . import cuda
 from . import datasets
+from . import dipole
 from . import epochs
 from . import externals
 from . import io
