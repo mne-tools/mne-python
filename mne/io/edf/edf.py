@@ -51,6 +51,8 @@ class RawEDF(BaseRaw):
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
+    exclude : array of str
+        Channel names to exclude.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -68,13 +70,12 @@ class RawEDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel=-1, annot=None, annotmap=None,
+                 stim_channel=-1, annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):  # noqa: D102
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        info, edf_info = _get_edf_info(input_fname, stim_channel,
-                                       annot, annotmap,
-                                       eog, misc, preload)
+        info, edf_info = _get_edf_info(input_fname, stim_channel, annot,
+                                       annotmap, eog, misc, exclude, preload)
         logger.info('Creating Raw.info structure...')
         _check_update_montage(info, montage)
 
@@ -100,7 +101,17 @@ class RawEDF(BaseRaw):
             # and for efficiency we want to be able to combine mult and cals
             # so proj support will have to wait until this is resolved
             raise NotImplementedError('mult is not supported yet')
+        exclude = self._raw_extras[fi]['exclude']
         sel = np.arange(self.info['nchan'])[idx]
+
+        # This is needed to rearrange the indices to correspond to correct
+        # chunks on the file if excluded channels exist:
+        selection = sel.copy()
+        idx_map = np.argsort(selection)
+        for counter, ei in enumerate(sorted(exclude)):
+            for ii, si in enumerate(sorted(selection)):
+                if si >= ei:
+                    selection[idx_map[ii]] += 1
 
         n_samps = self._raw_extras[fi]['n_samps']
         buf_len = int(self._raw_extras[fi]['max_samp'])
@@ -147,7 +158,7 @@ class RawEDF(BaseRaw):
                 # Read and reshape to (n_chunks_read, ch0_ch1_ch2_ch3...)
                 many_chunk = _read_ch(fid, subtype, ch_offsets[-1] * n_read,
                                       data_size).reshape(n_read, -1)
-                for ii, ci in enumerate(sel):
+                for ii, ci in enumerate(selection):
                     # This now has size (n_chunks_read, n_samp[ci])
                     ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
                     r_sidx = r_lims[ai][0]
@@ -156,7 +167,7 @@ class RawEDF(BaseRaw):
                     d_sidx = d_lims[ai][0]
                     d_eidx = d_lims[ai + n_read - 1][1]
                     if n_samps[ci] != buf_len:
-                        if tal_channels is not None and ci in tal_channels:
+                        if tal_channels is not None and ii in tal_channels:
                             # don't resample tal_channels, zero-pad instead.
                             if n_samps[ci] < buf_len:
                                 z = np.zeros((len(ch_data),
@@ -281,7 +292,8 @@ def _parse_tal_channel(tal_channel_data):
     return events
 
 
-def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
+def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
+                  preload):
     """Extract all the information from the EDF+,BDF file."""
     if eog is None:
         eog = []
@@ -323,25 +335,32 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         nchan = int(fid.read(4).decode())
         channels = list(range(nchan))
         ch_names = [fid.read(16).strip().decode() for ch in channels]
+        exclude = [ch_names.index(idx) for idx in exclude]
         for ch in channels:
             fid.read(80)  # transducer
         units = [fid.read(8).strip().decode() for ch in channels]
+        edf_info['units'] = list()
+        edf_info['exclude'] = exclude
+        include = list()
         for i, unit in enumerate(units):
+            if i in exclude:
+                continue
             if unit == 'uV':
-                units[i] = 1e-6
+                edf_info['units'].append(1e-6)
             else:
-                units[i] = 1
-        edf_info['units'] = units
+                edf_info['units'].append(1)
+            include.append(i)
+        ch_names = [ch_names[idx] for idx in include]
         physical_min = np.array([float(fid.read(8).decode())
-                                 for ch in channels])
+                                 for ch in channels])[include]
         edf_info['physical_min'] = physical_min
         physical_max = np.array([float(fid.read(8).decode())
-                                 for ch in channels])
+                                 for ch in channels])[include]
         digital_min = np.array([float(fid.read(8).decode())
-                                for ch in channels])
+                                for ch in channels])[include]
         edf_info['digital_min'] = digital_min
         digital_max = np.array([float(fid.read(8).decode())
-                                for ch in channels])
+                                for ch in channels])[include]
         prefiltering = [fid.read(80).strip().decode() for ch in channels][:-1]
         highpass = np.ravel([re.findall('HP:\s+(\w+)', filt)
                              for filt in prefiltering])
@@ -349,8 +368,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
                             for filt in prefiltering])
 
         # number of samples per record
-        n_samps = np.array([int(fid.read(8).decode()) for ch in channels])
+        n_samps = np.array([int(fid.read(8).decode()) for ch
+                            in channels])
         edf_info['n_samps'] = n_samps
+        n_samps = n_samps[include]
 
         fid.read(32 * nchan).decode()  # reserved
         assert fid.tell() == header_nbytes
@@ -386,7 +407,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
                                    ' parsed completely on loading.'
                                    ' You must set preload parameter to True.'))
     if stim_channel == -1:
-        stim_channel = nchan - 1
+        stim_channel = len(include) - 1
     pick_mask = np.ones(len(ch_names))
     for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
         ch_name, physical_range, cal = ch_info
@@ -421,7 +442,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
             pick_mask[idx] = False
             chan_info['ch_name'] = 'STI 014'
             ch_names[idx] = chan_info['ch_name']
-            units[idx] = 1
+            edf_info['units'][idx] = 1
             if isinstance(stim_channel, str):
                 stim_channel = idx
         if tal_channel is not None and idx in tal_channel:
@@ -525,7 +546,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
 
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel=-1, annot=None, annotmap=None,
+                 stim_channel=-1, annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):
     """Reader function for EDF+, BDF conversion to FIF.
 
@@ -556,6 +577,8 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
+    exclude : list of str
+        Channel names to exclude.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -577,4 +600,4 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     """
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
-                  preload=preload, verbose=verbose)
+                  exclude=exclude, preload=preload, verbose=verbose)

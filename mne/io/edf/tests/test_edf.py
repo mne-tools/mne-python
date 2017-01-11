@@ -55,7 +55,7 @@ misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
 def test_bdf_data():
     """Test reading raw bdf files."""
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
-                              montage=montage_path, eog=eog, misc=misc)
+                              montage=montage_path, eog=eog, misc=misc, exclude=['M2', 'IEOG'])
     assert_true('RawEDF' in repr(raw_py))
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
@@ -91,8 +91,10 @@ def test_edf_reduced():
 
 def test_edf_data():
     """Test edf files."""
-    _test_raw_reader(read_raw_edf, input_fname=edf_path, stim_channel=None)
+    raw = _test_raw_reader(read_raw_edf, input_fname=edf_path,
+                           stim_channel=None, exclude=['Ergo-Left', 'H10'])
     raw_py = read_raw_edf(edf_path, preload=True)
+    assert_equal(len(raw.ch_names) + 2, len(raw_py.ch_names))
     # Test saving and loading when annotations were parsed.
     edf_events = find_events(raw_py, output='step', shortest_event=0,
                              stim_channel='STI 014')
