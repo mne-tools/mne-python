@@ -27,10 +27,6 @@ For analysis talk, join the `MNE mailing list`_. File specific feature
 requests or bug reports `on GitHub <https://github.com/mne-tools/mne-python/issues/>`_.
 You can also chat with developers `on Gitter <https://gitter.im/mne-tools/mne-python>`_.
 
-How do I contribute?
---------------------
-Check out the :ref:`contributing` page.
-
 .. _cite:
 
 How do I cite MNE?

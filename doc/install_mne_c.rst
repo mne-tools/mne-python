@@ -5,52 +5,37 @@
 Install MNE-C
 -------------
 
-Some advanced functionality is provided by the MNE-C command-line tools.
-It is not strictly necessary to have the MNE-C tools installed to use
-MNE-Python, but it can be helpful.
-
-The MNE Unix commands can be downloaded at:
-
-* `Download MNE <http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php>`_
-
-:ref:`c_reference` gives an overview of the command line
-tools provided with MNE.
+The MNE-C commands can be downloaded
+`here <http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php>`_.
+The :ref:`c_reference` gives an overview of the MNE-C tools.
 
 .. contents:: Contents
    :local:
    :depth: 1
 
-System requirements
-###################
+System requirements and installation
+####################################
 
-The MNE Unix commands runs on Mac OSX and LINUX operating systems.
-The hardware and software requirements are:
+The MNE-C runs on Mac OSX and LINUX, and requires:
 
 - Mac OSX version 10.5 (Leopard) or later.
-
 - LINUX kernel 2.6.9 or later
-
 - On both LINUX and Mac OSX 32-bit and 64-bit Intel platforms
   are supported. PowerPC version on Mac OSX can be provided upon request.
-
 - At least 2 GB of memory, 4 GB or more recommended.
-
 - Disk space required for the MNE software: 80 MB
-
 - Additional open source software on Mac OSX, see :ref:`BABDBCJE`.
-
-Installation
-############
 
 The MNE software is distributed as a compressed tar archive
 (Mac OSX and LINUX) or a Mac OSX disk image (dmg).
 
 The file names follow the convention:
 
-MNE-* <*version*>*- <*rev*> -* <*Operating
-system*>*-* <*Processor*>*.* <*ext*>*
+::
 
-The present version number is 2.7.0. The <*rev*> field
+  MNE-* <*version*>*- <*rev*> -* <*Operating system*>*-* <*Processor*>*.* <*ext*>*
+
+The present version number is 2.7.4. The <*rev*> field
 is the SVN revision number at the time this package was created.
 The <*Operating system*> field
 is either Linux or MacOSX. The <*processor*> field
@@ -95,8 +80,8 @@ Installing from a Mac OSX disk image
 
 .. _user_environment:
 
-Setting up MNE Unix commands environment
-########################################
+Setting up MNE-C environment
+############################
 
 The system-dependent location of the MNE Software will be
 here referred to by the environment variable MNE_ROOT. There are
@@ -184,8 +169,11 @@ listed in :ref:`CIHDGFAA`.
 
 .. _BABDBCJE:
 
+Additional options
+##################
+
 Additional software
-###################
+^^^^^^^^^^^^^^^^^^^
 
 MNE uses the `Netpbm package <http://netpbm.sourceforge.net/>`_
 to create image files in formats other than tif and rgb from
@@ -209,7 +197,7 @@ the X11 included with the operating system is sufficient.
 .. _CIHIIBDA:
 
 Testing the performance of your OpenGL graphics
-###############################################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The graphics performance of mne_analyze depends
 on your graphics software and hardware configuration. You get the
@@ -248,11 +236,3 @@ On the fastest graphics cards, the time per revolution is
 well below 1 second. If this time longer than 10 seconds either
 the graphics hardware acceleration is not in effect or you need
 a faster graphics adapter.
-
-Obtain FreeSurfer
-#################
-
-The MNE software relies on the FreeSurfer software for cortical
-surface reconstruction and other MRI-related tasks. Please consult the
-FreeSurfer_ home page.
-
