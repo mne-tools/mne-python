@@ -51,7 +51,7 @@ You can then do this to resolve the MNE dependencies:
 
 .. code-block:: bash
 
-    $ conda install scipy matplotlib scikit-learn mayavi
+    $ conda install scipy matplotlib scikit-learn mayavi ipython-notebook
     $ pip install PySurfer
 
 Now that you have a working Python environment you can install MNE.

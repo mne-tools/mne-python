@@ -54,5 +54,4 @@
 .. _Nose: https://nose.readthedocs.io/
 
 .. Flake8
-
 .. _Flake8: http://flake8.pycqa.org/

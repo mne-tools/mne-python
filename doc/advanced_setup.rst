@@ -97,7 +97,7 @@ Troubleshooting
 ###############
 
 If you run into trouble when visualizing source estimates (or anything else
-using mayavi), you can try setting ETS_TOOLKIT environment variable::
+using mayavi), you can try setting the ``ETS_TOOLKIT`` environment variable::
 
     >>> import os
     >>> os.environ['ETS_TOOLKIT'] = 'qt4'
