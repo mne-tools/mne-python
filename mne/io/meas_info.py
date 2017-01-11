@@ -255,7 +255,7 @@ class Info(dict):
             raise RuntimeError('Channel names are not unique, found '
                                'duplicates for: %s' % dups)
         if 'filename' in self:
-            raise KeyError('info should not have "filename" key')
+            warn('the "filename" key is misleading and info should not have it')
 
     def _update_redundant(self):
         """Update the redundant entries."""
