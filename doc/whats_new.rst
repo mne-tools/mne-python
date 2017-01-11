@@ -108,6 +108,8 @@ BUG
 
     - Raise error if the cv parameter of :class:`mne.decoding.GeneralizationAcrossTime` and :class:`mne.decoding.TimeDecoding` is not a partition and the predict_mode is "cross-validation" by `Jean-Remi King`_
 
+    - Fix bug in :func:`mne.io.read_raw_edf` when `preload=False` and channels have different sampling rates by `Jaakko Leppakangas`_
+
 API
 ~~~
 
