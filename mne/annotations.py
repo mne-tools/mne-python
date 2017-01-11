@@ -112,7 +112,7 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq):
     return Annotations(onset, duration, description, old_orig_time)
 
 
-def _onset_to_seconds(raw, onset, show_first_samp=False):
+def _onset_to_seconds(raw, onset):
     """Helper function for adjusting onsets in relation to raw data."""
     meas_date = raw.info['meas_date']
     if meas_date is None:
@@ -125,8 +125,7 @@ def _onset_to_seconds(raw, onset, show_first_samp=False):
     if raw.annotations.orig_time is None:
         orig_time = meas_date
     else:
-        first_time = raw._first_time if show_first_samp else 0
-        orig_time = raw.annotations.orig_time - first_time
+        orig_time = raw.annotations.orig_time - raw._first_time
 
     annot_start = orig_time - meas_date + onset
     return annot_start
