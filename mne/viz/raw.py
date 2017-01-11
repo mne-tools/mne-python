@@ -91,7 +91,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
-             ignore_first_samp=True):
+             show_first_samp=False):
     """Plot raw data.
 
     Parameters
@@ -105,7 +105,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         of the raw file will be used.
     start : float
         Initial time to show (can be changed dynamically once plotted). If
-        ignore_first_samp is True, then it is taken relative to
+        show_first_samp is True, then it is taken relative to
         ``raw.first_samp``.
     n_channels : int
         Number of channels to plot at once. Defaults to 20. Has no effect if
@@ -174,8 +174,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         the plot. If "clamp", then values are clamped to the appropriate
         range for display, creating step-like artifacts. If "transparent",
         then excessive values are not shown, creating gaps in the traces.
-    ignore_first_samp : bool
-        If False, show time axis relative to the ``raw.first_samp``.
+    show_first_samp : bool
+        If True, show time axis relative to the ``raw.first_samp``.
 
     Returns
     -------
@@ -303,7 +303,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # set up projection and data parameters
     duration = min(raw.times[-1], float(duration))
-    first_time = 0 if ignore_first_samp else raw._first_time
+    first_time = raw._first_time if show_first_samp else 0
     start += first_time
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
@@ -346,7 +346,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                 segment_colors[key] = plt.cm.summer(color_vals[idx])
         params['segment_colors'] = segment_colors
         for idx, onset in enumerate(raw.annotations.onset[ann_order]):
-            annot_start = _onset_to_seconds(raw, onset, ignore_first_samp) + \
+            annot_start = _onset_to_seconds(raw, onset, show_first_samp) + \
                 first_time
             annot_end = annot_start + raw.annotations.duration[ann_order][idx]
             segments.append([annot_start, annot_end])
