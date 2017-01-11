@@ -220,7 +220,7 @@ def test_dics_source_power():
     noise_csds = data_csds
     with warnings.catch_warnings(record=True) as w:
         dics_source_power(epochs.info, forward, noise_csds, data_csds)
-    assert len(w) == 1
+        assert_equal(len(w), 1)
 
 
 @testing.requires_testing_data
