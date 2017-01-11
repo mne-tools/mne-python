@@ -57,6 +57,8 @@ Changelog
 
     - Add convenience function for opening MNE documentation :func:`open_docs` by `Eric Larson`_
 
+    - Add option in :meth:`mne.io.Raw.plot` to display the time axis relative to ``raw.first_samp`` by `Mainak Jas`_
+
 BUG
 ~~~
 
@@ -105,9 +107,6 @@ BUG
     - Fix :func:`mne.viz.plot_topo_image_epochs` and :class:`mne.decoding.Scaler` so that they no longer modify the data in-place and fix to :meth:`mne.decoding.Scaler.inverse_transform` so that the data is scaled before centering by `Jaakko Leppakangas`_
 
     - Raise error if the cv parameter of :class:`mne.decoding.GeneralizationAcrossTime` and :class:`mne.decoding.TimeDecoding` is not a partition and the predict_mode is "cross-validation" by `Jean-Remi King`_
-
-
-    - Fix :meth:`mne.io.Raw.plot` to display the time axis relative to ``raw.first_samp`` by `Mainak Jas`_
 
 API
 ~~~
