@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import warnings
 import os.path as op
 
 from nose.tools import assert_false, assert_equal, assert_raises, assert_true
@@ -16,6 +16,8 @@ from mne.io.meas_info import (Info, create_info, _write_dig_points,
                               _force_update_info, RAW_INFO_FIELDS)
 from mne.utils import _TempDir, run_tests_if_main
 from mne.channels.montage import read_montage, read_dig_montage
+
+warnings.simplefilter("always")  # ensure we can verify expected warnings
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
@@ -317,7 +319,10 @@ def test_check_consistency():
 
     info2 = info.copy()
     info2['filename'] = 'foo'
-    assert_raises(KeyError, info2._check_consistency)
+    with warnings.catch_warnings(record=True) as w:
+        info2._check_consistency()
+    assert_equal(len(w), 1)
+    assert_true(all('filename' in str(ww.message) for ww in w))
 
     # Silent type conversion to float
     info2 = info.copy()
