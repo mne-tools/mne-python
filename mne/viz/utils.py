@@ -727,26 +727,13 @@ def _plot_raw_onkey(event, params):
             return
         if params['annotation_fig'] is None:
             from matplotlib.widgets import SpanSelector
-            fig = figure_nobar(figsize=(5.5, 1.5))
-            annotations_closed = partial(_annotations_closed, params=params)
-            fig.canvas.mpl_connect('close_event', annotations_closed)
-            text = ('Annotate bad data by dragging on top of the plot.\n'
-                    'Use left mouse button to draw/modify annotation.\n'
-                    'Right click removes an existing annotation.\n'
-                    'When done, close this window.')
-            plt.text(0.5, 0.5, text, fontname='STIXGeneral', va='center',
-                     weight='bold', ha='center', fontsize=18)
-            plt.axis('off')
-
-            fig.show()
-
+            _setup_annotation_fig(params)
             ax = params['ax']
             callback_onselect = partial(_annotate_select, params=params)
             selector = SpanSelector(ax, callback_onselect, 'horizontal',
                                     minspan=0.1,
                                     rectprops=dict(alpha=0.5, facecolor='red'))
             params['ax'].selector = selector
-            params['annotation_fig'] = fig
             if LooseVersion(mpl.__version__) < LooseVersion('1.5'):
                 # XXX: Hover event messes up callback ids in old mpl.
                 warn('Modifying existing annotations is not possible for '
@@ -757,6 +744,32 @@ def _plot_raw_onkey(event, params):
                 'motion_notify_event', hover_callback)
         else:
             params['annotation_fig'].canvas.close_event()
+
+
+def _setup_annotation_fig(params):
+    """Initialize the annotation figure."""
+    import matplotlib.pyplot as plt
+    from matplotlib.widgets import RadioButtons
+    annotations = params['raw'].annotations
+    lbls = list() if annotations is None else annotations.description.tolist()
+    if 'BAD' in lbls:
+        lbls.append('')
+    else:
+        lbls.append('BAD')
+    fig = figure_nobar(figsize=(7.5, 1.5 + len(lbls) * 0.75))
+    ax = plt.subplot2grid((len(lbls) + 1, 1), (1, 0), rowspan=len(lbls))
+
+    annotations_closed = partial(_annotations_closed, params=params)
+    fig.canvas.mpl_connect('close_event', annotations_closed)
+    text = ('Annotate bad data by dragging on top of the plot.\n'
+            'Use left mouse button to draw/modify annotation.\n'
+            'Right click removes an existing annotation.\n'
+            'Type to modify. When done, close this window.')
+    fig.suptitle(text, fontsize=18, fontweight='bold')
+    fig.radio = RadioButtons(ax, lbls)
+    fig.canvas.mpl_connect('key_press_event', _change_annotation_description)
+    fig.show()
+    params['annotation_fig'] = fig
 
 
 def _mouse_click(event, params):
@@ -1651,11 +1664,15 @@ def _annotate_select(vmin, vmax, params):
 
     onset = vmin
     duration = vmax - vmin
+    labels = params['annotation_fig'].radio.labels
+    description = labels[params['annotation_fig'].radio.active].get_text()
+    description = params['annotation_fig'].radio.value_selected
     if raw.annotations is None:
-        annot = Annotations([onset], [duration], ['BAD'])
+        annot = Annotations([onset], [duration], [description])
         raw.annotations = annot
     else:
-        _merge_annotations(onset, onset + duration, 'BAD', raw.annotations)
+        _merge_annotations(onset, onset + duration, description,
+                           raw.annotations)
 
     _plot_annotations(params['raw'], params)
     params['plot_fun']()
@@ -1786,6 +1803,29 @@ def _merge_annotations(start, stop, description, annotations, current=()):
     duration = end - onset
     annotations.delete(idx)
     annotations.append(onset, duration, description)
+
+
+def _change_annotation_description(event):
+    """Key listener for annotation dialog."""
+    fig = event.canvas.figure
+    lbls = fig.radio.labels
+    text = lbls[-1].get_text()
+    update = text == fig.radio.value_selected
+    if event.key == 'backspace':
+        if len(text) == 0:
+            return
+        text = text[:-1]
+    elif event.key == 'escape':
+        fig.close()
+        return
+    elif len(event.key) > 1:  # ignore modifier keys
+        return
+    else:
+        text += event.key
+    lbls[-1].set_text(text)
+    if update:
+        fig.radio.set_active(len(lbls) - 1)
+    fig.canvas.draw()
 
 
 class DraggableLine:
