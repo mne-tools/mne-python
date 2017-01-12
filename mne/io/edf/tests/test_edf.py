@@ -34,6 +34,7 @@ data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 montage_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
+edf_reduced = op.join(data_dir, 'test_reduced.edf')
 edf_uneven_path = op.join(data_dir, 'test_uneven_samp.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
@@ -84,7 +85,8 @@ def test_edf_overlapping_annotations():
 
 def test_edf_data():
     """Test edf files."""
-    _test_raw_reader(read_raw_edf, input_fname=edf_path, stim_channel=None)
+    for path in [edf_path, edf_reduced]:
+        _test_raw_reader(read_raw_edf, input_fname=path, stim_channel=None)
     raw_py = read_raw_edf(edf_path, preload=True)
     # Test saving and loading when annotations were parsed.
     edf_events = find_events(raw_py, output='step', shortest_event=0,
