@@ -321,8 +321,8 @@ def test_check_consistency():
     info2['filename'] = 'foo'
     with warnings.catch_warnings(record=True) as w:
         info2._check_consistency()
-        assert_equal(len(w), 1)
-        assert_true(all('filename' in str(ww.message) for ww in w))
+    assert_equal(len(w), 1)
+    assert_true(all('filename' in str(ww.message) for ww in w))
 
     # Silent type conversion to float
     info2 = info.copy()

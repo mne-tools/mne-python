@@ -3,7 +3,7 @@ import warnings
 import os.path as op
 import copy as cp
 
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_equal
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
@@ -220,7 +220,7 @@ def test_dics_source_power():
     noise_csds = data_csds
     with warnings.catch_warnings(record=True) as w:
         dics_source_power(epochs.info, forward, noise_csds, data_csds)
-        assert_equal(len(w), 1)
+    assert_equal(len(w), 1)
 
 
 @testing.requires_testing_data
