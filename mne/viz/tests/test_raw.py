@@ -143,6 +143,10 @@ def test_plot_annotations():
     fig = raw.plot()
     data_ax = fig.axes[0]
     fig.canvas.key_press_event('a')  # annotation mode
+    # modify description
+    ann_fig = plt.gcf()
+    for key in ' test':
+        ann_fig.canvas.key_press_event(key)
     # draw annotation
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='motion')
@@ -165,6 +169,7 @@ def test_plot_annotations():
     assert_equal(len(raw.annotations.onset), 1)
     assert_equal(len(raw.annotations.duration), 1)
     assert_equal(len(raw.annotations.description), 1)
+    assert_equal(raw.annotations.description[0], 'BAD test')
 
     # draw another annotation merging the two
     _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')

@@ -1661,11 +1661,8 @@ class SelectFromCollection(object):
 def _annotate_select(vmin, vmax, params):
     """Callback for annotation span selector."""
     raw = params['raw']
-
     onset = vmin
     duration = vmax - vmin
-    labels = params['annotation_fig'].radio.labels
-    description = labels[params['annotation_fig'].radio.active].get_text()
     description = params['annotation_fig'].radio.value_selected
     if raw.annotations is None:
         annot = Annotations([onset], [duration], [description])
