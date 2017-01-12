@@ -615,6 +615,13 @@ def _radio_clicked(label, params):
     params['plot_fun']()
 
 
+def _get_active_radiobutton(radio):
+    """Helper to find out active radio button."""
+    # XXX: In mpl 1.5 you can do: fig.radio.value_selected
+    color_r = [circle.get_facecolor()[0] for circle in radio.circles]
+    return color_r.index(0)  # where red is 0
+
+
 def _set_radio_button(idx, params):
     """Helper for setting radio button."""
     # XXX: New version of matplotlib has this implemented for radio buttons,
@@ -751,7 +758,7 @@ def _setup_annotation_fig(params):
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons
     annotations = params['raw'].annotations
-    lbls = list() if annotations is None else annotations.description.tolist()
+    lbls = [] if annotations is None else list(set(annotations.description))
     if 'BAD' in lbls:
         lbls.append('')
     else:
@@ -1663,7 +1670,8 @@ def _annotate_select(vmin, vmax, params):
     raw = params['raw']
     onset = vmin
     duration = vmax - vmin
-    description = params['annotation_fig'].radio.value_selected
+    active_idx = _get_active_radiobutton(params['annotation_fig'].radio)
+    description = params['annotation_fig'].radio.labels[active_idx].get_text()
     if raw.annotations is None:
         annot = Annotations([onset], [duration], [description])
         raw.annotations = annot
@@ -1804,24 +1812,22 @@ def _merge_annotations(start, stop, description, annotations, current=()):
 
 def _change_annotation_description(event):
     """Key listener for annotation dialog."""
+    import matplotlib.pyplot as plt
     fig = event.canvas.figure
     lbls = fig.radio.labels
     text = lbls[-1].get_text()
-    update = text == fig.radio.value_selected
     if event.key == 'backspace':
         if len(text) == 0:
             return
         text = text[:-1]
     elif event.key == 'escape':
-        fig.close()
+        plt.close(fig)
         return
     elif len(event.key) > 1:  # ignore modifier keys
         return
     else:
         text += event.key
     lbls[-1].set_text(text)
-    if update:
-        fig.radio.set_active(len(lbls) - 1)
     fig.canvas.draw()
 
 
