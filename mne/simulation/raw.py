@@ -91,7 +91,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         matrices. If None, the original head position (from
         ``info['dev_head_t']``) will be used. If tuple, should have the
         same format as data returned by `head_pos_to_trans_rot_t`.
-        If array, should be of the form returned by `read_head_pos`.
+        If array, should be of the form returned by
+        :func:`mne.chpi.read_head_pos`.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
@@ -117,10 +118,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
     See Also
     --------
-    read_head_pos
+    mne.chpi.read_head_pos
     simulate_evoked
     simulate_stc
-    simalute_sparse_stc
+    simulate_sparse_stc
 
     Notes
     -----

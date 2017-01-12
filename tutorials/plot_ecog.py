@@ -24,7 +24,7 @@ print(__doc__)
 
 ###############################################################################
 # Let's load some ECoG electrode locations and names, and turn them into
-# a :class:`mne.DigMontage` class.
+# a :class:`mne.channels.DigMontage` class.
 
 mat = loadmat(mne.datasets.misc.data_path() + '/ecog/sample_ecog.mat')
 ch_names = mat['ch_names'].tolist()

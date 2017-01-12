@@ -1,3 +1,5 @@
+"""Single-dipole functions and classes."""
+
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #

@@ -19,7 +19,7 @@ class RawArray(BaseRaw):
     data : array, shape (n_channels, n_times)
         The channels' time series.
     info : instance of Info
-        Info dictionary. Consider using `create_info` to populate
+        Info dictionary. Consider using :func:`mne.create_info` to populate
         this structure. This may be modified in place by the class.
     first_samp : int
         First sample offset used during recording (default 0).
@@ -32,7 +32,9 @@ class RawArray(BaseRaw):
 
     See Also
     --------
-    EpochsArray, EvokedArray, create_info
+    mne.EpochsArray
+    mne.EvokedArray
+    mne.create_info
     """
 
     @verbose

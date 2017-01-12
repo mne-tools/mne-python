@@ -257,7 +257,7 @@ class FieldTripClient(object):
 
         See Also
         --------
-        Epochs.iter_evoked
+        mne.Epochs.iter_evoked
         """
         ft_header = self.ft_client.getHeader()
         last_samp = ft_header.nSamples - 1

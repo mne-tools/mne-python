@@ -78,6 +78,10 @@ td = date.today()
 copyright = u'2012-%s, MNE Developers. Last updated on %s' % (td.year,
                                                               td.isoformat())
 
+nitpicky = True
+needs_sphinx = '1.5'
+suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside
+
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.

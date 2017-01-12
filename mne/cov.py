@@ -1368,7 +1368,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
 
     See Also
     --------
-    compute_covariance
+    mne.compute_covariance
     """  # noqa: E501
     cov = cp.deepcopy(cov)
     info._check_consistency()

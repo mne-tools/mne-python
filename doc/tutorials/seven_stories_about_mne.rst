@@ -58,12 +58,12 @@ below. Whether you consider Raw objects that describe continuous data,
 Epochs objects describing segmented single trial data, or Evoked objects
 describing averaged data, all have in common that they share certain methods.
 
-- Try :func:`raw.plot <mne.io.Raw.plot>`,
-  :func:`epochs.plot <mne.Epochs.plot>`,
-  :func:`evoked.plot <mne.Evoked.plot>` and any other method that has
+- Try :meth:`raw.plot <mne.io.Raw.plot>`,
+  :meth:`epochs.plot <mne.Epochs.plot>`,
+  :meth:`evoked.plot <mne.Evoked.plot>` and any other method that has
   a name that starts with `plot`. By using the call operators `()`
   you invoke these methods, e.g.
-  :func:`epochs.plot() <<mne.Epochs.plot>>`.
+  :meth:`epochs.plot() <mne.Epochs.plot>`.
   Yes, you don't have to pass arguments but you will get an informative
   visualization of your data. The method knows what to do with the object.
   Look up the documentation for configuration options.

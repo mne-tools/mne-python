@@ -109,8 +109,8 @@ def head_pos_to_trans_rot_t(quats):
 
     See Also
     --------
-    read_pos
-    write_pos
+    read_head_pos
+    write_head_pos
     """
     t = quats[..., 0].copy()
     rotation = quat_to_rot(quats[..., 1:4])

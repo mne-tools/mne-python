@@ -1,4 +1,4 @@
-"""Demo datasets."""
+"""Functions for fetching remote datasets."""
 
 from . import brainstorm
 from . import eegbci

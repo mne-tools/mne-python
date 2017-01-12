@@ -283,7 +283,7 @@ evoked2 = mne.read_evokeds(
 # Two evoked objects can be contrasted using :func:`mne.combine_evoked`.
 # This function can use ``weights='equal'``, which provides a simple
 # element-by-element subtraction (and sets the
-# :attr:`mne.Evoked.nave` attribute properly based on the underlying number
+# ``mne.Evoked.nave`` attribute properly based on the underlying number
 # of trials) using either equivalent call:
 
 contrast = mne.combine_evoked([evoked1, evoked2], weights=[0.5, -0.5])

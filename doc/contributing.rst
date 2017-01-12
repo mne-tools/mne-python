@@ -2,7 +2,7 @@
 
 .. include:: links.inc
 
-.. _contributie_to_mne:
+.. _contribute_to_mne:
 
 Contribute to MNE
 =================
@@ -36,9 +36,9 @@ Code guidelines
 * Use `numpy style`_ for docstrings. Follow existing examples for simplest
   guidance.
 
-* New functionality must be covered by tests. For example, a :class:`Evoked`
-  method in ``mne/evoked.py`` should have a corresponding test in
-  ``mne/tests/test_evoked.py``.
+* New functionality must be covered by tests. For example, a
+  :class:`mne.Evoked` method in ``mne/evoked.py`` should have a corresponding
+  test in ``mne/tests/test_evoked.py``.
 
 * Changes must be accompanied by updated documentation, including
   :doc:`doc/whats_new.rst <whats_new>` and
@@ -102,7 +102,7 @@ Style
 ^^^^^
 * Use single quotes whenever possible.
 * Prefer generator or list comprehensions over ``filter``, ``map`` and other functional idioms.
-* Use explicit functional constructors for builtin containers to improve readability (e.g., :class:`list()`, :class:`dict()`).
+* Use explicit functional constructors for builtin containers to improve readability (e.g., ``list()``, ``dict``).
 * Avoid nested functions or class methods if possible -- use private functions instead.
 * Avoid ``**kwargs`` and ``*args`` in function signatures.
 * Add brief docstrings to simple private functions and complete docstrings for complex ones.

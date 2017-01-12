@@ -188,7 +188,7 @@ class LinearModel(BaseEstimator):
     The linear model coefficients
     (filters) are used to extract discriminant neural sources from
     the measured data. This class implements the computation of patterns
-    which provides neurophysiologically interpretable information [1],
+    which provides neurophysiologically interpretable information [1]_,
     in the sense that significant nonzero weights are only observed at channels
     where activity is related to discriminant neural sources.
 
@@ -196,14 +196,14 @@ class LinearModel(BaseEstimator):
     ----------
     model : object | None
         A linear model from scikit-learn with a fit method
-        that updates a coef_ attribute.
-        If None the model will be LogisticRegression
+        that updates a ``coef_`` attribute.
+        If None the model will be LogisticRegression.
 
     Attributes
     ----------
-    filters_ : ndarray
+    ``filters_`` : ndarray
         If fit, the filters used to decompose the data, else None.
-    patterns_ : ndarray
+    ``patterns_`` : ndarray
         If fit, the patterns used to restore M/EEG signals, else None.
 
     Notes
@@ -212,16 +212,16 @@ class LinearModel(BaseEstimator):
 
     See Also
     --------
-    ICA
     CSP
-    xDawn
+    mne.preprocessing.ICA
+    mne.preprocessing.Xdawn
 
     References
     ----------
-    [1] Haufe, S., Meinecke, F., Gorgen, K., Dahne, S., Haynes, J.-D.,
-    Blankertz, B., & Biebmann, F. (2014). On the interpretation of
-    weight vectors of linear models in multivariate neuroimaging.
-    NeuroImage, 87, 96-110.
+    .. [1] Haufe, S., Meinecke, F., Gorgen, K., Dahne, S., Haynes, J.-D.,
+           Blankertz, B., & Biebmann, F. (2014). On the interpretation of
+           weight vectors of linear models in multivariate neuroimaging.
+           NeuroImage, 87, 96-110.
     """
 
     def __init__(self, model=None):  # noqa: D102
@@ -236,8 +236,8 @@ class LinearModel(BaseEstimator):
     def fit(self, X, y):
         """Estimate the coefficients of the linear model.
 
-        Save the coefficients in the attribute filters_ and
-        computes the attribute patterns_ using [1].
+        Save the coefficients in the attribute ``filters_`` and
+        computes the attribute ``patterns_``.
 
         Parameters
         ----------
@@ -250,9 +250,6 @@ class LinearModel(BaseEstimator):
         -------
         self : instance of LinearModel
             Returns the modified instance.
-
-        References
-        ----------
         """
         # fit the Model
         self.model.fit(X, y)

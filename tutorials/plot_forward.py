@@ -99,7 +99,7 @@ src = mne.setup_source_space(subject, spacing='oct6',
 print(src)
 
 ###############################################################################
-# src contains two parts, one for the left hemisphere (4098 locations) and
+# ``src`` contains two parts, one for the left hemisphere (4098 locations) and
 # one for the right hemisphere (4098 locations). Sources can be visualized on
 # top of the BEM surfaces.
 
@@ -170,12 +170,17 @@ print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
 # :func:`mne.write_forward_solution` and to read it back from disk
 # :func:`mne.read_forward_solution`. Don't forget that FIF files containing
 # forward solution should end with *-fwd.fif*.
+#
+# To get a fixed-orientation forward solution, use
+# :func:`mne.convert_forward_solution` to convert the free-orientation
+# solution to (surface-oriented) fixed orientation.
 
 ###############################################################################
 # Exercise
 # --------
 #
-# By looking at :ref:`sphx_glr_auto_examples_forward_plot_read_forward.py`
+# By looking at
+# :ref:`sphx_glr_auto_examples_forward_plot_forward_sensitivity_maps.py`
 # plot the sensitivity maps for EEG and compare it with the MEG, can you
 # justify the claims that:
 #

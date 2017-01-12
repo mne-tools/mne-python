@@ -132,7 +132,7 @@ ica.plot_properties(eog_epochs, picks=eog_inds, psd_args={'fmax': 35.},
 # That component is showing a prototypical average vertical EOG time course.
 #
 # Pay attention to the labels, a customized read-out of the
-# :attr:`ica.labels_ <mne.preprocessing.ICA.labels_>`
+# ``mne.preprocessing.ICA.labels_``:
 print(ica.labels_)
 
 ###############################################################################

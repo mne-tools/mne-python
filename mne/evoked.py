@@ -228,7 +228,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         --------
         Epochs.decimate
         Epochs.resample
-        Raw.resample
+        mne.io.Raw.resample
 
         Notes
         -----

@@ -431,9 +431,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         See Also
         --------
-        Evoked.decimate
-        Epochs.resample
-        Raw.resample
+        mne.Evoked.decimate
+        mne.Epochs.resample
+        mne.io.Raw.resample
 
         Notes
         -----
@@ -1439,7 +1439,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
         window : string or tuple
-            Window to use in resampling. See scipy.signal.resample.
+            Window to use in resampling. See :func:`scipy.signal.resample`.
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None

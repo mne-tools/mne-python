@@ -116,7 +116,8 @@ class SourceSpaces(list):
             return 'combined'
         return _src_kind_dict[ss_types[0]]
 
-    def __add__(self, other):  # noqa: D105
+    def __add__(self, other):
+        """Combine source spaces."""
         return SourceSpaces(list.__add__(self, other))
 
     def copy(self):

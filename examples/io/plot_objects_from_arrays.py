@@ -37,7 +37,7 @@ ch_types = ['mag', 'mag', 'grad', 'grad']
 ch_names = ['sin', 'cos', 'sinX2', 'cosX2']
 
 ###############################################################################
-# Create an :class:`info <mne.io.Info>` object.
+# Create an :class:`info <mne.Info>` object.
 
 # It is also possible to use info from another raw object.
 info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
