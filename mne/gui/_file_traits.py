@@ -440,6 +440,7 @@ class MRISubjectSource(HasPrivateTraits):
 
         create_default_subject(fs_home=fs_home, subjects_dir=self.subjects_dir)
         self.refresh = True
+        self.use_high_res_head = False
         self.subject = 'fsaverage'
 
 
