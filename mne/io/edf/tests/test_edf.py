@@ -45,6 +45,7 @@ data_path = testing.data_path(download=False)
 edf_stim_resamp_path = op.join(data_path, 'EDF', 'test_edf_stim_resamp.edf')
 edf_overlap_annot_path = op.join(data_path, 'EDF',
                                  'test_edf_overlapping_annotations.edf')
+edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
 
 
 eog = ['REOG', 'LEOG', 'IEOG']
@@ -80,6 +81,12 @@ def test_edf_overlapping_annotations():
         read_raw_edf(edf_overlap_annot_path, preload=True, verbose=True)
         assert_equal(sum('overlapping' in str(ww.message) for ww in w),
                      n_warning)
+
+
+@testing.requires_testing_data
+def test_edf_reduced():
+    """Test EDF with various sampling rates."""
+    _test_raw_reader(read_raw_edf, input_fname=edf_reduced, stim_channel=None)
 
 
 def test_edf_data():

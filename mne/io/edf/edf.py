@@ -105,7 +105,6 @@ class RawEDF(BaseRaw):
         n_samps = self._raw_extras[fi]['n_samps']
         buf_len = int(self._raw_extras[fi]['max_samp'])
         sfreq = self.info['sfreq']
-        n_chan = self.info['nchan']
         data_size = self._raw_extras[fi]['data_size']
         data_offset = self._raw_extras[fi]['data_offset']
         stim_channel = self._raw_extras[fi]['stim_channel']
@@ -140,7 +139,7 @@ class RawEDF(BaseRaw):
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
             start_offset = (data_offset +
-                            block_start_idx * buf_len * n_chan * data_size)
+                            block_start_idx * ch_offsets[-1] * data_size)
             for ai in range(0, len(r_lims), n_per):
                 block_offset = ai * ch_offsets[-1] * data_size
                 n_read = min(len(r_lims) - ai, n_per)
