@@ -789,8 +789,8 @@ def _mouse_click(event, params):
         for coll in params['ax'].collections:
             if coll.contains(event)[0]:
                 path = coll.get_paths()[-1]
-                mn = min(path.vertices[:4, 0])  # check the four corners
-                mx = max(path.vertices[:4, 0])
+                mn = min(path.vertices[:4, 0]) - params['first_time']
+                mx = max(path.vertices[:4, 0]) - params['first_time']
                 ann_idx = np.where(params['raw'].annotations.onset == mn)[0]
                 for idx in ann_idx:
                     if params['raw'].annotations.duration[idx] == mx - mn:
@@ -1668,7 +1668,7 @@ class SelectFromCollection(object):
 def _annotate_select(vmin, vmax, params):
     """Callback for annotation span selector."""
     raw = params['raw']
-    onset = vmin
+    onset = vmin - params['first_time']
     duration = vmax - vmin
     active_idx = _get_active_radiobutton(params['annotation_fig'].radio)
     description = params['annotation_fig'].radio.labels[active_idx].get_text()
@@ -1774,13 +1774,13 @@ def _annotation_modify(old_x, new_x, params):
     annotations = params['raw'].annotations
     idx = [segment[0][0], segment[1][0]]
     onset = params['segments'][idx[0]][0]
-    ann_idx = np.where(annotations.onset == onset)[0]
+    ann_idx = np.where(annotations.onset == onset - params['first_time'])[0]
     if idx[1] == 0:  # start of annotation
-        onset = new_x
+        onset = new_x - params['first_time']
         duration = annotations.duration[ann_idx] + old_x - new_x
     else:  # end of annotation
         onset = annotations.onset[ann_idx]
-        duration = new_x - onset
+        duration = new_x - onset - params['first_time']
 
     if duration < 0:
         onset += duration

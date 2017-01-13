@@ -76,22 +76,10 @@ def test_plot_raw():
         # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
         # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
         #  test keypresses
-        fig.canvas.key_press_event('escape')
-        fig.canvas.key_press_event('down')
-        fig.canvas.key_press_event('up')
-        fig.canvas.key_press_event('right')
-        fig.canvas.key_press_event('left')
-        fig.canvas.key_press_event('o')
-        fig.canvas.key_press_event('-')
-        fig.canvas.key_press_event('+')
-        fig.canvas.key_press_event('=')
-        fig.canvas.key_press_event('pageup')
-        fig.canvas.key_press_event('pagedown')
-        fig.canvas.key_press_event('home')
-        fig.canvas.key_press_event('end')
-        fig.canvas.key_press_event('?')
-        fig.canvas.key_press_event('f11')
-        fig.canvas.key_press_event('escape')
+        for key in ['escape', 'down', 'up', 'right', 'left', 'o', '-', '+',
+                    '=', 'pageup', 'pagedown', 'home', 'end', '?', 'f11',
+                    'escape']:
+            fig.canvas.key_press_event(key)
         # Color setting
         assert_raises(KeyError, raw.plot, event_color={0: 'r'})
         assert_raises(TypeError, raw.plot, event_color={'foo': 'r'})
