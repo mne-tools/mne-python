@@ -49,6 +49,7 @@ def _update_raw_data(params):
     """Deal with time or proj changed."""
     from scipy.signal import filtfilt
     start = params['t_start']
+    start -= params['first_time']
     stop = params['raw'].time_as_index(start + params['duration'])[0]
     start = params['raw'].time_as_index(start)[0]
     data_picks = _pick_data_channels(params['raw'].info)
@@ -89,7 +90,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=None):
+             highpass=None, lowpass=None, filtorder=4, clipping=None,
+             show_first_samp=False):
     """Plot raw data.
 
     Parameters
@@ -102,7 +104,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Time window (sec) to plot. The lesser of this value and the duration
         of the raw file will be used.
     start : float
-        Initial time to show (can be changed dynamically once plotted).
+        Initial time to show (can be changed dynamically once plotted). If
+        show_first_samp is True, then it is taken relative to
+        ``raw.first_samp``.
     n_channels : int
         Number of channels to plot at once. Defaults to 20. Has no effect if
         ``order`` is 'position' or 'selection'.
@@ -170,6 +174,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         the plot. If "clamp", then values are clamped to the appropriate
         range for display, creating step-like artifacts. If "transparent",
         then excessive values are not shown, creating gaps in the traces.
+    show_first_samp : bool
+        If True, show time axis relative to the ``raw.first_samp``.
 
     Returns
     -------
@@ -297,11 +303,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # set up projection and data parameters
     duration = min(raw.times[-1], float(duration))
+    first_time = raw._first_time if show_first_samp else 0
+    start += first_time
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,
                   n_times=n_times, event_times=event_times, inds=inds,
-                  event_nums=event_nums, clipping=clipping, fig_proj=None)
+                  event_nums=event_nums, clipping=clipping, fig_proj=None,
+                  first_time=first_time)
 
     if isinstance(order, string_types) and order in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -337,7 +346,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                 segment_colors[key] = plt.cm.summer(color_vals[idx])
         params['segment_colors'] = segment_colors
         for idx, onset in enumerate(raw.annotations.onset[ann_order]):
-            annot_start = _onset_to_seconds(raw, onset)
+            annot_start = _onset_to_seconds(raw, onset) + first_time
             annot_end = annot_start + raw.annotations.duration[ann_order][idx]
             segments.append([annot_start, annot_end])
             ylim = params['ax_hscroll'].get_ylim()
@@ -753,7 +762,8 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
     params['hsel_patch'] = hsel_patch
-    ax_hscroll.set_xlim(0, params['n_times'] / float(info['sfreq']))
+    ax_hscroll.set_xlim(params['first_time'], params['first_time'] +
+                        params['n_times'] / float(info['sfreq']))
 
     ax_vscroll.set_title('Ch.')
 
@@ -761,7 +771,8 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     params['ax_vertline'] = ax.plot([0, 0], ax.get_ylim(),
                                     color=vertline_color, zorder=-1)[0]
     params['ax_vertline'].ch_name = ''
-    params['vertline_t'] = ax_hscroll.text(0, 1, '', color=vertline_color,
+    params['vertline_t'] = ax_hscroll.text(params['first_time'], 1, '',
+                                           color=vertline_color,
                                            va='bottom', ha='right')
     params['ax_hscroll_vertline'] = ax_hscroll.plot([0, 0], [0, 1],
                                                     color=vertline_color,
@@ -808,7 +819,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
 
             # subtraction here gets corect orientation for flipped ylim
             lines[ii].set_ydata(offset - this_data)
-            lines[ii].set_xdata(params['times'])
+            lines[ii].set_xdata(params['times'] + params['first_time'])
             lines[ii].set_color(this_color)
             lines[ii].set_zorder(this_z)
             vars(lines[ii])['ch_name'] = ch_name
@@ -838,7 +849,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             mask = (event_nums == ev_num) if ev_num >= 0 else ~used
             assert not np.any(used[mask])
             used[mask] = True
-            t = event_times[mask]
+            t = event_times[mask] + params['first_time']
             if len(t) > 0:
                 xs = list()
                 ys = list()
@@ -859,9 +870,9 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         times = params['times']
         ylim = params['ax'].get_ylim()
         for idx, segment in enumerate(segments):
-            if segment[0] > times[-1]:
+            if segment[0] > times[-1] + params['first_time']:
                 break  # Since the segments are sorted by t_start
-            if segment[1] < times[0]:
+            if segment[1] < times[0] + params['first_time']:
                 continue
             start = segment[0]
             end = segment[1]
@@ -872,8 +883,9 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             params['ax'].text((start + end) / 2., ylim[0], dscr, ha='center')
 
     # finalize plot
-    params['ax'].set_xlim(params['times'][0],
-                          params['times'][0] + params['duration'], False)
+    params['ax'].set_xlim(params['times'][0] + params['first_time'],
+                          params['times'][0] + params['first_time'] +
+                          params['duration'], False)
     params['ax'].set_yticklabels(tick_list)
     if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])
