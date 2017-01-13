@@ -1106,7 +1106,7 @@ def _one_rot_to_quat(rot):
         qy = (rot[5] + rot[7]) / s
         qz = 0.25 * s
         # qw = (rot[3] - rot[1]) / s
-    return qx, qy, qz
+    return np.array((qx, qy, qz))
 
 
 def rot_to_quat(rot):
