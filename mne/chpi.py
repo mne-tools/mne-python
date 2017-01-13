@@ -437,25 +437,23 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         X = np.dot(inv_model, this_data.T)
         X_sin, X_cos = X[:n_freqs], X[n_freqs:2 * n_freqs]
 
-        sinfitsvd = np.zeros((n_freqs, X_sin.shape[1]))
-        for nc in range(n_freqs):
-            u, s, vt = np.linalg.svd(np.vstack((X_sin[nc, :], X_cos[nc, :])),
-                                     full_matrices=False, compute_uv=1)
-            s[1] = 0.
-#            zwischen = np.multiply.outer(u[:,0],vt[0,:])*s[0]
-            zwischen = (u.dot(np.diag(s))).dot(vt)
-            X[nc, :] = zwischen[0, :]
-            X[nc + n_freqs, :] = zwischen[1, :]
-            sinfitsvd[nc, :] = vt[0, :]
+        # use SVD across all sensors to estimate the sinusoid phase
+        sin_fit = np.zeros((n_freqs, X_sin.shape[1]))
+        for fi in range(n_freqs):
+            u, s, vt = np.linalg.svd(np.vstack((X_sin[fi, :], X_cos[fi, :])),
+                                     full_matrices=False)
+            # the first component holds the predominant phase direction
+            # (so ignore the second, effectively doing s[1] = 0):
+            X[[fi, fi + n_freqs], :] = np.outer(u[:, 0] * s[0], vt[0])
+            sin_fit[fi, :] = vt[0]
 
         data_diff = np.dot(model, X).T - this_data
-        # del model, inv_model
+        del model, inv_model
 
         g_sin = 1 - np.sqrt((data_diff**2).sum() / (this_data**2).sum())
         g_chan = 1 - np.sqrt((data_diff**2).sum(axis=1) /
                              (this_data**2).sum(axis=1))
 
-        sin_fit = sinfitsvd
         if last['sin_fit'] is not None:  # first iteration
             corr = np.corrcoef(sin_fit.ravel(), last['sin_fit'].ravel())[0, 1]
             # check to see if we need to continue
