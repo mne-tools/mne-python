@@ -77,7 +77,7 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
 
     Parameters
     ----------
-    mne_root : object
+    mne_root : None
         This argument is not used anymore.
     fs_home : None | str
         The freesurfer home directory (only needed if FREESURFER_HOME is not
