@@ -572,6 +572,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     logger.info('[done]')
     quats = np.array(quats, np.float64)
     quats = np.zeros((0, 10)) if quats.size == 0 else quats
+    quats[:, 0] += raw.first_samp / raw.info['sfreq']
     return quats
 
 

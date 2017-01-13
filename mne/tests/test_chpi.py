@@ -15,8 +15,7 @@ from mne.chpi import (_calculate_chpi_positions,
                       write_head_pos, filter_chpi, _get_hpi_info)
 from mne.fixes import assert_raises_regex
 from mne.transforms import rot_to_quat, _angle_between_quats
-from mne.utils import (run_tests_if_main, _TempDir, slow_test, catch_logging,
-                       requires_version)
+from mne.utils import run_tests_if_main, _TempDir, slow_test, catch_logging
 from mne.datasets import testing
 from mne.tests.common import assert_meg_snr
 
@@ -108,14 +107,17 @@ def test_hpi_info():
                      len(raw.info['hpi_subsystem']))
 
 
-def _compare_positions(a, b, max_dist=0.003, max_angle=5.):
+def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5.):
     """Compare estimated cHPI positions."""
     from scipy.interpolate import interp1d
-    trans, rot, t = a
-    trans_est, rot_est, t_est = b
+    trans_est, rot_est, t_est = head_pos_to_trans_rot_t(actual)
+    trans, rot, t = head_pos_to_trans_rot_t(desired)
     quats_est = rot_to_quat(rot_est)
 
     # maxfilter produces some times that are implausibly large (weird)
+    if not np.isclose(t[0], t_est[0], atol=1e-1):  # within 100 ms
+        raise AssertionError('Start times not within 100 ms: %0.3f != %0.3f'
+                             % (t[0], t_est[0]))
     use_mask = (t >= t_est[0]) & (t <= t_est[-1])
     t = t[use_mask]
     trans = trans[use_mask]
@@ -127,31 +129,28 @@ def _compare_positions(a, b, max_dist=0.003, max_angle=5.):
         angles = _angle_between_quats(q, q)
         assert_allclose(angles, 0., atol=1e-5)
 
-    # < 3 mm translation difference between MF and our estimation
+    # limit translation difference between MF and our estimation
     trans_est_interp = interp1d(t_est, trans_est, axis=0)(t)
     worst = np.sqrt(np.sum((trans - trans_est_interp) ** 2, axis=1)).max()
-    assert_true(worst <= max_dist, '%0.1f > %0.1f mm'
-                % (1000 * worst, 1000 * max_dist))
+    assert_true(worst <= dist_tol, '%0.3f > %0.3f mm'
+                % (1000 * worst, 1000 * dist_tol))
 
-    # < 5 degrees rotation difference between MF and our estimation
+    # limit rotation difference between MF and our estimation
     # (note that the interpolation will make this slightly worse)
     quats_est_interp = interp1d(t_est, quats_est, axis=0)(t)
     worst = 180 * _angle_between_quats(quats_est_interp, quats).max() / np.pi
-    assert_true(worst <= max_angle, '%0.1f > %0.1f deg' % (worst, max_angle,))
+    assert_true(worst <= angle_tol, '%0.3f > %0.3f deg' % (worst, angle_tol,))
 
 
 @slow_test
 @testing.requires_testing_data
-@requires_version('scipy', '0.11')
-@requires_version('numpy', '1.7')
 def test_calculate_chpi_positions():
     """Test calculation of cHPI positions."""
-    trans, rot, t = head_pos_to_trans_rot_t(read_head_pos(pos_fname))
+    # Check to make sure our fits match MF decently
+    mf_quats = read_head_pos(pos_fname)
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
-    t -= raw.first_samp / raw.info['sfreq']
-    quats = _calculate_chpi_positions(raw, verbose='debug')
-    trans_est, rot_est, t_est = head_pos_to_trans_rot_t(quats)
-    _compare_positions((trans, rot, t), (trans_est, rot_est, t_est), 0.003)
+    py_quats = _calculate_chpi_positions(raw, verbose='debug')
+    _assert_quats(py_quats, mf_quats, dist_tol=0.003, angle_tol=2.)
 
     # degenerate conditions
     raw_no_chpi = read_raw_fif(test_fif_fname)
