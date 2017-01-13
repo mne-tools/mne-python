@@ -77,9 +77,8 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
 
     Parameters
     ----------
-    mne_root : None | str
-        The mne root directory (only needed if MNE_ROOT is not specified as
-        environment variable).
+    mne_root : object
+        This argument is not used anymore.
     fs_home : None | str
         The freesurfer home directory (only needed if FREESURFER_HOME is not
         specified as environment variable).
@@ -122,12 +121,6 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
                 "FREESURFER_HOME environment variable not found. Please "
                 "specify the fs_home parameter in your call to "
                 "create_default_subject().")
-    if mne_root is None:
-        mne_root = get_config('MNE_ROOT', mne_root)
-        if mne_root is None:
-            raise ValueError("MNE_ROOT environment variable not found. Please "
-                             "specify the mne_root parameter in your call to "
-                             "create_default_subject().")
 
     # make sure freesurfer files exist
     fs_src = os.path.join(fs_home, 'subjects', 'fsaverage')
@@ -155,14 +148,13 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
             "subject folder." % ('fsaverage', subjects_dir))
 
     # make sure mne files exist
-    mne_fname = os.path.join(mne_root, 'share', 'mne', 'mne_analyze',
-                             'fsaverage', 'fsaverage-%s.fif')
+    mne_fname = os.path.join(os.path.dirname(__file__), 'data', 'fsaverage',
+                             'fsaverage-%s.fif')
     mne_files = ('fiducials', 'head', 'inner_skull-bem', 'trans')
     for name in mne_files:
-        fname = mne_fname % name
-        if not os.path.isfile(fname):
+        if not os.path.isfile(mne_fname % name):
             raise IOError("MNE fsaverage incomplete: %s file not found at "
-                          "%s" % (name, fname))
+                          "%s" % (name, mne_fname % name))
 
     # copy fsaverage from freesurfer
     logger.info("Copying fsaverage subject from freesurfer directory...")
@@ -170,11 +162,11 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
         shutil.copytree(fs_src, dest)
         _make_writable_recursive(dest)
 
-    # add files from mne
+    # copy files from mne
     dest_bem = os.path.join(dest, 'bem')
     if not os.path.exists(dest_bem):
         os.mkdir(dest_bem)
-    logger.info("Copying auxiliary fsaverage files from mne directory...")
+    logger.info("Copying auxiliary fsaverage files from mne...")
     dest_fname = os.path.join(dest_bem, 'fsaverage-%s.fif')
     _make_writable_recursive(dest_bem)
     for name in mne_files:

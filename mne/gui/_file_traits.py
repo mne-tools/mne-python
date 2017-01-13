@@ -7,7 +7,6 @@
 import os
 
 import numpy as np
-from ..externals.six.moves import map
 
 from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
                         on_trait_change, Array, Bool, Button, DelegatesTo,
@@ -51,23 +50,6 @@ def get_fs_home():
     mne.set_config().
     """
     return _get_root_home('FREESURFER_HOME', 'freesurfer', _fs_home_problem)
-
-
-def get_mne_root():
-    """Get the MNE_ROOT directory.
-
-    Returns
-    -------
-    mne_root : None | str
-        The MNE_ROOT path or None if the user cancels.
-
-    Notes
-    -----
-    If MNE_ROOT can't be found, the user is prompted with a file dialog.
-    If specified successfully, the resulting path is stored with
-    mne.set_config().
-    """
-    return _get_root_home('MNE_ROOT', 'MNE', _mne_root_problem)
 
 
 def _get_root_home(cfg, name, check_fun):
@@ -127,38 +109,6 @@ def _fs_home_problem(fs_home):
         if not os.path.exists(test_dir):
             return ("FREESURFER_HOME (%s) does not contain the fsaverage "
                     "subject." % fs_home)
-
-
-def set_mne_root(set_mne_bin=False):
-    """Set the MNE_ROOT environment variable.
-
-    Parameters
-    ----------
-    set_mne_bin : bool
-        Also add the MNE binary directory to the PATH (default: False).
-
-    Returns
-    -------
-    success : bool
-        True if the environment variable could be set, False if MNE_ROOT
-        could not be found.
-
-    Notes
-    -----
-    If MNE_ROOT can't be found, the user is prompted with a file dialog.
-    If specified successfully, the resulting path is stored with
-    mne.set_config().
-    """
-    mne_root = get_mne_root()
-    if mne_root is None:
-        return False
-    else:
-        os.environ['MNE_ROOT'] = mne_root
-        if set_mne_bin:
-            mne_bin = os.path.realpath(os.path.join(mne_root, 'bin'))
-            if mne_bin not in map(_expand_path, os.environ['PATH'].split(':')):
-                os.environ['PATH'] += ':' + mne_bin
-        return True
 
 
 def _mne_root_problem(mne_root):
@@ -482,19 +432,13 @@ class MRISubjectSource(HasPrivateTraits):
                    "subjects_dir first.")
             raise RuntimeError(err)
 
-        mne_root = get_mne_root()
-        if mne_root is None:
-            err = ("MNE contains files that are needed for copying the "
-                   "fsaverage brain. Please install MNE and try again.")
-            raise RuntimeError(err)
         fs_home = get_fs_home()
         if fs_home is None:
             err = ("FreeSurfer contains files that are needed for copying the "
                    "fsaverage brain. Please install FreeSurfer and try again.")
             raise RuntimeError(err)
 
-        create_default_subject(mne_root, fs_home,
-                               subjects_dir=self.subjects_dir)
+        create_default_subject(fs_home=fs_home, subjects_dir=self.subjects_dir)
         self.refresh = True
         self.subject = 'fsaverage'
 
