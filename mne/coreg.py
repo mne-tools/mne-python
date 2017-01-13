@@ -147,15 +147,6 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
             "subjects_dir %r. Delete or rename the existing fsaverage "
             "subject folder." % ('fsaverage', subjects_dir))
 
-    # make sure mne files exist
-    mne_fname = os.path.join(os.path.dirname(__file__), 'data', 'fsaverage',
-                             'fsaverage-%s.fif')
-    mne_files = ('fiducials', 'head', 'inner_skull-bem', 'trans')
-    for name in mne_files:
-        if not os.path.isfile(mne_fname % name):
-            raise IOError("MNE fsaverage incomplete: %s file not found at "
-                          "%s" % (name, mne_fname % name))
-
     # copy fsaverage from freesurfer
     logger.info("Copying fsaverage subject from freesurfer directory...")
     if (not update) or not os.path.exists(dest):
@@ -163,15 +154,17 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
         _make_writable_recursive(dest)
 
     # copy files from mne
+    source_fname = os.path.join(os.path.dirname(__file__), 'data', 'fsaverage',
+                                'fsaverage-%s.fif')
     dest_bem = os.path.join(dest, 'bem')
     if not os.path.exists(dest_bem):
         os.mkdir(dest_bem)
     logger.info("Copying auxiliary fsaverage files from mne...")
     dest_fname = os.path.join(dest_bem, 'fsaverage-%s.fif')
     _make_writable_recursive(dest_bem)
-    for name in mne_files:
+    for name in ('fiducials', 'head', 'inner_skull-bem', 'trans'):
         if not os.path.exists(dest_fname % name):
-            shutil.copy(mne_fname % name, dest_bem)
+            shutil.copy(source_fname % name, dest_bem)
 
 
 def _decimate_points(pts, res=10):
