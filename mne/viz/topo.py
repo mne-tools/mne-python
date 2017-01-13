@@ -249,16 +249,31 @@ def _check_vlim(vlim):
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, vline=None, x_label=None, y_label=None,
                 colorbar=False, picker=True, cmap=('RdBu_r', True), title=None,
-                hline=None):
-    """Show time-freq map on topo."""
+                hline=None, imtype='normal'):
+    """Show time-freq map as 2d image."""
     import matplotlib.pyplot as plt
+    from matplotlib.image import NonUniformImage
     from matplotlib.widgets import RectangleSelector
 
-    extent = (tmin, tmax, freq[0], freq[-1])
     cmap, interactive_cmap = cmap
+    extent = (tmin, tmax, freq[0], freq[-1])
 
-    img = ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
-                    vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
+    if imtype == 'normal':
+        img = ax.imshow(tfr[ch_idx], extent=extent, aspect="auto",
+                        origin="lower", vmin=vmin, vmax=vmax,
+                        picker=picker, cmap=cmap)
+    elif imtype == 'nonuniform':
+        # limitations of nonuniform image:
+        # * only two interpolation options ('none' and 'bilinear')
+        # * no aspect argument?
+        times = np.linspace(tmin, tmax, num=tfr[ch_idx].shape[1])
+        img = NonUniformImage(ax, extent=extent, clim=(vmin, vmax),
+                              origin="lower", picker=picker, cmap=cmap)
+        img.set_data(times, freq, tfr[ch_idx])
+        ax.images.append(img)
+        ax.set_xlim(extent[0], extent[1])
+        ax.set_ylim(extent[2], extent[3])
+
     if isinstance(ax, plt.Axes):
         if x_label is not None:
             ax.set_xlabel(x_label)

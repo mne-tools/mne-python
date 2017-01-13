@@ -887,7 +887,8 @@ class AverageTFR(_BaseTFR):
     def plot(self, picks, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=False, colorbar=True, show=True,
-             title=None, axes=None, layout=None, verbose=None):
+             title=None, axes=None, layout=None, verbose=None,
+             imtype='normal'):
         """Plot TFRs in a topography with images.
 
         Parameters
@@ -963,6 +964,8 @@ class AverageTFR(_BaseTFR):
             correct layout is inferred from the data.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see :func:`mne.verbose`).
+        imtype : str
+            Image type: 'normal' or 'nonuniform'. (...)
 
         Returns
         -------
@@ -1004,7 +1007,8 @@ class AverageTFR(_BaseTFR):
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
                         ylim=None, tfr=data[idx: idx + 1], freq=freqs,
                         x_label='Time (ms)', y_label='Frequency (Hz)',
-                        colorbar=colorbar, picker=False, cmap=cmap)
+                        colorbar=colorbar, picker=False, cmap=cmap,
+                        imtype=imtype)
             if title:
                 fig.suptitle(title)
 

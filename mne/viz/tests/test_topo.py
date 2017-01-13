@@ -153,5 +153,7 @@ def test_plot_tfr_topo():
     tfr.plot_topo(baseline=(None, 0), mode='ratio', title='Average power',
                   vmin=0., vmax=14., show=False)
     tfr.plot([4], baseline=(None, 0), mode='ratio', show=False, title='foo')
+    tfr.plot([4], baseline=(None, 0), mode='ratio', show=False, title='foo',
+             imtype='nonuniform')
 
 run_tests_if_main()
