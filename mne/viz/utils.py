@@ -760,9 +760,9 @@ def _setup_annotation_fig(params):
     annotations = params['raw'].annotations
     lbls = [] if annotations is None else list(set(annotations.description))
     if 'BAD' in lbls:
-        lbls.append('')
+        lbls.append('_')
     else:
-        lbls.append('BAD')
+        lbls.append('BAD_')
     fig = figure_nobar(figsize=(7.5, 1.5 + len(lbls) * 0.75))
     ax = plt.subplot2grid((len(lbls) + 1, 1), (1, 0), rowspan=len(lbls))
 
@@ -774,6 +774,8 @@ def _setup_annotation_fig(params):
             'Type to modify. When done, close this window.')
     fig.suptitle(text, fontsize=18, fontweight='bold')
     fig.radio = RadioButtons(ax, lbls)
+    for label in fig.radio.labels[:-1]:
+        label.set_color(params['segment_colors'][label.get_text()])
     fig.canvas.mpl_connect('key_press_event', _change_annotation_description)
     fig.show()
     params['annotation_fig'] = fig
@@ -1672,6 +1674,8 @@ def _annotate_select(vmin, vmax, params):
     duration = vmax - vmin
     active_idx = _get_active_radiobutton(params['annotation_fig'].radio)
     description = params['annotation_fig'].radio.labels[active_idx].get_text()
+    if description[-1] == '_':
+        description = description[:-1]
     if raw.annotations is None:
         annot = Annotations([onset], [duration], [description])
         raw.annotations = annot
@@ -1817,17 +1821,17 @@ def _change_annotation_description(event):
     lbls = fig.radio.labels
     text = lbls[-1].get_text()
     if event.key == 'backspace':
-        if len(text) == 0:
+        if len(text) == 1:
             return
-        text = text[:-1]
+        text = text[:-2]
     elif event.key == 'escape':
         plt.close(fig)
         return
     elif len(event.key) > 1:  # ignore modifier keys
         return
     else:
-        text += event.key
-    lbls[-1].set_text(text)
+        text = text[:-1] + event.key
+    lbls[-1].set_text(text + '_')
     fig.canvas.draw()
 
 

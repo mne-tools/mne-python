@@ -41,12 +41,15 @@ raw.plot(block=True)
 # viewed at once.
 #
 # You can enter annotation mode by pressing ``a`` key. In annotation mode you
-# can mark and modify bad data with left mouse button. Existing annotations
-# can be deleted with right mouse button. Annotation mode is exited by pressing
-# ``a`` again or closing the annotation window. See also
-# :class:`mne.Annotations` and :ref:`marking_bad_segments`. To see all the
-# interactive features, hit ``?`` key or click ``help`` in the lower left
-# corner of the browser window.
+# can mark segments of data (and modify existing annotations) with left mouse
+# button. You can use the description of any existing annotation or create a
+# new description by typing when annotation dialog is active. Notice that
+# description starting with keyword ``'bad'`` means that the segment will be
+# discarded when epoching the data. Existing annotation can be deleted with
+# right mouse button.  Annotation mode is exited by pressing ``a`` again or
+# closing the annotation window. See also :class:`mne.Annotations` and
+# :ref:`marking_bad_segments`. To see all the interactive features, hit ``?``
+# key or click ``help`` in the lower left corner of the browser window.
 #
 # The channels are sorted by channel type by default. You can use the ``order``
 # parameter of :func:`raw.plot <mne.io.Raw.plot>` to group the channels in a
