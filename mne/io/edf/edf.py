@@ -104,15 +104,6 @@ class RawEDF(BaseRaw):
         exclude = self._raw_extras[fi]['exclude']
         sel = np.arange(self.info['nchan'])[idx]
 
-        # This is needed to rearrange the indices to correspond to correct
-        # chunks on the file if excluded channels exist:
-        selection = sel.copy()
-        idx_map = np.argsort(selection)
-        for counter, ei in enumerate(sorted(exclude)):
-            for ii, si in enumerate(sorted(selection)):
-                if si >= ei:
-                    selection[idx_map[ii]] += 1
-
         n_samps = self._raw_extras[fi]['n_samps']
         buf_len = int(self._raw_extras[fi]['max_samp'])
         sfreq = self.info['sfreq']
@@ -139,6 +130,18 @@ class RawEDF(BaseRaw):
         if tal_channels is not None:
             for tal_channel in tal_channels:
                 offsets[tal_channel] = 0
+
+        # This is needed to rearrange the indices to correspond to correct
+        # chunks on the file if excluded channels exist:
+        selection = sel.copy()
+        idx_map = np.argsort(selection)
+        for ei in sorted(exclude):
+            for ii, si in enumerate(sorted(selection)):
+                if si >= ei:
+                    selection[idx_map[ii]] += 1
+            if tal_channels is not None:
+                tal_channels = [tc + 1 if tc >= ei else tc for tc in
+                                sorted(tal_channels)]
 
         # We could read this one EDF block at a time, which would be this:
         ch_offsets = np.cumsum(np.concatenate([[0], n_samps]))
@@ -167,7 +170,7 @@ class RawEDF(BaseRaw):
                     d_sidx = d_lims[ai][0]
                     d_eidx = d_lims[ai + n_read - 1][1]
                     if n_samps[ci] != buf_len:
-                        if tal_channels is not None and ii in tal_channels:
+                        if tal_channels is not None and ci in tal_channels:
                             # don't resample tal_channels, zero-pad instead.
                             if n_samps[ci] < buf_len:
                                 z = np.zeros((len(ch_data),

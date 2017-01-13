@@ -55,7 +55,8 @@ misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
 def test_bdf_data():
     """Test reading raw bdf files."""
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
-                              montage=montage_path, eog=eog, misc=misc, exclude=['M2', 'IEOG'])
+                              montage=montage_path, eog=eog, misc=misc,
+                              exclude=['M2', 'IEOG'])
     assert_true('RawEDF' in repr(raw_py))
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
