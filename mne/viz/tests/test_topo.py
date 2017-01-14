@@ -153,7 +153,10 @@ def test_plot_tfr_topo():
     tfr.plot_topo(baseline=(None, 0), mode='ratio', title='Average power',
                   vmin=0., vmax=14., show=False)
     tfr.plot([4], baseline=(None, 0), mode='ratio', show=False, title='foo')
-    tfr.plot([4], baseline=(None, 0), mode='ratio', show=False, title='foo',
-             imtype='nonuniform')
+
+    # nonuniform freqs
+    freqs = np.logspace(*np.log10([3, 10]), num=3)
+    tfr = AverageTFR(epochs.info, data, epochs.times, freqs, nave)
+    tfr.plot([4], baseline=(None, 0), mode='mean', vmax=14., show=False)
 
 run_tests_if_main()
