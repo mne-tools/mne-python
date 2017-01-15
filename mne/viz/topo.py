@@ -259,10 +259,17 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     extent = (tmin, tmax, freq[0], freq[-1])
     times = np.linspace(tmin, tmax, num=tfr[ch_idx].shape[1])
 
-    img = NonUniformImage(ax, extent=extent, clim=(vmin, vmax),
-                          origin="lower", picker=picker, cmap=cmap)
-    img.set_data(times, freq, tfr[ch_idx])
-    ax.images.append(img)
+    # construct a grid of borders between time/frequency bins
+    time_diff = np.diff(times) / 2.
+    freq_diff = np.diff(freq) / 2.
+    time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
+                               time_diff, [times[-1] + time_diff[-1]]])
+    freq_lims = np.concatenate([[freq[0] - freq_diff[0]], freq[:-1] +
+                               freq_diff, [freq[-1] + freq_diff[-1]]])
+    time_mesh, freq_mesh = np.meshgrid(time_lims, freq_lims)
+
+    img = ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], picker=picker,
+                        cmap=cmap, vmin=vmin, vmax=vmax)
     ax.set_xlim(extent[0], extent[1])
     ax.set_ylim(extent[2], extent[3])
 
