@@ -252,7 +252,6 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 hline=None):
     """Show time-freq map as 2d image."""
     import matplotlib.pyplot as plt
-    from matplotlib.image import NonUniformImage
     from matplotlib.widgets import RectangleSelector
 
     cmap, interactive_cmap = cmap
