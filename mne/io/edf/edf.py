@@ -52,7 +52,8 @@ class RawEDF(BaseRaw):
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
     exclude : array of str
-        Channel names to exclude.
+        Channel names to exclude. This can help when reading data with
+        different sampling rates to avoid unnecessary resampling.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -581,7 +582,8 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
     exclude : list of str
-        Channel names to exclude.
+        Channel names to exclude. This can help when reading data with
+        different sampling rates to avoid unnecessary resampling.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
