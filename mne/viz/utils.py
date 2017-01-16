@@ -1723,7 +1723,7 @@ def _plot_annotations(raw, params):
                                            color=segment_colors[dscr])
     params['segments'] = np.array(segments)
     params['annot_description'] = descriptions
-    if update:
+    if update and params['annotation_fig'] is not None:  # reset annotation fig
         params['annotation_fig'].canvas.close_event()
         _setup_annotation_fig(params)
 
