@@ -259,8 +259,8 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     times = np.linspace(tmin, tmax, num=tfr[ch_idx].shape[1])
 
     # construct a grid of borders between time/frequency bins
-    time_diff = np.diff(times) / 2.
-    freq_diff = np.diff(freq) / 2.
+    time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
+    freq_diff = np.diff(freq) / 2. if len(freq) > 1 else [0.5]
     time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
                                time_diff, [times[-1] + time_diff[-1]]])
     freq_lims = np.concatenate([[freq[0] - freq_diff[0]], freq[:-1] +

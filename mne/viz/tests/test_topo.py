@@ -159,4 +159,9 @@ def test_plot_tfr_topo():
     tfr = AverageTFR(epochs.info, data, epochs.times, freqs, nave)
     tfr.plot([4], baseline=(None, 0), mode='mean', vmax=14., show=False)
 
+    # one timesample
+    tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]],
+                     freqs, nave)
+    tfr.plot([4], baseline=None, vmax=14., show=False)
+
 run_tests_if_main()
