@@ -1002,9 +1002,9 @@ class AverageTFR(_BaseTFR):
             onselect_callback = partial(self._onselect, baseline=baseline,
                                         mode=mode, layout=layout)
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
-                        ylim=None, tfr=data[idx: idx + 1], freq=freqs,
+                        tfr=data[idx: idx + 1], freq=freqs,
                         x_label='Time (ms)', y_label='Frequency (Hz)',
-                        colorbar=colorbar, picker=False, cmap=cmap)
+                        colorbar=colorbar, cmap=cmap)
             if title:
                 fig.suptitle(title)
 

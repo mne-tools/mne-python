@@ -246,10 +246,9 @@ def _check_vlim(vlim):
     return not np.isscalar(vlim) and vlim is not None
 
 
-def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
-                tfr=None, freq=None, vline=None, x_label=None, y_label=None,
-                colorbar=False, picker=True, cmap=('RdBu_r', True), title=None,
-                hline=None):
+def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, tfr=None,
+                freq=None, x_label=None, y_label=None, colorbar=False,
+                cmap=('RdBu_r', True)):
     """Show time-freq map as 2d image."""
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
@@ -267,21 +266,17 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                                freq_diff, [freq[-1] + freq_diff[-1]]])
     time_mesh, freq_mesh = np.meshgrid(time_lims, freq_lims)
 
-    img = ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], picker=picker,
-                        cmap=cmap, vmin=vmin, vmax=vmax)
+    img = ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap,
+                        vmin=vmin, vmax=vmax)
     ax.set_xlim(extent[0], extent[1])
     ax.set_ylim(extent[2], extent[3])
 
-    if isinstance(ax, plt.Axes):
-        if x_label is not None:
-            ax.set_xlabel(x_label)
-        if y_label is not None:
-            ax.set_ylabel(y_label)
-    else:
-        if x_label is not None:
-            plt.xlabel(x_label)
-        if y_label is not None:
-            plt.ylabel(y_label)
+    if not isinstance(ax, plt.Axes):
+        ax = plt.gca()
+    if x_label is not None:
+        ax.set_xlabel(x_label)
+    if y_label is not None:
+        ax.set_ylabel(y_label)
     if colorbar:
         if isinstance(colorbar, DraggableColorbar):
             cbar = colorbar.cbar  # this happens with multiaxes case
@@ -289,10 +284,6 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
             cbar = plt.colorbar(mappable=img)
         if interactive_cmap:
             ax.CB = DraggableColorbar(cbar, img)
-    if title:
-        plt.title(title)
-    if not isinstance(ax, plt.Axes):
-        ax = plt.gca()
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
 
 

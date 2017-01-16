@@ -21,7 +21,8 @@ from mne.utils import run_tests_if_main
 from mne.viz import (plot_topo_image_epochs, _get_presser,
                      mne_analyze_colormap, plot_evoked_topo)
 from mne.viz.utils import _fake_click
-from mne.viz.topo import _plot_update_evoked_topo_proj, iter_topography
+from mne.viz.topo import (_plot_update_evoked_topo_proj, iter_topography,
+                          _imshow_tfr)
 
 # Set our plotters to test mode
 import matplotlib
@@ -144,6 +145,8 @@ def test_plot_topo_image_epochs():
 
 def test_plot_tfr_topo():
     """Test plotting of TFR data."""
+    import matplotlib.pyplot as plt
+
     epochs = _get_epochs()
     n_freqs = 3
     nave = 1
@@ -163,5 +166,15 @@ def test_plot_tfr_topo():
     tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]],
                      freqs, nave)
     tfr.plot([4], baseline=None, vmax=14., show=False)
+
+    # one freq bin
+    tfr = AverageTFR(epochs.info, data[:, [0], :], epochs.times,
+                     freqs[[-1]], nave)
+    vmin, vmax = 0., 2.
+    fig, ax = plt.subplots()
+    tmin, tmax = tfr.times[0], tfr.times[-1]
+    _imshow_tfr(ax, 3, tmin, tmax, vmin, vmax, None, tfr=tfr.data,
+                freq=freqs[[-1]], x_label=None, y_label=None,
+                colorbar=False, cmap=('RdBu_r', True))
 
 run_tests_if_main()
