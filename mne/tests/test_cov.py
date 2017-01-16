@@ -16,7 +16,8 @@ import itertools as itt
 
 from mne.cov import (regularize, whiten_evoked, _estimate_rank_meeg_cov,
                      _auto_low_rank_model, _apply_scaling_cov,
-                     _undo_scaling_cov, prepare_noise_cov, compute_whitener)
+                     _undo_scaling_cov, prepare_noise_cov, compute_whitener,
+                     _apply_scaling_array, _undo_scaling_array)
 
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
@@ -492,6 +493,11 @@ def test_cov_scaling():
     _undo_scaling_cov(cov, picks_list, scalings=scalings)
     assert_array_equal(cov, cov2)
     assert_true(cov.max() < 1)
+
+    data = evoked.data.copy()
+    _apply_scaling_array(data, picks_list, scalings=scalings)
+    _undo_scaling_array(data, picks_list, scalings=scalings)
+    assert_allclose(data, evoked.data, atol=1e-20)
 
 
 @requires_sklearn_0_15
