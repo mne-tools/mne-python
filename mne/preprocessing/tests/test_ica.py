@@ -9,7 +9,8 @@ import os
 import os.path as op
 import warnings
 
-from nose.tools import assert_true, assert_raises, assert_equal, assert_false
+from nose.tools import (assert_true, assert_raises, assert_equal, assert_false,
+                        assert_not_equal)
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
@@ -161,8 +162,10 @@ def test_ica_reset():
             method='fastica', max_iter=1).fit(raw, picks=picks)
 
     assert_true(all(hasattr(ica, attr) for attr in run_time_attrs))
+    assert_not_equal(ica.labels_, None)
     ica._reset()
     assert_true(not any(hasattr(ica, attr) for attr in run_time_attrs))
+    assert_not_equal(ica.labels_, None)
 
 
 @requires_sklearn
@@ -487,7 +490,6 @@ def test_ica_additional():
         idx, scores = ica.find_bads_eog(raw)
         assert_equal(len(scores), ica.n_components_)
 
-        ica.labels_ = None
         idx, scores = ica.find_bads_ecg(epochs, method='ctps')
         assert_equal(len(scores), ica.n_components_)
         assert_raises(ValueError, ica.find_bads_ecg, epochs.average(),

@@ -274,6 +274,7 @@ class ICA(ContainsMixin):
         self.exclude = []
         self.info = None
         self.method = method
+        self.labels_ = dict()
 
     def __repr__(self):
         """ICA fit information."""
@@ -1025,8 +1026,7 @@ class ICA(ContainsMixin):
             raise ValueError('Method "%s" not supported.' % method)
         # sort indices by scores
         ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
-        if not hasattr(self, 'labels_') or self.labels_ is None:
-            self.labels_ = dict()
+
         self.labels_['ecg'] = list(ecg_idx)
         self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         return self.labels_['ecg'], scores
@@ -1095,9 +1095,6 @@ class ICA(ContainsMixin):
 
         if inst.ch_names != self.ch_names:
             inst = inst.copy().pick_channels(self.ch_names)
-
-        if not hasattr(self, 'labels_') or self.labels_ is None:
-            self.labels_ = dict()
 
         for ii, (eog_ch, target) in enumerate(zip(eog_chs, targets)):
             scores += [self.score_sources(inst, target=target,
@@ -1704,9 +1701,8 @@ def _sort_components(ica, order, copy=True):
         order = list(order)
     if ica.exclude:
         ica.exclude = [order.index(ic) for ic in ica.exclude]
-    if hasattr(ica, 'labels_'):
-        for k in ica.labels_.keys():
-            ica.labels_[k] = [order.index(ic) for ic in ica.labels_[k]]
+    for k in ica.labels_.keys():
+        ica.labels_[k] = [order.index(ic) for ic in ica.labels_[k]]
 
     return ica
 
@@ -1919,7 +1915,9 @@ def read_ica(fname):
     if 'n_samples_' in ica_misc:
         ica.n_samples_ = ica_misc['n_samples_']
     if 'labels_' in ica_misc:
-        ica.labels_ = ica_misc['labels_']
+        labels_ = ica_misc['labels_']
+        if labels_ is not None:
+            ica.labels_ = labels_
     if 'method' in ica_misc:
         ica.method = ica_misc['method']
 
@@ -2414,8 +2412,6 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         logger.info('Displaying selected ICs per subject.')
 
     for ii, (ica, max_corr) in enumerate(zip(icas, mx)):
-        if (label is not None) and (not hasattr(ica, 'labels_')):
-            ica.labels_ = dict()
         if len(max_corr) > 0:
             if isinstance(max_corr[0], np.ndarray):
                 max_corr = max_corr[0]
