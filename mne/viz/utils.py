@@ -17,6 +17,7 @@ import tempfile
 import numpy as np
 from copy import deepcopy
 from distutils.version import LooseVersion
+from itertools import cycle
 
 from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
@@ -639,10 +640,8 @@ def _change_channel_group(step, params):
     if step < 0:
         if idx < len(radio.labels) - 1:
             _set_radio_button(idx + 1, params)
-    else:
-        if idx > 0:
-            _set_radio_button(idx - 1, params)
-    return
+    elif idx > 0:
+        _set_radio_button(idx - 1, params)
 
 
 def _handle_change_selection(event, params):
@@ -661,7 +660,6 @@ def _handle_change_selection(event, params):
 
 def _plot_raw_onkey(event, params):
     """Interpret key presses."""
-    import matplotlib as mpl
     import matplotlib.pyplot as plt
     if event.key == 'escape':
         plt.close(params['fig'])
@@ -733,38 +731,24 @@ def _plot_raw_onkey(event, params):
         if 'ica' in params.keys():
             return
         if params['annotation_fig'] is None:
-            from matplotlib.widgets import SpanSelector
             _setup_annotation_fig(params)
-            ax = params['ax']
-            callback_onselect = partial(_annotate_select, params=params)
-            selector = SpanSelector(ax, callback_onselect, 'horizontal',
-                                    minspan=0.1,
-                                    rectprops=dict(alpha=0.5, facecolor='red'))
-            params['ax'].selector = selector
-            if LooseVersion(mpl.__version__) < LooseVersion('1.5'):
-                # XXX: Hover event messes up callback ids in old mpl.
-                warn('Modifying existing annotations is not possible for '
-                     'matplotlib versions < 1.4. Upgrade matplotlib.')
-                return
-            hover_callback = partial(_on_hover, params=params)
-            params['hover_callback'] = params['fig'].canvas.mpl_connect(
-                'motion_notify_event', hover_callback)
         else:
             params['annotation_fig'].canvas.close_event()
 
 
 def _setup_annotation_fig(params):
     """Initialize the annotation figure."""
+    import matplotlib as mpl
     import matplotlib.pyplot as plt
-    from matplotlib.widgets import RadioButtons
+    from matplotlib.widgets import RadioButtons, SpanSelector
     annotations = params['raw'].annotations
-    lbls = [] if annotations is None else list(set(annotations.description))
-    if 'BAD' in lbls:
-        lbls.append('_')
+    labels = [] if annotations is None else list(set(annotations.description))
+    if 'BAD' in labels:
+        labels.append('_')
     else:
-        lbls.append('BAD_')
-    fig = figure_nobar(figsize=(7.5, 1.5 + len(lbls) * 0.75))
-    ax = plt.subplot2grid((len(lbls) + 1, 1), (1, 0), rowspan=len(lbls))
+        labels.append('BAD_')
+    fig = figure_nobar(figsize=(7.5, 1.5 + len(labels) * 0.75))
+    ax = plt.subplot2grid((len(labels) + 1, 1), (1, 0), rowspan=len(labels))
 
     annotations_closed = partial(_annotations_closed, params=params)
     fig.canvas.mpl_connect('close_event', annotations_closed)
@@ -772,13 +756,27 @@ def _setup_annotation_fig(params):
             'Use left mouse button to draw/modify annotation.\n'
             'Right click removes an existing annotation.\n'
             'Type to modify. When done, close this window.')
-    fig.suptitle(text, fontsize=18, fontweight='bold')
-    fig.radio = RadioButtons(ax, lbls)
+    fig.suptitle(text, fontsize=18)
+    fig.radio = RadioButtons(ax, labels)
     for label in fig.radio.labels[:-1]:
         label.set_color(params['segment_colors'][label.get_text()])
     fig.canvas.mpl_connect('key_press_event', _change_annotation_description)
     fig.show()
     params['annotation_fig'] = fig
+
+    ax = params['ax']
+    callback_onselect = partial(_annotate_select, params=params)
+    selector = SpanSelector(ax, callback_onselect, 'horizontal', minspan=0.1,
+                            rectprops=dict(alpha=0.5, facecolor='red'))
+    params['ax'].selector = selector
+    if LooseVersion(mpl.__version__) < LooseVersion('1.5'):
+        # XXX: Hover event messes up callback ids in old mpl.
+        warn('Modifying existing annotations is not possible for '
+             'matplotlib versions < 1.4. Upgrade matplotlib.')
+        return
+    hover_callback = partial(_on_hover, params=params)
+    params['hover_callback'] = params['fig'].canvas.mpl_connect(
+        'motion_notify_event', hover_callback)
 
 
 def _mouse_click(event, params):
@@ -1689,34 +1687,45 @@ def _annotate_select(vmin, vmax, params):
 
 def _plot_annotations(raw, params):
     """Function for setting up annotations for plotting in raw browser."""
-    import matplotlib.pyplot as plt
-    if raw.annotations is not None:
-        while len(params['ax_hscroll'].collections) > 0:
-            params['ax_hscroll'].collections.pop()
-        segments = list()
-        segment_colors = dict()
-        # sort the segments by start time
-        ann_order = raw.annotations.onset.argsort(axis=0)
-        descriptions = raw.annotations.description[ann_order]
-        color_keys = set(descriptions)
-        color_vals = np.linspace(0, 1, len(color_keys))
-        for idx, key in enumerate(color_keys):
-            if key.lower().startswith('bad'):
-                segment_colors[key] = 'red'
-            else:
-                segment_colors[key] = plt.cm.summer(color_vals[idx])
-        params['segment_colors'] = segment_colors
-        for idx, onset in enumerate(raw.annotations.onset[ann_order]):
-            annot_start = _onset_to_seconds(raw, onset) + params['first_time']
-            annot_end = annot_start + raw.annotations.duration[ann_order][idx]
-            segments.append([annot_start, annot_end])
-            ylim = params['ax_hscroll'].get_ylim()
-            dscr = descriptions[idx]
-            params['ax_hscroll'].fill_betweenx(ylim, annot_start, annot_end,
-                                               alpha=0.3,
-                                               color=segment_colors[dscr])
-        params['segments'] = np.array(segments)
-        params['annot_description'] = descriptions
+    if raw.annotations is None:
+        return
+
+    while len(params['ax_hscroll'].collections) > 0:
+        params['ax_hscroll'].collections.pop()
+    segments = list()
+    segment_colors = params.get('segment_colors', dict())
+    # sort the segments by start time
+    ann_order = raw.annotations.onset.argsort(axis=0)
+    descriptions = raw.annotations.description[ann_order]
+    color_keys = set(descriptions)
+    color_cycle = cycle(np.delete(COLORS, 2))  # no red
+    for _ in np.intersect1d(list(color_keys), segment_colors.keys()):
+        color_cycle.next()
+    update = False
+    for idx, key in enumerate(color_keys):
+        if key in segment_colors:
+            continue
+        elif key.lower().startswith('bad'):
+            segment_colors[key] = 'red'
+            update = True
+        else:
+            segment_colors[key] = color_cycle.next()
+            update = True
+    params['segment_colors'] = segment_colors
+    for idx, onset in enumerate(raw.annotations.onset[ann_order]):
+        annot_start = _onset_to_seconds(raw, onset) + params['first_time']
+        annot_end = annot_start + raw.annotations.duration[ann_order][idx]
+        segments.append([annot_start, annot_end])
+        ylim = params['ax_hscroll'].get_ylim()
+        dscr = descriptions[idx]
+        params['ax_hscroll'].fill_betweenx(ylim, annot_start, annot_end,
+                                           alpha=0.3,
+                                           color=segment_colors[dscr])
+    params['segments'] = np.array(segments)
+    params['annot_description'] = descriptions
+    if update:
+        params['annotation_fig'].canvas.close_event()
+        _setup_annotation_fig(params)
 
 
 def _annotations_closed(event, params):
@@ -1756,6 +1765,9 @@ def _on_hover(event, params):
                 params['segment_line'] = dl
             else:
                 params['segment_line'].set_x(x)
+            params['vertline_t'].set_text('%.3f' % x)
+            params['ax_vertline'].set_data(0,
+                                           np.array(params['ax'].get_ylim()))
             params['ax'].selector.active = False
             params['fig'].canvas.draw()
             return
@@ -1768,6 +1780,7 @@ def _remove_segment_line(params):
         params['segment_line'].remove()
         params['segment_line'] = None
         params['ax'].selector.active = True
+        params['vertline_t'].set_text('')
 
 
 def _annotation_modify(old_x, new_x, params):
