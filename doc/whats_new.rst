@@ -61,6 +61,8 @@ Changelog
 
     - Add new ``visual_92_categories`` dataset by `Jaakko Leppakangas`_
 
+    - Add option in :func:`mne.io.read_raw_edf` to allow channel exclusion by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
