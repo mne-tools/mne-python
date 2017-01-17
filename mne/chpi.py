@@ -317,6 +317,13 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
 
     # Set up magnetic dipole fits
     picks_meg = pick_types(info, meg=True, eeg=False, exclude=exclude)
+    if len(exclude) > 0:
+        if exclude == 'bads':
+            msg = info['bads']
+        else:
+            msg = exclude
+        logger.debug('Static bad channels (%d): %s'
+                     % (len(msg), u' '.join(msg)))
     if add_hpi_stim_pick:
         if hpi_pick is None:
             raise RuntimeError('Could not find HPI status channel')
@@ -410,7 +417,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         #
         # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
         #
-        fit_time = midpt / raw.info['sfreq']
+        fit_time = (midpt + raw.first_samp) / raw.info['sfreq']
         time_sl = midpt - hpi['n_window'] // 2
         time_sl = slice(max(time_sl, 0),
                         min(time_sl + hpi['n_window'], len(raw.times)))
@@ -562,6 +569,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         logger.debug('    #t = %0.3f, #e = %0.2f cm, #g = %0.3f, '
                      '#v = %0.2f cm/s, #r = %0.2f rad/s, #d = %0.2f cm'
                      % (fit_time, 100 * e, g, v, r, d))
+        logger.debug('    #t = %0.3f, #q = %s '
+                     % (fit_time, ' '.join(map('{:8.5f}'.format, this_quat))))
         quats.append(np.concatenate(([fit_time], this_quat, [g],
                                      [e * 100], [v])))  # e in centimeters
         last['fit_time'] = fit_time
