@@ -317,6 +317,11 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
 
     # Set up magnetic dipole fits
     picks_meg = pick_types(info, meg=True, eeg=False, exclude=exclude)
+    if exclude == 'bads':
+        msg = 'Static bad channels (%d): %s' % (info['bads'].__len__(), ' '.join(map('{:s}'.format,info['bads'])))
+    elif exclude != None:
+        msg = 'Static bad channels (%d): %s' % (exclude.__len__() ,' '.join(map('{:s}'.format,exclude)))
+    logger.debug(msg)                         
     if add_hpi_stim_pick:
         if hpi_pick is None:
             raise RuntimeError('Could not find HPI status channel')
@@ -562,6 +567,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         logger.debug('    #t = %0.3f, #e = %0.2f cm, #g = %0.3f, '
                      '#v = %0.2f cm/s, #r = %0.2f rad/s, #d = %0.2f cm'
                      % (fit_time, 100 * e, g, v, r, d))
+        logger.debug('    #t = %0.3f, #q = %s '
+                     % (fit_time, ' '.join(map('{:8.5f}'.format,this_quat))))
         quats.append(np.concatenate(([fit_time], this_quat, [g],
                                      [e * 100], [v])))  # e in centimeters
         last['fit_time'] = fit_time
@@ -624,7 +631,7 @@ def filter_chpi(raw, include_line=True, verbose=None):
         n_remove += 2 * len(hpi['line_freqs'])
         msg += ' and %s line harmonic' % len(hpi['line_freqs'])
     msg += ' frequencies from %s MEG channels' % len(meg_picks)
-
+    
     proj = np.dot(hpi['model'][:, :n_remove], hpi['inv_model'][:n_remove]).T
     logger.info(msg)
     chunks = list()  # the chunks to subtract
