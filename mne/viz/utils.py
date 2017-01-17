@@ -1700,7 +1700,7 @@ def _plot_annotations(raw, params):
     color_keys = set(descriptions)
     color_cycle = cycle(np.delete(COLORS, 2))  # no red
     for _ in np.intersect1d(list(color_keys), list(segment_colors.keys())):
-        color_cycle.next()
+        next(color_cycle)
     update = False
     for idx, key in enumerate(color_keys):
         if key in segment_colors:
@@ -1709,7 +1709,7 @@ def _plot_annotations(raw, params):
             segment_colors[key] = 'red'
             update = True
         else:
-            segment_colors[key] = color_cycle.next()
+            segment_colors[key] = next(color_cycle)
             update = True
     params['segment_colors'] = segment_colors
     for idx, onset in enumerate(raw.annotations.onset[ann_order]):
