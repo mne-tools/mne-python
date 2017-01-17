@@ -95,24 +95,10 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
     -----
     When no structural MRI is available for a subject, an average brain can be
     substituted. Freesurfer comes with such an average brain model, and MNE
-    comes with some auxiliary files which make coregistration easier.
-    :py:func:`create_default_subject` copies the relevant files from Freesurfer
-    into the current subjects_dir, and also adds the auxiliary files provided
-    by MNE.
-
-    The files provided by MNE are listed below and can be found under
-    ``share/mne/mne_analyze/fsaverage`` in the MNE directory (see MNE manual
-    section 7.19 Working with the average brain):
-
-    fsaverage_head.fif:
-        The approximate head surface triangulation for fsaverage.
-    fsaverage_inner_skull-bem.fif:
-        The approximate inner skull surface for fsaverage.
-    fsaverage-fiducials.fif:
-        The locations of the fiducial points (LPA, RPA, and nasion).
-    fsaverage-trans.fif:
-        Contains a default MEG-MRI coordinate transformation suitable for
-        fsaverage.
+    comes with some auxiliary files which make coregistration easier (see
+    :ref:`CACGEAFI`). :py:func:`create_default_subject` copies the relevant
+    files from Freesurfer into the current subjects_dir, and also adds the
+    auxiliary files provided by MNE.
     """
     if mne_root is not None:
         warn("Because files from MNE-C are not needed anymore for "
