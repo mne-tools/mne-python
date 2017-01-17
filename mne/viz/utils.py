@@ -1699,7 +1699,7 @@ def _plot_annotations(raw, params):
     descriptions = raw.annotations.description[ann_order]
     color_keys = set(descriptions)
     color_cycle = cycle(np.delete(COLORS, 2))  # no red
-    for _ in np.intersect1d(list(color_keys), segment_colors.keys()):
+    for _ in np.intersect1d(list(color_keys), list(segment_colors.keys())):
         color_cycle.next()
     update = False
     for idx, key in enumerate(color_keys):
