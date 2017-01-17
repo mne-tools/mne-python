@@ -486,9 +486,9 @@ class SubjectSelectorPanel(HasPrivateTraits):
     def _subjects_dir_changed(self, old, new):
         if new and self.subjects == ['']:
             information(None, "The directory selected as subjects-directory "
-                        "(%s) does not contain any valid MRI subjects. If this "
-                        "is not expected make sure all MRI subjects have head "
-                        "surface model files which "
+                        "(%s) does not contain any valid MRI subjects. If "
+                        "this is not expected make sure all MRI subjects have "
+                        "head surface model files which "
                         "can be created by running:\n\n    $ mne "
                         "make_scalp_surfaces" % self.subjects_dir,
                         "No Subjects Found")
