@@ -317,14 +317,13 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
 
     # Set up magnetic dipole fits
     picks_meg = pick_types(info, meg=True, eeg=False, exclude=exclude)
-    if exclude == 'bads':
+    if len(exclude) > 0:
+        if exclude == 'bads':
+            msg = info['bads']
+        else:
+            msg = exclude
         logger.debug('Static bad channels (%d): %s'
-                     % (info['bads'].__len__(), ' '.join(map('{:s}'.format,
-                                                             info['bads']))))
-    elif exclude is not None:
-        logger.debug('Static bad channels (%d): %s'
-                     % (exclude.__len__(), ' '.join(map('{:s}'.format,
-                                                        exclude))))
+                     % (len(msg), u' '.join(msg)))
     if add_hpi_stim_pick:
         if hpi_pick is None:
             raise RuntimeError('Could not find HPI status channel')
@@ -418,7 +417,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         #
         # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
         #
-        fit_time = midpt / raw.info['sfreq']
+        fit_time = (midpt + raw.first_samp) / raw.info['sfreq']
         time_sl = midpt - hpi['n_window'] // 2
         time_sl = slice(max(time_sl, 0),
                         min(time_sl + hpi['n_window'], len(raw.times)))
