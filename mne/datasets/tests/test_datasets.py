@@ -12,7 +12,7 @@ def test_datasets():
     """
     for dname in ('sample', 'somato', 'spm_face', 'testing',
                   'bst_raw', 'bst_auditory', 'bst_resting',
-                  'visual_96_categories'):
+                  'visual_92_categories'):
         if dname.startswith('bst'):
             dataset = getattr(datasets.brainstorm, dname)
         else:

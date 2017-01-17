@@ -19,6 +19,9 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
     """
     Get path to local copy of visual_92_categories dataset.
 
+    .. note:: The dataset contains all four runs and is rather big in size
+              (5.32 GB).
+
     Parameters
     ----------
     path : None | str
@@ -46,10 +49,8 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
     Notes
     -----
     The visual_92_categories dataset is documented in the following publication
-        Radoslaw M. Cichy, Aditya Khosla, Dimitrios Pantazis, Antonio Torralba,
-        Aude Oliva (2016) Deep Neural Networks predict Hierarchical
-        Spatio-temporal Cortical Dynamics of Human Visual Object Recognition.
-        arXiv:1601.02970
+        Radoslaw M. Cichy, Dimitrios Pantazis, Aude Oliva (2014) Resolving
+        human object recognition in space and time. doi: 10.1038/NN.3635
     """
     return _data_path(path=path, force_update=force_update,
                       update_path=update_path, name='visual_92_categories',
