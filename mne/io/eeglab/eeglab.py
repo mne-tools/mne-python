@@ -484,6 +484,8 @@ class EpochsEEGLAB(BaseEpochs):
             ev_idx = 0
             warn_multiple_events = False
             for ep in eeg.epoch:
+                if isinstance(ep.eventtype, int):
+                    ep.eventtype = str(ep.eventtype)
                 if not isinstance(ep.eventtype, string_types):
                     event_type = '/'.join(ep.eventtype.tolist())
                     event_name.append(event_type)
