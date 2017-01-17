@@ -19,8 +19,8 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
     """
     Get path to local copy of visual_92_categories dataset.
 
-    .. note:: The dataset contains all four runs and is rather big in size
-              (5.32 GB).
+    .. note:: The dataset contains four fif-files, the trigger files and the T1
+              mri image. This dataset is rather big in size (more than 5 GB).
 
     Parameters
     ----------
