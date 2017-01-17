@@ -153,8 +153,15 @@ def test_plot_tfr_topo():
     data = np.random.RandomState(0).randn(len(epochs.ch_names),
                                           n_freqs, len(epochs.times))
     tfr = AverageTFR(epochs.info, data, epochs.times, np.arange(n_freqs), nave)
-    tfr.plot_topo(baseline=(None, 0), mode='ratio', title='Average power',
-                  vmin=0., vmax=14., show=False)
+    fig = tfr.plot_topo(baseline=(None, 0), mode='ratio',
+                        title='Average power', vmin=0., vmax=14.)
+
+    # test opening tfr by clicking
+    num_figures_before = len(plt.get_fignums())
+    _fake_click(fig, fig.axes[-1], (0.08, 0.65))
+    assert_equal(num_figures_before + 1, len(plt.get_fignums()))
+    plt.close('all')
+
     tfr.plot([4], baseline=(None, 0), mode='ratio', show=False, title='foo')
 
     # nonuniform freqs
