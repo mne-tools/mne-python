@@ -205,6 +205,23 @@ def test_montage():
             _set_montage(info, montage)
             assert_true(len(w) == 1)
 
+    # Channel names can be treated case insensitive
+    with warnings.catch_warnings(record=True) as w:
+        info = create_info(['FP1', 'af7', 'AF3'], 1e3, ['eeg'] * 3)
+        _set_montage(info, montage)
+        assert_true(len(w) == 0)
+
+    # Unless there is a collision in names
+    with warnings.catch_warnings(record=True) as w:
+        info = create_info(['FP1', 'Fp1', 'AF3'], 1e3, ['eeg'] * 3)
+        _set_montage(info, montage)
+        assert_true(len(w) == 1)
+    with warnings.catch_warnings(record=True) as w:
+        montage.ch_names = ['FP1', 'Fp1', 'AF3']
+        info = create_info(['fp1', 'AF3'], 1e3, ['eeg', 'eeg'])
+        _set_montage(info, montage)
+        assert_true(len(w) == 1)
+
 
 @testing.requires_testing_data
 def test_read_locs():
