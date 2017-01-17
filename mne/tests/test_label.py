@@ -840,6 +840,4 @@ def test_label_center_of_mass():
                   surf=1)
     assert_raises(IOError, label.center_of_mass, subjects_dir=subjects_dir,
                   surf='foo')
-    assert_raises(ValueError, label.center_of_mass, subjects_dir=subjects_dir,
-                  ### SOMETHING GOES HERE)
 run_tests_if_main()
