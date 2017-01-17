@@ -78,7 +78,8 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
     Parameters
     ----------
     mne_root : None
-        This argument is not used anymore.
+        This argument is not used anymore and will be removed in 0.15. Use
+        keyword arguments to make your application forward compatible.
     fs_home : None | str
         The freesurfer home directory (only needed if FREESURFER_HOME is not
         specified as environment variable).
@@ -113,6 +114,13 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
         Contains a default MEG-MRI coordinate transformation suitable for
         fsaverage.
     """
+    if mne_root is not None:
+        warn("Because files from MNE-C are not needed anymore for "
+             "creat_default_subject(), the mne_root argument is deprecated "
+             "and will be removed in 0.15. Please call this function with "
+             "keyword arguments to make your application forward compatible.",
+             DeprecationWarning)
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if fs_home is None:
         fs_home = get_config('FREESURFER_HOME', fs_home)
