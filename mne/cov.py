@@ -633,13 +633,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
            'in a list) are "%s" or None.' % '" or "'.join(accepted_methods))
 
     # scale to natural unit for best stability with MEG/EEG
-    if isinstance(scalings, dict):
-        for k, v in scalings.items():
-            if k not in ('mag', 'grad', 'eeg'):
-                raise ValueError('The keys in `scalings` must be "mag" or'
-                                 '"grad" or "eeg". You gave me: %s' % k)
-    scalings = _handle_default('scalings', scalings)
-
+    scalings = _check_scalings_user(scalings)
     _method_params = {
         'empirical': {'store_precision': False, 'assume_centered': True},
         'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
@@ -842,6 +836,19 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         out = covs[0]
 
     return out
+
+
+def _check_scalings_user(scalings):
+    if isinstance(scalings, dict):
+        for k, v in scalings.items():
+            if k not in ('mag', 'grad', 'eeg'):
+                raise ValueError('The keys in `scalings` must be "mag" or'
+                                 '"grad" or "eeg". You gave me: %s' % k)
+    elif scalings is not None and not isinstance(scalings, np.ndarray):
+        raise TypeError('scalings must be a dict, ndarray, or None, got %s'
+                        % type(scalings))
+    scalings = _handle_default('scalings', scalings)
+    return scalings
 
 
 def _compute_covariance_auto(data, method, info, method_params, cv,
@@ -1829,12 +1836,17 @@ def _apply_scaling_array(data, picks_list, scalings):
         data *= scalings[:, np.newaxis]  # F - order
 
 
-def _undo_scaling_array(data, picks_list, scalings):
-    scalings = _check_scaling_inputs(data, picks_list, scalings)
+def _invert_scalings(scalings):
     if isinstance(scalings, dict):
         scalings = dict((k, 1. / v) for k, v in scalings.items())
     elif isinstance(scalings, np.ndarray):
         scalings = 1. / scalings
+    return scalings
+
+
+def _undo_scaling_array(data, picks_list, scalings):
+    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
+                                                      scalings))
     return _apply_scaling_array(data, picks_list, scalings)
 
 
@@ -1865,11 +1877,8 @@ def _apply_scaling_cov(data, picks_list, scalings):
 
 
 def _undo_scaling_cov(data, picks_list, scalings):
-    scalings = _check_scaling_inputs(data, picks_list, scalings)
-    if isinstance(scalings, dict):
-        scalings = dict((k, 1. / v) for k, v in scalings.items())
-    elif isinstance(scalings, np.ndarray):
-        scalings = 1. / scalings
+    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
+                                                      scalings))
     return _apply_scaling_cov(data, picks_list, scalings)
 
 
