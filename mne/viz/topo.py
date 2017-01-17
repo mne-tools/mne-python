@@ -246,9 +246,9 @@ def _check_vlim(vlim):
     return not np.isscalar(vlim) and vlim is not None
 
 
-def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, tfr=None,
-                freq=None, x_label=None, y_label=None, colorbar=False,
-                cmap=('RdBu_r', True)):
+def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
+                tfr=None, freq=None, x_label=None, y_label=None,
+                colorbar=False, cmap=('RdBu_r', True)):
     """Show time-freq map as 2d image."""
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
