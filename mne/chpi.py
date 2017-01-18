@@ -417,7 +417,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         #
         # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
         #
-        fit_time = (midpt + raw.first_samp) / raw.info['sfreq']
+        fit_time = (midpt + raw.first_samp - hpi['n_window'] / 2.) /\
+            raw.info['sfreq']
         time_sl = midpt - hpi['n_window'] // 2
         time_sl = slice(max(time_sl, 0),
                         min(time_sl + hpi['n_window'], len(raw.times)))
