@@ -261,11 +261,11 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     times = np.linspace(tmin, tmax, num=tfr[ch_idx].shape[1])
 
     # test yscale
-    if len(freq) < 2:
+    if len(freq) < 2 or np.any(freq <= 0):
         yscale = 'linear'
-    elif yscale is not 'linear':
+    elif yscale != 'linear':
         ratio = freq[1:] / freq[:-1]
-    if yscale is 'auto':
+    if yscale == 'auto':
         if freq[0] > 0 and np.allclose(ratio, ratio[0]):
             yscale = 'log'
         else:
@@ -277,15 +277,14 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                                time_diff, [times[-1] + time_diff[-1]]])
 
     # the same for frequency - depending on whether yscale is log
-    if yscale is 'linear':
+    if yscale == 'linear':
         freq_diff = np.diff(freq) / 2. if len(freq) > 1 else [0.5]
         freq_lims = np.concatenate([[freq[0] - freq_diff[0]], freq[:-1] +
                                    freq_diff, [freq[-1] + freq_diff[-1]]])
     else:
-        from scipy.stats import gmean
         log_freqs = np.concatenate([[freq[0] / ratio[0]], freq,
                                    [freq[-1] * ratio[0]]])
-        freq_lims = gmean(np.vstack([log_freqs[:-1], log_freqs[1:]]), axis=0)
+        freq_lims = np.sqrt(log_freqs[:-1] * log_freqs[1:])
 
     # construct a time-frequency bounds grid
     time_mesh, freq_mesh = np.meshgrid(time_lims, freq_lims)
@@ -299,7 +298,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         ylim = (freq_lims[0], freq_lims[-1])
     ax.set_ylim(ylim)
 
-    if yscale is 'log':
+    if yscale == 'log':
         ax.set_yscale('log')
         ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
 
