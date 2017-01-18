@@ -114,7 +114,7 @@ BUG
 
     - Fix bug in :func:`mne.io.read_raw_edf` when ``preload=False`` and channels have different sampling rates by `Jaakko Leppakangas`_
 
-    - Fix :func:`mne.labels.read_labels_from_annot` to set label.values=1 rather than 0 for consistency with the label class by `Jon Houck`_
+    - Fix :func:`mne.read_labels_from_annot` to set ``label.values[:]=1`` rather than 0 for consistency with the :class:`Label` class by `Jon Houck`_
 
 API
 ~~~

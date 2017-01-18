@@ -747,7 +747,7 @@ class Label(object):
         subject = _check_subject(self.subject, subject)
         if np.any(self.values < 0):
             raise ValueError('Cannot compute COM with negative values')
-        if np.any(self.values == 0):
+        if np.all(self.values == 0):
             raise ValueError('Cannot compute COM with all values == 0. For '
                             'structural labels, consider setting to ones via '
                             'label.values[:] = 1.')
