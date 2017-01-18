@@ -90,7 +90,7 @@ epochs_data_train = epochs_train.get_data()
 # Use scikit-learn Pipeline with cross_val_score function
 from sklearn.pipeline import Pipeline  # noqa
 from sklearn.cross_validation import cross_val_score  # noqa
-clf = Pipeline([('CSP', csp), ('SVC', lda)])
+clf = Pipeline([('CSP', csp), ('LDA', lda)])
 scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=1)
 
 # Printing the results
