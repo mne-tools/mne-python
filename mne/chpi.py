@@ -283,8 +283,11 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
         raise RuntimeError('Found HPI frequencies %s above the lowpass '
                            '(or Nyquist) frequency %0.1f'
                            % (hpi_freqs[~keepers].tolist(), highest))
-    line_freqs = np.arange(info['line_freq'], info['sfreq'] / 3.,
-                           info['line_freq'])
+    if info['line_freq'] is not None:
+        line_freqs = np.arange(info['line_freq'], info['sfreq'] / 3.,
+                               info['line_freq'])
+    else:
+        line_freqs = np.zeros([0])
     logger.info('Line interference frequencies: %s Hz'
                 % ' '.join(['%d' % l for l in line_freqs]))
     # initial transforms
