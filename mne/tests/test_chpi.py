@@ -153,15 +153,29 @@ def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5.):
                 % (t[arg_worst], angles[arg_worst], angle_tol))
 
 
-@slow_test
 @testing.requires_testing_data
 def test_calculate_chpi_positions():
     """Test calculation of cHPI positions."""
     # Check to make sure our fits match MF decently
     mf_quats = read_head_pos(pos_fname)
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
-    py_quats = _calculate_chpi_positions(raw, verbose='debug')
-    _assert_quats(py_quats, mf_quats, dist_tol=0.003, angle_tol=2.)
+    # This is a little hack (aliasing while decimating) to make it much faster
+    # for testing purposes only. We can relax this later if we find it breaks
+    # something.
+    decim = 4
+    raw_dec = RawArray(
+        raw._data[:, ::decim], raw.info, first_samp=raw.first_samp // decim)
+    raw_dec.info['sfreq'] /= decim
+    for coil in raw_dec.info['hpi_meas'][0]['hpi_coils']:
+        if coil['coil_freq'] > raw_dec.info['sfreq']:
+            coil['coil_freq'] = np.mod(coil['coil_freq'],
+                                       raw_dec.info['sfreq'])
+            if coil['coil_freq'] > raw_dec.info['sfreq'] / 2.:
+                coil['coil_freq'] = raw_dec.info['sfreq'] - coil['coil_freq']
+    with catch_logging() as log:
+        py_quats = _calculate_chpi_positions(raw_dec, verbose='debug')
+    assert_true(log.getvalue().startswith('HPIFIT'))
+    _assert_quats(py_quats, mf_quats, dist_tol=0.004, angle_tol=2.5)
 
     # degenerate conditions
     raw_no_chpi = read_raw_fif(test_fif_fname)
@@ -197,11 +211,11 @@ def test_calculate_chpi_positions_on_chpi5_in_one_second_steps():
     # Check to make sure our fits match MF decently
     mf_quats = read_head_pos(chpi5_pos_fname)
     raw = read_raw_fif(chpi5_fif_fname, allow_maxshield='yes', preload=False)
-# the last two seconds contain a maxfilter problem!
-# fiff file timing: 26. to 43. seconds
-# maxfilter estimates a wrong head position for interval 16: 41.-42. seconds
+    # the last two seconds contain a maxfilter problem!
+    # fiff file timing: 26. to 43. seconds
+    # maxfilter estimates a wrong head position for interval 16: 41.-42. sec
     raw.crop(0., 15.).load_data()
-# needs no interpolation, because maxfilter pos files comes with 1 s steps
+    # needs no interpolation, because maxfilter pos files comes with 1 s steps
     py_quats = _calculate_chpi_positions(raw, t_step_min=1.0, t_step_max=1.0,
                                          t_window=1.0, verbose='debug')
     _assert_quats(py_quats, mf_quats, dist_tol=0.0008, angle_tol=.5)
@@ -224,8 +238,6 @@ def test_calculate_chpi_positions_on_chpi5_in_shorter_steps():
     _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=0.6)
 
 
-@slow_test
-@testing.requires_testing_data
 def test_simulate_calculate_chpi_positions():
     """Test calculation of cHPI positions with simulated data."""
     # Read info dict from raw FIF file
@@ -271,12 +283,11 @@ def test_simulate_calculate_chpi_positions():
     head_pos_sfreq_quotient = 0.1
 
     # Round number of head positions to the next integer
-    S = int(duration / (info['sfreq'] * head_pos_sfreq_quotient) + 0.5)
+    S = int(duration / (info['sfreq'] * head_pos_sfreq_quotient))
     dz = 0.001  # Shift in z-direction is 0.1mm for each step
 
     dev_head_pos = np.zeros((S, 10))
-    dev_head_pos[:, 0] = 0.5 + (np.arange(S) * info['sfreq'] *
-                                head_pos_sfreq_quotient)
+    dev_head_pos[:, 0] = np.arange(S) * info['sfreq'] * head_pos_sfreq_quotient
     dev_head_pos[:, 1:4] = dev_head_pos_ini[:3]
     dev_head_pos[:, 4:7] = dev_head_pos_ini[3:] + \
         np.outer(np.arange(S) * dz, ez)
@@ -303,11 +314,9 @@ def test_simulate_calculate_chpi_positions():
                        head_pos=dev_head_pos, mindist=1.0, interp='zero',
                        verbose=None)
 
-    quats = _calculate_chpi_positions(raw, t_step_min=raw.info['sfreq'] *
-                                      head_pos_sfreq_quotient,
-                                      t_step_max=raw.info['sfreq'] *
-                                      head_pos_sfreq_quotient,
-                                      t_window=1.0)
+    quats = _calculate_chpi_positions(
+        raw, t_step_min=raw.info['sfreq'] * head_pos_sfreq_quotient,
+        t_step_max=raw.info['sfreq'] * head_pos_sfreq_quotient, t_window=1.0)
     _assert_quats(quats, dev_head_pos, dist_tol=0.001, angle_tol=1.)
 
 
