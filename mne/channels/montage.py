@@ -688,6 +688,7 @@ def _set_montage(info, montage, update_ch_names=False):
         The montage to apply.
     update_ch_names : bool
         If True, overwrite the info channel names with the ones from montage.
+        Defaults to False.
 
     Notes
     -----
@@ -709,11 +710,24 @@ def _set_montage(info, montage, update_ch_names=False):
             raise ValueError('No EEG channels found.')
 
         sensors_found = []
-        for pos, ch_name in zip(montage.pos, montage.ch_names):
-            if ch_name not in info['ch_names']:
+
+        # If there are no name collisions, match channel names in a case
+        # insensitive manner.
+        montage_lower = [ch_name.lower() for ch_name in montage.ch_names]
+        info_lower = [ch_name.lower() for ch_name in info['ch_names']]
+        if (len(set(montage_lower)) == len(montage_lower) and
+                len(set(info_lower)) == len(info_lower)):
+            montage_ch_names = montage_lower
+            info_ch_names = info_lower
+        else:
+            montage_ch_names = montage.ch_names
+            info_ch_names = info['ch_names']
+
+        for pos, ch_name in zip(montage.pos, montage_ch_names):
+            if ch_name not in info_ch_names:
                 continue
 
-            ch_idx = info['ch_names'].index(ch_name)
+            ch_idx = info_ch_names.index(ch_name)
             info['chs'][ch_idx]['loc'] = np.r_[pos, [0.] * 9]
             sensors_found.append(ch_idx)
 
@@ -734,13 +748,16 @@ def _set_montage(info, montage, update_ch_names=False):
 
     elif isinstance(montage, DigMontage):
         info['dig'] = montage._get_dig()
+
         if montage.dev_head_t is not None:
             info['dev_head_t']['trans'] = montage.dev_head_t
+
         if montage.dig_ch_pos is not None:  # update channel positions, too
             eeg_ref_pos = montage.dig_ch_pos.get('EEG000', np.zeros(3))
             did_set = np.zeros(len(info['ch_names']), bool)
             is_eeg = np.zeros(len(info['ch_names']), bool)
             is_eeg[pick_types(info, meg=False, eeg=True, exclude=())] = True
+
             for ch_name, ch_pos in montage.dig_ch_pos.items():
                 if ch_name == 'EEG000':
                     continue
@@ -751,8 +768,10 @@ def _set_montage(info, montage, update_ch_names=False):
                 did_set[idx] = True
                 this_loc = np.concatenate((ch_pos, eeg_ref_pos))
                 info['chs'][idx]['loc'][:6] = this_loc
+
             did_not_set = [info['chs'][ii]['ch_name']
                            for ii in np.where(is_eeg & ~did_set)[0]]
+
             if len(did_not_set) > 0:
                 warn('Did not set %s channel positions:\n%s'
                      % (len(did_not_set), ', '.join(did_not_set)))
