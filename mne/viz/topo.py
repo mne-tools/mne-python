@@ -268,8 +268,12 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
 
     img = ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap,
                         vmin=vmin, vmax=vmax)
-    ax.set_xlim(extent[0], extent[1])
-    ax.set_ylim(extent[2], extent[3])
+
+    # limits and yticks
+    ax.set_xlim(time_lims[0], time_lims[-1])
+    if ylim is None:
+        ylim = (freq_lims[0], freq_lims[-1])
+    ax.set_ylim(ylim)
 
     if not isinstance(ax, plt.Axes):
         ax = plt.gca()
