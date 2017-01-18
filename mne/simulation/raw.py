@@ -557,10 +557,9 @@ def _restrict_source_space_to(src, vertices):
         s['nuse'] = len(v)
         s['vertno'] = v
         s['inuse'][s['vertno']] = 1
-        del s['pinfo']
-        del s['nuse_tri']
-        del s['use_tris']
-        del s['patch_inds']
+        for key in ('pinfo', 'nuse_tri', 'use_tris', 'patch_inds'):
+            if key in s:
+                del s[key]
     return src
 
 

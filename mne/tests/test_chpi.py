@@ -8,13 +8,17 @@ from numpy.testing import assert_allclose
 from nose.tools import assert_raises, assert_equal, assert_true
 import warnings
 
-from mne.io import read_raw_fif
+
+from mne import (pick_types, Dipole, make_sphere_model, make_forward_dipole,
+                 pick_info)
+from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
 from mne.chpi import (_calculate_chpi_positions,
                       head_pos_to_trans_rot_t, read_head_pos,
                       write_head_pos, filter_chpi, _get_hpi_info)
 from mne.fixes import assert_raises_regex
 from mne.transforms import rot_to_quat, _angle_between_quats
+from mne.simulation import simulate_raw
 from mne.utils import run_tests_if_main, _TempDir, slow_test, catch_logging
 from mne.datasets import testing
 from mne.tests.common import assert_meg_snr
@@ -24,6 +28,7 @@ test_fif_fname = op.join(base_dir, 'test_raw.fif')
 ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
+raw_fname = op.join(base_dir, 'test_raw.fif')
 
 data_path = testing.data_path(download=False)
 chpi_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
@@ -180,28 +185,14 @@ def test_calculate_chpi_positions():
 
 
 @slow_test
-@testing.requires_testing_data
 def test_simulate_calculate_chpi_positions():
     """Test calculation of cHPI positions with simulated data."""
-
-    raw_fname = op.join(base_dir, 'test_raw.fif')
-
-    from mne.io import read_info, RawArray
-    from mne.forward import make_forward_dipole
-    from mne.simulation import simulate_raw
-    from mne import pick_types, Dipole, make_sphere_model, read_cov
-
     # Read info dict from raw FIF file
     info = read_info(raw_fname)
-    pick = pick_types(info, meg=True, stim=True, eeg=False, exclude=[])
-
     # Tune the info structure
     chpi_channel = u'STI201'
     ncoil = len(info['hpi_results'][0]['order'])
-
-    coil_freq = np.linspace(info['lowpass'] - 100.0,
-                            info['lowpass'] - 10.0, ncoil)
-
+    coil_freq = 10 + np.arange(ncoil) * 5
     hpi_subsystem = {'event_channel': chpi_channel,
                      'hpi_coils': [{'event_bits': np.array([256, 0, 256, 256],
                                                            dtype=np.int32)},
@@ -218,15 +209,11 @@ def test_simulate_calculate_chpi_positions():
     info['hpi_subsystem'] = hpi_subsystem
     for l, freq in enumerate(coil_freq):
             info['hpi_meas'][0]['hpi_coils'][l]['coil_freq'] = freq
-
-    info['line_freq'] = 50.0
-    info['nchan'] = len(pick)
-    info['bads'] = []
-    info['chs'] = [ch for ci, ch in enumerate(info['chs']) if ci in pick]
-    info['ch_names'] = [ch for ci, ch in enumerate(info['ch_names'])
-                        if ci in pick]
-    info['ch_names'][313] = chpi_channel
-    info['chs'][313]['ch_name'] = chpi_channel
+    picks = pick_types(info, meg=True, stim=True, eeg=False, exclude=[])
+    info['sfreq'] = 100.  # this will speed it up a lot
+    info = pick_info(info, picks)
+    info['chs'][info['ch_names'].index('STI 001')]['ch_name'] = 'STI201'
+    info._update_redundant()
     info['projs'] = []
 
     info_trans = info['dev_head_t']['trans'].copy()
@@ -236,18 +223,19 @@ def test_simulate_calculate_chpi_positions():
     ez = np.array([0, 0, 1])  # Unit vector in z-direction of head coordinates
 
     # Define some constants
-    T = 30  # Time / s
+    duration = 30  # Time / s
 
     # Quotient of head position sampling frequency
     # and raw sampling frequency
-    head_pos_sfreq_quotient = 0.001
+    head_pos_sfreq_quotient = 0.1
 
     # Round number of head positions to the next integer
-    S = int(T / (info['sfreq'] * head_pos_sfreq_quotient) + 0.5)
-    dz = 0.0001  # Shift in z-direction is 0.1mm for each step
+    S = int(duration / (info['sfreq'] * head_pos_sfreq_quotient) + 0.5)
+    dz = 0.001  # Shift in z-direction is 0.1mm for each step
 
     dev_head_pos = np.zeros((S, 10))
-    dev_head_pos[:, 0] = np.arange(S) * info['sfreq'] * head_pos_sfreq_quotient
+    dev_head_pos[:, 0] = 0.5 + (np.arange(S) * info['sfreq'] *
+                                head_pos_sfreq_quotient)
     dev_head_pos[:, 1:4] = dev_head_pos_ini[:3]
     dev_head_pos[:, 4:7] = dev_head_pos_ini[3:] + \
         np.outer(np.arange(S) * dz, ez)
@@ -257,7 +245,7 @@ def test_simulate_calculate_chpi_positions():
     dev_head_pos[:, 9] = 100 * dz / (info['sfreq'] * head_pos_sfreq_quotient)
 
     # Round number of samples to the next integer
-    raw_data = np.zeros((len(pick), int(T * info['sfreq'] + 0.5)))
+    raw_data = np.zeros((len(picks), int(duration * info['sfreq'] + 0.5)))
     raw = RawArray(raw_data, info)
 
     dip = Dipole(np.array([0.0, 0.1, 0.2]),
@@ -269,54 +257,17 @@ def test_simulate_calculate_chpi_positions():
                                relative_radii=(1.0, 0.9), sigmas=(0.33, 0.3))
     fwd, stc = make_forward_dipole(dip, sphere, info)
     stc.resample(info['sfreq'])
-
-    cov = read_cov(op.join(base_dir, 'test_erm-cov.fif'))
-
-    fwd['src'][0]['pinfo'] = []
-    fwd['src'][0]['nuse_tri'] = []
-    fwd['src'][0]['use_tris'] = []
-    fwd['src'][0]['patch_inds'] = []
-    raw = simulate_raw(raw, stc, None, fwd['src'], sphere, cov=cov,
+    raw = simulate_raw(raw, stc, None, fwd['src'], sphere, cov=None,
                        blink=False, ecg=False, chpi=True,
                        head_pos=dev_head_pos, mindist=1.0, interp='zero',
-                       iir_filter=[0.2, -0.2, 0.04], n_jobs=-1,
-                       random_state=1, verbose=None)
+                       verbose=None)
 
     quats = _calculate_chpi_positions(raw, t_step_min=raw.info['sfreq'] *
                                       head_pos_sfreq_quotient,
                                       t_step_max=raw.info['sfreq'] *
                                       head_pos_sfreq_quotient,
                                       t_window=1.0)
-
-    dist_tol = 0.002
-    angle_tol = 3.
-    from scipy.interpolate import interp1d
-    trans_est, rot_est, t_est = head_pos_to_trans_rot_t(quats)
-    trans, rot, t = head_pos_to_trans_rot_t(dev_head_pos)
-    quats_est = rot_to_quat(rot_est)
-
-    use_mask = (t >= t_est[0]) & (t <= t_est[-1])
-    t = t[use_mask]
-    trans = trans[use_mask]
-    quats = rot_to_quat(rot)
-    quats = quats[use_mask]
-
-    # double-check our angle function
-    for q in (quats, quats_est):
-        angles = _angle_between_quats(q, q)
-        assert_allclose(angles, 0., atol=1e-5)
-
-    # limit translation difference between MF and our estimation
-    trans_est_interp = interp1d(t_est, trans_est, axis=0)(t)
-    worst = np.sqrt(np.sum((trans - trans_est_interp) ** 2, axis=1)).max()
-    assert_true(worst <= dist_tol, '%0.3f > %0.3f mm'
-                % (1000 * worst, 1000 * dist_tol))
-
-    # limit rotation difference between MF and our estimation
-    # (note that the interpolation will make this slightly worse)
-    quats_est_interp = interp1d(t_est, quats_est, axis=0)(t)
-    worst = 180 * _angle_between_quats(quats_est_interp, quats).max() / np.pi
-    assert_true(worst <= angle_tol, '%0.3f > %0.3f deg' % (worst, angle_tol,))
+    _assert_quats(quats, dev_head_pos, dist_tol=0.001, angle_tol=1.)
 
 
 @testing.requires_testing_data
