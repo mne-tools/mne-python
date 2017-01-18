@@ -1,4 +1,5 @@
 """
+====================================
 Representational Similarity Analysis
 ====================================
 
@@ -28,9 +29,6 @@ in space and time. Nature neuroscience" (2014): 17(3), 455-462
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
-
-print(__doc__)
-
 import os.path as op
 import numpy as np
 from pandas import read_csv
@@ -45,6 +43,8 @@ from sklearn.manifold import MDS
 from mne import find_events, Epochs, pick_types
 from mne.io import read_raw_fif, concatenate_raws
 from mne.datasets.visual_92_categories import data_path
+
+print(__doc__)
 
 # Define stimulus - trigger mapping
 fname = op.join(data_path(), 'visual_stimuli.csv')
