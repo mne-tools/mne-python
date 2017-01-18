@@ -9,9 +9,8 @@ It consists in characterizing the structure of the confusion matrix to infer
 the similarity between brain responses and serve as a proxy for characterizing
 the space of mental representations [1-3].
 
-In this example, we perform RSA on spiking data from [4] where the macaque was
-presented to seven classes of pictures located in one of three spatial
-positions.
+In this example, we perform RSA on responses to 92 object images. Subjects were
+presented images of human, animal and inanimate objects [4].
 
 References
 ----------
