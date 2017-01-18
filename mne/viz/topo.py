@@ -258,7 +258,6 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                          ", got {}".format(yscale))
 
     cmap, interactive_cmap = cmap
-    extent = (tmin, tmax, freq[0], freq[-1])
     times = np.linspace(tmin, tmax, num=tfr[ch_idx].shape[1])
 
     # test yscale

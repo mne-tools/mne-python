@@ -163,18 +163,20 @@ def test_plot_tfr_topo():
     plt.close('all')
 
     tfr.plot([4], baseline=(None, 0), mode='ratio', show=False, title='foo')
+    assert_raises(ValueError, tfr.plot, [4], yscale='lin', show=False)
 
     # nonuniform freqs
     freqs = np.logspace(*np.log10([3, 10]), num=3)
     tfr = AverageTFR(epochs.info, data, epochs.times, freqs, nave)
-    tfr.plot([4], baseline=(None, 0), mode='mean', vmax=14., show=False)
+    fig = tfr.plot([4], baseline=(None, 0), mode='mean', vmax=14., show=False)
+    assert_equal(fig.axes[0].get_yaxis().get_scale(), 'log')
 
     # one timesample
     tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]],
                      freqs, nave)
-    tfr.plot([4], baseline=None, vmax=14., show=False)
+    tfr.plot([4], baseline=None, vmax=14., show=False, yscale='linear')
 
-    # one freq bin
+    # one freqency bin
     tfr = AverageTFR(epochs.info, data[:, [0], :], epochs.times,
                      freqs[[-1]], nave)
     vmin, vmax = 0., 2.
@@ -182,6 +184,9 @@ def test_plot_tfr_topo():
     tmin, tmax = tfr.times[0], tfr.times[-1]
     _imshow_tfr(ax, 3, tmin, tmax, vmin, vmax, None, tfr=tfr.data,
                 freq=freqs[[-1]], x_label=None, y_label=None,
-                colorbar=False, cmap=('RdBu_r', True))
+                colorbar=False, cmap=('RdBu_r', True), yscale='log')
+    fig = plt.gcf()
+    # doesn't make sense to plot log scale for one value:
+    assert_equal(fig.axes[0].get_yaxis().get_scale(), 'linear')
 
 run_tests_if_main()
