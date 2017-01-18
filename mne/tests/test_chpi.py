@@ -30,6 +30,8 @@ chpi_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
 pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
 sss_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_sss.fif')
 sss_hpisubt_fname = op.join(data_path, 'SSS', 'test_move_anon_hpisubt_raw.fif')
+chpi5_fif_fname = op.join(data_path, 'SSS', 'chpi5_raw.fif')
+chpi5_pos_fname = op.join(data_path, 'SSS', 'chpi5_raw_mc.pos')
 
 warnings.simplefilter('always')
 
@@ -131,15 +133,20 @@ def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5.):
 
     # limit translation difference between MF and our estimation
     trans_est_interp = interp1d(t_est, trans_est, axis=0)(t)
-    worst = np.sqrt(np.sum((trans - trans_est_interp) ** 2, axis=1)).max()
-    assert_true(worst <= dist_tol, '%0.3f > %0.3f mm'
-                % (1000 * worst, 1000 * dist_tol))
+    distances = np.sqrt(np.sum((trans - trans_est_interp) ** 2, axis=1))
+    arg_worst = np.argmax(distances)
+    assert_true(distances[arg_worst] <= dist_tol,
+                '@ %0.3f seconds: %0.3f > %0.3f mm'
+                % (t[arg_worst], 1000 * distances[arg_worst], 1000 * dist_tol))
 
     # limit rotation difference between MF and our estimation
     # (note that the interpolation will make this slightly worse)
     quats_est_interp = interp1d(t_est, quats_est, axis=0)(t)
-    worst = 180 * _angle_between_quats(quats_est_interp, quats).max() / np.pi
-    assert_true(worst <= angle_tol, '%0.3f > %0.3f deg' % (worst, angle_tol,))
+    angles = 180 * _angle_between_quats(quats_est_interp, quats) / np.pi
+    arg_worst = np.argmax(angles)
+    assert_true(angles[arg_worst] <= angle_tol,
+                '@ %0.3f seconds: %0.3f > %0.3f deg'
+                % (t[arg_worst], angles[arg_worst], angle_tol))
 
 
 @slow_test
@@ -177,6 +184,40 @@ def test_calculate_chpi_positions():
         raw.resample(300., npad='auto')
     assert_raises_regex(RuntimeError, 'above the',
                         _calculate_chpi_positions, raw)
+
+
+@slow_test
+@testing.requires_testing_data
+def test_calculate_chpi_positions_on_chpi5_in_one_second_steps():
+    """Comparing estimated cHPI positions with MF results (one second)."""
+    # Check to make sure our fits match MF decently
+    mf_quats = read_head_pos(chpi5_pos_fname)
+    raw = read_raw_fif(chpi5_fif_fname, allow_maxshield='yes', preload=False)
+# the last two seconds contain a maxfilter problem!
+# fiff file timing: 26. to 43. seconds
+# maxfilter estimates a wrong head position for interval 16: 41.-42. seconds
+    raw.crop(0., 15.).load_data()
+# needs no interpolation, because maxfilter pos files comes with 1 s steps
+    py_quats = _calculate_chpi_positions(raw, t_step_min=1.0, t_step_max=1.0,
+                                         t_window=1.0, verbose='debug')
+    _assert_quats(py_quats, mf_quats, dist_tol=0.0008, angle_tol=.5)
+
+
+@slow_test
+@testing.requires_testing_data
+def test_calculate_chpi_positions_on_chpi5_in_shorter_steps():
+    """Comparing estimated cHPI positions with MF results (smaller steps)."""
+    # Check to make sure our fits match MF decently
+    mf_quats = read_head_pos(chpi5_pos_fname)
+    raw = read_raw_fif(chpi5_fif_fname, allow_maxshield='yes', preload=False)
+# the last two seconds contain a maxfilter problem!
+# fiff file timing: 26. to 43. seconds
+# maxfilter estimates a wrong head position for interval 16: 41.-42. seconds
+    raw.crop(0., 15.).load_data()
+# needs interpolation, tolerance must be increased
+    py_quats = _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=0.1,
+                                         t_window=0.1, verbose='debug')
+    _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=0.6)
 
 
 @slow_test
@@ -288,8 +329,8 @@ def test_simulate_calculate_chpi_positions():
                                       head_pos_sfreq_quotient,
                                       t_window=1.0)
 
-    dist_tol = 0.002
-    angle_tol = 3.
+    dist_tol = 0.0007
+    angle_tol = 0.5
     from scipy.interpolate import interp1d
     trans_est, rot_est, t_est = head_pos_to_trans_rot_t(quats)
     trans, rot, t = head_pos_to_trans_rot_t(dev_head_pos)
