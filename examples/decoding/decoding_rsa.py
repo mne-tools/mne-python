@@ -1,5 +1,6 @@
-""" Representational Similarity Analysis
-======================================
+"""
+Representational Similarity Analysis
+====================================
 
 Representational Similarity Analysis is used to perform summary statistics
 on supervised classifications where the number of classes is relatively high.
@@ -34,10 +35,6 @@ import os.path as op
 import numpy as np
 from pandas import read_csv
 import matplotlib.pyplot as plt
-
-from mne import find_events, Epochs, pick_types
-from mne.io import read_raw_fif, concatenate_raws
-
 from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -45,11 +42,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 from sklearn.manifold import MDS
 
-data_path = '/home/jrking/Downloads/cichy'
-###############################################################################
+from mne import find_events, Epochs, pick_types
+from mne.io import read_raw_fif, concatenate_raws
+from mne.datasets.visual_92_categories import data_path
 
 # Define stimulus - trigger mapping
-fname = op.join(data_path, 'visual_stimuli.csv')
+fname = op.join(data_path(), 'visual_stimuli.csv')
 conds = read_csv(fname)
 triggers = set(conds['trigger'])
 inv_conds = dict()
@@ -58,12 +56,9 @@ for val in triggers:
     inv_conds[val] = sub['condition'].iloc[0]
 
 # Read MEG data
-fname = op.join(data_path, 'sample_subject_%i_tsss_mc.fif')
+fname = op.join(data_path(), 'sample_subject_%i_tsss_mc.fif')
 raws = [read_raw_fif(fname % block) for block in range(4)]
 raw = concatenate_raws(raws)
-
-# XXX We need to decide whether we upload multiple runs
-# raw = read_raw_fif(fname % 0)
 
 picks = pick_types(raw.info, meg=True)
 events = find_events(raw, min_duration=.002)
@@ -127,6 +122,7 @@ for ii, (name, next_name) in enumerate(zip(names, names[1:])):
         ax.axhline(ii + 1, color='k')
         ax.axvline(ii + 1, color='k')
 plt.colorbar(im)
+plt.tight_layout()
 plt.show()
 
 ##############################################################################
