@@ -740,34 +740,47 @@ def _setup_annotation_fig(params):
     """Initialize the annotation figure."""
     import matplotlib as mpl
     import matplotlib.pyplot as plt
-    from matplotlib.widgets import RadioButtons, SpanSelector
+    from matplotlib.widgets import RadioButtons, SpanSelector, Button
+    if params['annotation_fig'] is not None:
+        params['annotation_fig'].canvas.close_event()
     annotations = params['raw'].annotations
     labels = [] if annotations is None else list(set(annotations.description))
-    if 'BAD' in labels:
-        labels.append('_')
-    else:
-        labels.append('BAD_')
-    fig = figure_nobar(figsize=(7.5, 1.5 + len(labels) * 0.75))
-    ax = plt.subplot2grid((len(labels) + 1, 1), (1, 0), rowspan=len(labels))
+    labels = np.union1d(labels, params['added_label'])
+    fig = figure_nobar(figsize=(6.5, 2.75 + len(labels) * 0.75))
+    ax = plt.subplot2grid((len(labels) + 2, 2), (1, 0), rowspan=len(labels),
+                          colspan=2)
+    button_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels) + 1, 1),
+                                 rowspan=1, colspan=1)
+    label_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels) + 1, 0),
+                                rowspan=1, colspan=1)
+    plt.axis('off')
 
     annotations_closed = partial(_annotations_closed, params=params)
     fig.canvas.mpl_connect('close_event', annotations_closed)
-    text = ('Annotate bad data by dragging on top of the plot.\n'
+    text = ('Type and click "Add" to create new description.\n'
+            'Annotate bad data by dragging on top of the plot.\n'
             'Use left mouse button to draw/modify annotation.\n'
             'Right click removes an existing annotation.\n'
-            'Type to modify. When done, close this window.')
-    fig.suptitle(text, fontsize=18)
+            'When done, close this window.')
+    fig.suptitle(text, fontsize=16)
     fig.radio = RadioButtons(ax, labels)
-    for label in fig.radio.labels[:-1]:
+    for label in fig.radio.labels:
         label.set_color(params['segment_colors'][label.get_text()])
-    fig.canvas.mpl_connect('key_press_event', _change_annotation_description)
+    fig.canvas.mpl_connect('key_press_event', partial(
+        _change_annotation_description, params=params))
+    fig.button = Button(button_ax, 'Add')
+    fig.label = label_ax.text(0.5, 0.5, 'BAD_', va='center', ha='center',
+                              fontsize=14)
+    fig.button.on_clicked(partial(_onclick_new_label, params=params))
     fig.show()
     params['annotation_fig'] = fig
 
     ax = params['ax']
-    callback_onselect = partial(_annotate_select, params=params)
-    selector = SpanSelector(ax, callback_onselect, 'horizontal', minspan=0.1,
+    cb_onselect = partial(_annotate_select, params=params)
+    selector = SpanSelector(ax, cb_onselect, 'horizontal', minspan=.1,
                             rectprops=dict(alpha=0.5, facecolor='red'))
+    if len(labels) == 0:
+        selector.active = False
     params['ax'].selector = selector
     if LooseVersion(mpl.__version__) < LooseVersion('1.5'):
         # XXX: Hover event messes up callback ids in old mpl.
@@ -777,6 +790,14 @@ def _setup_annotation_fig(params):
     hover_callback = partial(_on_hover, params=params)
     params['hover_callback'] = params['fig'].canvas.mpl_connect(
         'motion_notify_event', hover_callback)
+
+
+def _onclick_new_label(event, params):
+    """Listener for adding new description on button press."""
+    fig = params['annotation_fig']
+    params['added_label'].append(fig.label.get_text()[:-1])
+    _setup_annotation_colors(params)
+    _setup_annotation_fig(params)
 
 
 def _mouse_click(event, params):
@@ -1692,40 +1713,48 @@ def _plot_annotations(raw, params):
 
     while len(params['ax_hscroll'].collections) > 0:
         params['ax_hscroll'].collections.pop()
+
     segments = list()
-    segment_colors = params.get('segment_colors', dict())
     # sort the segments by start time
     ann_order = raw.annotations.onset.argsort(axis=0)
     descriptions = raw.annotations.description[ann_order]
-    color_keys = set(descriptions)
-    color_cycle = cycle(np.delete(COLORS, 2))  # no red
-    for _ in np.intersect1d(list(color_keys), list(segment_colors.keys())):
-        next(color_cycle)
-    update = False
-    for idx, key in enumerate(color_keys):
-        if key in segment_colors:
-            continue
-        elif key.lower().startswith('bad'):
-            segment_colors[key] = 'red'
-            update = True
-        else:
-            segment_colors[key] = next(color_cycle)
-            update = True
-    params['segment_colors'] = segment_colors
+
+    _setup_annotation_colors(params)
     for idx, onset in enumerate(raw.annotations.onset[ann_order]):
         annot_start = _onset_to_seconds(raw, onset) + params['first_time']
         annot_end = annot_start + raw.annotations.duration[ann_order][idx]
         segments.append([annot_start, annot_end])
         ylim = params['ax_hscroll'].get_ylim()
         dscr = descriptions[idx]
-        params['ax_hscroll'].fill_betweenx(ylim, annot_start, annot_end,
-                                           alpha=0.3,
-                                           color=segment_colors[dscr])
+        params['ax_hscroll'].fill_betweenx(
+            ylim, annot_start, annot_end, alpha=0.3,
+            color=params['segment_colors'][dscr])
     params['segments'] = np.array(segments)
     params['annot_description'] = descriptions
-    if update and params['annotation_fig'] is not None:  # reset annotation fig
-        params['annotation_fig'].canvas.close_event()
-        _setup_annotation_fig(params)
+
+
+def _setup_annotation_colors(params):
+    """Function for setting up colors for annotations."""
+    raw = params['raw']
+    segment_colors = params.get('segment_colors', dict())
+    # sort the segments by start time
+    if raw.annotations is not None:
+        ann_order = raw.annotations.onset.argsort(axis=0)
+        descriptions = raw.annotations.description[ann_order]
+    else:
+        descriptions = list()
+    color_keys = np.union1d(descriptions, params['added_label'])
+    color_cycle = cycle(np.delete(COLORS, 2))  # no red
+    for _ in np.intersect1d(list(color_keys), list(segment_colors.keys())):
+        next(color_cycle)
+    for idx, key in enumerate(color_keys):
+        if key in segment_colors:
+            continue
+        elif key.lower().startswith('bad'):
+            segment_colors[key] = 'red'
+        else:
+            segment_colors[key] = next(color_cycle)
+    params['segment_colors'] = segment_colors
 
 
 def _annotations_closed(event, params):
@@ -1827,12 +1856,11 @@ def _merge_annotations(start, stop, description, annotations, current=()):
     annotations.append(onset, duration, description)
 
 
-def _change_annotation_description(event):
+def _change_annotation_description(event, params):
     """Key listener for annotation dialog."""
     import matplotlib.pyplot as plt
     fig = event.canvas.figure
-    lbls = fig.radio.labels
-    text = lbls[-1].get_text()
+    text = fig.label.get_text()
     if event.key == 'backspace':
         if len(text) == 1:
             return
@@ -1840,11 +1868,13 @@ def _change_annotation_description(event):
     elif event.key == 'escape':
         plt.close(fig)
         return
+    elif event.key == 'enter':
+        _onclick_new_label(event, params)
     elif len(event.key) > 1:  # ignore modifier keys
         return
     else:
         text = text[:-1] + event.key
-    lbls[-1].set_text(text + '_')
+    fig.label.set_text(text + '_')
     fig.canvas.draw()
 
 

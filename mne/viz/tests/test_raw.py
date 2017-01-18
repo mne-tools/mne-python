@@ -135,6 +135,7 @@ def test_plot_annotations():
     ann_fig = plt.gcf()
     for key in ' test':
         ann_fig.canvas.key_press_event(key)
+    ann_fig.canvas.key_press_event('enter')
     # draw annotation
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='motion')

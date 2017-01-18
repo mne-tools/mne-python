@@ -311,7 +311,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_channels=n_channels, scalings=scalings, types=types,
                   n_times=n_times, event_times=event_times, inds=inds,
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
-                  first_time=first_time)
+                  first_time=first_time, added_label=list())
 
     if isinstance(order, string_types) and order in ['selection', 'position']:
         params['fig_selection'] = fig_selection
