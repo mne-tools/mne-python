@@ -248,35 +248,66 @@ def _check_vlim(vlim):
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, x_label=None, y_label=None,
-                colorbar=False, cmap=('RdBu_r', True)):
+                colorbar=False, cmap=('RdBu_r', True), yscale='auto'):
     """Show time-freq map as 2d image."""
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt, ticker
     from matplotlib.widgets import RectangleSelector
+
+    if yscale not in ['auto', 'linear', 'log']:
+        raise ValueError("yscale should be either 'auto', 'linear', or 'log'"
+                         ", got {}".format(yscale))
 
     cmap, interactive_cmap = cmap
     extent = (tmin, tmax, freq[0], freq[-1])
     times = np.linspace(tmin, tmax, num=tfr[ch_idx].shape[1])
 
-    # construct a grid of borders between time/frequency bins
+    # test yscale
+    if len(freq) < 2:
+        yscale = 'linear'
+    elif yscale is not 'linear':
+        ratio = freq[1:] / freq[:-1]
+    if yscale is 'auto':
+        if freq[0] > 0 and np.allclose(ratio, ratio[0]):
+            yscale = 'log'
+        else:
+            yscale = 'linear'
+
+    # compute bounds between time samples
     time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
-    freq_diff = np.diff(freq) / 2. if len(freq) > 1 else [0.5]
     time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
                                time_diff, [times[-1] + time_diff[-1]]])
-    freq_lims = np.concatenate([[freq[0] - freq_diff[0]], freq[:-1] +
-                               freq_diff, [freq[-1] + freq_diff[-1]]])
+
+    # the same for frequency - depending on whether yscale is log
+    if yscale is 'linear':
+        freq_diff = np.diff(freq) / 2. if len(freq) > 1 else [0.5]
+        freq_lims = np.concatenate([[freq[0] - freq_diff[0]], freq[:-1] +
+                                   freq_diff, [freq[-1] + freq_diff[-1]]])
+    else:
+        from scipy.stats import gmean
+        log_freqs = np.concatenate([[freq[0] / ratio[0]], freq,
+                                   [freq[-1] * ratio[0]]])
+        freq_lims = gmean(np.vstack([log_freqs[:-1], log_freqs[1:]]), axis=0)
+
+    # construct a time-frequency bounds grid
     time_mesh, freq_mesh = np.meshgrid(time_lims, freq_lims)
 
     img = ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap,
                         vmin=vmin, vmax=vmax)
 
-    # limits and yticks
+    # limits, yscale and yticks
     ax.set_xlim(time_lims[0], time_lims[-1])
     if ylim is None:
         ylim = (freq_lims[0], freq_lims[-1])
     ax.set_ylim(ylim)
 
-    if not isinstance(ax, plt.Axes):
-        ax = plt.gca()
+    if yscale is 'log':
+        ax.set_yscale('log')
+        ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
+
+    tick_vals = freq[np.unique(np.linspace(
+        0, len(freq) - 1, 12).round().astype('int'))]
+    ax.set_yticks(tick_vals)
+
     if x_label is not None:
         ax.set_xlabel(x_label)
     if y_label is not None:
