@@ -8,6 +8,7 @@ from numpy.testing import assert_allclose
 from nose.tools import assert_raises, assert_equal, assert_true
 import warnings
 
+
 from mne import (pick_types, Dipole, make_sphere_model, make_forward_dipole,
                  pick_info)
 from mne.io import read_raw_fif, read_info, RawArray
@@ -283,11 +284,12 @@ def test_simulate_calculate_chpi_positions():
     head_pos_sfreq_quotient = 0.1
 
     # Round number of head positions to the next integer
-    S = int(duration / (info['sfreq'] * head_pos_sfreq_quotient))
+    S = int(duration / (info['sfreq'] * head_pos_sfreq_quotient) + 0.5)
     dz = 0.001  # Shift in z-direction is 0.1mm for each step
 
     dev_head_pos = np.zeros((S, 10))
-    dev_head_pos[:, 0] = np.arange(S) * info['sfreq'] * head_pos_sfreq_quotient
+    dev_head_pos[:, 0] = (np.arange(S) * info['sfreq'] *
+                                head_pos_sfreq_quotient)
     dev_head_pos[:, 1:4] = dev_head_pos_ini[:3]
     dev_head_pos[:, 4:7] = dev_head_pos_ini[3:] + \
         np.outer(np.arange(S) * dz, ez)
@@ -314,10 +316,13 @@ def test_simulate_calculate_chpi_positions():
                        head_pos=dev_head_pos, mindist=1.0, interp='zero',
                        verbose=None)
 
-    quats = _calculate_chpi_positions(
-        raw, t_step_min=raw.info['sfreq'] * head_pos_sfreq_quotient,
-        t_step_max=raw.info['sfreq'] * head_pos_sfreq_quotient, t_window=1.0)
-    _assert_quats(quats, dev_head_pos, dist_tol=0.001, angle_tol=1.)
+
+    quats = _calculate_chpi_positions(raw, t_step_min=raw.info['sfreq'] *
+                                      head_pos_sfreq_quotient,
+                                      t_step_max=raw.info['sfreq'] *
+                                      head_pos_sfreq_quotient,
+                                      t_window=1.0)
+    _assert_quats(quats, dev_head_pos, dist_tol=0.001, angle_tol=1.0)
 
 
 @testing.requires_testing_data
