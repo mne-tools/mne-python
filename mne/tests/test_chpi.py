@@ -8,6 +8,7 @@ from numpy.testing import assert_allclose
 from nose.tools import assert_raises, assert_equal, assert_true
 import warnings
 
+
 from mne import (pick_types, Dipole, make_sphere_model, make_forward_dipole,
                  pick_info)
 from mne.io import read_raw_fif, read_info, RawArray
