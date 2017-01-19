@@ -77,9 +77,9 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
 
     Parameters
     ----------
-    mne_root : None | str
-        The mne root directory (only needed if MNE_ROOT is not specified as
-        environment variable).
+    mne_root : None
+        This argument is not used anymore and will be removed in 0.15. Use
+        keyword arguments to make your application forward compatible.
     fs_home : None | str
         The freesurfer home directory (only needed if FREESURFER_HOME is not
         specified as environment variable).
@@ -95,25 +95,18 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
     -----
     When no structural MRI is available for a subject, an average brain can be
     substituted. Freesurfer comes with such an average brain model, and MNE
-    comes with some auxiliary files which make coregistration easier.
-    :py:func:`create_default_subject` copies the relevant files from Freesurfer
-    into the current subjects_dir, and also adds the auxiliary files provided
-    by MNE.
-
-    The files provided by MNE are listed below and can be found under
-    ``share/mne/mne_analyze/fsaverage`` in the MNE directory (see MNE manual
-    section 7.19 Working with the average brain):
-
-    fsaverage_head.fif:
-        The approximate head surface triangulation for fsaverage.
-    fsaverage_inner_skull-bem.fif:
-        The approximate inner skull surface for fsaverage.
-    fsaverage-fiducials.fif:
-        The locations of the fiducial points (LPA, RPA, and nasion).
-    fsaverage-trans.fif:
-        Contains a default MEG-MRI coordinate transformation suitable for
-        fsaverage.
+    comes with some auxiliary files which make coregistration easier (see
+    :ref:`CACGEAFI`). :py:func:`create_default_subject` copies the relevant
+    files from Freesurfer into the current subjects_dir, and also adds the
+    auxiliary files provided by MNE.
     """
+    if mne_root is not None:
+        warn("Because files from MNE-C are not needed anymore for "
+             "creat_default_subject(), the mne_root argument is deprecated "
+             "and will be removed in 0.15. Please call this function with "
+             "keyword arguments to make your application forward compatible.",
+             DeprecationWarning)
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if fs_home is None:
         fs_home = get_config('FREESURFER_HOME', fs_home)
@@ -122,12 +115,6 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
                 "FREESURFER_HOME environment variable not found. Please "
                 "specify the fs_home parameter in your call to "
                 "create_default_subject().")
-    if mne_root is None:
-        mne_root = get_config('MNE_ROOT', mne_root)
-        if mne_root is None:
-            raise ValueError("MNE_ROOT environment variable not found. Please "
-                             "specify the mne_root parameter in your call to "
-                             "create_default_subject().")
 
     # make sure freesurfer files exist
     fs_src = os.path.join(fs_home, 'subjects', 'fsaverage')
@@ -154,32 +141,24 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
             "subjects_dir %r. Delete or rename the existing fsaverage "
             "subject folder." % ('fsaverage', subjects_dir))
 
-    # make sure mne files exist
-    mne_fname = os.path.join(mne_root, 'share', 'mne', 'mne_analyze',
-                             'fsaverage', 'fsaverage-%s.fif')
-    mne_files = ('fiducials', 'head', 'inner_skull-bem', 'trans')
-    for name in mne_files:
-        fname = mne_fname % name
-        if not os.path.isfile(fname):
-            raise IOError("MNE fsaverage incomplete: %s file not found at "
-                          "%s" % (name, fname))
-
     # copy fsaverage from freesurfer
     logger.info("Copying fsaverage subject from freesurfer directory...")
     if (not update) or not os.path.exists(dest):
         shutil.copytree(fs_src, dest)
         _make_writable_recursive(dest)
 
-    # add files from mne
+    # copy files from mne
+    source_fname = os.path.join(os.path.dirname(__file__), 'data', 'fsaverage',
+                                'fsaverage-%s.fif')
     dest_bem = os.path.join(dest, 'bem')
     if not os.path.exists(dest_bem):
         os.mkdir(dest_bem)
-    logger.info("Copying auxiliary fsaverage files from mne directory...")
+    logger.info("Copying auxiliary fsaverage files from mne...")
     dest_fname = os.path.join(dest_bem, 'fsaverage-%s.fif')
     _make_writable_recursive(dest_bem)
-    for name in mne_files:
+    for name in ('fiducials', 'head', 'inner_skull-bem', 'trans'):
         if not os.path.exists(dest_fname % name):
-            shutil.copy(mne_fname % name, dest_bem)
+            shutil.copy(source_fname % name, dest_bem)
 
 
 def _decimate_points(pts, res=10):
