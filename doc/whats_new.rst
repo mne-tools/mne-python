@@ -63,7 +63,10 @@ Changelog
 
     - Add option in :func:`mne.io.read_raw_edf` to allow channel exclusion by `Jaakko Leppakangas`_
 
+    - Allow integer event codes in :func:`mne.io.read_epochs_eeglab` by `Jaakko Leppakangas`_
+
     - Add ability to match channel names in a case insensitive manner when applying a :class:`mne.channels.Montage` by `Marijn van Vliet`_
+
 
 BUG
 ~~~
