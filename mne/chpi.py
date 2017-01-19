@@ -231,14 +231,14 @@ def _fit_magnetic_dipole(B_orig, x0, coils, scale, method):
     B2 = np.dot(B, B)
     objective = partial(_magnetic_dipole_objective, B=B, B2=B2,
                         coils=coils, scale=scale, method=method)
-    x = fmin_cobyla(objective, x0, (), rhobeg=1e-2, rhoend=1e-5, disp=False)
+    x = fmin_cobyla(objective, x0, (), rhobeg=1e-4, rhoend=1e-5, disp=False)
     return x, 1. - objective(x) / B2
 
 
 def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
     """Helper objective function."""
     d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)
-    d += x[3:]
+    d += x[3:] / 10.  # in decimeters to get quats and head units close
     d -= coil_head_rrs
     d *= d
     return d.sum()
@@ -255,9 +255,13 @@ def _fit_chpi_pos(coil_dev_rrs, coil_head_rrs, x0):
     denom = np.sum((coil_head_rrs - np.mean(coil_head_rrs, axis=0)) ** 2)
     objective = partial(_chpi_objective, coil_dev_rrs=coil_dev_rrs,
                         coil_head_rrs=coil_head_rrs)
+    x0 = x0.copy()
+    x0[3:] *= 10.  # decimeters to get quats and head units close
     x = fmin_cobyla(objective, x0, _unit_quat_constraint,
-                    rhobeg=1e-2, rhoend=1e-6, disp=False)
-    return x, 1. - objective(x) / denom
+                    rhobeg=1e-3, rhoend=1e-5, disp=False, catol=0.)
+    result = objective(x)
+    x[3:] /= 10.
+    return x, 1. - result / denom
 
 
 @verbose
