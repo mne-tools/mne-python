@@ -289,7 +289,7 @@ def test_simulate_calculate_chpi_positions():
 
     dev_head_pos = np.zeros((S, 10))
     dev_head_pos[:, 0] = (np.arange(S) * info['sfreq'] *
-                                head_pos_sfreq_quotient)
+                          head_pos_sfreq_quotient)
     dev_head_pos[:, 1:4] = dev_head_pos_ini[:3]
     dev_head_pos[:, 4:7] = dev_head_pos_ini[3:] + \
         np.outer(np.arange(S) * dz, ez)
@@ -315,7 +315,6 @@ def test_simulate_calculate_chpi_positions():
                        blink=False, ecg=False, chpi=True,
                        head_pos=dev_head_pos, mindist=1.0, interp='zero',
                        verbose=None)
-
 
     quats = _calculate_chpi_positions(raw, t_step_min=raw.info['sfreq'] *
                                       head_pos_sfreq_quotient,
