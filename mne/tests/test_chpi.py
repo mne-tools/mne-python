@@ -19,7 +19,7 @@ from mne.chpi import (_calculate_chpi_positions,
 from mne.fixes import assert_raises_regex
 from mne.transforms import rot_to_quat, _angle_between_quats
 from mne.simulation import simulate_raw
-from mne.utils import run_tests_if_main, _TempDir, slow_test, catch_logging
+from mne.utils import run_tests_if_main, _TempDir, catch_logging
 from mne.datasets import testing
 from mne.tests.common import assert_meg_snr
 
@@ -106,11 +106,11 @@ def test_hpi_info():
     tempdir = _TempDir()
     temp_name = op.join(tempdir, 'temp_raw.fif')
     for fname in (chpi_fif_fname, sss_fif_fname):
-        raw = read_raw_fif(fname, allow_maxshield='yes')
+        raw = read_raw_fif(fname, allow_maxshield='yes').crop(0, 0.1)
         assert_true(len(raw.info['hpi_subsystem']) > 0)
         raw.save(temp_name, overwrite=True)
-        raw_2 = read_raw_fif(temp_name, allow_maxshield='yes')
-        assert_equal(len(raw_2.info['hpi_subsystem']),
+        info = read_info(temp_name)
+        assert_equal(len(info['hpi_subsystem']),
                      len(raw.info['hpi_subsystem']))
 
 
@@ -154,16 +154,8 @@ def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5.):
                 % (t[arg_worst], angles[arg_worst], angle_tol))
 
 
-@testing.requires_testing_data
-def test_calculate_chpi_positions():
-    """Test calculation of cHPI positions."""
-    # Check to make sure our fits match MF decently
-    mf_quats = read_head_pos(pos_fname)
-    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
-    # This is a little hack (aliasing while decimating) to make it much faster
-    # for testing purposes only. We can relax this later if we find it breaks
-    # something.
-    decim = 4
+def _decimate_chpi(raw, decim=4):
+    """Decimate raw data (with aliasing) in cHPI-fitting compatible way."""
     raw_dec = RawArray(
         raw._data[:, ::decim], raw.info, first_samp=raw.first_samp // decim)
     raw_dec.info['sfreq'] /= decim
@@ -173,6 +165,19 @@ def test_calculate_chpi_positions():
                                        raw_dec.info['sfreq'])
             if coil['coil_freq'] > raw_dec.info['sfreq'] / 2.:
                 coil['coil_freq'] = raw_dec.info['sfreq'] - coil['coil_freq']
+    return raw_dec
+
+
+@testing.requires_testing_data
+def test_calculate_chpi_positions():
+    """Test calculation of cHPI positions."""
+    # Check to make sure our fits match MF decently
+    mf_quats = read_head_pos(pos_fname)
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
+    # This is a little hack (aliasing while decimating) to make it much faster
+    # for testing purposes only. We can relax this later if we find it breaks
+    # something.
+    raw_dec = _decimate_chpi(raw, 15)
     with catch_logging() as log:
         py_quats = _calculate_chpi_positions(raw_dec, verbose='debug')
     assert_true(log.getvalue().startswith('HPIFIT'))
@@ -194,48 +199,42 @@ def test_calculate_chpi_positions():
     raw_bad.crop(0, 1.)
     with warnings.catch_warnings(record=True):  # bad pos
         with catch_logging() as log_file:
-            _calculate_chpi_positions(raw_bad, verbose=True)
+            _calculate_chpi_positions(raw_bad, t_step_min=5., verbose=True)
     # ignore HPI info header and [done] footer
     assert_true('0/5 good' in log_file.getvalue().strip().split('\n')[-2])
 
     # half the rate cuts off cHPI coils
-    with warnings.catch_warnings(record=True):  # uint cast suggestion
-        raw.resample(300., npad='auto')
+    raw.info['lowpass'] /= 2.
     assert_raises_regex(RuntimeError, 'above the',
                         _calculate_chpi_positions, raw)
 
 
-@slow_test
 @testing.requires_testing_data
 def test_calculate_chpi_positions_on_chpi5_in_one_second_steps():
     """Comparing estimated cHPI positions with MF results (one second)."""
     # Check to make sure our fits match MF decently
     mf_quats = read_head_pos(chpi5_pos_fname)
-    raw = read_raw_fif(chpi5_fif_fname, allow_maxshield='yes', preload=False)
+    raw = read_raw_fif(chpi5_fif_fname, allow_maxshield='yes')
     # the last two seconds contain a maxfilter problem!
     # fiff file timing: 26. to 43. seconds
     # maxfilter estimates a wrong head position for interval 16: 41.-42. sec
-    raw.crop(0., 15.).load_data()
+    raw = _decimate_chpi(raw.crop(0., 15.).load_data(), decim=8)
     # needs no interpolation, because maxfilter pos files comes with 1 s steps
     py_quats = _calculate_chpi_positions(raw, t_step_min=1.0, t_step_max=1.0,
                                          t_window=1.0, verbose='debug')
     _assert_quats(py_quats, mf_quats, dist_tol=0.0008, angle_tol=.5)
 
 
-@slow_test
 @testing.requires_testing_data
 def test_calculate_chpi_positions_on_chpi5_in_shorter_steps():
     """Comparing estimated cHPI positions with MF results (smaller steps)."""
     # Check to make sure our fits match MF decently
     mf_quats = read_head_pos(chpi5_pos_fname)
-    raw = read_raw_fif(chpi5_fif_fname, allow_maxshield='yes', preload=False)
-# the last two seconds contain a maxfilter problem!
-# fiff file timing: 26. to 43. seconds
-# maxfilter estimates a wrong head position for interval 16: 41.-42. seconds
-    raw.crop(0., 15.).load_data()
-# needs interpolation, tolerance must be increased
+    raw = read_raw_fif(chpi5_fif_fname, allow_maxshield='yes')
+    raw = _decimate_chpi(raw.crop(0., 15.).load_data(), decim=8)
     py_quats = _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=0.1,
                                          t_window=0.1, verbose='debug')
+    # needs interpolation, tolerance must be increased
     _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=0.6)
 
 
