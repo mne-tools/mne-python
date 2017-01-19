@@ -749,8 +749,8 @@ class Label(object):
             raise ValueError('Cannot compute COM with negative values')
         if np.all(self.values == 0):
             raise ValueError('Cannot compute COM with all values == 0. For '
-                            'structural labels, consider setting to ones via '
-                            'label.values[:] = 1.')
+                             'structural labels, consider setting to ones via '
+                             'label.values[:] = 1.')
         vertex = _center_of_mass(self.vertices, self.values, self.hemi, surf,
                                  subject, subjects_dir, restrict_vertices)
         return vertex

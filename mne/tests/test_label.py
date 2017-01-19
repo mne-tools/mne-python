@@ -810,8 +810,8 @@ def test_label_center_of_mass():
         assert_raises(ValueError, label.center_of_mass,
                       subjects_dir=subjects_dir)
         label.values[:] = 0
-        assert_raises(ValueError, label.center_of_mass, 
-                      subjects_dir=subjects_dir)          
+        assert_raises(ValueError, label.center_of_mass,
+                      subjects_dir=subjects_dir)
         label.values[:] = 1
         assert_equal(label.center_of_mass(subjects_dir=subjects_dir), expected)
         assert_equal(label.center_of_mass(subjects_dir=subjects_dir,
