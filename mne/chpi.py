@@ -258,7 +258,7 @@ def _fit_chpi_pos(coil_dev_rrs, coil_head_rrs, x0):
     x0 = x0.copy()
     x0[3:] *= 10.  # decimeters to get quats and head units close
     x = fmin_cobyla(objective, x0, _unit_quat_constraint,
-                    rhobeg=1e-3, rhoend=1e-5, disp=False, catol=0.)
+                    rhobeg=1e-3, rhoend=1e-5, disp=False)
     result = objective(x)
     x[3:] /= 10.
     return x, 1. - result / denom
