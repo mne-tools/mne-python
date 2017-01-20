@@ -1693,8 +1693,6 @@ def _annotate_select(vmin, vmax, params):
     duration = vmax - vmin
     active_idx = _get_active_radiobutton(params['annotation_fig'].radio)
     description = params['annotation_fig'].radio.labels[active_idx].get_text()
-    if description[-1] == '_':
-        description = description[:-1]
     if raw.annotations is None:
         annot = Annotations([onset], [duration], [description])
         raw.annotations = annot
@@ -1841,7 +1839,7 @@ def _annotation_modify(old_x, new_x, params):
 
 
 def _merge_annotations(start, stop, description, annotations, current=()):
-    """Merge intersecting annotations."""
+    """Function for handling drew annotations."""
     ends = annotations.onset + annotations.duration
     idx = np.intersect1d(np.where(ends >= start)[0],
                          np.where(annotations.onset <= stop)[0])
