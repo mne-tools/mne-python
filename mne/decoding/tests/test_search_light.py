@@ -68,7 +68,7 @@ def test_SearchLight():
 
     # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
     # -- 3 class problem
-    sl = _SearchLight(LogisticRegression(), scoring='roc_auc')
+    sl = _SearchLight(LogisticRegression(random_state=0), scoring='roc_auc')
     y = np.arange(len(X)) % 3
     sl.fit(X, y)
     assert_raises(ValueError, sl.score, X, y)
@@ -101,10 +101,12 @@ def test_SearchLight():
         assert_array_equal(score_manual, score_sl)
 
     # n_jobs
-    sl = _SearchLight(LogisticRegression(), n_jobs=2)
+    sl = _SearchLight(LogisticRegression(random_state=0), n_jobs=2,
+                      scoring='roc_auc')
     sl.fit(X, y)
     sl.predict(X)
-    sl.score(X, y)
+    score_njobs = sl.score(X, y)
+    assert_array_equal(score, score_njobs)
 
     # n_jobs > n_estimators
     sl.fit(X[..., [0]], y)

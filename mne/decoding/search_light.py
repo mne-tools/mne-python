@@ -245,7 +245,7 @@ class _SearchLight(BaseEstimator, TransformerMixin):
         n_jobs = min(n_jobs, X.shape[-1])
         X_splits = np.array_split(X, n_jobs, axis=-1)
         est_splits = np.array_split(self.estimators_, n_jobs)
-        score = parallel(p_func(est, scoring, X, y)
+        score = parallel(p_func(est, scoring, x, y)
                          for (est, x) in zip(est_splits, X_splits))
 
         if n_jobs > 1:
