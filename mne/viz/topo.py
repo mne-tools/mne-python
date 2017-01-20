@@ -249,7 +249,7 @@ def _check_vlim(vlim):
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, x_label=None, y_label=None,
                 colorbar=False, cmap=('RdBu_r', True), yscale='auto'):
-    """Show time-freq map as 2d image."""
+    """Show time-frequency map as two-dimensional image."""
     from matplotlib import pyplot as plt, ticker
     from matplotlib.widgets import RectangleSelector
 
@@ -261,7 +261,11 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     times = np.linspace(tmin, tmax, num=tfr[ch_idx].shape[1])
 
     # test yscale
-    if len(freq) < 2 or np.any(freq <= 0):
+    if yscale == 'log' and not freq[0] > 0:
+        raise ValueError('Using log scale for frequency axis requires all your'
+                         ' frequencies to be positive (you cannot include'
+                         ' the DC component (0 Hz) in the TFR).')
+    if len(freq) < 2:
         yscale = 'linear'
     elif yscale != 'linear':
         ratio = freq[1:] / freq[:-1]

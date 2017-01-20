@@ -176,17 +176,23 @@ def test_plot_tfr_topo():
                      freqs, nave)
     tfr.plot([4], baseline=None, vmax=14., show=False, yscale='linear')
 
-    # one freqency bin
-    tfr = AverageTFR(epochs.info, data[:, [0], :], epochs.times,
-                     freqs[[-1]], nave)
+    # one freqency bin, log scale required: as it doesn't make sense
+    # to plot log scale for one value, we test whether yscale is set to linear
     vmin, vmax = 0., 2.
     fig, ax = plt.subplots()
-    tmin, tmax = tfr.times[0], tfr.times[-1]
-    _imshow_tfr(ax, 3, tmin, tmax, vmin, vmax, None, tfr=tfr.data,
+    tmin, tmax = epochs.times[0], epochs.times[-1]
+    _imshow_tfr(ax, 3, tmin, tmax, vmin, vmax, None, tfr=data[:, [0], :],
                 freq=freqs[[-1]], x_label=None, y_label=None,
                 colorbar=False, cmap=('RdBu_r', True), yscale='log')
     fig = plt.gcf()
-    # doesn't make sense to plot log scale for one value:
     assert_equal(fig.axes[0].get_yaxis().get_scale(), 'linear')
+
+    # ValueError when freq[0] == 0 and yscale == 'log'
+    these_freqs = freqs[:3].copy()
+    these_freqs[0] = 0
+    assert_raises(ValueError, _imshow_tfr, ax, 3, tmin, tmax, vmin, vmax,
+                  None, tfr=data[:, :3, :], freq=these_freqs, x_label=None,
+                  y_label=None, colorbar=False, cmap=('RdBu_r', True),
+                  yscale='log')
 
 run_tests_if_main()
