@@ -747,6 +747,10 @@ class Label(object):
         subject = _check_subject(self.subject, subject)
         if np.any(self.values < 0):
             raise ValueError('Cannot compute COM with negative values')
+        if np.all(self.values == 0):
+            raise ValueError('Cannot compute COM with all values == 0. For '
+                             'structural labels, consider setting to ones via '
+                             'label.values[:] = 1.')
         vertex = _center_of_mass(self.vertices, self.values, self.hemi, surf,
                                  subject, subjects_dir, restrict_vertices)
         return vertex
@@ -1821,7 +1825,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
             if (regexp is not None) and not r_.match(name):
                 continue
             pos = vert_pos[vertices, :]
-            values = np.zeros(len(vertices))
+            values = np.ones(len(vertices))
             label_rgba = tuple(label_rgba / 255.)
             label = Label(vertices, pos, values, hemi, name=name,
                           subject=subject, color=label_rgba)
