@@ -6,27 +6,28 @@ Representational Similarity Analysis
 Representational Similarity Analysis is used to perform summary statistics
 on supervised classifications where the number of classes is relatively high.
 It consists in characterizing the structure of the confusion matrix to infer
-the similarity between brain responses and serve as a proxy for characterizing
-the space of mental representations [1-3].
+the similarity between brain responses and serves as a proxy for characterizing
+the space of mental representations [1]_ [2]_ [3]_.
 
-In this example, we perform RSA on responses to 92 object images. Subjects were
-presented images of human, animal and inanimate objects [4].
+In this example, we perform RSA on responses to 24 object images (among
+a list of 92 images). Subjects were presented with images of human, animal
+and inanimate objects [4]_. Here we use the 24 unique images of faces
+and body parts.
 
 References
 ----------
-[1] Shepard, R. "Multidimensional scaling, tree-fitting, and clustering."
- Science 210.4468 (1980): 390-398.
 
-[2] Laakso, A. & Cottrell, G.. "Content and cluster analysis:
- assessing representational similarity in neural systems." Philosophical
- psychology 13.1 (2000): 47-76.
-
-[3] Kriegeskorte, N., Marieke, M., & Bandettini.  P. "Representational
- similarity analysis-connecting the branches of systems neuroscience."
- Frontiers in systems neuroscience 2 (2008): 4.
-
-[4] Cichy, R. M., Pantazis, D., & Oliva, A. "Resolving human object recognition
-in space and time. Nature neuroscience" (2014): 17(3), 455-462
+.. [1] Shepard, R. "Multidimensional scaling, tree-fitting, and clustering."
+       Science 210.4468 (1980): 390-398.
+.. [2] Laakso, A. & Cottrell, G.. "Content and cluster analysis:
+       assessing representational similarity in neural systems." Philosophical
+       psychology 13.1 (2000): 47-76.
+.. [3] Kriegeskorte, N., Marieke, M., & Bandettini.  P. "Representational
+       similarity analysis-connecting the branches of systems neuroscience."
+       Frontiers in systems neuroscience 2 (2008): 4.
+.. [4] Cichy, R. M., Pantazis, D., & Oliva, A. "Resolving human object
+       recognition in space and time." Nature neuroscience (2014): 17(3),
+       455-462
 """
 
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>
@@ -67,11 +68,12 @@ conds = conds[:max_trigger]  # take only the first 24 rows
 
 ##############################################################################
 # Define stimulus - trigger mapping
-conditions = ['/'.join(map(str,
-                           list(c[:2]) + [('not-' if i == 0 else '') +
-                                          conds.columns[k]
-                                          for k, i in enumerate(c[2:], 2)]))
-              for c in conds.values]
+conditions = []
+for c in conds.values:
+    cond_tags = list(c[:2])
+    cond_tags += [('not-' if i == 0 else '') + conds.columns[k]
+                  for k, i in enumerate(c[2:], 2)]
+    conditions.append('/'.join(map(str, cond_tags)))
 print(conditions[:10])
 
 ##############################################################################
@@ -86,8 +88,7 @@ fname = op.join(data_path, 'sample_subject_%i_tsss_mc.fif')
 raws = [read_raw_fif(fname % block) for block in range(n_runs)]
 raw = concatenate_raws(raws)
 
-events = mne.find_events(raw, min_duration=.002, verbose=True)
-print(events[:10])
+events = mne.find_events(raw, min_duration=.002)
 
 events = events[events[:, 2] <= max_trigger]
 mne.viz.plot_events(events, sfreq=raw.info['sfreq'])
@@ -117,14 +118,14 @@ epochs['not-face'].average().plot()
 # instants separately.
 
 # Classify using the average signal in the window 50ms to 300ms
+# to focus the classifier on the time interval with best SNR.
 clf = make_pipeline(StandardScaler(),
                     LogisticRegression(C=1, solver='lbfgs'))
 X = epochs.copy().crop(0.05, 0.3).get_data().mean(axis=2)
 y = epochs.events[:, 2]
 
-n_folds = 5
 classes = set(y)
-cv = StratifiedKFold(n_folds, random_state=0, shuffle=True)
+cv = StratifiedKFold(n_splits=5, random_state=0, shuffle=True)
 
 # Compute confusion matrix for each cross-validation fold
 y_pred = np.zeros((len(y), len(classes)))
@@ -134,16 +135,13 @@ for train, test in cv.split(X, y):
     # Predict
     y_pred[test] = clf.predict_proba(X[test])
 
-print(y_pred[:2])
-
-
 ##############################################################################
 # Compute confusion matrix using ROC-AUC
-cm = np.zeros((len(classes), len(classes)))
+confusion = np.zeros((len(classes), len(classes)))
 for ii, train_class in enumerate(classes):
     for jj in range(ii, len(classes)):
-        cm[ii, jj] = roc_auc_score(y == train_class, y_pred[:, jj])
-        cm[jj, ii] = cm[ii, jj]
+        confusion[ii, jj] = roc_auc_score(y == train_class, y_pred[:, jj])
+        confusion[jj, ii] = confusion[ii, jj]
 
 # Format class names for centered plotting
 names = np.array([conds[conds.trigger == (val - 1)].condition.iloc[0]
@@ -157,7 +155,7 @@ for ii, name in enumerate(names):
 ##############################################################################
 # Plot
 fig, ax = plt.subplots(1)
-im = ax.matshow(cm, cmap='RdBu_r', clim=[0.3, 0.7])
+im = ax.matshow(confusion, cmap='RdBu_r', clim=[0.3, 0.7])
 ax.set_yticks(range(len(classes)))
 ax.set_yticklabels(sparse_names)
 ax.set_xticks(range(len(classes)))
@@ -177,7 +175,7 @@ plt.show()
 fig, ax = plt.subplots(1)
 mds = MDS(2, random_state=0, dissimilarity='precomputed')
 chance = 0.5
-summary = mds.fit_transform(chance - cm)
+summary = mds.fit_transform(chance - confusion)
 cmap = plt.get_cmap('rainbow')
 colors = cmap(np.linspace(0., 1., len(set(names))))
 for color, name in zip(colors, set(names)):
