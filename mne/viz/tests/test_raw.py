@@ -41,7 +41,6 @@ def _get_events():
     return read_events(event_name)
 
 
-@requires_version('matplotlib', '1.2')
 def test_plot_raw():
     """Test plotting of raw data."""
     import matplotlib.pyplot as plt
@@ -76,9 +75,8 @@ def test_plot_raw():
         # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
         # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
         #  test keypresses
-        for key in ['escape', 'down', 'up', 'right', 'left', 'o', '-', '+',
-                    '=', 'pageup', 'pagedown', 'home', 'end', '?', 'f11',
-                    'escape']:
+        for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=',
+                    'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'escape']:
             fig.canvas.key_press_event(key)
         # Color setting
         assert_raises(KeyError, raw.plot, event_color={0: 'r'})
@@ -123,7 +121,6 @@ def test_plot_raw():
         plt.close('all')
 
 
-@requires_version('matplotlib', '1.2')
 def test_plot_annotations():
     """Test annotation mode of the plotter."""
     import matplotlib.pyplot as plt
@@ -227,7 +224,6 @@ def test_plot_raw_psd():
     assert_raises(ValueError, raw.plot_psd)
 
 
-@requires_version('matplotlib', '1.2')
 def test_plot_sensors():
     """Test plotting of sensor array."""
     import matplotlib.pyplot as plt

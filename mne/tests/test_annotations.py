@@ -62,6 +62,12 @@ def test_annotations():
         raws.append(raw)
     raw = concatenate_raws(raws)
     assert_array_equal(raw.annotations.onset, [1., 2., 11., 12., 21., 22.])
-
+    raw.annotations.delete(2)
+    assert_array_equal(raw.annotations.onset, [1., 2., 12., 21., 22.])
+    raw.annotations.append(5, 1.5, 'y')
+    assert_array_equal(raw.annotations.onset, [1., 2., 12., 21., 22., 5])
+    assert_array_equal(raw.annotations.duration, [.5, .5, .5, .5, .5, 1.5])
+    assert_array_equal(raw.annotations.description, ['x', 'x', 'x', 'x', 'x',
+                                                     'y'])
 
 run_tests_if_main()
