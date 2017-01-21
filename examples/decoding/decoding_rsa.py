@@ -143,27 +143,17 @@ for ii, train_class in enumerate(classes):
         confusion[ii, jj] = roc_auc_score(y == train_class, y_pred[:, jj])
         confusion[jj, ii] = confusion[ii, jj]
 
-# Format class names for centered plotting
-names = np.array([conds[conds.trigger == (val - 1)].condition.iloc[0]
-                  for val in classes])
-sparse_names = np.copy(names)
-n = 0
-for ii, name in enumerate(names):
-    sparse_names[ii] = '' if n != (sum(names == name) // 2) else name
-    n = 0 if ii < (len(names) - 1) and names[ii + 1] != name else n + 1
-
 ##############################################################################
 # Plot
+labels = [''] * 5 + ['face'] + [''] * 11 + ['bodypart'] + [''] * 6
 fig, ax = plt.subplots(1)
 im = ax.matshow(confusion, cmap='RdBu_r', clim=[0.3, 0.7])
 ax.set_yticks(range(len(classes)))
-ax.set_yticklabels(sparse_names)
+ax.set_yticklabels(labels)
 ax.set_xticks(range(len(classes)))
-ax.set_xticklabels(sparse_names, rotation=40, ha='left')
-for ii, (name, next_name) in enumerate(zip(names, names[1:])):
-    if name != next_name:
-        ax.axhline(ii + 0.5, color='k')
-        ax.axvline(ii + 0.5, color='k')
+ax.set_xticklabels(labels, rotation=40, ha='left')
+ax.axhline(11.5, color='k')
+ax.axvline(11.5, color='k')
 plt.colorbar(im)
 plt.tight_layout()
 plt.show()
@@ -177,7 +167,8 @@ mds = MDS(2, random_state=0, dissimilarity='precomputed')
 chance = 0.5
 summary = mds.fit_transform(chance - confusion)
 cmap = plt.get_cmap('rainbow')
-colors = cmap(np.linspace(0., 1., len(set(names))))
+colors = ['r', 'b']
+names = list(conds['condition'].values)
 for color, name in zip(colors, set(names)):
     sel = np.where([this_name == name for this_name in names])[0]
     size = 500 if name == 'human face' else 100
