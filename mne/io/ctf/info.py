@@ -23,8 +23,7 @@ from .constants import CTF
 
 _ctf_to_fiff = {CTF.CTFV_COIL_LPA: FIFF.FIFFV_POINT_LPA,
                 CTF.CTFV_COIL_RPA: FIFF.FIFFV_POINT_RPA,
-                CTF.CTFV_COIL_NAS: FIFF.FIFFV_POINT_NASION,
-                CTF.CTFV_COIL_SPARE: FIFF.FIFFV_POINT_EXTRA}
+                CTF.CTFV_COIL_NAS: FIFF.FIFFV_POINT_NASION}
 
 
 def _pick_isotrak_and_hpi_coils(res4, coils, t):

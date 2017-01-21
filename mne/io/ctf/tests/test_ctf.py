@@ -18,6 +18,7 @@ from mne.io import read_raw_fif, read_raw_ctf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import _TempDir, run_tests_if_main, slow_test
 from mne.datasets import testing, spm_face
+from mne.io.constants import FIFF
 
 ctf_dir = op.join(testing.data_path(download=False), 'CTF')
 ctf_fname_continuous = 'testdata_ctf.ds'
@@ -212,6 +213,8 @@ def test_read_spm_ctf():
     assert_false(extras['n_samp'] == extras['n_samp_tot'])
 
     # Test that LPA, nasion and RPA are correct.
+    coord_frames = np.array([d['coord_frame'] for d in raw.info['dig']])
+    np.all(coord_frames == FIFF.FIFFV_COORD_HEAD)
     cardinals = {d['ident']: d['r'] for d in raw.info['dig']}
     assert_true(cardinals[1][0] < cardinals[2][0] < cardinals[3][0])  # x coord
     assert_true(cardinals[1][1] < cardinals[2][1])  # y coord
