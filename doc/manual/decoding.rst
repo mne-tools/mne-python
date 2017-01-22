@@ -48,7 +48,7 @@ This is a technique to analyze multichannel data based on recordings from two cl
 .. math::       x_{CSP}(t) = W^{T}x(t)
    :label: csp
 
-where each column of :math:`W \in R^{C\times C}` is a spatial filter and each row of :math:`x_{CSP}` is a CSP component. The matrix :math:`W` is also called the de-mixing matrix in other contexts. Let :math:`\Sigma^{+} \in R^{C\times C}` and :math:`\Sigma^{-} \in R^{C\times C}` be the estimates of the covariance matrices of the two conditions. 
+where each column of :math:`W \in R^{C\times C}` is a spatial filter and each row of :math:`x_{CSP}` is a CSP component. The matrix :math:`W` is also called the de-mixing matrix in other contexts. Let :math:`\Sigma^{+} \in R^{C\times C}` and :math:`\Sigma^{-} \in R^{C\times C}` be the estimates of the covariance matrices of the two conditions.
 CSP analysis is given by the simultaneous diagonalization of the two covariance matrices
 
 .. math::       W^{T}\Sigma^{+}W = \lambda^{+}
@@ -153,7 +153,8 @@ To generate this plot, you need to initialize a GAT object and then use the meth
 
 .. topic:: Examples:
 
-    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_time_generalization.py`
+    * :ref:`sphx_glr_auto_tutorials_plot_sensors_decoding.py`
+    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_time_generalization_conditions.py`
 
 Source-space decoding
 =====================

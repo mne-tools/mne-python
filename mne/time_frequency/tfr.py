@@ -566,7 +566,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
     See Also
     --------
-    mne.time_frequency.cwt_morlet : Compute time-frequency decomposition
+    mne.time_frequency.tfr_morlet : Compute time-frequency decomposition
                                     with Morlet wavelets
     """
     decim = _check_decim(decim)
@@ -1305,6 +1305,7 @@ class AverageTFR(_BaseTFR):
         assert np.all(tfr.freqs == self.freqs)
 
     def __add__(self, tfr):  # noqa: D105
+        """Add instances."""
         self._check_compat(tfr)
         out = self.copy()
         out.data += tfr.data
@@ -1316,6 +1317,7 @@ class AverageTFR(_BaseTFR):
         return self
 
     def __sub__(self, tfr):  # noqa: D105
+        """Subtract instances."""
         self._check_compat(tfr)
         out = self.copy()
         out.data -= tfr.data

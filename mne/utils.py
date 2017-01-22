@@ -28,12 +28,13 @@ import tempfile
 import time
 import traceback
 import warnings
+import webbrowser
 
 import numpy as np
 from scipy import linalg, sparse
 
 from .externals.six.moves import urllib
-from .externals.six import string_types, StringIO, BytesIO
+from .externals.six import string_types, StringIO, BytesIO, integer_types
 from .externals.decorator import decorator
 
 from .fixes import _get_args
@@ -70,6 +71,12 @@ _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
 
 ###############################################################################
 # RANDOM UTILITIES
+
+
+def _pl(x):
+    """Determine if plural should be used."""
+    len_x = x if isinstance(x, (integer_types, np.generic)) else len(x)
+    return '' if len_x == 1 else 's'
 
 
 def _explain_exception(start=-1, stop=None, prefix='> '):
@@ -409,7 +416,7 @@ class _TempDir(str):
     """
 
     def __new__(self):  # noqa: D105
-        new = str.__new__(self, tempfile.mkdtemp())
+        new = str.__new__(self, tempfile.mkdtemp(prefix='tmp_mne_tempdir_'))
         return new
 
     def __init__(self):  # noqa: D102
@@ -1463,6 +1470,7 @@ known_config_types = (
     'MNE_DATASETS_SPM_FACE_DATASETS_TESTS',
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_TESTING_PATH',
+    'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
     'MNE_FORCE_SERIAL',
     'MNE_LOGGING_LEVEL',
     'MNE_MEMMAP_MIN_SIZE',
@@ -2315,7 +2323,7 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
 
 
 def _get_fast_dot():
-    """"Get fast dot."""
+    """Get fast dot."""
     try:
         from sklearn.utils.extmath import fast_dot
     except ImportError:
@@ -2489,12 +2497,10 @@ def sys_info(fid=None, show_paths=False):
 
         sklearn:       0.18.dev0
         nibabel:       2.1.0dev
-        nitime:        0.6
         mayavi:        4.3.1
-        nose:          1.3.7
-        pandas:        0.17.1+25.g547750a
         pycuda:        2015.1.3
         skcuda:        0.5.2
+        pandas:        0.17.1+25.g547750a
 
     """  # noqa: E501
     ljust = 15
@@ -2518,8 +2524,8 @@ def sys_info(fid=None, show_paths=False):
     libs = ', '.join(libs)
     version_texts = dict(pycuda='VERSION_TEXT')
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
-                     'sklearn', 'nibabel', 'nitime', 'mayavi', 'nose',
-                     'pandas', 'pycuda', 'skcuda'):
+                     'sklearn', 'nibabel', 'mayavi', 'pycuda', 'skcuda',
+                     'pandas'):
         if mod_name == '':
             out += '\n'
             continue
@@ -2549,3 +2555,34 @@ class ETSContext(object):
             value.code += ("\nThis can probably be solved by setting "
                            "ETS_TOOLKIT=qt4. On bash, type\n\n    $ export "
                            "ETS_TOOLKIT=qt4\n\nand run the command again.")
+
+
+def open_docs(kind=None, version=None):
+    """Launch a new web browser tab with the MNE documentation.
+
+    Parameters
+    ----------
+    kind : str | None
+        Can be "api" (default), "tutorials", or "examples".
+        The default can be changed by setting the configuration value
+        MNE_DOCS_KIND.
+    version : str | None
+        Can be "stable" (default) or "dev".
+        The default can be changed by setting the configuration value
+        MNE_DOCS_VERSION.
+    """
+    if kind is None:
+        kind = get_config('MNE_DOCS_KIND', 'api')
+    help_dict = dict(api='python_reference.html', tutorials='tutorials.html',
+                     examples='auto_examples/index.html')
+    if kind not in help_dict:
+        raise ValueError('kind must be one of %s, got %s'
+                         % (sorted(help_dict.keys()), kind))
+    kind = help_dict[kind]
+    if version is None:
+        version = get_config('MNE_DOCS_VERSION', 'stable')
+    versions = ('stable', 'dev')
+    if version not in versions:
+        raise ValueError('version must be one of %s, got %s'
+                         % (version, versions))
+    webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))

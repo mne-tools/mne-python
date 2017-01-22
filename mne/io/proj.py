@@ -512,7 +512,10 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
                 psize = sqrt(np.sum(this_vecs[:, v] * this_vecs[:, v]))
                 if psize > 0:
                     orig_n = p['data']['data'].shape[1]
-                    if len(vecsel) < 0.9 * orig_n and not inplace:
+                    # Average ref still works if channels are removed
+                    if len(vecsel) < 0.9 * orig_n and not inplace and \
+                            (p['kind'] != FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF or
+                             len(vecsel) == 1):
                         warn('Projection vector "%s" has magnitude %0.2f '
                              '(should be unity), applying projector with '
                              '%s/%s of the original channels available may '

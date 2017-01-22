@@ -21,10 +21,11 @@ from .tag import read_tag, find_tag
 from .proj import _read_proj, _write_proj, _uniquify_projs, _normalize_proj
 from .ctf_comp import read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
-                    write_string, write_dig_point, write_float, write_int,
+                    write_string, write_dig_points, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix)
 from .proc_history import _read_proc_history, _write_proc_history
+from ..transforms import _to_const
 from ..utils import logger, verbose, warn, object_diff
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
@@ -127,8 +128,6 @@ class Info(dict):
     file_id : dict | None
         The fif ID datastructure of the measurement file.
         See: :ref:`faq` for details.
-    filename : str | None
-        The name of the file that provided the raw data.
     highpass : float | None
         Highpass corner frequency in Hertz. Zero indicates a DC recording.
     hpi_meas : list of dict | None
@@ -194,9 +193,6 @@ class Info(dict):
                 if len(v) > 10:
                     # get rid of of half printed ch names
                     entr = _summarize_str(entr)
-            elif k == 'filename' and v:
-                path, fname = op.split(v)
-                entr = path[:10] + '.../' + fname
             elif k == 'projs' and v:
                 entr = ', '.join(p['desc'] + ': o%s' %
                                  {0: 'ff', 1: 'n'}[p['active']] for p in v)
@@ -258,6 +254,9 @@ class Info(dict):
                        for x in np.setdiff1d(range(self['nchan']), unique_ids))
             raise RuntimeError('Channel names are not unique, found '
                                'duplicates for: %s' % dups)
+        if 'filename' in self:
+            warn('the "filename" key is misleading\
+                 and info should not have it')
 
     def _update_redundant(self):
         """Update the redundant entries."""
@@ -309,7 +308,7 @@ def read_fiducials(fname):
     return pts, coord_frame
 
 
-def write_fiducials(fname, pts, coord_frame=0):
+def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN):
     """Write fiducials to a fiff file.
 
     Parameters
@@ -321,23 +320,38 @@ def write_fiducials(fname, pts, coord_frame=0):
         the keys 'kind', 'ident' and 'r'.
     coord_frame : int
         The coordinate frame of the points (one of
-        mne.io.constants.FIFF.FIFFV_COORD_...)
+        mne.io.constants.FIFF.FIFFV_COORD_...).
     """
-    pts_frames = set((pt.get('coord_frame', coord_frame) for pt in pts))
-    bad_frames = pts_frames - set((coord_frame,))
-    if len(bad_frames) > 0:
-        err = ("Points have coord_frame entries that are incompatible with "
-               "coord_frame=%i: %s." % (coord_frame, str(tuple(bad_frames))))
-        raise ValueError(err)
+    write_dig(fname, pts, coord_frame)
 
-    fid = start_file(fname)
-    start_block(fid, FIFF.FIFFB_ISOTRAK)
-    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, coord_frame)
-    for pt in pts:
-        write_dig_point(fid, pt)
 
-    end_block(fid, FIFF.FIFFB_ISOTRAK)
-    end_file(fid)
+def write_dig(fname, pts, coord_frame=None):
+    """Write digitization data to a FIF file.
+
+    Parameters
+    ----------
+    fname : str
+        Destination file name.
+    pts : iterator of dict
+        Iterator through digitizer points. Each point is a dictionary with
+        the keys 'kind', 'ident' and 'r'.
+    coord_frame : int | str | None
+        If all the points have the same coordinate frame, specify the type
+        here. Can be None (default) if the points could have varying
+        coordinate frames.
+    """
+    if coord_frame is not None:
+        coord_frame = _to_const(coord_frame)
+        pts_frames = set((pt.get('coord_frame', coord_frame) for pt in pts))
+        bad_frames = pts_frames - set((coord_frame,))
+        if len(bad_frames) > 0:
+            raise ValueError(
+                'Points have coord_frame entries that are incompatible with '
+                'coord_frame=%i: %s.' % (coord_frame, str(tuple(bad_frames))))
+
+    with start_file(fname) as fid:
+        write_dig_points(fid, pts, block=True, coord_frame=coord_frame)
+        end_file(fid)
 
 
 def _read_dig_fif(fid, meas_info):
@@ -370,7 +384,8 @@ def _read_dig_points(fname, comments='%', unit='auto'):
     Parameters
     ----------
     fname : str
-        The filepath of space delimited file with points.
+        The filepath of space delimited file with points, or a .mat file
+        (Polhemus FastTrak format).
     comments : str
         The character used to indicate the start of a comment;
         Default: '%'.
@@ -399,10 +414,17 @@ def _read_dig_points(fname, comments='%', unit='auto'):
         points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
                                                       re.MULTILINE)]
         dig_points = np.array(points_str, dtype=float)
+    elif ext == '.mat':  # like FastScan II
+        from scipy.io import loadmat
+        dig_points = loadmat(fname)['Points'].T
     else:
         dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
         if unit == 'auto':
             unit = 'mm'
+        if dig_points.shape[1] > 3:
+            warn('Found %d columns instead of 3, using first 3 for XYZ '
+                 'coordinates' % (dig_points.shape[1],))
+            dig_points = dig_points[:, :3]
 
     if dig_points.shape[-1] != 3:
         err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
@@ -450,7 +472,7 @@ def _write_dig_points(fname, dig_points):
 
 
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
-                     dig_points=None, dig_ch_pos=None):
+                     extra_points=None, dig_ch_pos=None):
     """Construct digitizer info for the info.
 
     Parameters
@@ -463,7 +485,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         Point designated as the right auricular point.
     hpi : array-like | numpy.ndarray, shape (n_points, 3) | None
         Points designated as head position indicator points.
-    dig_points : array-like | numpy.ndarray, shape (n_points, 3)
+    extra_points : array-like | numpy.ndarray, shape (n_points, 3)
         Points designed as the headshape points.
     dig_ch_pos : dict
         Dict of EEG channel positions.
@@ -476,56 +498,46 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
     dig = []
     if lpa is not None:
         lpa = np.asarray(lpa)
-        if lpa.shape == (3,):
-            dig.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('LPA should have the shape (3,) instead of %s'
-                   % (lpa.shape,))
-            raise ValueError(msg)
+        if lpa.shape != (3,):
+            raise ValueError('LPA should have the shape (3,) instead of %s'
+                             % (lpa.shape,))
+        dig.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
+                    'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
     if nasion is not None:
         nasion = np.asarray(nasion)
-        if nasion.shape == (3,):
-            dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('Nasion should have the shape (3,) instead of %s'
-                   % (nasion.shape,))
-            raise ValueError(msg)
+        if nasion.shape != (3,):
+            raise ValueError('Nasion should have the shape (3,) instead of %s'
+                             % (nasion.shape,))
+        dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
+                    'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
     if rpa is not None:
         rpa = np.asarray(rpa)
-        if rpa.shape == (3,):
-            dig.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('RPA should have the shape (3,) instead of %s'
-                   % (rpa.shape,))
-            raise ValueError(msg)
+        if rpa.shape != (3,):
+            raise ValueError('RPA should have the shape (3,) instead of %s'
+                             % (rpa.shape,))
+        dig.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
+                    'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
     if hpi is not None:
         hpi = np.asarray(hpi)
-        if hpi.shape[1] == 3:
-            for idx, point in enumerate(hpi):
-                dig.append({'r': point, 'ident': idx + 1,
-                            'kind': FIFF.FIFFV_POINT_HPI,
-                            'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('HPI should have the shape (n_points, 3) instead of '
-                   '%s' % (hpi.shape,))
-            raise ValueError(msg)
-    if dig_points is not None:
-        dig_points = np.asarray(dig_points)
-        if dig_points.shape[1] == 3:
-            for idx, point in enumerate(dig_points):
-                dig.append({'r': point, 'ident': idx + 1,
-                            'kind': FIFF.FIFFV_POINT_EXTRA,
-                            'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('Points should have the shape (n_points, 3) instead of '
-                   '%s' % (dig_points.shape,))
-            raise ValueError(msg)
+        if hpi.ndim != 2 or hpi.shape[1] != 3:
+            raise ValueError('HPI should have the shape (n_points, 3) instead '
+                             'of %s' % (hpi.shape,))
+        for idx, point in enumerate(hpi):
+            dig.append({'r': point, 'ident': idx + 1,
+                        'kind': FIFF.FIFFV_POINT_HPI,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
+    if extra_points is not None:
+        extra_points = np.asarray(extra_points)
+        if extra_points.shape[1] != 3:
+            raise ValueError('Points should have the shape (n_points, 3) '
+                             'instead of %s' % (extra_points.shape,))
+        for idx, point in enumerate(extra_points):
+            dig.append({'r': point, 'ident': idx + 1,
+                        'kind': FIFF.FIFFV_POINT_EXTRA,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
     if dig_ch_pos is not None:
         keys = sorted(dig_ch_pos.keys())
         try:  # use the last 3 as int if possible (e.g., EEG001->1)
@@ -1026,8 +1038,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     #   HPI Result
     for hpi_result in info['hpi_results']:
         start_block(fid, FIFF.FIFFB_HPI_RESULT)
-        for d in hpi_result['dig_points']:
-            write_dig_point(fid, d)
+        write_dig_points(fid, hpi_result['dig_points'])
         if 'order' in hpi_result:
             write_int(fid, FIFF.FIFF_HPI_DIGITIZATION_ORDER,
                       hpi_result['order'])
@@ -1086,12 +1097,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         end_block(fid, FIFF.FIFFB_HPI_MEAS)
 
     #   Polhemus data
-    if info['dig'] is not None:
-        start_block(fid, FIFF.FIFFB_ISOTRAK)
-        for d in info['dig']:
-            write_dig_point(fid, d)
-
-        end_block(fid, FIFF.FIFFB_ISOTRAK)
+    write_dig_points(fid, info['dig'], block=True)
 
     #   megacq parameters
     if info['acq_pars'] is not None or info['acq_stim'] is not None:
@@ -1389,7 +1395,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     # other fields
     other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
                     'comps', 'custom_ref_applied', 'description', 'dig',
-                    'experimenter', 'file_id', 'filename', 'highpass',
+                    'experimenter', 'file_id', 'highpass',
                     'hpi_results', 'hpi_meas', 'hpi_subsystem', 'events',
                     'line_freq', 'lowpass', 'meas_date', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq',
@@ -1495,7 +1501,7 @@ RAW_INFO_FIELDS = (
     'acq_pars', 'acq_stim', 'bads', 'buffer_size_sec', 'ch_names', 'chs',
     'comps', 'ctf_head_t', 'custom_ref_applied', 'description', 'dev_ctf_t',
     'dev_head_t', 'dig', 'experimenter', 'events',
-    'file_id', 'filename', 'highpass', 'hpi_meas', 'hpi_results',
+    'file_id', 'highpass', 'hpi_meas', 'hpi_results',
     'hpi_subsystem', 'kit_system_id', 'line_freq', 'lowpass', 'meas_date',
     'meas_id', 'nchan', 'proj_id', 'proj_name', 'projs', 'sfreq',
     'subject_info', 'xplotter_layout',
@@ -1508,7 +1514,7 @@ def _empty_info(sfreq):
     _none_keys = (
         'acq_pars', 'acq_stim', 'buffer_size_sec', 'ctf_head_t', 'description',
         'dev_ctf_t', 'dig', 'experimenter',
-        'file_id', 'filename', 'highpass', 'hpi_subsystem', 'kit_system_id',
+        'file_id', 'highpass', 'hpi_subsystem', 'kit_system_id',
         'line_freq', 'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
         'subject_info', 'xplotter_layout',
     )

@@ -484,6 +484,8 @@ class EpochsEEGLAB(BaseEpochs):
             ev_idx = 0
             warn_multiple_events = False
             for ep in eeg.epoch:
+                if isinstance(ep.eventtype, int):
+                    ep.eventtype = str(ep.eventtype)
                 if not isinstance(ep.eventtype, string_types):
                     event_type = '/'.join(ep.eventtype.tolist())
                     event_name.append(event_type)
@@ -532,7 +534,6 @@ class EpochsEEGLAB(BaseEpochs):
                 raise ValueError('No matching events found for %s '
                                  '(event id %i)' % (key, val))
 
-        self._filename = input_fname
         if isinstance(eeg.data, string_types):
             basedir = op.dirname(input_fname)
             data_fname = op.join(basedir, eeg.data)
@@ -554,7 +555,7 @@ class EpochsEEGLAB(BaseEpochs):
         super(EpochsEEGLAB, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
-            reject_tmax=reject_tmax, verbose=verbose)
+            reject_tmax=reject_tmax, filename=input_fname, verbose=verbose)
 
         # data are preloaded but _bad_dropped is not set so we do it here:
         self._bad_dropped = True

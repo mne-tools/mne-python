@@ -228,7 +228,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         --------
         Epochs.decimate
         Epochs.resample
-        Raw.resample
+        mne.io.Raw.resample
 
         Notes
         -----
@@ -970,7 +970,6 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
     with f as fid:
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree, clean_bads=True)
-        info['filename'] = fname
 
         #   Locate the data of interest
         processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)

@@ -244,7 +244,6 @@ class RawEGI(BaseRaw):
             self._new_trigger = None
         info = _empty_info(egi_info['samp_rate'])
         info['buffer_size_sec'] = 1.  # reasonable default
-        info['filename'] = input_fname
         my_time = datetime.datetime(
             egi_info['year'], egi_info['month'], egi_info['day'],
             egi_info['hour'], egi_info['minute'], egi_info['second'])

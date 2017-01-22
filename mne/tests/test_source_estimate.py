@@ -662,7 +662,7 @@ def test_spatio_temporal_src_connectivity():
         warnings.simplefilter('always')
         src_ = inverse_operator['src']
         connectivity = spatio_temporal_src_connectivity(src_, n_times=2)
-        assert len(w) == 1
+    assert_equal(len(w), 1)
     a = connectivity.shape[0] / 2
     b = sum([s['nuse'] for s in inverse_operator['src']])
     assert_true(a == b)

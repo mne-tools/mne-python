@@ -214,6 +214,13 @@ class _GeneralizationAcrossTime(object):
                     'When predict_mode = "cross-validation", the training '
                     'and predicting cv schemes must be identical.')
 
+            # Check that cv is a partition: i.e. that each tested sample may
+            # have more than one prediction, such as with ShuffleSplit.
+            test_idx = [ii for _, test in self._cv_splits for ii in test]
+            if sum([sum(np.array(test_idx) == idx) > 1 for idx in test_idx]):
+                raise ValueError('cv must be a partition if predict_mode is '
+                                 '"cross-validation".')
+
         # Clean attributes
         for att in ['y_pred_', 'test_times_', 'scores_', 'scorer_', 'y_true_']:
             if hasattr(self, att):

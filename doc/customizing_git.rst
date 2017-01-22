@@ -1,3 +1,7 @@
+:orphan:
+
+.. include:: links.inc
+
 .. _customizing-git:
 
 =================

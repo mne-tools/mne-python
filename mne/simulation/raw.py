@@ -25,7 +25,7 @@ from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
 from ..transforms import _get_trans, transform_surface_to
 from ..source_space import _ensure_src, _points_outside_surface
 from ..source_estimate import _BaseSourceEstimate
-from ..utils import logger, verbose, check_random_state, warn
+from ..utils import logger, verbose, check_random_state, warn, _pl
 from ..parallel import check_n_jobs
 from ..externals.six import string_types
 
@@ -91,7 +91,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         matrices. If None, the original head position (from
         ``info['dev_head_t']``) will be used. If tuple, should have the
         same format as data returned by `head_pos_to_trans_rot_t`.
-        If array, should be of the form returned by `read_head_pos`.
+        If array, should be of the form returned by
+        :func:`mne.chpi.read_head_pos`.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
@@ -117,10 +118,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
     See Also
     --------
-    read_head_pos
+    mne.chpi.read_head_pos
     simulate_evoked
     simulate_stc
-    simalute_sparse_stc
+    simulate_sparse_stc
 
     Notes
     -----
@@ -247,7 +248,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     approx_events = int((len(times) / info['sfreq']) /
                         (stc.times[-1] - stc.times[0]))
     logger.info('Provided parameters will provide approximately %s event%s'
-                % (approx_events, '' if approx_events == 1 else 's'))
+                % (approx_events, _pl(approx_events)))
 
     # Extract necessary info
     meeg_picks = pick_types(info, meg=True, eeg=True, exclude=[])  # for sim
@@ -255,8 +256,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     fwd_info = pick_info(info, meeg_picks)
     fwd_info['projs'] = []  # Ensure no 'projs' applied
     logger.info('Setting up raw simulation: %s position%s, "%s" interpolation'
-                % (len(dev_head_ts), 's' if len(dev_head_ts) != 1 else '',
-                   interp))
+                % (len(dev_head_ts), _pl(dev_head_ts), interp))
 
     verts = stc.vertices
     verts = [verts] if isinstance(stc, VolSourceEstimate) else verts
@@ -414,7 +414,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
         logger.info('  Simulating data for %0.3f-%0.3f sec with %s event%s'
                     % (tuple(offsets[fi - 1:fi + 1] / info['sfreq']) +
-                       (len(event_idxs), '' if len(event_idxs) == 1 else 's')))
+                       (len(event_idxs), _pl(event_idxs))))
 
         # Process data in large chunks to save on memory
         chunk_size = 10000
@@ -558,10 +558,9 @@ def _restrict_source_space_to(src, vertices):
         s['nuse'] = len(v)
         s['vertno'] = v
         s['inuse'][s['vertno']] = 1
-        del s['pinfo']
-        del s['nuse_tri']
-        del s['use_tris']
-        del s['patch_inds']
+        for key in ('pinfo', 'nuse_tri', 'use_tris', 'patch_inds'):
+            if key in s:
+                del s[key]
     return src
 
 

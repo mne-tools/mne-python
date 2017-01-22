@@ -158,11 +158,15 @@ def test_plot_raw_psd():
         raw.plot_psd()
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
-    raw.plot_psd(tmax=np.inf, picks=picks, area_mode='range', average=False)
+    raw.plot_psd(tmax=np.inf, picks=picks, area_mode='range', average=False,
+                 spatial_colors=True)
+    raw.plot_psd(tmax=20., color='yellow', dB=False, line_alpha=0.4,
+                 n_overlap=0.1, average=False)
     plt.close('all')
     ax = plt.axes()
     # if ax is supplied:
     assert_raises(ValueError, raw.plot_psd, ax=ax)
+    assert_raises(ValueError, raw.plot_psd, average=True, spatial_colors=True)
     raw.plot_psd(tmax=np.inf, picks=picks, ax=ax)
     plt.close('all')
     ax = plt.axes()
@@ -173,6 +177,11 @@ def test_plot_raw_psd():
     # topo psd
     raw.plot_psd_topo()
     plt.close('all')
+    # with channel information not available
+    for idx in range(len(raw.info['chs'])):
+        raw.info['chs'][idx]['loc'] = np.zeros(12)
+    with warnings.catch_warnings(record=True):  # missing channel locations
+        raw.plot_psd(spatial_colors=True, average=False)
     # with a flat channel
     raw[5, :] = 0
     assert_raises(ValueError, raw.plot_psd)

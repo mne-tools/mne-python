@@ -35,7 +35,8 @@ _str_to_frame = dict(meg=FIFF.FIFFV_COORD_DEVICE,
                      ras=FIFF.FIFFV_MNE_COORD_RAS,
                      fs_tal=FIFF.FIFFV_MNE_COORD_FS_TAL,
                      ctf_head=FIFF.FIFFV_MNE_COORD_CTF_HEAD,
-                     ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE)
+                     ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
+                     unknown=FIFF.FIFFV_COORD_UNKNOWN)
 _frame_to_str = dict((val, key) for key, val in _str_to_frame.items())
 
 _verbose_frames = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
@@ -62,9 +63,9 @@ def _to_const(cf):
         if cf not in _str_to_frame:
             raise ValueError('Unknown cf %s' % cf)
         cf = _str_to_frame[cf]
-    elif not isinstance(cf, int):
+    elif not isinstance(cf, (int, np.integer)):
         raise TypeError('cf must be str or int, not %s' % type(cf))
-    return cf
+    return int(cf)
 
 
 class Transform(dict):
@@ -244,6 +245,47 @@ def rotation3d(x=0, y=0, z=0):
                   [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
                    - sin_x * cos_z + cos_x * sin_y * sin_z],
                   [-sin_y, sin_x * cos_y, cos_x * cos_y]], dtype=float)
+    return r
+
+
+def rotation3d_align_z_axis(target_z_axis):
+    """Compute a rotation matrix to align [ 0 0 1] with supplied target z axis.
+
+    Parameters
+    ----------
+    target_z_axis : array, shape (1, 3)
+        z axis. computed matrix (r) will map [0 0 1] to target_z_axis
+
+    Returns
+    -------
+    r : array, shape (3, 3)
+        The rotation matrix.
+    """
+    target_z_axis = target_z_axis / np.linalg.norm(target_z_axis)
+    r = np.zeros((3, 3))
+    if ((1. + target_z_axis[2]) < 1E-12):
+        r[0, 0] = 1.
+        r[1, 1] = -1.
+        r[2, 2] = -1.
+    else:
+        f = 1. / (1. + target_z_axis[2])
+        r[0, 0] = 1. - 1. * f * target_z_axis[0] * target_z_axis[0]
+        r[0, 1] = -1. * f * target_z_axis[0] * target_z_axis[1]
+        r[0, 2] = target_z_axis[0]
+        r[1, 0] = -1. * f * target_z_axis[0] * target_z_axis[1]
+        r[1, 1] = 1. - 1. * f * target_z_axis[1] * target_z_axis[1]
+        r[1, 2] = target_z_axis[1]
+        r[2, 0] = -target_z_axis[0]
+        r[2, 1] = -target_z_axis[1]
+        r[2, 2] = 1. - f * (target_z_axis[0] * target_z_axis[0] +
+                            target_z_axis[1] * target_z_axis[1])
+
+    # assert that r is a rotation matrix r^t * r = I and det(r) = 1
+    assert(np.any((r.dot(r.T) - np.identity(3)) < 1E-12))
+    assert((linalg.det(r) - 1.0) < 1E-12)
+    # assert that r maps [0 0 1] on the device z axis (target_z_axis)
+    assert(linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12)
+
     return r
 
 
@@ -1064,7 +1106,7 @@ def _one_rot_to_quat(rot):
         qy = (rot[5] + rot[7]) / s
         qz = 0.25 * s
         # qw = (rot[3] - rot[1]) / s
-    return qx, qy, qz
+    return np.array((qx, qy, qz))
 
 
 def rot_to_quat(rot):

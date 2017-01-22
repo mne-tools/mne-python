@@ -339,6 +339,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
+        bad = np.where(cals == 0)[0]
+        if len(bad) > 0:
+            raise ValueError('Bad cals for channels %s'
+                             % dict((ii, self.ch_names[ii]) for ii in bad))
         self.verbose = verbose
         self._cals = cals
         self._raw_extras = list(raw_extras)
@@ -626,6 +630,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._times.flags.writeable = False
 
     @property
+    def _first_time(self):
+        return self.first_samp / float(self.info['sfreq'])
+
+    @property
     def first_samp(self):
         """The first data sample."""
         return self._first_samps[0]
@@ -643,6 +651,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def annotations(self):  # noqa: D401
         """Annotations for marking segments of data."""
         return self._annotations
+
+    @property
+    def filenames(self):
+        """The filenames used."""
+        return tuple(self._filenames)
 
     @annotations.setter
     def annotations(self, annotations):
@@ -1596,11 +1609,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=None):
+             highpass=None, lowpass=None, filtorder=4, clipping=None,
+             show_first_samp=False):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
-                        lowpass, filtorder, clipping)
+                        lowpass, filtorder, clipping, show_first_samp)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
@@ -1608,7 +1622,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  proj=False, n_fft=2048, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
                  n_overlap=0, dB=True, average=True, show=True,
-                 n_jobs=1, line_alpha=None, verbose=None):
+                 n_jobs=1, line_alpha=None, spatial_colors=None,
+                 verbose=None):
         if tmax is None:
             tmax = 60.
             warn('tmax defaults to 60. in 0.14 but will change to np.inf in '
@@ -1619,7 +1634,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                             color=color, area_mode=area_mode,
                             area_alpha=area_alpha, n_overlap=n_overlap,
                             dB=dB, average=average, show=show, n_jobs=n_jobs,
-                            line_alpha=line_alpha)
+                            line_alpha=line_alpha,
+                            spatial_colors=spatial_colors)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
@@ -1774,10 +1790,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 if not force:
                     raise ValueError('Bad channels from:\n%s\n not found '
                                      'in:\n%s' % (bad_file,
-                                                  self._filenames[0]))
+                                                  self.filenames[0]))
                 else:
                     warn('%d bad channels from:\n%s\nnot found in:\n%s'
-                         % (count_diff, bad_file, self._filenames[0]))
+                         % (count_diff, bad_file, self.filenames[0]))
             self.info['bads'] = names_there
         else:
             self.info['bads'] = []
@@ -1881,7 +1897,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return deepcopy(self)
 
     def __repr__(self):  # noqa: D105
-        name = self._filenames[0]
+        name = self.filenames[0]
         name = 'None' if name is None else op.basename(name)
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
         size_str += ', data%s loaded' % ('' if self.preload else ' not')

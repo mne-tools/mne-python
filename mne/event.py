@@ -917,6 +917,10 @@ class AcqParserFIF(object):
     acq_dict : dict
         All DACQ parameters.
 
+    See Also
+    --------
+    mne.io.Raw.acqparser : access the parser through a Raw attribute
+
     Notes
     -----
     Any averaging category (also non-active ones) can be accessed by indexing

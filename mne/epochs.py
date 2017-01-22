@@ -42,7 +42,7 @@ from .fixes import _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
-                    _time_mask, check_random_state, warn,
+                    _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc)
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
@@ -197,6 +197,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     drop_log : list | None
         List of lists of strings indicating which epochs have been marked to be
         ignored.
+    filename : str | None
+        The filename (if the epochs are read from disk).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -215,7 +217,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
                  add_eeg_ref=False, proj=True, on_missing='error',
                  preload_at_end=False, selection=None, drop_log=None,
-                 verbose=None):  # noqa: D102
+                 filename=None, verbose=None):  # noqa: D102
         self.verbose = verbose
         self.name = name
 
@@ -248,8 +250,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 raise ValueError('events must be an array of type int')
             if events.ndim != 2 or events.shape[1] != 3:
                 raise ValueError('events must be 2D with 3 columns')
-            if len(np.unique(events[:, 0])) != len(events):
-                raise RuntimeError('Event time samples were not unique')
             for key, val in self.event_id.items():
                 if val not in events[:, 2]:
                     msg = ('No matching events found for %s '
@@ -273,6 +273,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 self.drop_log = drop_log
             events = events[selected]
+            if len(np.unique(events[:, 0])) != len(events):
+                raise RuntimeError('Event time samples were not unique')
             n_events = len(events)
             if n_events > 1:
                 if np.diff(events.astype(np.int64)[:, 0]).min() <= 0:
@@ -373,6 +375,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # more memory safe in most instances
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
+        self._filename = str(filename) if filename is not None else filename
 
     def load_data(self):
         """Load the data if not already preloaded.
@@ -428,9 +431,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         See Also
         --------
-        Evoked.decimate
-        Epochs.resample
-        Raw.resample
+        mne.Evoked.decimate
+        mne.Epochs.resample
+        mne.io.Raw.resample
 
         Notes
         -----
@@ -850,10 +853,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_epochs)
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
-             title=None, show=True, block=False):
+             title=None, events=None, event_colors=None, show=True,
+             block=False):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
-                           title=title, show=show, block=block)
+                           title=title, events=events,
+                           event_colors=event_colors, show=show, block=block)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
@@ -1046,7 +1051,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._data = np.delete(self._data, indices, axis=0)
 
         count = len(indices)
-        logger.info('Dropped %d epoch%s' % (count, '' if count == 1 else 's'))
+        logger.info('Dropped %d epoch%s' % (count, _pl(count)))
         return self
 
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -1166,7 +1171,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
-            A copy of the epochs data.
+            A view on epochs data.
         """
         return self._get_data()
 
@@ -1267,6 +1272,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def tmin(self):
         """First time point."""
         return self.times[0]
+
+    @property
+    def filename(self):
+        """The filename."""
+        return self._filename
 
     @property
     def tmax(self):
@@ -1429,7 +1439,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
         window : string or tuple
-            Window to use in resampling. See scipy.signal.resample.
+            Window to use in resampling. See :func:`scipy.signal.resample`.
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
@@ -1820,7 +1830,7 @@ class Epochs(BaseEpochs):
 
     Attributes
     ----------
-    info: dict
+    info : instance of Info
         Measurement info.
     event_id : dict
         Names of conditions corresponding to event_ids.
@@ -1843,6 +1853,8 @@ class Epochs(BaseEpochs):
         names of channels that exceeded the amplitude threshold;
         'EQUALIZED_COUNTS' (see equalize_event_counts);
         or 'USER' for user-defined reasons (see drop method).
+    filename : str
+        The filename of the object.
     verbose : bool, str, int, or None
         See above.
 
@@ -2221,12 +2233,11 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
             return False, bad_list
 
 
-def _read_one_epoch_file(f, tree, fname, preload):
+def _read_one_epoch_file(f, tree, preload):
     """Read a single FIF file."""
     with f as fid:
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree, clean_bads=True)
-        info['filename'] = fname
 
         events, mappings = _read_events_fif(fid, tree)
 
@@ -2434,7 +2445,7 @@ class EpochsFIF(BaseEpochs):
             next_fname = _get_next_fname(fid, fname, tree)
             (info, data, data_tag, events, event_id, tmin, tmax, baseline,
              name, selection, drop_log, epoch_shape, cals) = \
-                _read_one_epoch_file(fid, tree, fname, preload)
+                _read_one_epoch_file(fid, tree, preload)
             # here we ignore missing events, since users should already be
             # aware of missing events if they have saved data that way
             epoch = BaseEpochs(
@@ -2473,7 +2484,7 @@ class EpochsFIF(BaseEpochs):
             info, data, events, event_id, tmin, tmax, baseline, raw=raw,
             name=name, proj=proj, add_eeg_ref=add_eeg_ref,
             preload_at_end=False, on_missing='ignore', selection=selection,
-            drop_log=drop_log, verbose=verbose)
+            drop_log=drop_log, filename=fname, verbose=verbose)
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True
@@ -2787,8 +2798,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         .. versionadded:: 0.13
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose` and
-        :ref:`Logging documentation <tut_logging>` for more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

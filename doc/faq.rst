@@ -1,3 +1,5 @@
+:orphan:
+
 .. include:: links.inc
 
 .. _faq:
@@ -24,10 +26,6 @@ I still can't get it to work!
 For analysis talk, join the `MNE mailing list`_. File specific feature
 requests or bug reports `on GitHub <https://github.com/mne-tools/mne-python/issues/>`_.
 You can also chat with developers `on Gitter <https://gitter.im/mne-tools/mne-python>`_.
-
-How do I contribute?
---------------------
-Check out the :ref:`contributing` page.
 
 .. _cite:
 
@@ -102,7 +100,7 @@ able to read your data in the not-too-distant future. For details, see:
 
 MNE-Python is designed to provide its own file saving formats
 (often based on the FIF standard) for its objects usually via a
-``save`` method or ``write_*`` method, e.g. :func:`mne.Raw.save`,
+``save`` method or ``write_*`` method, e.g. :func:`mne.io.Raw.save`,
 :func:`mne.Epochs.save`, :func:`mne.write_evokeds`,
 :func:`mne.SourceEstimate.save`. If you have some data that you
 want to save but can't figure out how, shoot an email to the

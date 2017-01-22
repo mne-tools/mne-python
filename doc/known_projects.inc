@@ -49,3 +49,9 @@
 .. Astropy
 .. _Astropy: http://www.astropy.org
 .. _`Astropy GitHub`: http://github.com/astropy/astropy
+
+.. Nose
+.. _Nose: https://nose.readthedocs.io/
+
+.. Flake8
+.. _Flake8: http://flake8.pycqa.org/

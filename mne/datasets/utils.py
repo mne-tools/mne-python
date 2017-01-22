@@ -25,15 +25,14 @@ _data_path_doc = """Get path to local copy of {name} dataset.
     path : None | str
         Location of where to look for the {name} dataset.
         If None, the environment variable or config parameter
-        {conf} is used. If it doesn't exist, the
-        "mne-python/examples" directory is used. If the {name} dataset
-        is not found under the given path (e.g., as
-        "mne-python/examples/MNE-{name}-data"), the data
+        ``{conf}`` is used. If it doesn't exist, the
+        "~/mne_data" directory is used. If the {name} dataset
+        is not found under the given path, the data
         will be automatically downloaded to the specified folder.
     force_update : bool
         Force update of the {name} dataset even if a local copy exists.
     update_path : bool | None
-        If True, set the {conf} in mne-python
+        If True, set the ``{conf}`` in mne-python
         config to the given path. If None, the user is prompted.
     download : bool
         If False and the {name} dataset has not been downloaded yet,
@@ -220,12 +219,13 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'brainstorm': 'MNE_DATASETS_BRAINSTORM_PATH',
         'testing': 'MNE_DATASETS_TESTING_PATH',
         'multimodal': 'MNE_DATASETS_MULTIMODAL_PATH',
+        'visual_92_categories': 'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
     }[name]
 
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.26', misc='0.3')
+    releases = dict(testing='0.29', misc='0.3')
     # And also update the "hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -238,6 +238,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='mne-testing-data-%s.tar.gz' % releases['testing'],
         multimodal='MNE-multimodal-data.tar.gz',
         fake='foo.tgz',
+        visual_92_categories='MNE-visual_92_categories.tar.gz',
     )
     if archive_name is not None:
         archive_names.update(archive_name)
@@ -250,6 +251,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         multimodal='MNE-multimodal-data',
         spm='MNE-spm-face',
         testing='MNE-testing-data',
+        visual_92_categories='MNE-visual_92_categories-data',
     )
     urls = dict(
         brainstorm='https://mne-tools.s3.amazonaws.com/datasets/'
@@ -264,6 +266,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
         multimodal='https://ndownloader.figshare.com/files/5999598',
+        visual_92_categories='https://mne-tools.s3.amazonaws.com/datasets/%s',
     )
     hashes = dict(
         brainstorm=None,
@@ -272,8 +275,9 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='1d5da3a809fded1ef5734444ab5bf857',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
         spm='f61041e3f3f2ba0def8a2ca71592cc41',
-        testing='4e0d069249081135076daebf57043a54',
+        testing='1f9182a51749f5fef484dd7a02ee40e3',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
+        visual_92_categories='46c7e590f4a48596441ce001595d5e58',
     )
     folder_origs = dict(  # not listed means None
         misc='mne-misc-data-%s' % releases['misc'],
@@ -406,6 +410,7 @@ def has_dataset(name):
         'somato': 'MNE-somato-data',
         'spm': 'MNE-spm-face',
         'testing': 'MNE-testing-data',
+        'visual_92_categories': 'visual_92_categories-data',
     }[name]
     archive_name = None
     if name == 'brainstorm':
@@ -468,9 +473,8 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, verbose=None):
 
     Notes
     -----
-    Use of this parcellation is subject to terms of use on the HCP-MMP webpage:
-
-        https://balsa.wustl.edu/WN56
+    Use of this parcellation is subject to terms of use on the
+    `HCP-MMP webpage <https://balsa.wustl.edu/WN56>`_.
 
     References
     ----------

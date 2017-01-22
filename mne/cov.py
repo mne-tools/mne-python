@@ -32,7 +32,7 @@ from .epochs import Epochs
 from .event import make_fixed_length_events
 from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_version, _time_mask, warn,
-                    copy_function_doc_to_method_doc)
+                    copy_function_doc_to_method_doc, _pl)
 from . import viz
 
 from .externals.six.moves import zip
@@ -426,8 +426,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     tstep = tmax - tmin if tstep is None else float(tstep)
     tstep_m1 = tstep - 1. / raw.info['sfreq']  # inclusive!
     events = make_fixed_length_events(raw, 1, tmin, tmax, tstep)
-    pl = 's' if len(events) != 1 else ''
-    logger.info('Using up to %s segment%s' % (len(events), pl))
+    logger.info('Using up to %s segment%s' % (len(events), _pl(events)))
 
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
@@ -634,13 +633,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
            'in a list) are "%s" or None.' % '" or "'.join(accepted_methods))
 
     # scale to natural unit for best stability with MEG/EEG
-    if isinstance(scalings, dict):
-        for k, v in scalings.items():
-            if k not in ('mag', 'grad', 'eeg'):
-                raise ValueError('The keys in `scalings` must be "mag" or'
-                                 '"grad" or "eeg". You gave me: %s' % k)
-    scalings = _handle_default('scalings', scalings)
-
+    scalings = _check_scalings_user(scalings)
     _method_params = {
         'empirical': {'store_precision': False, 'assume_centered': True},
         'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
@@ -843,6 +836,19 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         out = covs[0]
 
     return out
+
+
+def _check_scalings_user(scalings):
+    if isinstance(scalings, dict):
+        for k, v in scalings.items():
+            if k not in ('mag', 'grad', 'eeg'):
+                raise ValueError('The keys in `scalings` must be "mag" or'
+                                 '"grad" or "eeg". You gave me: %s' % k)
+    elif scalings is not None and not isinstance(scalings, np.ndarray):
+        raise TypeError('scalings must be a dict, ndarray, or None, got %s'
+                        % type(scalings))
+    scalings = _handle_default('scalings', scalings)
+    return scalings
 
 
 def _compute_covariance_auto(data, method, info, method_params, cv,
@@ -1197,7 +1203,7 @@ def _unpack_epochs(epochs):
 
 
 def _get_ch_whitener(A, pca, ch_type, rank):
-    """"Get whitener params for a set of channels."""
+    """Get whitener params for a set of channels."""
     # whitening operator
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
     eigvec = eigvec.T
@@ -1335,12 +1341,12 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     channel type separately. Special care is taken to keep the
     rank of the data constant.
 
-    **Note:** This function is kept for reasons of backward-compatibility.
-    Please consider explicitly using the ``method`` parameter in
-    `compute_covariance` to directly combine estimation with regularization
-    in a data-driven fashion see the
-    `faq <http://martinos.org/mne/dev/faq.html#how-should-i-regularize-the-covariance-matrix>`_
-    for more information.
+    .. note:: This function is kept for reasons of backward-compatibility.
+              Please consider explicitly using the ``method`` parameter in
+              :func:`mne.compute_covariance` to directly combine estimation
+              with regularization in a data-driven fashion.
+              See the `faq <http://martinos.org/mne/dev/faq.html#how-should-i-regularize-the-covariance-matrix>`_
+              for more information.
 
     Parameters
     ----------
@@ -1369,7 +1375,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
 
     See Also
     --------
-    compute_covariance
+    mne.compute_covariance
     """  # noqa: E501
     cov = cp.deepcopy(cov)
     info._check_consistency()
@@ -1391,6 +1397,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     ch_names_eeg = [info_ch_names[i] for i in sel_eeg]
     ch_names_mag = [info_ch_names[i] for i in sel_mag]
     ch_names_grad = [info_ch_names[i] for i in sel_grad]
+    del sel_eeg, sel_mag, sel_grad
 
     # This actually removes bad channels from the cov, which is not backward
     # compatible, so let's leave all channels in
@@ -1632,6 +1639,8 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
                        scalings=None, verbose=None):
     """Get whitening matrix for a set of data."""
     ch_names = [info['ch_names'][k] for k in picks]
+    # XXX this relies on pick_channels, which does not respect order,
+    # so this could create problems if users have reordered their data
     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
     if len(noise_cov['data']) != len(ch_names):
         missing = list(set(ch_names) - set(noise_cov['names']))
@@ -1827,12 +1836,17 @@ def _apply_scaling_array(data, picks_list, scalings):
         data *= scalings[:, np.newaxis]  # F - order
 
 
-def _undo_scaling_array(data, picks_list, scalings):
-    scalings = _check_scaling_inputs(data, picks_list, scalings)
+def _invert_scalings(scalings):
     if isinstance(scalings, dict):
         scalings = dict((k, 1. / v) for k, v in scalings.items())
     elif isinstance(scalings, np.ndarray):
         scalings = 1. / scalings
+    return scalings
+
+
+def _undo_scaling_array(data, picks_list, scalings):
+    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
+                                                      scalings))
     return _apply_scaling_array(data, picks_list, scalings)
 
 
@@ -1863,11 +1877,8 @@ def _apply_scaling_cov(data, picks_list, scalings):
 
 
 def _undo_scaling_cov(data, picks_list, scalings):
-    scalings = _check_scaling_inputs(data, picks_list, scalings)
-    if isinstance(scalings, dict):
-        scalings = dict((k, 1. / v) for k, v in scalings.items())
-    elif isinstance(scalings, np.ndarray):
-        scalings = 1. / scalings
+    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
+                                                      scalings))
     return _apply_scaling_cov(data, picks_list, scalings)
 
 

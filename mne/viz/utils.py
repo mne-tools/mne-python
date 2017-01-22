@@ -564,11 +564,13 @@ def _channels_changed(params, len_channels):
 def _plot_raw_time(value, params):
     """Deal with changed time value."""
     info = params['info']
-    max_times = params['n_times'] / float(info['sfreq']) - params['duration']
+    max_times = params['n_times'] / float(info['sfreq']) + \
+        params['first_time'] - params['duration']
     if value > max_times:
-        value = params['n_times'] / info['sfreq'] - params['duration']
-    if value < 0:
-        value = 0
+        value = params['n_times'] / float(info['sfreq']) + \
+            params['first_time'] - params['duration']
+    if value < params['first_time']:
+        value = params['first_time']
     if params['t_start'] != value:
         params['t_start'] = value
         params['hsel_patch'].set_x(value)
@@ -590,7 +592,7 @@ def _radio_clicked(label, params):
     colors = np.zeros((len(types), 4))  # alpha = 0 by default
     locs3d = np.array([ch['loc'][:3] for ch in params['info']['chs']])
     x, y, z = locs3d.T
-    color_vals = _rgb(params['info'], x, y, z)
+    color_vals = _rgb(x, y, z)
     for color_idx, pick in enumerate(types):
         if pick in channels:  # set color and alpha = 1
             colors[color_idx] = np.append(color_vals[pick], 1.)
@@ -1045,33 +1047,34 @@ def _find_peaks(evoked, npeaks):
     return times
 
 
-def _process_times(inst, times, n_peaks=None, few=False):
+def _process_times(inst, use_times, n_peaks=None, few=False):
     """Helper to return a list of times for topomaps."""
-    if isinstance(times, string_types):
-        if times == "peaks":
+    if isinstance(use_times, string_types):
+        if use_times == "peaks":
             if n_peaks is None:
-                n_peaks = 3 if few else 7
-            times = _find_peaks(inst, n_peaks)
-        elif times == "auto":
+                n_peaks = min(3 if few else 7, len(inst.times))
+            use_times = _find_peaks(inst, n_peaks)
+        elif use_times == "auto":
             if n_peaks is None:
-                n_peaks = 5 if few else 10
-            times = np.linspace(inst.times[0], inst.times[-1], n_peaks)
+                n_peaks = min(5 if few else 10, len(use_times))
+            use_times = np.linspace(inst.times[0], inst.times[-1], n_peaks)
         else:
             raise ValueError("Got an unrecognized method for `times`. Only "
                              "'peaks' and 'auto' are supported (or directly "
                              "passing numbers).")
-    elif np.isscalar(times):
-        times = [times]
+    elif np.isscalar(use_times):
+        use_times = [use_times]
 
-    times = np.array(times)
+    use_times = np.array(use_times, float)
 
-    if times.ndim != 1:
-        raise ValueError('times must be 1D, got %d dimensions' % times.ndim)
-    if len(times) > 20:
+    if use_times.ndim != 1:
+        raise ValueError('times must be 1D, got %d dimensions'
+                         % use_times.ndim)
+    if len(use_times) > 20:
         raise RuntimeError('Too many plots requested. Please pass fewer '
                            'than 20 time instants.')
 
-    return times
+    return use_times
 
 
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
@@ -1195,7 +1198,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 if len(color_picks) == 0:
                     continue
                 x, y, z = pos[color_picks].T
-                color = np.mean(_rgb(info, x, y, z), axis=0)
+                color = np.mean(_rgb(x, y, z), axis=0)
                 color_vals[idx, :3] = color  # mean of spatial color
         else:
             import matplotlib.pyplot as plt

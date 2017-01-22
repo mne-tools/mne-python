@@ -557,6 +557,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         self.times = self.tmin + (self.tstep * np.arange(self.shape[1]))
 
     def __add__(self, a):
+        """Add source estimates."""
         stc = copy.deepcopy(self)
         stc += a
         return stc
@@ -587,7 +588,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                                   tstep=tstep, subject=self.subject)
         return mean_stc
 
-    def __sub__(self, a):  # noqa: D105
+    def __sub__(self, a):
+        """Subtract source estimates."""
         stc = copy.deepcopy(self)
         stc -= a
         return stc
@@ -605,6 +607,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return self.__div__(a)
 
     def __div__(self, a):  # noqa: D105
+        """Divide source estimates."""
         stc = copy.deepcopy(self)
         stc /= a
         return stc
@@ -621,7 +624,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             self._data /= a
         return self
 
-    def __mul__(self, a):  # noqa: D105
+    def __mul__(self, a):
+        """Multiply source estimates."""
         stc = copy.deepcopy(self)
         stc *= a
         return stc
@@ -658,6 +662,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return self / a
 
     def __neg__(self):  # noqa: D105
+        """Negate the source estimate."""
         stc = copy.deepcopy(self)
         stc._remove_kernel_sens_data_()
         stc._data *= -1
@@ -1232,7 +1237,7 @@ class SourceEstimate(_BaseSourceEstimate):
                   across time, and vice-versa for each point in time in
                   computing the temporal center of mass. This is useful for
                   quantifying spatio-temporal cluster locations, especially
-                  when combined with :func:`mne.source_space.vertex_to_mni`.
+                  when combined with :func:`mne.vertex_to_mni`.
 
         Parameters
         ----------
@@ -1260,8 +1265,8 @@ class SourceEstimate(_BaseSourceEstimate):
 
         See Also
         --------
-        Label.center_of_mass
-        vertex_to_mni
+        mne.Label.center_of_mass
+        mne.vertex_to_mni
 
         Returns
         -------

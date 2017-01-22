@@ -1,3 +1,5 @@
+:orphan:
+
 .. include:: links.inc
 
 .. _get_started:
@@ -5,11 +7,13 @@
 Get started
 ============
 
+.. _what_can_you_do:
+
 Installation
 ------------
 
 To get started with MNE, visit the installation instructions for
-:ref:`MNE-Python <install_python_and_mne_python>` and
+the :ref:`MNE<install_python_and_mne_python>` and
 :ref:`MNE-C <install_mne_c>`:
 
 .. container:: row
@@ -18,7 +22,7 @@ To get started with MNE, visit the installation instructions for
 
     .. container:: panel-heading nosize
 
-      MNE-Python
+      MNE python module
 
     .. container:: panel-body nosize
 
@@ -44,11 +48,9 @@ To get started with MNE, visit the installation instructions for
 
   .. container:: col-md-8
 
-    .. _what_can_you_do:
-
     .. raw:: html
 
-      <h2>What can you do with MNE-Python?</h2>
+      <h2>What can you do with MNE?</h2>
 
     - **Raw data visualization** to visualize recordings
       (see :ref:`general_examples` for more).
@@ -100,7 +102,7 @@ To get started with MNE, visit the installation instructions for
     - and many more things ...
 
 
-    What you're not supposed to do with MNE-Python:
+    What you're not supposed to do with MNE:
 
     - **Brain and head surface segmentation** for use with BEM
       models -- use Freesurfer_.
@@ -120,10 +122,10 @@ To get started with MNE, visit the installation instructions for
 
         - :ref:`MNE-C <c_reference>` is Matti's C code.
 
-        - MNE-Python was built in the Python programming language to reimplement
-          all MNE-C’s functionality, offer transparent scripting, and extend
-          MNE-C’s functionality considerably (see left). Thus it is the
-          primary focus of this documentation.
+        - The MNE python module was built in the Python programming language to
+          reimplement all MNE-C’s functionality, offer transparent scripting,
+          and extend MNE-C’s functionality considerably (see left). Thus it is
+          the primary focus of this documentation.
 
         - :ref:`ch_matlab` is available mostly to allow reading and writing
           FIF files.
@@ -133,9 +135,9 @@ To get started with MNE, visit the installation instructions for
           a :ref:`separate website <mne_cpp>` for documentation and releases.
 
         The MNE tools are based on the FIF file format from Neuromag.
-        However, MNE-Python can read native CTF, BTI/4D, KIT and various
+        However, MNE can read native CTF, BTI/4D, KIT and various
         EEG formats (see :ref:`IO functions <ch_convert>`).
 
         If you have been using MNE-C, there is no need to convert your fif
-        files to a new system or database -- MNE-Python works nicely with
+        files to a new system or database -- MNE works nicely with
         the historical fif files.

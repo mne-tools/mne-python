@@ -9,19 +9,21 @@ import os
 import os.path as op
 import warnings
 
-from nose.tools import assert_true, assert_raises, assert_equal, assert_false
+from nose.tools import (assert_true, assert_raises, assert_equal, assert_false,
+                        assert_not_equal)
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
 from scipy import stats
 from itertools import product
 
-from mne import Epochs, read_events, pick_types, create_info, EpochsArray
+from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
+                 EvokedArray)
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
-from mne.preprocessing.ica import (get_score_funcs, corrmap, _get_ica_map,
-                                   _ica_explained_variance, _sort_components)
+from mne.preprocessing.ica import (get_score_funcs, corrmap, _sort_components,
+                                   _ica_explained_variance)
 from mne.io import read_raw_fif, Info, RawArray
 from mne.io.meas_info import _kind_dict
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
@@ -160,8 +162,10 @@ def test_ica_reset():
             method='fastica', max_iter=1).fit(raw, picks=picks)
 
     assert_true(all(hasattr(ica, attr) for attr in run_time_attrs))
+    assert_not_equal(ica.labels_, None)
     ica._reset()
     assert_true(not any(hasattr(ica, attr) for attr in run_time_attrs))
+    assert_not_equal(ica.labels_, None)
 
 
 @requires_sklearn
@@ -216,7 +220,12 @@ def test_ica_core():
             ica.fit(raw, picks=pcks, start=start, stop=stop)
         assert_array_almost_equal(unmixing1, ica.unmixing_matrix_)
 
-        sources = ica.get_sources(raw)[:, :][0]
+        raw_sources = ica.get_sources(raw)
+        # test for #3804
+        assert_equal(raw_sources._filenames, [None])
+        print(raw_sources)
+
+        sources = raw_sources[:, :][0]
         assert_true(sources.shape[0] == ica.n_components_)
 
         # test preload filter
@@ -316,10 +325,15 @@ def test_ica_additional():
     corrmap([ica, ica2], (0, 0), threshold=2, plot=False, show=False)
     assert_true(ica.labels_["blinks"] == ica2.labels_["blinks"])
     assert_true(0 in ica.labels_["blinks"])
-    template = _get_ica_map(ica)[0]
+    # test retrieval of component maps as arrays
+    components = ica.get_components()
+    template = components[:, 0]
+    EvokedArray(components, ica.info, tmin=0.).plot_topomap([0])
+
     corrmap([ica, ica3], template, threshold='auto', label='blinks', plot=True,
             ch_type="mag")
     assert_true(ica2.labels_["blinks"] == ica3.labels_["blinks"])
+
     plt.close('all')
 
     # test warnings on bad filenames
@@ -476,7 +490,6 @@ def test_ica_additional():
         idx, scores = ica.find_bads_eog(raw)
         assert_equal(len(scores), ica.n_components_)
 
-        ica.labels_ = None
         idx, scores = ica.find_bads_ecg(epochs, method='ctps')
         assert_equal(len(scores), ica.n_components_)
         assert_raises(ValueError, ica.find_bads_ecg, epochs.average(),
@@ -526,7 +539,7 @@ def test_ica_additional():
     # Test ica fiff export
     ica_raw = ica.get_sources(raw, start=0, stop=100)
     assert_true(ica_raw.last_samp - ica_raw.first_samp == 100)
-    assert_true(len(ica_raw._filenames) == 0)  # API consistency
+    assert_equal(len(ica_raw._filenames), 1)  # API consistency
     ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]
     assert_true(ica.n_components_ == len(ica_chans))
     test_ica_fname = op.join(op.abspath(op.curdir), 'test-ica_raw.fif')

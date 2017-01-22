@@ -229,8 +229,7 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
 
     See Also
     --------
-    cwt : Compute time-frequency decomposition with user-provided wavelets
-    cwt_morlet, psd_multitaper
+    tfr_morlet, psd_multitaper
 
     Notes
     -----

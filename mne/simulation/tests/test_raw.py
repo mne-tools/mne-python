@@ -16,9 +16,8 @@ from mne import (read_source_spaces, pick_types, read_trans, read_cov,
                  make_sphere_model, create_info, setup_volume_source_space,
                  find_events, Epochs, fit_dipole, transform_surface_to,
                  make_ad_hoc_cov, SourceEstimate, setup_source_space)
-from mne.chpi import (_calculate_chpi_positions, read_head_pos,
-                      _get_hpi_info, head_pos_to_trans_rot_t)
-from mne.tests.test_chpi import _compare_positions
+from mne.chpi import _calculate_chpi_positions, read_head_pos, _get_hpi_info
+from mne.tests.test_chpi import _assert_quats
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
 from mne.io import read_raw_fif, RawArray
@@ -65,8 +64,7 @@ def _get_data():
     raw.info.normalize_proj()
     ecg = RawArray(np.zeros((1, len(raw.times))),
                    create_info(['ECG 063'], raw.info['sfreq'], 'ecg'))
-    for key in ('dev_head_t', 'buffer_size_sec', 'highpass', 'lowpass',
-                'filename', 'dig'):
+    for key in ('dev_head_t', 'buffer_size_sec', 'highpass', 'lowpass', 'dig'):
         ecg.info[key] = raw.info[key]
     raw.add_channels([ecg])
 
@@ -272,10 +270,7 @@ def test_simulate_raw_chpi():
 
     # test localization based on cHPI information
     quats_sim = _calculate_chpi_positions(raw_chpi)
-    trans_sim, rot_sim, t_sim = head_pos_to_trans_rot_t(quats_sim)
-    trans, rot, t = head_pos_to_trans_rot_t(read_head_pos(pos_fname))
-    t -= raw.first_samp / raw.info['sfreq']
-    _compare_positions((trans, rot, t), (trans_sim, rot_sim, t_sim),
-                       max_dist=0.005)
+    quats = read_head_pos(pos_fname)
+    _assert_quats(quats, quats_sim, dist_tol=0.006, angle_tol=4)
 
 run_tests_if_main()

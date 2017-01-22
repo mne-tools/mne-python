@@ -102,12 +102,17 @@ class Scaler(TransformerMixin):
         -------
         X : array, shape (n_epochs, n_channels, n_times)
             The data concatenated over channels.
+
+        Notes
+        -----
+        This function makes a copy of the data before the operations and the
+        memory usage may be large with big data.
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
 
-        X = np.atleast_3d(epochs_data)
+        X = np.atleast_3d(epochs_data).copy()
 
         for key, this_pick in six.iteritems(self.picks_list_):
             if self.with_mean:
@@ -132,18 +137,23 @@ class Scaler(TransformerMixin):
         -------
         X : array, shape (n_epochs, n_channels, n_times)
             The data concatenated over channels.
+
+        Notes
+        -----
+        This function makes a copy of the data before the operations and the
+        memory usage may be large with big data.
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
 
-        X = np.atleast_3d(epochs_data)
+        X = np.atleast_3d(epochs_data).copy()
 
         for key, this_pick in six.iteritems(self.picks_list_):
-            if self.with_mean:
-                X[:, this_pick, :] += self.ch_mean_[key]
             if self.with_std:
                 X[:, this_pick, :] *= self.std_[key]
+            if self.with_mean:
+                X[:, this_pick, :] += self.ch_mean_[key]
 
         return X
 
@@ -278,10 +288,6 @@ class PSDEstimator(TransformerMixin):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-
-    See Also
-    --------
-    psd_multitaper
     """
 
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
@@ -599,7 +605,7 @@ class TemporalFilter(TransformerMixin):
         - l_freq is not None, h_freq is None: low-pass filter
         - l_freq is None, h_freq is not None: high-pass filter
 
-    See ``mne.filter.filter_data``.
+    See :func:`mne.filter.filter_data`.
 
     Parameters
     ----------
@@ -612,6 +618,7 @@ class TemporalFilter(TransformerMixin):
         Sampling frequency in Hz.
     filter_length : str | int, defaults to 'auto'
         Length of the FIR filter to use (if applicable):
+
             * int: specified length in samples.
             * 'auto' (default in 0.14): the filter length is chosen based
               on the size of the transition regions (7 times the reciprocal
@@ -621,17 +628,22 @@ class TemporalFilter(TransformerMixin):
               converted to that number of samples if ``phase="zero"``, or
               the shortest power-of-two length at least that duration for
               ``phase="zero-double"``.
-    l_trans_bandwidth : float | str, defaults to 'auto'
+
+    l_trans_bandwidth : float | str
         Width of the transition band at the low cut-off frequency in Hz
         (high pass or cutoff 1 in bandpass). Can be "auto"
         (default in 0.14) to use a multiple of ``l_freq``::
+
             min(max(l_freq * 0.25, 2), l_freq)
+
         Only used for ``method='fir'``.
-    h_trans_bandwidth : float | str, defaults to 'auto'
+    h_trans_bandwidth : float | str
         Width of the transition band at the high cut-off frequency in Hz
         (low pass or cutoff 2 in bandpass). Can be "auto"
         (default in 0.14) to use a multiple of ``h_freq``::
+
             min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
         Only used for ``method='fir'``.
     n_jobs : int | str, defaults to 1
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda

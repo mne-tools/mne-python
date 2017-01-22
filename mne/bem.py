@@ -26,7 +26,7 @@ from .io.tree import dir_tree_find
 from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri)
-from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
+from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn, _pl
 from .externals.six import string_types
 
 
@@ -47,16 +47,16 @@ class ConductorModel(dict):
     def __repr__(self):  # noqa: D105
         if self['is_sphere']:
             center = ', '.join('%0.1f' % (x * 1000.) for x in self['r0'])
-            pl = '' if len(self['layers']) == 1 else 's'
             rad = self.radius
             if rad is None:  # no radius / MEG only
                 extra = 'Sphere (no layers): r0=[%s] mm' % center
             else:
                 extra = ('Sphere (%s layer%s): r0=[%s] R=%1.f mm'
-                         % (len(self['layers']) - 1, pl, center, rad * 1000.))
+                         % (len(self['layers']) - 1, _pl(self['layers']),
+                            center, rad * 1000.))
         else:
-            pl = '' if len(self['surfs']) == 1 else 's'
-            extra = ('BEM (%s layer%s)' % (len(self['surfs']), pl))
+            extra = ('BEM (%s layer%s)' % (len(self['surfs']),
+                                           _pl(self['surfs'])))
         return '<ConductorModel  |  %s>' % extra
 
     @property
@@ -931,7 +931,7 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
         kinds_str = ', '.join(['"%s"' % _dig_kind_rev[d]
                                for d in sorted(dig_kinds)])
         msg = ('Only %s head digitization points of the specified kind%s (%s,)'
-               % (len(hsp), 's' if len(dig_kinds) != 1 else '', kinds_str))
+               % (len(hsp), _pl(dig_kinds), kinds_str))
         if len(hsp) < 4:
             raise ValueError(msg + ', at least 4 required')
         else:
@@ -1166,19 +1166,19 @@ def _extract_volume_info(mgz, raise_error=True):
     except ImportError:
         return  # warning raised elsewhere
     header = nib.load(mgz).header
-    new_info = dict()
+    vol_info = dict()
     version = header['version']
     if version == 1:
         version = '%s  # volume info valid' % version
     else:
         raise ValueError('Volume info invalid.')
-    new_info['valid'] = version
-    new_info['filename'] = mgz
-    new_info['volume'] = header['dims'][:3]
-    new_info['voxelsize'] = header['delta']
-    new_info['xras'], new_info['yras'], new_info['zras'] = header['Mdc'].T
-    new_info['cras'] = header['Pxyz_c']
-    return new_info
+    vol_info['valid'] = version
+    vol_info['filename'] = mgz
+    vol_info['volume'] = header['dims'][:3]
+    vol_info['voxelsize'] = header['delta']
+    vol_info['xras'], vol_info['yras'], vol_info['zras'] = header['Mdc'].T
+    vol_info['cras'] = header['Pxyz_c']
+    return vol_info
 
 
 # ############################################################################

@@ -271,10 +271,12 @@ class Label(object):
         n_vert = len(self)
         return "<Label  |  %s, %s : %i vertices>" % (name, self.hemi, n_vert)
 
-    def __len__(self):  # noqa: D105
+    def __len__(self):
+        """The number of vertices."""
         return len(self.vertices)
 
-    def __add__(self, other):  # noqa: D105
+    def __add__(self, other):
+        """Add BiHemiLabels."""
         if isinstance(other, BiHemiLabel):
             return other + self
         elif isinstance(other, Label):
@@ -343,7 +345,8 @@ class Label(object):
                       self.subject, color, verbose)
         return label
 
-    def __sub__(self, other):  # noqa: D105
+    def __sub__(self, other):
+        """Subtract BiHemiLabels."""
         if isinstance(other, BiHemiLabel):
             if self.hemi == 'lh':
                 return self - other.lh
@@ -744,6 +747,10 @@ class Label(object):
         subject = _check_subject(self.subject, subject)
         if np.any(self.values < 0):
             raise ValueError('Cannot compute COM with negative values')
+        if np.all(self.values == 0):
+            raise ValueError('Cannot compute COM with all values == 0. For '
+                             'structural labels, consider setting to ones via '
+                             'label.values[:] = 1.')
         vertex = _center_of_mass(self.vertices, self.values, self.hemi, surf,
                                  subject, subjects_dir, restrict_vertices)
         return vertex
@@ -795,10 +802,12 @@ class BiHemiLabel(object):
         name += repr(self.name) if self.name is not None else "unnamed"
         return temp % (name, len(self.lh), len(self.rh))
 
-    def __len__(self):  # noqa: D105
+    def __len__(self):
+        """The number of vertices."""
         return len(self.lh) + len(self.rh)
 
-    def __add__(self, other):  # noqa: D105
+    def __add__(self, other):
+        """Add labels."""
         if isinstance(other, Label):
             if other.hemi == 'lh':
                 lh = self.lh + other
@@ -816,7 +825,8 @@ class BiHemiLabel(object):
         color = _blend_colors(self.color, other.color)
         return BiHemiLabel(lh, rh, name, color)
 
-    def __sub__(self, other):  # noqa: D105
+    def __sub__(self, other):
+        """Subtract labels."""
         if isinstance(other, Label):
             if other.hemi == 'lh':
                 lh = self.lh - other
@@ -1815,7 +1825,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
             if (regexp is not None) and not r_.match(name):
                 continue
             pos = vert_pos[vertices, :]
-            values = np.zeros(len(vertices))
+            values = np.ones(len(vertices))
             label_rgba = tuple(label_rgba / 255.)
             label = Label(vertices, pos, values, hemi, name=name,
                           subject=subject, color=label_rgba)

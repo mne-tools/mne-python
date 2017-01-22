@@ -1,3 +1,5 @@
+"""Single-dipole functions and classes."""
+
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
@@ -32,7 +34,8 @@ from .bem import _bem_find_surface, _bem_explain_surface
 from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
-from .utils import logger, verbose, _time_mask, warn, _check_fname, check_fname
+from .utils import (logger, verbose, _time_mask, warn, _check_fname,
+                    check_fname, _pl)
 
 
 class Dipole(object):
@@ -1058,8 +1061,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     guess_data = dict(fwd=guess_fwd, fwd_svd=guess_fwd_svd,
                       fwd_orig=guess_fwd_orig, scales=guess_fwd_scales)
     del guess_fwd, guess_fwd_svd, guess_fwd_orig, guess_fwd_scales  # destroyed
-    pl = '' if guess_src['nuse'] == 1 else 's'
-    logger.info('[done %d source%s]' % (guess_src['nuse'], pl))
+    logger.info('[done %d source%s]' % (guess_src['nuse'],
+                                        _pl(guess_src['nuse'])))
 
     # Do actual fits
     data = data[picks]
@@ -1108,10 +1111,12 @@ def get_phantom_dipoles(kind='vectorview'):
     Parameters
     ----------
     kind : str
-        Get the information for the given system.
+        Get the information for the given system:
 
             ``vectorview`` (default)
               The Neuromag VectorView phantom.
+            ``otaniemi``
+              The older Neuromag phantom used at Otaniemi.
 
     Returns
     -------
@@ -1119,36 +1124,52 @@ def get_phantom_dipoles(kind='vectorview'):
         The dipole positions.
     ori : ndarray, shape (n_dipoles, 3)
         The dipole orientations.
+
+    Notes
+    -----
+    The Elekta phantoms have a radius of 79.5mm, and HPI coil locations
+    in the XY-plane at the axis extrema (e.g., (79.5, 0), (0, -79.5), ...).
     """
-    _valid_types = ('vectorview',)
+    _valid_types = ('vectorview', 'otaniemi')
     if not isinstance(kind, string_types) or kind not in _valid_types:
         raise ValueError('kind must be one of %s, got %s'
                          % (_valid_types, kind,))
     if kind == 'vectorview':
+        # these values were pulled from a scanned image provided by
+        # Elekta folks
         a = np.array([59.7, 48.6, 35.8, 24.8, 37.2, 27.5, 15.8, 7.9])
-        b = np.array([46.1, 41.9, 38.3, 31.5, 13.9, 16.2, 20, 19.3])
+        b = np.array([46.1, 41.9, 38.3, 31.5, 13.9, 16.2, 20.0, 19.3])
         x = np.concatenate((a, [0] * 8, -b, [0] * 8))
         y = np.concatenate(([0] * 8, -a, [0] * 8, b))
-        c = [22.9, 23.5, 25.5, 23.1, 52, 46.4, 41, 33]
-        d = [44.4, 34, 21.6, 12.7, 62.4, 51.5, 39.1, 27.9]
+        c = [22.9, 23.5, 25.5, 23.1, 52.0, 46.4, 41.0, 33.0]
+        d = [44.4, 34.0, 21.6, 12.7, 62.4, 51.5, 39.1, 27.9]
         z = np.concatenate((c, c, d, d))
-        pos = np.vstack((x, y, z)).T / 1000.
-        # Locs are always in XZ or YZ, and so are the oris. The oris are
-        # also in the same plane and tangential, so it's easy to determine
-        # the orientation.
-        ori = list()
-        for this_pos in pos:
-            this_ori = np.zeros(3)
-            idx = np.where(this_pos == 0)[0]
-            # assert len(idx) == 1
-            idx = np.setdiff1d(np.arange(3), idx[0])
-            this_ori[idx] = (this_pos[idx][::-1] /
-                             np.linalg.norm(this_pos[idx])) * [1, -1]
-            # Now we have this quality, which we could uncomment to
-            # double-check:
-            # np.testing.assert_allclose(np.dot(this_ori, this_pos) /
-            #                            np.linalg.norm(this_pos), 0,
-            #                            atol=1e-15)
-            ori.append(this_ori)
-        ori = np.array(ori)
+    elif kind == 'otaniemi':
+        # these values were pulled from an Neuromag manual
+        # (NM20456A, 13.7.1999, p.65)
+        a = np.array([56.3, 47.6, 39.0, 30.3])
+        b = np.array([32.5, 27.5, 22.5, 17.5])
+        c = np.zeros(4)
+        x = np.concatenate((a, b, c, c, -a, -b, c, c))
+        y = np.concatenate((c, c, -a, -b, c, c, b, a))
+        z = np.concatenate((b, a, b, a, b, a, a, b))
+    pos = np.vstack((x, y, z)).T / 1000.
+    # Locs are always in XZ or YZ, and so are the oris. The oris are
+    # also in the same plane and tangential, so it's easy to determine
+    # the orientation.
+    ori = list()
+    for this_pos in pos:
+        this_ori = np.zeros(3)
+        idx = np.where(this_pos == 0)[0]
+        # assert len(idx) == 1
+        idx = np.setdiff1d(np.arange(3), idx[0])
+        this_ori[idx] = (this_pos[idx][::-1] /
+                         np.linalg.norm(this_pos[idx])) * [1, -1]
+        # Now we have this quality, which we could uncomment to
+        # double-check:
+        # np.testing.assert_allclose(np.dot(this_ori, this_pos) /
+        #                            np.linalg.norm(this_pos), 0,
+        #                            atol=1e-15)
+        ori.append(this_ori)
+    ori = np.array(ori)
     return pos, ori

@@ -394,7 +394,9 @@ class EpochsKIT(BaseEpochs):
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
         self.info, kit_info = get_kit_info(input_fname)
+        kit_info.update(filename=input_fname)
         self._raw_extras = [kit_info]
+        self._filenames = []
         if len(events) != self._raw_extras[0]['n_epochs']:
             raise ValueError('Event list does not match number of epochs.')
 
@@ -415,18 +417,15 @@ class EpochsKIT(BaseEpochs):
                 raise ValueError('No matching events found for %s '
                                  '(event id %i)' % (key, val))
 
-        self._filename = input_fname
         data = self._read_kit_data()
         assert data.shape == (self._raw_extras[0]['n_epochs'],
                               self.info['nchan'],
                               self._raw_extras[0]['frame_length'])
         tmax = ((data.shape[2] - 1) / self.info['sfreq']) + tmin
-        super(EpochsKIT, self).__init__(self.info, data, events, event_id,
-                                        tmin, tmax, baseline,
-                                        reject=reject, flat=flat,
-                                        reject_tmin=reject_tmin,
-                                        reject_tmax=reject_tmax,
-                                        verbose=verbose)
+        super(EpochsKIT, self).__init__(
+            self.info, data, events, event_id, tmin, tmax, baseline,
+            reject=reject, flat=flat, reject_tmin=reject_tmin,
+            reject_tmax=reject_tmax, filename=input_fname, verbose=verbose)
         logger.info('Ready.')
 
     def _read_kit_data(self):
@@ -443,8 +442,9 @@ class EpochsKIT(BaseEpochs):
         epoch_length = self._raw_extras[0]['frame_length']
         n_epochs = self._raw_extras[0]['n_epochs']
         n_samples = self._raw_extras[0]['n_samples']
+        filename = self._raw_extras[0]['filename']
 
-        with open(self._filename, 'rb', buffering=0) as fid:
+        with open(filename, 'rb', buffering=0) as fid:
             # extract data
             data_offset = self._raw_extras[0]['data_offset']
             dtype = self._raw_extras[0]['dtype']
@@ -683,8 +683,8 @@ def get_kit_info(rawfile):
         # Create raw.info dict for raw fif object with SQD data
         info = _empty_info(float(sqd['sfreq']))
         info.update(meas_date=int(time.time()), lowpass=sqd['lowpass'],
-                    highpass=sqd['highpass'], filename=rawfile,
-                    buffer_size_sec=1., kit_system_id=sysid)
+                    highpass=sqd['highpass'], buffer_size_sec=1.,
+                    kit_system_id=sysid)
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')

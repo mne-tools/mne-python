@@ -418,7 +418,7 @@ class SetChannelsMixin(object):
 
     @verbose
     def set_montage(self, montage, verbose=None):
-        """Set EEG sensor configuration.
+        """Set EEG sensor configuration and head digitization.
 
         Parameters
         ----------

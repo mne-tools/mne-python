@@ -536,12 +536,17 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     fwd : instance of Forward
         The forward solution.
 
+    See Also
+    --------
+    convert_forward_solution
+
     Notes
     -----
-    Some of the forward solution calculation options from the C code
-    (e.g., `--grad`, `--fixed`) are not implemented here. For those,
-    consider using the C command line tools, or request that they
-    be added to the MNE-Python.
+    The ``--grad`` option from MNE-C (to compute gradients) is not implemented
+    here.
+
+    To create a fixed-orientation forward solution, use this function
+    followed by :func:`mne.convert_forward_solution`.
     """
     # Currently not (sup)ported:
     # 1. --grad option (gradients of the field, not used much)
@@ -622,11 +627,11 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     the sensor information in info to form a forward operator.
 
     The source estimate object (with the forward operator) can be projected to
-    sensor-space using :func:`mne.simulation.evoked.simulate_evoked`.
+    sensor-space using :func:`mne.simulation.simulate_evoked`.
 
-    Note that if the (unique) time points of the dipole object are unevenly
-    spaced, the first output will be a list of single-timepoint source
-    estimates.
+    .. note:: If the (unique) time points of the dipole object are unevenly
+              spaced, the first output will be a list of single-timepoint
+              source estimates.
 
     Parameters
     ----------

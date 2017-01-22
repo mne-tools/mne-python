@@ -85,5 +85,7 @@ if __name__ == "__main__":
                                 op.join('channels', 'data', 'neighbors', '*.mat'),
                                 op.join('gui', 'help', '*.json'),
                                 op.join('html', '*.js'),
-                                op.join('html', '*.css')]},
+                                op.join('html', '*.css'),
+                                op.join('io', 'artemis123', 'resources', '*.csv')
+                                ]},
           scripts=['bin/mne'])

@@ -1,3 +1,5 @@
+:orphan:
+
 .. include:: links.inc
 .. _whats_new:
 
@@ -15,6 +17,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+    - Add Support for Artemis123 infant/toddler MEG by `Luke Bloy`_
+
     - Add filter plotting functions :func:`mne.viz.plot_filter` and :func:`mne.viz.plot_ideal_filter` as well as filter creation function :func:`mne.filter.create_filter` by `Eric Larson`_
 
     - Add 3D thin-plate spline warping with spherical harmonic surface approximations in :class:`mne.transforms.SphericalSurfaceWarp` by `Eric Larson`_
@@ -31,6 +35,8 @@ Changelog
 
     - Remove MNE-C requirement for :ref:`mne make_scalp_surfaces <gen_mne_make_scalp_surfaces>` by `Eric Larson`_
 
+    - Add support for FastTrack Polhemus ``.mat`` file outputs in ``hsp`` argument of :func:`mne.channels.read_dig_montage` by `Eric Larson`_
+
     - Add option to convert 3d electrode plots to a snapshot with 2d electrode positions with :func:`mne.viz.snapshot_brain_montage` by `Chris Holdgraf`_
 
     - Add skull surface plotting option to :func:`mne.viz.plot_trans` by `Jaakko Leppakangas`_
@@ -39,16 +45,43 @@ Changelog
 
     - Add support for reading ASCII BrainVision files in :func:`mne.io.read_raw_brainvision` by `Eric Larson`_
 
+    - Add method of ICA objects for retrieving the component maps :meth:`mne.preprocessing.ICA.get_components` by `Jona Sassenhagen`_
+
+    - Add option to plot events in :func:`mne.viz.plot_epochs` by `Jaakko Leppakangas`_
+
+    - Add dipole definitions for older phantom at Otaniemi in :func:`mne.dipole.get_phantom_dipoles` by `Eric Larson`_
+
+    - Add spatial colors option for :func:`mne.viz.plot_raw_psd` by `Jaakko Leppakangas`_
+
+    - Add functions like :func:`get_volume_labels_from_src` to handle mixed source spaces by `Annalisa Pascarella`_
+
+    - Add convenience function for opening MNE documentation :func:`open_docs` by `Eric Larson`_
+
+    - Add option in :meth:`mne.io.Raw.plot` to display the time axis relative to ``raw.first_samp`` by `Mainak Jas`_
+
+    - Add new ``visual_92_categories`` dataset by `Jaakko Leppakangas`_
+
+    - Add option in :func:`mne.io.read_raw_edf` to allow channel exclusion by `Jaakko Leppakangas`_
+
+    - Allow integer event codes in :func:`mne.io.read_epochs_eeglab` by `Jaakko Leppakangas`_
+
+    - Add ability to match channel names in a case insensitive manner when applying a :class:`mne.channels.Montage` by `Marijn van Vliet`_
+
+
 BUG
 ~~~
+
+    - Fix callback function call in ``mne.viz.topo._plot_topo_onpick`` by `Erkka Heinila`_
+
+    - Fix reading multi-file CTF recordings in :func:`mne.io.read_raw_ctf` by `Niklas Wilming`_
 
     - Fix computation of AR coefficients across channels in :func:`mne.time_frequency.fit_iir_model_raw` by `Eric Larson`_
 
     - Fix maxfilter channel names extra space bug in :func:`mne.preprocessing.maxwell_filter` by `Sheraz Khan`_
 
-    - :func:`mne.find_layout` now leaves out the excluded channels by `Jaakko Leppakangas`_
+    - :func:`mne.channels.find_layout` now leaves out the excluded channels by `Jaakko Leppakangas`_
 
-    - Array data constructors :class:`mne.io.RawArray` and :class:`mne.EvokedArray` now make a copy of the info structure by `Jaakko Leppakangas`_
+    - Array data constructors :class:`mne.io.RawArray` and :class:`EvokedArray` now make a copy of the info structure by `Jaakko Leppakangas`_
 
     - Fix bug with finding layouts in :func:`mne.viz.plot_projs_topomap` by `Eric Larson`_
 
@@ -56,32 +89,58 @@ BUG
 
     - Fix colormap selection in :func:`mne.viz.plot_evoked_topomap` when using positive vmin with negative data by `Jaakko Leppakangas`_
 
-    - Fix channel name comparison in :func:`mne.read_montage` so that if ``ch_names`` is provided, the returned montage will have channel names in the same letter case by `Jaakko Leppakangas`_
+    - Fix channel name comparison in :func:`mne.channels.read_montage` so that if ``ch_names`` is provided, the returned montage will have channel names in the same letter case by `Jaakko Leppakangas`_
+
+    - Fix :meth:`inst.set_montage(montage) <mne.io.Raw.set_montage>` to only set ``inst.info['dev_head_t']`` if ``dev_head_t=True`` in :func:`mne.channels.read_dig_montage` by `Eric Larson`_
 
     - Fix handling of events in :class:`mne.realtime.RtEpochs` when the triggers were split between two buffers resulting in missing and/or duplicate epochs by `Mainak Jas`_ and `Antti Rantala`_
 
     - Fix bug with automatic decimation in :func:`mne.io.read_raw_kit` by `Keith Doelling`_
 
-    - Fix bug with :func:`mne.setup_volume_source_space` where arguments ``subject`` and ``subjects_dir`` were ignored by `Jaakko Leppakangas`_
+    - Fix bug with :func:`setup_volume_source_space` where arguments ``subject`` and ``subjects_dir`` were ignored by `Jaakko Leppakangas`_
 
     - Fix sanity check for incompatible ``threshold`` and ``tail`` values in clustering functions like :func:`mne.stats.spatio_temporal_cluster_1samp_test` by `Eric Larson`_
 
-    - Fix ``_bad_dropped`` not being set when loading eeglab epoched files via :func:`mne.io.eeglab.read_epochs_eeglab` which resulted in ``len()`` not working for :class:`mne.io.eeglab.EpochsEEGLAB`; by `Mikołaj Magnuski`_
+    - Fix ``_bad_dropped`` not being set when loading eeglab epoched files via :func:`mne.read_epochs_eeglab` which resulted in :func:`len` not working by `Mikołaj Magnuski`_
 
     - Fix a bug in :meth:`mne.time_frequency.AverageTFR.plot` when plotting without a colorbar by `Jaakko Leppakangas`_
+
+    - Fix ``_filenames`` attribute in creation of :class:`mne.io.RawArray` with :meth:`mne.preprocessing.ICA.get_sources` by `Paul Pasler`_
+
+    - Fix contour levels in :func:`mne.viz.plot_evoked_topomap` to be uniform across topomaps by `Jaakko Leppakangas`_
+
+    - Fix bug in :func:`mne.preprocessing.maxwell_filter` where fine calibration indices were mismatched leading to an ``AssertionError`` by `Eric Larson`_
+
+    - Fix bug in :func:`mne.preprocessing.fix_stim_artifact` where non-data channels were interpolated by `Eric Larson`_
+
+    - Fix :func:`mne.viz.plot_topo_image_epochs` and :class:`mne.decoding.Scaler` so that they no longer modify the data in-place and fix to :meth:`mne.decoding.Scaler.inverse_transform` so that the data is scaled before centering by `Jaakko Leppakangas`_
+
+    - Raise error if the cv parameter of :class:`mne.decoding.GeneralizationAcrossTime` and :class:`mne.decoding.TimeDecoding` is not a partition and the predict_mode is "cross-validation" by `Jean-Remi King`_
+
+    - Fix bug in :func:`mne.io.read_raw_edf` when ``preload=False`` and channels have different sampling rates by `Jaakko Leppakangas`_
+
+    - Fix :func:`mne.read_labels_from_annot` to set ``label.values[:]=1`` rather than 0 for consistency with the :class:`Label` class by `Jon Houck`_
 
 API
 ~~~
 
     - The filtering functions ``band_pass_filter``, ``band_stop_filter``, ``low_pass_filter``, and ``high_pass_filter`` have been deprecated in favor of :func:`mne.filter.filter_data` by `Eric Larson`_
 
-    - :class:`mne.EvokedArray` now has default value ``tmin=0.`` by `Jaakko Leppakangas`_
+    - :class:`EvokedArray` now has default value ``tmin=0.`` by `Jaakko Leppakangas`_
 
     - The ``ch_type`` argument for :func:`mne.viz.plot_trans` has been deprecated, use ``eeg_sensors`` and ``meg_sensors`` instead, by `Eric Larson`_
 
     - The default ``tmax=60.`` in :meth:`mne.io.Raw.plot_psd` will change to ``tmax=np.inf`` in 0.15, by `Eric Larson`_
 
     - Base classes :class:`mne.io.BaseRaw` and :class:`mne.BaseEpochs` are now public to allow easier typechecking, by `Daniel McCloy`_
+
+    - :func:`mne.io.read_raw_edf` now combines triggers from multiple tal channels to 'STI 014' by `Jaakko Leppakangas`_
+
+    - The measurement info :class:`Info` no longer contains a potentially misleading ``info['filename']`` entry. Use class properties like :attr:`mne.io.Raw.filenames` or :attr:`mne.Epochs.filename` instead by `Eric Larson`_
+
+    - Default fiducial name change from 'nz' to 'nasion' in :func:`mne.channels.read_montage`, so that it is the same for both :class: `mne.channels.Montage` and :class: `mne.channels.DigMontage` by `Leonardo Barbosa`_
+
+    - MNE's additional files for the ``fsaverage`` head/brain model are now included in MNE-Python, and the now superfluous ``mne_root`` parameter to  :func:`create_default_subject` has been deprecated by `Christian Brodbeck`_
 
 .. _changes_0_13:
 
@@ -143,7 +202,7 @@ Changelog
 
     - Components obtained from :class:`mne.preprocessing.ICA` are now sorted by explained variance, by `Mikołaj Magnuski`_
 
-    - Adding an EEG reference channel using :func:`mne.io.add_reference_channels` will now use its digitized location from the FIFF file, if present, by `Chris Bailey`_
+    - Adding an EEG reference channel using :func:`mne.add_reference_channels` will now use its digitized location from the FIFF file, if present, by `Chris Bailey`_
 
     - Added interactivity to :func:`mne.preprocessing.ICA.plot_components` - passing an instance of :class:`io.Raw` or :class:`Epochs` in ``inst`` argument allows to open component properties by clicking on component topomaps, by `Mikołaj Magnuski`_
 
@@ -154,6 +213,8 @@ Changelog
     - Added support for reading MaxShield (IAS) evoked data (e.g., from the acquisition machine) in :func:`mne.read_evokeds` by `Eric Larson`_
 
     - Added support for functional near-infrared spectroscopy (fNIRS) channels by `Jaakko Leppakangas`_
+
+    - Added :attr:`mne.io.Raw.acqparser` convenience attribute for :class:`mne.AcqParserFIF` by `Eric Larson`_
 
 BUG
 ~~~
@@ -178,7 +239,7 @@ BUG
 
     - Fixed a bug where ``merge_grads=True`` causes :func:`mne.viz.plot_evoked_topo` to fail when plotting a list of evokeds by `Jaakko Leppakangas`_
 
-    - Fixed a bug when setting multiple bipolar references with :func:`mne.io.set_bipolar_reference` by `Marijn van Vliet`_.
+    - Fixed a bug when setting multiple bipolar references with :func:`set_bipolar_reference` by `Marijn van Vliet`_.
 
     - Fixed image scaling in :func:`mne.viz.plot_epochs_image` when plotting more than one channel by `Jaakko Leppakangas`_
 
@@ -235,7 +296,7 @@ API
 
     - When CTF gradient compensation is applied to raw data, it is no longer reverted on save of :meth:`mne.io.Raw.save` by `Eric Larson`_
 
-    - Adds :func:`mne.time_frequency.csd_epochs` to replace :func:`mne.time_frequency.csd_compute_epochs` for naming consistency. :func:`mne.time_frequency.csd_compute_epochs` is now deprecated and will be removed in mne 0.14, by `Nick Foti`_
+    - Adds :func:`mne.time_frequency.csd_epochs` to replace ``mne.time_frequency.csd_compute_epochs`` for naming consistency. ``mne.time_frequency.csd_compute_epochs`` is now deprecated and will be removed in mne 0.14, by `Nick Foti`_
 
     - Weighted addition and subtraction of :class:`Evoked` as ``ev1 + ev2`` and ``ev1 - ev2`` have been deprecated, use explicit :func:`mne.combine_evoked(..., weights='nave') <mne.combine_evoked>` instead by `Eric Larson`_
 
@@ -253,7 +314,7 @@ API
 
     - :func:`mne.concatenate_epochs` and :func:`mne.compute_covariance` now check to see if all :class:`Epochs` instances have the same MEG-to-Head transformation, and errors by default if they do not by `Eric Larson`_
 
-    - Added option to pass a list of axes to :func:`mne.viz.epochs.plot_epochs_image` by `Mikołaj Magnuski`_
+    - Added option to pass a list of axes to :func:`mne.viz.plot_epochs_image` by `Mikołaj Magnuski`_
 
     - Constructing IIR filters in :func:`mne.filter.construct_iir_filter` defaults to ``output='ba'`` in 0.13 but this will be changed to ``output='sos'`` by `Eric Larson`_
 
@@ -273,23 +334,23 @@ API
 
     - The ``compensation`` parameter in :func:`mne.io.read_raw_fif` has been deprecated in favor of the method :meth:`mne.io.Raw.apply_gradient_compensation` by `Eric Larson`_
 
-    - :class:`mne.decoding.EpochsVectorizer` has been deprecated in favor of :class:`mne.decoding.Vectorizer` by `Asish Panda`_
+    - ``mne.decoding.EpochsVectorizer`` has been deprecated in favor of :class:`mne.decoding.Vectorizer` by `Asish Panda`_
 
     - The `epochs_data` parameter has been deprecated in :class:`mne.decoding.CSP`, in favour of the ``X`` parameter to comply to scikit-learn API, by `Jean-Remi King`_
 
-    - Deprecated :func:`mne.time_frequency.cwt_morlet` and :func:`mne.time_frequency.single_trial_power` in favour of :func:`mne.time_frequency.tfr_morlet` with parameter average=False, by `Jean-Remi King`_ and `Alex Gramfort`_
+    - Deprecated ``mne.time_frequency.cwt_morlet`` and ``mne.time_frequency.single_trial_power`` in favour of :func:`mne.time_frequency.tfr_morlet` with parameter average=False, by `Jean-Remi King`_ and `Alex Gramfort`_
 
     - Add argument ``mask_type`` to func:`mne.read_events` and func:`mne.find_events` to support MNE-C style of trigger masking by `Teon Brooks`_ and `Eric Larson`_
 
     - Extended Infomax is now the new default in :func:`mne.preprocessing.infomax` (``extended=True``), by `Clemens Brunner`_
 
-    - :func:`mne.io.read_raw_eeglab` and :func:`mne.io.read_epochs_eeglab` now take additional argument ``uint16_codec`` that allows to define the encoding of character arrays in set file. This helps in rare cases when reading a set file fails with ``TypeError: buffer is too small for requested array``. By `Mikołaj Magnuski`_
+    - :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` now take additional argument ``uint16_codec`` that allows to define the encoding of character arrays in set file. This helps in rare cases when reading a set file fails with ``TypeError: buffer is too small for requested array``. By `Mikołaj Magnuski`_
 
     - Added :class:`mne.decoding.TemporalFilter` to filter data in scikit-learn pipelines, by `Asish Panda`_
 
     - :func:`mne.preprocessing.create_ecg_epochs` now includes all the channels when ``picks=None`` by `Jaakko Leppakangas`_
 
-    - :func:`mne.io.set_eeg_reference` now allows moving from a custom to an average EEG reference by `Marijn van Vliet`_
+    - :func:`mne.set_eeg_reference` now allows moving from a custom to an average EEG reference by `Marijn van Vliet`_
 
 Authors
 ~~~~~~~
@@ -370,7 +431,7 @@ Changelog
 
     - Add :func:`mne.io.read_raw_cnt` for reading Neuroscan CNT files by `Jaakko Leppakangas`_
 
-    - Add ``decim`` parameter to :func:`mne.time_frequency.cwt_morlet`, by `Jean-Remi King`_
+    - Add ``decim`` parameter to ``mne.time_frequency.cwt_morlet``, by `Jean-Remi King`_
 
     - Add method :func:`mne.Epochs.plot_topo_image` by `Jaakko Leppakangas`_
 
@@ -384,7 +445,7 @@ Changelog
 
     - Add option for ``proj`` in :class:`mne.EpochsArray` by `Eric Larson`_
 
-    - Enable the usage of :func:`mne.viz.topomap.plot_topomap` with an :class:`mne.io.Info` instance for location information, by `Jona Sassenhagen`_.
+    - Enable the usage of :func:`mne.viz.plot_topomap` with an :class:`mne.Info` instance for location information, by `Jona Sassenhagen`_.
 
     - Add support for electrocorticography (ECoG) channel type by `Eric Larson`_
 
@@ -395,7 +456,7 @@ Changelog
 BUG
 ~~~
 
-    - :func:`compute_raw_psd`, :func:`compute_epochs_psd`, :func:`psd_multitaper`, and :func:`psd_welch` no longer remove rows/columns of the SSP matrix before applying SSP projectors when picks are provided by `Chris Holdgraf`_.
+    - ``mne.time_frequency.compute_raw_psd``, ``mne.time_frequency.compute_epochs_psd``, :func:`mne.time_frequency.psd_multitaper`, and :func:`mne.time_frequency.psd_welch` no longer remove rows/columns of the SSP matrix before applying SSP projectors when picks are provided by `Chris Holdgraf`_.
 
     - :func:`mne.Epochs.plot_psd` no longer calls a Welch PSD, and instead uses a Multitaper method which is more appropriate for epochs. Flags for this function are passed to :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
 
@@ -411,7 +472,7 @@ BUG
 
     - Fix bug where :func:`mne.preprocessing.maxwell_filter` ``destination`` parameter did not properly set device-to-head transform by `Eric Larson`_
 
-    - Fix bug in rank calculation of :func:`mne.utils.estimate_rank`, :func:`mne.io.Raw.estimate_rank`, and covariance functions where the tolerance was set to slightly too small a value, new 'auto' mode uses values from ``scipy.linalg.orth`` by `Eric Larson`_.
+    - Fix bug in rank calculation of ``mne.utils.estimate_rank``, :func:`mne.io.Raw.estimate_rank`, and covariance functions where the tolerance was set to slightly too small a value, new 'auto' mode uses values from ``scipy.linalg.orth`` by `Eric Larson`_.
 
     - Fix bug when specifying irregular ``train_times['slices']`` in :func:`mne.decoding.GeneralizationAcrossTime`, by `Jean-Remi King`_
 
@@ -466,9 +527,9 @@ API
 
     - The ``mesh_color`` parameter in :func:`mne.viz.plot_dipole_locations` has been removed (use `brain_color` instead), by `Marijn van Vliet`_
 
-    - Deprecated functions :func:`mne.time_frequency.compute_raw_psd` and :func:`mne.time_frequency.compute_epochs_psd`, replaced by :func:`mne.time_frequency.psd_welch` by `Chris Holdgraf`_
+    - Deprecated functions ``mne.time_frequency.compute_raw_psd`` and ``mne.time_frequency.compute_epochs_psd``, replaced by :func:`mne.time_frequency.psd_welch` by `Chris Holdgraf`_
 
-    - Deprecated function :func:`mne.time_frequency.multitaper_psd` and replaced by :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
+    - Deprecated function ``mne.time_frequency.multitaper_psd`` and replaced by :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
 
     - The ``y_pred`` attribute in :func:`mne.decoding.GeneralizationAcrossTime` and :func:`mne.decoding.TimeDecoding` is now a numpy array, by `Jean-Remi King`_
 
@@ -478,7 +539,7 @@ API
 
     - Added default parameters in Epochs class namely ``event_id=None``, ``tmin=-0.2`` and ``tmax=0.5``.
 
-    - To unify and extend the behavior of :func:`mne.comupute_raw_covariance` relative to :func:`mne.compute_covariance`, the default parameter ``tstep=0.2`` now discards any epochs at the end of the :class:`mne.io.Raw` instance that are not the full ``tstep`` duration. This will slightly change the computation of :func:`mne.compute_raw_covaraince`, but should only potentially have a big impact if the :class:`mne.io.Raw` instance is short relative to ``tstep`` and the last, too short (now discarded) epoch contained data inconsistent with the epochs that preceded it.
+    - To unify and extend the behavior of :func:`mne.compute_raw_covariance` relative to :func:`mne.compute_covariance`, the default parameter ``tstep=0.2`` now discards any epochs at the end of the :class:`mne.io.Raw` instance that are not the full ``tstep`` duration. This will slightly change the computation of :func:`mne.compute_raw_covariance`, but should only potentially have a big impact if the :class:`mne.io.Raw` instance is short relative to ``tstep`` and the last, too short (now discarded) epoch contained data inconsistent with the epochs that preceded it.
 
     - The default ``picks=None`` in :func:`mne.io.Raw.filter` now picks eeg, meg, seeg, and ecog channels, by `Jean-Remi King`_ and `Eric Larson`_
 
@@ -490,11 +551,11 @@ API
 
     - Subselecting channels can now emit a warning if many channels have been subselected from projection vectors. We recommend only computing projection vertors for and applying projectors to channels that will be used in the final analysis. However, after picking a subset of channels, projection vectors can be renormalized with :func:`mne.Info.normalize_proj` if necessary to avoid warnings about subselection. Changes by `Eric Larson`_ and `Alex Gramfort`_.
 
-    - Rename and deprecate :func:`mne.Epochs.drop_bad_epochs` to :func:`mne.Epochs.drop_bad`, and :func:`mne.Epochs.drop_epochs` to :func:`mne.Epochs.drop` by `Alex Gramfort`_.
+    - Rename and deprecate ``mne.Epochs.drop_bad_epochs`` to :func:`mne.Epochs.drop_bad`, and `mne.Epochs.drop_epochs`` to :func:`mne.Epochs.drop` by `Alex Gramfort`_.
 
-    - The C wrapper :func:`mne.do_forward_solution` has been deprecated in favor of the native Python version :func:`mne.make_forward_solution` by `Eric Larson`_
+    - The C wrapper ``mne.do_forward_solution`` has been deprecated in favor of the native Python version :func:`mne.make_forward_solution` by `Eric Larson`_
 
-    - The ``events`` parameter of :func:`mne.epochs.EpochsArray` is set by default to chronological time-samples and event values to 1, by `Jean-Remi King`_
+    - The ``events`` parameter of :func:`mne.EpochsArray` is set by default to chronological time-samples and event values to 1, by `Jean-Remi King`_
 
 Authors
 ~~~~~~~
@@ -572,9 +633,9 @@ Changelog
 
     - Improve speed of generalization across time :class:`mne.decoding.GeneralizationAcrossTime` decoding up to a factor of seven by `Jean-Remi King`_ and `Federico Raimondo`_ and `Denis Engemann`_.
 
-    - Add the explained variance for each principal component, ``explained_var``, key to the :class:`mne.io.Projection` by `Teon Brooks`_
+    - Add the explained variance for each principal component, ``explained_var``, key to the :class:`mne.Projection` by `Teon Brooks`_
 
-    - Added methods :func:`mne.Epochs.add_eeg_average_proj`, :func:`mne.io.Raw.add_eeg_average_proj`, and :func:`mne.Evoked.add_eeg_average_proj` to add an average EEG reference.
+    - Added methods ``mne.Epochs.add_eeg_average_proj``, ``mne.io.Raw.add_eeg_average_proj``, and ``mne.Evoked.add_eeg_average_proj`` to add an average EEG reference.
 
     - Add reader for EEGLAB data in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` by `Mainak Jas`_
 
@@ -593,7 +654,7 @@ BUG
 
     - Fix drop percentages to take into account ``ignore`` option in :func:`mne.viz.plot_drop_log` and :func:`mne.Epochs.plot_drop_log` by `Eric Larson`_.
 
-    - :class:`mne.EpochsArray` no longer has an average EEG reference silently added (but not applied to the data) by default. Use :func:`mne.EpochsArray.add_eeg_ref` to properly add one.
+    - :class:`mne.EpochsArray` no longer has an average EEG reference silently added (but not applied to the data) by default. Use ``mne.EpochsArray.add_eeg_ref`` to properly add one.
 
     - Fix :func:`mne.io.read_raw_ctf` to read ``n_samp_tot`` instead of ``n_samp`` by `Jaakko Leppakangas`_
 
@@ -602,9 +663,9 @@ API
 
     - :func:`mne.io.read_raw_brainvision` now has ``event_id`` argument to assign non-standard trigger events to a trigger value by `Teon Brooks`_
 
-    - :func:`mne.read_epochs` now has ``add_eeg_ref=False`` by default, since average EEG reference can be added before writing or after reading using the method :func:`mne.Epochs.add_eeg_ref`.
+    - :func:`mne.read_epochs` now has ``add_eeg_ref=False`` by default, since average EEG reference can be added before writing or after reading using the method ``mne.Epochs.add_eeg_ref``.
 
-    - :class:`mne.EpochsArray` no longer has an average EEG reference silently added (but not applied to the data) by default. Use :func:`mne.EpochsArray.add_eeg_average_proj` to properly add one.
+    - :class:`mne.EpochsArray` no longer has an average EEG reference silently added (but not applied to the data) by default. Use ``mne.EpochsArray.add_eeg_average_proj`` to properly add one.
 
 Authors
 ~~~~~~~
@@ -665,9 +726,9 @@ Changelog
 
     - Add new method :class:`mne.preprocessing.Xdawn` for denoising and decoding of ERP/ERF by `Alexandre Barachant`_
 
-    - Add support for plotting patterns/filters in :class:`mne.decoding.csp.CSP` and :class:`mne.decoding.base.LinearModel` by `Romain Trachel`_
+    - Add support for plotting patterns/filters in :class:`mne.decoding.CSP` and :class:`mne.decoding.LinearModel` by `Romain Trachel`_
 
-    - Add new object :class:`mne.decoding.base.LinearModel` for decoding M/EEG data and interpreting coefficients of linear models with patterns attribute by `Romain Trachel`_ and `Alex Gramfort`_
+    - Add new object :class:`mne.decoding.LinearModel` for decoding M/EEG data and interpreting coefficients of linear models with patterns attribute by `Romain Trachel`_ and `Alex Gramfort`_
 
     - Add support to append new channels to an object from a list of other objects by `Chris Holdgraf`_
 
@@ -701,7 +762,7 @@ Changelog
 
     - Adapt ``corrmap`` function (Viola et al. 2009) to semi-automatically detect similar ICs across data sets by `Jona Sassenhagen`_ and `Denis Engemann`_ and `Eric Larson`_
 
-    - New ``mne flash_bem`` command to compute BEM surfaces from Flash MRI images by `Lorenzo Desantis`_, `Alex Gramfort`_ and `Eric Larson`_. See :func:`mne.bem.utils.make_flash_bem`.
+    - New ``mne flash_bem`` command to compute BEM surfaces from Flash MRI images by `Lorenzo Desantis`_, `Alex Gramfort`_ and `Eric Larson`_. See :func:`mne.bem.make_flash_bem`.
 
     - New gfp parameter in :func:`mne.Evoked.plot` method to display Global Field Power (GFP) by `Eric Larson`_.
 
@@ -722,7 +783,7 @@ BUG
 
     - Fix scaling in :func:``mne.viz.utils._setup_vmin_vmax`` by `Jaakko Leppakangas`_
 
-    - Fix order of component selection in :class:`mne.decoding.csp.CSP` by `Clemens Brunner`_
+    - Fix order of component selection in :class:`mne.decoding.CSP` by `Clemens Brunner`_
 
 API
 ~~~
@@ -731,15 +792,15 @@ API
 
     - Deprecated :class: `mne.decoding.transformer.ConcatenateChannels` and replaced by :class: `mne.decoding.transformer.EpochsVectorizer` by `Romain Trachel`_
 
-    - Deprecated `lws` and renamed `ledoit_wolf` for the ``reg`` argument in :class:`mne.decoding.csp.CSP` by `Romain Trachel`_
+    - Deprecated `lws` and renamed `ledoit_wolf` for the ``reg`` argument in :class:`mne.decoding.CSP` by `Romain Trachel`_
 
-    - Redesigned and rewrote :func:`mne.Epochs.plot` (no backwards compatibility) during the GSOC 2015 by `Jaakko Leppakangas`_, `Mainak Jas`_, `Federico Raimondo`_ and `Denis Engemann`_
+    - Redesigned and rewrote :meth:`mne.Epochs.plot` (no backwards compatibility) during the GSOC 2015 by `Jaakko Leppakangas`_, `Mainak Jas`_, `Federico Raimondo`_ and `Denis Engemann`_
 
-    - Deprecated and renamed :func:`mne.viz.plot_image_epochs` for :func:`mne.plot.plot_epochs_image` by `Teon Brooks`_
+    - Deprecated and renamed ``mne.viz.plot_image_epochs`` for ``mne.plot.plot_epochs_image`` by `Teon Brooks`_
 
     - ``picks`` argument has been added to :func:`mne.time_frequency.tfr_morlet`, :func:`mne.time_frequency.tfr_multitaper` by `Teon Brooks`_
 
-    - :func:`mne.io.Raw.preload_data` has been deprecated for :func:`mne.io.Raw.load_data` by `Teon Brooks`_
+    - ``mne.io.Raw.preload_data`` has been deprecated for :func:`mne.io.Raw.load_data` by `Teon Brooks`_
 
     - ``RawBrainVision`` objects now always have event channel ``'STI 014'``, and recordings with no events will have this channel set to zero by `Eric Larson`_
 
@@ -1869,7 +1930,7 @@ of commits):
 
 .. _Natalie Klein: http://www.stat.cmu.edu/people/students/neklein
 
-.. _Jon Houck: http://www.unm.edu/~jhouck/
+.. _Jon Houck: https://scholar.google.com/citations?user=DNoS05IAAAAJ&hl=en
 
 .. _Pablo-Arias: https://github.com/Pablo-Arias
 
@@ -1896,3 +1957,15 @@ of commits):
 .. _Antti Rantala: https://github.com/Odingod
 
 .. _Keith Doelling: http://science.keithdoelling.com
+
+.. _Paul Pasler: https://github.com/ppasler
+
+.. _Niklas Wilming: https://github.com/nwilming
+
+.. _Annalisa Pascarella: http://www.iac.rm.cnr.it/~pasca/
+
+.. _Luke Bloy: https://scholar.google.com/citations?hl=en&user=Ad_slYcAAAAJ&view_op=list_works&sortby=pubdate
+
+.. _Leonardo Barbosa: https://github.com/noreun
+
+.. _Erkka Heinila: https://github.com/Teekuningas

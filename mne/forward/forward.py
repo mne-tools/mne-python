@@ -1026,7 +1026,6 @@ def _fill_measurement_info(info, fwd, sfreq):
     info = pick_info(info, sel)
     info['bads'] = []
 
-    info['filename'] = None
     # this is probably correct based on what's done in meas_info.py...
     info['meas_id'] = fwd['info']['meas_id']
     info['file_id'] = info['meas_id']
@@ -1400,7 +1399,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
     See Also
     --------
-    forward.make_forward_solution
+    make_forward_solution
 
     Returns
     -------

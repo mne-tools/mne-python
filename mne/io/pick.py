@@ -93,6 +93,10 @@ def pick_channels(ch_names, include, exclude=[]):
         List of channels.
     include : list of string
         List of channels to include (if empty include all available).
+
+        .. note:: This is to be treated as a set. The order of this list
+           is not used or maintained in ``sel``.
+
     exclude : list of string
         List of channels to exclude (if empty do not exclude any channel).
         Defaults to [].
@@ -624,7 +628,7 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     return res
 
 
-def _picks_by_type(info, meg_combined=False, ref_meg=False):
+def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
     """Get data channel indices as separate list of tuples.
 
     Parameters
@@ -635,6 +639,9 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False):
         Whether to return combined picks for grad and mag.
     ref_meg : bool
         If True include CTF / 4D reference channels
+    exclude : list of string | str
+        List of channels to exclude. If 'bads' (default), exclude channels
+        in info['bads'].
 
     Returns
     -------
@@ -648,22 +655,22 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False):
     if has_mag and (meg_combined is not True or not has_grad):
         picks_list.append(
             ('mag', pick_types(info, meg='mag', eeg=False, stim=False,
-             ref_meg=ref_meg))
+             ref_meg=ref_meg, exclude=exclude))
         )
     if has_grad and (meg_combined is not True or not has_mag):
         picks_list.append(
             ('grad', pick_types(info, meg='grad', eeg=False, stim=False,
-             ref_meg=ref_meg))
+             ref_meg=ref_meg, exclude=exclude))
         )
     if has_mag and has_grad and meg_combined is True:
         picks_list.append(
             ('meg', pick_types(info, meg=True, eeg=False, stim=False,
-             ref_meg=ref_meg))
+             ref_meg=ref_meg, exclude=exclude))
         )
     if has_eeg:
         picks_list.append(
             ('eeg', pick_types(info, meg=False, eeg=True, stim=False,
-             ref_meg=ref_meg))
+             ref_meg=ref_meg, exclude=exclude))
         )
     return picks_list
 

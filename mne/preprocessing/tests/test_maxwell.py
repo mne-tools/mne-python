@@ -421,6 +421,14 @@ def test_basic():
     assert_raises(ValueError, maxwell_filter, raw, origin='foo')
     assert_raises(ValueError, maxwell_filter, raw, origin=[0] * 4)
     assert_raises(ValueError, maxwell_filter, raw, mag_scale='foo')
+    raw_missing = raw.copy().load_data()
+    raw_missing.info['bads'] = ['MEG0111']
+    raw_missing.pick_types(meg=True)  # will be missing the bad
+    maxwell_filter(raw_missing)
+    with warnings.catch_warnings(record=True) as w:
+        maxwell_filter(raw_missing, calibration=fine_cal_fname)
+    assert_equal(len(w), 1)
+    assert_true('not in data' in str(w[0].message))
 
 
 @testing.requires_testing_data
@@ -610,6 +618,20 @@ def test_fine_calibration():
     assert_allclose(py_cal['cal_chans'], mf_cal['cal_chans'])
     assert_allclose(py_cal['cal_corrs'], mf_cal['cal_corrs'],
                     rtol=1e-3, atol=1e-3)
+    # with missing channels
+    raw_missing = raw.copy().load_data()
+    raw_missing.info['bads'] = ['MEG0111', 'MEG0943']  # 1 mag, 1 grad
+    raw_missing.info._check_consistency()
+    raw_sss_bad = maxwell_filter(
+        raw_missing, calibration=fine_cal_fname, origin=mf_head_origin,
+        regularize=None, bad_condition='ignore')
+    raw_missing.pick_types()  # actually remove bads
+    raw_sss_bad.pick_channels(raw_missing.ch_names)  # remove them here, too
+    with warnings.catch_warnings(record=True):
+        raw_sss_missing = maxwell_filter(
+            raw_missing, calibration=fine_cal_fname, origin=mf_head_origin,
+            regularize=None, bad_condition='ignore')
+    assert_meg_snr(raw_sss_missing, raw_sss_bad, 1000., 10000.)
 
     # Test 3D SSS fine calibration (no equivalent func in MaxFilter yet!)
     # very low SNR as proc differs, eventually we should add a better test

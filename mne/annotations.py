@@ -82,7 +82,7 @@ class Annotations(object):
 
         self.onset = onset
         self.duration = duration
-        self.description = np.array(description)
+        self.description = np.array(description, dtype=str)
 
 
 def _combine_annotations(annotations, last_samps, first_samps, sfreq):
@@ -125,8 +125,7 @@ def _onset_to_seconds(raw, onset):
     if raw.annotations.orig_time is None:
         orig_time = meas_date
     else:
-        orig_time = (raw.annotations.orig_time -
-                     raw.first_samp / raw.info['sfreq'])
+        orig_time = raw.annotations.orig_time - raw._first_time
 
     annot_start = orig_time - meas_date + onset
     return annot_start

@@ -28,8 +28,7 @@ fif_fname = op.join(base_dir, 'test_raw.fif')
 @slow_test
 @requires_version('scipy', '0.12')
 def test_array_raw():
-    """Test creating raw from array
-    """
+    """Test creating raw from array."""
     import matplotlib.pyplot as plt
     # creating
     raw = read_raw_fif(fif_fname).crop(2, 5)
@@ -93,7 +92,7 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.plot_psd(tmax=np.inf)
+    raw2.plot_psd(tmax=np.inf, average=True, spatial_colors=False)
     plt.close('all')
 
     # epoching

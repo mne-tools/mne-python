@@ -8,13 +8,15 @@ from __future__ import print_function
 
 import copy
 from functools import partial
+from warnings import warn
 
 import numpy as np
 
 from ..externals.six import string_types
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
-                       _PICK_TYPES_KEYS, pick_channels)
+                       _PICK_TYPES_KEYS, pick_channels, channel_type)
 from ..io.proj import setup_proj
+from ..io.meas_info import create_info
 from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
@@ -27,6 +29,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _change_channel_group)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
+from .evoked import _plot_lines
 
 
 def _plot_update_raw_proj(params, bools):
@@ -46,6 +49,7 @@ def _update_raw_data(params):
     """Deal with time or proj changed."""
     from scipy.signal import filtfilt
     start = params['t_start']
+    start -= params['first_time']
     stop = params['raw'].time_as_index(start + params['duration'])[0]
     start = params['raw'].time_as_index(start)[0]
     data_picks = _pick_data_channels(params['raw'].info)
@@ -86,7 +90,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=None):
+             highpass=None, lowpass=None, filtorder=4, clipping=None,
+             show_first_samp=False):
     """Plot raw data.
 
     Parameters
@@ -99,7 +104,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Time window (sec) to plot. The lesser of this value and the duration
         of the raw file will be used.
     start : float
-        Initial time to show (can be changed dynamically once plotted).
+        Initial time to show (can be changed dynamically once plotted). If
+        show_first_samp is True, then it is taken relative to
+        ``raw.first_samp``.
     n_channels : int
         Number of channels to plot at once. Defaults to 20. Has no effect if
         ``order`` is 'position' or 'selection'.
@@ -167,6 +174,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         the plot. If "clamp", then values are clamped to the appropriate
         range for display, creating step-like artifacts. If "transparent",
         then excessive values are not shown, creating gaps in the traces.
+    show_first_samp : bool
+        If True, show time axis relative to the ``raw.first_samp``.
 
     Returns
     -------
@@ -294,11 +303,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # set up projection and data parameters
     duration = min(raw.times[-1], float(duration))
+    first_time = raw._first_time if show_first_samp else 0
+    start += first_time
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,
                   n_times=n_times, event_times=event_times, inds=inds,
-                  event_nums=event_nums, clipping=clipping, fig_proj=None)
+                  event_nums=event_nums, clipping=clipping, fig_proj=None,
+                  first_time=first_time)
 
     if isinstance(order, string_types) and order in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -334,7 +346,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                 segment_colors[key] = plt.cm.summer(color_vals[idx])
         params['segment_colors'] = segment_colors
         for idx, onset in enumerate(raw.annotations.onset[ann_order]):
-            annot_start = _onset_to_seconds(raw, onset)
+            annot_start = _onset_to_seconds(raw, onset) + first_time
             annot_end = annot_start + raw.annotations.duration[ann_order][idx]
             segments.append([annot_start, annot_end])
             ylim = params['ax_hscroll'].get_ylim()
@@ -516,9 +528,9 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 @verbose
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=2048, picks=None, ax=None, color='black',
-                 area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, average=True, show=True, n_jobs=1,
-                 line_alpha=None, verbose=None):
+                 area_mode='std', area_alpha=0.33, n_overlap=0, dB=True,
+                 average=True, show=True, n_jobs=1, line_alpha=None,
+                 spatial_colors=None, verbose=None):
     """Plot the power spectral density across channels.
 
     Parameters
@@ -544,12 +556,13 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     ax : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
     color : str | tuple
-        A matplotlib-compatible color to use.
+        A matplotlib-compatible color to use. Has no effect when
+        spatial_colors=True.
     area_mode : str | None
         Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
         will be plotted. If 'range', the min and max (across channels) will be
         plotted. Bad channels will be excluded from these calculations.
-        If None, no area will be plotted.
+        If None, no area will be plotted. If average=False, no area is plotted.
     area_alpha : float
         Alpha for the area.
     n_overlap : int
@@ -559,7 +572,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         If True, transform data to decibels.
     average : bool
         If False, the PSDs of all channels is displayed. No averaging
-        is done and parameters area_mode and area_alpha are ignored.
+        is done and parameters area_mode and area_alpha are ignored. When
+        False, it is possible to paint an area (hold left mouse button and
+        drag) to plot a topomap.
     show : bool
         Show figure if True.
     n_jobs : int
@@ -567,6 +582,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     line_alpha : float | None
         Alpha for the PSD line. Can be None (default) to use 1.0 when
         ``average=True`` and 0.1 when ``average=False``.
+    spatial_colors : bool
+        Whether to use spatial colors. Only works when average=False. Defaults
+        to False when average=False, but this will change to True in 0.15.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -576,18 +594,27 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     fig : instance of matplotlib figure
         Figure with frequency spectra of the data channels.
     """
+    if average and spatial_colors:
+        raise ValueError('Average and spatial_colors cannot be enabled '
+                         'simultaneously.')
+    elif spatial_colors is None:
+        if not average:
+            spatial_colors = True
+        else:
+            warn('In version 0.15 average will default to False and '
+                 'spatial_colors to True.')  # XXX: deprecation
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
     if line_alpha is None:
         line_alpha = 1.0 if average else 0.1
     line_alpha = float(line_alpha)
 
+    psd_list = list()
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
         psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
-                                fmin=fmin, fmax=fmax, proj=proj,
-                                n_fft=n_fft, n_overlap=n_overlap,
-                                n_jobs=n_jobs)
+                                fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
+                                n_overlap=n_overlap, n_jobs=n_jobs)
 
         # Convert PSDs to dB
         if dB:
@@ -617,7 +644,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                 ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
                                 color=color, alpha=area_alpha)
         else:
-            ax.plot(freqs, psds.T, color=color, alpha=line_alpha)
+            psd_list.append(psds)
 
         if make_label:
             if ii == len(picks_list) - 1:
@@ -626,8 +653,39 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                 ax.set_ylabel('Power Spectral Density (%s/Hz)' % unit)
             ax.set_title(title)
             ax.set_xlim(freqs[0], freqs[-1])
+
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
+
+    if not average:
+        picks = np.concatenate(picks_list)
+
+        psd_list = np.concatenate(psd_list)
+        types = np.array([channel_type(raw.info, idx) for idx in picks])
+        # Needed because the data does not match the info anymore.
+        info = create_info([raw.ch_names[p] for p in picks], raw.info['sfreq'],
+                           types)
+        info['chs'] = [raw.info['chs'][p] for p in picks]
+        valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
+                               'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
+                               'hbr', 'misc']
+        ch_types_used = list()
+        for this_type in valid_channel_types:
+            if this_type in types:
+                ch_types_used.append(this_type)
+        units = {t: 'PSD (%s/Hz)' % unit for t in
+                 ch_types_used}
+        titles = {c: t for c, t in zip(ch_types_used, titles_list)}
+        picks = np.arange(len(psd_list))
+        if not spatial_colors:
+            spatial_colors = color
+        _plot_lines(psd_list, info, picks, fig, ax_list, spatial_colors,
+                    unit, units=units, scalings=None, hline=None, gfp=False,
+                    types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
+                    ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
+                    ch_types_used=ch_types_used, selectable=True, psd=True,
+                    line_alpha=line_alpha)
+        tight_layout(fig=fig)
     plt_show(show)
     return fig
 
@@ -704,7 +762,8 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
     params['hsel_patch'] = hsel_patch
-    ax_hscroll.set_xlim(0, params['n_times'] / float(info['sfreq']))
+    ax_hscroll.set_xlim(params['first_time'], params['first_time'] +
+                        params['n_times'] / float(info['sfreq']))
 
     ax_vscroll.set_title('Ch.')
 
@@ -712,7 +771,8 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     params['ax_vertline'] = ax.plot([0, 0], ax.get_ylim(),
                                     color=vertline_color, zorder=-1)[0]
     params['ax_vertline'].ch_name = ''
-    params['vertline_t'] = ax_hscroll.text(0, 1, '', color=vertline_color,
+    params['vertline_t'] = ax_hscroll.text(params['first_time'], 1, '',
+                                           color=vertline_color,
                                            va='bottom', ha='right')
     params['ax_hscroll_vertline'] = ax_hscroll.plot([0, 0], [0, 1],
                                                     color=vertline_color,
@@ -759,7 +819,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
 
             # subtraction here gets corect orientation for flipped ylim
             lines[ii].set_ydata(offset - this_data)
-            lines[ii].set_xdata(params['times'])
+            lines[ii].set_xdata(params['times'] + params['first_time'])
             lines[ii].set_color(this_color)
             lines[ii].set_zorder(this_z)
             vars(lines[ii])['ch_name'] = ch_name
@@ -789,7 +849,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             mask = (event_nums == ev_num) if ev_num >= 0 else ~used
             assert not np.any(used[mask])
             used[mask] = True
-            t = event_times[mask]
+            t = event_times[mask] + params['first_time']
             if len(t) > 0:
                 xs = list()
                 ys = list()
@@ -810,9 +870,9 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         times = params['times']
         ylim = params['ax'].get_ylim()
         for idx, segment in enumerate(segments):
-            if segment[0] > times[-1]:
+            if segment[0] > times[-1] + params['first_time']:
                 break  # Since the segments are sorted by t_start
-            if segment[1] < times[0]:
+            if segment[1] < times[0] + params['first_time']:
                 continue
             start = segment[0]
             end = segment[1]
@@ -823,8 +883,9 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             params['ax'].text((start + end) / 2., ylim[0], dscr, ha='center')
 
     # finalize plot
-    params['ax'].set_xlim(params['times'][0],
-                          params['times'][0] + params['duration'], False)
+    params['ax'].set_xlim(params['times'][0] + params['first_time'],
+                          params['times'][0] + params['first_time'] +
+                          params['duration'], False)
     params['ax'].set_yticklabels(tick_list)
     if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])

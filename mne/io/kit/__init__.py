@@ -1,4 +1,4 @@
-"""KIT module for conversion to FIF."""
+"""KIT module for reading raw data."""
 
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #

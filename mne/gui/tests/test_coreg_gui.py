@@ -135,6 +135,8 @@ def test_coreg_model():
     model.load_trans(fname_trans)
 
     from mne.gui._coreg_gui import CoregFrame
+    assert_raises(ValueError, CoregFrame, raw_path, 'Elvis', tempdir)
+    assert_raises(ValueError, CoregFrame, raw_path, 'Elvis', subjects_dir)
     x = CoregFrame(raw_path, 'sample', subjects_dir)
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     try:

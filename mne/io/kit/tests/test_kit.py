@@ -5,8 +5,10 @@ from __future__ import print_function
 #
 # License: BSD (3-clause)
 
-import os.path as op
 import inspect
+import os.path as op
+import warnings
+
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import (assert_equal, assert_almost_equal, assert_raises,
@@ -188,7 +190,7 @@ def test_hsp_elp():
 
 
 def test_decimate():
-    """Test decimation of digitizer headshapes with too many points. """
+    """Test decimation of digitizer headshapes with too many points."""
     # load headshape and convert to meters
     hsp_mm = _get_ico_surface(5)['rr'] * 100
     hsp_m = hsp_mm / 1000.
@@ -199,7 +201,9 @@ def test_decimate():
     np.savetxt(sphere_hsp_path, hsp_mm)
 
     # read in raw data using spherical hsp, and extract new hsp
-    raw = read_raw_kit(sqd_path, mrk_path, elp_txt_path, sphere_hsp_path)
+    with warnings.catch_warnings(record=True) as w:
+        raw = read_raw_kit(sqd_path, mrk_path, elp_txt_path, sphere_hsp_path)
+    assert_true(any('more than' in str(ww.message) for ww in w))
     # collect headshape from raw (should now be in m)
     hsp_dec = np.array([dig['r'] for dig in raw.info['dig']])[8:]
 

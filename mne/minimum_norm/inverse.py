@@ -73,12 +73,15 @@ class InverseOperator(dict):
 
 
 def _pick_channels_inverse_operator(ch_names, inv):
-    """Data channel indices to be used knowing an inverse operator."""
-    sel = []
+    """Data channel indices to be used knowing an inverse operator.
+
+    Unlike ``pick_channels``, this respects the order of ch_names.
+    """
+    sel = list()
     for name in inv['noise_cov'].ch_names:
-        if name in ch_names:
+        try:
             sel.append(ch_names.index(name))
-        else:
+        except ValueError:
             raise ValueError('The inverse operator was computed with '
                              'channel %s which is not present in '
                              'the data. You should compute a new inverse '

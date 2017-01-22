@@ -116,7 +116,8 @@ class SourceSpaces(list):
             return 'combined'
         return _src_kind_dict[ss_types[0]]
 
-    def __add__(self, other):  # noqa: D105
+    def __add__(self, other):
+        """Combine source spaces."""
         return SourceSpaces(list.__add__(self, other))
 
     def copy(self):
@@ -2359,6 +2360,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
         The names of segmented volumes included in this mgz file.
     label_colors : list of str
         The RGB colors of the labels included in this mgz file.
+
     Notes
     -----
     .. versionadded:: 0.9.0

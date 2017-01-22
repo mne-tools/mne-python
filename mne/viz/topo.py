@@ -220,7 +220,7 @@ def _plot_topo_onpick(event, show_func):
         ax.set_axis_bgcolor(face_color)
 
         # allow custom function to override parameters
-        show_func(plt, ch_idx)
+        show_func(ax, ch_idx)
 
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers,
@@ -370,7 +370,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
     """Plot erfimage on sensor topography."""
     from scipy import ndimage
     import matplotlib.pyplot as plt
-    this_data = data[:, ch_idx, :].copy()
+    this_data = data[:, ch_idx, :].copy() * scalings[ch_idx]
 
     if callable(order):
         order = order(epochs.times, this_data)
@@ -381,9 +381,9 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
     if sigma > 0.:
         this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
 
-    ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
-              origin='lower', vmin=vmin, vmax=vmax, picker=True, cmap=cmap,
-              interpolation='nearest')
+    img = ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)],
+                    aspect='auto', origin='lower', vmin=vmin, vmax=vmax,
+                    picker=True, cmap=cmap, interpolation='nearest')
 
     ax = plt.gca()
     if x_label is not None:
@@ -391,7 +391,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
     if y_label is not None:
         ax.set_ylabel(y_label)
     if colorbar:
-        plt.colorbar()
+        plt.colorbar(mappable=img)
 
 
 def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
@@ -405,7 +405,7 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
     data_lines = bn.data_lines
     extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax, bn.y_t,
               bn.y_t + bn.y_s * len(epochs.events))
-    this_data = data[:, ch_idx, :].copy()
+    this_data = data[:, ch_idx, :].copy() * scalings[ch_idx]
 
     if callable(order):
         order = order(epochs.times, this_data)
@@ -699,17 +699,15 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     for idx in range(epochs.info['nchan']):
         ch_type = channel_type(epochs.info, idx)
         scale_coeffs.append(scalings.get(ch_type, 1))
-    for epoch_data in data:
-        epoch_data *= np.asarray(scale_coeffs)[:, np.newaxis]
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     if layout is None:
         layout = find_layout(epochs.info)
 
-    show_func = partial(_erfimage_imshow_unified, scalings=scalings,
+    show_func = partial(_erfimage_imshow_unified, scalings=scale_coeffs,
                         order=order, data=data, epochs=epochs, sigma=sigma,
                         cmap=cmap)
-    erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
+    erf_imshow = partial(_erfimage_imshow, scalings=scale_coeffs, order=order,
                          data=data, epochs=epochs, sigma=sigma, cmap=cmap)
 
     fig = _plot_topo(info=epochs.info, times=epochs.times,

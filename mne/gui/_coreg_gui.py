@@ -1248,6 +1248,20 @@ class CoregFrame(HasTraits):
             self.model.mri.subjects_dir = subjects_dir
 
         if subject is not None:
+            if subject not in self.model.mri.subject_source.subjects:
+                msg = "%s is not a valid subject. " % subject
+                # no subjects -> ['']
+                if any(self.model.mri.subject_source.subjects):
+                    ss = ', '.join(self.model.mri.subject_source.subjects)
+                    msg += ("The following subjects have been found: %s "
+                            "(subjects_dir=%s). " %
+                            (ss, self.model.mri.subjects_dir))
+                else:
+                    msg += ("No subjects were found in subjects_dir=%s. " %
+                            self.model.mri.subjects_dir)
+                msg += ("Make sure all MRI subjects have head shape files "
+                        "(run $ mne make_scalp_surfaces).")
+                raise ValueError(msg)
             self.model.mri.subject = subject
 
         if guess_mri_subject is not None:

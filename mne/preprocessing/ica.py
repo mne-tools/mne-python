@@ -46,7 +46,7 @@ from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
                      _get_fast_dot, compute_corr, _get_inst_data,
-                     copy_function_doc_to_method_doc)
+                     copy_function_doc_to_method_doc, _pl)
 from ..fixes import _get_args
 from ..filter import filter_data
 from .bads import find_outliers
@@ -274,6 +274,7 @@ class ICA(ContainsMixin):
         self.exclude = []
         self.info = None
         self.method = method
+        self.labels_ = dict()
 
     def __repr__(self):
         """ICA fit information."""
@@ -662,6 +663,18 @@ class ICA(ContainsMixin):
 
         return sources
 
+    def get_components(self):
+        """Get ICA topomap for components as numpy arrays.
+
+        Returns
+        -------
+        components : array, shape (n_channels, n_components)
+            The ICA components (maps).
+        """
+        fast_dot = _get_fast_dot()
+        return fast_dot(self.mixing_matrix_[:, :self.n_components_].T,
+                        self.pca_components_[:self.n_components_]).T
+
     def get_sources(self, inst, add_channels=None, start=None, stop=None):
         """Estimate sources given the unmixing matrix.
 
@@ -726,7 +739,7 @@ class ICA(ContainsMixin):
             _, times_ = raw[0, start:stop]
         out._data = data_
         out._times = times_
-        out._filenames = list()
+        out._filenames = [None]
         out.preload = True
 
         # update first and last samples
@@ -1013,8 +1026,7 @@ class ICA(ContainsMixin):
             raise ValueError('Method "%s" not supported.' % method)
         # sort indices by scores
         ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
-        if not hasattr(self, 'labels_') or self.labels_ is None:
-            self.labels_ = dict()
+
         self.labels_['ecg'] = list(ecg_idx)
         self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         return self.labels_['ecg'], scores
@@ -1084,9 +1096,6 @@ class ICA(ContainsMixin):
         if inst.ch_names != self.ch_names:
             inst = inst.copy().pick_channels(self.ch_names)
 
-        if not hasattr(self, 'labels_') or self.labels_ is None:
-            self.labels_ = dict()
-
         for ii, (eog_ch, target) in enumerate(zip(eog_chs, targets)):
             scores += [self.score_sources(inst, target=target,
                                           score_func='pearsonr',
@@ -1128,7 +1137,7 @@ class ICA(ContainsMixin):
         Parameters
         ----------
         inst : instance of Raw, Epochs or Evoked
-            The data to be processed.
+            The data to be processed. The instance is modified inplace.
         include : array_like of int.
             The indices referring to columns in the ummixing matrix. The
             components to be kept.
@@ -1368,10 +1377,11 @@ class ICA(ContainsMixin):
 
     @copy_function_doc_to_method_doc(plot_ica_sources)
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
-                     stop=None, title=None, show=True, block=False):
+                     stop=None, title=None, show=True, block=False,
+                     show_first_samp=False):
         return plot_ica_sources(self, inst=inst, picks=picks, exclude=exclude,
                                 start=start, stop=stop, title=title, show=show,
-                                block=block)
+                                block=block, show_first_samp=show_first_samp)
 
     @copy_function_doc_to_method_doc(plot_ica_scores)
     def plot_scores(self, scores, exclude=None, labels=None, axhline=None,
@@ -1691,9 +1701,8 @@ def _sort_components(ica, order, copy=True):
         order = list(order)
     if ica.exclude:
         ica.exclude = [order.index(ic) for ic in ica.exclude]
-    if hasattr(ica, 'labels_'):
-        for k in ica.labels_.keys():
-            ica.labels_[k] = [order.index(ic) for ic in ica.labels_[k]]
+    for k in ica.labels_.keys():
+        ica.labels_[k] = [order.index(ic) for ic in ica.labels_[k]]
 
     return ica
 
@@ -1836,8 +1845,6 @@ def read_ica(fname):
                     'Functionality requiring the info won\'t be'
                     ' available.')
         info = None
-    else:
-        info['filename'] = fname
 
     ica_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ICA)
     if len(ica_data) == 0:
@@ -1908,7 +1915,9 @@ def read_ica(fname):
     if 'n_samples_' in ica_misc:
         ica.n_samples_ = ica_misc['n_samples_']
     if 'labels_' in ica_misc:
-        ica.labels_ = ica_misc['labels_']
+        labels_ = ica_misc['labels_']
+        if labels_ is not None:
+            ica.labels_ = labels_
     if 'method' in ica_misc:
         ica.method = ica_misc['method']
 
@@ -1959,7 +1968,7 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
         else:
             found = list(np.atleast_1d(abs(scores).argsort()[node.criterion]))
 
-        case = (len(found), 's' if len(found) > 1 else '', node.name)
+        case = (len(found), _pl(found), node.name)
         logger.info('    found %s artifact%s by %s' % case)
         ica.exclude += found
 
@@ -2148,16 +2157,6 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
 
 # #############################################################################
 # CORRMAP
-
-def _get_ica_map(ica, components=None):
-    """Get ICA topomap for components."""
-    fast_dot = _get_fast_dot()
-    if components is None:
-        components = list(range(ica.n_components_))
-    maps = fast_dot(ica.mixing_matrix_[:, components].T,
-                    ica.pca_components_[:ica.n_components_])
-    return maps
-
 
 def _find_max_corrs(all_maps, target, threshold):
     """Compute correlations between template and target components."""
@@ -2352,7 +2351,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     if threshold == 'auto':
         threshold = np.arange(60, 95, dtype=np.float64) / 100.
 
-    all_maps = [_get_ica_map(ica) for ica in icas]
+    all_maps = [ica.get_components().T for ica in icas]
 
     # check if template is an index to one IC in one ICA object, or an array
     if len(template) == 2:
@@ -2413,8 +2412,6 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         logger.info('Displaying selected ICs per subject.')
 
     for ii, (ica, max_corr) in enumerate(zip(icas, mx)):
-        if (label is not None) and (not hasattr(ica, 'labels_')):
-            ica.labels_ = dict()
         if len(max_corr) > 0:
             if isinstance(max_corr[0], np.ndarray):
                 max_corr = max_corr[0]
@@ -2422,7 +2419,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
                 ica.labels_[label] = list(set(list(max_corr) +
                                           ica.labels_.get(label, list())))
             if plot is True:
-                allmaps.extend(_get_ica_map(ica, components=max_corr))
+                allmaps.extend(ica.get_components()[:, max_corr].T)
                 subjs.extend([ii] * len(max_corr))
                 indices.extend(max_corr)
         else:

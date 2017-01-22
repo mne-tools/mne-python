@@ -90,8 +90,8 @@
 
      <h2>More help</h2>
 
-    - `MNE mailing list`_ for analysis talk
-    - `GitHub <https://github.com/mne-tools/mne-python/issues/>`_ for
+    - `Mailing list <MNE mailing list>`_ for analysis talk
+    - `GitHub issues <https://github.com/mne-tools/mne-python/issues/>`_ for
       requests and bug reports
     - `Gitter <https://gitter.im/mne-tools/mne-python>`_ to chat with devs
 

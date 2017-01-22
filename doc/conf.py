@@ -78,6 +78,10 @@ td = date.today()
 copyright = u'2012-%s, MNE Developers. Last updated on %s' % (td.year,
                                                               td.isoformat())
 
+nitpicky = True
+needs_sphinx = '1.5'
+suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside
+
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
@@ -153,7 +157,7 @@ html_theme_options = {
         ("Examples", "auto_examples/index"),
         ("API", "python_reference"),
         ("Manual", "manual/index"),
-        ("Contribute", "contributing"),
+        ("Contribute", "contribute_to_mne"),
         ("FAQ", "faq"),
     ],
     }
@@ -260,7 +264,7 @@ latex_logo = "_static/logo.png"
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
-latex_use_parts = True
+latex_toplevel_sectioning = 'part'
 
 # Additional stuff for the LaTeX preamble.
 # latex_preamble = ''

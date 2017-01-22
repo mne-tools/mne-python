@@ -45,6 +45,7 @@ data_path = testing.data_path(download=False)
 edf_stim_resamp_path = op.join(data_path, 'EDF', 'test_edf_stim_resamp.edf')
 edf_overlap_annot_path = op.join(data_path, 'EDF',
                                  'test_edf_overlapping_annotations.edf')
+edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
 
 
 eog = ['REOG', 'LEOG', 'IEOG']
@@ -54,7 +55,8 @@ misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
 def test_bdf_data():
     """Test reading raw bdf files."""
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
-                              montage=montage_path, eog=eog, misc=misc)
+                              montage=montage_path, eog=eog, misc=misc,
+                              exclude=['M2', 'IEOG'])
     assert_true('RawEDF' in repr(raw_py))
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
@@ -82,10 +84,18 @@ def test_edf_overlapping_annotations():
                      n_warning)
 
 
+@testing.requires_testing_data
+def test_edf_reduced():
+    """Test EDF with various sampling rates."""
+    _test_raw_reader(read_raw_edf, input_fname=edf_reduced, stim_channel=None)
+
+
 def test_edf_data():
     """Test edf files."""
-    _test_raw_reader(read_raw_edf, input_fname=edf_path, stim_channel=None)
+    raw = _test_raw_reader(read_raw_edf, input_fname=edf_path,
+                           stim_channel=None, exclude=['Ergo-Left', 'H10'])
     raw_py = read_raw_edf(edf_path, preload=True)
+    assert_equal(len(raw.ch_names) + 2, len(raw_py.ch_names))
     # Test saving and loading when annotations were parsed.
     edf_events = find_events(raw_py, output='step', shortest_event=0,
                              stim_channel='STI 014')
@@ -170,7 +180,7 @@ def test_parse_annotation():
     annot = [a for a in iterbytes(annot)]
     annot[1::2] = [a * 256 for a in annot[1::2]]
     tal_channel = map(sum, zip(annot[0::2], annot[1::2]))
-    assert_equal(_parse_tal_channel(tal_channel),
+    assert_equal(_parse_tal_channel([tal_channel]),
                  [[180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
                   [180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
                   [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
