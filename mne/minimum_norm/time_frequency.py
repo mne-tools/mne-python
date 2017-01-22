@@ -451,7 +451,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     freqs = freqs[freqs_mask]
     fstep = np.mean(np.diff(freqs))
     if is_free_ori and pick_ori is None:
-        psd = np.zeros((K.shape[0]/3, np.sum(freqs_mask)))
+        psd = np.zeros((K.shape[0] / 3, np.sum(freqs_mask)))
     else:
         psd = np.zeros((K.shape[0], np.sum(freqs_mask)))
     n_windows = 0
