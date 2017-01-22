@@ -1062,7 +1062,7 @@ class AverageTFR(_BaseTFR):
                   layout=None, cmap='RdBu_r', title=None, dB=False,
                   colorbar=True, layout_scale=0.945, show=True,
                   border='none', fig_facecolor='k', fig_background=None,
-                  font_color='w'):
+                  font_color='w', yscale='auto'):
         """Plot TFRs in a topography with images.
 
         Parameters
@@ -1131,6 +1131,10 @@ class AverageTFR(_BaseTFR):
             `matplotlib.pyplot.imshow`. Defaults to None.
         font_color: str | obj
             The color of tick labels in the colorbar. Defaults to white.
+        yscale : 'auto' (default) | 'linear' | 'log'
+            The scale of y (frequency) axis. 'linear' gives linear y axis,
+            'log' leads to log-spaced y axis and 'auto' detects if frequencies
+            are log-spaced and only then sets the y axis to 'log'.
 
         Returns
         -------
@@ -1157,7 +1161,7 @@ class AverageTFR(_BaseTFR):
         onselect_callback = partial(self._onselect, baseline=baseline,
                                     mode=mode, layout=layout)
 
-        click_fun = partial(_imshow_tfr, tfr=data, freq=freqs,
+        click_fun = partial(_imshow_tfr, tfr=data, freq=freqs, yscale=yscale,
                             cmap=(cmap, True), onselect=onselect_callback)
         imshow = partial(_imshow_tfr_unified, tfr=data, freq=freqs, cmap=cmap,
                          onselect=onselect_callback)

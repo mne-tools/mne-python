@@ -265,7 +265,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         raise ValueError('Using log scale for frequency axis requires all your'
                          ' frequencies to be positive (you cannot include'
                          ' the DC component (0 Hz) in the TFR).')
-    if len(freq) < 2:
+    if len(freq) < 2 or freq[0] == 0:
         yscale = 'linear'
     elif yscale != 'linear':
         ratio = freq[1:] / freq[:-1]
