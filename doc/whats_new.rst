@@ -59,13 +59,15 @@ Changelog
 
     - Add option in :meth:`mne.io.Raw.plot` to display the time axis relative to ``raw.first_samp`` by `Mainak Jas`_
 
-    - Add new ``visual_92_categories`` dataset by `Jaakko Leppakangas`_
+    - Add new :mod:`mne.datasets.visual_92_categories` dataset by `Jaakko Leppakangas`_
 
     - Add option in :func:`mne.io.read_raw_edf` to allow channel exclusion by `Jaakko Leppakangas`_
 
     - Allow integer event codes in :func:`mne.io.read_epochs_eeglab` by `Jaakko Leppakangas`_
 
     - Add ability to match channel names in a case insensitive manner when applying a :class:`mne.channels.Montage` by `Marijn van Vliet`_
+
+    - Add :ref:`Representational Similarity Analysis (RSA) <sphx_glr_auto_examples_datasets_decoding_rsa.py>` example on :mod:`mne.datasets.visual_92_categories` dataset by `Jaakko Leppakangas`_, `Jean-Remi King`_ and `Alex Gramfort`_
 
 
 BUG
