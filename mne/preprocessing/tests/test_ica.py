@@ -581,6 +581,10 @@ def test_ica_additional():
         ncomps_ = ica._check_n_pca_components(ncomps)
         assert_true(ncomps_ == expected)
 
+    raw.drop_channels(['MEG 2442'])
+    assert_raises(RuntimeError, ica.find_bads_eog, raw)
+    assert_raises(RuntimeError, ica.find_bads_ecg, raw)
+
 
 @requires_sklearn
 def test_run_ica():
