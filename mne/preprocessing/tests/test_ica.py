@@ -481,6 +481,11 @@ def test_ica_additional():
         ica.detect_artifacts(raw, start_find=0, stop_find=50, ecg_ch=ch_name,
                              eog_ch=ch_name, skew_criterion=idx,
                              var_criterion=idx, kurt_criterion=idx)
+
+    evoked = epochs.average()
+    evoked_data = evoked.data.copy()
+    raw_data = raw[:][0].copy()
+    epochs_data = epochs.get_data().copy()
     with warnings.catch_warnings(record=True):
         idx, scores = ica.find_bads_ecg(raw, method='ctps')
         assert_equal(len(scores), ica.n_components_)
@@ -501,6 +506,16 @@ def test_ica_additional():
         idx, scores = ica.find_bads_eog(raw)
         assert_true(isinstance(scores, list))
         assert_equal(len(scores[0]), ica.n_components_)
+
+        idx, scores = ica.find_bads_eog(evoked, ch_name='MEG 1441')
+        assert_equal(len(scores), ica.n_components_)
+
+        idx, scores = ica.find_bads_ecg(evoked, method='correlation')
+        assert_equal(len(scores), ica.n_components_)
+
+    assert_array_equal(raw_data, raw[:][0])
+    assert_array_equal(epochs_data, epochs.get_data())
+    assert_array_equal(evoked_data, evoked.data)
 
     # check score funcs
     for name, func in get_score_funcs().items():
@@ -565,6 +580,16 @@ def test_ica_additional():
     for ncomps, expected in [[0.3, 1], [0.9, 4], [1, 1]]:
         ncomps_ = ica._check_n_pca_components(ncomps)
         assert_true(ncomps_ == expected)
+
+    ica = ICA()
+    ica.fit(raw, picks=picks[:5])
+    ica.find_bads_ecg(raw)
+    ica.find_bads_eog(epochs, ch_name='MEG 0121')
+    assert_array_equal(raw_data, raw[:][0])
+
+    raw.drop_channels(['MEG 0122'])
+    assert_raises(RuntimeError, ica.find_bads_eog, raw)
+    assert_raises(RuntimeError, ica.find_bads_ecg, raw)
 
 
 @requires_sklearn
