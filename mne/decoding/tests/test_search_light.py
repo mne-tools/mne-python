@@ -101,12 +101,13 @@ def test_SearchLight():
         assert_array_equal(score_manual, score_sl)
 
     # n_jobs
-    sl = _SearchLight(LogisticRegression(random_state=0), n_jobs=2,
+    sl = _SearchLight(LogisticRegression(random_state=0), n_jobs=1,
                       scoring='roc_auc')
-    sl.fit(X, y)
+    score_1job = sl.fit(X, y).score(X, y)
+    sl.n_jobs = -1
+    score_njobs = sl.fit(X, y).score(X, y)
+    assert_array_equal(score_1job, score_njobs)
     sl.predict(X)
-    score_njobs = sl.score(X, y)
-    assert_array_equal(score, score_njobs)
 
     # n_jobs > n_estimators
     sl.fit(X[..., [0]], y)
