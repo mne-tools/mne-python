@@ -144,7 +144,7 @@ Representational Similarity Analysis (RSA).
 
 .. topic:: Examples
 
-    * :ref:`Representational Similarity Analysis (RSA) <sphx_glr_auto_examples_datasets_decoding_rsa.py>`: Partially replicates the results from Cichy et al. (2014).
+    * :ref:`Representational Similarity Analysis (RSA) <sphx_glr_auto_examples_decoding_decoding_rsa.py>`: Partially replicates the results from Cichy et al. (2014).
 
 
 References
