@@ -581,7 +581,13 @@ def test_ica_additional():
         ncomps_ = ica._check_n_pca_components(ncomps)
         assert_true(ncomps_ == expected)
 
-    raw.drop_channels(['MEG 2442'])
+    ica = ICA()
+    ica.fit(raw, picks=picks[:5])
+    ica.find_bads_ecg(raw)
+    ica.find_bads_eog(epochs, ch_name='MEG 0121')
+    assert_array_equal(raw_data, raw[:][0])
+
+    raw.drop_channels(['MEG 0122'])
     assert_raises(RuntimeError, ica.find_bads_eog, raw)
     assert_raises(RuntimeError, ica.find_bads_ecg, raw)
 
