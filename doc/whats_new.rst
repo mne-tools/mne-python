@@ -59,7 +59,7 @@ Changelog
 
     - Add option in :meth:`mne.io.Raw.plot` to display the time axis relative to ``raw.first_samp`` by `Mainak Jas`_
 
-    - Add new ``visual_92_categories`` dataset by `Jaakko Leppakangas`_
+    - Add new :mod:`mne.datasets.visual_92_categories` dataset by `Jaakko Leppakangas`_
 
     - Add option in :func:`mne.io.read_raw_edf` to allow channel exclusion by `Jaakko Leppakangas`_
 
@@ -68,6 +68,8 @@ Changelog
     - Add ability to match channel names in a case insensitive manner when applying a :class:`mne.channels.Montage` by `Marijn van Vliet`_
 
     - Add ``yscale`` keyword argument to :meth:`mne.time_frequency.AverageTFR.plot` that allows specifying whether to present the frequency axis in linear (``'linear'``) or log (``'log'``) scale. The default value is ``'auto'`` which detects whether frequencies are log-spaced and sets yscale to log. Added by `Mikołaj Magnuski`_
+
+    - Add :ref:`Representational Similarity Analysis (RSA) <sphx_glr_auto_examples_decoding_decoding_rsa.py>` example on :mod:`mne.datasets.visual_92_categories` dataset by `Jaakko Leppakangas`_, `Jean-Remi King`_ and `Alex Gramfort`_
 
 BUG
 ~~~
@@ -218,6 +220,8 @@ Changelog
     - Added support for functional near-infrared spectroscopy (fNIRS) channels by `Jaakko Leppakangas`_
 
     - Added :attr:`mne.io.Raw.acqparser` convenience attribute for :class:`mne.AcqParserFIF` by `Eric Larson`_
+
+    - Added example of Representational Similarity Analysis, by `Jean-Remi King`_
 
 BUG
 ~~~

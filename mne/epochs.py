@@ -14,6 +14,7 @@ from copy import deepcopy
 import json
 import os.path as op
 from distutils.version import LooseVersion
+from numbers import Integral
 
 import numpy as np
 import scipy
@@ -229,18 +230,21 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if event_id is None:  # convert to int to make typing-checks happy
             event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
         elif isinstance(event_id, dict):
-            if not all(isinstance(v, int) for v in event_id.values()):
+            if not all(isinstance(v, Integral) for v in event_id.values()):
                 raise ValueError('Event IDs must be of type integer')
             if not all(isinstance(k, string_types) for k in event_id):
                 raise ValueError('Event names must be of type str')
+            event_id = deepcopy(event_id)
         elif isinstance(event_id, list):
-            if not all(isinstance(v, int) for v in event_id):
+            if not all(isinstance(v, Integral) for v in event_id):
                 raise ValueError('Event IDs must be of type integer')
             event_id = dict(zip((str(i) for i in event_id), event_id))
-        elif isinstance(event_id, int):
+        elif isinstance(event_id, Integral):
             event_id = {str(event_id): event_id}
         else:
             raise ValueError('event_id must be dict or int.')
+        for k, v in event_id.items():
+            event_id[k] = int(v)  # make sure values are of type int
         self.event_id = event_id
         del event_id
 
