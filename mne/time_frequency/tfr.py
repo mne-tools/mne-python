@@ -884,11 +884,11 @@ class AverageTFR(_BaseTFR):
         self.method = method
 
     @verbose
-    def plot(self, picks, baseline=None, mode='mean', tmin=None,
-             tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
-             cmap='RdBu_r', dB=False, colorbar=True, show=True,
-             title=None, axes=None, layout=None, verbose=None):
-        """Plot TFRs in a topography with images.
+    def plot(self, picks, baseline=None, mode='mean', tmin=None, tmax=None,
+             fmin=None, fmax=None, vmin=None, vmax=None, cmap='RdBu_r',
+             dB=False, colorbar=True, show=True, title=None, axes=None,
+             layout=None, yscale='auto', verbose=None):
+        """Plot TFRs as a two-dimensional image(s).
 
         Parameters
         ----------
@@ -961,6 +961,10 @@ class AverageTFR(_BaseTFR):
             Layout instance specifying sensor positions. Used for interactive
             plotting of topographies on rectangle selection. If possible, the
             correct layout is inferred from the data.
+        yscale : 'auto' (default) | 'linear' | 'log'
+            The scale of y (frequency) axis. 'linear' gives linear y axis,
+            'log' leads to log-spaced y axis and 'auto' detects if frequencies
+            are log-spaced and only then sets the y axis to 'log'.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see :func:`mne.verbose`).
 
@@ -1004,7 +1008,7 @@ class AverageTFR(_BaseTFR):
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
                         ylim=None, tfr=data[idx: idx + 1], freq=freqs,
                         x_label='Time (ms)', y_label='Frequency (Hz)',
-                        colorbar=colorbar, picker=False, cmap=cmap)
+                        colorbar=colorbar, cmap=cmap, yscale=yscale)
             if title:
                 fig.suptitle(title)
 
@@ -1058,7 +1062,7 @@ class AverageTFR(_BaseTFR):
                   layout=None, cmap='RdBu_r', title=None, dB=False,
                   colorbar=True, layout_scale=0.945, show=True,
                   border='none', fig_facecolor='k', fig_background=None,
-                  font_color='w'):
+                  font_color='w', yscale='auto'):
         """Plot TFRs in a topography with images.
 
         Parameters
@@ -1127,6 +1131,10 @@ class AverageTFR(_BaseTFR):
             `matplotlib.pyplot.imshow`. Defaults to None.
         font_color: str | obj
             The color of tick labels in the colorbar. Defaults to white.
+        yscale : 'auto' (default) | 'linear' | 'log'
+            The scale of y (frequency) axis. 'linear' gives linear y axis,
+            'log' leads to log-spaced y axis and 'auto' detects if frequencies
+            are log-spaced and only then sets the y axis to 'log'.
 
         Returns
         -------
@@ -1153,7 +1161,7 @@ class AverageTFR(_BaseTFR):
         onselect_callback = partial(self._onselect, baseline=baseline,
                                     mode=mode, layout=layout)
 
-        click_fun = partial(_imshow_tfr, tfr=data, freq=freqs,
+        click_fun = partial(_imshow_tfr, tfr=data, freq=freqs, yscale=yscale,
                             cmap=(cmap, True), onselect=onselect_callback)
         imshow = partial(_imshow_tfr_unified, tfr=data, freq=freqs, cmap=cmap,
                          onselect=onselect_callback)

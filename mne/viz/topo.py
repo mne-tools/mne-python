@@ -247,28 +247,73 @@ def _check_vlim(vlim):
 
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
-                tfr=None, freq=None, vline=None, x_label=None, y_label=None,
-                colorbar=False, picker=True, cmap=('RdBu_r', True), title=None,
-                hline=None):
-    """Show time-freq map on topo."""
-    import matplotlib.pyplot as plt
+                tfr=None, freq=None, x_label=None, y_label=None,
+                colorbar=False, cmap=('RdBu_r', True), yscale='auto'):
+    """Show time-frequency map as two-dimensional image."""
+    from matplotlib import pyplot as plt, ticker
     from matplotlib.widgets import RectangleSelector
 
-    extent = (tmin, tmax, freq[0], freq[-1])
-    cmap, interactive_cmap = cmap
+    if yscale not in ['auto', 'linear', 'log']:
+        raise ValueError("yscale should be either 'auto', 'linear', or 'log'"
+                         ", got {}".format(yscale))
 
-    img = ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
-                    vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
-    if isinstance(ax, plt.Axes):
-        if x_label is not None:
-            ax.set_xlabel(x_label)
-        if y_label is not None:
-            ax.set_ylabel(y_label)
+    cmap, interactive_cmap = cmap
+    times = np.linspace(tmin, tmax, num=tfr[ch_idx].shape[1])
+
+    # test yscale
+    if yscale == 'log' and not freq[0] > 0:
+        raise ValueError('Using log scale for frequency axis requires all your'
+                         ' frequencies to be positive (you cannot include'
+                         ' the DC component (0 Hz) in the TFR).')
+    if len(freq) < 2 or freq[0] == 0:
+        yscale = 'linear'
+    elif yscale != 'linear':
+        ratio = freq[1:] / freq[:-1]
+    if yscale == 'auto':
+        if freq[0] > 0 and np.allclose(ratio, ratio[0]):
+            yscale = 'log'
+        else:
+            yscale = 'linear'
+
+    # compute bounds between time samples
+    time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
+    time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
+                               time_diff, [times[-1] + time_diff[-1]]])
+
+    # the same for frequency - depending on whether yscale is log
+    if yscale == 'linear':
+        freq_diff = np.diff(freq) / 2. if len(freq) > 1 else [0.5]
+        freq_lims = np.concatenate([[freq[0] - freq_diff[0]], freq[:-1] +
+                                   freq_diff, [freq[-1] + freq_diff[-1]]])
     else:
-        if x_label is not None:
-            plt.xlabel(x_label)
-        if y_label is not None:
-            plt.ylabel(y_label)
+        log_freqs = np.concatenate([[freq[0] / ratio[0]], freq,
+                                   [freq[-1] * ratio[0]]])
+        freq_lims = np.sqrt(log_freqs[:-1] * log_freqs[1:])
+
+    # construct a time-frequency bounds grid
+    time_mesh, freq_mesh = np.meshgrid(time_lims, freq_lims)
+
+    img = ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap,
+                        vmin=vmin, vmax=vmax)
+
+    # limits, yscale and yticks
+    ax.set_xlim(time_lims[0], time_lims[-1])
+    if ylim is None:
+        ylim = (freq_lims[0], freq_lims[-1])
+    ax.set_ylim(ylim)
+
+    if yscale == 'log':
+        ax.set_yscale('log')
+        ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
+
+    tick_vals = freq[np.unique(np.linspace(
+        0, len(freq) - 1, 12).round().astype('int'))]
+    ax.set_yticks(tick_vals)
+
+    if x_label is not None:
+        ax.set_xlabel(x_label)
+    if y_label is not None:
+        ax.set_ylabel(y_label)
     if colorbar:
         if isinstance(colorbar, DraggableColorbar):
             cbar = colorbar.cbar  # this happens with multiaxes case
@@ -276,10 +321,6 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
             cbar = plt.colorbar(mappable=img)
         if interactive_cmap:
             ax.CB = DraggableColorbar(cbar, img)
-    if title:
-        plt.title(title)
-    if not isinstance(ax, plt.Axes):
-        ax = plt.gca()
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
 
 
