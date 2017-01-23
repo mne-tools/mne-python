@@ -132,7 +132,7 @@ y_pred = np.zeros((len(y), len(classes)))
 for train, test in cv.split(X, y):
     # Fit
     clf.fit(X[train], y[train])
-    # Predict
+    # Probabilistic prediction (necessary for ROC-AUC scoring metric)
     y_pred[test] = clf.predict_proba(X[test])
 
 ##############################################################################
