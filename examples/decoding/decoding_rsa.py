@@ -78,7 +78,7 @@ print(conditions[:10])
 
 ##############################################################################
 # Let's make the event_id dictionary
-event_id = dict(zip(conditions, map(int, conds.trigger + 1)))
+event_id = dict(zip(conditions, conds.trigger + 1))
 event_id['0/human bodypart/human/not-face/animal/natural']
 
 ##############################################################################

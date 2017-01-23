@@ -55,7 +55,7 @@ event_name = op.join(base_dir, 'test-eve.fif')
 evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
-event_id_2 = 2
+event_id_2 = np.int64(2)  # to test non Python int types
 rng = np.random.RandomState(42)
 
 
