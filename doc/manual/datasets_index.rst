@@ -130,6 +130,23 @@ with auditory, visual, and somatosensory stimuli.
 
     * :ref:`sphx_glr_auto_examples_io_plot_elekta_epochs.py`
 
+
+Visual 92 object categories
+===========================
+:func:`mne.datasets.visual_92_categories.data_path()`.
+
+This dataset is recorded using a 306-channel Neuromag vectorview system.
+
+Experiment consisted in the visual presentation of 92 images of human, animal
+and inanimate objects either natural or artificial [4]_. Given the high number
+of conditions this dataset is well adapted to an approach based on
+Representational Similarity Analysis (RSA).
+
+.. topic:: Examples
+
+    * :ref:`Representational Similarity Analysis (RSA) <sphx_glr_auto_examples_datasets_decoding_rsa.py>`: Partially replicates the results from Cichy et al. (2014).
+
+
 References
 ==========
 
@@ -138,3 +155,5 @@ References
 .. [2] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N., Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer Interface (BCI) System. IEEE TBME 51(6):1034-1043
 
 .. [3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220
+
+.. [4] Cichy, R. M., Pantazis, D., & Oliva, A. "Resolving human object recognition in space and time." Nature neuroscience (2014): 17(3), 455-462
