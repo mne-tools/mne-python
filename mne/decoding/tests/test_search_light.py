@@ -104,7 +104,7 @@ def test_SearchLight():
     sl = _SearchLight(LogisticRegression(random_state=0), n_jobs=1,
                       scoring='roc_auc')
     score_1job = sl.fit(X, y).score(X, y)
-    sl.n_jobs = -1
+    sl.n_jobs = 2
     score_njobs = sl.fit(X, y).score(X, y)
     assert_array_equal(score_1job, score_njobs)
     sl.predict(X)
