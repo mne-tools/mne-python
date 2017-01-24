@@ -233,7 +233,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
         if event_type == 1:
             event_bytes = 8
-        elif event_type == 2:
+        elif event_type in (2, 3):
             event_bytes = 19
         else:
             raise IOError('Unexpected event size.')
@@ -245,8 +245,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             event_id = np.fromfile(fid, dtype='u2', count=1)[0]
             fid.seek(event_offset + 9 + i * event_bytes + 4)
             offset = np.fromfile(fid, dtype='<i4', count=1)[0]
-            event_time = (offset - 900 - 75 * n_channels) // (n_channels *
-                                                              n_bytes)
+            if event_type == 3:
+                offset *= n_bytes * n_channels
+            event_time = offset - 900 - 75 * n_channels
+            event_time //= n_channels * n_bytes
             stim_channel[event_time - 1] = event_id
 
     info = _empty_info(sfreq)
