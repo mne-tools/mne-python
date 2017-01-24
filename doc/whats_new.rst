@@ -71,6 +71,8 @@ Changelog
 
     - Add :ref:`Representational Similarity Analysis (RSA) <sphx_glr_auto_examples_decoding_decoding_rsa.py>` example on :mod:`mne.datasets.visual_92_categories` dataset by `Jaakko Leppakangas`_, `Jean-Remi King`_ and `Alex Gramfort`_
 
+    - Add support for NeuroScan files with event type 3 in :func:`mne.io.read_raw_cnt` by `Marijn van Vliet`_
+
 BUG
 ~~~
 
