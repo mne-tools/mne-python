@@ -17,7 +17,8 @@ from mne.transforms import (invert_transform, _get_trans,
                             get_ras_to_neuromag_trans, _pol_to_cart,
                             quat_to_rot, rot_to_quat, _angle_between_quats,
                             _find_vector_rotation, _sph_to_cart, _cart_to_sph,
-                            _topo_to_sph, SphericalSurfaceWarp,
+                            _topo_to_sph,
+                            _SphericalSurfaceWarp as SphericalSurfaceWarp,
                             rotation3d_align_z_axis)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -46,9 +47,12 @@ def test_tps():
     destination *= 2
     destination[:, 0] += 1
     # fit with 100 points
-    warp = SphericalSurfaceWarp().fit(source[::2], destination[::2])
+    warp = SphericalSurfaceWarp()
+    assert_true('no ' in repr(warp))
+    warp.fit(source[::3], destination[::2])
+    assert_true('oct5' in repr(warp))
     destination_est = warp.transform(source)
-    assert_allclose(destination_est, destination, atol=1e-2)
+    assert_allclose(destination_est, destination, atol=1e-3)
 
 
 @testing.requires_testing_data
