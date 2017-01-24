@@ -747,28 +747,34 @@ def _setup_annotation_fig(params):
     labels = [] if annotations is None else list(set(annotations.description))
     labels = np.union1d(labels, params['added_label'])
     fig = figure_nobar(figsize=(6.5, 2.75 + len(labels) * 0.75))
-    ax = plt.subplot2grid((len(labels) + 2, 2), (1, 0), rowspan=len(labels),
+    ax = plt.subplot2grid((len(labels) + 2, 2), (0, 0), rowspan=len(labels),
                           colspan=2)
-    button_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels) + 1, 1),
+    ax.set_title('Labels')
+    button_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels), 1),
                                  rowspan=1, colspan=1)
-    label_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels) + 1, 0),
+    label_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels), 0),
                                 rowspan=1, colspan=1)
+    plt.axis('off')
+    text_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels) + 1, 0),
+                               rowspan=1, colspan=2)
+    text_ax.text(0.5, 0.9, 'Left click and drag - Create/modify annotation\n'
+                           'Right click - Delete annotation\n'
+                           'Letter/number keys - Add character\n'
+                           'Backspace - Delete character\n'
+                           'Esc - Close window/exit annotation mode', va='top',
+                 ha='center')
     plt.axis('off')
 
     annotations_closed = partial(_annotations_closed, params=params)
     fig.canvas.mpl_connect('close_event', annotations_closed)
-    text = ('Type and click "Add" to create new description.\n'
-            'Annotate bad data by dragging on top of the plot.\n'
-            'Use left mouse button to draw/modify annotation.\n'
-            'Right click removes an existing annotation.\n'
-            'When done, close this window.')
-    fig.suptitle(text, fontsize=16)
+    fig.canvas.set_window_title('Annotations')
     fig.radio = RadioButtons(ax, labels)
     for label in fig.radio.labels:
         label.set_color(params['segment_colors'][label.get_text()])
+    col = 'r' if len(fig.radio.labels) < 1 else fig.radio.labels[0].get_color()
     fig.canvas.mpl_connect('key_press_event', partial(
         _change_annotation_description, params=params))
-    fig.button = Button(button_ax, 'Add')
+    fig.button = Button(button_ax, 'Add label')
     fig.label = label_ax.text(0.5, 0.5, 'BAD_', va='center', ha='center',
                               fontsize=14)
     fig.button.on_clicked(partial(_onclick_new_label, params=params))
@@ -778,7 +784,7 @@ def _setup_annotation_fig(params):
     ax = params['ax']
     cb_onselect = partial(_annotate_select, params=params)
     selector = SpanSelector(ax, cb_onselect, 'horizontal', minspan=.1,
-                            rectprops=dict(alpha=0.5, facecolor='red'))
+                            rectprops=dict(alpha=0.5, facecolor=col))
     if len(labels) == 0:
         selector.active = False
     params['ax'].selector = selector
@@ -790,6 +796,10 @@ def _setup_annotation_fig(params):
     hover_callback = partial(_on_hover, params=params)
     params['hover_callback'] = params['fig'].canvas.mpl_connect(
         'motion_notify_event', hover_callback)
+
+    radio_clicked = partial(_annotation_radio_clicked, radio=fig.radio,
+                            selector=selector)
+    fig.radio.on_clicked(radio_clicked)
 
 
 def _onclick_new_label(event, params):
@@ -1874,6 +1884,14 @@ def _change_annotation_description(event, params):
         text = text[:-1] + event.key
     fig.label.set_text(text + '_')
     fig.canvas.draw()
+
+
+def _annotation_radio_clicked(label, radio, selector):
+    """Callback for annotation radio buttons."""
+    idx = _get_active_radiobutton(radio)
+    color = radio.labels[idx].get_color()
+    selector.rect.set_color(color)
+    selector.rectprops.update(dict(facecolor=color))
 
 
 class DraggableLine:
