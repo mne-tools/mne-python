@@ -124,8 +124,9 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
             s = linalg.svd(C[idx][:, idx], compute_uv=False)
             # Protect against true zero singular values
             s[s <= 0] = 1e-10 * s[s > 0].min()
-            axes[0, k].semilogy(np.sqrt(s) * scaling)
-            axes[0, k].set(ylabel='Noise std (%s)' % unit,
+            s = np.sqrt(s) * scaling
+            axes[0, k].plot(s)
+            axes[0, k].set(ylabel='Noise std (%s)' % unit, yscale='log',
                            xlabel='Eigenvalue index', title=name)
         tight_layout(fig=fig_svd)
 
