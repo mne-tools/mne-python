@@ -11,7 +11,7 @@ from numpy.testing import assert_raises, assert_equal
 from mne import read_events, pick_types, Annotations
 from mne.io import read_raw_fif
 from mne.utils import requires_version, run_tests_if_main
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _annotation_radio_clicked
 from mne.viz import plot_raw, plot_sensors
 
 # Set our plotters to test mode
@@ -133,6 +133,11 @@ def test_plot_annotations():
     for key in ' test':
         ann_fig.canvas.key_press_event(key)
     ann_fig.canvas.key_press_event('enter')
+
+    ann_fig = plt.gcf()
+    # XXX: _fake_click raises an error on Agg backend
+    _annotation_radio_clicked('', ann_fig.radio, data_ax.selector)
+
     # draw annotation
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='motion')

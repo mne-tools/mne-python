@@ -775,8 +775,7 @@ def _setup_annotation_fig(params):
     fig.canvas.mpl_connect('key_press_event', partial(
         _change_annotation_description, params=params))
     fig.button = Button(button_ax, 'Add label')
-    fig.label = label_ax.text(0.5, 0.5, 'BAD_', va='center', ha='center',
-                              fontsize=14)
+    fig.label = label_ax.text(0.5, 0.5, 'BAD_', va='center', ha='center')
     fig.button.on_clicked(partial(_onclick_new_label, params=params))
     fig.show()
     params['annotation_fig'] = fig
