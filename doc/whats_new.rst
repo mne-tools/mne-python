@@ -128,6 +128,8 @@ BUG
 
     - Fix plotting non-uniform freqs (for example log-spaced) in :meth:`mne.time_frequency.AverageTFR.plot` by `Mikołaj Magnuski`_
 
+    - Fix :func:`mne.minimum_norm.compute_source_psd` when used with ``pick_ori=None`` by `Annalisa Pascarella`_ and `Alex Gramfort`_
+
 API
 ~~~
 
