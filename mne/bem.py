@@ -1060,7 +1060,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     from .viz.misc import plot_bem
     env, mri_dir = _prepare_env(subject, subjects_dir,
                                 requires_freesurfer=True,
-                                requires_mne=True)[:2]
+                                requires_mne=False)[:2]
 
     subjects_dir = env['SUBJECTS_DIR']
     subject_dir = op.join(subjects_dir, subject)
