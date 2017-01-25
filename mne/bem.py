@@ -1059,8 +1059,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     """
     from .viz.misc import plot_bem
     env, mri_dir = _prepare_env(subject, subjects_dir,
-                                requires_freesurfer=True,
-                                requires_mne=False)[:2]
+                                requires_freesurfer=True)[:2]
 
     subjects_dir = env['SUBJECTS_DIR']
     subject_dir = op.join(subjects_dir, subject)
@@ -1534,15 +1533,12 @@ def write_bem_solution(fname, bem):
 # #############################################################################
 # Create 3-Layers BEM model from Flash MRI images
 
-def _prepare_env(subject, subjects_dir, requires_freesurfer, requires_mne):
+def _prepare_env(subject, subjects_dir, requires_freesurfer):
     """Helper to prepare an env object for subprocess calls."""
     env = os.environ.copy()
     if requires_freesurfer and not os.environ.get('FREESURFER_HOME'):
         raise RuntimeError('I cannot find freesurfer. The FREESURFER_HOME '
                            'environment variable is not set.')
-    if requires_mne and not os.environ.get('MNE_ROOT'):
-        raise RuntimeError('I cannot find the MNE command line tools. The '
-                           'MNE_ROOT environment variable is not set.')
 
     if not isinstance(subject, string_types):
         raise TypeError('The subject argument must be set')
@@ -1613,8 +1609,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     should be, as usual, in the subject's mri directory.
     """
     env, mri_dir = _prepare_env(subject, subjects_dir,
-                                requires_freesurfer=True,
-                                requires_mne=False)[:2]
+                                requires_freesurfer=True)[:2]
     curdir = os.getcwd()
     # Step 1a : Data conversion to mgz format
     if not op.exists(op.join(mri_dir, 'flash', 'parameter_maps')):
@@ -1751,8 +1746,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     is_test = os.environ.get('MNE_SKIP_FS_FLASH_CALL', False)
 
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
-                                         requires_freesurfer=True,
-                                         requires_mne=False)
+                                         requires_freesurfer=True)
 
     if flash_path is None:
         flash_path = op.join(mri_dir, 'flash', 'parameter_maps')
