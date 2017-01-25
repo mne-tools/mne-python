@@ -1,7 +1,7 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_equal
 from nose.tools import assert_true
 import warnings
 
@@ -101,22 +101,22 @@ def test_source_psd():
     tmin, tmax = 0, 20  # seconds
     fmin, fmax = 55, 65  # Hz
     n_fft = 2048
-    pick_ori = None
 
-    assert_true(inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI)
+    assert_equal(inverse_operator['source_ori'], FIFF.FIFFV_MNE_FREE_ORI)
 
-    stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9.,
-                             method="dSPM", tmin=tmin, tmax=tmax,
-                             fmin=fmin, fmax=fmax, pick_ori=pick_ori,
-                             n_fft=n_fft, overlap=0.1)
+    for pick_ori in ('normal', None):
+        stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9.,
+                                 method="dSPM", tmin=tmin, tmax=tmax,
+                                 fmin=fmin, fmax=fmax, pick_ori=pick_ori,
+                                 n_fft=n_fft, overlap=0.1)
 
-    assert_true(stc.shape[0] == inverse_operator['nsource'])
+        assert_equal(stc.shape[0], inverse_operator['nsource'])
 
-    assert_true(stc.times[0] >= fmin * 1e-3)
-    assert_true(stc.times[-1] <= fmax * 1e-3)
-    # Time max at line frequency (60 Hz in US)
-    assert_true(58e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))] <=
-                61e-3)
+        assert_true(stc.times[0] >= fmin * 1e-3)
+        assert_true(stc.times[-1] <= fmax * 1e-3)
+        # Time max at line frequency (60 Hz in US)
+        assert_true(58e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))] <=
+                    61e-3)
 
 
 @testing.requires_testing_data

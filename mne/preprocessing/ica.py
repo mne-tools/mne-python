@@ -993,13 +993,6 @@ class ICA(ContainsMixin):
         else:
             ecg = inst.ch_names[idx_ecg]
 
-        # some magic we need inevitably ...
-        if inst.ch_names != self.ch_names:
-            extra_picks = pick_types(inst.info, meg=False, ecg=True)
-            ch_names_to_pick = (self.ch_names +
-                                [inst.ch_names[k] for k in extra_picks])
-            inst = inst.copy().pick_channels(ch_names_to_pick)
-
         if method == 'ctps':
             if threshold is None:
                 threshold = 0.25
@@ -1092,9 +1085,6 @@ class ICA(ContainsMixin):
         # some magic we need inevitably ...
         # get targets befor equalizing
         targets = [self._check_target(k, inst, start, stop) for k in eog_chs]
-
-        if inst.ch_names != self.ch_names:
-            inst = inst.copy().pick_channels(self.ch_names)
 
         for ii, (eog_ch, target) in enumerate(zip(eog_chs, targets)):
             scores += [self.score_sources(inst, target=target,

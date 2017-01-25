@@ -355,6 +355,20 @@ Datasets
 
    data_path
 
+:py:mod:`mne.datasets.visual_92_categories`:
+
+.. automodule:: mne.datasets.visual_92_categories
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: mne.datasets.visual_92_categories
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   data_path
+
 
 Visualization
 =============
