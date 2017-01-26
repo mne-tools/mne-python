@@ -157,7 +157,7 @@ class SurfaceSource(HasTraits):
     def read_file(self):
         if os.path.exists(self.file):
             if self.file.endswith('.fif'):
-                bem = read_bem_surfaces(self.file)[0]
+                bem = read_bem_surfaces(self.file, verbose=False)[0]
                 self.points = bem['rr']
                 self.norms = bem['nn']
                 self.tris = bem['tris']
@@ -284,7 +284,7 @@ class InstSource(HasPrivateTraits):
     @cached_property
     def _get_inst(self):
         if self.file:
-            info = read_info(self.file)
+            info = read_info(self.file, verbose=False)
             if info['dig'] is None:
                 error(None, "The selected FIFF file does not contain "
                       "digitizer information. Please select a different "

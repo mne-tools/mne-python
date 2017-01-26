@@ -33,6 +33,8 @@ def run():
                       help="Prevent the GUI from automatically guessing and "
                       "changing the MRI subject when a new head shape source "
                       "file is selected.")
+    parser.add_option('--verbose', action='store_true', dest='verbose',
+                      help='Turn on verbose mode.')
 
     options, args = parser.parse_args()
 
@@ -40,7 +42,8 @@ def run():
         mne.gui.coregistration(options.tabbed, inst=options.inst,
                                subject=options.subject,
                                subjects_dir=options.subjects_dir,
-                               guess_mri_subject=options.guess_mri_subject)
+                               guess_mri_subject=options.guess_mri_subject,
+                               verbose=options.verbose)
     if is_main:
         sys.exit(0)
 

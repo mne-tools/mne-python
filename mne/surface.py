@@ -301,6 +301,8 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
     # based on mne_source_space_add_geometry_info() in mne_add_geometry_info.c
 
     #   Main triangulation [mne_add_triangle_data()]
+    surf['ntri'] = surf.get('ntri', len(surf['tris']))
+    surf['np'] = surf.get('np', len(surf['rr']))
     surf['tri_area'] = np.zeros(surf['ntri'])
     r1 = surf['rr'][surf['tris'][:, 0], :]
     r2 = surf['rr'][surf['tris'][:, 1], :]

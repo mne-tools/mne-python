@@ -18,6 +18,7 @@ from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         Button, Color, Enum, Float, Int, List, Range, Str)
 from traitsui.api import View, Item, HGroup, VGrid, VGroup
 
+from ..surface import complete_surface_info
 from ..transforms import apply_trans
 
 
@@ -302,16 +303,20 @@ class SurfaceObject(Object):
         fig = self.scene.mayavi_scene
 
         x, y, z = self.points.T
-
+        nn = complete_surface_info(dict(rr=self.points, tris=self.tri),
+                                   verbose='error')['nn']
         if self.rep == 'Wireframe':
             rep = 'wireframe'
         else:
             rep = 'surface'
 
         src = pipeline.triangular_mesh_source(x, y, z, self.tri, figure=fig)
+        src.data.point_data.normals = nn
+        src.data.cell_data.normals = None
         surf = pipeline.surface(src, figure=fig, color=self.rgbcolor,
                                 opacity=self.opacity,
                                 representation=rep, line_width=1)
+        surf.actor.property.backface_culling = True
 
         self.src = src
         self.surf = surf

@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from ..utils import _check_mayavi_version
+from ..utils import _check_mayavi_version, verbose
 
 
 def combine_kit_markers():
@@ -23,11 +23,15 @@ def combine_kit_markers():
     return gui
 
 
+@verbose
 def coregistration(tabbed=False, split=True, scene_width=500, inst=None,
-                   subject=None, subjects_dir=None, guess_mri_subject=None):
+                   subject=None, subjects_dir=None, guess_mri_subject=True,
+                   verbose=None):
     """Coregister an MRI with a subject's head shape.
 
-    The recommended way to use the GUI is through bash with::
+    The recommended way to use the GUI is through bash with:
+
+    .. code-block::  bash
 
         $ mne coreg
 
@@ -53,6 +57,9 @@ def coregistration(tabbed=False, split=True, scene_width=500, inst=None,
     guess_mri_subject : bool
         When selecting a new head shape file, guess the subject's name based
         on the filename and change the MRI subject accordingly (default True).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
