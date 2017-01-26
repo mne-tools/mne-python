@@ -1205,6 +1205,7 @@ class CoregFrame(HasTraits):
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
     lock_fiducials = DelegatesTo('model')
     hsp_always_visible = Bool(False, label="Always Show Head Shape")
+    default_head_opacity = Float(1.)
 
     # visualization
     hsp_obj = Instance(PointObject)
@@ -1243,10 +1244,13 @@ class CoregFrame(HasTraits):
         return HeadViewController(scene=self.scene, system='RAS')
 
     def __init__(self, raw=None, subject=None, subjects_dir=None,
-                 guess_mri_subject=None):  # noqa: D102
+                 guess_mri_subject=None, head_opacity=1.,
+                 head_high_res=True):  # noqa: D102
         super(CoregFrame, self).__init__()
 
         subjects_dir = get_subjects_dir(subjects_dir)
+        self.default_head_opacity = head_opacity
+        self.subject_panel.model.use_high_res_head = head_high_res
         if (subjects_dir is not None) and os.path.isdir(subjects_dir):
             self.model.mri.subjects_dir = subjects_dir
 
@@ -1286,6 +1290,7 @@ class CoregFrame(HasTraits):
         self.mri_obj = SurfaceObject(points=self.model.transformed_mri_points,
                                      color=color, tri=self.model.mri.tris,
                                      scene=self.scene, name="MRI Scalp")
+        self.mri_obj.opacity = self.default_head_opacity
         # on_trait_change was unreliable, so link it another way:
         self.model.mri.on_trait_change(self._on_mri_src_change, 'tris')
         self.model.sync_trait('transformed_mri_points', self.mri_obj, 'points',
@@ -1349,8 +1354,14 @@ class CoregFrame(HasTraits):
             self.picker = on_pick(self.fid_panel._on_pick, type='cell')
 
         self.headview.left = True
-        self.scene.camera.focal_point = (0., 0., 0.)
         self.scene.disable_render = False
+        # The render here is necessary on OSX to avoid
+        # tvtk/pyface/tvtk_scene.py", line 765, in _get_camera
+        #   return self._renderer.active_camera
+        # AttributeError: 'NoneType' object has no attribute 'active_camera'
+        self.scene.render()
+        self.scene.camera.focal_point = (0., 0., 0.)
+        self.scene.render()
 
         self.view_options_panel = ViewOptionsPanel(mri_obj=self.mri_obj,
                                                    hsp_obj=self.hsp_obj)

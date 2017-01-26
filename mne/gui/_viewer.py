@@ -236,11 +236,7 @@ class PointObject(Object):
         if hasattr(self.src, 'remove'):
             self.src.remove()
 
-        if not _testing_mode():
-            fig = self.scene.mayavi_scene
-        else:
-            fig = None
-
+        fig = self.scene.mayavi_scene if not _testing_mode() else None
         x, y, z = self.points.T
         scatter = pipeline.scalar_scatter(x, y, z)
         glyph = pipeline.glyph(scatter, color=self.rgbcolor, figure=fig,
