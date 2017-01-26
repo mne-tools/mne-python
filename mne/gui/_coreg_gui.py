@@ -1349,6 +1349,7 @@ class CoregFrame(HasTraits):
             self.picker = on_pick(self.fid_panel._on_pick, type='cell')
 
         self.headview.left = True
+        self.scene.camera.focal_point = (0., 0., 0.)
         self.scene.disable_render = False
 
         self.view_options_panel = ViewOptionsPanel(mri_obj=self.mri_obj,
