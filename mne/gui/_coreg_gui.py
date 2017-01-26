@@ -32,7 +32,7 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _find_fiducials_files, _point_cloud_error)
-from ..utils import get_subjects_dir, logger
+from ..utils import get_subjects_dir, logger, warn
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, InstSource, SubjectSelectorPanel
 from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
@@ -1250,7 +1250,6 @@ class CoregFrame(HasTraits):
 
         subjects_dir = get_subjects_dir(subjects_dir)
         self.default_head_opacity = head_opacity
-        self.subject_panel.model.use_high_res_head = head_high_res
         if (subjects_dir is not None) and os.path.isdir(subjects_dir):
             self.model.mri.subjects_dir = subjects_dir
 
@@ -1276,6 +1275,7 @@ class CoregFrame(HasTraits):
                         "(run $ mne make_scalp_surfaces).")
                 raise ValueError(msg)
             self.model.mri.subject = subject
+        self.subject_panel.model.use_high_res_head = head_high_res
 
     @on_trait_change('scene.activated')
     def _init_plot(self):
@@ -1355,14 +1355,9 @@ class CoregFrame(HasTraits):
 
         self.headview.left = True
         self.scene.disable_render = False
-        # The render here is necessary on OSX to avoid
-        # tvtk/pyface/tvtk_scene.py", line 765, in _get_camera
-        #   return self._renderer.active_camera
-        # AttributeError: 'NoneType' object has no attribute 'active_camera'
-        self.scene.render()
-        self.scene.camera.focal_point = (0., 0., 0.)
-        self.scene.render()
-
+        if not _testing_mode():  # when testing, scene.camera is None
+            self.scene.render()
+            self.scene.camera.focal_point = (0., 0., 0.)
         self.view_options_panel = ViewOptionsPanel(mri_obj=self.mri_obj,
                                                    hsp_obj=self.hsp_obj)
 
