@@ -1458,6 +1458,8 @@ def set_memmap_min_size(memmap_min_size):
 known_config_types = (
     'MNE_BROWSE_RAW_SIZE',
     'MNE_CACHE_DIR',
+    'MNE_COREG_SCENE_HEIGHT',
+    'MNE_COREG_SCENE_WIDTH',
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATA',
     'MNE_DATASETS_BRAINSTORM_PATH',
