@@ -758,8 +758,9 @@ def _setup_annotation_fig(params):
     labels = np.union1d(labels, params['added_label'])
     fig = figure_nobar(figsize=(6.5, 2.75 + len(labels) * 0.75))
     ax = plt.subplot2grid((len(labels) + 2, 2), (0, 0), rowspan=len(labels),
-                          colspan=2)
+                          colspan=2, frameon=False)
     ax.set_title('Labels')
+    ax.set_aspect('equal')
     button_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels), 1),
                                  rowspan=1, colspan=1)
     label_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels), 0),
@@ -767,7 +768,7 @@ def _setup_annotation_fig(params):
     plt.axis('off')
     text_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels) + 1, 0),
                                rowspan=1, colspan=2)
-    text_ax.text(0.5, 0.9, 'Left click and drag - Create/modify annotation\n'
+    text_ax.text(0.5, 0.9, 'Left click & drag - Create/modify annotation\n'
                            'Right click - Delete annotation\n'
                            'Letter/number keys - Add character\n'
                            'Backspace - Delete character\n'
@@ -779,8 +780,11 @@ def _setup_annotation_fig(params):
     fig.canvas.mpl_connect('close_event', annotations_closed)
     fig.canvas.set_window_title('Annotations')
     fig.radio = RadioButtons(ax, labels, activecolor='gray')
+    radius = 0.15
     for circle, label in zip(fig.radio.circles, fig.radio.labels):
         circle.set_edgecolor(params['segment_colors'][label.get_text()])
+        circle.set_radius(radius / (len(labels)))
+        label.set_x(circle.center[0] + radius / len(labels))
     col = 'r' if len(fig.radio.labels) < 1 else fig.radio.labels[0].get_color()
     fig.canvas.mpl_connect('key_press_event', partial(
         _change_annotation_description, params=params))
