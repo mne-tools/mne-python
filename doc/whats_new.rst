@@ -21,8 +21,6 @@ Changelog
 
     - Add filter plotting functions :func:`mne.viz.plot_filter` and :func:`mne.viz.plot_ideal_filter` as well as filter creation function :func:`mne.filter.create_filter` by `Eric Larson`_
 
-    - Add 3D thin-plate spline warping with spherical harmonic surface approximations in :class:`mne.transforms.SphericalSurfaceWarp` by `Eric Larson`_
-
     - Add HCP-MMP1.0 parcellation dataset downloader by `Eric Larson`_
 
     - Add option to project EEG electrodes onto the scalp in :func:`mne.viz.plot_trans` by `Eric Larson`_
@@ -150,6 +148,8 @@ API
     - Default fiducial name change from 'nz' to 'nasion' in :func:`mne.channels.read_montage`, so that it is the same for both :class: `mne.channels.Montage` and :class: `mne.channels.DigMontage` by `Leonardo Barbosa`_
 
     - MNE's additional files for the ``fsaverage`` head/brain model are now included in MNE-Python, and the now superfluous ``mne_root`` parameter to  :func:`create_default_subject` has been deprecated by `Christian Brodbeck`_
+
+    - An ``overwrite=False`` default parameter has been added to :func:`write_source_spaces` to protect against accidental overwrites, by `Eric Larson`_
 
 .. _changes_0_13:
 

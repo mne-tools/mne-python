@@ -626,13 +626,15 @@ def _tessellate_sphere(mylevel):
     return rr, tris
 
 
-def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
-                         subjects_dir):
+def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
     """Load a surf and use the subdivided icosahedron to get points."""
     # Based on load_source_space_surf_spacing() in load_source_space.c
     surf = read_surface(surf, return_dict=True)[-1]
     complete_surface_info(surf, copy=False)
-    if stype in ['ico', 'oct']:
+    if stype == 'all':
+        surf['inuse'] = np.ones(surf['np'], int)
+        surf['use_tris'] = None
+    else:  # ico or oct
         # ## from mne_ico_downsample.c ## #
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
         logger.info('Loading geometry from %s...' % surf_name)
@@ -645,8 +647,6 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
         _normalize_vectors(ico_surf['rr'])
 
         # Make the maps
-        logger.info('Mapping %s %s -> %s (%d) ...'
-                    % (hemi, subject, stype, sval))
         mmap = _compute_nearest(from_surf['rr'], ico_surf['rr'])
         nmap = len(mmap)
         surf['inuse'] = np.zeros(surf['np'], int)
@@ -674,9 +674,6 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
                     'surface...')
         surf['use_tris'] = np.array([mmap[ist] for ist in ico_surf['tris']],
                                     np.int32)
-    else:  # use_all is True
-        surf['inuse'] = np.ones(surf['np'], int)
-        surf['use_tris'] = None
     if surf['use_tris'] is not None:
         surf['nuse_tri'] = len(surf['use_tris'])
     else:
