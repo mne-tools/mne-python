@@ -29,7 +29,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _triangle_neighbors)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
-                    check_version, _get_call_line, warn)
+                    check_version, _get_call_line, warn, _check_fname)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
@@ -131,15 +131,18 @@ class SourceSpaces(list):
         src = deepcopy(self)
         return src
 
-    def save(self, fname):
+    def save(self, fname, overwrite=False):
         """Save the source spaces to a fif file.
 
         Parameters
         ----------
         fname : str
             File to write.
+        overwrite : bool
+            If True, the destination file (if it exists) will be overwritten.
+            If False (default), an error will be raised if the file exists.
         """
-        write_source_spaces(fname, self)
+        write_source_spaces(fname, self, overwrite)
 
     @verbose
     def export_volume(self, fname, include_surfaces=True,
@@ -885,7 +888,7 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
 
 
 @verbose
-def write_source_spaces(fname, src, verbose=None):
+def write_source_spaces(fname, src, overwrite=False, verbose=None):
     """Write source spaces to a file.
 
     Parameters
@@ -895,6 +898,9 @@ def write_source_spaces(fname, src, verbose=None):
         -src.fif.gz.
     src : SourceSpaces
         The source spaces (as returned by read_source_spaces).
+    overwrite : bool
+        If True, the destination file (if it exists) will be overwritten.
+        If False (default), an error will be raised if the file exists.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -904,6 +910,7 @@ def write_source_spaces(fname, src, verbose=None):
     read_source_spaces
     """
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'))
+    _check_fname(fname, overwrite=overwrite)
 
     fid = start_file(fname)
     start_block(fid, FIFF.FIFFB_MNE)
@@ -1281,7 +1288,7 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
            % (subject, fname, spacing, surface, overwrite,
               subjects_dir, add_dist, verbose))
 
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     surfs = [op.join(subjects_dir, subject, 'surf', hemi + surface)
              for hemi in ['lh.', 'rh.']]
     for surf, hemi in zip(surfs, ['LH', 'RH']):
