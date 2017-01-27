@@ -1206,7 +1206,6 @@ class CoregFrame(HasTraits):
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
     lock_fiducials = DelegatesTo('model')
     hsp_always_visible = Bool(False, label="Always Show Head Shape")
-    default_head_opacity = Float(1.)
 
     # visualization
     hsp_obj = Instance(PointObject)
@@ -1249,7 +1248,7 @@ class CoregFrame(HasTraits):
                  head_high_res=True):  # noqa: D102
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
         self.subject_panel.model.use_high_res_head = head_high_res
-        self.default_head_opacity = head_opacity
+        self._initial_head_opacity = head_opacity
 
         subjects_dir = get_subjects_dir(subjects_dir)
         if (subjects_dir is not None) and os.path.isdir(subjects_dir):
@@ -1287,8 +1286,12 @@ class CoregFrame(HasTraits):
         color = defaults['mri_color']
         self.mri_obj = SurfaceObject(points=self.model.transformed_mri_points,
                                      color=color, tri=self.model.mri.tris,
-                                     scene=self.scene, name="MRI Scalp")
-        self.mri_obj.opacity = self.default_head_opacity
+                                     scene=self.scene, name="MRI Scalp",
+                                     # opacity=self._initial_head_opacity,
+                                     # setting opacity here causes points to be
+                                     # [[0, 0, 0]] -- why??
+                                     )
+        self.mri_obj.opacity = self._initial_head_opacity
         # on_trait_change was unreliable, so link it another way:
         self.model.mri.on_trait_change(self._on_mri_src_change, 'tris')
         self.model.sync_trait('transformed_mri_points', self.mri_obj, 'points',

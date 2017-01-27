@@ -310,7 +310,6 @@ class SurfaceObject(Object):
         src.data.point_data.normals = nn
         src.data.cell_data.normals = None
         surf = pipeline.surface(src, figure=fig, color=self.rgbcolor,
-                                opacity=self.opacity,
                                 representation=rep, line_width=1)
         surf.actor.property.backface_culling = True
 
