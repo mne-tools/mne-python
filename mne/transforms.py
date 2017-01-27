@@ -825,8 +825,6 @@ class _TPSWarp(object):
         from scipy.spatial.distance import cdist
         assert source.shape[1] == destination.shape[1] == 3
         assert source.shape[0] == destination.shape[0]
-        logger.info('Computing TPS warp coefficients using %d matched points'
-                    % (len(source),))
         # Forward warping, different from image warping, use |dist|**2
         dists = _tps(cdist(source, destination, 'sqeuclidean'))
         # Y = L * w
@@ -886,7 +884,7 @@ def _tps(distsq):
 ###############################################################################
 # Spherical harmonic approximation + TPS warp
 
-class SphericalSurfaceWarp(object):
+class _SphericalSurfaceWarp(object):
     """Warp surfaces via spherical harmonic smoothing and thin-plate splines.
 
     Notes
@@ -897,7 +895,7 @@ class SphericalSurfaceWarp(object):
         1. Perform a spherical harmonic approximation to the source and
            destination surfaces, which smooths them and allows arbitrary
            interpolation.
-        2. Choose matched points on the two surfaces.
+        2. Choose a set of matched points on the two surfaces.
         3. Use thin-plate spline warping (common in 2D image manipulation)
            to generate transformation coefficients.
         4. Warp points from the source subject (which should be inside the
@@ -912,9 +910,20 @@ class SphericalSurfaceWarp(object):
            Human Brain Mapping 27:129-143
     """
 
+    def __repr__(self):
+        rep = '<SphericalSurfaceWarp : '
+        if not hasattr(self, '_warp'):
+            rep += 'no fitting done >'
+        else:
+            rep += ('fit %d->%d pts using match=%s (%d pts), order=%s, reg=%s>'
+                    % tuple(self._fit_params[key]
+                            for key in ['n_src', 'n_dest', 'match', 'n_match',
+                                        'order', 'reg']))
+        return rep
+
     @verbose
-    def fit(self, source, destination, order=4, reg=1e-3, center=True,
-            verbose=None):
+    def fit(self, source, destination, order=4, reg=1e-5, center=True,
+            match='oct5', verbose=None):
         """Fit the warp from source points to destination points.
 
         Parameters
@@ -930,6 +939,10 @@ class SphericalSurfaceWarp(object):
         center : bool
             If True, center the points by fitting a sphere to points
             that are in a reasonable region for head digitization.
+        match : str
+            The uniformly-spaced points to match on the two surfaces.
+            Can be "ico#" or "oct#" where "#" is an integer.
+            The default is "oct5".
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -941,6 +954,8 @@ class SphericalSurfaceWarp(object):
             The warping object (for chaining).
         """
         from .bem import _fit_sphere
+        from .source_space import _check_spacing
+        match_rr = _check_spacing(match, verbose=False)[2]['rr']
         logger.info('Computing TPS warp')
         src_center = dest_center = np.zeros(3)
         if center:
@@ -956,31 +971,34 @@ class SphericalSurfaceWarp(object):
             logger.info('    Using centers %s -> %s'
                         % (np.array_str(src_center, None, 3),
                            np.array_str(dest_center, None, 3)))
+        self._fit_params = dict(
+            n_src=len(source), n_dest=len(destination), match=match,
+            n_match=len(match_rr), order=order, reg=reg)
         assert source.shape[1] == destination.shape[1] == 3
         self._destination = destination.copy()
         # 1. Compute spherical coordinates of source and destination points
         logger.info('    Converting to spherical coordinates')
         src_rad_az_pol = _cart_to_sph(source).T
         dest_rad_az_pol = _cart_to_sph(destination).T
+        match_rad_az_pol = _cart_to_sph(match_rr).T
+        del match_rr
         # 2. Compute spherical harmonic coefficients for all points
-        logger.info('    Computing spherical harmonic approximation')
+        logger.info('    Computing spherical harmonic approximation with '
+                    'order %s' % order)
         src_sph = _compute_sph_harm(order, *src_rad_az_pol[1:])
         dest_sph = _compute_sph_harm(order, *dest_rad_az_pol[1:])
+        match_sph = _compute_sph_harm(order, *match_rad_az_pol[1:])
         # 3. Fit spherical harmonics to both surfaces to smooth them
         src_coeffs = linalg.lstsq(src_sph, src_rad_az_pol[0])[0]
         dest_coeffs = linalg.lstsq(dest_sph, dest_rad_az_pol[0])[0]
         # 4. Smooth both surfaces using these coefficients, and evaluate at
-        #     whichever has fewer points
-        if src_sph.shape[0] < dest_sph.shape[0]:
-            use_sph = src_sph
-            dest_rad_az_pol = src_rad_az_pol.copy()
-        else:
-            use_sph = dest_sph
-            src_rad_az_pol = dest_rad_az_pol.copy()
-        logger.info('    Matching %d points on smoothed surfaces'
-                    % (len(use_sph),))
-        src_rad_az_pol[0] = np.abs(np.dot(use_sph, src_coeffs))
-        dest_rad_az_pol[0] = np.abs(np.dot(use_sph, dest_coeffs))
+        #     the "shape" points
+        logger.info('    Matching %d points (%s) on smoothed surfaces'
+                    % (len(match_sph), match))
+        src_rad_az_pol = match_rad_az_pol.copy()
+        src_rad_az_pol[0] = np.abs(np.dot(match_sph, src_coeffs))
+        dest_rad_az_pol = match_rad_az_pol.copy()
+        dest_rad_az_pol[0] = np.abs(np.dot(match_sph, dest_coeffs))
         # 5. Convert matched points to Cartesion coordinates and put back
         source = _sph_to_cart(src_rad_az_pol.T)
         source += src_center
@@ -989,6 +1007,7 @@ class SphericalSurfaceWarp(object):
         # 6. Compute TPS warp of matched points from smoothed surfaces
         self._warp = _TPSWarp().fit(source, destination, reg)
         self._matched = np.array([source, destination])
+        logger.info('[done]')
         return self
 
     @verbose

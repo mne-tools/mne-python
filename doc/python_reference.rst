@@ -768,7 +768,7 @@ Functions:
    :toctree: generated/
    :template: class.rst
 
-   SphericalSurfaceWarp
+   Transform
 
 .. currentmodule:: mne.surface
 
