@@ -92,7 +92,8 @@ class CoregModel(HasPrivateTraits):
     scale = Property(
         depends_on=['n_scale_params', 'scale_x', 'scale_y', 'scale_z'])
     has_fid_data = Property(
-        Bool, desc="Required fiducials data is present.",
+        Bool,
+        desc="Required fiducials data is present.",
         depends_on=['mri_origin', 'hsp.nasion'])
     has_pts_data = Property(
         Bool,
