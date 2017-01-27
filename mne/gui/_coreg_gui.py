@@ -1245,17 +1245,15 @@ class CoregFrame(HasTraits):
         return HeadViewController(scene=self.scene, system='RAS')
 
     def __init__(self, raw=None, subject=None, subjects_dir=None,
-                 guess_mri_subject=None, head_opacity=1.,
+                 guess_mri_subject=True, head_opacity=1.,
                  head_high_res=True):  # noqa: D102
-        super(CoregFrame, self).__init__()
+        super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
+        self.subject_panel.model.use_high_res_head = head_high_res
+        self.default_head_opacity = head_opacity
 
         subjects_dir = get_subjects_dir(subjects_dir)
-        self.default_head_opacity = head_opacity
         if (subjects_dir is not None) and os.path.isdir(subjects_dir):
             self.model.mri.subjects_dir = subjects_dir
-
-        if guess_mri_subject is not None:
-            self.guess_mri_subject = guess_mri_subject
 
         if raw is not None:
             self.model.hsp.file = raw
@@ -1276,7 +1274,6 @@ class CoregFrame(HasTraits):
                         "(run $ mne make_scalp_surfaces).")
                 raise ValueError(msg)
             self.model.mri.subject = subject
-        self.subject_panel.model.use_high_res_head = head_high_res
 
     @on_trait_change('scene.activated')
     def _init_plot(self):
