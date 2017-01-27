@@ -158,23 +158,17 @@ def test_coreg_frame():
 
         # avoid modal dialog if SUBJECTS_DIR is set to a directory that does
         # not contain valid subjects
-        env_subjects_dir = os.environ.pop('SUBJECTS_DIR', None)
-        try:
-            frame = CoregFrame()
-        finally:
-            if env_subjects_dir is not None:
-                os.environ['SUBJECTS_DIR'] = env_subjects_dir
+        frame = CoregFrame(subjects_dir='')
+        frame.edit_traits()
 
-    frame.edit_traits()
+        frame.model.mri.subjects_dir = subjects_dir
+        frame.model.mri.subject = 'sample'
 
-    frame.model.mri.subjects_dir = subjects_dir
-    frame.model.mri.subject = 'sample'
-
-    assert_false(frame.model.mri.fid_ok)
-    frame.model.mri.lpa = [[-0.06, 0, 0]]
-    frame.model.mri.nasion = [[0, 0.05, 0]]
-    frame.model.mri.rpa = [[0.08, 0, 0]]
-    assert_true(frame.model.mri.fid_ok)
+        assert_false(frame.model.mri.fid_ok)
+        frame.model.mri.lpa = [[-0.06, 0, 0]]
+        frame.model.mri.nasion = [[0, 0.05, 0]]
+        frame.model.mri.rpa = [[0.08, 0, 0]]
+        assert_true(frame.model.mri.fid_ok)
 
 
 @testing.requires_testing_data
