@@ -135,9 +135,15 @@ def test_coreg_model():
 
     model.load_trans(fname_trans)
 
+
+@testing.requires_testing_data
+@requires_mayavi
+def test_coreg_frame():
+    """Test CoregFrame."""
     from mne.gui._coreg_gui import CoregFrame
-    assert_raises(ValueError, CoregFrame, raw_path, 'Elvis', tempdir)
+
     assert_raises(ValueError, CoregFrame, raw_path, 'Elvis', subjects_dir)
+
     x = CoregFrame(raw_path, 'sample', subjects_dir)
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     try:
@@ -146,6 +152,29 @@ def test_coreg_model():
             x._init_plot()
     finally:
         del os.environ['_MNE_GUI_TESTING_MODE']
+
+    with warnings.catch_warnings(record=True):  # traits spews warnings
+        warnings.simplefilter('always')
+
+        # avoid modal dialog if SUBJECTS_DIR is set to a directory that does
+        # not contain valid subjects
+        env_subjects_dir = os.environ.pop('SUBJECTS_DIR', None)
+        try:
+            frame = CoregFrame()
+        finally:
+            if env_subjects_dir is not None:
+                os.environ['SUBJECTS_DIR'] = env_subjects_dir
+
+    frame.edit_traits()
+
+    frame.model.mri.subjects_dir = subjects_dir
+    frame.model.mri.subject = 'sample'
+
+    assert_false(frame.model.mri.fid_ok)
+    frame.model.mri.lpa = [[-0.06, 0, 0]]
+    frame.model.mri.nasion = [[0, 0.05, 0]]
+    frame.model.mri.rpa = [[0.08, 0, 0]]
+    assert_true(frame.model.mri.fid_ok)
 
 
 @testing.requires_testing_data
@@ -224,25 +253,6 @@ def test_coreg_model_with_fsaverage():
     with warnings.catch_warnings(record=True):
         model.hsp.file = kit_raw_path
     assert_equal(model.hsp.n_omitted, 0)
-
-
-@testing.requires_testing_data
-@requires_mayavi
-def test_coreg_gui():
-    """Test Coregistration GUI."""
-    from mne.gui._coreg_gui import CoregFrame
-
-    frame = CoregFrame()
-    frame.edit_traits()
-
-    frame.model.mri.subjects_dir = subjects_dir
-    frame.model.mri.subject = 'sample'
-
-    assert_false(frame.model.mri.fid_ok)
-    frame.model.mri.lpa = [[-0.06, 0, 0]]
-    frame.model.mri.nasion = [[0, 0.05, 0]]
-    frame.model.mri.rpa = [[0.08, 0, 0]]
-    assert_true(frame.model.mri.fid_ok)
 
 
 run_tests_if_main()
