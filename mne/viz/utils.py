@@ -619,8 +619,18 @@ def _radio_clicked(label, params):
 def _get_active_radiobutton(radio):
     """Helper to find out active radio button."""
     # XXX: In mpl 1.5 you can do: fig.radio.value_selected
-    color_r = [circle.get_facecolor()[0] for circle in radio.circles]
-    return color_r.index(0)  # where red is 0
+    colors = np.array([np.sum(circle.get_facecolor()) for circle
+                       in radio.circles])
+    return np.where(colors < 4.0)[0][0]  # return idx where color != white
+
+
+def _set_annotation_radio_button(idx, params):
+    """Function for setting active button."""
+    radio = params['fig_annotation'].radio
+    for circle in radio.circles:
+        circle.set_facecolor('white')
+    radio.circles[idx].set_facecolor('gray')
+    _annotation_radio_clicked('', radio, params['ax'].selector)
 
 
 def _set_radio_button(idx, params):
@@ -768,9 +778,9 @@ def _setup_annotation_fig(params):
     annotations_closed = partial(_annotations_closed, params=params)
     fig.canvas.mpl_connect('close_event', annotations_closed)
     fig.canvas.set_window_title('Annotations')
-    fig.radio = RadioButtons(ax, labels)
-    for label in fig.radio.labels:
-        label.set_color(params['segment_colors'][label.get_text()])
+    fig.radio = RadioButtons(ax, labels, activecolor='gray')
+    for circle, label in zip(fig.radio.circles, fig.radio.labels):
+        circle.set_edgecolor(params['segment_colors'][label.get_text()])
     col = 'r' if len(fig.radio.labels) < 1 else fig.radio.labels[0].get_color()
     fig.canvas.mpl_connect('key_press_event', partial(
         _change_annotation_description, params=params))
@@ -803,10 +813,13 @@ def _setup_annotation_fig(params):
 
 def _onclick_new_label(event, params):
     """Listener for adding new description on button press."""
-    fig = params['fig_annotation']
-    params['added_label'].append(fig.label.get_text()[:-1])
+    text = params['fig_annotation'].label.get_text()[:-1]
+    params['added_label'].append(text)
     _setup_annotation_colors(params)
     _setup_annotation_fig(params)
+    idx = [label.get_text() for label in
+           params['fig_annotation'].radio.labels].index(text)
+    _set_annotation_radio_button(idx, params)
 
 
 def _mouse_click(event, params):
@@ -1878,7 +1891,7 @@ def _change_annotation_description(event, params):
         return
     elif event.key == 'enter':
         _onclick_new_label(event, params)
-    elif len(event.key) > 1:  # ignore modifier keys
+    elif len(event.key) > 1 or event.key == ';':  # ignore modifier keys
         return
     else:
         text = text[:-1] + event.key
@@ -1889,7 +1902,7 @@ def _change_annotation_description(event, params):
 def _annotation_radio_clicked(label, radio, selector):
     """Callback for annotation radio buttons."""
     idx = _get_active_radiobutton(radio)
-    color = radio.labels[idx].get_color()
+    color = radio.circles[idx].get_edgecolor()
     selector.rect.set_color(color)
     selector.rectprops.update(dict(facecolor=color))
 
