@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import os
+import os.path as op
 import re
 
 import numpy as np
@@ -14,8 +15,7 @@ import warnings
 import mne
 from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.utils import (_TempDir, requires_mne, requires_freesurfer,
-                       run_tests_if_main, requires_mayavi)
+from mne.utils import _TempDir, run_tests_if_main, requires_mayavi
 from mne.externals.six import string_types
 
 # backend needs to be set early
@@ -28,22 +28,21 @@ else:
 
 
 data_path = testing.data_path(download=False)
-raw_path = os.path.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc_raw.fif')
-fname_trans = os.path.join(data_path, 'MEG', 'sample',
-                           'sample_audvis_trunc-trans.fif')
-kit_raw_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
-subjects_dir = os.path.join(data_path, 'subjects')
+raw_path = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
+fname_trans = op.join(data_path, 'MEG', 'sample',
+                      'sample_audvis_trunc-trans.fif')
+kit_raw_path = op.join(kit_data_dir, 'test_bin_raw.fif')
+subjects_dir = op.join(data_path, 'subjects')
 warnings.simplefilter('always')
 
 
 @testing.requires_testing_data
 @requires_mayavi
 def test_coreg_model():
-    """Test CoregModel"""
+    """Test CoregModel."""
     from mne.gui._coreg_gui import CoregModel
     tempdir = _TempDir()
-    trans_dst = os.path.join(tempdir, 'test-trans.fif')
+    trans_dst = op.join(tempdir, 'test-trans.fif')
 
     model = CoregModel()
     assert_raises(RuntimeError, model.save_trans, 'blah.fif')
@@ -122,7 +121,7 @@ def test_coreg_model():
     assert_equal(skip_fiducials, False)
     # find BEM files
     bems = set()
-    for fname in os.listdir(os.path.join(subjects_dir, 'sample', 'bem')):
+    for fname in os.listdir(op.join(subjects_dir, 'sample', 'bem')):
         match = re.match('sample-(.+-bem)\.fif', fname)
         if match:
             bems.add(match.group(1))
@@ -149,14 +148,13 @@ def test_coreg_model():
 
 @testing.requires_testing_data
 @requires_mayavi
-@requires_mne
-@requires_freesurfer
 def test_coreg_model_with_fsaverage():
-    """Test CoregModel with the fsaverage brain data"""
+    """Test CoregModel with the fsaverage brain data."""
     tempdir = _TempDir()
     from mne.gui._coreg_gui import CoregModel
 
-    mne.create_default_subject(subjects_dir=tempdir)
+    mne.create_default_subject(subjects_dir=tempdir,
+                               fs_home=op.join(subjects_dir, '..'))
 
     model = CoregModel()
     model.mri.use_high_res_head = False
@@ -225,7 +223,7 @@ def test_coreg_model_with_fsaverage():
 @testing.requires_testing_data
 @requires_mayavi
 def test_coreg_gui():
-    """Test Coregistration GUI"""
+    """Test Coregistration GUI."""
     from mne.gui._coreg_gui import CoregFrame
 
     frame = CoregFrame()
