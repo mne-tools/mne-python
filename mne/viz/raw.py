@@ -80,7 +80,7 @@ def _update_raw_data(params):
 def _pick_bad_channels(event, params):
     """Selecting / drop bad channels onpick."""
     # Both bad lists are updated. params['info'] used for colors.
-    if params['annotation_fig'] is not None:
+    if params['fig_annotation'] is not None:
         return
     bads = params['raw'].info['bads']
     params['info']['bads'] = _select_bads(event, params, bads)
@@ -373,13 +373,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # deal with projectors
     if show_options is True:
         _toggle_options(None, params)
+
+    callback_close = partial(_close_event, params=params)
+    params['fig'].canvas.mpl_connect('close_event', callback_close)
     # initialize the first selection set
     if isinstance(order, string_types) and order in ['selection', 'position']:
         _radio_clicked(fig_selection.radio.labels[0]._text, params)
         callback_selection_key = partial(_selection_key_press, params=params)
         callback_selection_scroll = partial(_selection_scroll, params=params)
-        callback_close = partial(_close_event, params=params)
-        params['fig'].canvas.mpl_connect('close_event', callback_close)
         params['fig_selection'].canvas.mpl_connect('close_event',
                                                    callback_close)
         params['fig_selection'].canvas.mpl_connect('key_press_event',
@@ -416,7 +417,10 @@ def _selection_key_press(event, params):
 def _close_event(event, params):
     """Callback for closing of raw browser with selections."""
     import matplotlib.pyplot as plt
-    plt.close(params['fig_selection'])
+    if 'fig_selection' in params:
+        plt.close(params['fig_selection'])
+    if 'fig_annotation' is not None:
+        plt.close(params['fig_annotation'])
     plt.close(params['fig'])
 
 
@@ -762,7 +766,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
                        for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
-    params['annotation_fig'] = None
+    params['fig_annotation'] = None
     params['segment_line'] = None
 
 

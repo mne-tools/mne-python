@@ -663,8 +663,8 @@ def _plot_raw_onkey(event, params):
     import matplotlib.pyplot as plt
     if event.key == 'escape':
         plt.close(params['fig'])
-        if params['annotation_fig'] is not None:
-            plt.close(params['annotation_fig'])
+        if params['fig_annotation'] is not None:
+            plt.close(params['fig_annotation'])
     elif event.key == 'down':
         if 'fig_selection' in params.keys():
             _change_channel_group(-1, params)
@@ -730,10 +730,10 @@ def _plot_raw_onkey(event, params):
     elif event.key == 'a':
         if 'ica' in params.keys():
             return
-        if params['annotation_fig'] is None:
+        if params['fig_annotation'] is None:
             _setup_annotation_fig(params)
         else:
-            params['annotation_fig'].canvas.close_event()
+            params['fig_annotation'].canvas.close_event()
 
 
 def _setup_annotation_fig(params):
@@ -741,8 +741,8 @@ def _setup_annotation_fig(params):
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons, SpanSelector, Button
-    if params['annotation_fig'] is not None:
-        params['annotation_fig'].canvas.close_event()
+    if params['fig_annotation'] is not None:
+        params['fig_annotation'].canvas.close_event()
     annotations = params['raw'].annotations
     labels = [] if annotations is None else list(set(annotations.description))
     labels = np.union1d(labels, params['added_label'])
@@ -778,7 +778,7 @@ def _setup_annotation_fig(params):
     fig.label = label_ax.text(0.5, 0.5, 'BAD_', va='center', ha='center')
     fig.button.on_clicked(partial(_onclick_new_label, params=params))
     fig.show()
-    params['annotation_fig'] = fig
+    params['fig_annotation'] = fig
 
     ax = params['ax']
     cb_onselect = partial(_annotate_select, params=params)
@@ -803,7 +803,7 @@ def _setup_annotation_fig(params):
 
 def _onclick_new_label(event, params):
     """Listener for adding new description on button press."""
-    fig = params['annotation_fig']
+    fig = params['fig_annotation']
     params['added_label'].append(fig.label.get_text()[:-1])
     _setup_annotation_colors(params)
     _setup_annotation_fig(params)
@@ -814,7 +814,7 @@ def _mouse_click(event, params):
     if event.button not in (1, 3):
         return
     if event.button == 3:
-        if params['annotation_fig'] is None:
+        if params['fig_annotation'] is None:
             return
         for coll in params['ax'].collections:
             if coll.contains(event)[0]:
@@ -1357,6 +1357,7 @@ def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
 
 
 def _close_event(event, fig):
+    """Listener for sensor plotter close event."""
     fig.lasso.disconnect()
 
 
@@ -1700,8 +1701,8 @@ def _annotate_select(vmin, vmax, params):
     raw = params['raw']
     onset = vmin - params['first_time']
     duration = vmax - vmin
-    active_idx = _get_active_radiobutton(params['annotation_fig'].radio)
-    description = params['annotation_fig'].radio.labels[active_idx].get_text()
+    active_idx = _get_active_radiobutton(params['fig_annotation'].radio)
+    description = params['fig_annotation'].radio.labels[active_idx].get_text()
     if raw.annotations is None:
         annot = Annotations([onset], [duration], [description])
         raw.annotations = annot
@@ -1768,16 +1769,16 @@ def _annotations_closed(event, params):
     """Callback for cleaning up on annotation dialog close."""
     import matplotlib as mpl
     import matplotlib.pyplot as plt
-    plt.close(params['annotation_fig'])
+    plt.close(params['fig_annotation'])
     params['ax'].selector.disconnect_events()
     params['ax'].selector = None
-    params['annotation_fig'] = None
+    params['fig_annotation'] = None
     if params['segment_line'] is not None:
         params['segment_line'].remove()
         params['segment_line'] = None
     if LooseVersion(mpl.__version__) >= LooseVersion('1.5'):
         params['fig'].canvas.mpl_disconnect(params['hover_callback'])
-    params['annotation_fig'] = None
+    params['fig_annotation'] = None
     params['fig'].canvas.draw()
 
 
