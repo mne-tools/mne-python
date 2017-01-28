@@ -1249,8 +1249,9 @@ class CoregFrame(HasTraits):
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
         self.subject_panel.model.use_high_res_head = head_high_res
         if not 0 <= head_opacity <= 1:
-            raise ValueError("head_opacity needs to be a floating point number "
-                             "between 0 and 1, got %r" % (head_opacity,))
+            raise ValueError(
+                "head_opacity needs to be a floating point number between 0 "
+                "and 1, got %r" % (head_opacity,))
         self._initial_head_opacity = head_opacity
 
         subjects_dir = get_subjects_dir(subjects_dir)

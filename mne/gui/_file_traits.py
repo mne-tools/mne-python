@@ -477,8 +477,7 @@ class SubjectSelectorPanel(HasPrivateTraits):
         try:
             self.model.create_fsaverage()
         except Exception as err:
-            msg = str(err)
-            error(None, msg, "Error Creating FsAverage")
+            error(None, str(err), "Error Creating FsAverage")
             raise
         finally:
             prog.close()
