@@ -144,15 +144,6 @@ def test_coreg_frame():
 
     assert_raises(ValueError, CoregFrame, raw_path, 'Elvis', subjects_dir)
 
-    x = CoregFrame(raw_path, 'sample', subjects_dir)
-    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
-    try:
-        with warnings.catch_warnings(record=True):  # traits spews warnings
-            warnings.simplefilter('always')
-            x._init_plot()
-    finally:
-        del os.environ['_MNE_GUI_TESTING_MODE']
-
     with warnings.catch_warnings(record=True):  # traits spews warnings
         warnings.simplefilter('always')
 
