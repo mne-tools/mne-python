@@ -631,7 +631,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     bem_pattern = pformat(bem_fname, subjects_dir=subjects_dir,
                           subject=subject, name='*-bem')
     re_pattern = pformat(bem_fname, subjects_dir=subjects_dir, subject=subject,
-                         name='(.+)')
+                         name='(.+)').replace('\\', '\\\\')
     for path in iglob(bem_pattern):
         match = re.match(re_pattern, path)
         name = match.group(1)
@@ -690,7 +690,7 @@ def _find_fiducials_files(subject, subjects_dir):
     pattern = pformat(fid_fname_general, subjects_dir=subjects_dir,
                       subject=subject, head='*')
     regex = pformat(fid_fname_general, subjects_dir=subjects_dir,
-                    subject=subject, head='(.+)')
+                    subject=subject, head='(.+)').replace('\\', '\\\\')
     for path in iglob(pattern):
         match = re.match(regex, path)
         head = match.group(1).replace(subject, '{subject}')
