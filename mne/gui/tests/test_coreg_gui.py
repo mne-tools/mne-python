@@ -5,13 +5,11 @@
 import os
 import os.path as op
 import re
-import sys
 
 import numpy as np
 from numpy.testing import assert_allclose
 from nose.tools import (assert_equal, assert_almost_equal, assert_false,
                         assert_raises, assert_true)
-from nose.plugins.skip import SkipTest
 import warnings
 
 import mne
