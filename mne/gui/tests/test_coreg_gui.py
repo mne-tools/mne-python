@@ -163,7 +163,7 @@ def test_coreg_frame():
 
         frame.model.grow_hair = 4.
 
-        frame.raw_src = raw_path
+        frame.raw_src.file = raw_path
 
 
 @testing.requires_testing_data
