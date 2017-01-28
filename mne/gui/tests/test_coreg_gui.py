@@ -161,6 +161,10 @@ def test_coreg_frame():
         frame.model.mri.rpa = [[0.08, 0, 0]]
         assert_true(frame.model.mri.fid_ok)
 
+        frame.model.grow_hair = 4.
+
+        frame.raw_src = raw_path
+
 
 @testing.requires_testing_data
 @requires_mayavi
