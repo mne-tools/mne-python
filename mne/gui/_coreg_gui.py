@@ -985,11 +985,6 @@ class CoregPanel(HasPrivateTraits):
     def _scale_x_inc_fired(self):
         self.scale_x += self.scale_step
 
-    def _scale_x_changed(self, old, new):
-        if self.n_scale_params == 1:
-            self.scale_y = new
-            self.scale_z = new
-
     def _scale_y_dec_fired(self):
         step = 1. / self.scale_step
         self.scale_y *= step
