@@ -168,6 +168,7 @@ class Object(HasPrivateTraits):
             pts = self.points
 
         self.src.data.points = pts
+        self.src.update()  # necessary for SurfaceObject since Mayavi 4.5.0
 
 
 class PointObject(Object):
