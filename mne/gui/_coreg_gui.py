@@ -59,7 +59,6 @@ class CoregModel(HasPrivateTraits):
      * the MRI is scaled relative to its origin center (prior to any
        transformation of the digitizer head)
 
-
     Don't sync transforms to anything to prevent them from being recomputed
     upon every parameter change.
     """
@@ -90,62 +89,73 @@ class CoregModel(HasPrivateTraits):
                              "after scaling the MRI")
 
     # secondary to parameters
-    scale = Property(depends_on=['n_scale_params', 'scale_x', 'scale_y',
-                                 'scale_z'])
-    has_fid_data = Property(Bool, depends_on=['mri_origin', 'hsp.nasion'],
-                            desc="Required fiducials data is present.")
-    has_pts_data = Property(Bool, depends_on=['mri.points', 'hsp.points'])
+    scale = Property(
+        depends_on=['n_scale_params', 'scale_x', 'scale_y', 'scale_z'])
+    has_fid_data = Property(
+        Bool,
+        desc="Required fiducials data is present.",
+        depends_on=['mri_origin', 'hsp.nasion'])
+    has_pts_data = Property(
+        Bool,
+        depends_on=['mri.points', 'hsp.points'])
 
     # MRI dependent
-    mri_origin = Property(depends_on=['mri.nasion', 'scale'],
-                          desc="Coordinates of the scaled MRI's nasion.")
+    mri_origin = Property(
+        desc="Coordinates of the scaled MRI's nasion.",
+        depends_on=['mri.nasion', 'scale'])
 
     # target transforms
-    mri_scale_trans = Property(depends_on=['scale'])
-    head_mri_trans = Property(depends_on=['hsp.nasion', 'rot_x', 'rot_y',
-                                          'rot_z', 'trans_x', 'trans_y',
-                                          'trans_z', 'mri_origin'],
-                              desc="Transformaiton of the head shape to "
-                              "match the scaled MRI.")
+    mri_scale_trans = Property(
+        depends_on=['scale'])
+    head_mri_trans = Property(
+        desc="Transformaiton of the head shape to match the scaled MRI.",
+        depends_on=['hsp.nasion', 'rot_x', 'rot_y', 'rot_z',
+                    'trans_x', 'trans_y', 'trans_z', 'mri_origin'])
 
     # info
     subject_has_bem = DelegatesTo('mri')
     lock_fiducials = DelegatesTo('mri')
-    can_prepare_bem_model = Property(Bool, depends_on=['n_scale_params',
-                                                       'subject_has_bem'])
+    can_prepare_bem_model = Property(
+        Bool,
+        depends_on=['n_scale_params', 'subject_has_bem'])
     can_save = Property(Bool, depends_on=['head_mri_trans'])
-    raw_subject = Property(depends_on='hsp.inst_fname', desc="Subject guess "
-                           "based on the raw file name.")
+    raw_subject = Property(
+        desc="Subject guess based on the raw file name.",
+        depends_on=['hsp.inst_fname'])
 
     # transformed geometry
     processed_mri_points = Property(depends_on=['mri.points', 'grow_hair'])
-    transformed_mri_points = Property(depends_on=['processed_mri_points',
-                                                  'mri_scale_trans'])
-    transformed_hsp_points = Property(depends_on=['hsp.points',
-                                                  'head_mri_trans'])
-    transformed_mri_lpa = Property(depends_on=['mri.lpa', 'mri_scale_trans'])
+    transformed_mri_points = Property(
+        depends_on=['processed_mri_points', 'mri_scale_trans'])
+    transformed_hsp_points = Property(
+        depends_on=['hsp.points', 'head_mri_trans'])
+    transformed_mri_lpa = Property(
+        depends_on=['mri.lpa', 'mri_scale_trans'])
     transformed_hsp_lpa = Property(depends_on=['hsp.lpa', 'head_mri_trans'])
-    transformed_mri_nasion = Property(depends_on=['mri.nasion',
-                                                  'mri_scale_trans'])
-    transformed_hsp_nasion = Property(depends_on=['hsp.nasion',
-                                                  'head_mri_trans'])
-    transformed_mri_rpa = Property(depends_on=['mri.rpa', 'mri_scale_trans'])
-    transformed_hsp_rpa = Property(depends_on=['hsp.rpa', 'head_mri_trans'])
+    transformed_mri_nasion = Property(
+        depends_on=['mri.nasion', 'mri_scale_trans'])
+    transformed_hsp_nasion = Property(
+        depends_on=['hsp.nasion', 'head_mri_trans'])
+    transformed_mri_rpa = Property(
+        depends_on=['mri.rpa', 'mri_scale_trans'])
+    transformed_hsp_rpa = Property(
+        depends_on=['hsp.rpa', 'head_mri_trans'])
 
     # fit properties
-    lpa_distance = Property(depends_on=['transformed_mri_lpa',
-                                        'transformed_hsp_lpa'])
-    nasion_distance = Property(depends_on=['transformed_mri_nasion',
-                                           'transformed_hsp_nasion'])
-    rpa_distance = Property(depends_on=['transformed_mri_rpa',
-                                        'transformed_hsp_rpa'])
-    point_distance = Property(depends_on=['transformed_mri_points',
-                                          'transformed_hsp_points'])
+    lpa_distance = Property(
+        depends_on=['transformed_mri_lpa', 'transformed_hsp_lpa'])
+    nasion_distance = Property(
+        depends_on=['transformed_mri_nasion', 'transformed_hsp_nasion'])
+    rpa_distance = Property(
+        depends_on=['transformed_mri_rpa', 'transformed_hsp_rpa'])
+    point_distance = Property(
+        depends_on=['transformed_mri_points', 'transformed_hsp_points'])
 
     # fit property info strings
-    fid_eval_str = Property(depends_on=['lpa_distance', 'nasion_distance',
-                                        'rpa_distance'])
-    points_eval_str = Property(depends_on='point_distance')
+    fid_eval_str = Property(
+        depends_on=['lpa_distance', 'nasion_distance', 'rpa_distance'])
+    points_eval_str = Property(
+        depends_on=['point_distance'])
 
     @cached_property
     def _get_can_prepare_bem_model(self):
@@ -171,7 +181,7 @@ class CoregModel(HasPrivateTraits):
             return np.array(1)
         elif self.n_scale_params == 1:
             return np.array(self.scale_x)
-        else:
+        else:  # if self.n_scale_params == 3:
             return np.array([self.scale_x, self.scale_y, self.scale_z])
 
     @cached_property
@@ -220,11 +230,7 @@ class CoregModel(HasPrivateTraits):
     def _get_processed_mri_points(self):
         if self.grow_hair:
             if len(self.mri.norms):
-                if self.n_scale_params == 0:
-                    scaled_hair_dist = self.grow_hair / 1000
-                else:
-                    scaled_hair_dist = self.grow_hair / self.scale / 1000
-
+                scaled_hair_dist = self.grow_hair / (self.scale * 1000)
                 points = self.mri.points.copy()
                 hair = points[:, 2] > points[:, 1]
                 points[hair] += self.mri.norms[hair] * scaled_hair_dist
@@ -236,7 +242,8 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_transformed_mri_points(self):
-        points = apply_trans(self.mri_scale_trans, self.processed_mri_points)
+        points = apply_trans(self.mri_scale_trans,
+                             self.processed_mri_points)
         return points
 
     @cached_property
@@ -449,22 +456,19 @@ class CoregModel(HasPrivateTraits):
     def fit_scale_hsp_points(self):
         """Find MRI scaling and rotation to match head shape points."""
         src_pts = self.hsp.points - self.hsp.nasion
-
         tgt_pts = self.processed_mri_points - self.mri.nasion
-
         if self.n_scale_params == 1:
             x0 = (self.rot_x, self.rot_y, self.rot_z, 1. / self.scale_x)
             est = fit_point_cloud(src_pts, tgt_pts, rotate=True,
                                   translate=False, scale=1, x0=x0)
 
             self.scale_x = 1. / est[3]
-        else:
+        else:  # if self.n_scale_params == 3:
             x0 = (self.rot_x, self.rot_y, self.rot_z, 1. / self.scale_x,
                   1. / self.scale_y, 1. / self.scale_z)
             est = fit_point_cloud(src_pts, tgt_pts, rotate=True,
                                   translate=False, scale=3, x0=x0)
             self.scale_x, self.scale_y, self.scale_z = 1. / est[3:]
-
         self.rot_x, self.rot_y, self.rot_z = est[:3]
 
     def get_scaling_job(self, subject_to, skip_fiducials, do_bem_sol):
@@ -625,10 +629,10 @@ class CoregPanel(HasPrivateTraits):
     view = View(VGroup(Item('grow_hair', show_label=True),
                        Item('n_scale_params', label='MRI Scaling',
                             style='custom', show_label=True,
-                            editor=EnumEditor(values={0: '1:No Scaling',
-                                                      1: '2:1 Param',
-                                                      3: '3:3 Params'},
-                                              cols=3)),
+                            editor=EnumEditor(values={0: '1:None',
+                                                      1: '2:Uniform',
+                                                      3: '3:3-axis'},
+                                              cols=4)),
                        VGrid(Item('scale_x', editor=laggy_float_editor,
                                   show_label=True, tooltip="Scale along "
                                   "right-left axis",
@@ -1240,12 +1244,22 @@ class CoregFrame(HasTraits):
         return HeadViewController(scene=self.scene, system='RAS')
 
     def __init__(self, raw=None, subject=None, subjects_dir=None,
-                 guess_mri_subject=None):  # noqa: D102
-        super(CoregFrame, self).__init__()
+                 guess_mri_subject=True, head_opacity=1.,
+                 head_high_res=True):  # noqa: D102
+        super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
+        self.subject_panel.model.use_high_res_head = head_high_res
+        if not 0 <= head_opacity <= 1:
+            raise ValueError(
+                "head_opacity needs to be a floating point number between 0 "
+                "and 1, got %r" % (head_opacity,))
+        self._initial_head_opacity = head_opacity
 
         subjects_dir = get_subjects_dir(subjects_dir)
         if (subjects_dir is not None) and os.path.isdir(subjects_dir):
             self.model.mri.subjects_dir = subjects_dir
+
+        if raw is not None:
+            self.model.hsp.file = raw
 
         if subject is not None:
             if subject not in self.model.mri.subject_source.subjects:
@@ -1264,12 +1278,6 @@ class CoregFrame(HasTraits):
                 raise ValueError(msg)
             self.model.mri.subject = subject
 
-        if guess_mri_subject is not None:
-            self.guess_mri_subject = guess_mri_subject
-
-        if raw is not None:
-            self.model.hsp.file = raw
-
     @on_trait_change('scene.activated')
     def _init_plot(self):
         self.scene.disable_render = True
@@ -1282,7 +1290,12 @@ class CoregFrame(HasTraits):
         color = defaults['mri_color']
         self.mri_obj = SurfaceObject(points=self.model.transformed_mri_points,
                                      color=color, tri=self.model.mri.tris,
-                                     scene=self.scene, name="MRI Scalp")
+                                     scene=self.scene, name="MRI Scalp",
+                                     # opacity=self._initial_head_opacity,
+                                     # setting opacity here causes points to be
+                                     # [[0, 0, 0]] -- why??
+                                     )
+        self.mri_obj.opacity = self._initial_head_opacity
         # on_trait_change was unreliable, so link it another way:
         self.model.mri.on_trait_change(self._on_mri_src_change, 'tris')
         self.model.sync_trait('transformed_mri_points', self.mri_obj, 'points',
@@ -1347,7 +1360,9 @@ class CoregFrame(HasTraits):
 
         self.headview.left = True
         self.scene.disable_render = False
-
+        if not _testing_mode():  # when testing, scene.camera is None
+            self.scene.render()
+            self.scene.camera.focal_point = (0., 0., 0.)
         self.view_options_panel = ViewOptionsPanel(mri_obj=self.mri_obj,
                                                    hsp_obj=self.hsp_obj)
 
