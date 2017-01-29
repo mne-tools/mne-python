@@ -186,21 +186,14 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_mri_scale_trans(self):
-        if np.isscalar(self.scale) or self.scale.ndim == 0:
-            if self.scale == 1:
-                return np.eye(4)
-            else:
-                s = self.scale
-                return scaling(s, s, s)
+        if self.scale.ndim == 0:
+            return scaling(self.scale, self.scale, self.scale)
         else:
             return scaling(*self.scale)
 
     @cached_property
     def _get_mri_origin(self):
-        if np.isscalar(self.scale) and self.scale == 1:
-            return self.mri.nasion
-        else:
-            return self.mri.nasion * self.scale
+        return self.mri.nasion * self.scale
 
     @cached_property
     def _get_head_mri_trans(self):
