@@ -1212,12 +1212,12 @@ class CoregFrame(HasTraits):
     guess_mri_subject = DelegatesTo('model')
 
     # Omit Points
-    distance = Float(5., desc="Maximal distance for head shape points from "
+    distance = Float(5., desc="maximal distance for head shape points from "
                      "MRI in mm")
-    omit_points = Button(label='Omit [mm]', desc="Omit head shape points "
+    omit_points = Button(label='Omit [mm]', desc="to omit head shape points "
                          "for the purpose of the automatic coregistration "
                          "procedure.")
-    reset_omit_points = Button(label='Reset', desc="Reset the "
+    reset_omit_points = Button(label='Reset', desc="to reset the "
                                "omission of head shape points to include all.")
     omitted_info = Property(Str, depends_on=['model.hsp.n_omitted'])
 
