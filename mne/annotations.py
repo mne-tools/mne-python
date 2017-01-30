@@ -84,6 +84,36 @@ class Annotations(object):
         self.duration = duration
         self.description = np.array(description, dtype=str)
 
+    def append(self, onset, duration, description):
+        """Add an annotated segment. Operates inplace.
+
+        Parameters
+        ----------
+        onset : float
+            Annotation time onset from the beginning of the recording in
+            seconds.
+        duration : float
+            Duration of the annotation in seconds.
+        description : str
+            Description for the annotation. To reject epochs, use description
+            starting with keyword 'bad'
+        """
+        self.onset = np.append(self.onset, onset)
+        self.duration = np.append(self.duration, duration)
+        self.description = np.append(self.description, description)
+
+    def delete(self, idx):
+        """Remove an annotation. Operates inplace.
+
+        Parameters
+        ----------
+        idx : int | list of int
+            Index of the annotation to remove.
+        """
+        self.onset = np.delete(self.onset, idx)
+        self.duration = np.delete(self.duration, idx)
+        self.description = np.delete(self.description, idx)
+
 
 def _combine_annotations(annotations, last_samps, first_samps, sfreq):
     """Helper for combining a tuple of annotations."""

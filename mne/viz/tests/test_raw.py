@@ -11,7 +11,7 @@ from numpy.testing import assert_raises, assert_equal
 from mne import read_events, pick_types, Annotations
 from mne.io import read_raw_fif
 from mne.utils import requires_version, run_tests_if_main
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _annotation_radio_clicked
 from mne.viz import plot_raw, plot_sensors
 
 # Set our plotters to test mode
@@ -41,7 +41,6 @@ def _get_events():
     return read_events(event_name)
 
 
-@requires_version('matplotlib', '1.2')
 def test_plot_raw():
     """Test plotting of raw data."""
     import matplotlib.pyplot as plt
@@ -53,7 +52,8 @@ def test_plot_raw():
         # test mouse clicks
         x = fig.get_axes()[0].lines[1].get_xdata().mean()
         y = fig.get_axes()[0].lines[1].get_ydata().mean()
-        data_ax = fig.get_axes()[0]
+        data_ax = fig.axes[0]
+
         _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
         _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
         _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
@@ -75,22 +75,9 @@ def test_plot_raw():
         # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
         # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
         #  test keypresses
-        fig.canvas.key_press_event('escape')
-        fig.canvas.key_press_event('down')
-        fig.canvas.key_press_event('up')
-        fig.canvas.key_press_event('right')
-        fig.canvas.key_press_event('left')
-        fig.canvas.key_press_event('o')
-        fig.canvas.key_press_event('-')
-        fig.canvas.key_press_event('+')
-        fig.canvas.key_press_event('=')
-        fig.canvas.key_press_event('pageup')
-        fig.canvas.key_press_event('pagedown')
-        fig.canvas.key_press_event('home')
-        fig.canvas.key_press_event('end')
-        fig.canvas.key_press_event('?')
-        fig.canvas.key_press_event('f11')
-        fig.canvas.key_press_event('escape')
+        for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=',
+                    'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'escape']:
+            fig.canvas.key_press_event(key)
         # Color setting
         assert_raises(KeyError, raw.plot, event_color={0: 'r'})
         assert_raises(TypeError, raw.plot, event_color={'foo': 'r'})
@@ -132,6 +119,61 @@ def test_plot_raw():
                                       [5], ['bad'])
         raw.plot()
         plt.close('all')
+
+
+def test_plot_annotations():
+    """Test annotation mode of the plotter."""
+    import matplotlib.pyplot as plt
+    raw = _get_raw()
+    fig = raw.plot()
+    data_ax = fig.axes[0]
+    fig.canvas.key_press_event('a')  # annotation mode
+    # modify description
+    ann_fig = plt.gcf()
+    for key in ' test':
+        ann_fig.canvas.key_press_event(key)
+    ann_fig.canvas.key_press_event('enter')
+
+    ann_fig = plt.gcf()
+    # XXX: _fake_click raises an error on Agg backend
+    _annotation_radio_clicked('', ann_fig.radio, data_ax.selector)
+
+    # draw annotation
+    _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
+    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='motion')
+    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='release')
+    # hover event
+    _fake_click(fig, data_ax, [4.5, 1.], xform='data', button=None,
+                kind='motion')
+    _fake_click(fig, data_ax, [4.7, 1.], xform='data', button=None,
+                kind='motion')
+    # modify annotation from end
+    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='press')
+    _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1, kind='motion')
+    _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1,
+                kind='release')
+    # modify annotation from beginning
+    _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
+    _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1, kind='motion')
+    _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1,
+                kind='release')
+    assert_equal(len(raw.annotations.onset), 1)
+    assert_equal(len(raw.annotations.duration), 1)
+    assert_equal(len(raw.annotations.description), 1)
+    assert_equal(raw.annotations.description[0], 'BAD test')
+
+    # draw another annotation merging the two
+    _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')
+    _fake_click(fig, data_ax, [2., 1.], xform='data', button=1, kind='motion')
+    _fake_click(fig, data_ax, [2., 1.], xform='data', button=1, kind='release')
+    # delete the annotation
+    _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3, kind='press')
+    fig.canvas.key_press_event('a')  # exit annotation mode
+    plt.close('all')
+
+    assert_equal(len(raw.annotations.onset), 0)
+    assert_equal(len(raw.annotations.duration), 0)
+    assert_equal(len(raw.annotations.description), 0)
 
 
 @requires_version('scipy', '0.10')
@@ -187,7 +229,6 @@ def test_plot_raw_psd():
     assert_raises(ValueError, raw.plot_psd)
 
 
-@requires_version('matplotlib', '1.2')
 def test_plot_sensors():
     """Test plotting of sensor array."""
     import matplotlib.pyplot as plt
