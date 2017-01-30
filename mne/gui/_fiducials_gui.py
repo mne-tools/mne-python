@@ -14,7 +14,7 @@ from pyface.api import confirm, error, FileDialog, OK, YES
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         cached_property, DelegatesTo, Event, Instance,
                         Property, Array, Bool, Button, Enum)
-from traitsui.api import HGroup, Item, VGroup, View
+from traitsui.api import HGroup, Item, VGroup, View, ArrayEditor
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -209,7 +209,7 @@ class FiducialsPanel(HasPrivateTraits):
     locked = DelegatesTo('model', 'lock_fiducials')
 
     set = Enum('LPA', 'Nasion', 'RPA')
-    current_pos = Array(float, (1, 3))  # for editing
+    current_pos = Array(float, (1, 3), editor=ArrayEditor(width=50))
 
     save_as = Button(label='Save As...')
     save = Button(label='Save')
@@ -221,16 +221,19 @@ class FiducialsPanel(HasPrivateTraits):
     picker = Instance(object)
 
     # the layout of the dialog created
-    view = View(VGroup(Item('fid_file', label='Fiducials File'),
+    view = View(VGroup(Item('fid_file', label='File'),
                        Item('fid_fname', show_label=False, style='readonly'),
-                       Item('set', style='custom'),
-                       Item('current_pos', label='Pos'),
+                       Item('set', style='custom', width=50),
+                       Item('current_pos', label='Pos', width=50),
                        HGroup(Item('save', enabled_when='can_save',
                                    tooltip="If a filename is currently "
                                    "specified, save to that file, otherwise "
-                                   "save to the default file name"),
-                              Item('save_as', enabled_when='can_save_as'),
-                              Item('reset_fid', enabled_when='can_reset'),
+                                   "save to the default file name",
+                                   width=10),
+                              Item('save_as', enabled_when='can_save_as',
+                                   width=10),
+                              Item('reset_fid', enabled_when='can_reset',
+                                   width=10),
                               show_labels=False),
                        enabled_when="locked==False"))
 

@@ -12,7 +12,7 @@ from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
                         on_trait_change, Array, Bool, Button, DelegatesTo,
                         Directory, Enum, Event, File, Instance, Int, List,
                         Property, Str)
-from traitsui.api import View, Item, VGroup, HGroup
+from traitsui.api import View, Item, VGroup, HGroup, Label
 from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
 
 from ..bem import read_bem_surfaces
@@ -418,7 +418,7 @@ class MRISubjectSource(HasPrivateTraits):
         else:
             subjects = ['']
 
-        return subjects
+        return sorted(subjects)
 
     @cached_property
     def _get_subject_has_bem(self):
@@ -455,16 +455,20 @@ class SubjectSelectorPanel(HasPrivateTraits):
     subjects = DelegatesTo('model')
     use_high_res_head = DelegatesTo('model')
 
-    create_fsaverage = Button("Copy FsAverage to Subjects Folder",
+    create_fsaverage = Button("Copy 'fsaverage' to subjects directory",
                               desc="Copy the files for the fsaverage subject "
                               "to the subjects directory.")
 
-    view = View(VGroup(Item('subjects_dir', label='subjects_dir'),
-                       'subject',
+    view = View(VGroup(Label('Subjects directory and subject:',
+                             show_label=True),
+                       HGroup('subjects_dir', show_labels=False),
+                       HGroup('subject', show_labels=False),
                        HGroup(Item('use_high_res_head',
-                                   label='High Resolution Head')),
-                       Item('create_fsaverage', show_label=False,
-                            enabled_when='can_create_fsaverage')))
+                                   label='High Resolution Head',
+                                   show_label=True)),
+                       Item('create_fsaverage',
+                            enabled_when='can_create_fsaverage'),
+                       show_labels=False))
 
     def _create_fsaverage_fired(self):
         # progress dialog with indefinite progress bar

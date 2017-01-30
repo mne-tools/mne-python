@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from ..utils import _check_mayavi_version, verbose
+from ..utils import _check_mayavi_version, verbose, get_config
 
 
 def combine_kit_markers():
@@ -24,9 +24,10 @@ def combine_kit_markers():
 
 
 @verbose
-def coregistration(tabbed=False, split=True, scene_width=500, inst=None,
+def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
                    subject=None, subjects_dir=None, guess_mri_subject=True,
-                   head_opacity=1., head_high_res=True, verbose=None):
+                   scene_height=None, head_opacity=1., head_high_res=True,
+                   verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
@@ -44,8 +45,10 @@ def coregistration(tabbed=False, split=True, scene_width=500, inst=None,
     split : bool
         Split the main panels with a movable splitter (good for QT4 but
         unnecessary for wx backend).
-    scene_width : int
+    scene_width : int | None
         Specify a minimum width for the 3d scene (in pixels).
+        Default is None, which uses ``MNE_COREG_SCENE_WIDTH`` config value
+        (which defaults to 500).
     inst : None | str
         Path to an instance file containing the digitizer data. Compatible for
         Raw, Epochs, and Evoked files.
@@ -57,6 +60,10 @@ def coregistration(tabbed=False, split=True, scene_width=500, inst=None,
     guess_mri_subject : bool
         When selecting a new head shape file, guess the subject's name based
         on the filename and change the MRI subject accordingly (default True).
+    scene_height : int | None
+        Specify a minimum height for the 3d scene (in pixels).
+        Default is None, which uses ``MNE_COREG_SCENE_WIDTH`` config value
+        (which defaults to 400).
     head_opacity : float
         The default opacity of the head surface in the range [0., 1.]
         (default: 1.).
@@ -74,11 +81,17 @@ def coregistration(tabbed=False, split=True, scene_width=500, inst=None,
     subjects for which no MRI is available
     <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
+    if scene_width is None:
+        scene_width = get_config('MNE_COREG_SCENE_WIDTH', 500)
+    if scene_height is None:
+        scene_height = get_config('MNE_COREG_SCENE_HEIGHT', 400)
+    scene_width = int(scene_width)
+    scene_height = int(scene_height)
     _check_mayavi_version()
     from ._backend import _check_backend
     _check_backend()
     from ._coreg_gui import CoregFrame, _make_view
-    view = _make_view(tabbed, split, scene_width)
+    view = _make_view(tabbed, split, scene_width, scene_height)
     gui = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
                      head_opacity, head_high_res)
     gui.configure_traits(view=view)
