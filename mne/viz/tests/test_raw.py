@@ -174,6 +174,12 @@ def test_plot_annotations():
     assert_equal(len(raw.annotations.onset), 0)
     assert_equal(len(raw.annotations.duration), 0)
     assert_equal(len(raw.annotations.description), 0)
+    plt.close('all')
+
+    raw.annotations = Annotations([1], [1], 'test', raw.info['meas_date'])
+    fig = raw.plot()
+    assert_raises(NotImplementedError, fig.canvas.key_press_event, 'a')
+    plt.close('all')
 
 
 @requires_version('scipy', '0.10')

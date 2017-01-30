@@ -754,6 +754,10 @@ def _setup_annotation_fig(params):
     if params['fig_annotation'] is not None:
         params['fig_annotation'].canvas.close_event()
     annotations = params['raw'].annotations
+    if annotations is not None and annotations.orig_time is not None:
+        raise NotImplementedError('Interactive annotation mode is only '
+                                  'available for annotations with '
+                                  'orig_time=None.')
     labels = [] if annotations is None else list(set(annotations.description))
     labels = np.union1d(labels, params['added_label'])
     fig = figure_nobar(figsize=(4.5, 2.75 + len(labels) * 0.75))
