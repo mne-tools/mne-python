@@ -168,7 +168,7 @@ class Object(HasPrivateTraits):
             pts = self.points
 
         self.src.data.points = pts
-        self.src.update()  # necessary for SurfaceObject since Mayavi 4.5.0
+        return True
 
 
 class PointObject(Object):
@@ -324,3 +324,8 @@ class SurfaceObject(Object):
 
         if not _testing_mode():
             self.scene.camera.parallel_scale = _scale
+
+    @on_trait_change('trans,points')
+    def _update_points(self):
+        if Object._update_points(self):
+            self.src.update()  # necessary for SurfaceObject since Mayavi 4.5.0
