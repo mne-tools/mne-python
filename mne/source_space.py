@@ -1311,13 +1311,11 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
     if fname is True:
         extra = '%s-%s' % (stype, sval) if sval != '' else stype
         fname = op.join(bem_dir, '%s-%s-src.fif' % (subject, extra))
-    if fname is not None and op.isfile(fname) and overwrite is False:
-        raise IOError('file "%s" exists, use overwrite=True if you want '
-                      'to overwrite the file' % fname)
     if fname is not None:
         warn("Parameters 'fname' and 'overwrite' are deprecated and will be "
              "removed in version 0.16. In version 0.15 fname will default to "
              "None. Use mne.write_source_spaces instead.")
+        _check_fname(fname, overwrite)
 
     logger.info('>>> 1. Creating the source space...\n')
 
@@ -1362,7 +1360,7 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
 
     # write out if requested, then return the data
     if fname is not None:
-        write_source_spaces(fname, src)
+        write_source_spaces(fname, src, overwrite)
         logger.info('Wrote %s' % fname)
     logger.info('You are now one step closer to computing the gain matrix')
     return src
