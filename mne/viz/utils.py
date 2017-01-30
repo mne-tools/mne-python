@@ -629,7 +629,7 @@ def _set_annotation_radio_button(idx, params):
     radio = params['fig_annotation'].radio
     for circle in radio.circles:
         circle.set_facecolor('white')
-    radio.circles[idx].set_facecolor('gray')
+    radio.circles[idx].set_facecolor('#cccccc')
     _annotation_radio_clicked('', radio, params['ax'].selector)
 
 
@@ -780,10 +780,11 @@ def _setup_annotation_fig(params):
     annotations_closed = partial(_annotations_closed, params=params)
     fig.canvas.mpl_connect('close_event', annotations_closed)
     fig.canvas.set_window_title('Annotations')
-    fig.radio = RadioButtons(ax, labels, activecolor='gray')
+    fig.radio = RadioButtons(ax, labels, activecolor='#cccccc')
     radius = 0.15
     for circle, label in zip(fig.radio.circles, fig.radio.labels):
         circle.set_edgecolor(params['segment_colors'][label.get_text()])
+        circle.set_linewidth(4)
         circle.set_radius(radius / (len(labels)))
         label.set_x(circle.center[0] + (radius + 0.1) / len(labels))
     col = 'r' if len(fig.radio.labels) < 1 else fig.radio.labels[0].get_color()
