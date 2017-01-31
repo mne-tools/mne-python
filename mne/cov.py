@@ -145,10 +145,10 @@ class Covariance(dict):
 
         try:
             _write_cov(fid, self)
-        except Exception as inst:
+        except Exception:
             fid.close()
             os.remove(fname)
-            raise inst
+            raise
 
         end_file(fid)
 
