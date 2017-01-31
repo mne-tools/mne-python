@@ -732,11 +732,11 @@ def test_preload_modify():
 
         try:
             raw[picks, :nsamp // 2] = data
-        except RuntimeError as err:
+        except RuntimeError:
             if not preload:
                 continue
             else:
-                raise err
+                raise
 
         tmp_fname = op.join(tempdir, 'raw.fif')
         raw.save(tmp_fname, overwrite=True)
