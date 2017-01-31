@@ -1515,7 +1515,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     key : None | str
         The preference key to look for. The os evironment is searched first,
         then the mne-python config file is parsed.
-        If None, all the config parameters present in environemnt variables or
+        If None, all the config parameters present in environment variables or
         the path are returned.
     default : str | None
         Value to return if the key is not found.
