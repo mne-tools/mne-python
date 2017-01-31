@@ -156,7 +156,6 @@ def _onset_to_seconds(raw, onset):
             meas_date = meas_date[0] + meas_date[1] / 1000000.
         else:
             meas_date = meas_date[0]
-    return meas_date
     if raw.annotations.orig_time is None:
         orig_time = meas_date
     else:
