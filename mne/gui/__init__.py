@@ -26,7 +26,7 @@ def combine_kit_markers():
 @verbose
 def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
                    subject=None, subjects_dir=None, guess_mri_subject=True,
-                   scene_height=None, head_opacity=1., head_high_res=True,
+                   scene_height=None, head_opacity=None, head_high_res=None,
                    verbose=None):
     """Coregister an MRI with a subject's head shape.
 
@@ -64,11 +64,14 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
         Specify a minimum height for the 3d scene (in pixels).
         Default is None, which uses ``MNE_COREG_SCENE_WIDTH`` config value
         (which defaults to 400).
-    head_opacity : float
-        The default opacity of the head surface in the range [0., 1.]
-        (default: 1.).
-    head_high_res : bool
-        Use a high resolution head surface (default True).
+    head_opacity : float | None
+        The opacity of the head surface in the range [0., 1.].
+        Default is None, which uses ``MNE_COREG_HEAD_OPACITY`` config value
+        (which defaults to 1.).
+    head_high_res : bool | None
+        Use a high resolution head surface.
+        Default is None, which uses ``MNE_COREG_HEAD_HIGH_RES`` config value
+        (which defaults to True).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -81,10 +84,16 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     subjects for which no MRI is available
     <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
+    prepare_bem = get_config('MNE_COREG_PREPARE_BEM', 'True') == 'True'
+    if head_high_res is None:
+        head_high_res = get_config('MNE_COREG_HEAD_HIGH_RES', 'True') == 'True'
+    if head_opacity is None:
+        head_opacity = get_config('MNE_COREG_HEAD_OPACITY', 1.)
     if scene_width is None:
         scene_width = get_config('MNE_COREG_SCENE_WIDTH', 500)
     if scene_height is None:
         scene_height = get_config('MNE_COREG_SCENE_HEIGHT', 400)
+    head_opacity = float(head_opacity)
     scene_width = int(scene_width)
     scene_height = int(scene_height)
     _check_mayavi_version()
@@ -93,7 +102,7 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     from ._coreg_gui import CoregFrame, _make_view
     view = _make_view(tabbed, split, scene_width, scene_height)
     gui = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
-                     head_opacity, head_high_res)
+                     head_opacity, head_high_res, prepare_bem)
     gui.configure_traits(view=view)
     return gui
 

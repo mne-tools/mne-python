@@ -33,7 +33,7 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _find_fiducials_files, _point_cloud_error)
-from ..utils import get_subjects_dir, logger
+from ..utils import get_subjects_dir, logger, set_config
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, InstSource, SubjectSelectorPanel
 from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
@@ -550,6 +550,22 @@ class CoregFrameHandler(Handler):
                         "processed.", "Saving Still in Progress")
             return False
         else:
+            # store configuration, but don't prevent from closing on error
+            try:
+                set_config('MNE_COREG_GUESS_MRI_SUBJECT',
+                           str(info.object.model.guess_mri_subject),
+                           set_env=False)
+                set_config('MNE_COREG_PREPARE_BEM',
+                           str(info.object.model.prepare_bem_model),
+                           set_env=False)
+                set_config('MNE_COREG_HEAD_HIGH_RES',
+                           str(info.object.model.mri.use_high_res_head),
+                           set_env=False)
+                set_config('MNE_COREG_HEAD_OPACITY',
+                           str(info.object.mri_obj.opacity), set_env=False)
+            except Exception as error:
+                print("Error saving GUI configuration:\n%s" % (error,))
+
             return True
 
 
@@ -1251,9 +1267,10 @@ class CoregFrame(HasTraits):
 
     def __init__(self, raw=None, subject=None, subjects_dir=None,
                  guess_mri_subject=True, head_opacity=1.,
-                 head_high_res=True):  # noqa: D102
+                 head_high_res=True, prepare_bem=True):  # noqa: D102
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
         self.subject_panel.model.use_high_res_head = head_high_res
+        self.model.prepare_bem_model = prepare_bem
         if not 0 <= head_opacity <= 1:
             raise ValueError(
                 "head_opacity needs to be a floating point number between 0 "
