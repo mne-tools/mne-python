@@ -20,15 +20,18 @@ NeuroImage, 87, 96–110. doi:10.1016/j.neuroimage.2013.10.067
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Romain Trachel <trachelr@gmail.com>
+#          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
 import mne
-from mne import io
+from mne import io, EvokedArray
 from mne.datasets import sample
+from mne.decoding import Vectorizer, get_coef
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
 
 # import a linear classifier from mne.decoding
 from mne.decoding import LinearModel
@@ -41,12 +44,12 @@ data_path = sample.data_path()
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-tmin, tmax = -0.2, 0.5
+tmin, tmax = -0.1, 0.4
 event_id = dict(aud_l=1, vis_l=3)
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(2, 15)  # replace baselining with high-pass
+raw.filter(.5, 25)
 events = mne.read_events(event_fname)
 
 # Read epochs
@@ -58,28 +61,49 @@ labels = epochs.events[:, -1]
 # get MEG and EEG data
 meg_epochs = epochs.copy().pick_types(meg=True, eeg=False)
 meg_data = meg_epochs.get_data().reshape(len(labels), -1)
-eeg_epochs = epochs.copy().pick_types(meg=False, eeg=True)
-eeg_data = eeg_epochs.get_data().reshape(len(labels), -1)
 
 ###############################################################################
 # Decoding in sensor space using a LogisticRegression classifier
 
 clf = LogisticRegression()
-sc = StandardScaler()
+scaler = StandardScaler()
 
 # create a linear model with LogisticRegression
 model = LinearModel(clf)
 
 # fit the classifier on MEG data
-X = sc.fit_transform(meg_data)
+X = scaler.fit_transform(meg_data)
 model.fit(X, labels)
-# plot patterns and filters
-model.plot_patterns(meg_epochs.info, title='MEG Patterns')
-model.plot_filters(meg_epochs.info, title='MEG Filters')
 
-# fit the classifier on EEG data
-X = sc.fit_transform(eeg_data)
-model.fit(X, labels)
-# plot patterns and filters
-model.plot_patterns(eeg_epochs.info, title='EEG Patterns')
-model.plot_filters(eeg_epochs.info, title='EEG Filters')
+# Extract and plot spatial filters and spatial patterns
+for name, coef in (('patterns', model.patterns_), ('filters', model.filters_)):
+    # We fitted the linear model onto a Z-scored data. To make the filters
+    # interpretable, we must reverse this normalization step
+    coef = scaler.inverse_transform([coef])[0]
+
+    # The data was vectorized to fit a single model across all time points and
+    # all channels. We thus reshape it:
+    coef = coef.reshape(len(meg_epochs.ch_names), -1)
+
+    # Plot
+    evoked = EvokedArray(coef, meg_epochs.info, tmin=epochs.tmin)
+    evoked.plot_topomap(title='MEG %s' % name)
+
+###############################################################################
+# Let's do the same on EEG data using a scikit-learn pipeline
+
+X = epochs.pick_types(meg=False, eeg=True)
+y = epochs.events[:, 2]
+
+# Define a unique pipeline to sequentially
+clf = make_pipeline(
+    Vectorizer(),                       # 1) vectorize across time and channels
+    StandardScaler(),                   # 2) normalize features across trials
+    LinearModel(LogisticRegression()))  # 3) fits a logistic regression
+clf.fit(X, y)
+
+# Extract and plot patterns and filters
+for name in ('patterns_', 'filters_'):
+    coef = get_coef(clf, name, inverse_transform=True)
+    evoked = EvokedArray(coef, epochs.info, tmin=epochs.tmin)
+    evoked.plot_topomap(title='EEG %s' % name[:-1])
