@@ -177,7 +177,7 @@ class ProjMixin(object):
         logger.info('SSP projectors applied...')
         return self
 
-    def del_proj(self, idx):
+    def del_proj(self, idx='all'):
         """Remove SSP projection vector.
 
         Note: The projection vector can only be removed if it is inactive
@@ -185,19 +185,22 @@ class ProjMixin(object):
 
         Parameters
         ----------
-        idx : int
-            Index of the projector to remove.
+        idx : int | str
+            Index of the projector to remove. Can also be "all" to remove
+            all projectors.
 
         Returns
         -------
         self : instance of Raw | Epochs | Evoked
         """
-        if self.info['projs'][idx]['active']:
+        if isinstance(idx, string_types) and idx == 'all':
+            idx = list(range(len(self.info['projs'])))
+        idx = np.atleast_1d(np.array(idx, int)).ravel()
+        if any(self.info['projs'][ii]['active'] for ii in idx):
             raise ValueError('Cannot remove projectors that have already '
                              'been applied')
-
-        self.info['projs'].pop(idx)
-
+        self.info['projs'] = [p for pi, p in enumerate(self.info['projs'])
+                              if pi not in idx]
         return self
 
     def plot_projs_topomap(self, ch_type=None, layout=None, axes=None):

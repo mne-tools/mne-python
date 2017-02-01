@@ -60,6 +60,14 @@ def test_bad_proj():
     raw.info['bads'] = raw.ch_names[:10]
     _check_warnings(raw, events, count=0)
 
+    raw = read_raw_fif(raw_fname)
+    assert_raises(ValueError, raw.del_proj, 'foo')
+    n_proj = len(raw.info['projs'])
+    raw.del_proj(0)
+    assert_equal(len(raw.info['projs']), n_proj - 1)
+    raw.del_proj()
+    assert_equal(len(raw.info['projs']), 0)
+
 
 def _check_warnings(raw, events, picks=None, count=3):
     """Helper to count warnings."""
