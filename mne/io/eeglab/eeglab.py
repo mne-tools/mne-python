@@ -55,7 +55,7 @@ def _to_loc(ll):
     if isinstance(ll, (int, float)) or len(ll) > 0:
         return ll
     else:
-        return 0.
+        return np.nan
 
 
 def _get_info(eeg, montage, eog=()):
@@ -70,18 +70,17 @@ def _get_info(eeg, montage, eog=()):
     if len(eeg.chanlocs) > 0:
         ch_names, pos = list(), list()
         kind = 'user_defined'
-        selection = np.arange(len(eeg.chanlocs))
-        locs_available = True
         for chanloc in eeg.chanlocs:
-            ch_names.append(chanloc.labels)
             loc_x = _to_loc(chanloc.X)
             loc_y = _to_loc(chanloc.Y)
             loc_z = _to_loc(chanloc.Z)
             locs = np.r_[-loc_y, loc_x, loc_z]
-            if np.unique(locs).size == 1:
-                locs_available = False
-            pos.append(locs)
-        if locs_available:
+            if not np.any(np.isnan(locs)):
+                ch_names.append(chanloc.labels)
+                pos.append(locs)
+        n_channels_with_pos = len(ch_names)
+        if n_channels_with_pos > 0:
+            selection = np.arange(n_channels_with_pos)
             montage = Montage(np.array(pos), ch_names, kind, selection)
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
