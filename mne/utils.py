@@ -1551,7 +1551,8 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
 
     if key is None:
         # update config with environment variables
-        env_keys = set(config).union(known_config_types).intersection(os.environ)
+        env_keys = (set(config).union(known_config_types).
+                    intersection(os.environ))
         config.update({key: os.environ[key] for key in env_keys})
         return config
     elif raise_error is True and key not in config:
