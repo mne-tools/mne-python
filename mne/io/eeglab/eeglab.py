@@ -61,6 +61,7 @@ def _to_loc(ll):
 def _get_info(eeg, montage, eog=()):
     """Get measurement info."""
     info = _empty_info(sfreq=eeg.srate)
+    update_ch_names = True
 
     # add the ch_names and info['chs'][idx]['loc']
     path = None
@@ -68,7 +69,7 @@ def _get_info(eeg, montage, eog=()):
             eeg.chanlocs = [eeg.chanlocs]
 
     if len(eeg.chanlocs) > 0:
-        ch_names, pos = list(), list()
+        pos_ch_names, ch_names, pos = list(), list(), list()
         kind = 'user_defined'
         for chanloc in eeg.chanlocs:
             loc_x = _to_loc(chanloc.X)
@@ -76,12 +77,15 @@ def _get_info(eeg, montage, eog=()):
             loc_z = _to_loc(chanloc.Z)
             locs = np.r_[-loc_y, loc_x, loc_z]
             if not np.any(np.isnan(locs)):
-                ch_names.append(chanloc.labels)
+                pos_ch_names.append(chanloc.labels)
                 pos.append(locs)
-        n_channels_with_pos = len(ch_names)
+            ch_names.append(chanloc.labels)
+        n_channels_with_pos = len(pos_ch_names)
         if n_channels_with_pos > 0:
+            info = create_info(ch_names, eeg.srate, ch_types='eeg')
             selection = np.arange(n_channels_with_pos)
-            montage = Montage(np.array(pos), ch_names, kind, selection)
+            montage = Montage(np.array(pos), pos_ch_names, kind, selection)
+            update_ch_names = False
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
     else:  # if eeg.chanlocs is empty, we still need default chan names
@@ -91,7 +95,7 @@ def _get_info(eeg, montage, eog=()):
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
         _check_update_montage(info, montage, path=path,
-                              update_ch_names=True)
+                              update_ch_names=update_ch_names)
 
     info['buffer_size_sec'] = 1.  # reasonable default
     # update the info dict
