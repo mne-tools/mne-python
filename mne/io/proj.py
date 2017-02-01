@@ -186,8 +186,8 @@ class ProjMixin(object):
         Parameters
         ----------
         idx : int | str
-            Index of the projector to remove. Can also be "all" to remove
-            all projectors.
+            Index of the projector to remove. Can also be "all" (default)
+            to remove all projectors.
 
         Returns
         -------
