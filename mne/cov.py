@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-import copy as cp
+from copy import deepcopy
 from distutils.version import LooseVersion
 import itertools as itt
 from math import log
@@ -15,7 +15,7 @@ from scipy import linalg
 
 from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
-                      _needs_eeg_average_ref_proj)
+                      _needs_eeg_average_ref_proj, _check_projs)
 from .io import fiff_open
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
                       _picks_by_type, _pick_data_channels)
@@ -108,6 +108,7 @@ class Covariance(dict):
                  method=None, loglik=None):
         """Init of covariance."""
         diag = True if data.ndim == 1 else False
+        projs = _check_projs(projs)
         self.update(data=data, dim=len(data), names=names, bads=bads,
                     nfree=nfree, eig=eig, eigvec=eigvec, diag=diag,
                     projs=projs, kind=FIFF.FIFFV_MNE_NOISE_COV)
@@ -160,7 +161,7 @@ class Covariance(dict):
         cov : instance of Covariance
             The copied object.
         """
-        return cp.deepcopy(self)
+        return deepcopy(self)
 
     def as_diag(self):
         """Set covariance to be processed as being diagonal.
@@ -195,7 +196,7 @@ class Covariance(dict):
     def __add__(self, cov):
         """Add Covariance taking into account number of degrees of freedom."""
         _check_covs_algebra(self, cov)
-        this_cov = cp.deepcopy(cov)
+        this_cov = cov.copy()
         this_cov['data'] = (((this_cov['data'] * this_cov['nfree']) +
                              (self['data'] * self['nfree'])) /
                             (self['nfree'] + this_cov['nfree']))
@@ -460,8 +461,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         logger.info('[done]')
         ch_names = [raw.info['ch_names'][k] for k in picks]
         bads = [b for b in raw.info['bads'] if b in ch_names]
-        projs = cp.deepcopy(raw.info['projs'])
-        return Covariance(data, ch_names, bads, projs, nfree=n_samples)
+        return Covariance(data, ch_names, bads, raw.info['projs'],
+                          nfree=n_samples)
     del picks, pick_mask
 
     # This makes it equivalent to what we used to do (and do above for
@@ -694,7 +695,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     bads = epochs[0].info['bads']
     if projs is None:
-        projs = cp.deepcopy(epochs[0].info['projs'])
+        projs = epochs[0].info['projs']
         # make sure Epochs are compatible
         for epochs_t in epochs[1:]:
             if epochs_t.proj != epochs[0].proj:
@@ -702,8 +703,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             for proj_a, proj_b in zip(epochs_t.info['projs'], projs):
                 if not _proj_equal(proj_a, proj_b):
                     raise ValueError('Epochs must have same projectors')
-    else:
-        projs = cp.deepcopy(projs)
+    projs = _check_projs(projs)
     ch_names = epochs[0].ch_names
 
     # make sure Epochs are compatible
@@ -998,7 +998,7 @@ def _cross_val(data, est, cv, n_jobs):
 def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
                          stop_early=True, verbose=None):
     """Compute latent variable models."""
-    method_params = cp.deepcopy(method_params)
+    method_params = deepcopy(method_params)
     iter_n_components = method_params.pop('iter_n_components')
     if iter_n_components is None:
         iter_n_components = np.arange(5, data.shape[1], 5)
@@ -1016,7 +1016,7 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
     scores.fill(np.nan)
 
     # make sure we don't empty the thing if it's a generator
-    max_n = max(list(cp.deepcopy(iter_n_components)))
+    max_n = max(list(deepcopy(iter_n_components)))
     if max_n > data.shape[1]:
         warn('You are trying to estimate %i components on matrix '
              'with %i features.' % (max_n, data.shape[1]))
@@ -1327,7 +1327,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         warn('No average EEG reference present in info["projs"], covariance '
              'may be adversely affected. Consider recomputing covariance using'
              ' a raw file with an average eeg reference projector added.')
-    noise_cov = cp.deepcopy(noise_cov)
+    noise_cov = noise_cov.copy()
     noise_cov.update(data=C, eig=eig, eigvec=eigvec, dim=len(ch_names),
                      diag=False, names=ch_names)
     return noise_cov
@@ -1377,7 +1377,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     --------
     mne.compute_covariance
     """  # noqa: E501
-    cov = cp.deepcopy(cov)
+    cov = cov.copy()
     info._check_consistency()
 
     if exclude is None:
@@ -1567,7 +1567,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
 
     ch_names = [info['chs'][k]['ch_name'] for k in picks]
 
-    noise_cov = cp.deepcopy(noise_cov)
+    noise_cov = noise_cov.copy()
     noise_cov = prepare_noise_cov(noise_cov, info, ch_names,
                                   rank=rank, scalings=scalings)
     n_chan = len(ch_names)
@@ -1625,7 +1625,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
     evoked_white : instance of Evoked
         The whitened evoked data.
     """
-    evoked = cp.deepcopy(evoked)
+    evoked = evoked.copy()
     if picks is None:
         picks = pick_types(evoked.info, meg=True, eeg=True)
     W = _get_whitener_data(evoked.info, noise_cov, picks,
@@ -1647,7 +1647,7 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
         raise RuntimeError('Not all channels present in noise covariance:\n%s'
                            % missing)
     if diag:
-        noise_cov = cp.deepcopy(noise_cov)
+        noise_cov = noise_cov.copy()
         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
 
     scalings = _handle_default('scalings_cov_rank', scalings)
