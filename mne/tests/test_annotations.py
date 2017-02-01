@@ -81,6 +81,7 @@ def test_annotations():
     raw.annotations = Annotations([45.], [3], 'test', raw.info['meas_date'])
     raw2.annotations = Annotations([2.], [3], 'BAD', None)
     raw = concatenate_raws([raw, raw2])
+
     assert_array_almost_equal(raw.annotations.onset, [45., 2. + last_time],
                               decimal=2)
 

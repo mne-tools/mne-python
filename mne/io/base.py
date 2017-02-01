@@ -1875,7 +1875,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             annotations = _combine_annotations((annotations, r.annotations),
                                                self._last_samps,
                                                self._first_samps,
-                                               self.info['sfreq'])
+                                               self.info['sfreq'],
+                                               self.info['meas_date'])
 
         self._update_times()
         self.annotations = annotations

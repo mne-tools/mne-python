@@ -115,7 +115,8 @@ class Annotations(object):
         self.description = np.delete(self.description, idx)
 
 
-def _combine_annotations(annotations, last_samps, first_samps, sfreq):
+def _combine_annotations(annotations, last_samps, first_samps, sfreq,
+                         meas_date):
     """Helper for combining a tuple of annotations."""
     if not any(annotations):
         return None
@@ -133,12 +134,12 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq):
         old_orig_time = annotations[0].orig_time
 
     extra_samps = len(first_samps) - 1  # Account for sample 0
-    onset = annotations[1].onset
     if old_orig_time is not None and annotations[1].orig_time is None:
-        extra_samps += first_samps[-1]
+        meas_date = _handle_meas_date(meas_date)
+        extra_samps += sfreq * (meas_date - old_orig_time) + first_samps[0]
 
-    onset += (sum(last_samps[:-1]) + extra_samps -
-              sum(first_samps[:-1])) / sfreq
+    onset = annotations[1].onset + (sum(last_samps[:-1]) + extra_samps -
+                                    sum(first_samps[:-1])) / sfreq
 
     onset = np.concatenate([old_onset, onset])
     duration = np.concatenate([old_duration, annotations[1].duration])
@@ -146,9 +147,8 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq):
     return Annotations(onset, duration, description, old_orig_time)
 
 
-def _onset_to_seconds(raw, onset):
-    """Helper function for adjusting onsets in relation to raw data."""
-    meas_date = raw.info['meas_date']
+def _handle_meas_date(meas_date):
+    """Helper for converting meas_date to seconds."""
     if meas_date is None:
         meas_date = 0
     elif not np.isscalar(meas_date):
@@ -156,6 +156,12 @@ def _onset_to_seconds(raw, onset):
             meas_date = meas_date[0] + meas_date[1] / 1000000.
         else:
             meas_date = meas_date[0]
+    return meas_date
+
+
+def _onset_to_seconds(raw, onset):
+    """Helper for adjusting onsets in relation to raw data."""
+    meas_date = _handle_meas_date(raw.info['meas_date'])
     if raw.annotations.orig_time is None:
         orig_time = meas_date
     else:
