@@ -138,8 +138,8 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq,
         meas_date = _handle_meas_date(meas_date)
         extra_samps += sfreq * (meas_date - old_orig_time) + first_samps[0]
 
-    onset = annotations[1].onset + (sum(last_samps[:-1]) + extra_samps -
-                                    sum(first_samps[:-1])) / sfreq
+    onset = annotations[1].onset + (np.sum(last_samps[:-1]) + extra_samps -
+                                    np.sum(first_samps[:-1])) / sfreq
 
     onset = np.concatenate([old_onset, onset])
     duration = np.concatenate([old_duration, annotations[1].duration])
