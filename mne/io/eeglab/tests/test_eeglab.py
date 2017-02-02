@@ -160,7 +160,6 @@ def test_io_set():
     assert_equal(len(w), 1)
     # position should be present for first two channels
     for i in range(2):
-        print(raw.info['chs'][i]['loc'][:3])
         assert_array_equal(raw.info['chs'][i]['loc'][:3],
                               np.array([-chanlocs[i]['Y'],
                                         chanlocs[i]['X'],
