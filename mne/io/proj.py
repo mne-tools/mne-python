@@ -424,6 +424,20 @@ def _write_proj(fid, projs):
 
 ###############################################################################
 # Utils
+
+def _check_projs(projs, copy=True):
+    """Check that projs is a list of Projection."""
+    if not isinstance(projs, (list, tuple)):
+        raise TypeError('projs must be a list or tuple, got %s'
+                        % (type(projs),))
+    for pi, p in enumerate(projs):
+        if not isinstance(p, Projection):
+            raise TypeError('All entries in projs list must be Projection '
+                            'instances, but projs[%d] is type %s'
+                            % (pi, type(p)))
+    return deepcopy(projs) if copy else projs
+
+
 def make_projector(projs, ch_names, bads=(), include_active=True):
     """Create an SSP operator from SSP projection vectors.
 
