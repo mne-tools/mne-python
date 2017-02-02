@@ -73,13 +73,11 @@ Changelog
 
     - Add interactive annotation mode to :meth:`mne.io.Raw.plot` (accessed by pressing 'a') by `Jaakko Leppakangas`_
 
-<<<<<<< 0c31b1e248bea43343bded9b7fa0e2d7aa664210
     - Add support for deleting all projectors or a list of indices in :meth:`mne.io.Raw.del_proj` by `Eric Larson`_
 
     - Add source space plotting with :meth:`mne.SourceSpaces.plot` using :func:`mne.viz.plot_trans` by `Eric Larson`_
-=======
-    - Add :func:`mne.decoding.get_coef` to retrieve and inverse the coefficients of a linear model, by `Jean-Remi King`_
->>>>>>> ENH: get patterns coefs with example
+
+    - Add :func:`mne.decoding.get_coef` to retrieve and inverse the coefficients of a linear model - typically a spatial filter or pattern, by `Jean-Remi King`_
 
     - Add support for reading in EGI MFF digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
 
