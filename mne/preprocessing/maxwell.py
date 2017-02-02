@@ -49,12 +49,10 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     .. warning:: Automatic bad channel detection is not currently implemented.
                  It is critical to mark bad channels before running Maxwell
-                 filtering, so data should be inspected and marked accordingly
-                 prior to running this algorithm.
+                 filtering to prevent artifact spreading.
 
-    .. warning:: Not all features of Elekta MaxFilter™ are currently
-                 implemented (see Notes). Maxwell filtering in mne-python
-                 is not designed for clinical use.
+    .. warning:: Maxwell filtering in MNE is not designed or certified
+                 for clinical use.
 
     Parameters
     ----------
@@ -161,8 +159,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     See Also
     --------
-    mne.epochs.average_movements
+    mne.chpi.filter_chpi
     mne.chpi.read_head_pos
+    mne.epochs.average_movements
 
     Notes
     -----
@@ -172,34 +171,46 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     permission from Jussi Nurminen. These algorithms are based on work
     from [1]_ and [2]_.
 
-    Compared to Elekta's MaxFilter™ software, our Maxwell filtering
-    algorithm currently provides the following features:
+    Compared to Elekta's MaxFilter™ software, the MNE Maxwell filtering
+    routines currently provide the following features:
 
-        * Bad channel reconstruction
-        * Cross-talk cancellation
-        * Fine calibration correction
-        * tSSS
-        * Coordinate frame translation
-        * Regularization of internal components using information theory
-        * Raw movement compensation
-          (using head positions estimated by MaxFilter)
-        * cHPI subtraction (see :func:`mne.chpi.filter_chpi`)
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Feature                                                                     | MNE | MaxFilter |
+    +=============================================================================+=====+===========+
+    | Maxwell filtering software shielding                                        | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Bad channel reconstruction                                                  | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Cross-talk cancellation                                                     | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Fine calibration correction (1D)                                            | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Fine calibration correction (3D)                                            | X   |           |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Spatio-temporal SSS (tSSS)                                                  | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Coordinate frame translation                                                | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Regularization using information theory                                     | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Movement compensation (raw)                                                 | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Movement compensation (:func:`epochs <mne.epochs.average_movements>`)       | X   |           |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | :func:`cHPI subtraction <mne.chpi.filter_chpi>`                             | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Double floating point precision                                             | X   |           |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Seamless processing of split (``-1.fif``) and concatenated files            | X   |           |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Certified for clinical use                                                  |     | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Automatic bad channel detection                                             |     | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Head position estimation                                                    |     | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
 
-    The following features are not yet implemented:
-
-        * **Not certified for clinical use**
-        * Automatic bad channel detection
-        * Head position estimation
-
-    Our algorithm has the following enhancements:
-
-        * Double floating point precision
-        * Handling of 3D (in addition to 1D) fine calibration files
-        * Automated processing of split (-1.fif) and concatenated files
-        * Epoch-based movement compensation as described in [1]_ through
-          :func:`mne.epochs.average_movements`
-        * **Experimental** processing of data from (un-compensated)
-          non-Elekta systems
+    Epoch-based movement compensation is described in [1]_.
 
     Use of Maxwell filtering routines with non-Elekta systems is currently
     **experimental**. Worse results for non-Elekta systems are expected due
@@ -225,6 +236,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
               These patents likely preclude the use of Maxwell filtering code
               in commercial applications. Consult a lawyer if necessary.
 
+    Currently, in order to perform Maxwell filtering, the raw data must not
+    have any projectors applied. During Maxwell filtering, the spatial
+    structure of the data is modified, so projectors are discarded (unless
+    in ``st_only=True`` mode).
+
     References
     ----------
     .. [1] Taulu S. and Kajola M. "Presentation of electromagnetic
@@ -238,7 +254,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
            Physics in Medicine and Biology, vol. 51, pp. 1759-1768, 2006.
 
            http://lib.tkk.fi/Diss/2008/isbn9789512295654/article3.pdf
-    """
+    """  # noqa: E501
     # There are an absurd number of different possible notations for spherical
     # coordinates, which confounds the notation for spherical harmonics.  Here,
     # we purposefully stay away from shorthand notation in both and use
@@ -294,7 +310,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     raw_sss, pos_picks = _copy_preload_add_channels(
         raw, add_channels=add_channels)
     del raw
-    _remove_meg_projs(raw_sss)  # remove MEG projectors, they won't apply now
+    if not st_only:
+        # remove MEG projectors, they won't apply now
+        _remove_meg_projs(raw_sss)
     info = raw_sss.info
     meg_picks, mag_picks, grad_picks, good_picks, mag_or_fine = \
         _get_mf_picks(info, int_order, ext_order, ignore_ref)
@@ -905,7 +923,8 @@ def _check_regularize(regularize):
 def _check_usable(inst):
     """Ensure our data are clean."""
     if inst.proj:
-        raise RuntimeError('Projectors cannot be applied to data.')
+        raise RuntimeError('Projectors cannot be applied to data during '
+                           'Maxwell filtering.')
     current_comp = inst.compensation_grade
     if current_comp not in (0, None):
         raise RuntimeError('Maxwell filter cannot be done on compensated '
