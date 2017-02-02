@@ -784,7 +784,9 @@ def _get_inverse_funcs(estimator, terminal=True):
 
 
 def get_coef(estimator, attr='filters_', inverse_transform=False):
-    """Retrieve the coefficients of an estimator.
+    """Retrieve the coefficients of an estimator ending with a Linear Model.
+    This is typically useful to retrieve "spatial filters" or "spatial
+    patterns" of decoding models [1]_.
 
     Parameters
     ----------
@@ -801,6 +803,14 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     -------
     coef : array
         The coefficients.
+
+    Reference
+    ---------
+    .. [1] Haufe, S., Meinecke, F., Görgen, K., Dähne, S., Haynes, J.-D.,
+       Blankertz, B., & Bießmann, F. (2014). On the interpretation of
+       weight vectors of linear models in multivariate neuroimaging.
+       NeuroImage, 87, 96–110. doi:10.1016/j.neuroimage.2013.10.067
+
     """
     # If searchlight, loop across estimators
     if hasattr(estimator, 'estimators_'):
