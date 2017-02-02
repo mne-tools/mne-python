@@ -135,6 +135,40 @@ def test_io_set():
     # no warning for 'no events found'
     assert_equal(len(w), 0)
 
+    # test reading file with 3 channels - one without position information
+    # first, create chanlocs structured array
+    ch_names = ['E1', 'E2', 'E3']
+    x, y, z = [1., 2., np.nan], [4., 5., np.nan], [7., 8., np.nan]
+    dt = [('labels', 'S10'), ('X', 'f8'), ('Y', 'f8'), ('Z', 'f8')]
+    chanlocs = np.zeros((3,), dtype=dt)
+    for ind, vals in enumerate(zip(ch_names, x, y, z)):
+        for fld in range(4):
+            chanlocs[ind][dt[fld][0]] = vals[fld]
+
+    # save set file
+    one_chanpos_fname = op.join(temp_dir, 'test_chanpos.set')
+    io.savemat(one_chanpos_fname, {'EEG':
+               {'trials': eeg.trials, 'srate': eeg.srate,
+                'nbchan': 3, 'data': np.random.random((3, 3)),
+                'epoch': eeg.epoch, 'event': eeg.epoch,
+                'chanlocs': chanlocs, 'times': eeg.times[:3], 'pnts': 3}})
+    # load it
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+    # one warning because some channels are not found in Montage
+    assert_equal(len(w), 1)
+    # position should be present for first two channels
+    for i in range(2):
+        print(raw.info['chs'][i]['loc'][:3])
+        assert_array_equal(raw.info['chs'][i]['loc'][:3],
+                              np.array([-chanlocs[i]['Y'],
+                                        chanlocs[i]['X'],
+                                        chanlocs[i]['Z']]))
+    # position of the last channel should be zero
+    assert_array_equal(raw.info['chs'][-1]['loc'][:3],
+                          np.array([0., 0., 0.]))
+
     # test if .dat file raises an error
     eeg = io.loadmat(epochs_fname, struct_as_record=False,
                      squeeze_me=True)['EEG']
