@@ -73,6 +73,8 @@ Changelog
 
     - Add interactive annotation mode to :meth:`mne.io.Raw.plot` (accessed by pressing 'a') by `Jaakko Leppakangas`_
 
+    - Add support for deleting all projectors or a list of indices in :meth:`mne.io.Raw.del_proj` by `Eric Larson`_
+
 BUG
 ~~~
 
