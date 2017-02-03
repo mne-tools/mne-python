@@ -8,7 +8,7 @@ import shutil
 import warnings
 from nose.tools import assert_raises, assert_equal, assert_true
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
@@ -137,7 +137,7 @@ def test_io_set():
 
     # test reading file with 3 channels - one without position information
     # first, create chanlocs structured array
-    ch_names = ['E1', 'E2', 'E3']
+    ch_names = ['F3', 'unknown', 'FPz']
     x, y, z = [1., 2., np.nan], [4., 5., np.nan], [7., 8., np.nan]
     dt = [('labels', 'S10'), ('X', 'f8'), ('Y', 'f8'), ('Z', 'f8')]
     chanlocs = np.zeros((3,), dtype=dt)
@@ -167,6 +167,21 @@ def test_io_set():
     # position of the last channel should be zero
     assert_array_equal(raw.info['chs'][-1]['loc'][:3],
                           np.array([0., 0., 0.]))
+
+    # test reading channel names from set and positions from montage
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
+                               montage=montage)
+    # one warning because some channels are not found in Montage
+    assert_equal(len(w), 1)
+
+    # when montage was passed - channel positions should be taken from there
+    correct_pos = [[-0.56705965, 0.67706631, 0.46906776], [0., 0., 0.],
+                   [0., 0.99977915, -0.02101571]]
+    for ch_ind in range(3):
+        assert_array_almost_equal(raw.info['chs'][ch_ind]['loc'][:3],
+                           np.array(correct_pos[ch_ind]))
 
     # test if .dat file raises an error
     eeg = io.loadmat(epochs_fname, struct_as_record=False,
