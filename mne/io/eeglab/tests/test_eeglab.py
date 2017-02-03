@@ -161,18 +161,17 @@ def test_io_set():
     # position should be present for first two channels
     for i in range(2):
         assert_array_equal(raw.info['chs'][i]['loc'][:3],
-                              np.array([-chanlocs[i]['Y'],
-                                        chanlocs[i]['X'],
-                                        chanlocs[i]['Z']]))
+                           np.array([-chanlocs[i]['Y'],
+                                     chanlocs[i]['X'],
+                                     chanlocs[i]['Z']]))
     # position of the last channel should be zero
-    assert_array_equal(raw.info['chs'][-1]['loc'][:3],
-                          np.array([0., 0., 0.]))
+    assert_array_equal(raw.info['chs'][-1]['loc'][:3], np.array([0., 0., 0.]))
 
     # test reading channel names from set and positions from montage
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
-                               montage=montage)
+                              montage=montage)
     # one warning because some channels are not found in Montage
     assert_equal(len(w), 1)
 
@@ -181,7 +180,7 @@ def test_io_set():
                    [0., 0.99977915, -0.02101571]]
     for ch_ind in range(3):
         assert_array_almost_equal(raw.info['chs'][ch_ind]['loc'][:3],
-                           np.array(correct_pos[ch_ind]))
+                                  np.array(correct_pos[ch_ind]))
 
     # test reading channel names but not positions when there is no X (only Z)
     # field in the EEG.chanlocs structure
