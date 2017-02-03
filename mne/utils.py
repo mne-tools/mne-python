@@ -1515,7 +1515,8 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     key : None | str
         The preference key to look for. The os evironment is searched first,
         then the mne-python config file is parsed.
-        If None, all the config parameters present in the path are returned.
+        If None, all the config parameters present in environment variables or
+        the path are returned.
     default : str | None
         Value to return if the key is not found.
     raise_error : bool
@@ -1544,15 +1545,17 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     # second, look for it in mne-python config file
     config_path = get_config_path(home_dir=home_dir)
     if not op.isfile(config_path):
-        key_found = False
-        val = default
+        config = {}
     else:
         config = _load_config(config_path)
-        if key is None:
-            return config
-        key_found = key in config
-        val = config.get(key, default)
-    if not key_found and raise_error is True:
+
+    if key is None:
+        # update config with environment variables
+        env_keys = (set(config).union(known_config_types).
+                    intersection(os.environ))
+        config.update({key: os.environ[key] for key in env_keys})
+        return config
+    elif raise_error is True and key not in config:
         meth_1 = 'os.environ["%s"] = VALUE' % key
         meth_2 = 'mne.utils.set_config("%s", VALUE, set_env=True)' % key
         raise KeyError('Key "%s" not found in environment or in the '
@@ -1563,7 +1566,8 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
                        'set the environment variable before '
                        'running python.'
                        % (key, config_path, meth_1, meth_2))
-    return val
+    else:
+        return config.get(key, default)
 
 
 def set_config(key, value, home_dir=None, set_env=True):
