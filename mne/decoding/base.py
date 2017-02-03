@@ -746,3 +746,95 @@ def _make_scorer(scoring):
         return get_scorer(scoring)
     else:
         return make_scorer(scoring)
+
+
+def dummy_encoding(epochs, use_events=None):
+    """Create decoding targets based on epoch event codes.
+
+    Creates (0/1) integer values suitable for use as a target variable (y) for
+    decoding.
+
+    If two classes are present in the data and each epoch belongs exclusively
+    to either class, a list will be generated where 0 denotes that the epoch
+    belongs to the first class, and a 1 denotes that the epoch belongs to the
+    second class.
+
+    If more than two classes are present, or epochs are present that belong to
+    no class or to multiple classes, a matrix will be generated where each
+    column corresponds to a class and each row encodes to which class(es) the
+    epoch belongs. By default the columns of the matrix will correspond to the
+    events in order of their respective event-ids (further ordered by their
+    event name if multiple classes share the same event-id).  Use the
+    `use_events` parameter to specify a different order.
+
+    Parameters
+    ----------
+    epochs : instance of :class:`mne.Epochs`
+        The epochs to create the dummy encoding for.
+    use_events : list of str | None
+        If specified, only the given events will be encoded. The order of the
+        columns of the generated matrix will correspond to the order in which
+        the events are specified here. By default, all classes are used in
+        order of their respective trigger codes (further ordered by their event
+        name if multiple classes share the same event-id).
+
+    Returns
+    -------
+    targets : 1D array (n_epochs,) | 2D array (n_epochs, n_classes)
+        Either a list where for each epoch, a 0 if the epoch belongs to the
+        first class, or else 1. Alternatively, a matrix where the columns
+        correspond to the classes and the rows encode for each epoch, to which
+        class(es) the epoch belongs.
+
+    Examples
+    --------
+    >>> import mne
+    >>> numpy numpy as np
+    >>> events = np.array([[0, 0, 1],
+    ...                    [1, 0, 2],
+    ...                    [2, 0, 1],
+    ...                    [3, 0, 3],
+    ...                    [4, 0, 2]])
+    >>> event_id = dict(a=1, b=2, c=3, d=3)
+    >>> epochs = mne.EpochsArray(np.random.randn(5, 2, 10),
+    ...                          mne.create_info(2, 1000.),
+    ...                          events, event_id=event_id)
+
+    >>> mne.decoding.dummy_encoding(epochs, ['a', 'b'])
+    array([0, 1, 0, 1, 1])
+
+    >>> mne.decoding.dummy_encoding(epochs, ['a', 'b', 'c', 'd'])
+    array([[1, 0, 0, 0],
+           [0, 1, 0, 0],
+           [1, 0, 0, 0],
+           [0, 0, 1, 1],
+           [0, 1, 0, 0]])
+
+    >>> mne.decoding.dummy_encoding(epochs, ['c', 'd'])
+    array([[0, 0],
+           [0, 0],
+           [0, 0],
+           [1, 1],
+           [0, 0]])
+    """
+    if use_events is None:
+        use_events = sorted(epochs.event_id.keys())
+
+    if len(use_events) < 2:
+        raise ValueError('You need to specify at least two event types.')
+
+    for event in use_events:
+        if event not in epochs.event_id:
+            raise ValueError('Event %s is not found in the data.' % event)
+
+    # Create targets matrix
+    targets = np.vstack(
+        [epochs.events[:, 2] == epochs.event_id[event] for event in use_events]
+    ).T
+
+    # Collapse matrix into list if possible
+    if len(use_events) == 2 and np.all(targets.sum(axis=1) == 1):
+        targets = ~targets[:, 0]
+
+    # Return targets as integer values
+    return targets.astype(np.int)
