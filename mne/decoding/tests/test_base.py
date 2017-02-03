@@ -12,6 +12,9 @@ from ..search_light import _SearchLight
 
 @requires_sklearn
 def test_get_coef():
+    """Test the retrieval of linear coefficients (filters and patterns) from
+    simple and pipeline estimators.
+    """
     from sklearn.base import TransformerMixin, BaseEstimator
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
@@ -34,7 +37,7 @@ def test_get_coef():
         def inverse_transform(self, X):
             return X
 
-    np.random.seed(0)
+    np.random.RandomState(0)
     n_samples, n_features = 20, 3
     y = (np.arange(n_samples) % 2) * 2 - 1
     w = np.random.randn(n_features, 1)
@@ -119,8 +122,6 @@ def test_linearmodel():
     X = np.random.rand(20, 3)
     y = np.arange(20) % 2
     clf.fit(X, y)
-    assert_equal(clf.filters_.shape[0], 3)
-    assert_equal(clf.filters_.ndim, 1)
-    assert_equal(clf.patterns_.shape[0], 3)
-    assert_equal(clf.patterns_.ndim, 1)
+    assert_equal(clf.filters_.shape, (3,))
+    assert_equal(clf.patterns_.shape, (3,))
     assert_raises(ValueError, clf.fit, np.random.rand(20, 3, 2), y)

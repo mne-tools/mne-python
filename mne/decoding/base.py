@@ -250,7 +250,8 @@ class LinearModel(BaseEstimator):
         """
         X = np.asarray(X)
         if X.ndim != 2:
-            raise ValueError('LinearModel only accepts 2-dimensional X')
+            raise ValueError('LinearModel only accepts 2-dimensional X, got '
+                             '%s instead.' % (X.shape,))
 
         # fit the Model
         self.model.fit(X, y)
@@ -259,9 +260,10 @@ class LinearModel(BaseEstimator):
         if (
             not hasattr(self.model, 'coef_') or  # missing attribute
             self.model.coef_.ndim > 2 or         # weird case
-            ((self.model.coef_.ndim == 2) and    # shape (n), (n, 1) or (1, n)
-             (1 not in self.model.coef_.shape))
+            (self.model.coef_.size not in
+             self.model.coef_.shape)             # shape (n), (n, 1) or (1, n)
         ):
+
             raise ValueError('model needs a unidimensional coef_ attribute to '
                              'compute the patterns')
         self.filters_ = np.squeeze(self.model.coef_)
@@ -785,6 +787,7 @@ def _get_inverse_funcs(estimator, terminal=True):
 
 def get_coef(estimator, attr='filters_', inverse_transform=False):
     """Retrieve the coefficients of an estimator ending with a Linear Model.
+
     This is typically useful to retrieve "spatial filters" or "spatial
     patterns" of decoding models [1]_.
 
@@ -794,7 +797,7 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
         An estimator from scikit-learn.
     attr : str
         The name of the coefficient attribute to retrieve. Typically 'filters_'
-        or 'pattern_'. Defaults to 'filters_'.
+        or 'patterns_'. Defaults to 'filters_'.
     inverse_transform : bool
         If True, returns the coefficients after inverse transforming them with
         the transformer steps of the estimator.

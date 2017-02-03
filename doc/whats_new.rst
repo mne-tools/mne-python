@@ -175,7 +175,7 @@ API
 
     - An ``overwrite=False`` default parameter has been added to :func:`write_source_spaces` to protect against accidental overwrites, by `Eric Larson`_
 
-    - The :class:`mne.decoding.LinearModel` class will no longer support `plot_filters` and `plot_patterns`, use mne.EvokedArray instead, by `Jean-Remi King`_
+    - The :class:`mne.decoding.LinearModel` class will no longer support `plot_filters` and `plot_patterns`, use :class:`mne.EvokedArray` with :func:`mne.decoding.get_coef` instead, by `Jean-Remi King`_
 
 .. _changes_0_13:
 
