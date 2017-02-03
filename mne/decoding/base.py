@@ -819,6 +819,9 @@ def dummy_encoding(epochs, use_events=None):
     """
     if use_events is None:
         use_events = sorted(epochs.event_id.keys())
+        order = np.argsort([epochs.event_id[event] for event in use_events],
+                           kind='mergesort')  # use a stable sort
+        use_events = [use_events[x] for x in order]
 
     if len(use_events) < 2:
         raise ValueError('You need to specify at least two event types.')
