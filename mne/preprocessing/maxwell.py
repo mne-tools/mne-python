@@ -535,7 +535,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         raw_sss._data[pos_picks, start:stop] = out_pos_data
 
     # Update info
-    info['dev_head_t'] = recon_trans  # set the reconstruction transform
+    if not st_only:
+        info['dev_head_t'] = recon_trans  # set the reconstruction transform
     _update_sss_info(raw_sss, origin, int_order, ext_order, len(good_picks),
                      coord_frame, sss_ctc, sss_cal, max_st, reg_moments_0,
                      st_only)
