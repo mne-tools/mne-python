@@ -84,15 +84,16 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     subjects for which no MRI is available
     <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
-    prepare_bem = get_config('MNE_COREG_PREPARE_BEM', 'True') == 'True'
+    config = get_config()
+    prepare_bem = config.get('MNE_COREG_PREPARE_BEM', 'True') == 'True'
     if head_high_res is None:
-        head_high_res = get_config('MNE_COREG_HEAD_HIGH_RES', 'True') == 'True'
+        head_high_res = config.get('MNE_COREG_HEAD_HIGH_RES', 'True') == 'True'
     if head_opacity is None:
-        head_opacity = get_config('MNE_COREG_HEAD_OPACITY', 1.)
+        head_opacity = config.get('MNE_COREG_HEAD_OPACITY', 1.)
     if scene_width is None:
-        scene_width = get_config('MNE_COREG_SCENE_WIDTH', 500)
+        scene_width = config.get('MNE_COREG_SCENE_WIDTH', 500)
     if scene_height is None:
-        scene_height = get_config('MNE_COREG_SCENE_HEIGHT', 400)
+        scene_height = config.get('MNE_COREG_SCENE_HEIGHT', 400)
     head_opacity = float(head_opacity)
     scene_width = int(scene_width)
     scene_height = int(scene_height)
