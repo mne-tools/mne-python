@@ -118,6 +118,8 @@ def test_get_coef():
 
 @requires_sklearn
 def test_linearmodel():
+    """Test LinearModel class for computing filters and patterns.
+    """
     clf = LinearModel()
     X = np.random.rand(20, 3)
     y = np.arange(20) % 2
