@@ -71,21 +71,22 @@ def _get_info(eeg, montage, eog=()):
     if len(eeg.chanlocs) > 0:
         pos_ch_names, ch_names, pos = list(), list(), list()
         kind = 'user_defined'
+        update_ch_names = False
         for chanloc in eeg.chanlocs:
-            loc_x = _to_loc(chanloc.X)
-            loc_y = _to_loc(chanloc.Y)
-            loc_z = _to_loc(chanloc.Z)
-            locs = np.r_[-loc_y, loc_x, loc_z]
-            if not np.any(np.isnan(locs)):
-                pos_ch_names.append(chanloc.labels)
-                pos.append(locs)
             ch_names.append(chanloc.labels)
+            if montage is None:
+                loc_x = _to_loc(chanloc.X)
+                loc_y = _to_loc(chanloc.Y)
+                loc_z = _to_loc(chanloc.Z)
+                locs = np.r_[-loc_y, loc_x, loc_z]
+                if not np.any(np.isnan(locs)):
+                    pos_ch_names.append(chanloc.labels)
+                    pos.append(locs)
         n_channels_with_pos = len(pos_ch_names)
+        info = create_info(ch_names, eeg.srate, ch_types='eeg')
         if n_channels_with_pos > 0:
-            info = create_info(ch_names, eeg.srate, ch_types='eeg')
             selection = np.arange(n_channels_with_pos)
             montage = Montage(np.array(pos), pos_ch_names, kind, selection)
-            update_ch_names = False
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
     else:  # if eeg.chanlocs is empty, we still need default chan names
