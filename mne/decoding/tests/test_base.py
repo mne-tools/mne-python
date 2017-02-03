@@ -6,6 +6,7 @@ from mne.decoding import dummy_encoding
 
 
 def test_dummy_encoding():
+    """Test generating a target variable from epochs."""
     events = np.array([[0, 0, 1],
                        [1, 0, 2],
                        [2, 0, 1],
