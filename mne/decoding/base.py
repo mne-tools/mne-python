@@ -761,10 +761,10 @@ def dummy_encoding(epochs, use_events=None):
 
     If more than two classes are present, or epochs are present that belong to
     no class or to multiple classes, a matrix will be generated where each
-    column corresponds to a class and each row encodes to which class(es) the
-    epoch belongs. By default the columns of the matrix will correspond to the
-    events in order of their respective event-ids (further ordered by their
-    event name if multiple classes share the same event-id).  Use the
+    column corresponds to a class and each row encodes which class(es) the
+    epoch belongs to. By default, the columns of the matrix will correspond to
+    the events in order of their respective event-ids (further ordered by their
+    event name if multiple classes share the same event-id). Use the
     `use_events` parameter to specify a different order.
 
     Parameters
