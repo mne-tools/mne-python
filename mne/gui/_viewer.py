@@ -19,7 +19,6 @@ from traitsui.api import View, Item, HGroup, VGrid, VGroup
 
 from ..surface import complete_surface_info
 from ..transforms import apply_trans
-from ._backend import _testing_mode
 
 
 headview_item = Item('headview', style='custom', show_label=False)
@@ -110,9 +109,8 @@ class HeadViewController(HasTraits):
         if kwargs is None:
             raise ValueError("Invalid view: %r" % view)
 
-        if not _testing_mode():
-            self.scene.mlab.view(distance=None, reset_roll=True,
-                                 figure=self.scene.mayavi_scene, **kwargs)
+        self.scene.mlab.view(distance=None, reset_roll=True,
+                             figure=self.scene.mayavi_scene, **kwargs)
 
 
 class Object(HasPrivateTraits):
@@ -232,10 +230,10 @@ class PointObject(Object):
         if hasattr(self.src, 'remove'):
             self.src.remove()
 
-        fig = self.scene.mayavi_scene if not _testing_mode() else None
         x, y, z = self.points.T
         scatter = pipeline.scalar_scatter(x, y, z)
-        glyph = pipeline.glyph(scatter, color=self.rgbcolor, figure=fig,
+        glyph = pipeline.glyph(scatter, color=self.rgbcolor,
+                               figure=self.scene.mayavi_scene,
                                scale_factor=self.point_scale, opacity=1.,
                                resolution=self.resolution)
         self.src = scatter
@@ -286,7 +284,7 @@ class SurfaceObject(Object):
     @on_trait_change('scene.activated')
     def plot(self):
         """Add the points to the mayavi pipeline"""
-        _scale = self.scene.camera.parallel_scale if not _testing_mode() else 1
+        _scale = self.scene.camera.parallel_scale
         self.clear()
 
         if not np.any(self.tri):
@@ -317,8 +315,7 @@ class SurfaceObject(Object):
                         mutual=False)
         self.sync_trait('opacity', self.surf.actor.property, 'opacity')
 
-        if not _testing_mode():
-            self.scene.camera.parallel_scale = _scale
+        self.scene.camera.parallel_scale = _scale
 
     @on_trait_change('trans,points')
     def _update_points(self):

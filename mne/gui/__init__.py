@@ -106,7 +106,7 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     gui = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
                      head_opacity, head_high_res, prepare_bem)
     if _testing_mode():
-        gui.edit_traits(view=view)
+        gui.edit_traits(view=view)  # open without entering mainloop
     else:
         gui.configure_traits(view=view)
     return gui
@@ -152,5 +152,8 @@ def kit2fiff():
     _check_backend()
     from ._kit2fiff_gui import Kit2FiffFrame
     gui = Kit2FiffFrame()
-    gui.configure_traits()
+    if _testing_mode():
+        gui.edit_traits()  # open without entering mainloop
+    else:
+        gui.configure_traits()
     return gui

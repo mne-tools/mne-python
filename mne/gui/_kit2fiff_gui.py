@@ -35,8 +35,7 @@ from ..coreg import _decimate_points, fit_matched_points
 from ..event import _find_events
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._help import read_tooltips
-from ._viewer import (HeadViewController, headview_item, PointObject,
-                      _testing_mode)
+from ._viewer import HeadViewController, headview_item, PointObject
 
 
 use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
@@ -547,20 +546,18 @@ class Kit2FiffPanel(HasPrivateTraits):
         t.start()
 
         # setup mayavi visualization
-        m = self.model
         self.fid_obj = PointObject(scene=self.scene, color=(25, 225, 25),
                                    point_scale=5e-3, name='Fiducials')
         self.elp_obj = PointObject(scene=self.scene, color=(50, 50, 220),
                                    point_scale=1e-2, opacity=.2, name='ELP')
         self.hsp_obj = PointObject(scene=self.scene, color=(200, 200, 200),
                                    point_scale=2e-3, name='HSP')
-        if not _testing_mode():
-            for name, obj in zip(['fid', 'elp', 'hsp'],
-                                 [self.fid_obj, self.elp_obj, self.hsp_obj]):
-                m.sync_trait(name, obj, 'points', mutual=False)
-                m.sync_trait('head_dev_trans', obj, 'trans', mutual=False)
-            self.scene.camera.parallel_scale = 0.15
-            self.scene.mlab.view(0, 0, .15)
+        for name, obj in zip(['fid', 'elp', 'hsp'],
+                             [self.fid_obj, self.elp_obj, self.hsp_obj]):
+            self.model.sync_trait(name, obj, 'points', mutual=False)
+            self.model.sync_trait('head_dev_trans', obj, 'trans', mutual=False)
+        self.scene.camera.parallel_scale = 0.15
+        self.scene.mlab.view(0, 0, .15)
 
     def _clear_all_fired(self):
         self.model.clear_all()

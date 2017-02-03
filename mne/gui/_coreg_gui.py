@@ -34,7 +34,6 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _find_fiducials_files, _point_cloud_error)
 from ..utils import get_subjects_dir, logger, set_config
-from ._backend import _testing_mode
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, InstSource, SubjectSelectorPanel
 from ._viewer import defaults, HeadViewController, PointObject, SurfaceObject
@@ -1378,14 +1377,12 @@ class CoregFrame(HasTraits):
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
         on_pick = self.scene.mayavi_scene.on_mouse_pick
-        if not _testing_mode():
-            self.picker = on_pick(self.fid_panel._on_pick, type='cell')
+        self.picker = on_pick(self.fid_panel._on_pick, type='cell')
 
         self.headview.left = True
         self.scene.disable_render = False
-        if not _testing_mode():  # when testing, scene.camera is None
-            self.scene.render()
-            self.scene.camera.focal_point = (0., 0., 0.)
+        self.scene.render()
+        self.scene.camera.focal_point = (0., 0., 0.)
         self.view_options_panel = ViewOptionsPanel(mri_obj=self.mri_obj,
                                                    hsp_obj=self.hsp_obj)
 

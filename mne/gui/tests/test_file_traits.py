@@ -11,7 +11,7 @@ from nose.tools import assert_equal, assert_false, assert_raises, assert_true
 from mne.datasets import testing
 from mne.io.tests import data_dir as fiff_data_dir
 from mne.utils import (_TempDir, requires_mne, requires_freesurfer,
-                       requires_mayavi)
+                       requires_mayavi, run_tests_if_main)
 
 data_path = testing.data_path(download=False)
 subjects_dir = os.path.join(data_path, 'subjects')
@@ -102,3 +102,6 @@ def test_subject_source_with_fsaverage():
     mri.subjects_dir = tempdir
     assert_true(mri.can_create_fsaverage)
     mri.create_fsaverage()
+
+
+run_tests_if_main()

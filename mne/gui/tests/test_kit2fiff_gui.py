@@ -26,8 +26,8 @@ warnings.simplefilter('always')
 
 @requires_mayavi
 def test_kit2fiff_model():
-    """Test CombineMarkersModel Traits Model."""
-    from mne.gui._kit2fiff_gui import Kit2FiffModel, Kit2FiffPanel
+    """Test Kit2Fiff model."""
+    from mne.gui._kit2fiff_gui import Kit2FiffModel
     tempdir = _TempDir()
     tgt_fname = os.path.join(tempdir, 'test-raw.fif')
 
@@ -114,11 +114,16 @@ def test_kit2fiff_model():
     assert_equal(model.use_mrk, [0, 1, 2, 3, 4])
     assert_equal(model.sqd_file, "")
 
+
+@requires_mayavi
+def test_kit2fiff_gui():
+    """Test Kit2Fiff GUI."""
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     try:
         with warnings.catch_warnings(record=True):  # traits warnings
             warnings.simplefilter('always')
-            Kit2FiffPanel()
+            frame = mne.gui.kit2fiff()
+            assert_false(frame.model.can_save)
     finally:
         del os.environ['_MNE_GUI_TESTING_MODE']
 
