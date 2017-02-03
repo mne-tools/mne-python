@@ -804,8 +804,8 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     coef : array
         The coefficients.
 
-    Reference
-    ---------
+    References
+    ----------
     .. [1] Haufe, S., Meinecke, F., Gorgen, K., Dahne, S., Haynes, J.-D.,
        Blankertz, B., & Biessmann, F. (2014). On the interpretation of weight
        vectors of linear models in multivariate neuroimaging. NeuroImage, 87,

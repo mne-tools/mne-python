@@ -5,12 +5,12 @@
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_true, assert_equal, assert_raises
-from ...utils import requires_sklearn_0_15
+from ...utils import requires_sklearn
 from ..base import _get_inverse_funcs, LinearModel, get_coef
 from ..search_light import _SearchLight
 
 
-@requires_sklearn_0_15
+@requires_sklearn
 def test_get_coef():
     from sklearn.base import TransformerMixin, BaseEstimator
     from sklearn.pipeline import make_pipeline
@@ -113,6 +113,7 @@ def test_get_coef():
                            filters[t])
 
 
+@requires_sklearn
 def test_linearmodel():
     clf = LinearModel()
     X = np.random.rand(20, 3)
