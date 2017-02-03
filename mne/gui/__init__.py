@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 from ..utils import _check_mayavi_version, verbose, get_config
+from ._backend import _testing_mode
 
 
 def combine_kit_markers():
@@ -104,7 +105,10 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     view = _make_view(tabbed, split, scene_width, scene_height)
     gui = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
                      head_opacity, head_high_res, prepare_bem)
-    gui.configure_traits(view=view)
+    if _testing_mode():
+        gui.edit_traits(view=view)
+    else:
+        gui.configure_traits(view=view)
     return gui
 
 

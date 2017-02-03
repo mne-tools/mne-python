@@ -34,10 +34,10 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _find_fiducials_files, _point_cloud_error)
 from ..utils import get_subjects_dir, logger, set_config
+from ._backend import _testing_mode
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, InstSource, SubjectSelectorPanel
-from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
-                      _testing_mode)
+from ._viewer import defaults, HeadViewController, PointObject, SurfaceObject
 
 
 laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float)

@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import os
 import numpy as np
 
 from mayavi.mlab import pipeline, text3d
@@ -20,6 +19,7 @@ from traitsui.api import View, Item, HGroup, VGrid, VGroup
 
 from ..surface import complete_surface_info
 from ..transforms import apply_trans
+from ._backend import _testing_mode
 
 
 headview_item = Item('headview', style='custom', show_label=False)
@@ -30,11 +30,6 @@ defaults = {'mri_fid_scale': 1e-2, 'hsp_fid_scale': 3e-2,
             'mri_color': (252, 227, 191), 'hsp_point_color': (255, 255, 255),
             'lpa_color': (255, 0, 0), 'nasion_color': (0, 255, 0),
             'rpa_color': (0, 0, 255)}
-
-
-def _testing_mode():
-    """Helper to determine if we're running tests."""
-    return (os.getenv('_MNE_GUI_TESTING_MODE', '') == 'true')
 
 
 class HeadViewController(HasTraits):

@@ -136,32 +136,34 @@ def test_coreg_model():
 
 @testing.requires_testing_data
 @requires_mayavi
-def test_coreg_frame():
+def test_coreg_gui():
     """Test CoregFrame."""
-    from mne.gui._coreg_gui import CoregFrame
+    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
+    try:
+        assert_raises(ValueError, mne.gui.coregistration, subject='Elvis',
+                      subjects_dir=subjects_dir)
 
-    assert_raises(ValueError, CoregFrame, raw_path, 'Elvis', subjects_dir)
+        with warnings.catch_warnings(record=True):  # traits spews warnings
+            warnings.simplefilter('always')
 
-    with warnings.catch_warnings(record=True):  # traits spews warnings
-        warnings.simplefilter('always')
+            # avoid modal dialog if SUBJECTS_DIR is set to a directory that
+            # does not contain valid subjects
+            frame = mne.gui.coregistration(subjects_dir='')
 
-        # avoid modal dialog if SUBJECTS_DIR is set to a directory that does
-        # not contain valid subjects
-        frame = CoregFrame(subjects_dir='')
-        frame.edit_traits()
+            frame.model.mri.subjects_dir = subjects_dir
+            frame.model.mri.subject = 'sample'
 
-        frame.model.mri.subjects_dir = subjects_dir
-        frame.model.mri.subject = 'sample'
+            assert_false(frame.model.mri.fid_ok)
+            frame.model.mri.lpa = [[-0.06, 0, 0]]
+            frame.model.mri.nasion = [[0, 0.05, 0]]
+            frame.model.mri.rpa = [[0.08, 0, 0]]
+            assert_true(frame.model.mri.fid_ok)
 
-        assert_false(frame.model.mri.fid_ok)
-        frame.model.mri.lpa = [[-0.06, 0, 0]]
-        frame.model.mri.nasion = [[0, 0.05, 0]]
-        frame.model.mri.rpa = [[0.08, 0, 0]]
-        assert_true(frame.model.mri.fid_ok)
+            frame.model.grow_hair = 4.
 
-        frame.model.grow_hair = 4.
-
-        frame.raw_src.file = raw_path
+            frame.raw_src.file = raw_path
+    finally:
+        del os.environ['_MNE_GUI_TESTING_MODE']
 
 
 @testing.requires_testing_data
