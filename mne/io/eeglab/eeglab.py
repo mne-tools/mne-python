@@ -60,6 +60,7 @@ def _to_loc(ll):
 
 def _get_info(eeg, montage, eog=()):
     """Get measurement info."""
+    from scipy import io
     info = _empty_info(sfreq=eeg.srate)
     update_ch_names = True
 
@@ -69,12 +70,20 @@ def _get_info(eeg, montage, eog=()):
             eeg.chanlocs = [eeg.chanlocs]
 
     if len(eeg.chanlocs) > 0:
+        pos_fields = ['X', 'Y', 'Z']
+        if (isinstance(eeg.chanlocs, np.ndarray) and not
+            isinstance(eeg.chanlocs[0], io.matlab.mio5_params.mat_struct)):
+            has_pos = all([fld in eeg.chanlocs[0].dtype.names
+                           for fld in pos_fields])
+        else:
+            has_pos = all([hasattr(eeg.chanlocs[0], fld) for fld in pos_fields])
+        get_pos = has_pos and montage is None
         pos_ch_names, ch_names, pos = list(), list(), list()
         kind = 'user_defined'
         update_ch_names = False
         for chanloc in eeg.chanlocs:
             ch_names.append(chanloc.labels)
-            if montage is None:
+            if get_pos:
                 loc_x = _to_loc(chanloc.X)
                 loc_y = _to_loc(chanloc.Y)
                 loc_z = _to_loc(chanloc.Z)
