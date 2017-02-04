@@ -6,6 +6,7 @@
 
 from collections import Counter
 import os
+from warnings import warn
 
 import numpy as np
 from scipy.linalg import inv
@@ -13,7 +14,7 @@ from threading import Thread
 
 from ..externals.six.moves import queue
 from ..io.meas_info import _read_dig_points, _make_dig_points
-from ..utils import logger
+from ..utils import get_config, set_config, logger
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
@@ -416,6 +417,19 @@ class Kit2FiffFrameHandler(Handler):
             information(None, msg, title)
             return False
         else:
+            # store configuration, but don't prevent from closing on error
+            try:
+                set_config('MNE_KIT2FIFF_STIM_CHANNELS',
+                           info.object.model.stim_chs, set_env=False)
+                set_config('MNE_KIT2FIFF_STIM_CHANNEL_CODING',
+                           info.object.model.stim_coding, set_env=False)
+                set_config('MNE_KIT2FIFF_STIM_CHANNEL_SLOPE',
+                           info.object.model.stim_slope, set_env=False)
+                set_config('MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD',
+                           str(info.object.model.stim_threshold), set_env=False)
+            except Exception as error:
+                print("Error saving GUI configuration:\n%s" % (error,))
+
             return True
 
 
@@ -631,7 +645,7 @@ class Kit2FiffPanel(HasPrivateTraits):
 class Kit2FiffFrame(HasTraits):
     """GUI for interpolating between two KIT marker files."""
 
-    model = Instance(Kit2FiffModel, kw={'show_gui': True})
+    model = Instance(Kit2FiffModel)
     scene = Instance(MlabSceneModel, ())
     headview = Instance(HeadViewController)
     marker_panel = Instance(CombineMarkersPanel)
@@ -650,6 +664,35 @@ class Kit2FiffFrame(HasTraits):
                        ),
                 handler=Kit2FiffFrameHandler(),
                 height=700, resizable=True, buttons=NoButtons)
+
+    # can't be static method due to Traits
+    def _model_default(self):
+        # load configuration values and make sure they're valid
+        config = get_config()
+        stim_threshold = 1.
+        if 'MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD' in config:
+            try:
+                stim_threshold = float(config['MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD'])
+            except ValueError:
+                warn("Ignoring invalid configuration value for "
+                     "MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD: %r (expected float)" %
+                     (config['MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD'], ))
+        stim_slope = config.get('MNE_KIT2FIFF_STIM_CHANNEL_SLOPE', '-')
+        if stim_slope not in '+-':
+            warn("Ignoring invalid configuration value for "
+                 "MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD: %s (expected + or -)" % stim_slope)
+            stim_slope = '-'
+        stim_coding = config.get('MNE_KIT2FIFF_STIM_CHANNEL_CODING', '>')
+        if stim_coding not in ('<', '>', 'channel'):
+            warn("Ignoring invalid configuration value for "
+                 "MNE_KIT2FIFF_STIM_CHANNEL_CODING: %s (expected <, > or channel)" % stim_coding)
+            stim_coding = '>'
+        return Kit2FiffModel(
+            stim_chs=config.get('MNE_KIT2FIFF_STIM_CHANNELS', ''),
+            stim_coding=stim_coding,
+            stim_slope=stim_slope,
+            stim_threshold=stim_threshold,
+            show_gui=True)
 
     def _headview_default(self):
         return HeadViewController(scene=self.scene, scale=160, system='RAS')
