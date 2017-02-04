@@ -1,4 +1,5 @@
 # Author: Mainak Jas <mainak.jas@telecom-paristech.fr>
+#         Mikolaj Magnuski <mmagnuski@swps.edu.pl>
 #
 # License: BSD (3-clause)
 
