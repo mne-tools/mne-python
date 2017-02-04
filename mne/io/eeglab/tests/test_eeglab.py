@@ -187,10 +187,10 @@ def test_io_set():
     nopos_chanlocs = chanlocs[['labels', 'Z']]
     nopos_fname = op.join(temp_dir, 'test_no_chanpos.set')
     io.savemat(nopos_fname, {'EEG':
-               {'trials': eeg.trials, 'srate': eeg.srate,
-                'nbchan': 3, 'data': np.random.random((3, 2)),
-                'epoch': eeg.epoch, 'event': eeg.epoch,
-                'chanlocs': nopos_chanlocs, 'times': eeg.times[:2], 'pnts': 2}})
+               {'trials': eeg.trials, 'srate': eeg.srate, 'nbchan': 3,
+                'data': np.random.random((3, 2)), 'epoch': eeg.epoch,
+                'event': eeg.epoch, 'chanlocs': nopos_chanlocs,
+                'times': eeg.times[:2], 'pnts': 2}})
     # load the file
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -199,7 +199,7 @@ def test_io_set():
     for i in range(3):
         assert_equal(raw.info['chs'][i]['ch_name'], ch_names[i])
         assert_array_equal(raw.info['chs'][i]['loc'][:3],
-                           np.array([0., 0., 0.,]))
+                           np.array([0., 0., 0.]))
 
     # test if .dat file raises an error
     eeg = io.loadmat(epochs_fname, struct_as_record=False,
