@@ -118,14 +118,29 @@ def test_kit2fiff_model():
 @requires_mayavi
 def test_kit2fiff_gui():
     """Test Kit2Fiff GUI."""
+    home_dir = _TempDir()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
+    os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
     try:
         with warnings.catch_warnings(record=True):  # traits warnings
             warnings.simplefilter('always')
-            frame = mne.gui.kit2fiff()
+            ui, frame = mne.gui.kit2fiff()
             assert_false(frame.model.can_save)
+            assert_equal(frame.model.stim_threshold, 1.)
+            frame.model.stim_threshold = 10.
+            frame.model.stim_chs = 'save this!'
+            # ui.dispose() should close the Traits-UI but opens modal dialogs
+            # which interupt tests. This workaround triggers saving of
+            # configurations without closing the window:
+            frame.save_config(home_dir)
+
+            # test setting persistence
+            ui, frame = mne.gui.kit2fiff()
+            assert_equal(frame.model.stim_threshold, 10.)
+            assert_equal(frame.model.stim_chs, 'save this!')
     finally:
         del os.environ['_MNE_GUI_TESTING_MODE']
+        del os.environ['_MNE_FAKE_HOME_DIR']
 
 
 run_tests_if_main()

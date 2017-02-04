@@ -4,6 +4,8 @@
 #
 # License: BSD (3-clause)
 
+import os
+
 from ..utils import _check_mayavi_version, verbose, get_config
 from ._backend import _testing_mode
 
@@ -85,7 +87,7 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     subjects for which no MRI is available
     <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
-    config = get_config()
+    config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     prepare_bem = config.get('MNE_COREG_PREPARE_BEM', 'True') == 'True'
     if head_high_res is None:
         head_high_res = config.get('MNE_COREG_HEAD_HIGH_RES', 'True') == 'True'
@@ -103,13 +105,13 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     _check_backend()
     from ._coreg_gui import CoregFrame, _make_view
     view = _make_view(tabbed, split, scene_width, scene_height)
-    gui = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
-                     head_opacity, head_high_res, prepare_bem)
-    if _testing_mode():
-        gui.edit_traits(view=view)  # open without entering mainloop
+    frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
+                       head_opacity, head_high_res, prepare_bem)
+    if _testing_mode():  # open without entering mainloop
+        return frame.edit_traits(view=view), frame
     else:
-        gui.configure_traits(view=view)
-    return gui
+        frame.configure_traits(view=view)
+        return frame
 
 
 def fiducials(subject=None, fid_file=None, subjects_dir=None):
@@ -151,9 +153,9 @@ def kit2fiff():
     from ._backend import _check_backend
     _check_backend()
     from ._kit2fiff_gui import Kit2FiffFrame
-    gui = Kit2FiffFrame()
-    if _testing_mode():
-        gui.edit_traits()  # open without entering mainloop
+    frame = Kit2FiffFrame()
+    if _testing_mode():  # open without entering mainloop
+        return frame.edit_traits(), frame
     else:
-        gui.configure_traits()
-    return gui
+        frame.configure_traits()
+        return frame

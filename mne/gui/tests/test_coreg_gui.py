@@ -138,7 +138,9 @@ def test_coreg_model():
 @requires_mayavi
 def test_coreg_gui():
     """Test CoregFrame."""
+    home_dir = _TempDir()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
+    os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
     try:
         assert_raises(ValueError, mne.gui.coregistration, subject='Elvis',
                       subjects_dir=subjects_dir)
@@ -148,7 +150,7 @@ def test_coreg_gui():
 
             # avoid modal dialog if SUBJECTS_DIR is set to a directory that
             # does not contain valid subjects
-            frame = mne.gui.coregistration(subjects_dir='')
+            ui, frame = mne.gui.coregistration(subjects_dir='')
 
             frame.model.mri.subjects_dir = subjects_dir
             frame.model.mri.subject = 'sample'
@@ -158,12 +160,23 @@ def test_coreg_gui():
             frame.model.mri.nasion = [[0, 0.05, 0]]
             frame.model.mri.rpa = [[0.08, 0, 0]]
             assert_true(frame.model.mri.fid_ok)
-
-            frame.model.grow_hair = 4.
-
             frame.raw_src.file = raw_path
+
+            # grow hair (high-res head has no norms)
+            assert_true(frame.model.mri.use_high_res_head)
+            frame.model.mri.use_high_res_head = False
+            frame.model.grow_hair = 40.
+
+            # configuration persistence
+            assert_true(frame.model.prepare_bem_model)
+            frame.model.prepare_bem_model = False
+            frame.save_config(home_dir)
+            ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir)
+            assert_false(frame.model.prepare_bem_model)
+            assert_false(frame.model.mri.use_high_res_head)
     finally:
         del os.environ['_MNE_GUI_TESTING_MODE']
+        del os.environ['_MNE_FAKE_HOME_DIR']
 
 
 @testing.requires_testing_data

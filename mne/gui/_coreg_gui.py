@@ -229,7 +229,7 @@ class CoregModel(HasPrivateTraits):
                 points[hair] += self.mri.norms[hair] * scaled_hair_dist
                 return points
             else:
-                error(None, "Norms missing form bem, can't grow hair")
+                error(None, "Norms missing from bem, can't grow hair")
                 self.grow_hair = 0
         return self.mri.points
 
@@ -551,20 +551,9 @@ class CoregFrameHandler(Handler):
         else:
             # store configuration, but don't prevent from closing on error
             try:
-                set_config('MNE_COREG_GUESS_MRI_SUBJECT',
-                           str(info.object.model.guess_mri_subject),
-                           set_env=False)
-                set_config('MNE_COREG_PREPARE_BEM',
-                           str(info.object.model.prepare_bem_model),
-                           set_env=False)
-                set_config('MNE_COREG_HEAD_HIGH_RES',
-                           str(info.object.model.mri.use_high_res_head),
-                           set_env=False)
-                set_config('MNE_COREG_HEAD_OPACITY',
-                           str(info.object.mri_obj.opacity), set_env=False)
-            except Exception as error:
-                print("Error saving GUI configuration:\n%s" % (error,))
-
+                info.object.save_config()
+            except Exception as exc:
+                warnings.warn("Error saving GUI configuration:\n%s" % (exc,))
             return True
 
 
@@ -1428,3 +1417,18 @@ class CoregFrame(HasTraits):
 
     def _view_options_fired(self):
         self.view_options_panel.edit_traits()
+
+    def save_config(self, home_dir=None):
+        "Write configuration values"
+        set_config('MNE_COREG_GUESS_MRI_SUBJECT',
+                   str(self.model.guess_mri_subject),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_PREPARE_BEM',
+                   str(self.model.prepare_bem_model),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_HEAD_HIGH_RES',
+                   str(self.model.mri.use_high_res_head),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_HEAD_OPACITY',
+                   str(self.mri_obj.opacity),
+                   home_dir, set_env=False)

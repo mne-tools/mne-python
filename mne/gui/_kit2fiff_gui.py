@@ -419,17 +419,9 @@ class Kit2FiffFrameHandler(Handler):
         else:
             # store configuration, but don't prevent from closing on error
             try:
-                set_config('MNE_KIT2FIFF_STIM_CHANNELS',
-                           info.object.model.stim_chs, set_env=False)
-                set_config('MNE_KIT2FIFF_STIM_CHANNEL_CODING',
-                           info.object.model.stim_coding, set_env=False)
-                set_config('MNE_KIT2FIFF_STIM_CHANNEL_SLOPE',
-                           info.object.model.stim_slope, set_env=False)
-                set_config('MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD',
-                           str(info.object.model.stim_threshold), set_env=False)
-            except Exception as error:
-                print("Error saving GUI configuration:\n%s" % (error,))
-
+                info.object.save_config()
+            except Exception as exc:
+                warn("Error saving GUI configuration:\n%s" % (exc,))
             return True
 
 
@@ -668,7 +660,7 @@ class Kit2FiffFrame(HasTraits):
     # can't be static method due to Traits
     def _model_default(self):
         # load configuration values and make sure they're valid
-        config = get_config()
+        config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
         stim_threshold = 1.
         if 'MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD' in config:
             try:
@@ -703,3 +695,14 @@ class Kit2FiffFrame(HasTraits):
     def _marker_panel_default(self):
         return CombineMarkersPanel(scene=self.scene, model=self.model.markers,
                                    trans=als_ras_trans)
+
+    def save_config(self, home_dir=None):
+        "Write configuration values"
+        set_config('MNE_KIT2FIFF_STIM_CHANNELS', self.model.stim_chs, home_dir,
+                   set_env=False)
+        set_config('MNE_KIT2FIFF_STIM_CHANNEL_CODING', self.model.stim_coding,
+                   home_dir, set_env=False)
+        set_config('MNE_KIT2FIFF_STIM_CHANNEL_SLOPE', self.model.stim_slope,
+                   home_dir, set_env=False)
+        set_config('MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD',
+                   str(self.model.stim_threshold), home_dir, set_env=False)
