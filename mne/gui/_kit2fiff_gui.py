@@ -664,20 +664,24 @@ class Kit2FiffFrame(HasTraits):
         stim_threshold = 1.
         if 'MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD' in config:
             try:
-                stim_threshold = float(config['MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD'])
+                stim_threshold = float(
+                    config['MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD'])
             except ValueError:
                 warn("Ignoring invalid configuration value for "
-                     "MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD: %r (expected float)" %
-                     (config['MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD'], ))
+                     "MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD: %r (expected "
+                     "float)" %
+                     (config['MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD'],))
         stim_slope = config.get('MNE_KIT2FIFF_STIM_CHANNEL_SLOPE', '-')
         if stim_slope not in '+-':
             warn("Ignoring invalid configuration value for "
-                 "MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD: %s (expected + or -)" % stim_slope)
+                 "MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD: %s (expected + or -)" %
+                 stim_slope)
             stim_slope = '-'
         stim_coding = config.get('MNE_KIT2FIFF_STIM_CHANNEL_CODING', '>')
         if stim_coding not in ('<', '>', 'channel'):
             warn("Ignoring invalid configuration value for "
-                 "MNE_KIT2FIFF_STIM_CHANNEL_CODING: %s (expected <, > or channel)" % stim_coding)
+                 "MNE_KIT2FIFF_STIM_CHANNEL_CODING: %s (expected <, > or "
+                 "channel)" % stim_coding)
             stim_coding = '>'
         return Kit2FiffModel(
             stim_chs=config.get('MNE_KIT2FIFF_STIM_CHANNELS', ''),
