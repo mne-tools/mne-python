@@ -1419,16 +1419,16 @@ class CoregFrame(HasTraits):
         self.view_options_panel.edit_traits()
 
     def save_config(self, home_dir=None):
-        "Write configuration values"
+        """Write configuration values."""
         set_config('MNE_COREG_GUESS_MRI_SUBJECT',
-                   str(self.model.guess_mri_subject),
-                   home_dir, set_env=False)
-        set_config('MNE_COREG_PREPARE_BEM',
-                   str(self.model.prepare_bem_model),
+                   str(self.model.guess_mri_subject).lower(),
                    home_dir, set_env=False)
         set_config('MNE_COREG_HEAD_HIGH_RES',
-                   str(self.model.mri.use_high_res_head),
+                   str(self.model.mri.use_high_res_head).lower(),
                    home_dir, set_env=False)
         set_config('MNE_COREG_HEAD_OPACITY',
                    str(self.mri_obj.opacity),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_PREPARE_BEM',
+                   str(self.model.prepare_bem_model).lower(),
                    home_dir, set_env=False)

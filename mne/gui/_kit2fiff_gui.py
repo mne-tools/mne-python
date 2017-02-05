@@ -701,7 +701,7 @@ class Kit2FiffFrame(HasTraits):
                                    trans=als_ras_trans)
 
     def save_config(self, home_dir=None):
-        "Write configuration values"
+        """Write configuration values."""
         set_config('MNE_KIT2FIFF_STIM_CHANNELS', self.model.stim_chs, home_dir,
                    set_env=False)
         set_config('MNE_KIT2FIFF_STIM_CHANNEL_CODING', self.model.stim_coding,

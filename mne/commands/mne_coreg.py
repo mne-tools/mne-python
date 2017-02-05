@@ -29,7 +29,7 @@ def run():
                       "the data source panel and the coregistration panel "
                       "into a single panel with tabs.")
     parser.add_option("--no-guess-mri", dest="guess_mri_subject",
-                      action='store_false', default=True,
+                      action='store_false', default=None,
                       help="Prevent the GUI from automatically guessing and "
                       "changing the MRI subject when a new head shape source "
                       "file is selected.")

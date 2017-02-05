@@ -30,5 +30,5 @@ def _check_backend():
 
 
 def _testing_mode():
-    """Helper to determine if we're running tests."""
+    """Determine if we're running tests."""
     return os.getenv('_MNE_GUI_TESTING_MODE', '') == 'true'

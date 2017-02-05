@@ -129,9 +129,9 @@ def test_kit2fiff_gui():
             assert_equal(frame.model.stim_threshold, 1.)
             frame.model.stim_threshold = 10.
             frame.model.stim_chs = 'save this!'
-            # ui.dispose() should close the Traits-UI but opens modal dialogs
-            # which interupt tests. This workaround triggers saving of
-            # configurations without closing the window:
+            # ui.dispose() should close the Traits-UI, but it opens modal
+            # dialogs which interrupt the tests. This workaround triggers
+            # saving of configurations without closing the window:
             frame.save_config(home_dir)
 
             # test setting persistence

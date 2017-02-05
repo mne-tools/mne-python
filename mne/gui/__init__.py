@@ -28,7 +28,7 @@ def combine_kit_markers():
 
 @verbose
 def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
-                   subject=None, subjects_dir=None, guess_mri_subject=True,
+                   subject=None, subjects_dir=None, guess_mri_subject=None,
                    scene_height=None, head_opacity=None, head_high_res=None,
                    verbose=None):
     """Coregister an MRI with a subject's head shape.
@@ -88,9 +88,12 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
-    prepare_bem = config.get('MNE_COREG_PREPARE_BEM', 'True') == 'True'
+    prepare_bem = config.get('MNE_COREG_PREPARE_BEM', 'true') == 'true'
+    if guess_mri_subject is None:
+        guess_mri_subject = config.get(
+            'MNE_COREG_GUESS_MRI_SUBJECT', 'true') == 'true'
     if head_high_res is None:
-        head_high_res = config.get('MNE_COREG_HEAD_HIGH_RES', 'True') == 'True'
+        head_high_res = config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true'
     if head_opacity is None:
         head_opacity = config.get('MNE_COREG_HEAD_OPACITY', 1.)
     if scene_width is None:
