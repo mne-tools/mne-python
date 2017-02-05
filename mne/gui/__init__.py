@@ -10,6 +10,15 @@ from ..utils import _check_mayavi_version, verbose, get_config
 from ._backend import _testing_mode
 
 
+def _initialize_gui(frame, view=None):
+    """Initialize GUI depending on testing mode."""
+    if _testing_mode():  # open without entering mainloop
+        return frame.edit_traits(view=view), frame
+    else:
+        frame.configure_traits(view=view)
+        return frame
+
+
 def combine_kit_markers():
     """Create a new KIT marker file by interpolating two marker files.
 
@@ -21,9 +30,8 @@ def combine_kit_markers():
     from ._backend import _check_backend
     _check_backend()
     from ._marker_gui import CombineMarkersFrame
-    gui = CombineMarkersFrame()
-    gui.configure_traits()
-    return gui
+    frame = CombineMarkersFrame()
+    return _initialize_gui(frame)
 
 
 @verbose
@@ -110,11 +118,7 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     view = _make_view(tabbed, split, scene_width, scene_height)
     frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
                        head_opacity, head_high_res, prepare_bem)
-    if _testing_mode():  # open without entering mainloop
-        return frame.edit_traits(view=view), frame
-    else:
-        frame.configure_traits(view=view)
-        return frame
+    return _initialize_gui(frame, view)
 
 
 def fiducials(subject=None, fid_file=None, subjects_dir=None):
@@ -139,9 +143,8 @@ def fiducials(subject=None, fid_file=None, subjects_dir=None):
     from ._backend import _check_backend
     _check_backend()
     from ._fiducials_gui import FiducialsFrame
-    gui = FiducialsFrame(subject, subjects_dir, fid_file=fid_file)
-    gui.configure_traits()
-    return gui
+    frame = FiducialsFrame(subject, subjects_dir, fid_file=fid_file)
+    return _initialize_gui(frame)
 
 
 def kit2fiff():
@@ -157,8 +160,4 @@ def kit2fiff():
     _check_backend()
     from ._kit2fiff_gui import Kit2FiffFrame
     frame = Kit2FiffFrame()
-    if _testing_mode():  # open without entering mainloop
-        return frame.edit_traits(), frame
-    else:
-        frame.configure_traits()
-        return frame
+    return _initialize_gui(frame)
