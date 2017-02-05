@@ -16,7 +16,7 @@ from copy import deepcopy
 import numpy as np
 
 from ..io.pick import (channel_type, pick_types, _picks_by_type,
-                       _pick_data_channels, _DATA_CH_TYPES_SPLIT)
+                       _pick_data_channels)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
@@ -1472,7 +1472,11 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     ch_types = list(set(channel_type(example.info, pick_)
                     for pick_ in picks))
     # XXX: could possibly be refactored; plot_joint is doing a similar thing
-    if any([type_ not in _DATA_CH_TYPES_SPLIT for type_ in ch_types]):
+    # Valid data types ordered for consistency (same as _plot_evoked)
+    valid_channel_types = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
+                           'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr',
+                           'misc']
+    if any([type_ not in valid_channel_types for type_ in ch_types]):
         raise ValueError("Non-data channel picked.")
     if len(ch_types) > 1:
         warn("Multiple channel types selected, returning one figure per type.")
