@@ -1,3 +1,4 @@
+doc/sphinxext/cachedir
 *.pyc
 *.pyo
 *.sh
