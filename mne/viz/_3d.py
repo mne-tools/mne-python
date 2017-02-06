@@ -15,9 +15,11 @@ from distutils.version import LooseVersion
 from itertools import cycle
 import os.path as op
 import warnings
+from functools import partial
 
 import numpy as np
 from scipy import linalg
+import nibabel as nib
 
 from ..defaults import DEFAULTS
 from ..externals.six import BytesIO, string_types, advance_iterator
@@ -1490,3 +1492,110 @@ def _get_view_to_display_matrix(scene):
                                  [0.,            0.,   1.,        0.],
                                  [0.,            0.,   0.,        1.]])
     return view_to_disp_mat
+
+
+def plot_dipole_3d(dipole, t1_fname, trans, scale_factor=1e9, block=False,
+                   show=True):
+    """Plot dipoles in 3-D.
+
+    Parameters
+    ----------
+    dipole : instance of mne.Dipole
+        The dipole to plot.
+    t1_fname : str
+        Path to the T1 image.
+    trans : dict
+        The mri to head trans.
+    scale_factor : float
+        The scaling applied to convert amplitudes to voxel sizes for the plot.
+        Defaults to 1e9.
+    block : bool
+        Whether to halt program execution until the figure is closed. Defaults
+        to False.
+    show : bool
+        Show figure if True. Defaults to True.
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        The figure containing 3-D locations of the dipoles.
+    """
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D  # noqa
+
+    t1 = nib.load(t1_fname)
+    ras2vox = t1.get_header().get_ras2vox()
+    data = t1.get_data()
+    dims = len(data)  # Symmetric size assumed.
+    gridx, gridy = np.meshgrid(np.linspace(0, dims, dims),
+                               np.linspace(0, dims, dims))
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlim((dims, 0))  # To RAS coordinates.
+    ax.set_ylim((dims, 0))
+    ax.set_zlim((0, dims))
+
+    trans = _get_trans(trans)[0]
+    points = [apply_trans(np.linalg.inv(trans['trans']), loc) for loc
+              in dipole.pos]  # MEG -> MRI
+    ori = [apply_trans(np.linalg.inv(trans['trans']), o) for o in dipole.ori]
+
+    # Position in meters -> voxels.
+    points = np.array([apply_trans(ras2vox, loc * 1000.) for loc in points])
+
+    _plot_dipole(ax, data, points, 0, dipole, gridx, gridy, ori, scale_factor)
+    params = {'ax': ax, 'data': data, 'idx': 0, 'dipole': dipole,
+              'points': points, 'gridx': gridx, 'gridy': gridy, 'ori': ori,
+              'scale_factor': scale_factor}
+    ax.view_init(elev=30, azim=-140)
+
+    scroll_func = partial(_dipole_changed, params=params)
+    fig.canvas.mpl_connect('scroll_event', scroll_func)
+
+    plt_show(show, block=block)
+    return fig
+
+
+def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori,
+                 scale_factor):
+    """Plot dipoles."""
+    import matplotlib.pyplot as plt
+    xidx = int(round(points[idx, 0]))
+    yidx = int(round(points[idx, 1]))
+    zidx = int(round(points[idx, 2]))
+    ax.contourf(data[xidx][::-1], gridx, gridy, offset=0, zdir='x',
+                cmap='gray', zorder=0, alpha=0.5)
+    ax.contourf(gridx, gridy, data[:, yidx][::-1].T, offset=0, zdir='z',
+                cmap='gray', zorder=0, alpha=0.5)
+    ax.contourf(gridx, data[:, :, zidx][::-1].T[::-1], gridy, offset=0,
+                zdir='y', cmap='gray', zorder=0, alpha=0.5)
+    xyz = points[idx].copy()
+    xyz[0] = data.shape[0] - points[idx, 0]
+    xyz[1] = data.shape[1] - points[idx, 1]
+    ax.scatter(xs=xyz[0], ys=xyz[2], zs=xyz[1], zorder=1)
+
+    point, ori, amp = xyz, ori[idx], dipole.amplitude[idx]
+    ax.plot(range(int(point[0])), np.repeat(point[2], int(point[0])),
+            zs=point[1], zorder=1, linestyle='-')
+    ax.plot(np.repeat(point[0], int(point[2])), range(int(point[2])),
+            zs=point[1], zorder=1, linestyle='-')
+    ax.plot(np.repeat(point[0], int(point[1])),
+            np.repeat(point[2], int(point[1])), zs=range(int(point[1])),
+            zorder=1, linestyle='-')
+    ax.quiver(point[0], point[2], point[1], ori[0], ori[1], ori[2],
+              length=amp * scale_factor, pivot='tail')
+    plt.draw()
+
+
+def _dipole_changed(event, params):
+    """Callback for dipole plotter scroll event."""
+    if event.step > 0:
+        params['idx'] += 1
+    else:
+        params['idx'] -= 1
+    params['idx'] = min(max(0, params['idx']), len(params['dipole'].pos) - 1)
+    params['ax'].clear()
+    _plot_dipole(params['ax'], params['data'], params['points'], params['idx'],
+                 params['dipole'], params['gridx'], params['gridy'],
+                 params['ori'], params['scale_factor'])
