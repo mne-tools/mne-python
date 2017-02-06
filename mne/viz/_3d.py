@@ -1542,13 +1542,9 @@ def plot_dipole_3d(dipole, trans, subject, subjects_dir=None, scale_factor=1e9,
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.set_xlim((dims, 0))  # To RAS coordinates.
-    ax.set_ylim((dims, 0))
-    ax.set_zlim((0, dims))
 
-    trans = _get_trans(trans)[0]
-    points = [apply_trans(np.linalg.inv(trans['trans']), loc) for loc
-              in dipole.pos]  # MEG -> MRI
+    trans = _get_trans(trans, fro='head', to='mri')[0]
+    points = [apply_trans(trans['trans'], loc) for loc in dipole.pos]
     ori = [apply_trans(np.linalg.inv(trans['trans']), o) for o in dipole.ori]
 
     # Position in meters -> voxels.
@@ -1602,6 +1598,10 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori,
               length=amp * scale_factor, pivot='tail')
     plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.3f' % (idx, dipole.times[idx],
                                                         dipole.gof[idx]))
+
+    ax.set_xlim((len(data), 0))  # Set axis lims to RAS coordinates.
+    ax.set_ylim((len(data), 0))
+    ax.set_zlim((0, len(data)))
     plt.draw()
 
 
