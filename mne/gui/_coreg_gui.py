@@ -33,7 +33,7 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _find_fiducials_files, _point_cloud_error)
-from ..utils import get_subjects_dir, logger, set_config
+from ..utils import logger, set_config
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, InstSource, SubjectSelectorPanel
 from ._viewer import defaults, HeadViewController, PointObject, SurfaceObject
@@ -1265,7 +1265,6 @@ class CoregFrame(HasTraits):
                 "and 1, got %r" % (head_opacity,))
         self._initial_head_opacity = head_opacity
 
-        subjects_dir = get_subjects_dir(subjects_dir)
         if (subjects_dir is not None) and os.path.isdir(subjects_dir):
             self.model.mri.subjects_dir = subjects_dir
 
@@ -1432,3 +1431,7 @@ class CoregFrame(HasTraits):
         set_config('MNE_COREG_PREPARE_BEM',
                    str(self.model.prepare_bem_model).lower(),
                    home_dir, set_env=False)
+        if self.model.mri.subjects_dir:
+            set_config('MNE_COREG_SUBJECTS_DIR',
+                       self.model.mri.subjects_dir,
+                       home_dir, set_env=False)

@@ -108,6 +108,11 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
         scene_width = config.get('MNE_COREG_SCENE_WIDTH', 500)
     if scene_height is None:
         scene_height = config.get('MNE_COREG_SCENE_HEIGHT', 400)
+    if subjects_dir is None:
+        if 'SUBJECTS_DIR' in config:
+            subjects_dir = config['SUBJECTS_DIR']
+        elif 'MNE_COREG_SUBJECTS_DIR' in config:
+            subjects_dir = config['MNE_COREG_SUBJECTS_DIR']
     head_opacity = float(head_opacity)
     scene_width = int(scene_width)
     scene_height = int(scene_height)
