@@ -19,9 +19,10 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
-                     plot_trans, snapshot_brain_montage)
+                     plot_trans, snapshot_brain_montage, plot_dipole_3d)
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
-                       _import_mlab, _TempDir)
+                       _import_mlab, _TempDir, requires_version,
+                       requires_nibabel)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 
@@ -256,8 +257,25 @@ def test_plot_dipole_locations():
                   subjects_dir, mode='foo')
 
 
+@testing.requires_testing_data
+@requires_version('matplotlib', '1.4')
+@requires_nibabel
+def test_plot_dipole_3d():
+    """Test mpl dipole plotting."""
+    dipoles = read_dipole(dip_fname)
+    trans = read_trans(trans_fname)
+    fig = plot_dipole_3d(dipoles, trans, 'sample', subjects_dir)
+    fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
+    fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event('a')  # some other key
+    matplotlib.pyplot.close('all')
+
+
 @requires_mayavi
 def test_snapshot_brain_montage():
+    """Test snapshot brain montage."""
     info = read_info(evoked_fname)
     fig = plot_trans(info, trans=None, subject='sample',
                      subjects_dir=subjects_dir)
@@ -275,5 +293,6 @@ def test_snapshot_brain_montage():
 
     # Make sure we raise error if the figure has no scene
     assert_raises(TypeError, snapshot_brain_montage, fig, info)
+
 
 run_tests_if_main()
