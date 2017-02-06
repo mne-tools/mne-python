@@ -177,7 +177,7 @@ print(events[:5])
 mne.set_config('MNE_STIM_CHANNEL', 'STI101', set_env=True)
 
 ##############################################################################
-# Events are stored as 2D numpy array where the first column is the time
+# Events are stored as a 2D numpy array where the first column is the time
 # instant and the last one is the event number. It is therefore easy to
 # manipulate.
 #
