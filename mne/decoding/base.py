@@ -742,6 +742,7 @@ def _make_scorer(scoring):
         If str, must be compatible with sklearn sklearn's get_scorer.
         If callable, function with signature ``score_func(y, y_pred,
         **kwargs)``.
+
     Returns
     -------
     scorer : callable | None
@@ -760,7 +761,7 @@ def _make_scorer(scoring):
 
 
 def _get_inverse_funcs(estimator, terminal=True):
-    """Retrieve the inverse functions of an pipeline or an estimator"""
+    """Retrieve the inverse functions of an pipeline or an estimator."""
     inverse_func = [False]
     if hasattr(estimator, 'steps'):
         # if pipeline, retrieve all steps by nesting
@@ -812,7 +813,7 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     .. [1] Haufe, S., Meinecke, F., Gorgen, K., Dahne, S., Haynes, J.-D.,
        Blankertz, B., & Biessmann, F. (2014). On the interpretation of weight
        vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
-       96-110. doi:10.1016/j.neuroimage.2013.10.067
+       96-110. doi:10.1016/j.neuroimage.2013.10.067.
     """
     # If searchlight, loop across estimators
     if hasattr(estimator, 'estimators_'):
