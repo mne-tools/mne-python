@@ -662,7 +662,7 @@ class EvokedArray(Evoked):
     Parameters
     ----------
     data : array of shape (n_channels, n_times)
-        The channels' evoked response.
+        The channels' evoked response. See notes for proper units of measure.
     info : instance of Info
         Info dictionary. Consider using ``create_info`` to populate
         this structure.
@@ -677,6 +677,16 @@ class EvokedArray(Evoked):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    Proper units of measure:
+    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * T: mag
+    * T/m: grad
+    * M: hbo, hbr
+    * Am: dipole
+    * AU: misc
 
     See Also
     --------
