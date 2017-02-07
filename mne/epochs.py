@@ -1933,7 +1933,8 @@ class EpochsArray(BaseEpochs):
     Parameters
     ----------
     data : array, shape (n_epochs, n_channels, n_times)
-        The channels' time series for each epoch.
+        The channels' time series for each epoch. See notes for proper units of
+        measure.
     info : instance of Info
         Info dictionary. Consider using ``create_info`` to populate
         this structure.
@@ -1989,6 +1990,16 @@ class EpochsArray(BaseEpochs):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    Proper units of measure:
+    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * T: mag
+    * T/m: grad
+    * M: hbo, hbr
+    * Am: dipole
+    * AU: misc
 
     See Also
     --------
