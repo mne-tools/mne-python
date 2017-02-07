@@ -14,8 +14,8 @@ from ..io.open import fiff_open
 from ..io.tag import find_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
-from ..io.proj import _read_proj, make_projector, _write_proj
-from ..io.proj import _needs_eeg_average_ref_proj
+from ..io.proj import (_read_proj, make_projector, _write_proj,
+                       _needs_eeg_average_ref_proj)
 from ..io.tree import dir_tree_find
 from ..io.write import (write_int, write_float_matrix, start_file,
                         start_block, end_block, end_file, write_float,
@@ -618,7 +618,6 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
             #   per source location
             #
             noise_norm = combine_xyz(noise_norm[:, None]).ravel()
-
         inv['noisenorm'] = 1.0 / np.abs(noise_norm)
         logger.info('[done]')
     else:
@@ -629,14 +628,39 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
 
 @verbose
 def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
-    """Assemble the kernel."""
-    #
-    #   Simple matrix multiplication followed by combination of the
-    #   current components
-    #
-    #   This does all the data transformations to compute the weights for the
-    #   eigenleads
-    #
+    """Assemble the kernel.
+
+    Simple matrix multiplication followed by combination of the current
+    components. This does all the data transformations to compute the weights
+    for the eigenleads.
+
+    Parameters
+    ----------
+    inv : instance of InverseOperator
+        The inverse operator to use. This object contains the matrices that
+        will be multiplied to assemble the kernel.
+    label : Label | None
+        Restricts the source estimates to a given label. If None,
+        source estimates will be computed for the entire source space.
+    method : "MNE" | "dSPM" | "sLORETA"
+        Use mininum norm, dSPM or sLORETA.
+    pick_ori : None | "normal" | "full"
+        Which orientation to pick (only matters in the case of 'normal').
+
+    Returns
+    -------
+    K : 2D array (n_vertices, n_channels)
+        The kernel matrix. Multiply this with the data to obtain the source
+        estimate.
+    noise_norm : 2D array (n_vertices, n_samples)
+        Normalization to apply to the source estimate in order to obtain dSPM
+        or LORETA solutions.
+    vertices : list of length 2
+        Vertex numbers for lh and rh hemispheres that correspond to the
+        vertices in the source estimate. When the label parameter has been
+        set, these correspond to the vertices in the label. Otherwise, all
+        vertex numbers are returned.
+    """
     eigen_leads = inv['eigen_leads']['data']
     source_cov = inv['source_cov']['data'][:, None]
     if method != "MNE":
@@ -710,8 +734,8 @@ def _check_method(method):
 
 def _check_ori(pick_ori):
     """Check pick_ori."""
-    if pick_ori is not None and pick_ori != 'normal':
-        raise RuntimeError('pick_ori must be None or "normal", not %s'
+    if pick_ori not in [None, 'normal', 'full']:
+        raise RuntimeError('pick_ori must be None, "normal" or "full", not %s'
                            % pick_ori)
     return pick_ori
 
@@ -732,9 +756,8 @@ def _subject_from_inverse(inverse_operator):
 
 
 @verbose
-def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
-                  method="dSPM", pick_ori=None,
-                  prepared=False, label=None, verbose=None):
+def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
+                  pick_ori=None, prepared=False, label=None, verbose=None):
     """Apply inverse operator to evoked data.
 
     Parameters
@@ -748,10 +771,12 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
         Use mininum norm, dSPM or sLORETA.
-    pick_ori : None | "normal"
+    pick_ori : None | "normal" | "full"
         If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
+        If "full", no pooling of the orientations is done and the full result
+        will be returned in the form of a FullSourceEstimate object.
     prepared : bool
         If True, do not call `prepare_inverse_operator`.
     label : Label | None
@@ -763,7 +788,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
 
     Returns
     -------
-    stc : SourceEstimate | VolSourceEstimate
+    stc : SourceEstimate | VolSourceEstimate | FullSourceEstimate
         The source estimates
 
     See Also
@@ -795,21 +820,23 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
 
     is_free_ori = (inverse_operator['source_ori'] ==
-                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori is None)
+                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
 
-    if is_free_ori:
+    if is_free_ori and pick_ori != 'full':
         logger.info('combining the current components...')
         sol = combine_xyz(sol)
 
     if noise_norm is not None:
         logger.info('(dSPM)...')
+        if is_free_ori and pick_ori == 'full':
+            noise_norm = noise_norm.repeat(3, axis=0)
         sol *= noise_norm
 
     tstep = 1.0 / evoked.info['sfreq']
     tmin = float(evoked.times[0])
     subject = _subject_from_inverse(inverse_operator)
 
-    stc = _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+    stc = _make_stc(sol, vertno, inverse_operator, tmin=tmin, tstep=tstep,
                     subject=subject)
     logger.info('[done]')
 
@@ -846,10 +873,12 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         Set to 1 on raw data.
     time_func : callable
         Linear function applied to sensor space time series.
-    pick_ori : None | "normal"
+    pick_ori : None | "normal" | "full"
         If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
+        If "full", no pooling of the orientations is done and the full result
+        will be returned in the form of a FullSourceEstimate object.
     buffer_size : int (or None)
         If not None, the computation of the inverse and the combination of the
         current components is performed in segments of length buffer_size
@@ -902,7 +931,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     is_free_ori = (inverse_operator['source_ori'] ==
-                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori is None)
+                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
 
     if buffer_size is not None and is_free_ori:
         # Process the data in segments to conserve memory
@@ -912,28 +941,34 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
         # Allocate space for inverse solution
         n_times = data.shape[1]
-        sol = np.empty((K.shape[0] // 3, n_times),
+
+        n_dipoles = K.shape[0] if pick_ori == 'full' else K.shape // 3
+        sol = np.empty((n_dipoles, n_times),
                        dtype=(K[0, 0] * data[0, 0]).dtype)
 
         for pos in range(0, n_times, buffer_size):
-            sol[:, pos:pos + buffer_size] = \
-                combine_xyz(np.dot(K, data[:, pos:pos + buffer_size]))
+            sol_chunk = np.dot(K, data[:, pos:pos + buffer_size])
+
+            if pick_ori != 'full':
+                sol[:, pos:pos + buffer_size] = combine_xyz(sol_chunk)
 
             logger.info('segment %d / %d done..'
                         % (pos / buffer_size + 1, n_seg))
     else:
         sol = np.dot(K, data)
-        if is_free_ori:
+        if is_free_ori and pick_ori != 'full':
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
 
     if noise_norm is not None:
+        if pick_ori == 'full' and is_free_ori:
+            noise_norm = noise_norm.repeat(3, axis=0)
         sol *= noise_norm
 
     tmin = float(times[0])
     tstep = 1.0 / raw.info['sfreq']
     subject = _subject_from_inverse(inverse_operator)
-    stc = _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+    stc = _make_stc(sol, vertno, inverse_operator, tmin=tmin, tstep=tstep,
                     subject=subject)
     logger.info('[done]')
 
@@ -980,12 +1015,15 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
         if is_free_ori:
             # Compute solution and combine current components (non-linear)
             sol = np.dot(K, e[sel])  # apply imaging kernel
-            if is_free_ori:
-                logger.info('combining the current components...')
+
+            logger.info('combining the current components...')
+            if pick_ori != 'full':
                 sol = combine_xyz(sol)
 
-                if noise_norm is not None:
-                    sol *= noise_norm
+            if noise_norm is not None:
+                if pick_ori == 'full':
+                    noise_norm = noise_norm.repeat(3, axis=0)
+                sol *= noise_norm
         else:
             # Linear inverse: do computation here or delayed
             if len(sel) < K.shape[0]:
@@ -993,7 +1031,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
             else:
                 sol = np.dot(K, e[sel])
 
-        stc = _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+        stc = _make_stc(sol, vertno, inverse_operator, tmin=tmin, tstep=tstep,
                         subject=subject)
 
         yield stc
@@ -1004,8 +1042,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_ori=None,
-                         return_generator=False,
-                         prepared=False, verbose=None):
+                         return_generator=False, prepared=False, verbose=None):
     """Apply inverse operator to Epochs.
 
     Parameters
@@ -1029,6 +1066,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
+        If "full", no pooling of the orientations is done and the full result
+        will be returned in the form of a FullSourceEstimate object.
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
@@ -1048,7 +1087,6 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     apply_inverse_raw : Apply inverse operator to raw object
     apply_inverse : Apply inverse operator to evoked object
     """
-    _check_reference(epochs)
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
                                      method=method, label=label, nave=nave,
                                      pick_ori=pick_ori, verbose=verbose,
