@@ -73,11 +73,11 @@ def _get_info(eeg, montage, eog=()):
         pos_fields = ['X', 'Y', 'Z']
         if (isinstance(eeg.chanlocs, np.ndarray) and not isinstance(
                 eeg.chanlocs[0], io.matlab.mio5_params.mat_struct)):
-            has_pos = all([fld in eeg.chanlocs[0].dtype.names
-                           for fld in pos_fields])
+            has_pos = all(fld in eeg.chanlocs[0].dtype.names
+                          for fld in pos_fields)
         else:
-            has_pos = all([hasattr(eeg.chanlocs[0], fld)
-                           for fld in pos_fields])
+            has_pos = all(hasattr(eeg.chanlocs[0], fld)
+                          for fld in pos_fields)
         get_pos = has_pos and montage is None
         pos_ch_names, ch_names, pos = list(), list(), list()
         kind = 'user_defined'
