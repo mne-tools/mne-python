@@ -34,7 +34,8 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     _import_mlab, SilenceStdout)
+                     _import_mlab, SilenceStdout, has_nibabel)
+
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS, plt_show
 
 
@@ -1493,10 +1494,11 @@ def _get_view_to_display_matrix(scene):
     return view_to_disp_mat
 
 
-def plot_dipole_3d(dipole, trans, subject, subjects_dir=None, scale_factor=1e9,
-                   block=False, show=True):
-    """Plot dipoles in 3-D. Browse through the dipoles using mouse scroll or
-    up/down arrows.
+def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
+                              scale_factor=1e9, block=False, show=True):
+    """Plot dipoles on top of mri slices in 3-D.
+
+    Browse through the dipoles using mouse scroll or up/down arrows.
 
     Parameters
     ----------
@@ -1511,8 +1513,8 @@ def plot_dipole_3d(dipole, trans, subject, subjects_dir=None, scale_factor=1e9,
         The path to the freesurfer subjects reconstructions. It corresponds to
         Freesurfer environment variable SUBJECTS_DIR. The default is None.
     scale_factor : float
-        The scaling applied to convert amplitudes to voxel sizes for the plot.
-        Defaults to 1e9.
+        The scaling applied to convert amplitudes to vector (arrow) lengths for
+        the plot. Defaults to 1e9.
     block : bool
         Whether to halt program execution until the figure is closed. Defaults
         to False.
@@ -1526,10 +1528,10 @@ def plot_dipole_3d(dipole, trans, subject, subjects_dir=None, scale_factor=1e9,
     """
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D  # noqa
-    try:
+    if has_nibabel():
         import nibabel as nib
-    except ImportError:
-        raise
+    else:
+        raise ImportError('This function requires nibabel.')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
@@ -1545,7 +1547,7 @@ def plot_dipole_3d(dipole, trans, subject, subjects_dir=None, scale_factor=1e9,
 
     trans = _get_trans(trans, fro='head', to='mri')[0]
     points = [apply_trans(trans['trans'], loc) for loc in dipole.pos]
-    ori = [apply_trans(np.linalg.inv(trans['trans']), o) for o in dipole.ori]
+    ori = [apply_trans(trans['trans'], o) for o in dipole.ori]
 
     # Position in meters -> voxels.
     points = np.array([apply_trans(ras2vox, loc * 1000.) for loc in points])
@@ -1568,10 +1570,17 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori,
                  scale_factor):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
-    # Plot slices.
     xidx = int(round(points[idx, 0]))
     yidx = int(round(points[idx, 1]))
     zidx = int(round(points[idx, 2]))
+
+    xyz = points[idx].copy()
+    xyz[0] = data.shape[0] - points[idx, 0]
+    xyz[1] = data.shape[1] - points[idx, 1]
+    ax.scatter(xs=xyz[0], ys=xyz[2], zs=xyz[1], zorder=1)
+    point, ori, amp = xyz, ori[idx], dipole.amplitude[idx]
+
+    # Plot slices.
     ax.contourf(data[xidx][::-1], gridx, gridy, offset=0, zdir='x',
                 cmap='gray', zorder=0, alpha=0.5)
     ax.contourf(gridx, gridy, data[:, yidx][::-1].T, offset=0, zdir='z',
@@ -1580,11 +1589,6 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori,
                 zdir='y', cmap='gray', zorder=0, alpha=0.5)
 
     # Plot dipole position.
-    xyz = points[idx].copy()
-    xyz[0] = data.shape[0] - points[idx, 0]
-    xyz[1] = data.shape[1] - points[idx, 1]
-    ax.scatter(xs=xyz[0], ys=xyz[2], zs=xyz[1], zorder=1)
-    point, ori, amp = xyz, ori[idx], dipole.amplitude[idx]
     ax.plot(range(int(point[0])), np.repeat(point[2], int(point[0])),
             zs=point[1], zorder=1, linestyle='-', color='blue')
     ax.plot(np.repeat(point[0], int(point[2])), range(int(point[2])),
