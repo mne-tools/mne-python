@@ -1495,34 +1495,6 @@ def _overlap_projector(data_int, data_res, corr):
     return V_principal
 
 
-def _read_fine_cal(fine_cal):
-    """Read sensor locations and calib. coeffs from fine calibration file."""
-    # Read new sensor locations
-    cal_chs = list()
-    cal_ch_numbers = list()
-    with open(fine_cal, 'r') as fid:
-        lines = [line for line in fid if line[0] not in '#\n']
-        for line in lines:
-            # `vals` contains channel number, (x, y, z), x-norm 3-vec, y-norm
-            # 3-vec, z-norm 3-vec, and (1 or 3) imbalance terms
-            vals = np.fromstring(line, sep=' ').astype(np.float64)
-
-            # Check for correct number of items
-            if len(vals) not in [14, 16]:
-                raise RuntimeError('Error reading fine calibration file')
-
-            ch_name = 'MEG' + '%04d' % vals[0]  # Zero-pad names to 4 char
-            cal_ch_numbers.append(vals[0])
-
-            # Get orientation information for coil transformation
-            loc = vals[1:13].copy()  # Get orientation information for 'loc'
-            calib_coeff = vals[13:].copy()  # Get imbalance/calibration coeff
-            cal_chs.append(dict(ch_name=ch_name,
-                                loc=loc, calib_coeff=calib_coeff,
-                                coord_frame=FIFF.FIFFV_COORD_DEVICE))
-    return cal_chs, cal_ch_numbers
-
-
 def _update_sensor_geometry(info, fine_cal, ignore_ref):
     """Replace sensor geometry information and reorder cal_chs."""
     from ._fine_cal import read_fine_calibration
