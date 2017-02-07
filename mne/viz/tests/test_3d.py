@@ -19,7 +19,8 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans, snapshot_brain_montage)
-from mne.utils import requires_mayavi, requires_pysurfer, run_tests_if_main
+from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
+                       _import_mlab)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 
@@ -106,8 +107,9 @@ def test_plot_evoked_field():
 @requires_mayavi
 def test_plot_trans():
     """Test plotting of -trans.fif files and MEG sensor layouts."""
-    from mayavi import mlab
+    mlab = _import_mlab()
     evoked = read_evokeds(evoked_fname)[0]
+    sample_src = read_source_spaces(src_fname)
     with warnings.catch_warnings(record=True):  # 4D weight tables
         bti = read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
                            preload=False).info
@@ -131,6 +133,13 @@ def test_plot_trans():
                   ch_type='bad-chtype')
     assert_raises(TypeError, plot_trans, 'foo', trans_fname,
                   subject='sample', subjects_dir=subjects_dir)
+    assert_raises(TypeError, plot_trans, info, trans_fname,
+                  subject='sample', subjects_dir=subjects_dir, src='foo')
+    assert_raises(ValueError, plot_trans, info, trans_fname,
+                  subject='fsaverage', subjects_dir=subjects_dir,
+                  src=sample_src)
+    sample_src.plot(subjects_dir=subjects_dir)
+    mlab.close(all=True)
     # no-head version
     plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
     mlab.close(all=True)
@@ -168,7 +177,7 @@ def test_limits_to_control_points():
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
 
     # Test for simple use cases
-    from mayavi import mlab
+    mlab = _import_mlab()
     stc.plot(subjects_dir=subjects_dir)
     stc.plot(clim=dict(pos_lims=(10, 50, 90)), subjects_dir=subjects_dir)
     stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99,

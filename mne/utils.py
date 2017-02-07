@@ -1022,7 +1022,8 @@ if version < required_version:
 """
 
 _mayavi_call = """
-from mayavi import mlab
+with warnings.catch_warnings(record=True):  # traits
+    from mayavi import mlab
 mlab.options.backend = 'test'
 """
 
@@ -1063,7 +1064,9 @@ requires_tvtk = partial(requires_module, name='TVTK',
                         call='from tvtk.api import tvtk')
 requires_statsmodels = partial(requires_module, name='statsmodels')
 requires_pysurfer = partial(requires_module, name='PySurfer',
-                            call='from surfer import Brain')
+                            call="""import warnings
+with warnings.catch_warnings(record=True):
+    from surfer import Brain""")
 requires_PIL = partial(requires_module, name='PIL',
                        call='from PIL import Image')
 requires_good_network = partial(
@@ -1140,6 +1143,13 @@ def _check_pyface_backend():
     else:
         status = 1
     return backend, status
+
+
+def _import_mlab():
+    """Quietly import mlab."""
+    with warnings.catch_warnings(record=True):
+        from mayavi import mlab
+    return mlab
 
 
 @verbose

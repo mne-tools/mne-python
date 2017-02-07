@@ -13,6 +13,7 @@ import numpy as np
 from scipy import sparse, linalg
 
 from .io.constants import FIFF
+from .io.meas_info import create_info
 from .io.tree import dir_tree_find
 from .io.tag import find_tag, read_tag
 from .io.open import fiff_open
@@ -90,6 +91,53 @@ class SourceSpaces(list):
             self.info = dict()
         else:
             self.info = dict(info)
+
+    @verbose
+    def plot(self, head=False, brain=None, skull=None, subjects_dir=None,
+             verbose=None):
+        """Plot the source space.
+
+        Parameters
+        ----------
+        head : bool
+            If True, show head surface.
+        brain : bool | str
+            If True, show the brain surfaces. Can also be a str for
+            surface type (e.g., 'pial', same as True). Default is None,
+            which means 'white' for surface source spaces and False otherwise.
+        skull : bool | str | list of str | list of dict | None
+            Whether to plot skull surface. If string, common choices would be
+            'inner_skull', or 'outer_skull'. Can also be a list to plot
+            multiple skull surfaces. If a list of dicts, each dict must
+            contain the complete surface info (such as you get from
+            :func:`mne.make_bem_model`). True is an alias of 'outer_skull'.
+            The subjects bem and bem/flash folders are searched for the 'surf'
+            files. Defaults to None, which is False for surface source spaces,
+            and True otherwise.
+        subjects_dir : string, or None
+            Path to SUBJECTS_DIR if it is not set in the environment.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
+
+        Returns
+        -------
+        fig : instance of mlab Figure
+            The figure.
+        """
+        if brain is None:
+            brain = 'white' if self.kind == 'surface' else False
+        if skull is None:
+            skull = False if self.kind == 'surface' else True
+        from .viz import plot_trans
+        info = create_info(0, 1000., 'eeg')
+        return plot_trans(
+            info, trans=None, subject=self[0]['subject_his_id'],
+            subjects_dir=subjects_dir, ch_type=None,
+            source=(), coord_frame='mri', meg_sensors=(), eeg_sensors=False,
+            dig=False, ref_meg=False, ecog_sensors=False, head=False,
+            brain=brain, skull=skull, src=self)
 
     def __repr__(self):  # noqa: D105
         ss_repr = []

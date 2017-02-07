@@ -168,19 +168,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
                verbose=None):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
-    Compute L1/L2 mixed-norm solution or L0.5/L2 mixed-norm solution
-    on evoked data.
-
-    References:
-    Gramfort A., Kowalski M. and Hamalainen, M.,
-    Mixed-norm estimates for the M/EEG inverse problem using accelerated
-    gradient methods, Physics in Medicine and Biology, 2012
-    http://dx.doi.org/10.1088/0031-9155/57/7/1937
-
-    Strohmeier D., Haueisen J., and Gramfort A.,
-    Improved MEG/EEG source localization with reweighted mixed-norms,
-    4th International Workshop on Pattern Recognition in Neuroimaging,
-    Tuebingen, 2014
+    Compute L1/L2 mixed-norm solution [1]_ or L0.5/L2 [2]_ mixed-norm
+    solution on evoked data.
 
     Parameters
     ----------
@@ -213,9 +202,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         If True the rank of the concatenated epochs is reduced to
         its true dimension. If is 'int' the rank is limited to this value.
     weights : None | array | SourceEstimate
-        Weight for penalty in mixed_norm. Can be None or
-        1d array of length n_sources or a SourceEstimate e.g. obtained
-        with wMNE or dSPM or fMRI.
+        Weight for penalty in mixed_norm. Can be None, a
+        1d array with shape (n_sources,), or a SourceEstimate (e.g. obtained
+        with wMNE, dSPM, or fMRI).
     weights_min : float
         Do not consider in the estimation sources for which weights
         is less than weights_min.
@@ -244,11 +233,22 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     See Also
     --------
     tf_mixed_norm
+
+    References
+    ----------
+    .. [1] Gramfort A., Kowalski M. and Hamalainen, M.,
+       "Mixed-norm estimates for the M/EEG inverse problem using accelerated
+       gradient methods", Physics in Medicine and Biology, 2012.
+       http://dx.doi.org/10.1088/0031-9155/57/7/1937
+
+    .. [2] Strohmeier D., Haueisen J., and Gramfort A.,
+       "Improved MEG/EEG source localization with reweighted mixed-norms",
+        4th International Workshop on Pattern Recognition in Neuroimaging,
+        Tuebingen, 2014.
     """
     if n_mxne_iter < 1:
         raise ValueError('MxNE has to be computed at least 1 time. '
-                         'Requires n_mxne_iter > 0. '
-                         'Got n_mxne_iter = %d.' % n_mxne_iter)
+                         'Requires n_mxne_iter >= 1, got %d' % n_mxne_iter)
 
     if not isinstance(evoked, list):
         evoked = [evoked]

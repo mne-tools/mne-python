@@ -290,7 +290,7 @@ examples_dirs = ['../examples', '../tutorials']
 gallery_dirs = ['auto_examples', 'auto_tutorials']
 
 try:
-    from mayavi import mlab
+    mlab = mne.utils._import_mlab()
     find_mayavi_figures = True
     # Do not pop up any mayavi windows while running the
     # examples. These are very annoying since they steal the focus.
