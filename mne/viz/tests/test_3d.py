@@ -22,8 +22,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans, snapshot_brain_montage,
                      plot_dipole_mri_orthoview)
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
-                       _import_mlab, _TempDir, requires_version,
-                       requires_nibabel)
+                       _import_mlab, _TempDir, requires_nibabel)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 
@@ -259,12 +258,12 @@ def test_plot_dipole_locations():
 
 
 @testing.requires_testing_data
-@requires_version('matplotlib', '1.4')
 @requires_nibabel
 def test_plot_dipole_mri_orthoview():
     """Test mpl dipole plotting."""
     import matplotlib.pyplot as plt
     dipoles = read_dipole(dip_fname)
+    trans = read_trans(trans_fname)
     trans = read_trans(trans_fname)
     fig = plot_dipole_mri_orthoview(dipoles, trans, 'sample', subjects_dir)
     fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up

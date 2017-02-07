@@ -1495,7 +1495,8 @@ def _get_view_to_display_matrix(scene):
 
 
 def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
-                              scale_factor=1e9, block=False, show=True):
+                              scale_factor=1e9, ax=None, block=False,
+                              show=True):
     """Plot dipoles on top of mri slices in 3-D.
 
     Browse through the dipoles using mouse scroll or up/down arrows.
@@ -1515,6 +1516,8 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     scale_factor : float
         The scaling applied to convert amplitudes to vector (arrow) lengths for
         the plot. Defaults to 1e9.
+    ax : instance of matplotlib Axes3D | None
+        Axes to plot into. If None (default), axes will be created.
     block : bool
         Whether to halt program execution until the figure is closed. Defaults
         to False.
@@ -1527,7 +1530,7 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         The figure containing 3-D locations of the dipoles.
     """
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D  # noqa
+    from mpl_toolkits.mplot3d import Axes3D
     if has_nibabel():
         import nibabel as nib
     else:
@@ -1543,7 +1546,7 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                                np.linspace(0, dims, dims))
 
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax = Axes3D(fig) if ax is None else ax
 
     trans = _get_trans(trans, fro='head', to='mri')[0]
     points = [apply_trans(trans['trans'], loc) for loc in dipole.pos]
