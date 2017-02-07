@@ -5,12 +5,12 @@
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_true, assert_equal, assert_raises
-from ...utils import requires_sklearn
+from ...utils import requires_sklearn_0_15
 from ..base import _get_inverse_funcs, LinearModel, get_coef
 from ..search_light import _SearchLight
 
 
-@requires_sklearn
+@requires_sklearn_0_15
 def test_get_coef():
     """Test the retrieval of linear coefficients (filters and patterns) from
     simple and pipeline estimators.
@@ -116,7 +116,7 @@ def test_get_coef():
                            filters[t])
 
 
-@requires_sklearn
+@requires_sklearn_0_15
 def test_linearmodel():
     """Test LinearModel class for computing filters and patterns.
     """
