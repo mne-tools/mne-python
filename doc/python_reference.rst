@@ -946,7 +946,9 @@ Functions that operate on mne-python objects:
    tfr_morlet
    tfr_multitaper
    tfr_stockwell
-   tfr_array
+   tfr_array_morlet
+   tfr_array_multitaper
+   tfr_array_stockwell
    read_tfrs
    write_tfrs
 

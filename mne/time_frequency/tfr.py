@@ -248,9 +248,10 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 # Loop of convolution: single trial
 
 
-def tfr_array(epoch_data, frequencies, sfreq=1.0, method='morlet',
-              n_cycles=7.0, zero_mean=None, time_bandwidth=None, use_fft=True,
-              decim=1, output='complex', n_jobs=1, verbose=None):
+def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
+                 n_cycles=7.0, zero_mean=None, time_bandwidth=None,
+                 use_fft=True, decim=1, output='complex', n_jobs=1,
+                 verbose=None):
     """Compute time-frequency transforms.
 
     Parameters
@@ -375,7 +376,7 @@ def tfr_array(epoch_data, frequencies, sfreq=1.0, method='morlet',
 
 def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
                      time_bandwidth, use_fft, decim, output):
-    """Aux. function to tfr_array to check the params validity."""
+    """Aux. function to _compute_tfr to check the params validity."""
     # Check frequencies
     if not isinstance(frequencies, (list, np.ndarray)):
         raise ValueError('frequencies must be an array-like, got %s '
@@ -449,7 +450,7 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
 
 
 def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
-    """Aux. function to tfr_array.
+    """Aux. function to _compute_tfr.
 
     Loops time-frequency transform across wavelets and epochs.
 
@@ -601,8 +602,8 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
 
-    out = tfr_array(data, freqs, info['sfreq'], method=method, output=output,
-                    decim=decim, **tfr_params)
+    out = _compute_tfr(data, freqs, info['sfreq'], method=method,
+                       output=output, decim=decim, **tfr_params)
     times = inst.times[decim].copy()
 
     if average:
@@ -683,6 +684,72 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
                       zero_mean=zero_mean)
     return _tfr_aux('morlet', inst, freqs, decim, return_itc, picks,
                     average, **tfr_params)
+
+
+@verbose
+def tfr_array_morlet(epoch_data, frequencies, sfreq=1.0, n_cycles=7.0,
+                     zero_mean=False, use_fft=True, decim=1, output='complex',
+                     n_jobs=1, verbose=None):
+    """Compute time-frequency transforms.
+
+    Convolves a Morlet wavelet.
+
+    Parameters
+    ----------
+    epoch_data : array of shape (n_epochs, n_channels, n_times)
+        The epochs.
+    frequencies : array-like of floats, shape (n_freqs)
+        The frequencies.
+    sfreq : float | int
+        Sampling frequency of the data. Defaults to 1.0.
+    n_cycles : float | array of float, defaults to 7.0
+        Number of cycles  in the Morlet wavelet. Fixed number or one per
+        frequency.
+    zero_mean : bool | False
+        If True, make sure the wavelets have a mean of zero. Defaults to False.
+    use_fft : bool
+        Use the FFT for convolutions or not. Defaults to True.
+    decim : int | slice
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition. Defaults to 1
+        If `int`, returns tfr[..., ::decim].
+        If `slice`, returns tfr[..., decim].
+
+        .. note::
+            Decimation may create aliasing artifacts, yet decimation
+            is done after the convolutions.
+
+    output : str, defaults to 'complex'
+
+        * 'complex' : single trial complex.
+        * 'power' : single trial power.
+        * 'phase' : single trial phase.
+        * 'avg_power' : average of single trial power.
+        * 'itc' : inter-trial coherence.
+        * 'avg_power_itc' : average of single trial power and inter-trial
+          coherence across trials.
+
+    n_jobs : int
+        The number of epochs to process at the same time. The parallelization
+        is implemented across channels. Defaults to 1
+    verbose : bool, str, int, or None, defaults to None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    out : array
+        Time frequency transform of epoch_data. If output is in ['complex',
+        'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
+        n_times), else it is (n_chans, n_freqs, n_times). If output is
+        'avg_power_itc', the real values code for 'avg_power' and the
+        imaginary values code for the 'itc': out = avg_power + i * itc
+    """
+    return _compute_tfr(epoch_data=epoch_data, frequencies=frequencies,
+                        sfreq=sfreq, method='morlet', n_cycles=n_cycles,
+                        zero_mean=zero_mean, time_bandwidth=None,
+                        use_fft=use_fft, decim=decim, output=output,
+                        n_jobs=n_jobs, verbose=verbose)
 
 
 @verbose

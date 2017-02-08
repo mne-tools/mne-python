@@ -5,7 +5,7 @@
 import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator
-from ..time_frequency.tfr import tfr_array, _check_tfr_param
+from ..time_frequency.tfr import _compute_tfr, _check_tfr_param
 
 
 class TimeFrequency(TransformerMixin, BaseEstimator):
@@ -139,9 +139,10 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
             X = X[:, np.newaxis, :]
 
         # Compute time-frequency
-        Xt = tfr_array(X, self.frequencies, self.sfreq, self.method,
-                       self.n_cycles, True, self.time_bandwidth, self.use_fft,
-                       self.decim, self.output, self.n_jobs, self.verbose)
+        Xt = _compute_tfr(X, self.frequencies, self.sfreq, self.method,
+                          self.n_cycles, True, self.time_bandwidth,
+                          self.use_fft, self.decim, self.output, self.n_jobs,
+                          self.verbose)
 
         # Back to original shape
         if not shape:
