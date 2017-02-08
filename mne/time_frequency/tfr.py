@@ -248,10 +248,9 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 # Loop of convolution: single trial
 
 
-def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
-                 n_cycles=7.0, zero_mean=None, time_bandwidth=None,
-                 use_fft=True, decim=1, output='complex', n_jobs=1,
-                 verbose=None):
+def tfr_array(epoch_data, frequencies, sfreq=1.0, method='morlet',
+              n_cycles=7.0, zero_mean=None, time_bandwidth=None, use_fft=True,
+              decim=1, output='complex', n_jobs=1, verbose=None):
     """Compute time-frequency transforms.
 
     Parameters
@@ -376,7 +375,7 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
 
 def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
                      time_bandwidth, use_fft, decim, output):
-    """Aux. function to _compute_tfr to check the params validity."""
+    """Aux. function to tfr_array to check the params validity."""
     # Check frequencies
     if not isinstance(frequencies, (list, np.ndarray)):
         raise ValueError('frequencies must be an array-like, got %s '
@@ -450,7 +449,7 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
 
 
 def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
-    """Aux. function to _compute_tfr.
+    """Aux. function to tfr_array.
 
     Loops time-frequency transform across wavelets and epochs.
 
@@ -602,8 +601,8 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
 
-    out = _compute_tfr(data, freqs, info['sfreq'], method=method,
-                       output=output, decim=decim, **tfr_params)
+    out = tfr_array(data, freqs, info['sfreq'], method=method, output=output,
+                    decim=decim, **tfr_params)
     times = inst.times[decim].copy()
 
     if average:

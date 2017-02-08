@@ -10,7 +10,7 @@ from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
                        grand_average)
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
-                                    write_tfrs, combine_tfr, cwt, _compute_tfr)
+                                    write_tfrs, combine_tfr, cwt, tfr_array)
 from mne.viz.utils import _fake_click
 from itertools import product
 import matplotlib
@@ -455,8 +455,8 @@ def test_add_channels():
     assert_raises(AssertionError, tfr_meg.add_channels, tfr_badsf)
 
 
-def test_compute_tfr():
-    """Test _compute_tfr function."""
+def test_tfr_array():
+    """Test tfr_array function."""
     # Set parameters
     event_id = 1
     tmin = -0.2
@@ -485,14 +485,13 @@ def test_compute_tfr():
          'avg_power_itc', 'avg_power', 'itc')):
         # Check exception
         if (method == 'multitaper') and (output == 'phase'):
-            assert_raises(NotImplementedError, _compute_tfr, data, freqs,
+            assert_raises(NotImplementedError, tfr_array, data, freqs,
                           sfreq, method=method, output=output)
             continue
 
         # Check runs
-        out = _compute_tfr(data, freqs, sfreq, method=method,
-                           use_fft=use_fft, zero_mean=zero_mean,
-                           n_cycles=2., output=output)
+        out = tfr_array(data, freqs, sfreq, method=method, use_fft=use_fft,
+                        zero_mean=zero_mean, n_cycles=2., output=output)
         # Check shapes
         shape = np.r_[data.shape[:2], len(freqs), data.shape[2]]
         if ('avg' in output) or ('itc' in output):
@@ -509,26 +508,26 @@ def test_compute_tfr():
 
     # Check errors params
     for _data in (None, 'foo', data[0]):
-        assert_raises(ValueError, _compute_tfr, _data, freqs, sfreq)
+        assert_raises(ValueError, tfr_array, _data, freqs, sfreq)
     for _freqs in (None, 'foo', [[0]]):
-        assert_raises(ValueError, _compute_tfr, data, _freqs, sfreq)
+        assert_raises(ValueError, tfr_array, data, _freqs, sfreq)
     for _sfreq in (None, 'foo'):
-        assert_raises(ValueError, _compute_tfr, data, freqs, _sfreq)
+        assert_raises(ValueError, tfr_array, data, freqs, _sfreq)
     for key in ('output', 'method', 'use_fft', 'decim', 'n_jobs'):
         for value in (None, 'foo'):
             kwargs = {key: value}  # FIXME pep8
-            assert_raises(ValueError, _compute_tfr, data, freqs, sfreq,
+            assert_raises(ValueError, tfr_array, data, freqs, sfreq,
                           **kwargs)
 
     # No time_bandwidth param in morlet
-    assert_raises(ValueError, _compute_tfr, data, freqs, sfreq,
+    assert_raises(ValueError, tfr_array, data, freqs, sfreq,
                   method='morlet', time_bandwidth=1)
     # No phase in multitaper XXX Check ?
-    assert_raises(NotImplementedError, _compute_tfr, data, freqs, sfreq,
+    assert_raises(NotImplementedError, tfr_array, data, freqs, sfreq,
                   method='multitaper', output='phase')
 
     # Inter-trial coherence tests
-    out = _compute_tfr(data, freqs, sfreq, output='itc', n_cycles=2.)
+    out = tfr_array(data, freqs, sfreq, output='itc', n_cycles=2.)
     assert_true(np.sum(out >= 1) == 0)
     assert_true(np.sum(out <= 0) == 0)
 
@@ -543,13 +542,12 @@ def test_compute_tfr():
         shape = np.r_[data.shape[:2], len(freqs), n_time]
         for method in ('multitaper', 'morlet'):
             # Single trials
-            out = _compute_tfr(data, freqs, sfreq, method=method,
-                               decim=decim, n_cycles=2.)
+            out = tfr_array(data, freqs, sfreq, method=method, decim=decim,
+                            n_cycles=2.)
             assert_array_equal(shape, out.shape)
             # Averages
-            out = _compute_tfr(data, freqs, sfreq, method=method,
-                               decim=decim, output='avg_power',
-                               n_cycles=2.)
+            out = tfr_array(data, freqs, sfreq, method=method, decim=decim,
+                            output='avg_power', n_cycles=2.)
             assert_array_equal(shape[1:], out.shape)
 
 run_tests_if_main()
