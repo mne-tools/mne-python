@@ -36,7 +36,7 @@ from ..coreg import _decimate_points, fit_matched_points
 from ..event import _find_events
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._help import read_tooltips
-from ._viewer import HeadViewController, headview_item, PointObject
+from ._viewer import HeadViewController, PointObject
 
 
 use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
@@ -648,7 +648,8 @@ class Kit2FiffFrame(HasTraits):
                        VGroup(Item('scene',
                                    editor=SceneEditor(scene_class=MayaviScene),
                                    dock='vertical', show_label=False),
-                              VGroup(headview_item, show_labels=False),
+                              VGroup(Item('headview', style='custom'),
+                                     show_labels=False),
                               ),
                        VGroup(Item('kit2fiff_panel', style='custom'),
                               show_labels=False),

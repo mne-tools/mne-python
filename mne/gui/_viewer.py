@@ -21,7 +21,6 @@ from ..surface import complete_surface_info
 from ..transforms import apply_trans
 
 
-headview_item = Item('headview', style='custom', show_label=False)
 headview_borders = VGroup(Item('headview', style='custom', show_label=False),
                           show_border=True, label='View')
 defaults = {'mri_fid_scale': 1e-2, 'hsp_fid_scale': 3e-2,
