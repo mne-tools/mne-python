@@ -6,23 +6,22 @@ Motor imagery decoding from EEG data using the Common Spatial Pattern (CSP)
 Decoding of motor imagery applied to EEG data decomposed using CSP.
 Here the classifier is applied to features extracted on CSP filtered signals.
 
-See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]
+See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]_. The EEGBCI
+dataset is documented in [2]_. The data set is available at PhysioNet [3]_.
 
-The EEGBCI dataset is documented in [2]
-The data set is available at PhysioNet [3]
+References
+----------
 
-[1] Zoltan J. Koles. The quantitative extraction and topographic mapping
-    of the abnormal components in the clinical EEG. Electroencephalography
-    and Clinical Neurophysiology, 79(6):440--447, December 1991.
-
-[2] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
-    Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer Interface
-    (BCI) System. IEEE TBME 51(6):1034-1043
-
-[3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
-    Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank,
-    PhysioToolkit, and PhysioNet: Components of a New Research Resource for
-    Complex Physiologic Signals. Circulation 101(23):e215-e220
+.. [1] Zoltan J. Koles. The quantitative extraction and topographic mapping
+       of the abnormal components in the clinical EEG. Electroencephalography
+       and Clinical Neurophysiology, 79(6):440--447, December 1991.
+.. [2] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
+       Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer Interface
+       (BCI) System. IEEE TBME 51(6):1034-1043.
+.. [3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
+       Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank,
+       PhysioToolkit, and PhysioNet: Components of a New Research Resource for
+       Complex Physiologic Signals. Circulation 101(23):e215-e220.
 """
 # Authors: Martin Billinger <martin.billinger@tugraz.at>
 #

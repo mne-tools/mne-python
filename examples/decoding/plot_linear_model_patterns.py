@@ -7,16 +7,19 @@ Linear classifier on sensor data with plot patterns and filters
 Decoding, a.k.a MVPA or supervised machine learning applied to MEG and EEG
 data in sensor space. Fit a linear classifier with the LinearModel object
 providing topographical patterns which are more neurophysiologically
-interpretable [1] than the classifier filters (weight vectors).
+interpretable [1]_ than the classifier filters (weight vectors).
 The patterns explain how the MEG and EEG data were generated from the
 discriminant neural sources which are extracted by the filters.
 Note patterns/filters in MEG data are more similar than EEG data
 because the noise is less spatially correlated in MEG than EEG.
 
-[1] Haufe, S., Meinecke, F., Görgen, K., Dähne, S., Haynes, J.-D.,
-Blankertz, B., & Bießmann, F. (2014). On the interpretation of
-weight vectors of linear models in multivariate neuroimaging.
-NeuroImage, 87, 96–110. doi:10.1016/j.neuroimage.2013.10.067
+References
+----------
+
+.. [1] Haufe, S., Meinecke, F., Görgen, K., Dähne, S., Haynes, J.-D.,
+       Blankertz, B., & Bießmann, F. (2014). On the interpretation of
+       weight vectors of linear models in multivariate neuroimaging.
+       NeuroImage, 87, 96–110. doi:10.1016/j.neuroimage.2013.10.067
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Romain Trachel <trachelr@gmail.com>
@@ -95,7 +98,7 @@ for name, coef in (('patterns', model.patterns_), ('filters', model.filters_)):
 X = epochs.pick_types(meg=False, eeg=True)
 y = epochs.events[:, 2]
 
-# Define a unique pipeline to sequentially
+# Define a unique pipeline to sequentially:
 clf = make_pipeline(
     Vectorizer(),                       # 1) vectorize across time and channels
     StandardScaler(),                   # 2) normalize features across trials
