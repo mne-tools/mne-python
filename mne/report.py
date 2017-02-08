@@ -54,7 +54,7 @@ def _fig_to_img(function=None, fig=None, image_format='png',
         from scipy.misc import imread
         mlab = None
         try:
-            _import_mlab()
+            mlab = _import_mlab()
         # on some systems importing Mayavi raises SystemExit (!)
         except Exception as e:
             warn('Could not import mayavi (%r). Trying to render'
