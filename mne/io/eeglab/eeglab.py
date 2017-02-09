@@ -55,12 +55,14 @@ def _to_loc(ll):
     if isinstance(ll, (int, float)) or len(ll) > 0:
         return ll
     else:
-        return 0.
+        return np.nan
 
 
 def _get_info(eeg, montage, eog=()):
     """Get measurement info."""
+    from scipy import io
     info = _empty_info(sfreq=eeg.srate)
+    update_ch_names = True
 
     # add the ch_names and info['chs'][idx]['loc']
     path = None
@@ -68,21 +70,33 @@ def _get_info(eeg, montage, eog=()):
             eeg.chanlocs = [eeg.chanlocs]
 
     if len(eeg.chanlocs) > 0:
-        ch_names, pos = list(), list()
+        pos_fields = ['X', 'Y', 'Z']
+        if (isinstance(eeg.chanlocs, np.ndarray) and not isinstance(
+                eeg.chanlocs[0], io.matlab.mio5_params.mat_struct)):
+            has_pos = all(fld in eeg.chanlocs[0].dtype.names
+                          for fld in pos_fields)
+        else:
+            has_pos = all(hasattr(eeg.chanlocs[0], fld)
+                          for fld in pos_fields)
+        get_pos = has_pos and montage is None
+        pos_ch_names, ch_names, pos = list(), list(), list()
         kind = 'user_defined'
-        selection = np.arange(len(eeg.chanlocs))
-        locs_available = True
+        update_ch_names = False
         for chanloc in eeg.chanlocs:
             ch_names.append(chanloc.labels)
-            loc_x = _to_loc(chanloc.X)
-            loc_y = _to_loc(chanloc.Y)
-            loc_z = _to_loc(chanloc.Z)
-            locs = np.r_[-loc_y, loc_x, loc_z]
-            if np.unique(locs).size == 1:
-                locs_available = False
-            pos.append(locs)
-        if locs_available:
-            montage = Montage(np.array(pos), ch_names, kind, selection)
+            if get_pos:
+                loc_x = _to_loc(chanloc.X)
+                loc_y = _to_loc(chanloc.Y)
+                loc_z = _to_loc(chanloc.Z)
+                locs = np.r_[-loc_y, loc_x, loc_z]
+                if not np.any(np.isnan(locs)):
+                    pos_ch_names.append(chanloc.labels)
+                    pos.append(locs)
+        n_channels_with_pos = len(pos_ch_names)
+        info = create_info(ch_names, eeg.srate, ch_types='eeg')
+        if n_channels_with_pos > 0:
+            selection = np.arange(n_channels_with_pos)
+            montage = Montage(np.array(pos), pos_ch_names, kind, selection)
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
     else:  # if eeg.chanlocs is empty, we still need default chan names
@@ -92,7 +106,7 @@ def _get_info(eeg, montage, eog=()):
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
         _check_update_montage(info, montage, path=path,
-                              update_ch_names=True)
+                              update_ch_names=update_ch_names)
 
     info['buffer_size_sec'] = 1.  # reasonable default
     # update the info dict

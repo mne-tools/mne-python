@@ -525,8 +525,6 @@ def figure_nobar(*args, **kwargs):
         cbs = list(fig.canvas.callbacks.callbacks['key_press_event'].keys())
         for key in cbs:
             fig.canvas.callbacks.disconnect(key)
-    except Exception as ex:
-        raise ex
     finally:
         rcParams['toolbar'] = old_val
     return fig

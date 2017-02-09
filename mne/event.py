@@ -480,7 +480,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
         events[:, 2] = event_id
         events[:, 0] -= 1
     else:
-        raise Exception("Invalid output parameter %r" % output)
+        raise ValueError("Invalid output parameter %r" % output)
 
     logger.info("%s events found" % len(events))
     logger.info("Events id: %s" % np.unique(events[:, 2]))

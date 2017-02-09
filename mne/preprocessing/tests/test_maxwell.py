@@ -554,6 +554,7 @@ def test_spatiotemporal_only():
     power = np.sqrt(np.sum(raw[picks][0] ** 2))
     # basics
     raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True)
+    assert_equal(len(raw.info['projs']), len(raw_tsss.info['projs']))
     assert_equal(raw_tsss.estimate_rank(), 366)
     _assert_shielding(raw_tsss, power, 10)
     # temporal proj will actually reduce spatial DOF with small windows!

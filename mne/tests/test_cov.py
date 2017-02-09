@@ -322,6 +322,11 @@ def test_cov_estimation_with_triggers():
                     baseline=(-0.2, -0.1), proj=True, reject=reject)
     compute_covariance(epochs)
 
+    # projs checking
+    compute_covariance(epochs, projs=[])
+    assert_raises(TypeError, compute_covariance, epochs, projs='foo')
+    assert_raises(TypeError, compute_covariance, epochs, projs=['foo'])
+
 
 def test_arithmetic_cov():
     """Test arithmetic with noise covariance matrices."""
@@ -573,7 +578,6 @@ def test_compute_covariance_auto_reg():
 
     covs = compute_covariance(epochs, method='auto',
                               method_params=method_params,
-                              projs=True,
                               return_estimators=True)
 
     logliks = [c['loglik'] for c in covs]

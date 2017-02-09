@@ -1444,6 +1444,14 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
 
     Note that the MEG device-to-head transform ``info['dev_head_t']`` will
     be initialized to the identity transform.
+
+    Proper units of measure:
+    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * T: mag
+    * T/m: grad
+    * M: hbo, hbr
+    * Am: dipole
+    * AU: misc
     """
     if isinstance(ch_names, int):
         ch_names = list(np.arange(ch_names).astype(str))

@@ -175,7 +175,7 @@ class Kit2FiffModel(HasPrivateTraits):
             if self.show_gui:
                 error(None, str(err), "Error Reading Fiducials")
             self.reset_traits(['fid_file'])
-            raise err
+            raise
         else:
             return pts
 
@@ -276,7 +276,7 @@ class Kit2FiffModel(HasPrivateTraits):
         except Exception as err:
             if self.show_gui:
                 error(None, str(err), "Error Creating FsAverage")
-            raise err
+            raise
         finally:
             if self.show_gui:
                 prog.close()
@@ -306,7 +306,7 @@ class Kit2FiffModel(HasPrivateTraits):
                 error(None, "Error reading SQD data file: %s (Check the "
                       "terminal output for details)" % str(err),
                       "Error Reading SQD file")
-            raise err
+            raise
 
     @cached_property
     def _get_sqd_fname(self):
@@ -619,7 +619,7 @@ class Kit2FiffPanel(HasPrivateTraits):
             error(None, "Error reading events from SQD data file: %s (Check "
                   "the terminal output for details)" % str(err),
                   "Error Reading events from SQD file")
-            raise err
+            raise
 
         if len(events) == 0:
             information(None, "No events were found with the current "
