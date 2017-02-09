@@ -334,9 +334,12 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                         layout = find_layout(info, None, exclude=[])
                     # drop channels that are not in the data
                     used_nm = np.array(_clean_names(info['ch_names']))[idx]
-                    names = np.asarray([name for name in used_nm
-                                        if name in layout.names])
-                    name_idx = [layout.names.index(name) for name in names]
+                    if layout is None:
+                        name_idx = list()
+                    else:
+                        names = np.asarray([name for name in used_nm
+                                            if name in layout.names])
+                        name_idx = [layout.names.index(name) for name in names]
                     if len(name_idx) < len(chs):
                         warn('Could not find layout for all the channels. '
                              'Generating custom layout from channel '

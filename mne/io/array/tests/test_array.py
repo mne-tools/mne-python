@@ -126,6 +126,6 @@ def test_array_raw():
     info = create_info(elec_labels, Fs, 'ecog', montage=mon)
 
     raw = RawArray(electrode, info)
-    raw.plot_psd(average=False)  # breaks looking for inexistent layout
+    raw.plot_psd(average=False)  # looking for inexistent layout
 
 run_tests_if_main()
