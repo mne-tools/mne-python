@@ -55,19 +55,34 @@ def test_annotations():
                        sfreq=sfreq)
     info['meas_date'] = 0
     raws = []
-    for i, fs in enumerate([1000, 100, 12]):
+    for i, fs in enumerate([12300, 100, 12]):
         raw = RawArray(data.copy(), info, first_samp=fs)
         ants = Annotations([1., 2.], [.5, .5], 'x', fs / sfreq)
         raw.annotations = ants
         raws.append(raw)
+    raw = RawArray(data.copy(), info)
+    raw.annotations = Annotations([1.], [.5], 'x', None)
+    raws.append(raw)
     raw = concatenate_raws(raws)
-    assert_array_equal(raw.annotations.onset, [1., 2., 11., 12., 21., 22.])
+    assert_array_equal(raw.annotations.onset, [1., 2., 11., 12., 21., 22.,
+                                               31.])
     raw.annotations.delete(2)
-    assert_array_equal(raw.annotations.onset, [1., 2., 12., 21., 22.])
+    assert_array_equal(raw.annotations.onset, [1., 2., 12., 21., 22., 31.])
     raw.annotations.append(5, 1.5, 'y')
-    assert_array_equal(raw.annotations.onset, [1., 2., 12., 21., 22., 5])
-    assert_array_equal(raw.annotations.duration, [.5, .5, .5, .5, .5, 1.5])
+    assert_array_equal(raw.annotations.onset, [1., 2., 12., 21., 22., 31., 5])
+    assert_array_equal(raw.annotations.duration, [.5, .5, .5, .5, .5, .5, 1.5])
     assert_array_equal(raw.annotations.description, ['x', 'x', 'x', 'x', 'x',
-                                                     'y'])
+                                                     'x', 'y'])
+
+    # Test concatenating annotations with and without orig_time.
+    raw = read_raw_fif(fif_fname)
+    last_time = raw.last_samp / raw.info['sfreq']
+    raw2 = raw.copy()
+    raw.annotations = Annotations([45.], [3], 'test', raw.info['meas_date'])
+    raw2.annotations = Annotations([2.], [3], 'BAD', None)
+    raw = concatenate_raws([raw, raw2])
+
+    assert_array_almost_equal(raw.annotations.onset, [45., 2. + last_time],
+                              decimal=2)
 
 run_tests_if_main()

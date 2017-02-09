@@ -132,9 +132,12 @@ BUG
 
     - Fix :func:`mne.minimum_norm.compute_source_psd` when used with ``pick_ori=None`` by `Annalisa Pascarella`_ and `Alex Gramfort`_
 
+    - Fix bug in :class:`mne.Annotations` where concatenating two raws where ``orig_time`` of the second run is ``None`` by `Jaakko Leppakangas`_
+
     - Fix reading channel location from eeglab ``.set`` files when some of the channels do not provide this information. Previously all channel locations were ignored in such case, now they are read - unless a montage is provided by the user in which case only channel names are read from set file. By `Mikołaj Magnuski`_
 
     - Fix reading eeglab ``.set`` files when ``.chanlocs`` structure does not contain ``X``, ``Y`` or ``Z`` fields by `Mikołaj Magnuski`_
+
 
 API
 ~~~
