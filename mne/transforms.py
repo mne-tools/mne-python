@@ -626,6 +626,7 @@ def _cart_to_sph(cart):
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
     out[:, 1] = np.arctan2(cart[:, 1], cart[:, 0])
     out[:, 2] = np.arccos(cart[:, 2] / out[:, 0])
+    out = np.nan_to_num(out)
     return out
 
 
