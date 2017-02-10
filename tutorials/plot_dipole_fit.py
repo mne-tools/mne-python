@@ -48,6 +48,9 @@ dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 # Plot the result in 3D brain
 dip.plot_locations(fname_trans, 'sample', subjects_dir)
 
+# For comparison, plot it on the mri image.
+dip.plot_mri_orthoview(fname_trans, 'sample', subjects_dir, coord_frame='mri')
+
 ###############################################################################
 # Calculate and visualise magnetic field predicted by dipole with maximum GOF
 # and compare to the measured data, highlighting the ipsilateral (right) source

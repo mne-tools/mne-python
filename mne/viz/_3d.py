@@ -1505,8 +1505,8 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     ----------
     dipole : instance of mne.Dipole
         The dipole to plot.
-    trans : dict
-        The mri to head trans.
+    trans : dict | str
+        The mri to head trans or path to the transformation file.
     subject : str
         The subject name corresponding to FreeSurfer environment variable
         SUBJECT.
@@ -1548,6 +1548,7 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     t1 = nib.load(t1_fname)
     scale_factor /= np.mean(t1.header.get_zooms())  # voxel to mm
     ras2vox = t1.header.get_ras2vox()
+    trans = _get_trans(trans, fro='head', to='mri')[0]
     if coord_frame == 'head':
         affine_to = trans['trans'].copy()
         affine_to[:3, 3] *= 1000  # to mm
@@ -1566,7 +1567,6 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                            in dipole.pos])
         ori = dipole.ori
     else:
-        trans = _get_trans(trans, fro='head', to='mri')[0]
         points = np.array([apply_trans(trans['trans'], loc) for loc
                            in dipole.pos])
         ori = [apply_trans(trans['trans'], o) for o in dipole.ori]
