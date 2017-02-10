@@ -8,31 +8,31 @@ matrix:
         # Full (Linux, 2.7)
         - os: linux
           env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi"
-               PIP_DEPENDENCIES="pysurfer nitime faulthandler joblib nibabel codecov nose-timer"
+               PIP_DEPENDENCIES="pysurfer nitime faulthandler joblib nibabel codecov nose-timer nose-faulthandler"
 
         # OSX
         - os: osx
           env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi"
-               PIP_DEPENDENCIES="pysurfer nitime faulthandler joblib nibabel codecov nose-timer"
+               PIP_DEPENDENCIES="pysurfer nitime faulthandler joblib nibabel codecov nose-timer nose-faulthandler"
         # Py3k + non-default stim channel
         - os: linux
           env: PYTHON_VERSION=3.5 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
                CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels"
-               PIP_DEPENDENCIES="nitime joblib nibabel codecov nose-timer"
+               PIP_DEPENDENCIES="nitime joblib nibabel codecov nose-timer nose-faulthandler"
         # Old dependencies
         - os: linux
           env: CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14"
-               PIP_DEPENDENCIES="codecov nose-timer"
+               PIP_DEPENDENCIES="codecov nose-timer nose-faulthandler"
         # Minimal
         - os: linux
           env: DEPS=minimial
                CONDA_DEPENDENCIES="numpy scipy matplotlib"
-               PIP_DEPENDENCIES="codecov nose-timer"
+               PIP_DEPENDENCIES="codecov nose-timer nose-faulthandler"
         # No data + style testing
         - os: linux
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx"
-               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov nose-timer"
+               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov nose-timer nose-faulthandler"
 
 # Setup anaconda
 before_install:
