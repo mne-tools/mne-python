@@ -650,5 +650,5 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
                 V[[ii, jj], :] = np.dot(tau, V[[ii, jj], :])
         if decr < epsilon:
             break
-    D = np.reshape(A, (n_times, n_m / n_times, n_times)).transpose(1, 0, 2)
+    D = np.reshape(A, (n_times, -1, n_times)).transpose(1, 0, 2)
     return V, D
