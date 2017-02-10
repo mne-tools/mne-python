@@ -243,8 +243,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     .. [2] Strohmeier D., Haueisen J., and Gramfort A.,
        "Improved MEG/EEG source localization with reweighted mixed-norms",
-        4th International Workshop on Pattern Recognition in Neuroimaging,
-        Tuebingen, 2014.
+       4th International Workshop on Pattern Recognition in Neuroimaging,
+       Tuebingen, 2014.
     """
     if n_mxne_iter < 1:
         raise ValueError('MxNE has to be computed at least 1 time. '

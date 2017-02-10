@@ -44,7 +44,9 @@ UA = ('Mozilla/5.0 (X11; U; FreeBSD i386; en-US; rv:1.9.2.9) '
       'Gecko/20100913 Firefox/3.6.9')
 
 # ##### Templates for citations #####
-html = (u""".. _cited:
+html = (u""":orphan:
+
+.. _cited:
 
 Publications by users
 =====================
