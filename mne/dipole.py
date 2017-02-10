@@ -21,7 +21,7 @@ from .evoked import _read_evoked, _aspect_rev, _write_evokeds
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform, Transform)
 from .viz.evoked import _plot_evoked
-
+from .viz._3d import plot_dipole_mri_orthoview
 from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
 from .forward._compute_forward import (_compute_forwards_meeg,
@@ -216,6 +216,48 @@ class Dipole(object):
         """
         from .viz import plot_dipole_amplitudes
         return plot_dipole_amplitudes([self], [color], show)
+
+    def plot_mri_orthoview(self, trans, subject, subjects_dir=None,
+                           scale_factor=1e9, coord_frame='head', ax=None,
+                           block=False, show=True):
+        """Plot dipoles on top of mri slices in 3-D.
+
+        Browse through the dipoles using mouse scroll or up/down arrows.
+
+        Parameters
+        ----------
+        trans : dict
+            The mri to head trans.
+        subject : str
+            The subject name corresponding to FreeSurfer environment variable
+            SUBJECT.
+        subjects_dir : None | str
+            The path to the freesurfer subjects reconstructions. It corresponds
+            to Freesurfer environment variable SUBJECTS_DIR. If None (default),
+            SUBJECTS_DIR is read from environment or config file.
+        scale_factor : float
+            The scaling applied to convert amplitudes to vector (arrow) lengths
+            for the plot. Defaults to 1e9 (nAm -> mm).
+        coord_frame : str
+            Coordinate frame to use, 'head' or 'mri'.
+        ax : instance of matplotlib Axes3D | None
+            Axes to plot into. If None (default), axes will be created.
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Defaults to False.
+        show : bool
+            Show figure if True. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            The figure containing 3-D locations of the dipoles.
+        """
+        return plot_dipole_mri_orthoview(self, trans=trans, subject=subject,
+                                         subjects_dir=subjects_dir,
+                                         scale_factor=scale_factor,
+                                         coord_frame=coord_frame, ax=ax,
+                                         block=block, show=show)
 
     def __getitem__(self, item):
         """Get a time slice.
