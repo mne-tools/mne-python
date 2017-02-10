@@ -1243,12 +1243,10 @@ class CoregFrame(HasTraits):
         return SubjectSelectorPanel(model=self.model.mri.subject_source)
 
     def _fid_panel_default(self):
-        panel = FiducialsPanel(model=self.model.mri, headview=self.headview)
-        return panel
+        return FiducialsPanel(model=self.model.mri, headview=self.headview)
 
     def _coreg_panel_default(self):
-        panel = CoregPanel(model=self.model)
-        return panel
+        return CoregPanel(model=self.model)
 
     def _headview_default(self):
         return HeadViewController(scene=self.scene, system='RAS')
