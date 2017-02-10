@@ -264,13 +264,15 @@ def test_plot_dipole_mri_orthoview():
     import matplotlib.pyplot as plt
     dipoles = read_dipole(dip_fname)
     trans = read_trans(trans_fname)
-    trans = read_trans(trans_fname)
-    fig = plot_dipole_mri_orthoview(dipoles, trans, 'sample', subjects_dir)
-    fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
-    fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
-    fig.canvas.key_press_event('up')
-    fig.canvas.key_press_event('down')
-    fig.canvas.key_press_event('a')  # some other key
+
+    for coord_frame in ['head', 'mri']:
+        fig = plot_dipole_mri_orthoview(dipoles, trans, 'sample', subjects_dir,
+                                        coord_frame=coord_frame)
+        fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
+        fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
+        fig.canvas.key_press_event('up')
+        fig.canvas.key_press_event('down')
+        fig.canvas.key_press_event('a')  # some other key
     plt.close('all')
 
 

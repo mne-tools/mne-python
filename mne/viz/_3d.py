@@ -1495,8 +1495,8 @@ def _get_view_to_display_matrix(scene):
 
 
 def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
-                              scale_factor=1e9, ax=None, block=False,
-                              show=True):
+                              scale_factor=1e9, coord_frame='head', ax=None,
+                              block=False, show=True):
     """Plot dipoles on top of mri slices in 3-D.
 
     Browse through the dipoles using mouse scroll or up/down arrows.
@@ -1512,10 +1512,13 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         SUBJECT.
     subjects_dir : None | str
         The path to the freesurfer subjects reconstructions. It corresponds to
-        Freesurfer environment variable SUBJECTS_DIR. The default is None.
+        Freesurfer environment variable SUBJECTS_DIR. If None (default),
+        SUBJECTS_DIR is read from environment or config file.
     scale_factor : float
         The scaling applied to convert amplitudes to vector (arrow) lengths for
-        the plot. Defaults to 1e9.
+        the plot. Defaults to 1e9 (nAm -> mm).
+    coord_frame : str
+        Coordinate frame to use, 'head' or 'mri'.
     ax : instance of matplotlib Axes3D | None
         Axes to plot into. If None (default), axes will be created.
     block : bool
@@ -1533,13 +1536,24 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     from mpl_toolkits.mplot3d import Axes3D
     if has_nibabel():
         import nibabel as nib
+        from nibabel.processing import resample_from_to
     else:
         raise ImportError('This function requires nibabel.')
+    if coord_frame not in ['head', 'mri']:
+        raise ValueError("coord_frame must be 'head' or 'mri'. "
+                         "Got %s." % coord_frame)
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
+    scale_factor /= np.mean(t1.header.get_zooms())  # voxel to mm
     ras2vox = t1.header.get_ras2vox()
+    if coord_frame == 'head':
+        affine_to = trans['trans'].copy()
+        affine_to[:3, 3] *= 1000  # to mm
+        affine_to = np.dot(affine_to, t1.affine)
+        t1 = resample_from_to(t1, (t1.get_shape(), affine_to))
+
     data = t1.get_data()
     dims = len(data)  # Symmetric size assumed.
     gridx, gridy = np.meshgrid(np.linspace(0, dims, dims),
@@ -1547,13 +1561,18 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
 
     fig = plt.figure()
     ax = Axes3D(fig) if ax is None else ax
-
-    trans = _get_trans(trans, fro='head', to='mri')[0]
-    points = [apply_trans(trans['trans'], loc) for loc in dipole.pos]
-    ori = [apply_trans(trans['trans'], o) for o in dipole.ori]
-
-    # Position in meters -> voxels.
-    points = np.array([apply_trans(ras2vox, loc * 1000.) for loc in points])
+    if coord_frame == 'head':
+        points = np.array([apply_trans(ras2vox, point * 1000.) for point
+                           in dipole.pos])
+        ori = dipole.ori
+    else:
+        trans = _get_trans(trans, fro='head', to='mri')[0]
+        points = np.array([apply_trans(trans['trans'], loc) for loc
+                           in dipole.pos])
+        ori = [apply_trans(trans['trans'], o) for o in dipole.ori]
+        # Position in meters -> voxels.
+        points = np.array([apply_trans(ras2vox, loc * 1000.) for loc
+                           in points])
 
     _plot_dipole(ax, data, points, 0, dipole, gridx, gridy, ori, scale_factor)
     params = {'ax': ax, 'data': data, 'idx': 0, 'dipole': dipole,
