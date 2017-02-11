@@ -20,6 +20,7 @@ from ..io import RawArray, BaseRaw
 from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info,
                     _get_hpi_initial_fit)
 from ..io.constants import FIFF
+from ..fixes import einsum
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _stc_src_sel, convert_forward_solution,
                        _prepare_for_forward, _transform_orig_meg_coils,
@@ -63,7 +64,7 @@ def _log_ch(start, info, ch):
 @verbose
 def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                  blink=False, ecg=False, chpi=False, head_pos=None,
-                 mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
+                 mindist=1.0, interp='hann', iir_filter=None, n_jobs=1,
                  random_state=None, use_cps=True, verbose=None):
     u"""Simulate raw data.
 
@@ -119,7 +120,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
     interp : str
-        Either 'hann', 'cos2', 'linear', or 'zero', the type of
+        Either 'hann' (default), 'linear', or 'zero', the type of
         forward-solution interpolation to use between forward solutions
         at different head positions.
     iir_filter : None | array
@@ -212,7 +213,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     n_jobs = check_n_jobs(n_jobs)
 
     rng = check_random_state(random_state)
-    interper = _Interp2(interp)
 
     if head_pos is None:  # use pos from info['dev_head_t']
         head_pos = dict()
@@ -249,10 +249,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                     'from': info['dev_head_t']['from']}
                    for d in dev_head_ts]
     offsets = raw.time_as_index(ts)
-    offsets = np.concatenate([offsets, [len(times)]])
-    assert offsets[-2] != offsets[-1]
     assert np.array_equal(offsets, np.unique(offsets))
-    assert len(offsets) == len(dev_head_ts) + 1
+    assert len(offsets) == len(dev_head_ts)
     del ts
 
     src = _ensure_src(src, verbose=False)
@@ -271,7 +269,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     fwd_info['projs'] = []  # Ensure no 'projs' applied
     logger.info('Setting up raw simulation: %s position%s, "%s" interpolation'
                 % (len(dev_head_ts), _pl(dev_head_ts), interp))
-    del interp
 
     verts = stc.vertices
     verts = [verts] if isinstance(stc, VolSourceEstimate) else verts
@@ -281,7 +278,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     raw_data = np.zeros((len(info['ch_names']), len(times)))
 
     # figure out our cHPI, ECG, and blink dipoles
-    ecg_rr = blink_rrs = exg_bem = hpi_rrs = None
+    ecg_rr = blink_rrs = blink_nns = exg_bem = hpi_rrs = hpi_nns = None
     ecg = ecg and len(meg_picks) > 0
     chpi = chpi and len(meg_picks) > 0
     if chpi:
@@ -365,47 +362,27 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     else:
         event_ch = None
     _log_ch('Event information', info, event_ch)
-    used = np.zeros(len(times), bool)
     stc_indices = np.arange(len(times)) % len(stc.times)
     raw_data[meeg_picks, :] = 0.
     if chpi:
         sinusoids = 70e-9 * np.sin(2 * np.pi * hpi_freqs[:, np.newaxis] *
                                    (np.arange(len(times)) / info['sfreq']))
     zf = None  # final filter conditions for the noise
-    # don't process these any more if no MEG present
-    for fi, (fwd, fwd_blink, fwd_ecg, fwd_chpi) in \
-        enumerate(_iter_forward_solutions(
-            fwd_info, trans, src, bem, exg_bem, dev_head_ts, mindist,
-            hpi_rrs, blink_rrs, ecg_rr, n_jobs)):
-        # must be fixed orientation
-        # XXX eventually we could speed this up by allowing the forward
-        # solution code to only compute the normal direction
-        fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
-                                       use_cps=use_cps, verbose=False)
-        if blink:
-            fwd_blink = fwd_blink['sol']['data']
-            for ii in range(len(blink_rrs)):
-                fwd_blink[:, ii] = np.dot(fwd_blink[:, 3 * ii:3 * (ii + 1)],
-                                          blink_nns[ii])
-            fwd_blink = fwd_blink[:, :len(blink_rrs)]
-            fwd_blink = fwd_blink.sum(axis=1)[:, np.newaxis]
-        # just use one arbitrary direction
-        if ecg:
-            fwd_ecg = fwd_ecg['sol']['data'][:, [0]]
-
-        # align cHPI magnetic dipoles in approx. radial direction
-        if chpi:
-            for ii in range(len(hpi_rrs)):
-                fwd_chpi[:, ii] = np.dot(fwd_chpi[:, 3 * ii:3 * (ii + 1)],
-                                         hpi_nns[ii])
-            fwd_chpi = fwd_chpi[:, :len(hpi_rrs)].copy()
-
-        interper['fwd'] = fwd['sol']['data']
-        interper['fwd_blink'] = fwd_blink
-        interper['fwd_ecg'] = fwd_ecg
-        interper['fwd_chpi'] = fwd_chpi
-        if fi == 0:
-            src_sel = _stc_src_sel(fwd['src'], stc)
+    bounds = list(range(0, len(raw.times), 10000)) + [len(raw.times)]
+    get_fwd = _SimForwards(dev_head_ts, offsets, info, trans, src, bem,
+                           exg_bem, mindist, hpi_rrs, hpi_nns,
+                           blink_rrs, blink_nns, ecg_rr, use_cps, n_jobs)
+    interper = _Interp2(offsets, get_fwd, interp=interp)
+    first = True
+    for start, stop in zip(bounds[:-1], bounds[1:]):
+        event_idxs = np.where(stc_indices[start:stop] == stc_event_idx)[0]
+        logger.info('  Simulating data for %0.3f-%0.3f sec with %s event%s'
+                    % (start / info['sfreq'], stop / info['sfreq'],
+                       len(event_idxs), _pl(event_idxs)))
+        fwd, fwd_blink, fwd_ecg, fwd_chpi, fi = interper.feed(stop - start)
+        fi = np.ceil(fi)
+        if first:
+            src_sel = _stc_src_sel(get_fwd.update_kwargs['src'], stc)
             verts = stc.vertices
             verts = [verts] if isinstance(stc, VolSourceEstimate) else verts
             diff_ = sum([len(v) for v in verts]) - len(src_sel)
@@ -413,137 +390,169 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                 warn('%s STC vertices omitted due to fwd calculation' % diff_)
             stc_data = stc.data[src_sel]
             del stc, src_sel, diff_, verts
-            continue
-        del fwd, fwd_blink, fwd_ecg, fwd_chpi
+            first = False
 
-        start, stop = offsets[fi - 1:fi + 1]
-        assert not used[start:stop].any()
-        event_idxs = np.where(stc_indices[start:stop] ==
-                              stc_event_idx)[0] + start
         if stim:
-            raw_data[event_ch, event_idxs] = fi
-
-        logger.info('  Simulating data for %0.3f-%0.3f sec with %s event%s'
-                    % (start / info['sfreq'], stop / info['sfreq'],
-                       len(event_idxs), _pl(event_idxs)))
-
-        used[start:stop] = True
+            raw_data[event_ch, event_idxs + start] = fi[event_idxs] + 1
         time_sl = slice(start, stop)
         stc_idxs = stc_indices[time_sl]
-
         # simulate brain data
         this_data = raw_data[:, time_sl]
         this_data[meeg_picks] = 0.
-        interper.n_samp = stop - start
-        interper.interpolate('fwd', stc_data,
-                             this_data, meeg_picks, stc_idxs)
+        this_data[meeg_picks] += einsum(
+            'svt,vt->st', fwd, stc_data[:, stc_idxs])
         if blink:
-            interper.interpolate('fwd_blink', blink_data[:, time_sl],
-                                 this_data, meeg_picks)
+            this_data[meeg_picks] += einsum(
+                'svt,vt->st', fwd_blink, blink_data[:, time_sl])
         if ecg:
-            interper.interpolate('fwd_ecg', ecg_data[:, time_sl],
-                                 this_data, meg_picks)
+            this_data[meg_picks] += einsum(
+                'svt,vt->st', fwd_ecg, ecg_data[:, time_sl])
         if chpi:
-            interper.interpolate('fwd_chpi', sinusoids[:, time_sl],
-                                 this_data, meg_picks)
+            this_data[meg_picks] += einsum(
+                'svt,vt->st', fwd_chpi, sinusoids[:, time_sl])
         # add sensor noise, ECG, blink, cHPI
         if cov is not None:
             noise, zf = _generate_noise(fwd_info, cov, iir_filter, rng,
                                         len(stc_idxs), zi=zf)
-            raw_data[meeg_picks, time_sl] += noise
-            this_data[meeg_picks] += noise
-        assert used[start:stop].all()
-    assert used.all()
+            this_data[meeg_picks, time_sl] += noise
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
     raw.verbose = raw_verbose
     logger.info('Done')
     return raw
 
 
-def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
-                            mindist, hpi_rrs, blink_rrs, ecg_rrs, n_jobs):
-    """Calculate a forward solution for a subject."""
-    mri_head_t, trans = _get_trans(trans)
-    logger.info('Setting up forward solutions')
-    megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
-        update_kwargs, bem = _prepare_for_forward(
-            src, mri_head_t, info, bem, mindist, n_jobs, verbose=False)
-    del (src, mindist)
+class _SimForwards(object):
+    """Simulate forwards."""
 
-    eegfwd = _compute_forwards(rr, bem, [eegels], [None],
-                               [None], ['eeg'], n_jobs, verbose=False)[0]
-    eegfwd = _to_forward_dict(eegfwd, eegnames)
-    if blink_rrs is not None:
-        eegblink = _compute_forwards(blink_rrs, exg_bem, [eegels], [None],
-                                     [None], ['eeg'], n_jobs,
-                                     verbose=False)[0]
-        eegblink = _to_forward_dict(eegblink, eegnames)
-    else:
-        eegblink = None
+    def __init__(self, dev_head_ts, offsets, info, trans, src, bem, exg_bem,
+                 mindist, hpi_rrs, hpi_nns, blink_rrs, blink_nns, ecg_rr,
+                 use_cps, n_jobs):
+        self.dev_head_ts = dev_head_ts
+        self.offsets = offsets
+        mri_head_t, trans = _get_trans(trans)
+        self.bem = bem
+        self.exg_bem = exg_bem
+        self.hpi_rrs = hpi_rrs
+        self.hpi_nns = hpi_nns
+        self.blink_rrs = blink_rrs
+        self.blink_nns = blink_nns
+        self.ecg_rr = ecg_rr
+        self.use_cps = use_cps
+        self.n_jobs = n_jobs
+        logger.info('Setting up forward solutions')
+        self.megcoils, self.meg_info, self.compcoils, self.megnames, \
+            eegels, eegnames, self.rr, self.info, \
+            self.update_kwargs, self.bem = _prepare_for_forward(
+                src, mri_head_t, info, bem, mindist, self.n_jobs,
+                verbose=False)
+        if len(eegels) > 0:
+            logger.info('Computing EEG gain matrix')
+        self.eegfwd = _compute_forwards(
+            self.rr, self.bem, [eegels], [None], [None], ['eeg'],
+            self.n_jobs, verbose=False)[0]
+        self.eegfwd = _to_forward_dict(self.eegfwd, eegnames)
+        if self.blink_rrs is not None:
+            eegblink = _compute_forwards(
+                self.blink_rrs, self.exg_bem, [eegels], [None], [None],
+                ['eeg'], self.n_jobs, verbose=False)[0]
+            self.eegblink = _to_forward_dict(eegblink, eegnames)
+        else:
+            self.eegblink = None
+        if len(pick_types(self.info, meg=True)) == 0:
+            self.has_meg = False
+            self.eegfwd.update(**self.update_kwargs)
+            self.eegfwd = convert_forward_solution(
+                self.eegfwd, surf_ori=True, force_fixed=True,
+                use_cps=self.use_cps, verbose=False)['sol']['data']
+            self.eegblink = self._blink_fwd_to_array(self.eegblink)
+        else:
+            self.has_meg = True
+            coord_frame = FIFF.FIFFV_COORD_HEAD
+            if not bem['is_sphere']:
+                idx = np.where(np.array([s['id'] for s in bem['surfs']]) ==
+                               FIFF.FIFFV_BEM_SURF_ID_BRAIN)[0]
+                assert len(idx) == 1
+                # make a copy so it isn't mangled in use
+                self.bem_surf = transform_surface_to(
+                    bem['surfs'][idx[0]], coord_frame, mri_head_t, copy=True)
 
-    # short circuit here if there are no MEG channels (don't need to iterate)
-    if len(pick_types(info, meg=True)) == 0:
-        eegfwd.update(**update_kwargs)
-        for _ in dev_head_ts:
-            yield eegfwd, eegblink, None, None
-        # extra one to fill last buffer
-        yield eegfwd, eegblink, None, None
-        return
+    def __call__(self, offset):
+        """Calculate a forward solution for a subject."""
+        ti = np.where(self.offsets == offset)[0][0]
+        # short circuit here if there are no MEG channels
+        if not self.has_meg:
+            return self.eegfwd, self.eegblink, None, None, ti
 
-    coord_frame = FIFF.FIFFV_COORD_HEAD
-    if not bem['is_sphere']:
-        idx = np.where(np.array([s['id'] for s in bem['surfs']]) ==
-                       FIFF.FIFFV_BEM_SURF_ID_BRAIN)[0]
-        assert len(idx) == 1
-        # make a copy so it isn't mangled in use
-        bem_surf = transform_surface_to(bem['surfs'][idx[0]], coord_frame,
-                                        mri_head_t, copy=True)
-    for ti, dev_head_t in enumerate(dev_head_ts):
+        logger.info('Setting up forward solutions')
         # Could be *slightly* more efficient not to do this N times,
         # but the cost here is tiny compared to actual fwd calculation
-        logger.info('Computing gain matrix for transform #%s/%s'
-                    % (ti + 1, len(dev_head_ts)))
-        _transform_orig_meg_coils(megcoils, dev_head_t)
-        _transform_orig_meg_coils(compcoils, dev_head_t)
+        logger.info('Computing MEG gain matrix for transform #%s/%s'
+                    % (ti + 1, len(self.dev_head_ts)))
+        dev_head_t = self.dev_head_ts[ti]
+        _transform_orig_meg_coils(self.megcoils, dev_head_t)
+        _transform_orig_meg_coils(self.compcoils, dev_head_t)
 
         # Make sure our sensors are all outside our BEM
-        coil_rr = [coil['r0'] for coil in megcoils]
-        if not bem['is_sphere']:
-            outside = _points_outside_surface(coil_rr, bem_surf, n_jobs,
-                                              verbose=False)
+        coil_rr = [coil['r0'] for coil in self.megcoils]
+        if not self.bem['is_sphere']:
+            outside = _points_outside_surface(
+                coil_rr, self.bem_surf, self.n_jobs, verbose=False)
         else:
-            d = coil_rr - bem['r0']
-            outside = np.sqrt(np.sum(d * d, axis=1)) > bem.radius
+            d = coil_rr - self.bem['r0']
+            outside = np.sqrt(np.sum(d * d, axis=1)) > self.bem.radius
         if not outside.all():
             raise RuntimeError('%s MEG sensors collided with inner skull '
                                'surface for transform %s'
                                % (np.sum(~outside), ti))
 
         # Compute forward
-        megfwd = _compute_forwards(rr, bem, [megcoils], [compcoils],
-                                   [meg_info], ['meg'], n_jobs,
-                                   verbose=False)[0]
-        megfwd = _to_forward_dict(megfwd, megnames)
-        fwd = _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=False)
-        fwd.update(**update_kwargs)
+        megfwd = _compute_forwards(
+            self.rr, self.bem, [self.megcoils], [self.compcoils],
+            [self.meg_info], ['meg'], self.n_jobs, verbose=False)[0]
+        megfwd = _to_forward_dict(megfwd, self.megnames)
+        fwd = _merge_meg_eeg_fwds(megfwd, self.eegfwd, verbose=False)
+        fwd.update(**self.update_kwargs)
+        # must be fixed orientation
+        # XXX eventually we could speed this up by allowing the forward
+        # solution code to only compute the normal direction
 
         fwd_blink = fwd_ecg = fwd_chpi = None
-        if blink_rrs is not None:
-            megblink = _compute_forwards(blink_rrs, exg_bem, [megcoils],
-                                         [compcoils], [meg_info], ['meg'],
-                                         n_jobs, verbose=False)[0]
-            megblink = _to_forward_dict(megblink, megnames)
-            fwd_blink = _merge_meg_eeg_fwds(megblink, eegblink, verbose=False)
-        if ecg_rrs is not None:
-            megecg = _compute_forwards(ecg_rrs, exg_bem, [megcoils],
-                                       [compcoils], [meg_info], ['meg'],
-                                       n_jobs, verbose=False)[0]
-            fwd_ecg = _to_forward_dict(megecg, megnames)
-        if hpi_rrs is not None:
-            fwd_chpi = _magnetic_dipole_field_vec(hpi_rrs, megcoils).T
-        yield fwd, fwd_blink, fwd_ecg, fwd_chpi
-    # need an extra one to fill last buffer
-    yield fwd, fwd_blink, fwd_ecg, fwd_chpi
+        if self.blink_rrs is not None:
+            megblink = _compute_forwards(
+                self.blink_rrs, self.exg_bem, [self.megcoils],
+                [self.compcoils], [self.meg_info], ['meg'], self.n_jobs,
+                verbose=False)[0]
+            megblink = _to_forward_dict(megblink, self.megnames)
+            fwd_blink = _merge_meg_eeg_fwds(megblink, self.eegblink,
+                                            verbose=False)
+            fwd_blink = self._blink_fwd_to_array(fwd_blink)
+        if self.ecg_rr is not None:
+            megecg = _compute_forwards(
+                self.ecg_rr, self.exg_bem, [self.megcoils], [self.compcoils],
+                [self.meg_info], ['meg'], self.n_jobs, verbose=False)[0]
+            fwd_ecg = _to_forward_dict(megecg, self.megnames)
+            # just use one arbitrary direction
+            fwd_ecg = fwd_ecg['sol']['data'][:, [0]]
+        if self.hpi_rrs is not None:
+            fwd_chpi = _magnetic_dipole_field_vec(
+                self.hpi_rrs, self.megcoils).T
+            # align cHPI magnetic dipoles in approx. radial direction
+            for ii in range(len(self.hpi_rrs)):
+                fwd_chpi[:, ii] = np.dot(fwd_chpi[:, 3 * ii:3 * (ii + 1)],
+                                         self.hpi_nns[ii])
+            fwd_chpi = fwd_chpi[:, :len(self.hpi_rrs)].copy()
+        fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
+                                       use_cps=self.use_cps, verbose=False)
+        fwd = fwd['sol']['data']
+        return fwd, fwd_blink, fwd_ecg, fwd_chpi, ti
+
+    def _blink_fwd_to_array(self, fwd_blink):
+        fwd_blink = fwd_blink['sol']['data']
+        for ii in range(len(self.blink_rrs)):
+            fwd_blink[:, ii] = np.dot(fwd_blink[:, 3 * ii:3 * (ii + 1)],
+                                      self.blink_nns[ii])
+        fwd_blink = fwd_blink[:, :len(self.blink_rrs)]
+        return fwd_blink.sum(axis=1)[:, np.newaxis]
 
 
 def _restrict_source_space_to(src, vertices):

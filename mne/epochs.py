@@ -3014,7 +3014,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     del head_pos
     _check_usable(epochs)
     origin = _check_origin(origin, epochs.info, 'head')
-    recon_trans = _check_destination(destination, epochs.info, True)
+    recon_trans = _check_destination(destination, epochs.info, 'head')
 
     logger.info('Aligning and averaging up to %s epochs'
                 % (len(epochs.events)))

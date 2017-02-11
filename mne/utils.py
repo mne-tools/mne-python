@@ -2440,9 +2440,9 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
     tmin = -np.inf if tmin is None else tmin
     tmax = np.inf if tmax is None else tmax
     if not np.isfinite(tmin):
-        tmin = times[0]
+        tmin = times[0] if len(times) > 0 else 0.
     if not np.isfinite(tmax):
-        tmax = times[-1]
+        tmax = times[-1] if len(times) > 0 else 0.
     if sfreq is not None:
         # Push to a bit past the nearest sample boundary first
         sfreq = float(sfreq)

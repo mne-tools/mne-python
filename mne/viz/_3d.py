@@ -129,7 +129,8 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     if not isinstance(mode, string_types) or mode not in ('traces', 'field'):
         raise ValueError('mode must be "traces" or "field", got %s' % (mode,))
     dest_info = dict(dev_head_t=None) if info is None else info
-    destination = _check_destination(destination, dest_info, head_frame=True)
+    destination = _check_destination(destination, dest_info,
+                                     coord_frame='head')
     if destination is not None:
         destination = _ensure_trans(destination, 'head', 'meg')  # probably inv
         destination = destination['trans'][:3].copy()
