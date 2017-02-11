@@ -742,7 +742,7 @@ def test_preload_modify():
         raw.save(tmp_fname, overwrite=True)
 
         raw_new = read_raw_fif(tmp_fname)
-        data_new, _ = raw_new[picks, :nsamp / 2]
+        data_new, _ = raw_new[picks, :nsamp // 2]
 
         assert_allclose(data, data_new)
 
