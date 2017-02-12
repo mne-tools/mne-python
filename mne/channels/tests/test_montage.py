@@ -22,12 +22,15 @@ from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
 from mne.io.meas_info import _read_dig_points
 from mne.io.kit import read_mrk
-from mne.io import read_raw_brainvision
+from mne.io import read_raw_brainvision, read_raw_egi, Raw
 
 from mne.datasets import testing
 
 data_path = testing.data_path(download=False)
 fif_dig_montage_fname = op.join(data_path, 'montage', 'eeganes07.fif')
+egi_dig_montage_fname = op.join(data_path, 'montage', 'coordinates.xml')
+egi_raw_fname = op.join(data_path, 'montage', 'egi_dig_test.raw')
+egi_fif_fname = op.join(data_path, 'montage', 'egi_dig_raw.fif')
 locs_montage_fname = op.join(data_path, 'EEGLAB', 'test_chans.locs')
 evoked_fname = op.join(data_path, 'montage', 'level2_raw-ave.fif')
 
@@ -392,6 +395,39 @@ def test_fif_dig_montage():
     _check_roundtrip(montage, fname_temp)
 
 
+@testing.requires_testing_data
+def test_egi_dig_montage():
+    """Test EGI MFF XML dig montage support."""
+    dig_montage = read_dig_montage(egi=egi_dig_montage_fname)
+
+    # # test round-trip IO
+    temp_dir = _TempDir()
+    fname_temp = op.join(temp_dir, 'egi_test.fif')
+    _check_roundtrip(dig_montage, fname_temp)
+
+    # Test coordinate transform
+    dig_montage.transform_to_head()
+    # nasion
+    assert_almost_equal(dig_montage.nasion[0], 0)
+    assert_almost_equal(dig_montage.nasion[2], 0)
+    # lpa and rpa
+    assert_allclose(dig_montage.lpa[1:], 0, atol=1e-16)
+    assert_allclose(dig_montage.rpa[1:], 0, atol=1e-16)
+
+    # Test accuracy and embedding within raw object
+    raw_egi = read_raw_egi(egi_raw_fname)
+    raw_egi.set_montage(dig_montage)
+    test_raw_egi = Raw(egi_fif_fname)
+
+    assert_equal(len(raw_egi.ch_names), len(test_raw_egi.ch_names))
+    for ch_raw, ch_test_raw in zip(raw_egi.info['chs'],
+                                   test_raw_egi.info['chs']):
+        assert_equal(ch_raw['ch_name'], ch_test_raw['ch_name'])
+        assert_equal(ch_raw['coord_frame'], FIFF.FIFFV_COORD_HEAD)
+        assert_allclose(ch_raw['loc'], ch_test_raw['loc'], atol=1e-7)
+    assert_dig_allclose(raw_egi.info, test_raw_egi.info)
+
+
 def _check_roundtrip(montage, fname):
     """Check roundtrip writing."""
     assert_equal(montage.coord_frame, 'head')
@@ -399,8 +435,10 @@ def _check_roundtrip(montage, fname):
     montage_read = read_dig_montage(fif=fname)
     assert_equal(str(montage), str(montage_read))
     for kind in ('elp', 'hsp', 'nasion', 'lpa', 'rpa'):
-        assert_allclose(getattr(montage, kind),
-                        getattr(montage_read, kind), err_msg=kind)
+        if getattr(montage, kind) is not None:
+            assert_allclose(getattr(montage, kind),
+                            getattr(montage_read, kind), err_msg=kind)
     assert_equal(montage_read.coord_frame, 'head')
+
 
 run_tests_if_main()

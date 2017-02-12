@@ -517,7 +517,7 @@ def _check_frame(d, frame_str):
 def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                      unit='auto', fif=None, egi=None, transform=True,
                      dev_head_t=False):
-    """Read subject-specific digitization montage from a file.
+    r"""Read subject-specific digitization montage from a file.
 
     Parameters
     ----------
@@ -557,7 +557,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         .. versionadded:: 0.12
 
     egi : str | None
-        EGI GPS xml file from which to read digitization locations.
+        EGI MFF XML coordinates file from which to read digitization locations.
         If str (filename), all other arguments are ignored.
 
         .. versionadded:: 0.14
@@ -648,6 +648,10 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         fids = dict()
         dig_ch_pos = dict()
 
+        fid_name_map = {'Nasion': 'nasion',
+                        'Right periauricular point': 'rpa',
+                        'Left periauricular point': 'lpa'}
+
         for s in sensors:
             name, number, kind = s[0].text, int(s[1].text), int(s[2].text)
             coordinates = np.array([float(s[3].text), float(s[4].text),
@@ -661,12 +665,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                            (len(dig_ch_pos.keys()) + 1)] = coordinates
             # Fiducials
             elif kind == 2:
-                if name == 'Nasion':
-                    fids['nasion'] = coordinates
-                elif name == 'Right periauricular point':
-                    fids['rpa'] = coordinates
-                elif name == 'Left periauricular point':
-                    fids['lpa'] = coordinates
+                fid_name = fid_name_map[name]
+                fids[fid_name] = coordinates
 
         fids = [fids.get(key) for key in ('nasion', 'lpa', 'rpa')]
         coord_frame = 'unknown'
