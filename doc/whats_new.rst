@@ -164,6 +164,7 @@ API
 
     - An ``overwrite=False`` default parameter has been added to :func:`write_source_spaces` to protect against accidental overwrites, by `Eric Larson`_
 
+
 .. _changes_0_13:
 
 Version 0.13
