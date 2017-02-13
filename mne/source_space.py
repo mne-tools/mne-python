@@ -127,7 +127,8 @@ class SourceSpaces(list):
             The figure.
         """
         if brain is None:
-            brain = 'white' if self.kind == 'surface' else False
+            brain = 'white' if any(ss['type'] == 'surf'
+                                   for ss in self) else False
         if skull is None:
             skull = False if self.kind == 'surface' else True
         from .viz import plot_trans

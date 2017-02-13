@@ -502,8 +502,10 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         skull = sorted(skull)
     skull_alpha = dict()
     skull_colors = dict()
-    max_val = 1. if src is None else 0.25
-    alphas = (4 - np.arange(len(skull) + 1)) * (max_val / 4.)
+    hemi_val = 0.5
+    if src is None or (brain and any(s['type'] == 'surf' for s in src)):
+        hemi_val = 1.
+    alphas = (4 - np.arange(len(skull) + 1)) * (0.5 / 4.)
     head_alpha = alphas[0]
     for idx, this_skull in enumerate(skull):
         if isinstance(this_skull, dict):
@@ -527,7 +529,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         skull_alpha[this_skull] = alphas[idx + 1]
         skull_colors[this_skull] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
         surfs[this_skull] = skull_surf
-    print(head_alpha, skull_alpha)
 
     for key in surfs.keys():
         surfs[key] = transform_surface_to(surfs[key], coord_frame, mri_trans)
@@ -603,7 +604,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
     _toggle_mlab_render(fig, False)
 
-    alphas = dict(head=head_alpha, helmet=0.5, lh=max_val, rh=max_val)
+    alphas = dict(head=head_alpha, helmet=0.5, lh=hemi_val, rh=hemi_val)
     alphas.update(skull_alpha)
     colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
                   rh=(0.5,) * 3)
@@ -637,8 +638,8 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         with warnings.catch_warnings(record=True):  # traits
             mlab.quiver3d(src_rr[:, 0], src_rr[:, 1], src_rr[:, 2],
                           src_nn[:, 0], src_nn[:, 1], src_nn[:, 2],
-                          color=(1., 1., 1.), mode='2darrow',
-                          scale_factor=2e-3, opacity=0.1)
+                          color=(1., 1., 0.), mode='sphere',
+                          scale_factor=0.75e-3, opacity=0.5)
     mlab.view(90, 90)
     _toggle_mlab_render(fig, True)
     return fig
