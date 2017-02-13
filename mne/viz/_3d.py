@@ -1549,19 +1549,19 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     elif idx == 'amplitude':
         idx = np.argmax(dipole.amplitude)
     elif not isinstance(idx, int):
-        raise ValueError("idx mus be an int or one of ['gof', 'amplitude']. "
+        raise ValueError("idx must be an int or one of ['gof', 'amplitude']. "
                          "Got %s." % idx)
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
-    ras2vox = t1.header.get_ras2vox()
+    ras2vox = np.linalg.inv(t1.header.get_vox2ras_tkr())
     trans = _get_trans(trans, fro='head', to='mri')[0]
     if coord_frame == 'head':
         affine_to = trans['trans'].copy()
         affine_to[:3, 3] *= 1000  # to mm
         affine_to = np.dot(affine_to, t1.affine)
-        t1 = resample_from_to(t1, (t1.get_shape(), affine_to))
+        t1 = resample_from_to(t1, (t1.shape, affine_to))
 
     data = t1.get_data()
     dims = len(data)  # Symmetric size assumed.
@@ -1571,16 +1571,15 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     fig = plt.figure()
     ax = Axes3D(fig) if ax is None else ax
     if coord_frame == 'head':
-        points = np.array([apply_trans(ras2vox, point * 1000.) for point
-                           in dipole.pos])
+        points = dipole.pos
         ori = dipole.ori
     else:
         points = np.array([apply_trans(trans['trans'], loc) for loc
                            in dipole.pos])
         ori = [apply_trans(trans['trans'], o) for o in dipole.ori]
-        # Position in meters -> voxels.
-        points = np.array([apply_trans(ras2vox, loc * 1000.) for loc
-                           in points])
+    # Position in meters -> voxels.
+    points = np.array([apply_trans(ras2vox, point * 1000.) for point
+                       in points])
 
     _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori)
     params = {'ax': ax, 'data': data, 'idx': idx, 'dipole': dipole,
