@@ -7,8 +7,7 @@
 import os
 from os import path as op
 
-import setuptools  # noqa; we are using a setuptools namespace
-from numpy.distutils.core import setup
+from setuptools import setup
 
 # get the version (don't import mne here, so dependencies are not needed)
 version = None
