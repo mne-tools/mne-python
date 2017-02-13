@@ -19,8 +19,7 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
-                     plot_trans, snapshot_brain_montage,
-                     plot_dipole_mri_orthoview)
+                     plot_trans, snapshot_brain_montage)
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, _TempDir, requires_nibabel)
 from mne.datasets import testing
@@ -264,10 +263,9 @@ def test_plot_dipole_mri_orthoview():
     import matplotlib.pyplot as plt
     dipoles = read_dipole(dip_fname)
     trans = read_trans(trans_fname)
-
-    for coord_frame in ['head', 'mri']:
-        fig = plot_dipole_mri_orthoview(dipoles, trans, 'sample', subjects_dir,
-                                        coord_frame=coord_frame)
+    for coord_frame, idx in zip(['head', 'mri'], ['gof', 'amplitude']):
+        fig = dipoles.plot_mri_orthoview(trans, 'sample', subjects_dir,
+                                         coord_frame=coord_frame, idx=idx)
         fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
         fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
         fig.canvas.key_press_event('up')

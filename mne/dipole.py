@@ -218,8 +218,8 @@ class Dipole(object):
         return plot_dipole_amplitudes([self], [color], show)
 
     def plot_mri_orthoview(self, trans, subject, subjects_dir=None,
-                           scale_factor=1e9, coord_frame='head', ax=None,
-                           block=False, show=True):
+                           coord_frame='head', idx='gof', ax=None, block=False,
+                           show=True):
         """Plot dipoles on top of mri slices in 3-D.
 
         Browse through the dipoles using mouse scroll or up/down arrows.
@@ -235,11 +235,14 @@ class Dipole(object):
             The path to the freesurfer subjects reconstructions. It corresponds
             to Freesurfer environment variable SUBJECTS_DIR. If None (default),
             SUBJECTS_DIR is read from environment or config file.
-        scale_factor : float
-            The scaling applied to convert amplitudes to vector (arrow) lengths
-            for the plot. Defaults to 1e9 (nAm -> mm).
         coord_frame : str
             Coordinate frame to use, 'head' or 'mri'.
+        idx : int | 'gof' | 'amplitude'
+            Index of the initially plotted dipole. Can also be 'gof' to plot
+            the dipole with highest goodness of fit value or 'amplitude' to
+            plot the dipole with the highest amplitude. The dipoles can also be
+            browsed through using up/down arrow keys or mouse scroll. Defaults
+            to 'gof'.
         ax : instance of matplotlib Axes3D | None
             Axes to plot into. If None (default), axes will be created.
         block : bool
@@ -255,9 +258,8 @@ class Dipole(object):
         """
         return plot_dipole_mri_orthoview(self, trans=trans, subject=subject,
                                          subjects_dir=subjects_dir,
-                                         scale_factor=scale_factor,
-                                         coord_frame=coord_frame, ax=ax,
-                                         block=block, show=show)
+                                         coord_frame=coord_frame, idx=idx,
+                                         ax=ax, block=block, show=show)
 
     def __getitem__(self, item):
         """Get a time slice.

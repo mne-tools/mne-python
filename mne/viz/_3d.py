@@ -1495,7 +1495,7 @@ def _get_view_to_display_matrix(scene):
 
 
 def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
-                              scale_factor=1e9, coord_frame='head', ax=None,
+                              coord_frame='head', idx='gof', ax=None,
                               block=False, show=True):
     """Plot dipoles on top of mri slices in 3-D.
 
@@ -1514,11 +1514,13 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         The path to the freesurfer subjects reconstructions. It corresponds to
         Freesurfer environment variable SUBJECTS_DIR. If None (default),
         SUBJECTS_DIR is read from environment or config file.
-    scale_factor : float
-        The scaling applied to convert amplitudes to vector (arrow) lengths for
-        the plot. Defaults to 1e9 (nAm -> mm).
     coord_frame : str
         Coordinate frame to use, 'head' or 'mri'.
+    idx : int | 'gof' | 'amplitude'
+        Index of the initially plotted dipole. Can also be 'gof' to plot the
+        dipole with highest goodness of fit value or 'amplitude' to plot the
+        dipole with the highest amplitude. The dipoles can also be browsed
+        through using up/down arrow keys or mouse scroll. Defaults to 'gof'.
     ax : instance of matplotlib Axes3D | None
         Axes to plot into. If None (default), axes will be created.
     block : bool
@@ -1542,11 +1544,17 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     if coord_frame not in ['head', 'mri']:
         raise ValueError("coord_frame must be 'head' or 'mri'. "
                          "Got %s." % coord_frame)
+    if idx == 'gof':
+        idx = np.argmax(dipole.gof)
+    elif idx == 'amplitude':
+        idx = np.argmax(dipole.amplitude)
+    elif not isinstance(idx, int):
+        raise ValueError("idx mus be an int or one of ['gof', 'amplitude']. "
+                         "Got %s." % idx)
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
-    scale_factor /= np.mean(t1.header.get_zooms())  # voxel to mm
     ras2vox = t1.header.get_ras2vox()
     trans = _get_trans(trans, fro='head', to='mri')[0]
     if coord_frame == 'head':
@@ -1574,10 +1582,9 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         points = np.array([apply_trans(ras2vox, loc * 1000.) for loc
                            in points])
 
-    _plot_dipole(ax, data, points, 0, dipole, gridx, gridy, ori, scale_factor)
-    params = {'ax': ax, 'data': data, 'idx': 0, 'dipole': dipole,
-              'points': points, 'gridx': gridx, 'gridy': gridy, 'ori': ori,
-              'scale_factor': scale_factor}
+    _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori)
+    params = {'ax': ax, 'data': data, 'idx': idx, 'dipole': dipole,
+              'points': points, 'gridx': gridx, 'gridy': gridy, 'ori': ori}
     ax.view_init(elev=30, azim=-140)
 
     callback_func = partial(_dipole_changed, params=params)
@@ -1588,8 +1595,7 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     return fig
 
 
-def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori,
-                 scale_factor):
+def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
     xidx = int(round(points[idx, 0]))
@@ -1621,7 +1627,7 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori,
 
     # Plot dipole orientation
     ax.quiver(point[0], point[2], point[1], ori[0], ori[1], ori[2],
-              length=amp * scale_factor, pivot='tail')
+              length=amp * 1e9, pivot='tail')
     plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.3f' % (idx, dipole.times[idx],
                                                         dipole.gof[idx]))
 
@@ -1648,4 +1654,4 @@ def _dipole_changed(event, params):
     params['ax'].clear()
     _plot_dipole(params['ax'], params['data'], params['points'], params['idx'],
                  params['dipole'], params['gridx'], params['gridy'],
-                 params['ori'], params['scale_factor'])
+                 params['ori'])
