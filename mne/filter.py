@@ -2359,3 +2359,109 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
     h = ifft(np.concatenate((freq_resp, freq_resp[::-1][:-1]))).real
     h = np.roll(h, n_freqs - 1)  # center the impulse like a linear-phase filt
     return h
+
+
+###############################################################################
+# Class for interpolation between adjacent points
+
+class _Interp2(object):
+    """Interpolate between two points
+
+    Parameters
+    ----------
+    interp : str
+        Can be 'zero', 'linear', 'hann', or 'cos2'.
+
+    Notes
+    -----
+    This will process data using overlapping windows of potentially
+    different sizes to achieve a constant output value using different
+    2-point interpolation schemes. For example, for linear interpolation,
+    and window sizes of 6 and 17, this would look like::
+
+        1 _     _
+          |\   / '-.           .-'
+          | \ /     '-.     .-'
+          |  x         |-.-|
+          | / \     .-'     '-.
+          |/   \_.-'           '-.
+        0 +----|----|----|----|---
+          0    5   10   15   20   25
+
+    """
+
+    @verbose
+    def __init__(self, interp='hann'):
+        # set up interpolation
+        self._last = dict()
+        self._current = dict()
+        self._count = dict()
+        self._n_samp = None
+        self.interp = interp
+
+    def __setitem__(self, key, value):
+        """Update an item."""
+        if value is None:
+            assert key not in self._current
+            return
+        if key in self._current:
+            self._last[key] = self._current[key].copy()
+        self._current[key] = value.copy()
+        self._count[key] = self._count.get(key, 0) + 1
+
+    @property
+    def n_samp(self):
+        return self._n_samp
+
+    @n_samp.setter
+    def n_samp(self, n_samp):
+        # all up to date
+        assert len(set(self._count.values())) == 1
+        self._n_samp = n_samp
+        self.interp = self.interp
+        self._chunks = np.concatenate((np.arange(0, n_samp, 10000), [n_samp]))
+
+    @property
+    def interp(self):
+        return self._interp
+
+    @interp.setter
+    def interp(self, interp):
+        known_types = ('cos2', 'linear', 'zero', 'hann')
+        if interp not in known_types:
+            raise ValueError('interp must be one of %s, got "%s"'
+                             % (known_types, interp))
+        self._interp = interp
+        if self.n_samp is not None:
+            if self._interp == 'zero':
+                self._interpolators = None
+            else:
+                if self._interp == 'linear':
+                    interp = np.linspace(1, 0, self.n_samp, endpoint=False)
+                elif self._interp == 'cos2':
+                    interp = np.cos(0.5 * np.pi * np.arange(self.n_samp)) ** 2
+                else:  # interp == 'hann'
+                    interp = np.hanning(self.n_samp * 2 + 1)[self.n_samp:-1]
+                self._interpolators = np.array([interp, 1 - interp])
+
+    def interpolate(self, key, data, out, picks=None, data_idx=None):
+        """Interpolate."""
+        picks = slice(None) if picks is None else picks
+        # Process data in large chunks to save on memory
+        for start, stop in zip(self._chunks[:-1], self._chunks[1:]):
+            time_sl = slice(start, stop)
+            if data_idx is not None:
+                # This is useful e.g. when circularly accessing the same data.
+                # This prevents STC blowups in raw data simulation.
+                data_sl = data[:, data_idx[time_sl]]
+            else:
+                data_sl = data[:, time_sl]
+            this_data = np.dot(self._last[key], data_sl)
+            if self._interpolators is not None:
+                this_data *= self._interpolators[0][time_sl]
+            out[picks, time_sl] += this_data
+            if self._interpolators is not None:
+                this_data = np.dot(self._current[key], data_sl)
+                this_data *= self._interpolators[1][time_sl]
+                out[picks, time_sl] += this_data
+            del this_data

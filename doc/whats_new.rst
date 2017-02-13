@@ -138,6 +138,8 @@ BUG
 
     - Fix reading eeglab ``.set`` files when ``.chanlocs`` structure does not contain ``X``, ``Y`` or ``Z`` fields by `Mikołaj Magnuski`_
 
+    - Fix bug with :func:`mne.simulation.simulate_raw` when ``interp != 'zero'`` by `Eric Larson`_
+
 
 API
 ~~~
