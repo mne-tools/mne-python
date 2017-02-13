@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 import mne
 
 from mne.datasets import sample
-from mne import write_source_spaces, setup_source_space
 from mne import setup_volume_source_space
 from mne import make_forward_solution
 from mne.minimum_norm import make_inverse_operator, apply_inverse
@@ -41,7 +40,10 @@ fname_trans = data_dir + '/sample_audvis_raw-trans.fif'
 fname_fwd = data_dir + '/sample_audvis-meg-oct-6-mixed-fwd.fif'
 fname_cov = data_dir + '/sample_audvis-shrunk-cov.fif'
 
-# List of sub structures we are interested in. We select only the
+###############################################################################
+# Set up our source space.
+
+# List substructures we are interested in. We select only the
 # sub structures we want to include in the source space
 labels_vol = ['Left-Amygdala',
               'Left-Thalamus-Proper',
@@ -51,31 +53,39 @@ labels_vol = ['Left-Amygdala',
               'Right-Thalamus-Proper',
               'Right-Cerebellum-Cortex']
 
-# Setup a surface-based source space
-src = setup_source_space(subject, fname=None, subjects_dir=subjects_dir,
-                         spacing='oct6', add_dist=False)
+# Get a surface-based source space. We could set one up like this::
+#
+#     >>> src = setup_source_space(subject, fname=None, spacing='oct6',
+#                                  add_dist=False, subjects_dir=subjects_dir)
+#
+# But we already have one saved:
 
-# We create a mixed src space adding to the surface src space the volume
-# regions specified in the list labels_vol. First, read the aseg file and the
-# source space bounds using the inner skull surface
+src = mne.read_source_spaces(op.join(bem_dir, 'sample-oct-6-src.fif'))
 
-# Setup a volume source space
-# set pos=7.0 for speed issue
-vol_src = setup_volume_source_space(subject, mri=fname_aseg,
-                                    pos=7.0,
-                                    bem=fname_model,
-                                    volume_label=labels_vol,
-                                    subjects_dir=subjects_dir)
+# Now we create a mixed src space by adding the volume regions specified in the
+# list labels_vol. First, read the aseg file and the source space bounds
+# using the inner skull surface (here using 10mm spacing to save time):
+
+vol_src = setup_volume_source_space(
+    subject, mri=fname_aseg, pos=7.0, bem=fname_model,
+    volume_label=labels_vol, subjects_dir=subjects_dir, verbose=True)
+
 # Generate the mixed source space
 src += vol_src
+
+# Visualize the source space.
+src.plot(subjects_dir=subjects_dir)
 
 n = sum(src[i]['nuse'] for i in range(len(src)))
 print('the src space contains %d spaces and %d points' % (len(src), n))
 
-# Write the mixed source space
-write_source_spaces(fname_mixed_src, src)
+# We could write the mixed source space with::
+#
+#    >>> write_source_spaces(fname_mixed_src, src, overwrite=True)
+#
 
-# Export source positions to nift file
+###############################################################################
+# Export source positions to nift file:
 nii_fname = op.join(bem_dir, '%s-mixed-src.nii' % subject)
 src.export_volume(nii_fname, mri_resolution=True)
 
@@ -85,9 +95,7 @@ plt.show()
 # Compute the fwd matrix
 fwd = make_forward_solution(fname_evoked, fname_trans, src, fname_bem,
                             mindist=5.0,  # ignore sources<=5mm from innerskull
-                            meg=True, eeg=False,
-                            n_jobs=1,
-                            overwrite=True)
+                            meg=True, eeg=False, n_jobs=1)
 
 leadfield = fwd['sol']['data']
 print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)

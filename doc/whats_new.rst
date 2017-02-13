@@ -61,7 +61,7 @@ Changelog
 
     - Add option in :func:`mne.io.read_raw_edf` to allow channel exclusion by `Jaakko Leppakangas`_
 
-    - Allow integer event codes in :func:`mne.io.read_epochs_eeglab` by `Jaakko Leppakangas`_
+    - Allow integer event codes in :func:`mne.read_epochs_eeglab` by `Jaakko Leppakangas`_
 
     - Add ability to match channel names in a case insensitive manner when applying a :class:`mne.channels.Montage` by `Marijn van Vliet`_
 
@@ -74,6 +74,8 @@ Changelog
     - Add interactive annotation mode to :meth:`mne.io.Raw.plot` (accessed by pressing 'a') by `Jaakko Leppakangas`_
 
     - Add support for deleting all projectors or a list of indices in :meth:`mne.io.Raw.del_proj` by `Eric Larson`_
+
+    - Add source space plotting with :meth:`mne.SourceSpaces.plot` using :func:`mne.viz.plot_trans` by `Eric Larson`_
 
 BUG
 ~~~

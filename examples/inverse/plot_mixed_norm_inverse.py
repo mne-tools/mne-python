@@ -3,22 +3,22 @@
 Compute sparse inverse solution with mixed norm: MxNE and irMxNE
 ================================================================
 
-Runs (ir)MxNE (L1/L2 or L0.5/L2 mixed norm) inverse solver.
+Runs (ir)MxNE (L1/L2 [1]_ or L0.5/L2 [2]_ mixed norm) inverse solver.
 L0.5/L2 is done with irMxNE which allows for sparser
 source estimates with less amplitude bias due to the non-convexity
 of the L0.5/L2 mixed norm penalty.
 
-See
-Gramfort A., Kowalski M. and Hamalainen, M,
-Mixed-norm estimates for the M/EEG inverse problem using accelerated
-gradient methods, Physics in Medicine and Biology, 2012
-http://dx.doi.org/10.1088/0031-9155/57/7/1937
+References
+----------
+.. [1] Gramfort A., Kowalski M. and Hamalainen, M.
+   "Mixed-norm estimates for the M/EEG inverse problem using accelerated
+   gradient methods", Physics in Medicine and Biology, 2012.
+   http://dx.doi.org/10.1088/0031-9155/57/7/1937.
 
-Strohmeier D., Haueisen J., and Gramfort A.:
-Improved MEG/EEG source localization with reweighted mixed-norms,
-4th International Workshop on Pattern Recognition in Neuroimaging,
-Tuebingen, 2014
-DOI: 10.1109/PRNI.2014.6858545
+.. [2] Strohmeier D., Haueisen J., and Gramfort A.
+   "Improved MEG/EEG source localization with reweighted mixed-norms",
+   4th International Workshop on Pattern Recognition in Neuroimaging,
+   Tuebingen, 2014. 10.1109/PRNI.2014.6858545
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -64,11 +64,10 @@ stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
                          method='dSPM')
 
 # Compute (ir)MxNE inverse solution
-stc, residual = mixed_norm(evoked, forward, cov, alpha, loose=loose,
-                           depth=depth, maxit=3000, tol=1e-4,
-                           active_set_size=10, debias=True, weights=stc_dspm,
-                           weights_min=8., n_mxne_iter=n_mxne_iter,
-                           return_residual=True)
+stc, residual = mixed_norm(
+    evoked, forward, cov, alpha, loose=loose, depth=depth, maxit=3000,
+    tol=1e-4, active_set_size=10, debias=True, weights=stc_dspm,
+    weights_min=8., n_mxne_iter=n_mxne_iter, return_residual=True)
 residual.plot(ylim=ylim, proj=True)
 
 ###############################################################################

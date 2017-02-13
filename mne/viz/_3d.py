@@ -23,13 +23,15 @@ from ..externals.six import string_types, advance_iterator
 from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
+from ..source_space import SourceSpaces
 from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
                        complete_surface_info)
 from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
-from ..utils import get_subjects_dir, logger, _check_subject, verbose, warn
+from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
+                     _import_mlab)
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS, plt_show
 from ..externals.six import BytesIO
 
@@ -70,7 +72,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     types = [sm['kind'] for sm in surf_maps]
 
     # Plot them
-    from mayavi import mlab
+    mlab = _import_mlab()
     alphas = [1.0, 0.5]
     colors = [(0.6, 0.6, 0.6), (1.0, 1.0, 1.0)]
     colormap = mne_analyze_colormap(format='mayavi')
@@ -107,48 +109,50 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
         data = np.dot(map_data, evoked.data[pick, time_idx])
 
-        x, y, z = surf['rr'].T
-        nn = surf['nn']
-        # make absolutely sure these are normalized for Mayavi
-        nn = nn / np.sum(nn * nn, axis=1)[:, np.newaxis]
-
         # Make a solid surface
         vlim = np.max(np.abs(data))
         alpha = alphas[ii]
+        mesh = _create_mesh_surf(surf)
         with warnings.catch_warnings(record=True):  # traits
-            mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
-        mesh.data.point_data.normals = nn
-        mesh.data.cell_data.normals = None
-        mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
+            surface = mlab.pipeline.surface(mesh, color=colors[ii],
+                                            opacity=alpha)
+        surface.actor.property.backface_culling = True
 
         # Now show our field pattern
-        with warnings.catch_warnings(record=True):  # traits
-            mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
-                                                        scalars=data)
-        mesh.data.point_data.normals = nn
-        mesh.data.cell_data.normals = None
+        mesh = _create_mesh_surf(surf, scalars=data)
         with warnings.catch_warnings(record=True):  # traits
             fsurf = mlab.pipeline.surface(mesh, vmin=-vlim, vmax=vlim)
         fsurf.module_manager.scalar_lut_manager.lut.table = colormap
+        fsurf.actor.property.backface_culling = True
 
         # And the field lines on top
         with warnings.catch_warnings(record=True):  # traits
-            mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
-                                                        scalars=data)
-        mesh.data.point_data.normals = nn
-        mesh.data.cell_data.normals = None
-        with warnings.catch_warnings(record=True):  # traits
-            cont = mlab.pipeline.contour_surface(mesh, contours=21,
-                                                 line_width=1.0,
-                                                 vmin=-vlim, vmax=vlim,
-                                                 opacity=alpha)
+            cont = mlab.pipeline.contour_surface(
+                mesh, contours=21, line_width=1.0, vmin=-vlim, vmax=vlim,
+                opacity=alpha)
         cont.module_manager.scalar_lut_manager.lut.table = colormap_lines
 
     if '%' in time_label:
         time_label %= (1e3 * evoked.times[time_idx])
-    mlab.text(0.01, 0.01, time_label, width=0.4)
-    mlab.view(10, 60)
+    with warnings.catch_warnings(record=True):  # traits
+        mlab.text(0.01, 0.01, time_label, width=0.4)
+        mlab.view(10, 60)
     return fig
+
+
+def _create_mesh_surf(surf, scalars=None):
+    """Create Mayavi mesh from MNE surf."""
+    mlab = _import_mlab()
+    nn = surf['nn']
+    # make absolutely sure these are normalized for Mayavi
+    nn = nn / np.sum(nn * nn, axis=1)[:, np.newaxis]
+    x, y, z = surf['rr'].T
+    with warnings.catch_warnings(record=True):  # traits
+        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
+    mesh.data.point_data.normals = nn
+    mesh.data.cell_data.normals = None
+    mesh.update()
+    return mesh
 
 
 def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
@@ -271,8 +275,8 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                coord_frame='head', meg_sensors=('helmet', 'sensors'),
                eeg_sensors='original', dig=False, ref_meg=False,
                ecog_sensors=True, head=None, brain=None, skull=False,
-               verbose=None):
-    """Plot head and sensor alignment in 3D.
+               src=None, verbose=None):
+    """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
     ----------
@@ -284,7 +288,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         is assumed.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
-        variable SUBJECT.
+        variable SUBJECT. Can be omitted if ``src`` is provided.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
@@ -320,16 +324,22 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         head surface for MEG and EEG, but hide it if ECoG sensors are
         present.
     brain : bool | str | None
-        If True, show the 'white' brain surfaces. Can also be a str for
+        If True, show the brain surfaces. Can also be a str for
         surface type (e.g., 'pial', same as True), or None (True for ECoG,
         False otherwise).
     skull : bool | str | list of str | list of dict
         Whether to plot skull surface. If string, common choices would be
-        'inner_skull', or 'outer_skull'. Can also be a list to plot multiple
-        skull surfaces. If a list of dicts, each dict must contain the complete
-        surface info (such as you get from :func:`mne.make_bem_model`).
-        True is an alias of 'outer_skull'. The subjects bem and bem/flash
-        folders are searched for the 'surf' files. Defaults to False.
+        'inner_skull', or 'outer_skull'. Can also be a list to plot
+        multiple skull surfaces. If a list of dicts, each dict must
+        contain the complete surface info (such as you get from
+        :func:`mne.make_bem_model`). True is an alias of 'outer_skull'.
+        The subjects bem and bem/flash folders are searched for the 'surf'
+        files. Defaults to False.
+    src : instance of SourceSpaces | None
+        If not None, also plot the source space points.
+
+        .. versionadded:: 0.14
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -339,8 +349,8 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     fig : instance of mlab.Figure
         The mayavi figure.
     """
-    from mayavi import mlab
     from ..forward import _create_meg_coils
+    mlab = _import_mlab()
     if ch_type is not None:
         if ch_type not in ['eeg', 'meg']:
             raise ValueError('Argument ch_type must be None | eeg | meg. Got '
@@ -377,6 +387,21 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     valid_coords = ['head', 'meg', 'mri']
     if coord_frame not in valid_coords:
         raise ValueError('coord_frame must be one of %s' % (valid_coords,))
+    if src is not None:
+        if not isinstance(src, SourceSpaces):
+            raise TypeError('src must be None or SourceSpaces, got %s'
+                            % (type(src),))
+        src_subject = src[0].get('subject_his_id', None)
+        subject = src_subject if subject is None else subject
+        if src_subject is not None and subject != src_subject:
+            raise ValueError('subject ("%s") did not match the subject name '
+                             ' in src ("%s")' % (subject, src_subject))
+        src_rr = np.concatenate([s['rr'][s['inuse'].astype(bool)]
+                                 for s in src])
+        src_nn = np.concatenate([s['nn'][s['inuse'].astype(bool)]
+                                 for s in src])
+    else:
+        src_rr = src_nn = np.empty((0, 3))
 
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
@@ -477,8 +502,12 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         skull = sorted(skull)
     skull_alpha = dict()
     skull_colors = dict()
+    hemi_val = 0.5
+    if src is None or (brain and any(s['type'] == 'surf' for s in src)):
+        hemi_val = 1.
+    alphas = (4 - np.arange(len(skull) + 1)) * (0.5 / 4.)
+    head_alpha = alphas[0]
     for idx, this_skull in enumerate(skull):
-        head_alpha = 0.75 - len(skull) * 0.25
         if isinstance(this_skull, dict):
             from ..bem import _surf_name
             skull_surf = this_skull
@@ -497,12 +526,14 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             skull_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
                               np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
             complete_surface_info(skull_surf, copy=False)
-        skull_alpha[this_skull] = 1. - (len(skull) - idx) * 0.25
+        skull_alpha[this_skull] = alphas[idx + 1]
         skull_colors[this_skull] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
         surfs[this_skull] = skull_surf
 
     for key in surfs.keys():
         surfs[key] = transform_surface_to(surfs[key], coord_frame, mri_trans)
+    src_rr = apply_trans(mri_trans, src_rr)
+    src_nn = apply_trans(mri_trans, src_nn, move=False)
 
     # determine points
     meg_rrs, meg_tris = list(), list()
@@ -571,25 +602,19 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
 
     # do the plotting, surfaces then points
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    _toggle_mlab_render(fig, False)
 
-    alphas = dict(head=head_alpha, helmet=0.5, lh=1.0, rh=1.0)
+    alphas = dict(head=head_alpha, helmet=0.5, lh=hemi_val, rh=hemi_val)
     alphas.update(skull_alpha)
     colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
                   rh=(0.5,) * 3)
     colors.update(skull_colors)
     for key, surf in surfs.items():
-        x, y, z = surf['rr'].T
-        nn = surf['nn']
-        # make absolutely sure these are normalized for Mayavi
-        nn = nn / np.sum(nn * nn, axis=1)[:, np.newaxis]
-
         # Make a solid surface
+        mesh = _create_mesh_surf(surf)
         with warnings.catch_warnings(record=True):  # traits
-            mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
-        mesh.data.point_data.normals = nn
-        mesh.data.cell_data.normals = None
-        surface = mlab.pipeline.surface(mesh, color=colors[key],
-                                        opacity=alphas[key])
+            surface = mlab.pipeline.surface(mesh, color=colors[key],
+                                            opacity=alphas[key])
         surface.actor.property.backface_culling = True
 
     datas = (eeg_loc, eegp_loc, hpi_loc, car_loc, ext_loc, ecog_loc)
@@ -606,9 +631,17 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                 points.actor.property.backface_culling = True
     if len(meg_rrs) > 0:
         color, alpha = (0., 0.25, 0.5), 0.25
-        mlab.triangular_mesh(meg_rrs[:, 0], meg_rrs[:, 1], meg_rrs[:, 2],
-                             meg_tris, color=color, opacity=alpha)
+        with warnings.catch_warnings(record=True):  # traits
+            mlab.triangular_mesh(meg_rrs[:, 0], meg_rrs[:, 1], meg_rrs[:, 2],
+                                 meg_tris, color=color, opacity=alpha)
+    if len(src_rr) > 0:
+        with warnings.catch_warnings(record=True):  # traits
+            mlab.quiver3d(src_rr[:, 0], src_rr[:, 1], src_rr[:, 2],
+                          src_nn[:, 0], src_nn[:, 1], src_nn[:, 2],
+                          color=(1., 1., 0.), mode='sphere',
+                          scale_factor=0.75e-3, opacity=0.5)
     mlab.view(90, 90)
+    _toggle_mlab_render(fig, True)
     return fig
 
 
@@ -1012,7 +1045,16 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         and :ref:`Logging documentation <tut_logging>` for more).
     **kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh.
+
+    Returns
+    -------
+    surface : instance of mlab Surface
+        The triangular mesh surface.
     """
+    mlab = _import_mlab()
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import ColorConverter
+
     known_modes = ['cone', 'sphere']
     if not isinstance(modes, (list, tuple)) or \
             not all(mode in known_modes for mode in modes):
@@ -1052,24 +1094,22 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                for stc in stcs]
     unique_vertnos = np.unique(np.concatenate(vertnos).ravel())
 
-    from mayavi import mlab
-    from matplotlib.colors import ColorConverter
     color_converter = ColorConverter()
 
     f = mlab.figure(figure=fig_name, bgcolor=bgcolor, size=(600, 600))
     mlab.clf()
-    if mlab.options.backend != 'test':
-        f.scene.disable_render = True
+    _toggle_mlab_render(f, False)
     with warnings.catch_warnings(record=True):  # traits warnings
         surface = mlab.triangular_mesh(points[:, 0], points[:, 1],
                                        points[:, 2], use_faces,
                                        color=brain_color,
                                        opacity=opacity, **kwargs)
+    surface.actor.property.backface_culling = True
 
-    import matplotlib.pyplot as plt
     # Show time courses
-    plt.figure(fig_number)
-    plt.clf()
+    fig = plt.figure(fig_number)
+    fig.clf()
+    ax = fig.add_subplot(111)
 
     colors = cycle(colors)
 
@@ -1108,20 +1148,26 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
             mask = (vertno == v)
             assert np.sum(mask) == 1
             linestyle = linestyles[k]
-            plt.plot(1e3 * stcs[k].times, 1e9 * stcs[k].data[mask].ravel(),
-                     c=c, linewidth=linewidth, linestyle=linestyle)
+            ax.plot(1e3 * stcs[k].times, 1e9 * stcs[k].data[mask].ravel(),
+                    c=c, linewidth=linewidth, linestyle=linestyle)
 
-    plt.xlabel('Time (ms)', fontsize=18)
-    plt.ylabel('Source amplitude (nAm)', fontsize=18)
+    ax.set_xlabel('Time (ms)', fontsize=18)
+    ax.set_ylabel('Source amplitude (nAm)', fontsize=18)
 
     if fig_name is not None:
-        plt.title(fig_name)
+        ax.set_title(fig_name)
     plt_show(show)
 
     surface.actor.property.backface_culling = True
     surface.actor.property.shading = True
-
+    _toggle_mlab_render(f, True)
     return surface
+
+
+def _toggle_mlab_render(fig, render):
+    mlab = _import_mlab()
+    if mlab.options.backend != 'test':
+        fig.scene.disable_render = not render
 
 
 def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
@@ -1176,7 +1222,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     -----
     .. versionadded:: 0.9.0
     """
-    from mayavi import mlab
+    mlab = _import_mlab()
     from matplotlib.colors import ColorConverter
     color_converter = ColorConverter()
 
@@ -1184,8 +1230,9 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     fname = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')
-    points, faces = read_surface(fname)
-    points = apply_trans(trans['trans'], points * 1e-3)
+    surf = complete_surface_info(read_surface(fname, return_dict=True)[2],
+                                 copy=False)
+    surf['rr'] = apply_trans(trans['trans'], surf['rr'] * 1e-3)
 
     from .. import Dipole
     if isinstance(dipoles, Dipole):
@@ -1198,10 +1245,12 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
         colors = cycle(COLORS)
 
     fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
-    with warnings.catch_warnings(record=True):  # FutureWarning in traits
-        mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
-                             faces, color=brain_color, opacity=opacity)
-
+    _toggle_mlab_render(fig, False)
+    mesh = _create_mesh_surf(surf)
+    with warnings.catch_warnings(record=True):  # traits
+        surface = mlab.pipeline.surface(mesh, color=brain_color,
+                                        opacity=opacity)
+    surface.actor.property.backface_culling = True
     for dip, color in zip(dipoles, colors):
         rgb_color = color_converter.to_rgb(color)
         with warnings.catch_warnings(record=True):  # FutureWarning in traits
@@ -1211,10 +1260,11 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
                           scalars=dip.amplitude.max(),
                           scale_factor=scale_factor)
     if fig_name is not None:
-        mlab.title(fig_name)
+        with warnings.catch_warnings(record=True):  # traits
+            mlab.title(fig_name)
     if fig.scene is not None:  # safe for Travis
         fig.scene.x_plus_view()
-
+    _toggle_mlab_render(fig, True)
     return fig
 
 
@@ -1242,7 +1292,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     im : array, shape (m, n, 3)
         The screenshot of the current scene view
     """
-    from mayavi import mlab
+    mlab = _import_mlab()
     from ..channels import Montage, DigMontage
     from .. import Info
     if isinstance(montage, (Montage, DigMontage)):
@@ -1266,7 +1316,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 
     if hide_sensors is True:
         pts.visible = False
-    im = mlab.screenshot(fig)
+    with warnings.catch_warnings(record=True):
+        im = mlab.screenshot(fig)
     pts.visible = True
     return xy, im
 
