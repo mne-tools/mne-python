@@ -49,6 +49,9 @@ def run():
     options, args = parser.parse_args()
 
     if options.low_res_head:
+        if options.high_res_head:
+            raise ValueError("Can't specify --high-res-head and "
+                             "--low-res-head at the same time.")
         head_high_res = False
     elif options.high_res_head:
         head_high_res = True
