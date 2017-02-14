@@ -2365,7 +2365,7 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
 # Class for interpolation between adjacent points
 
 class _Interp2(object):
-    """Interpolate between two points
+    r"""Interpolate between two points.
 
     Parameters
     ----------
