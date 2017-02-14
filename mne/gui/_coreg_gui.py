@@ -1,5 +1,34 @@
 # -*- coding: utf-8 -*-
-"""Traits-based GUI for head-MRI coregistration."""
+"""Traits-based GUI for head-MRI coregistration.
+
+Hierarchy
+---------
+This is the hierarchy of classes for control. Brackets like [1] denote
+properties that ar equivalent.
+
+::
+
+  CoregFrame: GUI for head-MRI coregistration.
+  |-- CoregModel (model): Traits object for estimating the head mri transform.
+  |   |-- MRIHeadWithFiducialsModel (mri) [1]: Represent an MRI head shape with fiducials.
+  |   |-- MRISubjectSource (subject_source) [2]: Find subjects in SUBJECTS_DIR and select one.
+  |   |-- SurfaceSource (bem): Expose points and tris of a file storing a surface.
+  |   |-- FiducialsSource (fid): Expose points of a given fiducials fif file.
+  |   +-- DigSource (hsp): Expose measurement information from a inst file.
+  |-- MlabSceneModel (scene) [3]: mayavi.core.ui.mayavi_scene
+  |-- HeadViewController (headview) [4]: Set head views for the given coordinate system.
+  |   +-- MlabSceneModel (scene) [3*]: ``HeadViewController(scene=CoregFrame.scene)``
+  |-- SubjectSelectorPanel (subject_panel): Subject selector panel
+  |   +-- MRISubjectSource (model) [2*]: ``SubjectSelectorPanel(model=self.model.mri.subject_source)``
+  |-- SurfaceObject (mri_obj) [5]: Represent a solid object in a mayavi scene.
+  |-- FiducialsPanel (fid_panel): Set fiducials on an MRI surface.
+  |   |-- MRIHeadWithFiducialsModel (model) [1*]: ``FiducialsPanel(model=CoregFrame.model.mri, headview=CoregFrame.headview)``
+  |   |-- HeadViewController (headview) [4*]: ``FiducialsPanel(model=CoregFrame.model.mri, headview=CoregFrame.headview)``
+  |   +-- SurfaceObject (hsp_obj) [5*]: ``CoregFrame.fid_panel.hsp_obj = CoregFrame.mri_obj``
+  |-- CoregPanel (coreg_panel): Coregistration panel for Head<->MRI with scaling.
+  +-- PointObject ({hsp, eeg, lpa, nasion, rpa, hsp_lpa, hsp_nasion, hsp_rpa} + _obj): Represent a group of individual points in a mayavi scene.
+
+"""  # noqa: E501
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -29,15 +58,18 @@ from tvtk.pyface.scene_editor import SceneEditor
 
 from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import bem_fname, trans_fname
+from ..defaults import DEFAULTS
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _find_fiducials_files, _point_cloud_error)
+from ..viz._3d import _toggle_mlab_render
 from ..utils import logger, set_config
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
-from ._file_traits import trans_wildcard, InstSource, SubjectSelectorPanel
-from ._viewer import defaults, HeadViewController, PointObject, SurfaceObject
+from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
+from ._viewer import HeadViewController, PointObject, SurfaceObject
 
+defaults = DEFAULTS['coreg']
 
 laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float)
 
@@ -49,15 +81,15 @@ class CoregModel(HasPrivateTraits):
     -----
     Transform from head to mri space is modelled with the following steps:
 
-     * move the head shape to its nasion position
-     * rotate the head shape with user defined rotation around its nasion
-     * move the head shape by user defined translation
-     * move the head shape origin to the mri nasion
+    * move the head shape to its nasion position
+    * rotate the head shape with user defined rotation around its nasion
+    * move the head shape by user defined translation
+    * move the head shape origin to the mri nasion
 
     If MRI scaling is enabled,
 
-     * the MRI is scaled relative to its origin center (prior to any
-       transformation of the digitizer head)
+    * the MRI is scaled relative to its origin center (prior to any
+      transformation of the digitizer head)
 
     Don't sync transforms to anything to prevent them from being recomputed
     upon every parameter change.
@@ -65,7 +97,7 @@ class CoregModel(HasPrivateTraits):
 
     # data sources
     mri = Instance(MRIHeadWithFiducialsModel, ())
-    hsp = Instance(InstSource, ())
+    hsp = Instance(DigSource, ())
 
     # parameters
     guess_mri_subject = Bool(True)  # change MRI subject when dig file changes
@@ -98,6 +130,9 @@ class CoregModel(HasPrivateTraits):
     has_pts_data = Property(
         Bool,
         depends_on=['mri.points', 'hsp.points'])
+    has_eeg_data = Property(
+        Bool,
+        depends_on=['mri.points', 'hsp.eeg_points'])
 
     # MRI dependent
     mri_origin = Property(
@@ -168,6 +203,11 @@ class CoregModel(HasPrivateTraits):
     @cached_property
     def _get_has_pts_data(self):
         has = (np.any(self.mri.points) and np.any(self.hsp.points))
+        return has
+
+    @cached_property
+    def _get_has_eeg_data(self):
+        has = (np.any(self.mri.points) and np.any(self.hsp.eeg_points))
         return has
 
     @cached_property
@@ -296,8 +336,7 @@ class CoregModel(HasPrivateTraits):
     def _get_fid_eval_str(self):
         d = (self.lpa_distance * 1000, self.nasion_distance * 1000,
              self.rpa_distance * 1000)
-        txt = ("Error (mm): LPA %.1f, NAS %.1f, RPA %.1f" % d)
-        return txt
+        return 'Error: LPA=%.1f NAS=%.1f RPA=%.1f mm' % d
 
     @cached_property
     def _get_points_eval_str(self):
@@ -305,7 +344,7 @@ class CoregModel(HasPrivateTraits):
             return ""
         av_dist = 1000 * np.mean(self.point_distance)
         std_dist = 1000 * np.std(self.point_distance)
-        return u"Points: μ=%.1f, σ = %.1f" % (av_dist, std_dist)
+        return u"Points: μ=%.1f, σ=%.1f mm" % (av_dist, std_dist)
 
     def _get_raw_subject(self):
         # subject name guessed based on the inst file name
@@ -539,7 +578,12 @@ class CoregModel(HasPrivateTraits):
 class CoregFrameHandler(Handler):
     """Check for unfinished processes before closing its window."""
 
-    def close(self, info, is_ok):  # noqa: D102
+    def object_title_changed(self, info):
+        """Set the title when it gets changed."""
+        info.ui.title = info.object.title
+
+    def close(self, info, is_ok):
+        """Handle the close event."""
         if info.object.queue.unfinished_tasks:
             information(None, "Can not close the window while saving is still "
                         "in progress. Please wait until all MRIs are "
@@ -555,7 +599,7 @@ class CoregFrameHandler(Handler):
 
 
 class CoregPanel(HasPrivateTraits):
-    """Coregistration panel."""
+    """Coregistration panel for Head<->MRI with scaling."""
 
     model = Instance(CoregModel)
 
@@ -597,6 +641,7 @@ class CoregPanel(HasPrivateTraits):
     # fitting
     has_fid_data = DelegatesTo('model')
     has_pts_data = DelegatesTo('model')
+    has_eeg_data = DelegatesTo('model')
     # fitting with scaling
     fits_hsp_points = Button(label='Fit Head Shape')
     fits_fid = Button(label='Fit Fiducials')
@@ -741,8 +786,8 @@ class CoregPanel(HasPrivateTraits):
                                    "as to minimize the distance between the "
                                    "MRI and head shape fiducials", width=10),
                               show_labels=False),
-                       HGroup(Item('load_trans', enabled_when='has_fid_data',
-                              width=10), Spring(), show_labels=False),
+                       HGroup(Item('load_trans', width=10),
+                              Spring(), show_labels=False),
                        '_',
                        Item('fid_eval_str', style='readonly'),
                        Item('points_eval_str', style='readonly'),
@@ -1179,10 +1224,13 @@ class ViewOptionsPanel(HasTraits):
 
     mri_obj = Instance(SurfaceObject)
     hsp_obj = Instance(PointObject)
+    eeg_obj = Instance(PointObject)
     view = View(VGroup(Item('mri_obj', style='custom',  # show_border=True,
                             label="MRI Head Surface"),
                        Item('hsp_obj', style='custom',  # show_border=True,
-                            label="Head Shape Points")),
+                            label="Head Shape Points"),
+                       Item('eeg_obj', style='custom',
+                            label='EEG Points')),
                 title="View Options")
 
 
@@ -1197,6 +1245,8 @@ class CoregFrame(HasTraits):
     subject_panel = Instance(SubjectSelectorPanel)
     fid_panel = Instance(FiducialsPanel)
     coreg_panel = Instance(CoregPanel)
+    view_options_panel = Instance(ViewOptionsPanel)
+
     raw_src = DelegatesTo('model', 'hsp')
     guess_mri_subject = DelegatesTo('model')
 
@@ -1213,9 +1263,11 @@ class CoregFrame(HasTraits):
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
     lock_fiducials = DelegatesTo('model')
     hsp_always_visible = Bool(False, label="Always Show Head Shape")
+    title = Str('MNE Coreg')
 
     # visualization
     hsp_obj = Instance(PointObject)
+    eeg_obj = Instance(PointObject)
     mri_obj = Instance(SurfaceObject)
     lpa_obj = Instance(PointObject)
     nasion_obj = Instance(PointObject)
@@ -1228,8 +1280,6 @@ class CoregFrame(HasTraits):
     view_options = Button(label="View Options")
 
     picker = Instance(object)
-
-    view_options_panel = Instance(ViewOptionsPanel)
 
     # Processing
     queue = DelegatesTo('coreg_panel')
@@ -1250,7 +1300,8 @@ class CoregFrame(HasTraits):
 
     def __init__(self, raw=None, subject=None, subjects_dir=None,
                  guess_mri_subject=True, head_opacity=1.,
-                 head_high_res=True, prepare_bem=True):  # noqa: D102
+                 head_high_res=True, prepare_bem=True,
+                 trans=None):  # noqa: D102
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
         self.subject_panel.model.use_high_res_head = head_high_res
         self.model.prepare_bem_model = prepare_bem
@@ -1282,17 +1333,23 @@ class CoregFrame(HasTraits):
                         "(run $ mne make_scalp_surfaces).")
                 raise ValueError(msg)
             self.model.mri.subject = subject
+        if trans is not None:
+            self.model.load_trans(trans)
+
+    @on_trait_change('subject_panel.subject')
+    def _set_title(self):
+        self.title = '%s - MNE Coreg' % self.model.mri.subject
 
     @on_trait_change('scene.activated')
     def _init_plot(self):
-        self.scene.disable_render = True
+        _toggle_mlab_render(self, False)
 
         lpa_color = defaults['lpa_color']
         nasion_color = defaults['nasion_color']
         rpa_color = defaults['rpa_color']
 
         # MRI scalp
-        color = defaults['mri_color']
+        color = defaults['head_color']
         self.mri_obj = SurfaceObject(points=self.model.transformed_mri_points,
                                      color=color, tri=self.model.mri.tris,
                                      scene=self.scene, name="MRI Scalp",
@@ -1326,8 +1383,8 @@ class CoregFrame(HasTraits):
         self.model.sync_trait('scale', self.rpa_obj, 'trans', mutual=False)
 
         # Digitizer Head Shape
-        color = defaults['hsp_point_color']
-        point_scale = defaults['hsp_points_scale']
+        color = defaults['extra_color']
+        point_scale = defaults['extra_scale']
         p = PointObject(view='cloud', scene=self.scene, color=color,
                         point_scale=point_scale, resolution=5, name='HSP')
         self.hsp_obj = p
@@ -1335,9 +1392,19 @@ class CoregFrame(HasTraits):
         self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
+        # Digitizer EEG
+        color = defaults['eeg_color']
+        point_scale = defaults['eeg_scale']
+        p = PointObject(view='cloud', scene=self.scene, color=color,
+                        point_scale=point_scale, resolution=5, name='EEG')
+        self.eeg_obj = p
+        self.model.hsp.sync_trait('eeg_points', p, 'points', mutual=False)
+        self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
+        self.sync_trait('hsp_visible', p, 'visible', mutual=False)
+
         # Digitizer Fiducials
-        point_scale = defaults['hsp_fid_scale']
-        opacity = defaults['hsp_fid_opacity']
+        point_scale = defaults['dig_fid_scale']
+        opacity = defaults['dig_fid_opacity']
         p = PointObject(scene=self.scene, color=lpa_color, opacity=opacity,
                         point_scale=point_scale, name='HSP-LPA')
         self.hsp_lpa_obj = p
@@ -1363,7 +1430,7 @@ class CoregFrame(HasTraits):
         self.picker = on_pick(self.fid_panel._on_pick, type='cell')
 
         self.headview.left = True
-        self.scene.disable_render = False
+        _toggle_mlab_render(self, True)
         self.scene.render()
         self.scene.camera.focal_point = (0., 0., 0.)
         self.view_options_panel = ViewOptionsPanel(mri_obj=self.mri_obj,

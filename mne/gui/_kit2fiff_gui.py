@@ -552,14 +552,15 @@ class Kit2FiffPanel(HasPrivateTraits):
         t.start()
 
         # setup mayavi visualization
-        self.fid_obj = PointObject(scene=self.scene, color=(25, 225, 25),
+        self.fid_obj = PointObject(scene=self.scene, color=(0.1, 1., 0.1),
                                    point_scale=5e-3, name='Fiducials')
-        self.elp_obj = PointObject(scene=self.scene, color=(50, 50, 220),
+        self.elp_obj = PointObject(scene=self.scene,
+                                   color=(0.196, 0.196, 0.863),
                                    point_scale=1e-2, opacity=.2, name='ELP')
-        self.hsp_obj = PointObject(scene=self.scene, color=(200, 200, 200),
+        self.hsp_obj = PointObject(scene=self.scene, color=(0.784,) * 3,
                                    point_scale=2e-3, name='HSP')
-        for name, obj in zip(['fid', 'elp', 'hsp'],
-                             [self.fid_obj, self.elp_obj, self.hsp_obj]):
+        for name in ('fid', 'elp', 'hsp'):
+            obj = getattr(self, name + '_obj')
             self.model.sync_trait(name, obj, 'points', mutual=False)
             self.model.sync_trait('head_dev_trans', obj, 'trans', mutual=False)
         self.scene.camera.parallel_scale = 0.15

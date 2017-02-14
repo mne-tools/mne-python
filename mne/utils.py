@@ -2265,6 +2265,18 @@ class ArgvSetter(object):
         sys.stderr = self.orig_stderr
 
 
+class SilenceStdout(object):
+    """Silence stdout."""
+
+    def __enter__(self):  # noqa: D105
+        self.stdout = sys.stdout
+        sys.stdout = StringIO()
+        return self
+
+    def __exit__(self, *args):  # noqa: D105
+        sys.stdout = self.stdout
+
+
 def md5sum(fname, block_size=1048576):  # 2 ** 20
     """Calculate the md5sum for a file.
 

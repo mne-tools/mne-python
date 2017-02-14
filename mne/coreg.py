@@ -61,6 +61,7 @@ def _make_writable_recursive(path):
 
 def _find_head_bem(subject, subjects_dir, high_res=False):
     """Find a high resolution head."""
+    # XXX this should be refactored with mne.surface.get_head_surf ...
     fnames = _high_res_head_fnames if high_res else _head_fnames
     for fname in fnames:
         path = fname.format(subjects_dir=subjects_dir, subject=subject)

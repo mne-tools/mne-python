@@ -254,7 +254,7 @@ def _triangle_coords(r, geom, best):
     return x, y, z
 
 
-def _project_onto_surface(rrs, surf, project_rrs=False):
+def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False):
     """Project points onto (scalp) surface."""
     surf_geom = _get_tri_supp_geom(surf)
     coords = np.empty((len(rrs), 3))
@@ -271,6 +271,8 @@ def _project_onto_surface(rrs, surf, project_rrs=False):
     if project_rrs:  #
         out += (np.einsum('ij,jik->jk', weights,
                           surf['rr'][surf['tris'][tri_idx]]),)
+    if return_nn:
+        out += (surf_geom['nn'][tri_idx],)
     return out
 
 

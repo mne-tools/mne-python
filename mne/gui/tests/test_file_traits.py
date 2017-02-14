@@ -57,10 +57,10 @@ def test_fiducials_source():
 @testing.requires_testing_data
 @requires_mayavi
 def test_inst_source():
-    """Test InstSource"""
-    from mne.gui._file_traits import InstSource
+    """Test DigSource"""
+    from mne.gui._file_traits import DigSource
 
-    inst = InstSource()
+    inst = DigSource()
     assert_equal(inst.inst_fname, '-')
 
     inst.file = inst_path

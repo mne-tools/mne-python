@@ -377,21 +377,24 @@ class CombineMarkersPanel(HasTraits):  # noqa: D401
         m = self.model
         m.sync_trait('distance', self, 'distance', mutual=False)
 
-        self.mrk1_obj = PointObject(scene=self.scene, color=(155, 55, 55),
+        self.mrk1_obj = PointObject(scene=self.scene,
+                                    color=(0.608, 0.216, 0.216),
                                     point_scale=self.scale)
         self.sync_trait('trans', self.mrk1_obj, mutual=False)
         m.mrk1.sync_trait('points', self.mrk1_obj, 'points', mutual=False)
         m.mrk1.sync_trait('enabled', self.mrk1_obj, 'visible',
                           mutual=False)
 
-        self.mrk2_obj = PointObject(scene=self.scene, color=(55, 155, 55),
+        self.mrk2_obj = PointObject(scene=self.scene,
+                                    color=(0.216, 0.608, 0.216),
                                     point_scale=self.scale)
         self.sync_trait('trans', self.mrk2_obj, mutual=False)
         m.mrk2.sync_trait('points', self.mrk2_obj, 'points', mutual=False)
         m.mrk2.sync_trait('enabled', self.mrk2_obj, 'visible',
                           mutual=False)
 
-        self.mrk3_obj = PointObject(scene=self.scene, color=(150, 200, 255),
+        self.mrk3_obj = PointObject(scene=self.scene,
+                                    color=(0.588, 0.784, 1.),
                                     point_scale=self.scale)
         self.sync_trait('trans', self.mrk3_obj, mutual=False)
         m.mrk3.sync_trait('points', self.mrk3_obj, 'points', mutual=False)
