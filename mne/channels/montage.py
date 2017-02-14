@@ -14,7 +14,7 @@ import os
 import os.path as op
 
 import numpy as np
-import xml.etree.ElementTree as et
+import xml.etree.ElementTree as ElementTree
 
 from ..viz import plot_montage
 from .channels import _contains_ch_type
@@ -638,11 +638,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             raise ValueError('hsp, hpi, elp, point_names, fif must all be '
                              'None if egi is not None')
         _check_fname(egi, overwrite=True, must_exist=True)
-        if not transform:
-            warn('Dig montage will not be in Neuromag head space. Set '
-                 'transform to True to place in correct coordinate space.')
 
-        root = et.parse(egi).getroot()
+        root = ElementTree.parse(egi).getroot()
         ns = root.tag[root.tag.index('{'):root.tag.index('}') + 1]
         sensors = root.find('%ssensorLayout/%ssensors' % (ns, ns))
         fids = dict()
@@ -667,6 +664,10 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             elif kind == 2:
                 fid_name = fid_name_map[name]
                 fids[fid_name] = coordinates
+            # Unknown
+            else:
+                warn('Unknown sensor type detected. Skipping sensor...'
+                     'Proceed with caution!')
 
         fids = [fids.get(key) for key in ('nasion', 'lpa', 'rpa')]
         coord_frame = 'unknown'
