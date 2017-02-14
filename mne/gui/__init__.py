@@ -38,7 +38,7 @@ def combine_kit_markers():
 def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
                    subject=None, subjects_dir=None, guess_mri_subject=None,
                    scene_height=None, head_opacity=None, head_high_res=None,
-                   verbose=None):
+                   trans=None, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
@@ -83,6 +83,8 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
         Use a high resolution head surface.
         Default is None, which uses ``MNE_COREG_HEAD_HIGH_RES`` config value
         (which defaults to True).
+    trans : str | None
+        The transform file to use.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -122,7 +124,7 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     from ._coreg_gui import CoregFrame, _make_view
     view = _make_view(tabbed, split, scene_width, scene_height)
     frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
-                       head_opacity, head_high_res, prepare_bem)
+                       head_opacity, head_high_res, prepare_bem, trans)
     return _initialize_gui(frame, view)
 
 

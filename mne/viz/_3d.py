@@ -19,7 +19,7 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-from ..externals.six import string_types, advance_iterator
+from ..defaults import DEFAULTS
 from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
@@ -31,9 +31,9 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     _import_mlab)
+                     _import_mlab, SilenceStdout)
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS, plt_show
-from ..externals.six import BytesIO
+from ..externals.six import BytesIO, string_types, advance_iterator
 
 
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -81,6 +81,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    _toggle_mlab_render(fig, False)
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -112,35 +113,39 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         # Make a solid surface
         vlim = np.max(np.abs(data))
         alpha = alphas[ii]
-        mesh = _create_mesh_surf(surf)
+        mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
             surface = mlab.pipeline.surface(mesh, color=colors[ii],
-                                            opacity=alpha)
+                                            opacity=alpha, figure=fig)
         surface.actor.property.backface_culling = True
 
         # Now show our field pattern
-        mesh = _create_mesh_surf(surf, scalars=data)
+        mesh = _create_mesh_surf(surf, fig, scalars=data)
         with warnings.catch_warnings(record=True):  # traits
-            fsurf = mlab.pipeline.surface(mesh, vmin=-vlim, vmax=vlim)
+            fsurf = mlab.pipeline.surface(mesh, vmin=-vlim, vmax=vlim,
+                                          figure=fig)
         fsurf.module_manager.scalar_lut_manager.lut.table = colormap
         fsurf.actor.property.backface_culling = True
 
         # And the field lines on top
+        mesh = _create_mesh_surf(surf, fig, scalars=data)
         with warnings.catch_warnings(record=True):  # traits
             cont = mlab.pipeline.contour_surface(
                 mesh, contours=21, line_width=1.0, vmin=-vlim, vmax=vlim,
-                opacity=alpha)
+                opacity=alpha, figure=fig)
         cont.module_manager.scalar_lut_manager.lut.table = colormap_lines
 
     if '%' in time_label:
         time_label %= (1e3 * evoked.times[time_idx])
     with warnings.catch_warnings(record=True):  # traits
-        mlab.text(0.01, 0.01, time_label, width=0.4)
-        mlab.view(10, 60)
+        mlab.text(0.01, 0.01, time_label, width=0.4, figure=fig)
+        with SilenceStdout():  # setting roll
+            mlab.view(10, 60, figure=fig)
+    _toggle_mlab_render(fig, True)
     return fig
 
 
-def _create_mesh_surf(surf, scalars=None):
+def _create_mesh_surf(surf, fig=None, scalars=None):
     """Create Mayavi mesh from MNE surf."""
     mlab = _import_mlab()
     nn = surf['nn']
@@ -148,7 +153,8 @@ def _create_mesh_surf(surf, scalars=None):
     nn = nn / np.sum(nn * nn, axis=1)[:, np.newaxis]
     x, y, z = surf['rr'].T
     with warnings.catch_warnings(record=True):  # traits
-        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
+        mesh = mlab.pipeline.triangular_mesh_source(
+            x, y, z, surf['tris'], scalars=scalars, figure=fig)
     mesh.data.point_data.normals = nn
     mesh.data.cell_data.normals = None
     mesh.update()
@@ -212,8 +218,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     trans[:3, -1] = [n_sag // 2, n_axi // 2, n_cor // 2]
 
     for surf_fname in surf_fnames:
-        surf = dict()
-        surf['rr'], surf['tris'] = read_surface(surf_fname)
+        surf = read_surface(surf_fname, return_dict=True)[-1]
         # move back surface to MRI coordinate system
         surf['rr'] = nib.affines.apply_affine(trans, surf['rr'])
         surfs.append(surf)
@@ -549,8 +554,9 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             eeg_loc = apply_trans(head_trans, eeg_loc)
             # XXX do projections here if necessary
             if 'projected' in eeg_sensors:
-                eegp_loc = _project_onto_surface(eeg_loc, surfs['head'],
-                                                 project_rrs=True)[2]
+                eegp_loc, eegp_nn = _project_onto_surface(
+                    eeg_loc, surfs['head'], project_rrs=True,
+                    return_nn=True)[2:4]
             if 'original' not in eeg_sensors:
                 eeg_loc = list()
         else:
@@ -611,36 +617,66 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     colors.update(skull_colors)
     for key, surf in surfs.items():
         # Make a solid surface
-        mesh = _create_mesh_surf(surf)
+        mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
             surface = mlab.pipeline.surface(mesh, color=colors[key],
-                                            opacity=alphas[key])
-        surface.actor.property.backface_culling = True
+                                            opacity=alphas[key], figure=fig)
+        if key != 'helmet':
+            surface.actor.property.backface_culling = True
 
-    datas = (eeg_loc, eegp_loc, hpi_loc, car_loc, ext_loc, ecog_loc)
-    colors = ((1., 0, 0), (0., 0.5, 1.), (0., 1, 0), (1., 1, 0), (1, 0.5, 0),
-              (1., 1., 1.))
-    alphas = (0.8, 0.8, 0.5, 0.5, 0.25, 0.8)
-    scales = (0.005, 0.0033, 0.015, 0.015, 0.0075, 0.005)
+    datas = (eeg_loc,
+             hpi_loc, car_loc,
+             ext_loc, ecog_loc)
+    defaults = DEFAULTS['coreg']
+    colors = (defaults['eeg_color'],
+              (0., 1, 0), (1., 1, 0),
+              defaults['extra_color'], defaults['ecog_color'])
+    alphas = (0.8, 0.8,
+              0.5, 0.5,
+              0.25, 0.8)
+    scales = (defaults['eeg_scale'],
+              defaults['hpi_scale'], defaults['dig_fid_scale'],
+              defaults['extra_scale'], defaults['ecog_scale'])
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits
                 points = mlab.points3d(data[:, 0], data[:, 1], data[:, 2],
                                        color=color, scale_factor=scale,
-                                       opacity=alpha)
+                                       opacity=alpha, figure=fig)
                 points.actor.property.backface_culling = True
+    if len(eegp_loc) > 0:
+        with warnings.catch_warnings(record=True):  # traits
+            quiv = mlab.quiver3d(
+                eegp_loc[:, 0], eegp_loc[:, 1], eegp_loc[:, 2],
+                eegp_nn[:, 0], eegp_nn[:, 1], eegp_nn[:, 2],
+                color=defaults['eegp_color'], mode='cylinder',
+                scale_factor=defaults['eegp_scale'], opacity=0.6, figure=fig)
+        quiv.glyph.glyph_source.glyph_source.height = defaults['eegp_height']
+        quiv.glyph.glyph_source.glyph_source.center = \
+            (0., -defaults['eegp_height'], 0)
+        quiv.glyph.glyph_source.glyph_source.resolution = 20
+        quiv.actor.property.backface_culling = True
     if len(meg_rrs) > 0:
         color, alpha = (0., 0.25, 0.5), 0.25
+        surf = dict(rr=meg_rrs, tris=meg_tris)
+        complete_surface_info(surf, copy=False)
+        mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
-            mlab.triangular_mesh(meg_rrs[:, 0], meg_rrs[:, 1], meg_rrs[:, 2],
-                                 meg_tris, color=color, opacity=alpha)
+            surface = mlab.pipeline.surface(mesh, color=color,
+                                            opacity=alpha, figure=fig)
+        # Don't cull these backfaces
     if len(src_rr) > 0:
         with warnings.catch_warnings(record=True):  # traits
-            mlab.quiver3d(src_rr[:, 0], src_rr[:, 1], src_rr[:, 2],
-                          src_nn[:, 0], src_nn[:, 1], src_nn[:, 2],
-                          color=(1., 1., 0.), mode='sphere',
-                          scale_factor=0.75e-3, opacity=0.5)
-    mlab.view(90, 90)
+            quiv = mlab.quiver3d(
+                src_rr[:, 0], src_rr[:, 1], src_rr[:, 2],
+                src_nn[:, 0], src_nn[:, 1], src_nn[:, 2], color=(1., 1., 0.),
+                mode='cylinder', scale_factor=3e-3, opacity=0.75, figure=fig)
+        quiv.glyph.glyph_source.glyph_source.height = 0.25
+        quiv.glyph.glyph_source.glyph_source.center = (0., 0., 0.)
+        quiv.glyph.glyph_source.glyph_source.resolution = 20
+        quiv.actor.property.backface_culling = True
+    with SilenceStdout():
+        mlab.view(90, 90, figure=fig)
     _toggle_mlab_render(fig, True)
     return fig
 
@@ -1246,7 +1282,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
 
     fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
     _toggle_mlab_render(fig, False)
-    mesh = _create_mesh_surf(surf)
+    mesh = _create_mesh_surf(surf, fig=fig)
     with warnings.catch_warnings(record=True):  # traits
         surface = mlab.pipeline.surface(mesh, color=brain_color,
                                         opacity=opacity)

@@ -19,13 +19,16 @@ from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
 from ..coreg import fid_fname, _find_fiducials_files, _find_head_bem
+from ..defaults import DEFAULTS
 from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
+from ..viz._3d import _toggle_mlab_render
 from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel)
-from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
+from ._viewer import (HeadViewController, PointObject, SurfaceObject,
                       headview_borders)
+defaults = DEFAULTS['coreg']
 
 
 class MRIHeadWithFiducialsModel(HasPrivateTraits):
@@ -412,7 +415,7 @@ class FiducialsFrame(HasTraits):
 
     @on_trait_change('scene.activated')
     def _init_plot(self):
-        self.scene.disable_render = True
+        _toggle_mlab_render(self, False)
 
         lpa_color = defaults['lpa_color']
         nasion_color = defaults['nasion_color']
@@ -443,7 +446,7 @@ class FiducialsFrame(HasTraits):
         self.sync_trait('point_scale', self.rpa_obj, mutual=False)
 
         self.headview.left = True
-        self.scene.disable_render = False
+        _toggle_mlab_render(self, True)
 
         # picker
         self.scene.mayavi_scene.on_mouse_pick(self.panel._on_pick, type='cell')

@@ -165,7 +165,6 @@ mne.viz.plot_evoked_topo(evoked, color=colors,
 ###############################################################################
 # Visualizing field lines in 3D
 # -----------------------------
-#
 # We now compute the field maps to project MEG and EEG data to MEG helmet
 # and scalp surface.
 #

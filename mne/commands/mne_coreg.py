@@ -43,6 +43,8 @@ def run():
     parser.add_option("--low-res-head",
                       action='store_true', default=False, dest="low_res_head",
                       help="Use a low-resolution head surface.")
+    parser.add_option('--trans', dest='trans', default=None,
+                      help='Head<->MRI transform FIF file ("-trans.fif")')
     parser.add_option('--verbose', action='store_true', dest='verbose',
                       help='Turn on verbose mode.')
 
@@ -65,6 +67,7 @@ def run():
                                guess_mri_subject=options.guess_mri_subject,
                                head_opacity=options.head_opacity,
                                head_high_res=head_high_res,
+                               trans=options.trans,
                                verbose=options.verbose)
     if is_main:
         sys.exit(0)
