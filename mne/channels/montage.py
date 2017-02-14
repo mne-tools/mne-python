@@ -666,10 +666,10 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                 fids[fid_name] = coordinates
             # Unknown
             else:
-                warn('Unknown sensor type detected. Skipping sensor...'
-                     'Proceed with caution!')
+                warn('Unknown sensor type %s detected. Skipping sensor...'
+                     'Proceed with caution!' % kind)
 
-        fids = [fids.get(key) for key in ('nasion', 'lpa', 'rpa')]
+        fids = [fids[key] for key in ('nasion', 'lpa', 'rpa')]
         coord_frame = 'unknown'
 
     else:

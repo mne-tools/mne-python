@@ -167,9 +167,6 @@ API
 
     - An ``overwrite=False`` default parameter has been added to :func:`write_source_spaces` to protect against accidental overwrites, by `Eric Larson`_
 
-    - An ``egi`` argument has been added to :func:`mne.channels.read_dig_montage` to allow reading in EGI MFF digitization coordinate files. The argument takes the path to the coordinates xml file as a string or defaults to None. by `Matt Boggess`_
-
-
 .. _changes_0_13:
 
 Version 0.13
