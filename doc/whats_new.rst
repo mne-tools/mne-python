@@ -77,6 +77,9 @@ Changelog
 
     - Add source space plotting with :meth:`mne.SourceSpaces.plot` using :func:`mne.viz.plot_trans` by `Eric Larson`_
 
+    - Add support for reading in EGI MFF digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
+
+
 BUG
 ~~~
 
@@ -163,6 +166,8 @@ API
     - MNE's additional files for the ``fsaverage`` head/brain model are now included in MNE-Python, and the now superfluous ``mne_root`` parameter to  :func:`create_default_subject` has been deprecated by `Christian Brodbeck`_
 
     - An ``overwrite=False`` default parameter has been added to :func:`write_source_spaces` to protect against accidental overwrites, by `Eric Larson`_
+
+    - An ``egi`` argument has been added to :func:`mne.channels.read_dig_montage` to allow reading in EGI MFF digitization coordinate files. The argument takes the path to the coordinates xml file as a string or defaults to None. by `Matt Boggess`_
 
 
 .. _changes_0_13:
