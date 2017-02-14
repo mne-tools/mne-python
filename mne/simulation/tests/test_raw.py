@@ -22,7 +22,7 @@ from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
 from mne.io import read_raw_fif, RawArray
 from mne.time_frequency import psd_welch
-from mne.utils import _TempDir, run_tests_if_main, requires_version, slow_test
+from mne.utils import _TempDir, run_tests_if_main, slow_test
 
 
 warnings.simplefilter('always')
@@ -146,15 +146,12 @@ def test_simulate_raw_sphere():
     del raw_sim_meg, raw_sim_eeg, raw_sim_meeg
 
     # check that different interpolations are similar given small movements
-    raw_sim_cos = simulate_raw(raw, stc, trans, src, sphere,
-                               head_pos=head_pos_sim,
-                               random_state=seed)
-    raw_sim_lin = simulate_raw(raw, stc, trans, src, sphere,
-                               head_pos=head_pos_sim, interp='linear',
-                               random_state=seed)
-    assert_allclose(raw_sim_cos[:][0], raw_sim_lin[:][0],
-                    rtol=1e-5, atol=1e-20)
-    del raw_sim_cos, raw_sim_lin
+    raw_sim = simulate_raw(raw, stc, trans, src, sphere, cov=None,
+                           head_pos=head_pos_sim, interp='linear')
+    raw_sim_hann = simulate_raw(raw, stc, trans, src, sphere, cov=None,
+                                head_pos=head_pos_sim, interp='hann')
+    assert_allclose(raw_sim[:][0], raw_sim_hann[:][0], rtol=1e-1, atol=1e-14)
+    del raw_sim, raw_sim_hann
 
     # Make impossible transform (translate up into helmet) and ensure failure
     head_pos_sim_err = deepcopy(head_pos_sim)
@@ -231,8 +228,6 @@ def test_simulate_raw_bem():
 
 
 @slow_test
-@requires_version('numpy', '1.7')
-@requires_version('scipy', '0.12')
 @testing.requires_testing_data
 def test_simulate_raw_chpi():
     """Test simulation of raw data with cHPI."""
@@ -243,10 +238,11 @@ def test_simulate_raw_chpi():
     src = setup_volume_source_space('sample', sphere=sphere_vol, pos=70.)
     stc = _make_stc(raw, src)
     # simulate data with cHPI on
-    raw_sim = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=False)
+    raw_sim = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=False,
+                           interp='zero')
     # need to trim extra samples off this one
     raw_chpi = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=True,
-                            head_pos=pos_fname)
+                            head_pos=pos_fname, interp='zero')
     # test cHPI indication
     hpi_freqs, _, hpi_pick, hpi_ons = _get_hpi_info(raw.info)[:4]
     assert_allclose(raw_sim[hpi_pick][0], 0.)
@@ -271,6 +267,6 @@ def test_simulate_raw_chpi():
     # test localization based on cHPI information
     quats_sim = _calculate_chpi_positions(raw_chpi)
     quats = read_head_pos(pos_fname)
-    _assert_quats(quats, quats_sim, dist_tol=0.006, angle_tol=4)
+    _assert_quats(quats, quats_sim, dist_tol=5e-3, angle_tol=3.5)
 
 run_tests_if_main()
