@@ -9,12 +9,11 @@ import warnings
 import numpy as np
 
 from ..externals.six import iteritems
-from ..fixes import _get_args
 from ..utils import check_version
 
 
 class BaseEstimator(object):
-    """Base class for all estimators in scikit-learn.
+    """Base class for all estimators in scikit-learn
 
     Notes
     -----
@@ -25,7 +24,8 @@ class BaseEstimator(object):
 
     @classmethod
     def _get_param_names(cls):
-        """Get parameter names for the estimator."""
+        """Get parameter names for the estimator"""
+        from sklearn.utils.fixes import signature
         # fetch the constructor or the original constructor before
         # deprecation wrapping if any
         init = getattr(cls.__init__, 'deprecated_original', cls.__init__)
@@ -35,19 +35,20 @@ class BaseEstimator(object):
 
         # introspect the constructor arguments to find the model parameters
         # to represent
-        args, varargs = _get_args(init, varargs=True)
-        if varargs is not None:
-            raise RuntimeError("scikit-learn estimators should always "
-                               "specify their parameters in the signature"
-                               " of their __init__ (no varargs)."
-                               " %s doesn't follow this convention."
-                               % (cls, ))
-        # Remove 'self'
-        # XXX: This is going to fail if the init is a staticmethod, but
-        # who would do this?
-        args.pop(0)
-        args.sort()
-        return args
+        init_signature = signature(init)
+        # Consider the constructor parameters excluding 'self'
+        parameters = [p for p in init_signature.parameters.values()
+                      if p.name != 'self' and p.kind != p.VAR_KEYWORD]
+        for p in parameters:
+            if p.kind == p.VAR_POSITIONAL:
+                raise RuntimeError("scikit-learn estimators should always "
+                                   "specify their parameters in the signature"
+                                   " of their __init__ (no varargs)."
+                                   " %s with constructor %s doesn't "
+                                   " follow this convention."
+                                   % (cls, init_signature))
+        # Extract and sort argument names excluding 'self'
+        return sorted([p.name for p in parameters])
 
     def get_params(self, deep=True):
         """Get parameters for this estimator.
@@ -90,9 +91,10 @@ class BaseEstimator(object):
         """Set the parameters of this estimator.
 
         The method works on simple estimators as well as on nested objects
-        (such as pipelines). The former have parameters of the form
+        (such as pipelines). The latter have parameters of the form
         ``<component>__<parameter>`` so that it's possible to update each
         component of a nested object.
+
         Returns
         -------
         self
@@ -127,6 +129,28 @@ class BaseEstimator(object):
         class_name = self.__class__.__name__
         return '%s(%s)' % (class_name, _pprint(self.get_params(deep=False),
                                                offset=len(class_name),),)
+
+    def __getstate__(self):
+        import sklearn
+        if type(self).__module__.startswith('sklearn.'):
+            return dict(self.__dict__.items(),
+                        _sklearn_version=sklearn.__version__)
+        else:
+            return dict(self.__dict__.items())
+
+    def __setstate__(self, state):
+        import sklearn
+        if type(self).__module__.startswith('sklearn.'):
+            pickle_version = state.pop("_sklearn_version", "pre-0.18")
+            if pickle_version != sklearn.__version__:
+                warnings.warn(
+                    "Trying to unpickle estimator {0} from version {1} when "
+                    "using version {2}. This might lead to breaking code or "
+                    "invalid results. Use at your own risk.".format(
+                        self.__class__.__name__, pickle_version,
+                        sklearn.__version__),
+                    UserWarning)
+        self.__dict__.update(state)
 
 
 ###############################################################################
