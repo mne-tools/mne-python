@@ -311,11 +311,8 @@ class CoregModel(HasPrivateTraits):
         # subject name guessed based on the inst file name
         if '_' in self.hsp.inst_fname:
             subject, _ = self.hsp.inst_fname.split('_', 1)
-            if not subject:
-                subject = None
-        else:
-            subject = None
-        return subject
+            if subject:
+                return subject
 
     @on_trait_change('raw_subject')
     def _on_raw_subject_change(self, subject):
