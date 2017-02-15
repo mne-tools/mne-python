@@ -152,15 +152,15 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
          pick_ori=None, real_filter=False, verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
 
-    Compute a Dynamic Imaging of Coherent Sources (DICS) beamformer
+    Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ beamformer
     on evoked data and return estimates of source time courses.
 
-    NOTE : Fixed orientation forward operators will result in complex time
-    courses in which case absolute values will be  returned. Therefore the
-    orientation will no longer be fixed.
+    .. note:: Fixed orientation forward operators with ``real_filter=False``
+              will result in complex time courses, in which case absolute
+              values will be returned.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issues or suggestions.
+    .. warn:: This implementation has not been heavily tested so please
+              report any issues or suggestions.
 
     Parameters
     ----------
@@ -181,7 +181,8 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
         only the radial component is kept.
     real_filter : bool
         If True, take only the real part of the part of the
-        cross-spectral-density matrices to compute real filters.
+        cross-spectral-density matrices to compute real filters as in
+        [2]_. Default is False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -197,10 +198,18 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
 
     Notes
     -----
-    The original reference is:
-    Gross et al. Dynamic imaging of coherent sources: Studying neural
-    interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
-    """
+    For more information about ``real_filter``, see the
+    `supplemental information <http://www.cell.com/cms/attachment/616681/4982593/mmc1.pdf>`_
+    from [2]_.
+
+    References
+    ----------
+    .. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
+           interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
+    .. [2] Hipp JF, Engel AK, Siegel M (2011) Oscillatory Synchronization
+           in Large-Scale Cortical Networks Predicts Perception.
+           Neuron 69:387-396.
+    """  # noqa: E501
     _check_reference(evoked)
     info = evoked.info
     data = evoked.data
@@ -224,12 +233,12 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
     Compute a Dynamic Imaging of Coherent Sources (DICS) beamformer
     on single trial data and return estimates of source time courses.
 
-    NOTE : Fixed orientation forward operators will result in complex time
-    courses in which case absolute values will be  returned. Therefore the
-    orientation will no longer be fixed.
+    .. note:: Fixed orientation forward operators with ``real_filter=False``
+              will result in complex time courses, in which case absolute
+              values will be returned.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issues or suggestions.
+    .. warn:: This implementation has not been heavily tested so please
+              report any issues or suggestions.
 
     Parameters
     ----------
@@ -254,6 +263,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
     real_filter : bool
         If True, take only the real part of the part of the
         cross-spectral-density matrices to compute real filters.
+        Default is False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -266,12 +276,6 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
     See Also
     --------
     dics
-
-    Notes
-    -----
-    The original reference is:
-    Gross et al. Dynamic imaging of coherent sources: Studying neural
-    interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
     """
     _check_reference(epochs)
 
@@ -455,12 +459,12 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
     Calculate source power in time-frequency windows using a spatial filter
     based on the Dynamic Imaging of Coherent Sources (DICS) beamforming
-    approach. For each time window and frequency bin combination cross-spectral
-    density (CSD) is computed and used to create a beamformer spatial filter
-    with noise CSD used for normalization.
+    approach [1]_. For each time window and frequency bin combination
+    cross-spectral density (CSD) is computed and used to create a beamformer
+    spatial filter with noise CSD used for normalization.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issues or suggestions.
+    .. warn:: This implementation has not been heavily tested so please
+              report any issues or suggestions.
 
     Parameters
     ----------
@@ -520,13 +524,14 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
     Notes
     -----
-    The original reference is:
-    Dalal et al. Five-dimensional neuroimaging: Localization of the
-    time-frequency dynamics of cortical activity.
-    NeuroImage (2008) vol. 40 (4) pp. 1686-1700
-
-    NOTE : Dalal et al. used a synthetic aperture magnetometry beamformer (SAM)
+    Dalal et al. [1]_ used a synthetic aperture magnetometry beamformer (SAM)
     in each time-frequency window instead of DICS.
+
+    References
+    ----------
+    .. [1] Dalal et al. Five-dimensional neuroimaging: Localization of the
+           time-frequency dynamics of cortical activity.
+           NeuroImage (2008) vol. 40 (4) pp. 1686-1700
     """
     _check_reference(epochs)
 

@@ -70,6 +70,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
             reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
         if epochs_preload:
             epochs.resample(200, npad=0, n_jobs=2)
+        epochs.crop(0, None)
         evoked = epochs.average()
         info = evoked.info
     else:

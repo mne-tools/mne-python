@@ -4,9 +4,8 @@ Compute LCMV inverse solution on evoked data in volume source space
 ===================================================================
 
 Compute LCMV inverse solution on an auditory evoked dataset in a volume source
-space. It stores the solution in a nifti file for visualisation e.g. with
+space. It stores the solution in a nifti file for visualisation, e.g. with
 Freeview.
-
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #

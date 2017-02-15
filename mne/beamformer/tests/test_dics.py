@@ -67,7 +67,7 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
                         picks=picks, baseline=(None, 0), preload=True,
                         reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
     epochs.resample(200, npad=0, n_jobs=2)
-    evoked = epochs.average()
+    evoked = epochs.average().crop(0, None)
 
     # Computing the data and noise cross-spectral density matrices
     if compute_csds:
@@ -89,12 +89,11 @@ def test_dics():
     """Test DICS with evoked data and single trials."""
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
+    epochs.crop(0, None)
 
     for real_filter in (True, False):
         stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd,
                    label=label, real_filter=real_filter)
-
-        stc.crop(0, None)
         stc_pow = np.sum(stc.data, axis=1)
         idx = np.argmax(stc_pow)
         max_stc = stc.data[idx]
@@ -106,8 +105,11 @@ def test_dics():
 
     # Test picking normal orientation
     stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
+                      pick_ori="normal", label=label, real_filter=True)
+    assert_true(stc_normal.data.min() < 0)  # this doesn't take abs
+    stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
                       pick_ori="normal", label=label)
-    stc_normal.crop(0, None)
+    assert_true(stc_normal.data.min() >= 0)  # this does take abs
 
     # The amplitude of normal orientation results should always be smaller than
     # free orientation results
@@ -145,7 +147,7 @@ def test_dics():
     # Average the single trial estimates
     stc_avg = np.zeros_like(stc.data)
     for this_stc in stcs:
-        stc_avg += this_stc.crop(0, None).data
+        stc_avg += this_stc.data
     stc_avg /= len(stcs)
 
     idx = np.argmax(np.max(stc_avg, axis=1))
@@ -161,6 +163,7 @@ def test_dics_source_power():
     """Test DICS source power computation."""
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
+    epochs.crop(0, None)
 
     stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
                                          data_csd, label=label)

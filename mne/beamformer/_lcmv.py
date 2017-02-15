@@ -661,12 +661,12 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
 
     Calculate source power in time-frequency windows using a spatial filter
     based on the Linearly Constrained Minimum Variance (LCMV) beamforming
-    approach. Band-pass filtered epochs are divided into time windows from
-    which covariance is computed and used to create a beamformer spatial
-    filter.
+    approach [1]_. Band-pass filtered epochs are divided into time windows
+    from which covariance is computed and used to create a beamformer
+    spatial filter.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issues or suggestions.
+    .. warn:: This implementation has not been heavily tested so please
+              report any issues or suggestions.
 
     Parameters
     ----------
@@ -719,12 +719,11 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         Source power at each time window. One SourceEstimate object is returned
         for each frequency bin.
 
-    Notes
-    -----
-    The original reference is:
-    Dalal et al. Five-dimensional neuroimaging: Localization of the
-    time-frequency dynamics of cortical activity.
-    NeuroImage (2008) vol. 40 (4) pp. 1686-1700
+    References
+    ----------
+    .. [1] Dalal et al. Five-dimensional neuroimaging: Localization of the
+           time-frequency dynamics of cortical activity.
+           NeuroImage (2008) vol. 40 (4) pp. 1686-1700
     """
     _check_reference(epochs)
 
