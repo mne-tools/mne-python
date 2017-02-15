@@ -21,7 +21,7 @@ from mne.preprocessing import create_ecg_epochs, create_eog_epochs
 from mne.datasets import sample
 
 ###############################################################################
-# Setup paths and prepare raw data
+# Setup paths and prepare raw data.
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
@@ -31,7 +31,7 @@ raw.filter(1, 45, n_jobs=1, l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
            filter_length='10s', phase='zero-double')
 
 ###############################################################################
-# 1) Fit ICA model using the FastICA algorithm
+# 1) Fit ICA model using the FastICA algorithm.
 
 # Other available choices are `infomax` or `extended-infomax`
 # We pass a float value between 0 and 1 to select n_components based on the
@@ -81,7 +81,7 @@ eog_inds = eog_inds[:n_max_eog]
 ica.exclude += eog_inds
 
 ###############################################################################
-# 3) Assess component selection and unmixing quality
+# 3) Assess component selection and unmixing quality.
 
 # estimate average artifact
 ecg_evoked = ecg_epochs.average()
