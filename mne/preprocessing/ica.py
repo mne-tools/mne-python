@@ -300,7 +300,8 @@ class ICA(ContainsMixin):
 
     @verbose
     def fit(self, inst, picks=None, start=None, stop=None, decim=None,
-            reject=None, flat=None, tstep=2.0, verbose=None):
+            reject=None, flat=None, tstep=2.0, reject_by_annotation=True,
+            verbose=None):
         """Run the ICA decomposition on raw data.
 
         Caveat! If supplying a noise covariance keep track of the projections
@@ -347,6 +348,9 @@ class ICA(ContainsMixin):
         tstep : float
             Length of data chunks for artifact rejection in seconds.
             It only applies if `inst` is of type Raw.
+        reject_by_annotation : bool
+            Whether to omit bad segments from the data before fitting. Has no
+            effect if ``inst`` is an Epochs or Evoked object. Defaults to True.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -361,7 +365,7 @@ class ICA(ContainsMixin):
             _check_for_unsupported_ica_channels(picks, inst.info)
             if isinstance(inst, BaseRaw):
                 self._fit_raw(inst, picks, start, stop, decim, reject, flat,
-                              tstep, verbose)
+                              tstep, reject_by_annotation, verbose)
             elif isinstance(inst, BaseEpochs):
                 self._fit_epochs(inst, picks, decim, verbose)
         else:
@@ -388,7 +392,7 @@ class ICA(ContainsMixin):
             del self.drop_inds_
 
     def _fit_raw(self, raw, picks, start, stop, decim, reject, flat, tstep,
-                 verbose):
+                 reject_by_annotation, verbose):
         """Aux method."""
         if self.current_fit != 'unfitted':
             self._reset()
@@ -410,8 +414,11 @@ class ICA(ContainsMixin):
         self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
 
-        # this will be a copy
-        data = raw[picks, start:stop][0]
+        if reject_by_annotation:
+            data = raw._get_data(picks, start, stop)[0]
+        else:
+            # this will be a copy
+            data = raw[picks, start:stop][0]
         # this will be a view
         if decim is not None:
             data = data[:, ::decim]

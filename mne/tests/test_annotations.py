@@ -85,4 +85,14 @@ def test_annotations():
     assert_array_almost_equal(raw.annotations.onset, [45., 2. + last_time],
                               decimal=2)
 
+
+def test_raw_reject():
+    """Test raw data getter with annotation reject."""
+    info = create_info(['a', 'b', 'c', 'd', 'e'], 100, ch_types='eeg')
+    raw = RawArray(np.ones((5, 15000)), info)
+    raw.annotations = Annotations([2, 100, 105, 148], [2, 8, 5, 8], 'BAD')
+    data = raw._get_data([0, 1, 3, 4], 1, 112)[0]
+    assert_array_equal(data.shape, (4, 9900))
+
+
 run_tests_if_main()

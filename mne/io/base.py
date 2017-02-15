@@ -836,6 +836,66 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # set the data
         self._data[sel, start:stop] = value
 
+    def _get_data(self, sel, start, stop):
+        """Get data omitting bad segments."""
+        if self.annotations is None:
+            return self[sel, start:stop]
+        bads = [idx for idx, desc in enumerate(self.annotations.description)
+                if desc.upper().startswith('BAD')]
+        onsets = self.annotations.onset[bads]
+        ends = onsets + self.annotations.duration[bads]
+        omit = np.concatenate([np.where(onsets > stop)[0],
+                               np.where(ends < start)[0]])
+        onsets, ends = np.delete(onsets, omit), np.delete(ends, omit)
+        if len(onsets) == 0:
+            return self[sel, start:stop]
+        order = np.argsort(onsets)
+        onsets = onsets[order]
+        ends = ends[order]
+
+        # Merge overlaps.
+        overlaps = list()
+        indices = list()
+        for idx, end in enumerate(ends):
+            overlap = np.where(end >= onsets[idx + 1:])[0] + idx + 1
+            overlap = np.delete(overlap, np.where(overlap <= idx)[0])
+            if len(overlap) == 0:
+                continue
+            overlaps.append(overlap)
+            indices.append(idx)
+        for idx, overlap in zip(indices[::-1], overlaps[::-1]):
+            ends[idx] = max(ends[overlap])
+        overlaps = np.concatenate(overlaps)
+        onsets = np.delete(onsets, overlaps)
+        ends = np.delete(ends, overlaps)
+
+        starts, stops = list(), list()
+        if onsets[0] < start:  # handle start
+            starts.append[ends[0]]
+            stops.append(stop if len(onsets) < 2 else onsets[1])
+            onsets = np.delete(onsets, 0)
+            ends = np.delete(ends, 0)
+        else:
+            starts.append(start)
+            stops.append(onsets[0])
+
+        for idx, end in enumerate(ends):  # handle rest of the segments
+            if end >= stop:
+                break
+            starts.append(end)
+            stops.append(stop if len(onsets) < idx + 2
+                         else min(onsets[idx + 1], stop))
+
+        data, times = list(), list()
+        sfreq = self.info['sfreq']
+        for start, stop in zip(starts, stops):  # get the data
+            this_data, this_times = self[sel,
+                                         int(start * sfreq):int(stop * sfreq)]
+            data.append(this_data)
+            times.append(this_times)
+
+        return np.concatenate(data, axis=1), np.concatenate(times, axis=1)
+
     @verbose
     def apply_function(self, fun, picks=None, dtype=None,
                        n_jobs=1, *args, **kwargs):
