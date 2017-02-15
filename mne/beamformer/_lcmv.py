@@ -135,6 +135,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
+        if np.all(Gk == 0.):
+            continue
         Ck = np.dot(Wk, Gk)
 
         # Find source orientation maximizing output source power
@@ -180,8 +182,10 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         is_free_ori = False
 
     # Applying noise normalization
+    noise_norm_inv = 1. / noise_norm
+    noise_norm_inv[noise_norm == 0.] = 0.
     if not is_free_ori:
-        W /= noise_norm[:, None]
+        W *= noise_norm_inv[:, None]
 
     if isinstance(data, np.ndarray) and data.ndim == 2:
         data = [data]
@@ -208,7 +212,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
             sol = np.dot(W, M)
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
-            sol /= noise_norm[:, None]
+            sol *= noise_norm_inv[:, None]
         else:
             # Linear inverse: do computation here or delayed
             if M.shape[0] < W.shape[0] and pick_ori != 'max-power':
