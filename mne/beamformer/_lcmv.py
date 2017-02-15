@@ -283,7 +283,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
 
 
 @verbose
-def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
+def lcmv(evoked, forward, noise_cov, data_cov, reg=0.1, label=None,
          pick_ori=None, picks=None, rank=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
@@ -363,7 +363,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
 
 
 @verbose
-def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
+def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.1, label=None,
                 pick_ori=None, return_generator=False, picks=None, rank=None,
                 verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
@@ -448,7 +448,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
 
 
 @verbose
-def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
+def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.1, label=None,
              start=None, stop=None, picks=None, pick_ori=None, rank=None,
              verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
@@ -532,7 +532,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
 
 
 @verbose
-def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
+def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.1,
                        label=None, picks=None, pick_ori=None,
                        rank=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
@@ -655,7 +655,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
-            freq_bins, subtract_evoked=False, reg=0.01, label=None,
+            freq_bins, subtract_evoked=False, reg=0.1, label=None,
             pick_ori=None, n_jobs=1, picks=None, rank=None, verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
@@ -665,8 +665,8 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     from which covariance is computed and used to create a beamformer
     spatial filter.
 
-    .. warn:: This implementation has not been heavily tested so please
-              report any issues or suggestions.
+    .. warning:: This implementation has not been heavily tested so please
+                 report any issues or suggestions.
 
     Parameters
     ----------

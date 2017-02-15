@@ -148,7 +148,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
 
 
 @verbose
-def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
+def dics(evoked, forward, noise_csd, data_csd, reg=1., label=None,
          pick_ori=None, real_filter=False, verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
 
@@ -159,8 +159,8 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
               will result in complex time courses, in which case absolute
               values will be returned.
 
-    .. warn:: This implementation has not been heavily tested so please
-              report any issues or suggestions.
+    .. warning:: This implementation has not been heavily tested so please
+                 report any issues or suggestions.
 
     Parameters
     ----------
@@ -225,7 +225,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
 
 
 @verbose
-def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
+def dics_epochs(epochs, forward, noise_csd, data_csd, reg=1., label=None,
                 pick_ori=None, return_generator=False, real_filter=False,
                 verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
@@ -237,8 +237,8 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
               will result in complex time courses, in which case absolute
               values will be returned.
 
-    .. warn:: This implementation has not been heavily tested so please
-              report any issues or suggestions.
+    .. warning:: This implementation has not been heavily tested so please
+                 report any issues or suggestions.
 
     Parameters
     ----------
@@ -296,7 +296,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
 
 
 @verbose
-def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
+def dics_source_power(info, forward, noise_csds, data_csds, reg=1.,
                       label=None, pick_ori=None, real_filter=False,
                       verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
@@ -453,7 +453,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 @verbose
 def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, mode='fourier', n_ffts=None,
-            mt_bandwidths=None, mt_adaptive=False, mt_low_bias=True, reg=0.01,
+            mt_bandwidths=None, mt_adaptive=False, mt_low_bias=True, reg=1.,
             label=None, pick_ori=None, real_filter=False, verbose=None):
     """5D time-frequency beamforming based on DICS.
 
@@ -463,8 +463,8 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
     cross-spectral density (CSD) is computed and used to create a beamformer
     spatial filter with noise CSD used for normalization.
 
-    .. warn:: This implementation has not been heavily tested so please
-              report any issues or suggestions.
+    .. warning:: This implementation has not been heavily tested so please
+                 report any issues or suggestions.
 
     Parameters
     ----------

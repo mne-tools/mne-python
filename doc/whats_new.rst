@@ -92,6 +92,8 @@ Changelog
 BUG
 ~~~
 
+    - Fix bug with DICS and LCMV (e.g., :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.dics`) where regularization was done improperly. The default ``reg=0.01`` has been changed to ``reg=0.1``, by `Andrea Brovelli`_, `Alex Gramfort`_, and `Eric Larson`_
+
     - Fix callback function call in ``mne.viz.topo._plot_topo_onpick`` by `Erkka Heinila`_
 
     - Fix reading multi-file CTF recordings in :func:`mne.io.read_raw_ctf` by `Niklas Wilming`_
@@ -2025,6 +2027,8 @@ of commits):
 .. _Leonardo Barbosa: https://github.com/noreun
 
 .. _Erkka Heinila: https://github.com/Teekuningas
+
+.. _Andrea Brovelli: http://www.int.univ-amu.fr/_BROVELLI-Andrea_?lang=en
 
 .. _Richard Höchenberger: http://hoechenberger.name
 

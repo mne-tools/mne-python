@@ -66,7 +66,7 @@ noise_csd = csd_epochs(epochs, mode='multitaper', tmin=-0.11, tmax=0.0,
 evoked = epochs.average()
 
 # Compute DICS spatial filter and estimate source time courses on evoked data
-stc = dics(evoked, forward, noise_csd, data_csd)
+stc = dics(evoked, forward, noise_csd, data_csd, reg=1.)
 
 plt.figure()
 ts_show = -30  # show the 40 largest responses
