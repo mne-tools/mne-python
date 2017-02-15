@@ -167,6 +167,11 @@ def test_coreg_gui():
             frame.model.mri.use_high_res_head = False
             frame.model.grow_hair = 40.
 
+            # reset parameters
+            frame.coreg_panel.reset_params = True
+            assert_equal(frame.model.grow_hair, 0)
+            assert_false(frame.model.mri.use_high_res_head)
+
             # configuration persistence
             assert_true(frame.model.prepare_bem_model)
             frame.model.prepare_bem_model = False
