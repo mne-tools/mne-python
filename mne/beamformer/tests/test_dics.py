@@ -26,27 +26,25 @@ fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-vol-7-fwd.fif')
 fname_event = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc_raw-eve.fif')
-label = 'Aud-lh'
-fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
+fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 
 
-def read_forward_solution_meg(*args, **kwargs):
+def _read_forward_solution_meg(*args, **kwargs):
     fwd = mne.read_forward_solution(*args, **kwargs)
     return mne.pick_types_forward(fwd, meg=True, eeg=False)
 
 
 def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
-    """Read in data used in tests
-    """
+    """Read in data used in tests."""
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)[:10]
     raw = mne.io.read_raw_fif(fname_raw, preload=False)
     raw.add_proj([], remove_existing=True)  # we'll subselect so remove proj
     forward = mne.read_forward_solution(fname_fwd)
     if read_all_forward:
-        forward_surf_ori = read_forward_solution_meg(fname_fwd, surf_ori=True)
-        forward_fixed = read_forward_solution_meg(fname_fwd, force_fixed=True,
-                                                  surf_ori=True)
+        forward_surf_ori = _read_forward_solution_meg(fname_fwd, surf_ori=True)
+        forward_fixed = _read_forward_solution_meg(fname_fwd, force_fixed=True,
+                                                   surf_ori=True)
         forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
     else:
         forward_surf_ori = None
@@ -88,23 +86,23 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
 
 @testing.requires_testing_data
 def test_dics():
-    """Test DICS with evoked data and single trials
-    """
+    """Test DICS with evoked data and single trials."""
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
-    stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd,
-               label=label)
+    for real_filter in (True, False):
+        stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd,
+                   label=label, real_filter=real_filter)
 
-    stc.crop(0, None)
-    stc_pow = np.sum(stc.data, axis=1)
-    idx = np.argmax(stc_pow)
-    max_stc = stc.data[idx]
-    tmax = stc.times[np.argmax(max_stc)]
+        stc.crop(0, None)
+        stc_pow = np.sum(stc.data, axis=1)
+        idx = np.argmax(stc_pow)
+        max_stc = stc.data[idx]
+        tmax = stc.times[np.argmax(max_stc)]
 
-    # Incorrect due to limited number of epochs
-    assert_true(0.014 < tmax < 0.016)
-    assert_true(3. < np.max(max_stc) < 4.)
+        # Incorrect due to limited number of epochs
+        assert_true(0.014 < tmax < 0.016)
+        assert_true(3. < np.max(max_stc) < 4.)
 
     # Test picking normal orientation
     stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
@@ -160,8 +158,7 @@ def test_dics():
 
 @testing.requires_testing_data
 def test_dics_source_power():
-    """Test DICS source power computation
-    """
+    """Test DICS source power computation."""
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
@@ -225,8 +222,7 @@ def test_dics_source_power():
 
 @testing.requires_testing_data
 def test_tf_dics():
-    """Test TF beamforming based on DICS
-    """
+    """Test TF beamforming based on DICS."""
     tmin, tmax, tstep = -0.2, 0.2, 0.1
     raw, epochs, _, _, _, label, forward, _, _, _ =\
         _get_data(tmin, tmax, read_all_forward=False, compute_csds=False)
