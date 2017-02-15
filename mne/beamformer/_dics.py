@@ -14,7 +14,7 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc
 from ..time_frequency import CrossSpectralDensity, csd_epochs
-from ._lcmv import _prepare_beamformer_input, _setup_picks
+from ._lcmv import _prepare_beamformer_input, _setup_picks, _reg_pinv
 from ..externals import six
 
 
@@ -69,10 +69,8 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
-    Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
-
-    # Compute pseudoinverse of Cm
-    Cm_inv = linalg.pinv(Cm)
+    Cm_inv = _reg_pinv(Cm, reg)
+    del Cm
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
@@ -386,10 +384,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
         # Tikhonov regularization using reg parameter to control for
         # trade-off between spatial resolution and noise sensitivity
         # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
-        Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
-
-        # Compute pseudoinverse of Cm
-        Cm_inv = linalg.pinv(Cm)
+        Cm_inv = _reg_pinv(Cm, reg)
+        del Cm
 
         # Compute spatial filters
         W = np.dot(G.T, Cm_inv)

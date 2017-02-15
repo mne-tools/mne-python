@@ -22,6 +22,17 @@ from .. import Epochs
 from ..externals import six
 
 
+def _reg_pinv(x, reg):
+    """Compute a regularized pseudoinverse of a square array."""
+    # This adds it to the diagonal without using np.eye
+    d = reg * np.trace(x) / len(x)
+    shape = x.shape
+    x.shape = (-1,)
+    x[::shape[0] + 1] += d
+    x.shape = shape
+    return linalg.pinv(x)
+
+
 def _setup_picks(picks, info, forward, noise_cov=None):
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
@@ -114,10 +125,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
-    Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
-
-    # Compute pseudoinverse of Cm
-    Cm_inv = linalg.pinv(Cm)
+    Cm_inv = _reg_pinv(Cm.copy(), reg)
+    del Cm
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
@@ -604,10 +613,8 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
-    Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
-
-    # Compute pseudoinverse of Cm
-    Cm_inv = linalg.pinv(Cm)
+    # This modifies Cm inplace, regularizing it
+    Cm_inv = _reg_pinv(Cm, reg)
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
