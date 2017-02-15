@@ -142,6 +142,8 @@ BUG
 
     - Fix bug with :func:`mne.simulation.simulate_raw` when ``interp != 'zero'`` by `Eric Larson`_
 
+    - Fix :func:`mne.fit_dipole` to handle sphere model due to sphere's center of forward field with only zeros and rank deficiency `Alex Gramfort`_
+
 
 API
 ~~~
