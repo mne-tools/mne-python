@@ -19,6 +19,7 @@ import numpy as np
 from numpy import dot
 
 from .io import read_fiducials, write_fiducials
+from .io.constants import FIFF
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
                            write_source_spaces)
@@ -28,6 +29,9 @@ from .transforms import rotation, rotation3d, scaling, translation
 from .utils import get_config, get_subjects_dir, logger, pformat
 from .externals.six.moves import zip
 
+
+FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
+                  FIFF.FIFFV_POINT_RPA)
 
 # some path templates
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
@@ -67,6 +71,18 @@ def _find_head_bem(subject, subjects_dir, high_res=False):
         path = fname.format(subjects_dir=subjects_dir, subject=subject)
         if os.path.exists(path):
             return path
+
+
+def _fiducial_coords(points, coord_frame=None):
+    "Helper function to generate 3x3 array of fiducial coordinates"
+    if coord_frame is None:
+        points_ = dict((p['ident'], p) for p in points if
+                       p['kind'] == FIFF.FIFFV_POINT_CARDINAL)
+    else:
+        points_ = dict((p['ident'], p) for p in points if
+                       p['kind'] == FIFF.FIFFV_POINT_CARDINAL and
+                       p['coord_frame'] == coord_frame)
+    return np.array([points_[i]['r'] for i in FIDUCIAL_ORDER])
 
 
 def create_default_subject(mne_root=None, fs_home=None, update=False,

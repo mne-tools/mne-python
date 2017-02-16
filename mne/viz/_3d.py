@@ -23,6 +23,7 @@ from ..defaults import DEFAULTS
 from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
+from ..io.meas_info import read_fiducials
 from ..source_space import SourceSpaces
 from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
@@ -282,7 +283,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                coord_frame='head', meg_sensors=('helmet', 'sensors'),
                eeg_sensors='original', dig=False, ref_meg=False,
                ecog_sensors=True, head=None, brain=None, skull=False,
-               src=None, verbose=None):
+               src=None, fiducials=False, verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -320,8 +321,9 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         show EEG sensors in their digitized locations or projected onto the
         scalp, or a list of these options including ``[]`` (equivalent of
         False).
-    dig : bool
-        If True, plot the digitization points.
+    dig : bool | 'fiducials'
+        If True, plot the digitization points. "fiducials" to plot fiducial
+        points only.
     ref_meg : bool
         If True (default False), include reference MEG sensors.
     ecog_sensors : bool
@@ -347,6 +349,10 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
 
         .. versionadded:: 0.14
 
+    fiducials : bool | str
+        Plot MRI fiducials (default False). If ``True``, look for a file with
+        the canonical name (``bem/{subject}-fiducials.fif``). If ``str`` it
+        should provide the full path to the fiducials file.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -477,6 +483,32 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             raise IOError('No head surface found for subject %s.' % subject)
         surfs['head'] = head_surf
 
+    from ..coreg import _fiducial_coords  # avoid circular import
+
+    if fiducials:
+        if fiducials is True:
+            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+            if subject is None:
+                raise ValueError("Subject needs to be specified to "
+                                 "automatically find the fiducials file.")
+            fiducials = op.join(subjects_dir, subject, 'bem',
+                                subject + '-fiducials.fif')
+        if isinstance(fiducials, string_types):
+            fiducials, cf = read_fiducials(fiducials)
+            assert cf == FIFF.FIFFV_COORD_MRI
+        fid_loc = _fiducial_coords(fiducials, FIFF.FIFFV_COORD_MRI)
+        if coord_frame == 'head':
+            mri_head_t = invert_transform(head_mri_t)
+            fid_loc = apply_trans(mri_head_t, fid_loc)
+        elif coord_frame == 'meg':
+            mri_head_t = invert_transform(head_mri_t)
+            head_dev_t = invert_transform(info['dev_head_t'])
+            mri_dev_t = combine_transforms(mri_head_t, head_dev_t, 'mri',
+                                           'meg')
+            fid_loc = apply_trans(mri_dev_t, fid_loc)
+    else:
+        fid_loc = []
+
     head_alpha = 1.
     if 'helmet' in meg_sensors and len(meg_picks) > 0 and \
             (ch_type is None or ch_type == 'meg'):
@@ -588,12 +620,17 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             meg_tris = np.concatenate(meg_tris, axis=0)
     del meg_sensors
     if dig:
-        hpi_loc = np.array([d['r'] for d in info['dig']
-                            if d['kind'] == FIFF.FIFFV_POINT_HPI])
-        ext_loc = np.array([d['r'] for d in info['dig']
-                           if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
-        car_loc = np.array([d['r'] for d in info['dig']
-                            if d['kind'] == FIFF.FIFFV_POINT_CARDINAL])
+        if dig == 'fiducials':
+            hpi_loc = ext_loc = []
+        elif dig is not True:
+            raise ValueError("dig needs to be True, False or 'fiducials', "
+                             "not %s" % repr(dig))
+        else:
+            hpi_loc = np.array([d['r'] for d in info['dig']
+                                if d['kind'] == FIFF.FIFFV_POINT_HPI])
+            ext_loc = np.array([d['r'] for d in info['dig']
+                               if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
+        car_loc = _fiducial_coords(info['dig'])
         # Transform from head coords if necessary
         if coord_frame == 'meg':
             for loc in (hpi_loc, ext_loc, car_loc):
@@ -601,7 +638,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         elif coord_frame == 'mri':
             for loc in (hpi_loc, ext_loc, car_loc):
                 loc[:] = apply_trans(head_mri_t, loc)
-        if len(car_loc) == len(ext_loc) == 0:
+        if len(car_loc) == len(ext_loc) == len(hpi_loc) == 0:
             warn('Digitization points not found. Cannot plot digitization.')
     del dig
     if len(ecog_picks) > 0 and ecog_sensors:
@@ -626,19 +663,28 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         if key != 'helmet':
             surface.actor.property.backface_culling = True
 
-    datas = (eeg_loc,
-             hpi_loc, car_loc,
-             ext_loc, ecog_loc)
     defaults = DEFAULTS['coreg']
-    colors = (defaults['eeg_color'],
-              (0., 1, 0), (1., 1, 0),
-              defaults['extra_color'], defaults['ecog_color'])
-    alphas = (0.8,
-              0.5, 0.5,
-              0.25, 0.8)
-    scales = (defaults['eeg_scale'],
-              defaults['hpi_scale'], defaults['dig_fid_scale'],
-              defaults['extra_scale'], defaults['ecog_scale'])
+    datas = [eeg_loc,
+             hpi_loc,
+             ext_loc, ecog_loc]
+    colors = [defaults['eeg_color'],
+              (0., 1, 0),
+              defaults['extra_color'], defaults['ecog_color']]
+    alphas = [0.8,
+              0.5,
+              0.25, 0.8]
+    scales = [defaults['eeg_scale'],
+              defaults['hpi_scale'],
+              defaults['extra_scale'], defaults['ecog_scale']]
+    for kind, loc in (('dig', car_loc), ('mri', fid_loc)):
+        if len(loc) > 0:
+            datas.extend(loc[np.newaxis, i, :] for i in range(3))
+            colors.extend((defaults['lpa_color'],
+                           defaults['nasion_color'],
+                           defaults['rpa_color']))
+            alphas.extend(3 * (defaults[kind + '_fid_opacity'],))
+            scales.extend(3 * (defaults[kind + '_fid_scale'],))
+
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits

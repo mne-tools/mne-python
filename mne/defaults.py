@@ -38,6 +38,7 @@ DEFAULTS = dict(
                      markeredgewidth=1,
                      markersize=4),
     coreg=dict(
+        mri_fid_opacity=1.0,
         dig_fid_opacity=0.3,
 
         mri_fid_scale=1e-2,
