@@ -495,17 +495,10 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                                 subject + '-fiducials.fif')
         if isinstance(fiducials, string_types):
             fiducials, cf = read_fiducials(fiducials)
-            assert cf == FIFF.FIFFV_COORD_MRI
+            if cf != FIFF.FIFFV_COORD_MRI:
+                raise ValueError("Fiducials are not in MRI space")
         fid_loc = _fiducial_coords(fiducials, FIFF.FIFFV_COORD_MRI)
-        if coord_frame == 'head':
-            mri_head_t = invert_transform(head_mri_t)
-            fid_loc = apply_trans(mri_head_t, fid_loc)
-        elif coord_frame == 'meg':
-            mri_head_t = invert_transform(head_mri_t)
-            head_dev_t = invert_transform(info['dev_head_t'])
-            mri_dev_t = combine_transforms(mri_head_t, head_dev_t, 'mri',
-                                           'meg')
-            fid_loc = apply_trans(mri_dev_t, fid_loc)
+        fid_loc = apply_trans(mri_trans, fid_loc)
     else:
         fid_loc = []
 
