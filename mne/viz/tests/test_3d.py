@@ -17,10 +17,11 @@ from numpy.testing import assert_raises, assert_equal
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
+from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans, snapshot_brain_montage)
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
-                       _import_mlab)
+                       _import_mlab, _TempDir)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 
@@ -107,6 +108,17 @@ def test_plot_evoked_field():
 @requires_mayavi
 def test_plot_trans():
     """Test plotting of -trans.fif files and MEG sensor layouts."""
+    # generate fiducials file for testing
+    tempdir = _TempDir()
+    fiducials_path = op.join(tempdir, 'fiducials.fif')
+    fid = [{'coord_frame': 5, 'ident': 1, 'kind': 1,
+            'r': [-0.08061612, -0.02908875, -0.04131077]},
+           {'coord_frame': 5, 'ident': 2, 'kind': 1,
+            'r': [0.00146763, 0.08506715, -0.03483611]},
+           {'coord_frame': 5, 'ident': 3, 'kind': 1,
+            'r': [0.08436285, -0.02850276, -0.04127743]}]
+    write_dig(fiducials_path, fid, 5)
+
     mlab = _import_mlab()
     evoked = read_evokeds(evoked_fname)[0]
     sample_src = read_source_spaces(src_fname)
@@ -147,7 +159,7 @@ def test_plot_trans():
     for coord_frame in ('meg', 'head', 'mri'):
         plot_trans(info, meg_sensors=True, dig=True, coord_frame=coord_frame,
                    trans=trans_fname, subject='sample',
-                   subjects_dir=subjects_dir)
+                   mri_fiducials=fiducials_path, subjects_dir=subjects_dir)
         mlab.close(all=True)
     # EEG only with strange options
     evoked_eeg_ecog = evoked.copy().pick_types(meg=False, eeg=True)
