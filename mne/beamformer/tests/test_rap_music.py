@@ -152,8 +152,7 @@ def test_rap_music_simulated():
 
 @testing.requires_testing_data
 def test_rap_music_simulated_sphere():
-    """Test RAP-MUSIC with sphere model and MEG only
-    """
+    """Test RAP-MUSIC with sphere model and MEG only."""
     noise_cov = mne.read_cov(fname_cov)
     evoked = mne.read_evokeds(fname_ave, baseline=(None, 0))[0]
 

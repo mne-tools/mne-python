@@ -175,8 +175,9 @@ def _compute_subcorr(G, phi_sig):
     # Now we look at the actual rank of the forward fields
     # in G and handle the fact that it might be rank defficient
     # eg. when using MEG and a sphere model for which the
-    # radial component will be truely 0.
-    rank = np.sum(Sg > (Sg[0] * 1e-6))
+    # radial component will be truly 0.
+    # rank = np.sum(Sg > (Sg[0] * 1e-12))
+    rank = np.sum(Sg > (Sg[0] * 1e-12))
     if rank == 0:
         return 0, np.zeros(len(G))
     rank = max(rank, 2)  # rank cannot be 1
