@@ -87,6 +87,7 @@ def test_annotations():
                               decimal=2)
 
 
+@testing.requires_testing_data
 def test_raw_reject():
     """Test raw data getter with annotation reject."""
     info = create_info(['a', 'b', 'c', 'd', 'e'], 100, ch_types='eeg')
@@ -95,9 +96,10 @@ def test_raw_reject():
     data = raw._get_data([0, 1, 3, 4], 100, 11200)[0]
     assert_array_equal(data.shape, (4, 9900))
 
+    # with orig_time and complete overlap
     raw = read_raw_fif(fif_fname)
     raw.annotations = Annotations([44, 47, 48], [1, 3, 1], 'BAD',
-                                  raw.info['meas_date'])  # with orig_time
+                                  raw.info['meas_date'])
     data, times = raw._get_data(range(10), 0, 6000)
     assert_array_equal(data.shape, (10, 4799))
     assert_equal(times[-1], raw.times[5999])

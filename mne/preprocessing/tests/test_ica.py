@@ -618,7 +618,7 @@ def test_ica_reject_buffer():
     with catch_logging() as drop_log:
         with warnings.catch_warnings(record=True):
             ica.fit(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
-                    tstep=0.01, verbose=True)
+                    tstep=0.01, verbose=True, reject_by_annotation=False)
         assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
     log = [l for l in drop_log.getvalue().split('\n') if 'detected' in l]
     assert_equal(len(log), 1)
