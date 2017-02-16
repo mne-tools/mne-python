@@ -4,7 +4,8 @@
 
 from datetime import datetime
 from nose.tools import assert_raises
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import (assert_equal, assert_array_equal,
+                           assert_array_almost_equal)
 import os.path as op
 
 import numpy as np
@@ -91,8 +92,15 @@ def test_raw_reject():
     info = create_info(['a', 'b', 'c', 'd', 'e'], 100, ch_types='eeg')
     raw = RawArray(np.ones((5, 15000)), info)
     raw.annotations = Annotations([2, 100, 105, 148], [2, 8, 5, 8], 'BAD')
-    data = raw._get_data([0, 1, 3, 4], 1, 112)[0]
+    data = raw._get_data([0, 1, 3, 4], 100, 11200)[0]
     assert_array_equal(data.shape, (4, 9900))
+
+    raw = read_raw_fif(fif_fname)
+    raw.annotations = Annotations([44, 47, 48], [1, 3, 1], 'BAD',
+                                  raw.info['meas_date'])  # with orig_time
+    data, times = raw._get_data(range(10), 0, 6000)
+    assert_array_equal(data.shape, (10, 4799))
+    assert_equal(times[-1], raw.times[5999])
 
 
 run_tests_if_main()
