@@ -193,7 +193,7 @@ def test_make_field_map_meeg():
 def _setup_args(info):
     """Helper to test_as_meg_type_evoked."""
     coils = _create_meg_coils(info['chs'], 'normal', info['dev_head_t'])
-    int_rad, noise, lut_fun, n_fact = _setup_dots('accurate', coils, 'meg')
+    int_rad, noise, lut_fun, n_fact = _setup_dots('fast', coils, 'meg')
     my_origin = np.array([0., 0., 0.04])
     args_dict = dict(intrad=int_rad, volume=False, coils1=coils, r0=my_origin,
                      ch_type='meg', lut=lut_fun, n_fact=n_fact)
