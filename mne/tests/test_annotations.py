@@ -103,6 +103,7 @@ def test_raw_reject():
     data, times = raw._get_data(range(10), 0, 6000)
     assert_array_equal(data.shape, (10, 4799))
     assert_equal(times[-1], raw.times[5999])
+    assert_array_equal(data[:, -100:], raw[:10, 5900:6000][0])
 
 
 run_tests_if_main()
