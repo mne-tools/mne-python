@@ -502,7 +502,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     else:
         fid_loc = []
 
-    head_alpha = 1.
     if 'helmet' in meg_sensors and len(meg_picks) > 0 and \
             (ch_type is None or ch_type == 'meg'):
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
@@ -512,7 +511,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         else:
             brain = False
     if brain:
-        head_alpha = 0.75
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         brain = 'pial' if brain is True else brain
         for hemi in ['lh', 'rh']:

@@ -74,7 +74,7 @@ def _find_head_bem(subject, subjects_dir, high_res=False):
 
 
 def _fiducial_coords(points, coord_frame=None):
-    "Helper function to generate 3x3 array of fiducial coordinates"
+    """Generate 3x3 array of fiducial coordinates."""
     if coord_frame is None:
         points_ = dict((p['ident'], p) for p in points if
                        p['kind'] == FIFF.FIFFV_POINT_CARDINAL)
