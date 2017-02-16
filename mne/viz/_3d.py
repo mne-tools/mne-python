@@ -283,7 +283,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                coord_frame='head', meg_sensors=('helmet', 'sensors'),
                eeg_sensors='original', dig=False, ref_meg=False,
                ecog_sensors=True, head=None, brain=None, skull=False,
-               src=None, fiducials=False, verbose=None):
+               src=None, mri_fiducials=False, verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -349,10 +349,13 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
 
         .. versionadded:: 0.14
 
-    fiducials : bool | str
+    mri_fiducials : bool | str
         Plot MRI fiducials (default False). If ``True``, look for a file with
         the canonical name (``bem/{subject}-fiducials.fif``). If ``str`` it
         should provide the full path to the fiducials file.
+
+        .. versionadded:: 0.14
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -485,19 +488,19 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
 
     from ..coreg import _fiducial_coords  # avoid circular import
 
-    if fiducials:
-        if fiducials is True:
+    if mri_fiducials:
+        if mri_fiducials is True:
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             if subject is None:
                 raise ValueError("Subject needs to be specified to "
                                  "automatically find the fiducials file.")
-            fiducials = op.join(subjects_dir, subject, 'bem',
-                                subject + '-fiducials.fif')
-        if isinstance(fiducials, string_types):
-            fiducials, cf = read_fiducials(fiducials)
+            mri_fiducials = op.join(subjects_dir, subject, 'bem',
+                                    subject + '-fiducials.fif')
+        if isinstance(mri_fiducials, string_types):
+            mri_fiducials, cf = read_fiducials(mri_fiducials)
             if cf != FIFF.FIFFV_COORD_MRI:
                 raise ValueError("Fiducials are not in MRI space")
-        fid_loc = _fiducial_coords(fiducials, FIFF.FIFFV_COORD_MRI)
+        fid_loc = _fiducial_coords(mri_fiducials, FIFF.FIFFV_COORD_MRI)
         fid_loc = apply_trans(mri_trans, fid_loc)
     else:
         fid_loc = []
