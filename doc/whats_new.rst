@@ -142,6 +142,8 @@ BUG
 
     - Fix bug with :func:`mne.simulation.simulate_raw` when ``interp != 'zero'`` by `Eric Larson`_
 
+    - Raise error in :func:`mne.epochs.concatenate_epochs` when concatenated epochs have conflicting event_id by `Mikołaj Magnuski`_
+
 
 API
 ~~~

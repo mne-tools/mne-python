@@ -2701,10 +2701,9 @@ def _concatenate_epochs(epochs_list, with_data=True):
             raise ValueError('Baseline must be same for all epochs')
 
         # compare event_id
-        common_keys = list(set(event_id.keys()).intersection(
-            set(epochs.event_id)))
-        for k in common_keys:
-            if not event_id[k] == epochs.event_id[k]:
+        common_keys = list(set(event_id).intersection(set(epochs.event_id)))
+        for key in common_keys:
+            if not event_id[key] == epochs.event_id[key]:
                 raise ValueError('event_id values must be the same for '
                                  'identical keys for all concatenated epochs.')
 
