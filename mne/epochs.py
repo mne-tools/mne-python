@@ -2704,8 +2704,11 @@ def _concatenate_epochs(epochs_list, with_data=True):
         common_keys = list(set(event_id).intersection(set(epochs.event_id)))
         for key in common_keys:
             if not event_id[key] == epochs.event_id[key]:
-                raise ValueError('event_id values must be the same for '
-                                 'identical keys for all concatenated epochs.')
+                msg = ('event_id values must be the same for identical keys '
+                       'for all concatenated epochs. Key "{}" maps to {} in '
+                       'some epochs and to {} in others.')
+                raise ValueError(msg.format(key, event_id[key],
+                                            epochs.event_id[key]))
 
         if with_data:
             data.append(epochs.get_data())
