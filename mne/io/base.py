@@ -40,7 +40,7 @@ from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
-from ..annotations import Annotations, _combine_annotations, _onset_to_seconds
+from ..annotations import Annotations, _combine_annotations, _sync_onset
 
 
 class ToDataFrameMixin(object):
@@ -574,7 +574,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if reject_by_annotation and self.annotations is not None:
             annot = self.annotations
             sfreq = self.info['sfreq']
-            onset = _onset_to_seconds(self, annot.onset)
+            onset = _sync_onset(self, annot.onset)
             overlaps = np.where(onset < stop / sfreq)
             overlaps = np.where(onset[overlaps] + annot.duration[overlaps] >
                                 start / sfreq)
@@ -844,7 +844,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         bads = [idx for idx, desc in enumerate(self.annotations.description)
                 if desc.upper().startswith('BAD')]
         onsets = self.annotations.onset[bads]
-        onsets = _onset_to_seconds(self, onsets)
+        onsets = _sync_onset(self, onsets)
         ends = onsets + self.annotations.duration[bads]
         omit = np.concatenate([np.where(onsets > stop / sfreq)[0],
                                np.where(ends < start / sfreq)[0]])
@@ -856,38 +856,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         onsets = self.time_as_index(onsets[order])
         ends = self.time_as_index(ends[order])
 
-        # Merge overlaps.
-        overlaps = list()
-        indices = list()
-        for idx, end in enumerate(ends):
-            overlap = np.where(end >= onsets[idx + 1:])[0] + idx + 1
-            if len(overlap) == 0:
+        np.clip(onsets, start, stop, onsets)
+        np.clip(ends, start, stop, ends)
+        used = np.ones(stop - start, bool)
+        for onset, end in zip(onsets, ends):
+            if onset >= end:
                 continue
-            overlaps.append(overlap)
-            indices.append(idx)
-        for idx, overlap in zip(indices[::-1], overlaps[::-1]):
-            ends[idx] = max(max(ends[overlap]), ends[idx])
-        if len(overlaps) > 0:
-            overlaps = np.concatenate(overlaps)
-            onsets = np.delete(onsets, overlaps)
-            ends = np.delete(ends, overlaps)
-
-        starts, stops = list(), list()
-        if onsets[0] < start:  # handle start
-            starts.append[ends[0]]
-            stops.append(stop if len(onsets) < 2 else onsets[1])
-            onsets = np.delete(onsets, 0)
-            ends = np.delete(ends, 0)
-        else:
-            starts.append(start)
-            stops.append(onsets[0])
-
-        for idx, end in enumerate(ends):  # handle rest of the segments
-            if end >= stop:
-                break
-            starts.append(end)
-            stops.append(stop if len(onsets) < idx + 2
-                         else min(onsets[idx + 1], stop))
+            used[onset - start: end - start] = False
+        used = np.concatenate([[False], used, [False]])
+        starts = np.where(~used[:-1] & used[1:])[0] + start
+        stops = np.where(used[:-1] & ~used[1:])[0] + start
 
         data = np.zeros((len(sel), np.sum([b - a for a, b in zip(starts,
                                                                  stops)])))
