@@ -14,7 +14,7 @@ from mayavi.tools.mlab_scene_model import MlabSceneModel
 from pyface.api import error
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         Instance, Array, Bool, Button, Enum, Float, Int, List,
-                        Range, Str, Tuple)
+                        Range, Str, RGBColor)
 from traitsui.api import View, Item, HGroup, VGrid, VGroup
 from tvtk.api import tvtk
 
@@ -126,7 +126,8 @@ class Object(HasPrivateTraits):
     scene = Instance(MlabSceneModel, ())
     src = Instance(VTKDataSource)
 
-    color = Tuple()
+    # This should be Tuple, but it is broken on Anaconda as of 2016/12/16
+    color = RGBColor()
     point_scale = Float(10, label='Point Scale')
     opacity = Range(low=0., high=1., value=1.)
     visible = Bool(True)
@@ -166,6 +167,10 @@ class PointObject(Object):
 
     glyph = Instance(Glyph)
     resolution = Int(8)
+
+    view = View(HGroup(Item('visible', show_label=False),
+                       Item('color', show_label=False),
+                       Item('opacity')))
 
     def __init__(self, view='points', *args, **kwargs):
         """Init.
@@ -267,7 +272,8 @@ class SurfaceObject(Object):
     surf = Instance(Surface)
 
     view = View(HGroup(Item('visible', show_label=False),
-                       Item('color', show_label=False), Item('opacity')))
+                       Item('color', show_label=False),
+                       Item('opacity')))
 
     def clear(self):  # noqa: D102
         if hasattr(self.src, 'remove'):
