@@ -50,7 +50,7 @@ fname_bem_meg = op.join(subjects_dir, 'sample', 'bem',
 def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
                       meg_rtol=1e-4, meg_atol=1e-9,
                       eeg_rtol=1e-3, eeg_atol=1e-3):
-    """Helper to test forwards"""
+    """Test forwards."""
     # check source spaces
     assert_equal(len(fwd['src']), len(fwd_py['src']))
     _compare_source_spaces(fwd['src'], fwd_py['src'], mode='approx')
@@ -94,8 +94,7 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
 
 
 def test_magnetic_dipole():
-    """Test basic magnetic dipole forward calculation
-    """
+    """Test basic magnetic dipole forward calculation."""
     trans = Transform('mri', 'head')
     info = read_info(fname_raw)
     picks = pick_types(info, meg=True, eeg=False, exclude=[])
@@ -114,8 +113,7 @@ def test_magnetic_dipole():
 @testing.requires_testing_data
 @requires_mne
 def test_make_forward_solution_kit():
-    """Test making fwd using KIT, BTI, and CTF (compensated) files
-    """
+    """Test making fwd using KIT, BTI, and CTF (compensated) files."""
     kit_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit',
                       'tests', 'data')
     sqd_path = op.join(kit_dir, 'test.sqd')
@@ -206,8 +204,7 @@ def test_make_forward_solution_kit():
 @slow_test
 @testing.requires_testing_data
 def test_make_forward_solution():
-    """Test making M-EEG forward solution from python
-    """
+    """Test making M-EEG forward solution from python."""
     fwd_py = make_forward_solution(fname_raw, fname_trans, fname_src,
                                    fname_bem, mindist=5.0, eeg=True, meg=True)
     assert_true(isinstance(fwd_py, Forward))
@@ -219,7 +216,7 @@ def test_make_forward_solution():
 @testing.requires_testing_data
 @requires_mne
 def test_make_forward_solution_sphere():
-    """Test making a forward solution with a sphere model"""
+    """Test making a forward solution with a sphere model."""
     temp_dir = _TempDir()
     fname_src_small = op.join(temp_dir, 'sample-oct-2-src.fif')
     src = setup_source_space('sample', fname_src_small, 'oct2',
@@ -248,8 +245,7 @@ def test_make_forward_solution_sphere():
 @testing.requires_testing_data
 @requires_nibabel(False)
 def test_forward_mixed_source_space():
-    """Test making the forward solution for a mixed source space
-    """
+    """Test making the forward solution for a mixed source space."""
     temp_dir = _TempDir()
     # get the surface source space
     surf = read_source_spaces(fname_src)
@@ -299,7 +295,7 @@ def test_forward_mixed_source_space():
 @slow_test
 @testing.requires_testing_data
 def test_make_forward_dipole():
-    """Test forward-projecting dipoles"""
+    """Test forward-projecting dipoles."""
     rng = np.random.RandomState(0)
 
     evoked = read_evokeds(fname_evo)[0]

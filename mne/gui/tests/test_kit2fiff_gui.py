@@ -7,6 +7,7 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
+from nose import SkipTest
 from nose.tools import assert_true, assert_false, assert_equal
 
 import mne
@@ -26,8 +27,8 @@ warnings.simplefilter('always')
 
 @requires_mayavi
 def test_kit2fiff_model():
-    """Test CombineMarkersModel Traits Model."""
-    from mne.gui._kit2fiff_gui import Kit2FiffModel, Kit2FiffPanel
+    """Test Kit2Fiff model."""
+    from mne.gui._kit2fiff_gui import Kit2FiffModel
     tempdir = _TempDir()
     tgt_fname = os.path.join(tempdir, 'test-raw.fif')
 
@@ -114,13 +115,35 @@ def test_kit2fiff_model():
     assert_equal(model.use_mrk, [0, 1, 2, 3, 4])
     assert_equal(model.sqd_file, "")
 
+
+@requires_mayavi
+def test_kit2fiff_gui():
+    """Test Kit2Fiff GUI."""
+    if os.environ.get('TRAVIS_OS_NAME') == 'linux':
+        raise SkipTest("Skipping on Travis for Linux due to GUI error")
+    home_dir = _TempDir()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
+    os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
     try:
         with warnings.catch_warnings(record=True):  # traits warnings
             warnings.simplefilter('always')
-            Kit2FiffPanel()
+            ui, frame = mne.gui.kit2fiff()
+            assert_false(frame.model.can_save)
+            assert_equal(frame.model.stim_threshold, 1.)
+            frame.model.stim_threshold = 10.
+            frame.model.stim_chs = 'save this!'
+            # ui.dispose() should close the Traits-UI, but it opens modal
+            # dialogs which interrupt the tests. This workaround triggers
+            # saving of configurations without closing the window:
+            frame.save_config(home_dir)
+
+            # test setting persistence
+            ui, frame = mne.gui.kit2fiff()
+            assert_equal(frame.model.stim_threshold, 10.)
+            assert_equal(frame.model.stim_chs, 'save this!')
     finally:
         del os.environ['_MNE_GUI_TESTING_MODE']
+        del os.environ['_MNE_FAKE_HOME_DIR']
 
 
 run_tests_if_main()

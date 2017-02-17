@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import os
 import numpy as np
 
 from mayavi.mlab import pipeline, text3d
@@ -22,7 +21,6 @@ from ..surface import complete_surface_info
 from ..transforms import apply_trans
 
 
-headview_item = Item('headview', style='custom', show_label=False)
 headview_borders = VGroup(Item('headview', style='custom', show_label=False),
                           show_border=True, label='View')
 defaults = {'mri_fid_scale': 1e-2, 'hsp_fid_scale': 3e-2,
@@ -30,11 +28,6 @@ defaults = {'mri_fid_scale': 1e-2, 'hsp_fid_scale': 3e-2,
             'mri_color': (252, 227, 191), 'hsp_point_color': (255, 255, 255),
             'lpa_color': (255, 0, 0), 'nasion_color': (0, 255, 0),
             'rpa_color': (0, 0, 255)}
-
-
-def _testing_mode():
-    """Helper to determine if we're running tests."""
-    return (os.getenv('_MNE_GUI_TESTING_MODE', '') == 'true')
 
 
 class HeadViewController(HasTraits):
@@ -115,9 +108,8 @@ class HeadViewController(HasTraits):
         if kwargs is None:
             raise ValueError("Invalid view: %r" % view)
 
-        if not _testing_mode():
-            self.scene.mlab.view(distance=None, reset_roll=True,
-                                 figure=self.scene.mayavi_scene, **kwargs)
+        self.scene.mlab.view(distance=None, reset_roll=True,
+                             figure=self.scene.mayavi_scene, **kwargs)
 
 
 class Object(HasPrivateTraits):
@@ -237,10 +229,10 @@ class PointObject(Object):
         if hasattr(self.src, 'remove'):
             self.src.remove()
 
-        fig = self.scene.mayavi_scene if not _testing_mode() else None
         x, y, z = self.points.T
         scatter = pipeline.scalar_scatter(x, y, z)
-        glyph = pipeline.glyph(scatter, color=self.rgbcolor, figure=fig,
+        glyph = pipeline.glyph(scatter, color=self.rgbcolor,
+                               figure=self.scene.mayavi_scene,
                                scale_factor=self.point_scale, opacity=1.,
                                resolution=self.resolution)
         self.src = scatter
@@ -291,7 +283,7 @@ class SurfaceObject(Object):
     @on_trait_change('scene.activated')
     def plot(self):
         """Add the points to the mayavi pipeline"""
-        _scale = self.scene.camera.parallel_scale if not _testing_mode() else 1
+        _scale = self.scene.camera.parallel_scale
         self.clear()
 
         if not np.any(self.tri):
@@ -322,8 +314,7 @@ class SurfaceObject(Object):
                         mutual=False)
         self.sync_trait('opacity', self.surf.actor.property, 'opacity')
 
-        if not _testing_mode():
-            self.scene.camera.parallel_scale = _scale
+        self.scene.camera.parallel_scale = _scale
 
     @on_trait_change('trans,points')
     def _update_points(self):

@@ -301,22 +301,19 @@ class CombineMarkersModel(HasPrivateTraits):
         self.mrk3.reset_traits(['method'])
 
     def _mrk1_default(self):
-        mrk = MarkerPointSource()
-        return mrk
+        return MarkerPointSource()
 
     def _mrk1_file_default(self):
         return self.mrk1.trait('file')
 
     def _mrk2_default(self):
-        mrk = MarkerPointSource()
-        return mrk
+        return MarkerPointSource()
 
     def _mrk2_file_default(self):
         return self.mrk2.trait('file')
 
     def _mrk3_default(self):
-        mrk = MarkerPointDest(src1=self.mrk1, src2=self.mrk2)
-        return mrk
+        return MarkerPointDest(src1=self.mrk1, src2=self.mrk2)
 
     @cached_property
     def _get_distance(self):

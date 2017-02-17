@@ -8,7 +8,7 @@ from numpy.testing import assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal
 
 from mne.datasets import testing
-from mne.utils import _TempDir, requires_mayavi
+from mne.utils import _TempDir, requires_mayavi, run_tests_if_main
 
 sample_path = testing.data_path(download=False)
 subjects_dir = os.path.join(sample_path, 'subjects')
@@ -65,3 +65,6 @@ def test_mri_model():
     assert_true(model.can_reset)
     model.reset = True
     assert_array_equal(model.nasion, [[0, 1, 0]])
+
+
+run_tests_if_main()
