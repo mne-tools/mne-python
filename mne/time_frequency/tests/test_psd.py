@@ -95,14 +95,14 @@ def test_psd():
     # test reduction
     windows, freqs = psd_welch(raw, proj=False, reduction=None, **kws_psd)
     windows_mean, _ = psd_welch(raw, proj=False, reduction='mean', **kws_psd)
-    assert_array_almost_equal(windows.mean(axis=0), windows_mean)
+    assert_array_almost_equal(windows.mean(axis=-3), windows_mean)
     windows_trim, _ = psd_welch(raw, proj=False, reduction=0.2, **kws_psd)
-    assert_array_almost_equal(trim_mean(windows, 0.2, axis=0), windows_trim)
+    assert_array_almost_equal(trim_mean(windows, 0.2, axis=-3), windows_trim)
 
     # test reduction with function
     func = lambda x: x.max(axis=-1)
     windows_max, freqs = psd_welch(raw, proj=False, reduction=func, **kws_psd)
-    assert_array_almost_equal(np.max(windows, axis=0), windows_max)
+    assert_array_almost_equal(np.max(windows, axis=-3), windows_max)
 
     # -- Epochs/Evoked --
     events = read_events(event_fname)

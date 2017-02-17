@@ -146,7 +146,10 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     else:
         n_windows = psds.shape[-1]
         psds = psds.reshape(np.hstack([dshape, -1, n_windows]))
-        psds = np.moveaxis(psds, -1, 0) # windows as first dimension
+        # windows are put at -3 position so that the output is of shape
+        # windows x channels x frequencies for raw data and
+        # epochs x windows x channels x frequencies for epochs
+        psds = np.rollaxis(psds, -1, -3)
     return psds, freqs
 
 
