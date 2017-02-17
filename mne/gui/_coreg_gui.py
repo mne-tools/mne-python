@@ -527,6 +527,10 @@ class CoregModel(HasPrivateTraits):
             File path.
         """
         info = read_trans(fname)
+        # XXX this should really ensure that its a head->MRI trans. We should
+        # add from/to logic inside read_trans, which can also then invert it
+        # if necessary. This can then be used in a number of places
+        # (maxwell_filter, forward, viz._3d, etc.)
         head_mri_trans = info['trans']
         self.set_trans(head_mri_trans)
 
@@ -962,7 +966,12 @@ class CoregPanel(HasPrivateTraits):
         if dlg.return_code != OK:
             return
         trans_file = dlg.path
-        self.model.load_trans(trans_file)
+        try:
+            self.model.load_trans(trans_file)
+        except Exception as e:
+            error(None, "Error loading trans file %s: %s (See terminal "
+                  "for details)" % str(e), "Error Saving Trans File")
+            raise
 
     def _save_fired(self):
         subjects_dir = self.model.mri.subjects_dir
@@ -1334,7 +1343,12 @@ class CoregFrame(HasTraits):
                 raise ValueError(msg)
             self.model.mri.subject = subject
         if trans is not None:
-            self.model.load_trans(trans)
+            try:
+                self.model.load_trans(trans)
+            except Exception as e:
+                error(None, "Error loading trans file %s: %s (See terminal "
+                      "for details)" % (trans, str(e)),
+                      "Error Saving Trans File")
 
     @on_trait_change('subject_panel.subject')
     def _set_title(self):

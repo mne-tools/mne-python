@@ -148,9 +148,11 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 def _create_mesh_surf(surf, fig=None, scalars=None):
     """Create Mayavi mesh from MNE surf."""
     mlab = _import_mlab()
-    nn = surf['nn']
+    nn = surf['nn'].copy()
     # make absolutely sure these are normalized for Mayavi
-    nn = nn / np.sum(nn * nn, axis=1)[:, np.newaxis]
+    norm = np.sum(nn * nn, axis=1)
+    mask = norm > 0
+    nn[mask] /= norm[mask][:, np.newaxis]
     x, y, z = surf['rr'].T
     with warnings.catch_warnings(record=True):  # traits
         mesh = mlab.pipeline.triangular_mesh_source(
@@ -469,7 +471,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                 rr, tris = read_surface(surf_fname)
                 head_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
                                  np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
-                complete_surface_info(head_surf, copy=False)
+                complete_surface_info(head_surf, copy=False, verbose=False)
                 break
         if head_surf is None:
             raise IOError('No head surface found for subject %s.' % subject)
@@ -495,7 +497,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             rr *= 1e-3
             surfs[hemi] = dict(rr=rr, tris=tris, ntri=len(tris), np=len(rr),
                                coord_frame=FIFF.FIFFV_COORD_MRI)
-            complete_surface_info(surfs[hemi], copy=False)
+            complete_surface_info(surfs[hemi], copy=False, verbose=False)
 
     if skull is True:
         skull = 'outer_skull'
@@ -530,7 +532,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             rr, tris = read_surface(skull_fname)
             skull_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
                               np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
-            complete_surface_info(skull_surf, copy=False)
+            complete_surface_info(skull_surf, copy=False, verbose=False)
         skull_alpha[this_skull] = alphas[idx + 1]
         skull_colors[this_skull] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
         surfs[this_skull] = skull_surf
@@ -631,7 +633,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     colors = (defaults['eeg_color'],
               (0., 1, 0), (1., 1, 0),
               defaults['extra_color'], defaults['ecog_color'])
-    alphas = (0.8, 0.8,
+    alphas = (0.8,
               0.5, 0.5,
               0.25, 0.8)
     scales = (defaults['eeg_scale'],
@@ -659,7 +661,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     if len(meg_rrs) > 0:
         color, alpha = (0., 0.25, 0.5), 0.25
         surf = dict(rr=meg_rrs, tris=meg_tris)
-        complete_surface_info(surf, copy=False)
+        complete_surface_info(surf, copy=False, verbose=False)
         mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
             surface = mlab.pipeline.surface(mesh, color=color,
@@ -1266,8 +1268,8 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     fname = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')
-    surf = complete_surface_info(read_surface(fname, return_dict=True)[2],
-                                 copy=False)
+    surf = complete_surface_info(read_surface(fname, return_dict=True,
+                                              verbose=False)[2], copy=False)
     surf['rr'] = apply_trans(trans['trans'], surf['rr'] * 1e-3)
 
     from .. import Dipole
