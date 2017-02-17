@@ -3,6 +3,7 @@ import os.path as op
 from numpy.testing import (assert_array_almost_equal, assert_raises,
                            assert_allclose)
 from nose.tools import assert_true, assert_equal
+from scipy.stats import trim_mean
 
 from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
@@ -90,6 +91,18 @@ def test_psd():
     # ValueError when n_overlap > n_per_seg
     kws_psd.update(dict(n_fft=128, n_per_seg=64, n_overlap=90))
     assert_raises(ValueError, psd_welch, raw, proj=False, **kws_psd)
+
+    # test reduction
+    windows, freqs = psd_welch(raw, proj=False, reduction=None, **kws_psd)
+    windows_mean, _ = psd_welch(raw, proj=False, reduction='mean', **kws_psd)
+    assert_array_almost_equal(windows.mean(axis=0), windows_mean)
+    windows_trim, _ = psd_welch(raw, proj=False, reduction=0.2, **kws_psd)
+    assert_array_almost_equal(trim_mean(windows, 0.2, axis=0), windows_trim)
+
+    # test reduction with function
+    func = lambda x: x.max(axis=-1)
+    windows_max, freqs = psd_welch(raw, proj=False, reduction=func, **kws_psd)
+    assert_array_almost_equal(np.max(windows, axis=0), windows_max)
 
     # -- Epochs/Evoked --
     events = read_events(event_fname)

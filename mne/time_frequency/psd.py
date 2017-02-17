@@ -6,7 +6,7 @@ import numpy as np
 
 from ..parallel import parallel_func
 from ..io.pick import _pick_data_channels
-from ..utils import logger, verbose, _time_mask
+from ..utils import logger, verbose, _time_mask, get_reduction
 from ..fixes import get_spectrogram
 from .multitaper import psd_array_multitaper
 
@@ -64,7 +64,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
 
 @verbose
 def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-                    n_per_seg=None, n_jobs=1, verbose=None):
+                    n_per_seg=None, reduction='mean', n_jobs=1, verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
     Parameters
@@ -87,6 +87,15 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         Length of each Welch segment. The smaller it is with respect to the
         signal length the smoother are the PSDs. Defaults to None, which sets
         n_per_seg equal to n_fft.
+    reduction : str | float | callable | None
+        The type of reduction to perform on windows. If string it can be 'mean'
+        or 'median'. If float it is understood as % of values to trim before
+        performing mean (has to be > 0 and < 0.5) ie. trimmed-mean. If function
+        it has to perform the reduction along last dimension. If None - no
+        reduction is performed and psd's for individual windows are returned
+        (so that the output psds are of shape (windows, channels, frequencies)
+        for 2d input data and (windows, epochs, channels, frequencies) for 3d
+        input data)
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -128,16 +137,23 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
                              for d in x_splits)
 
     # Combining, reducing windows and reshaping to original data shape
-    psds = np.concatenate([np.nanmean(f_s, axis=-1)
-                           for f_s in f_spectrogram], axis=0)
-    psds.shape = np.hstack([dshape, -1])
+    # XXX : we can certainly avoid the allocation before the mean
+    #       (this would require pushing reduction into fixes._spectrogram)
+    psds = np.concatenate(f_spectrogram, axis=0)
+    if reduction is not None:
+        red_fun = get_reduction(reduction)
+        psds = red_fun(psds).reshape(np.hstack([dshape, -1]))
+    else:
+        n_windows = psds.shape[-1]
+        psds = psds.reshape(np.hstack([dshape, -1, n_windows]))
+        psds = np.moveaxis(psds, -1, 0) # windows as first dimension
     return psds, freqs
 
 
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
               n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=1,
-              reject_by_annotation=True, verbose=None):
+              reject_by_annotation=True, reduction='mean', verbose=None):
     """Compute the power spectral density (PSD) using Welch's method.
 
     Calculates periodigrams for a sliding window over the
@@ -181,6 +197,17 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         Evoked object. Defaults to True.
 
         .. versionadded:: 0.15.0
+    reduction : str | float | callable | None
+        The type of reduction to perform on windows. If string it can be 'mean'
+        or 'median'. If float it is understood as % of values to trim before
+        performing mean (has to be > 0 and < 0.5) ie. trimmed-mean. If function
+        it has to perform the reduction along last dimension. If None - no
+        reduction is performed and psd's for individual windows are returned
+        (so that the output psds are of shape (windows, channels, frequencies)
+        for 2d input data and (windows, epochs, channels, frequencies) for 3d
+        input data)
+
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -208,7 +235,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
                                   reject_by_annotation=reject_by_annotation)
     return psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
                            n_overlap=n_overlap, n_per_seg=n_per_seg,
-                           n_jobs=n_jobs, verbose=verbose)
+                           reduction=reduction, n_jobs=n_jobs, verbose=verbose)
 
 
 @verbose

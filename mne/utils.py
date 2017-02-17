@@ -2415,6 +2415,29 @@ def _get_fast_dot():
     return fast_dot
 
 
+def get_reduction(reduction, axis=-1):
+    if isinstance(reduction, string_types):
+        if reduction == 'mean':
+            return lambda x: np.mean(x, axis=axis)
+        elif reduction == 'median':
+            return lambda x: np.median(x, axis=axis)
+        else:
+            raise ValueError('reduction, if string, must be "mean" or "median"'
+                             ', got {}'.format(reduction))
+    elif isinstance(reduction, (float, np.float64, np.float32)):
+        if reduction < 0 or reduction >= 0.5:
+            raise ValueError('reduction, if float, means proportion to trim in'
+                             ' trimmed mean, which has to be > 0 and < 0.5, '
+                             'got {}'.format(reduction))
+        from scipy.stats import trim_mean
+        return lambda x: trim_mean(x, reduction, axis=axis)
+    elif hasattr(reduction, '__call__'):
+        return reduction
+    else:
+        raise TypeError('unrecognized reduction type. Has to be string, '
+                        'float or callable, got {}'.format(reduction))
+
+
 def random_permutation(n_samples, random_state=None):
     """Emulate the randperm matlab function.
 
