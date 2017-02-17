@@ -176,17 +176,15 @@ def _compute_subcorr(G, phi_sig):
     # in G and handle the fact that it might be rank defficient
     # eg. when using MEG and a sphere model for which the
     # radial component will be truly 0.
-    # rank = np.sum(Sg > (Sg[0] * 1e-12))
     rank = np.sum(Sg > (Sg[0] * 1e-12))
     if rank == 0:
         return 0, np.zeros(len(G))
     rank = max(rank, 2)  # rank cannot be 1
     Ug, Sg, Vg = Ug[:, :rank], Sg[:rank], Vg[:rank]
     tmp = np.dot(Ug.T.conjugate(), phi_sig)
-    Uc, Sc, Vc = linalg.svd(tmp, full_matrices=False)
-    Sg_pinv = 1. / Sg
-    X = np.dot(np.dot(Vg.T, np.diag(Sg_pinv)), Uc)  # subcorr
-    return Sc[0], X[:, 0] / linalg.norm(X[:, 0])
+    Uc, Sc, _ = linalg.svd(tmp, full_matrices=False)
+    X = np.dot(Vg.T / Sg[None, :], Uc[:, 0])  # subcorr
+    return Sc[0], X / linalg.norm(X)
 
 
 def _compute_proj(A):
