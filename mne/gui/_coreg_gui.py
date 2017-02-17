@@ -4,7 +4,7 @@
 Hierarchy
 ---------
 This is the hierarchy of classes for control. Brackets like [1] denote
-properties that ar equivalent.
+properties that are set to be equivalent.
 
 ::
 
