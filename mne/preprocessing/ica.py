@@ -349,8 +349,13 @@ class ICA(ContainsMixin):
             Length of data chunks for artifact rejection in seconds.
             It only applies if `inst` is of type Raw.
         reject_by_annotation : bool
-            Whether to omit bad segments from the data before fitting. Has no
-            effect if ``inst`` is an Epochs or Evoked object. Defaults to True.
+            Whether to omit bad segments from the data before fitting. If True,
+            annotated segments with a description that starts with 'bad' are
+            omitted. Has no effect if ``inst`` is an Epochs or Evoked object.
+            Defaults to True.
+
+            .. versionadded:: 0.14.0
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
