@@ -236,6 +236,7 @@ class PointObject(Object):
                                figure=fig,
                                scale_factor=self.point_scale, opacity=1.,
                                resolution=self.resolution)
+        glyph.actor.property.backface_culling = True
         self.src = scatter
         self.glyph = glyph
 
