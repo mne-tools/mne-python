@@ -375,7 +375,7 @@ class DigSource(HasPrivateTraits):
     def _get_eeg_points(self):
         if not self.inst or not self.eeg_dig:
             return np.empty((0, 3))
-        dig = np.array([d['r'][:3] for d in self.eeg_dig])
+        dig = np.array([d['r'] for d in self.eeg_dig])
         dig.shape = (-1, 3)
         return dig
 
