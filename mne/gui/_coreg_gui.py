@@ -1225,12 +1225,12 @@ class ViewOptionsPanel(HasTraits):
     mri_obj = Instance(SurfaceObject)
     hsp_obj = Instance(PointObject)
     eeg_obj = Instance(PointObject)
-    view = View(VGroup(Item('mri_obj', style='custom',  # show_border=True,
-                            label="MRI Head Surface"),
-                       Item('hsp_obj', style='custom',  # show_border=True,
-                            label="Head Shape Points"),
+    view = View(VGroup(Item('mri_obj', style='custom',
+                            label="MRI head"),
+                       Item('hsp_obj', style='custom',
+                            label="Head shape"),
                        Item('eeg_obj', style='custom',
-                            label='EEG Points')),
+                            label='EEG')),
                 title="View Options")
 
 
@@ -1434,7 +1434,8 @@ class CoregFrame(HasTraits):
         self.scene.render()
         self.scene.camera.focal_point = (0., 0., 0.)
         self.view_options_panel = ViewOptionsPanel(mri_obj=self.mri_obj,
-                                                   hsp_obj=self.hsp_obj)
+                                                   hsp_obj=self.hsp_obj,
+                                                   eeg_obj=self.eeg_obj)
 
     @cached_property
     def _get_hsp_visible(self):
