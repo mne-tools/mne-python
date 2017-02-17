@@ -2041,6 +2041,13 @@ def test_concatenate_epochs():
     epochs.info['dev_head_t'] = None
     concatenate_epochs([epochs, epochs2])  # should work
 
+    # check that different event_id does not work:
+    epochs1 = epochs.copy()
+    epochs2 = epochs.copy()
+    epochs1.event_id = dict(a=1)
+    epochs2.event_id = dict(a=2)
+    assert_raises(ValueError, concatenate_epochs, [epochs1, epochs2])
+
 
 def test_add_channels():
     """Test epoch splitting / re-appending channel types."""
