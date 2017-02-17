@@ -339,7 +339,7 @@ class DigSource(HasPrivateTraits):
     def _get_eeg_dig(self):
         """Get EEG from info['dig']."""
         if not self.inst:
-            return np.empty((0, 3))
+            return []
         dig = [d for d in self.inst['dig']
                if d['kind'] == FIFF.FIFFV_POINT_EEG]
         return dig
@@ -463,6 +463,12 @@ class MRISubjectSource(HasPrivateTraits):
         self.use_high_res_head = False
         self.subject = 'fsaverage'
 
+    @on_trait_change('subjects_dir')
+    def _emit_subject(self):
+        # This silliness is the only way I could figure out to get the
+        # on_trait_change('subject_panel.subject') in CoregFrame to work!
+        self.subject = self.subject
+
 
 class SubjectSelectorPanel(HasPrivateTraits):
     """Subject selector panel."""
@@ -491,12 +497,6 @@ class SubjectSelectorPanel(HasPrivateTraits):
                        Item('create_fsaverage',
                             enabled_when='can_create_fsaverage'),
                        show_labels=False))
-
-    @on_trait_change('subjects_dir')
-    def _emit_subject(self):
-        # This silliness is the only way I could figure out to get the
-        # on_trait_change('subject_panel.subject') in CoregFrame to work!
-        self.subject = self.subject
 
     def _create_fsaverage_fired(self):
         # progress dialog with indefinite progress bar
