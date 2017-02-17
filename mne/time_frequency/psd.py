@@ -6,7 +6,7 @@ import numpy as np
 
 from ..parallel import parallel_func
 from ..io.pick import _pick_data_channels
-from ..utils import logger, verbose, _time_mask, get_reduction
+from ..utils import logger, verbose, _time_mask, _get_reduction
 from ..fixes import get_spectrogram
 from .multitaper import psd_array_multitaper
 
@@ -141,8 +141,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     #       (this would require pushing reduction into fixes._spectrogram)
     psds = np.concatenate(f_spectrogram, axis=0)
     if reduction is not None:
-        red_fun = get_reduction(reduction)
-        psds = red_fun(psds).reshape(np.hstack([dshape, -1]))
+        reduction = _get_reduction(reduction)
+        psds = reduction(psds).reshape(np.hstack([dshape, -1]))
     else:
         n_windows = psds.shape[-1]
         psds = psds.reshape(np.hstack([dshape, -1, n_windows]))

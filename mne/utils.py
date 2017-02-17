@@ -2415,7 +2415,7 @@ def _get_fast_dot():
     return fast_dot
 
 
-def get_reduction(reduction, axis=-1):
+def _get_reduction(reduction, axis=-1):
     if isinstance(reduction, string_types):
         if reduction == 'mean':
             return lambda x: np.mean(x, axis=axis)
