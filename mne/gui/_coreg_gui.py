@@ -33,11 +33,10 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _find_fiducials_files, _point_cloud_error)
-from ..utils import get_subjects_dir, logger
+from ..utils import logger, set_config
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, InstSource, SubjectSelectorPanel
-from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
-                      _testing_mode)
+from ._viewer import defaults, HeadViewController, PointObject, SurfaceObject
 
 
 laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float)
@@ -230,7 +229,7 @@ class CoregModel(HasPrivateTraits):
                 points[hair] += self.mri.norms[hair] * scaled_hair_dist
                 return points
             else:
-                error(None, "Norms missing form bem, can't grow hair")
+                error(None, "Norms missing from bem, can't grow hair")
                 self.grow_hair = 0
         return self.mri.points
 
@@ -312,11 +311,8 @@ class CoregModel(HasPrivateTraits):
         # subject name guessed based on the inst file name
         if '_' in self.hsp.inst_fname:
             subject, _ = self.hsp.inst_fname.split('_', 1)
-            if not subject:
-                subject = None
-        else:
-            subject = None
-        return subject
+            if subject:
+                return subject
 
     @on_trait_change('raw_subject')
     def _on_raw_subject_change(self, subject):
@@ -550,6 +546,11 @@ class CoregFrameHandler(Handler):
                         "processed.", "Saving Still in Progress")
             return False
         else:
+            # store configuration, but don't prevent from closing on error
+            try:
+                info.object.save_config()
+            except Exception as exc:
+                warnings.warn("Error saving GUI configuration:\n%s" % (exc,))
             return True
 
 
@@ -1239,28 +1240,26 @@ class CoregFrame(HasTraits):
         return SubjectSelectorPanel(model=self.model.mri.subject_source)
 
     def _fid_panel_default(self):
-        panel = FiducialsPanel(model=self.model.mri, headview=self.headview)
-        return panel
+        return FiducialsPanel(model=self.model.mri, headview=self.headview)
 
     def _coreg_panel_default(self):
-        panel = CoregPanel(model=self.model)
-        return panel
+        return CoregPanel(model=self.model)
 
     def _headview_default(self):
         return HeadViewController(scene=self.scene, system='RAS')
 
     def __init__(self, raw=None, subject=None, subjects_dir=None,
                  guess_mri_subject=True, head_opacity=1.,
-                 head_high_res=True):  # noqa: D102
+                 head_high_res=True, prepare_bem=True):  # noqa: D102
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
         self.subject_panel.model.use_high_res_head = head_high_res
+        self.model.prepare_bem_model = prepare_bem
         if not 0 <= head_opacity <= 1:
             raise ValueError(
                 "head_opacity needs to be a floating point number between 0 "
                 "and 1, got %r" % (head_opacity,))
         self._initial_head_opacity = head_opacity
 
-        subjects_dir = get_subjects_dir(subjects_dir)
         if (subjects_dir is not None) and os.path.isdir(subjects_dir):
             self.model.mri.subjects_dir = subjects_dir
 
@@ -1361,14 +1360,12 @@ class CoregFrame(HasTraits):
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
         on_pick = self.scene.mayavi_scene.on_mouse_pick
-        if not _testing_mode():
-            self.picker = on_pick(self.fid_panel._on_pick, type='cell')
+        self.picker = on_pick(self.fid_panel._on_pick, type='cell')
 
         self.headview.left = True
         self.scene.disable_render = False
-        if not _testing_mode():  # when testing, scene.camera is None
-            self.scene.render()
-            self.scene.camera.focal_point = (0., 0., 0.)
+        self.scene.render()
+        self.scene.camera.focal_point = (0., 0., 0.)
         self.view_options_panel = ViewOptionsPanel(mri_obj=self.mri_obj,
                                                    hsp_obj=self.hsp_obj)
 
@@ -1414,3 +1411,22 @@ class CoregFrame(HasTraits):
 
     def _view_options_fired(self):
         self.view_options_panel.edit_traits()
+
+    def save_config(self, home_dir=None):
+        """Write configuration values."""
+        set_config('MNE_COREG_GUESS_MRI_SUBJECT',
+                   str(self.model.guess_mri_subject).lower(),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_HEAD_HIGH_RES',
+                   str(self.model.mri.use_high_res_head).lower(),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_HEAD_OPACITY',
+                   str(self.mri_obj.opacity),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_PREPARE_BEM',
+                   str(self.model.prepare_bem_model).lower(),
+                   home_dir, set_env=False)
+        if self.model.mri.subjects_dir:
+            set_config('MNE_COREG_SUBJECTS_DIR',
+                       self.model.mri.subjects_dir,
+                       home_dir, set_env=False)

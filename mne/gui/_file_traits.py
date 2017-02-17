@@ -455,9 +455,11 @@ class SubjectSelectorPanel(HasPrivateTraits):
     subjects = DelegatesTo('model')
     use_high_res_head = DelegatesTo('model')
 
-    create_fsaverage = Button("Copy 'fsaverage' to subjects directory",
-                              desc="Copy the files for the fsaverage subject "
-                              "to the subjects directory.")
+    create_fsaverage = Button(
+        "Copy 'fsaverage' to subjects directory",
+        desc="Copy the files for the fsaverage subject to the subjects "
+             "directory. This button is disabled if a subject called "
+             "fsaverage already exists in the selected subjects-directory.")
 
     view = View(VGroup(Label('Subjects directory and subject:',
                              show_label=True),
