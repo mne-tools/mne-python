@@ -11,17 +11,19 @@ from ..fixes import get_spectrogram
 from .multitaper import psd_array_multitaper
 
 
-def _psd_func(epoch, noverlap, nfft, fs, freq_mask, func):
+def _psd_func(epoch, noverlap, nfft, fs, freq_mask, func, padding):
     """Aux function."""
     return func(epoch, fs=fs, nperseg=nfft, noverlap=noverlap,
-                nfft=nfft, window='hann')[2][..., freq_mask, :]
+                nfft=padding, window='hann')[2][..., freq_mask, :]
 
 
-def _check_nfft(n, n_fft, n_overlap):
+def _check_nfft(n, n_fft, n_overlap, padding):
     """Helper to make sure n_fft and n_overlap make sense."""
     n_fft = n if n_fft > n else n_fft
     n_overlap = n_fft - 1 if n_overlap >= n_fft else n_overlap
-    return n_fft, n_overlap
+    if padding is None or padding <= n_fft:
+        padding = n_fft
+    return n_fft, n_overlap, padding
 
 
 def _check_psd_data(inst, tmin, tmax, picks, proj):
@@ -54,7 +56,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
 
 @verbose
 def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-                    n_jobs=1, verbose=None):
+                    padding=None, n_jobs=1, verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
     Parameters
@@ -75,6 +77,9 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     n_overlap : int
         The number of points of overlap between blocks. Will be adjusted
         to be <= n_fft. The default value is 0.
+    padding : int | None
+        Length in samples to which the signal will be zero-padded. padding has
+        to be longer than window length (n_fft) otherwise it will be ignored.
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -99,10 +104,10 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     x = x.reshape(-1, n_times)
 
     # Prep the PSD
-    n_fft, n_overlap = _check_nfft(n_times, n_fft, n_overlap)
-    win_size = n_fft / float(sfreq)
+    n_fft, n_overlap, padding = _check_nfft(n_times, n_fft, n_overlap, padding)
+    win_size = padding / float(sfreq)
     logger.info("Effective window size : %0.3f (s)" % win_size)
-    freqs = np.arange(n_fft // 2 + 1, dtype=float) * (sfreq / n_fft)
+    freqs = np.arange(padding // 2 + 1, dtype=float) * (sfreq / padding)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
 
@@ -111,7 +116,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     x_splits = np.array_split(x, n_jobs)
     f_spectrogram = parallel(my_psd_func(d, noverlap=n_overlap, nfft=n_fft,
                                          fs=sfreq, freq_mask=freq_mask,
-                                         func=spectrogram) for d in x_splits)
+                                         func=spectrogram, padding=padding)
+                                         for d in x_splits)
 
     # Combining, reducing windows and reshaping to original data shape
     # XXX : we can certainly avoid the allocation before the mean
@@ -122,7 +128,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
 
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
-              n_overlap=0, picks=None, proj=False, n_jobs=1, verbose=None):
+              n_overlap=0, padding=None, picks=None, proj=False, n_jobs=1,
+              verbose=None):
     """Compute the power spectral density (PSD) using Welch's method.
 
     Calculates periodigrams for a sliding window over the
@@ -148,6 +155,9 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     n_overlap : int
         The number of points of overlap between blocks. Will be adjusted
         to be <= n_fft. The default value is 0.
+    padding : int | None
+        Length in samples to which the signal will be zero-padded. padding has
+        to be longer than window length (n_fft) otherwise it will be ignored.
     picks : array-like of int | None
         The selection of channels to include in the computation.
         If None, take all channels.
@@ -180,7 +190,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
     return psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
-                           n_overlap=n_overlap, n_jobs=n_jobs, verbose=verbose)
+                           n_overlap=n_overlap, padding=padding, n_jobs=n_jobs,
+                           verbose=verbose)
 
 
 @verbose
