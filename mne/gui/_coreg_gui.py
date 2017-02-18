@@ -970,7 +970,7 @@ class CoregPanel(HasPrivateTraits):
             self.model.load_trans(trans_file)
         except Exception as e:
             error(None, "Error loading trans file %s: %s (See terminal "
-                  "for details)" % str(e), "Error Saving Trans File")
+                  "for details)" % (trans_file, e), "Error Loading Trans File")
             raise
 
     def _save_fired(self):
@@ -1034,7 +1034,7 @@ class CoregPanel(HasPrivateTraits):
             self.model.save_trans(trans_file)
         except Exception as e:
             error(None, "Error saving -trans.fif file: %s (See terminal for "
-                  "details)" % str(e), "Error Saving Trans File")
+                  "details)" % (e,), "Error Saving Trans File")
             raise
 
         # save the scaled MRI
@@ -1347,8 +1347,7 @@ class CoregFrame(HasTraits):
                 self.model.load_trans(trans)
             except Exception as e:
                 error(None, "Error loading trans file %s: %s (See terminal "
-                      "for details)" % (trans, str(e)),
-                      "Error Saving Trans File")
+                      "for details)" % (trans, e), "Error Loading Trans File")
 
     @on_trait_change('subject_panel.subject')
     def _set_title(self):
