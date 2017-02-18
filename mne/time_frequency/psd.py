@@ -117,7 +117,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     f_spectrogram = parallel(my_psd_func(d, noverlap=n_overlap, nfft=n_fft,
                                          fs=sfreq, freq_mask=freq_mask,
                                          func=spectrogram, padding=padding)
-                                         for d in x_splits)
+                             for d in x_splits)
 
     # Combining, reducing windows and reshaping to original data shape
     # XXX : we can certainly avoid the allocation before the mean
