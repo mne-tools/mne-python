@@ -117,6 +117,10 @@ class CoregModel(HasPrivateTraits):
     trans_y = Float(0, label="A (Y)")
     trans_z = Float(0, label="S (Z)")
 
+    # options during scaling
+    scale_labels = Bool(True, desc="whether to scale *.label files")
+    copy_annot = Bool(True, desc="whether to copy *.annot files for scaled "
+                      "subject")
     prepare_bem_model = Bool(True, desc="whether to run mne_prepare_bem_model "
                              "after scaling the MRI")
 
@@ -501,12 +505,12 @@ class CoregModel(HasPrivateTraits):
             self.scale_x, self.scale_y, self.scale_z = 1. / est[3:]
         self.rot_x, self.rot_y, self.rot_z = est[:3]
 
-    def get_scaling_job(self, subject_to, skip_fiducials, do_bem_sol):
+    def get_scaling_job(self, subject_to, skip_fiducials):
         """Find all arguments needed for the scaling worker."""
         subjects_dir = self.mri.subjects_dir
         subject_from = self.mri.subject
         bem_names = []
-        if do_bem_sol:
+        if self.can_prepare_bem_model and self.prepare_bem_model:
             pattern = bem_fname.format(subjects_dir=subjects_dir,
                                        subject=subject_from, name='(.+-bem)')
             bem_dir, pattern = os.path.split(pattern)
@@ -516,7 +520,7 @@ class CoregModel(HasPrivateTraits):
                     bem_names.append(match.group(1))
 
         return (subjects_dir, subject_from, subject_to, self.scale,
-                skip_fiducials, bem_names)
+                skip_fiducials, self.scale_labels, self.copy_annot, bem_names)
 
     def load_trans(self, fname):
         """Load the head-mri transform from a fif file.
@@ -662,6 +666,8 @@ class CoregPanel(HasPrivateTraits):
     # saving
     can_prepare_bem_model = DelegatesTo('model')
     can_save = DelegatesTo('model')
+    scale_labels = DelegatesTo('model')
+    copy_annot = DelegatesTo('model')
     prepare_bem_model = DelegatesTo('model')
     save = Button(label="Save As...")
     load_trans = Button(label='Load trans...')
@@ -797,10 +803,21 @@ class CoregPanel(HasPrivateTraits):
                        Item('fid_eval_str', style='readonly'),
                        Item('points_eval_str', style='readonly'),
                        '_',
-                       HGroup(Item('prepare_bem_model'),
-                              Label("Run mne_prepare_bem_model"),
-                              show_labels=False,
-                              enabled_when='can_prepare_bem_model'),
+                       VGroup(
+                           Item('scale_labels',
+                                label="Scale *.label files",
+                                enabled_when='n_scale_params > 0'),
+                           Item('copy_annot',
+                                label="Copy annotation files",
+                                enabled_when='n_scale_params > 0'),
+                           Item('prepare_bem_model',
+                                label="Run mne_prepare_bem_model",
+                                enabled_when='can_prepare_bem_model'),
+                           show_left=False,
+                           label='Scaling options',
+                           show_border=True,
+                       ),
+                       '_',
                        HGroup(Item('save', enabled_when='can_save',
                                    tooltip="Save the trans file and (if "
                                    "scaling is enabled) the scaled MRI"),
@@ -820,14 +837,15 @@ class CoregPanel(HasPrivateTraits):
         def worker():
             while True:
                 (subjects_dir, subject_from, subject_to, scale, skip_fiducials,
-                 bem_names) = self.queue.get()
+                 include_labels, include_annot, bem_names) = self.queue.get()
                 self.queue_len -= 1
 
                 # Scale MRI files
                 self.queue_current = 'Scaling %s...' % subject_to
                 try:
                     scale_mri(subject_from, subject_to, scale, True,
-                              subjects_dir, skip_fiducials)
+                              subjects_dir, skip_fiducials, include_labels,
+                              include_annot)
                 except:
                     logger.error('Error scaling %s:\n' % subject_to +
                                  traceback.format_exc())
@@ -1040,9 +1058,7 @@ class CoregPanel(HasPrivateTraits):
 
         # save the scaled MRI
         if self.n_scale_params:
-            do_bem_sol = self.can_prepare_bem_model and self.prepare_bem_model
-            job = self.model.get_scaling_job(subject_to, skip_fiducials,
-                                             do_bem_sol)
+            job = self.model.get_scaling_job(subject_to, skip_fiducials)
             self.queue.put(job)
             self.queue_len += 1
 
