@@ -715,7 +715,8 @@ class CoregPanel(HasPrivateTraits):
                              Item('scale_z_inc',
                                   enabled_when='n_scale_params > 1',
                                   width=-50),
-                             show_labels=False, columns=4),
+                             show_labels=False, show_border=True,
+                             label='Scaling', columns=4),
                        HGroup(Item('fits_hsp_points',
                                    enabled_when='n_scale_params',
                                    tooltip="Rotate the digitizer head shape "
