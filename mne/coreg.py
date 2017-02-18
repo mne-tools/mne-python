@@ -598,7 +598,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
 
     Returns
     -------
-    paths | dict
+    paths : dict
         Dictionary whose keys are relevant file type names (str), and whose
         values are lists of paths.
     """
