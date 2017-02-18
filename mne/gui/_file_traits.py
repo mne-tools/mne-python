@@ -376,7 +376,6 @@ class DigSource(HasPrivateTraits):
         if not self.inst or not self.eeg_dig:
             return np.empty((0, 3))
         dig = np.array([d['r'] for d in self.eeg_dig])
-        dig.shape = (-1, 3)
         return dig
 
     def _file_changed(self):
