@@ -1564,8 +1564,8 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         zooms = t1.header.get_zooms()
         aff[:3, :3] /= zooms
         affine_to = np.dot(affine_to, aff)
-        t1 = resample_from_to(t1, ([t1.shape[i] * zooms[i] for i in range(3)],
-                                   affine_to))
+        t1 = resample_from_to(t1, ([int(t1.shape[i] * zooms[i]) for i
+                                    in range(3)], affine_to))
     else:
         zooms = (1., 1., 1.)
 
@@ -1575,26 +1575,27 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     fig = plt.figure()
     ax = Axes3D(fig) if ax is None else ax
     if coord_frame == 'head':
-        points = dipole.pos
+        dipole_locs = dipole.pos
         ori = dipole.ori
-        dd = (len(data) / 2.) / 1000.
+        dd = (dims / 2.) / 1000.
         gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
                                    np.linspace(-dd, dd, dims))
     else:
-        points = np.array([apply_trans(trans['trans'], loc) for loc
-                           in dipole.pos])
+        dipole_locs = np.array([apply_trans(trans['trans'], loc) for loc
+                                in dipole.pos])
         ori = [apply_trans(trans['trans'], o) for o in dipole.ori]
         # Position in meters -> voxels.
-        points = np.array([apply_trans(ras2vox, point * 1000.) for point
-                           in points])
+        dipole_locs = np.array([apply_trans(ras2vox, loc * 1000.) for loc
+                                in dipole_locs])
         gridx, gridy = np.meshgrid(np.linspace(0, dims, dims),
                                    np.linspace(0, dims, dims))
 
-    _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, ras2vox,
-                 coord_frame, zooms)
+    _plot_dipole(ax, data, dipole_locs, idx, dipole, gridx, gridy, ori,
+                 ras2vox, coord_frame, zooms)
     params = {'ax': ax, 'data': data, 'idx': idx, 'dipole': dipole,
-              'points': points, 'gridx': gridx, 'gridy': gridy, 'ori': ori,
-              'ras2vox': ras2vox, 'coord_frame': coord_frame, 'zooms': zooms}
+              'dipole_locs': dipole_locs, 'gridx': gridx, 'gridy': gridy,
+              'ori': ori, 'ras2vox': ras2vox, 'coord_frame': coord_frame,
+              'zooms': zooms}
     ax.view_init(elev=30, azim=-140)
 
     callback_func = partial(_dipole_changed, params=params)
@@ -1622,21 +1623,7 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, ras2vox,
     if coord_frame == 'head':
         offset = (len(data) / 2.) / 1000.
         ax.scatter(xs=xyz[0], ys=xyz[1], zs=xyz[2], zorder=1)
-    else:
-        offset = 0
-        xyz[0] = data.shape[0] - point[0]
-        xyz[1] = data.shape[1] - point[1]
-        ax.scatter(xs=xyz[0], ys=xyz[2], zs=xyz[1], zorder=1)
 
-    # Plot slices.
-    ax.contourf(data[xidx][::-1], gridx, gridy, offset=-offset, zdir='x',
-                cmap='gray', zorder=0, alpha=0.5)
-    ax.contourf(gridx, gridy, data[:, yidx][::-1].T, offset=-offset, zdir='z',
-                cmap='gray', zorder=0, alpha=0.5)
-    ax.contourf(gridx, data[:, :, zidx][::-1].T[::-1], gridy, offset=-offset,
-                zdir='y', cmap='gray', zorder=0, alpha=0.5)
-
-    if coord_frame == 'head':
         xx = np.linspace(-offset, xyz[0], xidx)
         yy = np.linspace(-offset, xyz[1], yidx)
         zz = np.linspace(-offset, xyz[2], zidx)
@@ -1654,6 +1641,10 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, ras2vox,
         ax.set_ylim(-1 * dims)
         ax.set_zlim(dims)
     else:
+        offset = 0
+        xyz[0] = data.shape[0] - point[0]
+        xyz[1] = data.shape[1] - point[1]
+        ax.scatter(xs=xyz[0], ys=xyz[2], zs=xyz[1], zorder=1)
         # Plot dipole position.
         ax.plot(range(int(xyz[0])), np.repeat(xyz[2], int(xyz[0])),
                 zs=xyz[1], zorder=1, linestyle='-', color='blue')
@@ -1669,15 +1660,23 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, ras2vox,
         ax.set_ylim((len(data), 0))
         ax.set_zlim((0, len(data)))
 
-    plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.3f, Amplitude %.3fnAm\n' % (
+    # Plot slices.
+    ax.contourf(data[xidx][::-1], gridx, gridy, offset=-offset, zdir='x',
+                cmap='gray', zorder=0, alpha=0.5)
+    ax.contourf(gridx, gridy, data[:, yidx][::-1].T, offset=-offset, zdir='z',
+                cmap='gray', zorder=0, alpha=0.5)
+    ax.contourf(gridx, data[:, :, zidx][::-1].T[::-1], gridy, offset=-offset,
+                zdir='y', cmap='gray', zorder=0, alpha=0.5)
+
+    plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.3f, Amplitude: %.3fnAm\n' % (
         idx, dipole.times[idx], dipole.gof[idx], dipole.amplitude[idx] * 1e9) +
-        'Loc:' + ', '.join(['%0.3f' % x for x in dipole.pos[idx]]))
+        'Loc: ' + ', '.join(['%0.3f' % x for x in dipole.pos[idx]]))
 
     plt.draw()
 
 
 def _dipole_changed(event, params):
-    """Callback for dipole plotter scroll event."""
+    """Callback for dipole plotter scroll/key event."""
     if event.key is not None:
         if event.key == 'up':
             params['idx'] += 1
@@ -1691,7 +1690,7 @@ def _dipole_changed(event, params):
         params['idx'] -= 1
     params['idx'] = min(max(0, params['idx']), len(params['dipole'].pos) - 1)
     params['ax'].clear()
-    _plot_dipole(params['ax'], params['data'], params['points'], params['idx'],
-                 params['dipole'], params['gridx'], params['gridy'],
-                 params['ori'], params['ras2vox'], params['coord_frame'],
-                 params['zooms'])
+    _plot_dipole(params['ax'], params['data'], params['dipole_locs'],
+                 params['idx'], params['dipole'], params['gridx'],
+                 params['gridy'], params['ori'], params['ras2vox'],
+                 params['coord_frame'], params['zooms'])
