@@ -539,7 +539,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     if src is None or (brain and any(s['type'] == 'surf' for s in src)):
         hemi_val = 1.
     alphas = (4 - np.arange(len(skull) + 1)) * (0.5 / 4.)
-    head_alpha = alphas[0]
     for idx, this_skull in enumerate(skull):
         if isinstance(this_skull, dict):
             from ..bem import _surf_name
@@ -562,6 +561,11 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         skull_alpha[this_skull] = alphas[idx + 1]
         skull_colors[this_skull] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
         surfs[this_skull] = skull_surf
+
+    if src is None and brain is False and len(skull) == 0:
+        head_alpha = 1.0
+    else:
+        head_alpha = alphas[0]
 
     for key in surfs.keys():
         surfs[key] = transform_surface_to(surfs[key], coord_frame, mri_trans)
