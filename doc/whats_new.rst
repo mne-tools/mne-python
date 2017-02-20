@@ -543,7 +543,9 @@ BUG
 
     - Fix bug when merging info that has a field with list of dicts by `Jaakko Leppakangas`_
 
-    - The BTI/4D reader now considers user defined channel labels instead of the hard-ware names, however only for channels other than MEG. By `Denis Engemann`_ and `Alex Gramfort`_.
+    - The BTi/4D reader now considers user defined channel labels instead of the hard-ware names, however only for channels other than MEG. By `Denis Engemann`_ and `Alex Gramfort`_.
+
+    - The BTi reader :func:`mne.io.read_raw_bti` can now read 2500 system data, by `Eric Larson`_
 
     - Fix bug in :func:`mne.compute_raw_covariance` where rejection by non-data channels (e.g. EOG) was not done properly by `Eric Larson`_.
 
