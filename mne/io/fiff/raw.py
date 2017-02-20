@@ -121,6 +121,21 @@ class Raw(BaseRaw):
                                                         last_samps,
                                                         first_samps,
                                                         r.info['sfreq'])
+
+        # Add annotations for in-data skips
+        offsets = [0] + self._raw_lengths[:-1]
+        for extra, first_samp, offset in zip(self._raw_extras,
+                                             self._first_samps, offsets):
+            for skip in extra:
+                if skip['ent'] is None:  # these are skips
+                    if self.annotations is None:
+                        self.annotations = Annotations((), (), ())
+                    start = skip['first'] - first_samp + offset
+                    stop = skip['last'] - first_samp - 1 + offset
+                    self.annotations.append(start / self.info['sfreq'],
+                                            (stop - start) /
+                                            self.info['sfreq'],
+                                            'BAD_ACQ_SKIP')
         if preload:
             self._preload_data(preload)
         else:
@@ -217,6 +232,8 @@ class Raw(BaseRaw):
 
             for k in range(first, nent):
                 ent = directory[k]
+                # There can be skips in the data (e.g., if the user unclicked)
+                # an re-clicked the button
                 if ent.kind == FIFF.FIFF_DATA_SKIP:
                     tag = read_tag(fid, ent.pos)
                     nskip = int(tag.data)
