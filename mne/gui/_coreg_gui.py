@@ -71,7 +71,8 @@ from ._viewer import HeadViewController, PointObject, SurfaceObject
 
 defaults = DEFAULTS['coreg']
 
-laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float)
+laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float,
+                                format_func=lambda x: '%0.5f' % x)
 
 
 class CoregModel(HasPrivateTraits):
