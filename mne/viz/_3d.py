@@ -20,6 +20,7 @@ import numpy as np
 from scipy import linalg
 
 from ..defaults import DEFAULTS
+from ..externals.six import BytesIO, string_types, advance_iterator
 from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
@@ -34,7 +35,19 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _import_mlab, SilenceStdout)
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS, plt_show
-from ..externals.six import BytesIO, string_types, advance_iterator
+
+
+FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
+                  FIFF.FIFFV_POINT_RPA)
+
+
+def _fiducial_coords(points, coord_frame=None):
+    """Generate 3x3 array of fiducial coordinates."""
+    if coord_frame is not None:
+        points = (p for p in points if p['coord_frame'] == coord_frame)
+    points_ = dict((p['ident'], p) for p in points if
+                   p['kind'] == FIFF.FIFFV_POINT_CARDINAL)
+    return np.array([points_[i]['r'] for i in FIDUCIAL_ORDER])
 
 
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -485,8 +498,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         if head_surf is None:
             raise IOError('No head surface found for subject %s.' % subject)
         surfs['head'] = head_surf
-
-    from ..coreg import _fiducial_coords  # avoid circular import
 
     if mri_fiducials:
         if mri_fiducials is True:

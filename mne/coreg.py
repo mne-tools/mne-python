@@ -30,9 +30,6 @@ from .utils import get_config, get_subjects_dir, logger, pformat
 from .externals.six.moves import zip
 
 
-FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
-                  FIFF.FIFFV_POINT_RPA)
-
 # some path templates
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
 subject_dirname = os.path.join('{subjects_dir}', '{subject}')
@@ -71,15 +68,6 @@ def _find_head_bem(subject, subjects_dir, high_res=False):
         path = fname.format(subjects_dir=subjects_dir, subject=subject)
         if os.path.exists(path):
             return path
-
-
-def _fiducial_coords(points, coord_frame=None):
-    """Generate 3x3 array of fiducial coordinates."""
-    if coord_frame is not None:
-        points = (p for p in points if p['coord_frame'] == coord_frame)
-    points_ = dict((p['ident'], p) for p in points if
-                   p['kind'] == FIFF.FIFFV_POINT_CARDINAL)
-    return np.array([points_[i]['r'] for i in FIDUCIAL_ORDER])
 
 
 def create_default_subject(mne_root=None, fs_home=None, update=False,
