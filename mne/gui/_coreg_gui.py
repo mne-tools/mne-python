@@ -1264,7 +1264,7 @@ class ViewOptionsPanel(HasTraits):
 class CoregFrame(HasTraits):
     """GUI for head-MRI coregistration."""
 
-    model = Instance(CoregModel, ())
+    model = Instance(CoregModel)
 
     scene = Instance(MlabSceneModel, ())
     headview = Instance(HeadViewController)
@@ -1312,6 +1312,16 @@ class CoregFrame(HasTraits):
     queue = DelegatesTo('coreg_panel')
 
     view = _make_view()
+    
+    def _model_default(self):
+        return CoregModel(
+            scale_labels=self._config.get(
+                'MNE_COREG_SCALE_LABELS', 'true') == 'true',
+            copy_annot=self._config.get(
+                'MNE_COREG_COPY_ANNOT', 'true') == 'true',
+            prepare_bem_model=self._config.get(
+                'MNE_COREG_PREPARE_BEM', 'true') == 'true',
+        )
 
     def _subject_panel_default(self):
         return SubjectSelectorPanel(model=self.model.mri.subject_source)
@@ -1327,11 +1337,10 @@ class CoregFrame(HasTraits):
 
     def __init__(self, raw=None, subject=None, subjects_dir=None,
                  guess_mri_subject=True, head_opacity=1.,
-                 head_high_res=True, prepare_bem=True,
-                 trans=None):  # noqa: D102
+                 head_high_res=True, trans=None, config=None):  # noqa: D102
+        self._config = config or {}
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
         self.subject_panel.model.use_high_res_head = head_high_res
-        self.model.prepare_bem_model = prepare_bem
         if not 0 <= head_opacity <= 1:
             raise ValueError(
                 "head_opacity needs to be a floating point number between 0 "
@@ -1521,6 +1530,12 @@ class CoregFrame(HasTraits):
                    home_dir, set_env=False)
         set_config('MNE_COREG_HEAD_OPACITY',
                    str(self.mri_obj.opacity),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_SCALE_LABELS',
+                   str(self.model.scale_labels).lower(),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_COPY_ANNOT',
+                   str(self.model.copy_annot).lower(),
                    home_dir, set_env=False)
         set_config('MNE_COREG_PREPARE_BEM',
                    str(self.model.prepare_bem_model).lower(),
