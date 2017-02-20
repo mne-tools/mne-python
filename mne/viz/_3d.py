@@ -678,7 +678,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
               defaults['extra_scale'], defaults['ecog_scale']]
     for kind, loc in (('dig', car_loc), ('mri', fid_loc)):
         if len(loc) > 0:
-            datas.extend(loc[np.newaxis, i, :] for i in range(3))
+            datas.extend(loc[:, np.newaxis])
             colors.extend((defaults['lpa_color'],
                            defaults['nasion_color'],
                            defaults['rpa_color']))
