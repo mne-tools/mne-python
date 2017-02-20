@@ -322,7 +322,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         scalp, or a list of these options including ``[]`` (equivalent of
         False).
     dig : bool | 'fiducials'
-        If True, plot the digitization points. "fiducials" to plot fiducial
+        If True, plot the digitization points; 'fiducials' to plot fiducial
         points only.
     ref_meg : bool
         If True (default False), include reference MEG sensors.
