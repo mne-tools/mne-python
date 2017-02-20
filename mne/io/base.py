@@ -837,7 +837,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._data[sel, start:stop] = value
 
     def get_data(self, picks=None, start=0, stop=None,
-                 reject_by_annotation=None):
+                 reject_by_annotation=None, return_times=False):
         """Get data in the given range.
 
         Parameters
@@ -854,17 +854,27 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Whether to reject by annotation. If None (default), no rejection is
             done. If 'omit', segments annotated with description starting with
             'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
+        return_times : bool
+            Whether to return times as well.
         Returns
         -------
         data : ndarray, shape (n_channels, n_times)
             Copy of the data in the given range.
         times : ndarray, shape (n_times,)
-            Times associated with the data samples.
+            Times associated with the data samples. Only returned if
+            return_times=True.
+        Notes
+        -----
+
+        .. versionadded:: 0.14.0
         """
         if picks is None:
             picks = range(self.info['nchan'])
         if self.annotations is None or reject_by_annotation is None:
-            return self[picks, start:stop]
+            data, times = self[picks, start:stop]
+            if return_times:
+                return data, times
+            return data
         if reject_by_annotation not in ['omit', 'NaN']:
             raise ValueError("reject_by_annotation must be None, 'omit' or "
                              "'NaN'. Got %s." % reject_by_annotation)
@@ -878,7 +888,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                np.where(ends < start / sfreq)[0]])
         onsets, ends = np.delete(onsets, omit), np.delete(ends, omit)
         if len(onsets) == 0:
-            return self[picks, start:stop]
+            data, times = self[picks, start:stop]
+            if return_times:
+                return data, times
+            return data
         stop = min(stop, self.n_times)
         order = np.argsort(onsets)
         onsets = self.time_as_index(onsets[order])
@@ -913,7 +926,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             for start, stop in zip(starts, stops):
                 data[:, start:stop] = self[picks, start:stop][0]
 
-        return data, times
+        if return_times:
+            return data, times
+        return data
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None,
