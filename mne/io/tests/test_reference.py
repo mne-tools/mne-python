@@ -49,7 +49,8 @@ def _test_reference(raw, reref, ref_data, ref_from):
         _reref = reref._data
 
     # Check that the ref has been properly computed
-    assert_array_equal(ref_data, _data[..., picks_ref, :].mean(-2))
+    if ref_data is not None:
+        assert_array_equal(ref_data, _data[..., picks_ref, :].mean(-2))
 
     # Get the raw EEG data and other channel data
     raw_eeg_data = _data[..., picks_eeg, :]
@@ -59,15 +60,16 @@ def _test_reference(raw, reref, ref_data, ref_from):
     reref_eeg_data = _reref[..., picks_eeg, :]
     reref_other_data = _reref[..., picks_other, :]
 
-    # Undo rereferencing of EEG channels
-    if isinstance(raw, BaseEpochs):
-        unref_eeg_data = reref_eeg_data + ref_data[:, np.newaxis, :]
-    else:
-        unref_eeg_data = reref_eeg_data + ref_data
-
-    # Check that both EEG data and other data is the same
-    assert_allclose(raw_eeg_data, unref_eeg_data, 1e-6, atol=1e-15)
+    # Check that non-EEG channels are untouched
     assert_allclose(raw_other_data, reref_other_data, 1e-6, atol=1e-15)
+
+    # Undo rereferencing of EEG channels if possible
+    if ref_data is not None:
+        if isinstance(raw, BaseEpochs):
+            unref_eeg_data = reref_eeg_data + ref_data[:, np.newaxis, :]
+        else:
+            unref_eeg_data = reref_eeg_data + ref_data
+        assert_allclose(raw_eeg_data, unref_eeg_data, 1e-6, atol=1e-15)
 
 
 @testing.requires_testing_data
@@ -126,11 +128,22 @@ def test_set_eeg_reference():
     reref, ref_data = set_eeg_reference(raw)
     assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
     assert_true(ref_data is None)
+    eeg_chans = [raw.ch_names[ch]
+                 for ch in pick_types(raw.info, meg=False, eeg=True)]
+    _test_reference(raw, reref, ref_data,
+                    [ch for ch in eeg_chans if ch not in raw.info['bads']])
 
     # Test setting an average reference when one was already present
-    with warnings.catch_warnings(record=True):  # weight tables
+    with warnings.catch_warnings(record=True):
         reref, ref_data = set_eeg_reference(raw, copy=False)
     assert_true(ref_data is None)
+
+    # Test setting an average reference on non-preloaded data
+    raw_nopreload = read_raw_fif(fif_fname, preload=False)
+    raw_nopreload.info['projs'] = []
+    reref, ref_data = set_eeg_reference(raw_nopreload)
+    assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
+    assert_true(not reref.info['projs'][0]['active'])
 
     # Rereference raw data by creating a copy of original data
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'], copy=True)
@@ -155,6 +168,12 @@ def test_set_eeg_reference():
     reref.pick_types(eeg=False)  # Cause making average ref fail
     assert_raises(ValueError, set_eeg_reference, reref)
     assert_true(reref.info['custom_ref_applied'])
+
+    # Test moving from average to custom reference
+    reref, ref_data = set_eeg_reference(raw)
+    reref, _ = set_eeg_reference(reref, ['EEG 001', 'EEG 002'])
+    assert_true(not _has_eeg_average_ref_proj(reref.info['projs']))
+    assert_equal(reref.info['custom_ref_applied'], True)
 
 
 @testing.requires_testing_data

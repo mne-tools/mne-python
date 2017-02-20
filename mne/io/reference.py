@@ -75,24 +75,24 @@ def _apply_reference(inst, ref_from, ref_to=None):
 
     # After referencing, existing SSPs might not be valid anymore.
     for i, proj in enumerate(inst.info['projs']):
-        if (not proj['active'] and
+        # Remove any average reference projections
+        if proj['desc'] == 'Average EEG reference' or \
+                proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF:
+            logger.info('Removing existing average EEG reference '
+                        'projection.')
+            del inst.info['projs'][i]
+
+        # Apply any other type of projection
+        elif (not proj['active'] and
             len([ch for ch in (ref_from + ref_to)
                  if ch in proj['data']['col_names']]) > 0):
 
-            # Remove any average reference projections, apply any other types
-            if proj['desc'] == 'Average EEG reference' or \
-                    proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF:
-                logger.info('Removing existing average EEG reference '
-                            'projection.')
-                del inst.info['projs'][i]
-            else:
-                logger.info(
-                    'Inactive signal space projection (SSP) operators are '
-                    'present that operate on sensors involved in the current '
-                    'referencing scheme. Applying them now. Be aware that '
-                    'after re-referencing, these operators will be invalid.')
-                inst.apply_proj()
-            break
+            logger.info(
+                'Inactive signal space projection (SSP) operators are '
+                'present that operate on sensors involved in the current '
+                'referencing scheme. Applying them now. Be aware that '
+                'after re-referencing, these operators will be invalid.')
+            inst.apply_proj()
 
     ref_from = [inst.ch_names.index(ch) for ch in ref_from]
     ref_to = [inst.ch_names.index(ch) for ch in ref_to]
@@ -298,6 +298,10 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
                 inst.info['custom_ref_applied'] = False
                 inst.add_proj(make_eeg_average_ref_proj(inst.info,
                               activate=False))
+                # Apply the reference if data has been preloaded
+                if hasattr(inst, '_data') or hasattr(inst, 'data'):
+                    inst.apply_proj()
+
             except:
                 inst.info['custom_ref_applied'] = custom_ref_applied
                 raise
