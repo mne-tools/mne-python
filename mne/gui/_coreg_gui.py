@@ -816,8 +816,7 @@ class CoregPanel(HasPrivateTraits):
                                 enabled_when='can_prepare_bem_model'),
                            show_left=False,
                            label='Scaling options',
-                           show_border=True,
-                       ),
+                           show_border=True),
                        '_',
                        HGroup(Item('save', enabled_when='can_save',
                                    tooltip="Save the trans file and (if "
@@ -1320,8 +1319,7 @@ class CoregFrame(HasTraits):
             copy_annot=self._config.get(
                 'MNE_COREG_COPY_ANNOT', 'true') == 'true',
             prepare_bem_model=self._config.get(
-                'MNE_COREG_PREPARE_BEM', 'true') == 'true',
-        )
+                'MNE_COREG_PREPARE_BEM', 'true') == 'true')
 
     def _subject_panel_default(self):
         return SubjectSelectorPanel(model=self.model.mri.subject_source)
