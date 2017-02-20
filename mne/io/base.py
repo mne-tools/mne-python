@@ -836,10 +836,38 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # set the data
         self._data[sel, start:stop] = value
 
-    def _get_data(self, sel, start, stop):
-        """Get data omitting bad segments."""
-        if self.annotations is None:
-            return self[sel, start:stop]
+    def get_data(self, picks=None, start=0, stop=None,
+                 reject_by_annotation=None):
+        """Get data in the given range.
+
+        Parameters
+        ----------
+        picks : array-like of int | None
+            Indices of channels to get data from. If None, data from all
+            channels is returned
+        start : int
+            The first sample to include. Defaults to 0.
+        stop : int | None
+            End sample (first not to include). If None (default), the end of
+            the data is  used.
+        reject_by_annotation : None | 'omit' | 'NaN'
+            Whether to reject by annotation. If None (default), no rejection is
+            done. If 'omit', segments annotated with description starting with
+            'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
+        Returns
+        -------
+        data : ndarray, shape (n_channels, n_times)
+            Copy of the data in the given range.
+        times : ndarray, shape (n_times,)
+            Times associated with the data samples.
+        """
+        if picks is None:
+            picks = range(self.info['nchan'])
+        if self.annotations is None or reject_by_annotation is None:
+            return self[picks, start:stop]
+        if reject_by_annotation not in ['omit', 'NaN']:
+            raise ValueError("reject_by_annotation must be None, 'omit' or "
+                             "'NaN'. Got %s." % reject_by_annotation)
         sfreq = self.info['sfreq']
         bads = [idx for idx, desc in enumerate(self.annotations.description)
                 if desc.upper().startswith('BAD')]
@@ -850,7 +878,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                np.where(ends < start / sfreq)[0]])
         onsets, ends = np.delete(onsets, omit), np.delete(ends, omit)
         if len(onsets) == 0:
-            return self[sel, start:stop]
+            return self[picks, start:stop]
         stop = min(stop, self.n_times)
         order = np.argsort(onsets)
         onsets = self.time_as_index(onsets[order])
@@ -866,17 +894,24 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         used = np.concatenate([[False], used, [False]])
         starts = np.where(~used[:-1] & used[1:])[0] + start
         stops = np.where(used[:-1] & ~used[1:])[0] + start
+        if reject_by_annotation == 'omit':
 
-        data = np.zeros((len(sel), np.sum([b - a for a, b in zip(starts,
-                                                                 stops)])))
-        times = np.zeros(data.shape[1])
-        idx = 0
-        for start, stop in zip(starts, stops):  # get the data
-            if start == stop:
-                continue
-            end = idx + stop - start
-            data[:, idx:end], times[idx:end] = self[sel, start:stop]
-            idx = end
+            data = np.zeros((len(picks), np.sum([b - a for a, b in
+                                                 zip(starts, stops)])))
+            times = np.zeros(data.shape[1])
+            idx = 0
+            for start, stop in zip(starts, stops):  # get the data
+                if start == stop:
+                    continue
+                end = idx + stop - start
+                data[:, idx:end], times[idx:end] = self[picks, start:stop]
+                idx = end
+        else:
+            times = self.times[start:stop].copy()
+            data = np.zeros((len(picks), len(times)))
+            data.fill(np.nan)  # cannot be inserted to existing data array
+            for start, stop in zip(starts, stops):
+                data[:, start:stop] = self[picks, start:stop][0]
 
         return data, times
 
@@ -908,9 +943,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             A function to be applied to the channels. The first argument of
             fun has to be a timeseries (numpy.ndarray). The function must
             return an numpy.ndarray with the same size as the input.
-        picks : array-like of int (defaul: None)
-            Indices of channels to apply the function to. If None, all
-            M-EEG channels are used. If None, all data channels are used.
+        picks : array-like of int (default: None)
+            Indices of channels to apply the function to. If None, all data
+            channels are used.
         dtype : numpy.dtype (default: None)
             Data type to use for raw data after applying the function. If None
             the data type is not modified.

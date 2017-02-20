@@ -419,11 +419,10 @@ class ICA(ContainsMixin):
         self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
 
-        if reject_by_annotation:
-            data = raw._get_data(picks, start, stop)[0]
-        else:
-            # this will be a copy
-            data = raw[picks, start:stop][0]
+        reject_by_annotation = 'omit' if reject_by_annotation else None
+        # this will be a copy
+        data = raw.get_data(picks, start, stop, reject_by_annotation)[0]
+
         # this will be a view
         if decim is not None:
             data = data[:, ::decim]

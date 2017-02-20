@@ -81,6 +81,7 @@ Changelog
 
     - Add support for reading in EGI MFF digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
 
+    - Add annotation aware data getter :meth:`mne.io.Raw.get_data` by `Jaakko Leppakangas`_
 
 BUG
 ~~~
@@ -150,7 +151,6 @@ BUG
     - Fix :func:`mne.fit_dipole` to handle sphere model rank deficiency properly by `Alex Gramfort`_
 
     - Raise error in :func:`mne.epochs.concatenate_epochs` when concatenated epochs have conflicting event_id by `Mikołaj Magnuski`_
-
 
 API
 ~~~
