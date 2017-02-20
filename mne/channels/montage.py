@@ -14,6 +14,7 @@ import os
 import os.path as op
 
 import numpy as np
+import xml.etree.ElementTree as ElementTree
 
 from ..viz import plot_montage
 from .channels import _contains_ch_type
@@ -461,7 +462,8 @@ class DigMontage(object):
         native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
         self.nasion, self.lpa, self.rpa = apply_trans(
             native_head_t, np.array([nasion, lpa, rpa]))
-        self.elp = apply_trans(native_head_t, self.elp)
+        if self.elp is not None:
+            self.elp = apply_trans(native_head_t, self.elp)
         if self.hsp is not None:
             self.hsp = apply_trans(native_head_t, self.hsp)
         if self.dig_ch_pos is not None:
@@ -513,7 +515,8 @@ def _check_frame(d, frame_str):
 
 
 def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
-                     unit='auto', fif=None, transform=True, dev_head_t=False):
+                     unit='auto', fif=None, egi=None, transform=True,
+                     dev_head_t=False):
     r"""Read subject-specific digitization montage from a file.
 
     Parameters
@@ -553,6 +556,12 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
         .. versionadded:: 0.12
 
+    egi : str | None
+        EGI MFF XML coordinates file from which to read digitization locations.
+        If str (filename), all other arguments are ignored.
+
+        .. versionadded:: 0.14
+
     transform : bool
         If True (default), points will be transformed to Neuromag space
         using :meth:`DigMontage.transform_to_head`.
@@ -590,9 +599,9 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         if dev_head_t or not transform:
             raise ValueError('transform must be True and dev_head_t must be '
                              'False for FIF dig montage')
-        if not all(x is None for x in (hsp, hpi, elp, point_names)):
-            raise ValueError('hsp, hpi, elp, and point_names must all be None '
-                             'if fif is not None')
+        if not all(x is None for x in (hsp, hpi, elp, point_names, egi)):
+            raise ValueError('hsp, hpi, elp, point_names, egi must all be '
+                             'None if fif is not None')
         _check_fname(fif, overwrite=True, must_exist=True)
         # Load the dig data
         f, tree = fiff_open(fif)[:2]
@@ -624,6 +633,45 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         hsp = np.array(hsp) if len(hsp) else None
         elp = np.array(elp) if len(elp) else None
         coord_frame = 'head'
+    elif egi is not None:
+        if not all(x is None for x in (hsp, hpi, elp, point_names, fif)):
+            raise ValueError('hsp, hpi, elp, point_names, fif must all be '
+                             'None if egi is not None')
+        _check_fname(egi, overwrite=True, must_exist=True)
+
+        root = ElementTree.parse(egi).getroot()
+        ns = root.tag[root.tag.index('{'):root.tag.index('}') + 1]
+        sensors = root.find('%ssensorLayout/%ssensors' % (ns, ns))
+        fids = dict()
+        dig_ch_pos = dict()
+
+        fid_name_map = {'Nasion': 'nasion',
+                        'Right periauricular point': 'rpa',
+                        'Left periauricular point': 'lpa'}
+
+        for s in sensors:
+            name, number, kind = s[0].text, int(s[1].text), int(s[2].text)
+            coordinates = np.array([float(s[3].text), float(s[4].text),
+                                    float(s[5].text)])
+            # EEG Channels
+            if kind == 0:
+                dig_ch_pos['EEG %03d' % number] = coordinates
+            # Reference
+            elif kind == 1:
+                dig_ch_pos['EEG %03d' %
+                           (len(dig_ch_pos.keys()) + 1)] = coordinates
+            # Fiducials
+            elif kind == 2:
+                fid_name = fid_name_map[name]
+                fids[fid_name] = coordinates
+            # Unknown
+            else:
+                warn('Unknown sensor type %s detected. Skipping sensor...'
+                     'Proceed with caution!' % kind)
+
+        fids = [fids[key] for key in ('nasion', 'lpa', 'rpa')]
+        coord_frame = 'unknown'
+
     else:
         fids = [None] * 3
         dig_ch_pos = None

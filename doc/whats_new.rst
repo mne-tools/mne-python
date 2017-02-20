@@ -77,6 +77,9 @@ Changelog
 
     - Add source space plotting with :meth:`mne.SourceSpaces.plot` using :func:`mne.viz.plot_trans` by `Eric Larson`_
 
+    - Add support for reading in EGI MFF digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
+
+
 BUG
 ~~~
 
