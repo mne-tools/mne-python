@@ -107,6 +107,8 @@ clf.fit(X, y)
 
 # Extract and plot patterns and filters
 for name in ('patterns_', 'filters_'):
+    # The `inverse_transform` parameter will call this method on any estimator
+    # contained in the pipeline, in reverse order.
     coef = get_coef(clf, name, inverse_transform=True)
     evoked = EvokedArray(coef, epochs.info, tmin=epochs.tmin)
     evoked.plot_topomap(title='EEG %s' % name[:-1])

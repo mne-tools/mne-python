@@ -838,6 +838,8 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
                 raise ValueError('inverse_transform can only be applied onto '
                                  'pipeline estimators.')
 
+            # The inverse_transform parameter will call this method on any
+            # estimator contained in the pipeline, in reverse order.
             for inverse_func in _get_inverse_funcs(estimator)[::-1]:
                 coef = inverse_func([coef])[0]
         return coef
