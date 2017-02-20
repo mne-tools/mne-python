@@ -49,6 +49,7 @@ DEFAULTS = dict(
         hpi_scale=15e-3,
 
         head_color=(0.988, 0.89, 0.74),
+        hpi_color=(1., 1., 0.),
         extra_color=(1., 1., 1.),
         eeg_color=(1., 0.596, 0.588), eegp_color=(0.839, 0.15, 0.16),
         ecog_color=(1., 1., 1.),

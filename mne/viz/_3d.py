@@ -639,10 +639,11 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         ecog_loc = np.array([info['chs'][pick]['loc'][:3]
                              for pick in ecog_picks])
 
-    # do the plotting, surfaces then points
+    # initialize figure
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
     _toggle_mlab_render(fig, False)
 
+    # plot surfaces
     alphas = dict(head=head_alpha, helmet=0.5, lh=hemi_val, rh=hemi_val)
     alphas.update(skull_alpha)
     colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
@@ -657,12 +658,13 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         if key != 'helmet':
             surface.actor.property.backface_culling = True
 
+    # plot points
     defaults = DEFAULTS['coreg']
     datas = [eeg_loc,
              hpi_loc,
              ext_loc, ecog_loc]
     colors = [defaults['eeg_color'],
-              (0., 1, 0),
+              defaults['hpi_color'],
               defaults['extra_color'], defaults['ecog_color']]
     alphas = [0.8,
               0.5,
