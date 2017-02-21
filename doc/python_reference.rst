@@ -404,6 +404,7 @@ Functions:
    plot_cov
    plot_dipole_amplitudes
    plot_dipole_locations
+   plot_dipole_mri_orthoview
    plot_drop_log
    plot_epochs
    plot_events
