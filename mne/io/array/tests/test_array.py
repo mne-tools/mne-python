@@ -127,5 +127,6 @@ def test_array_raw():
 
     raw = RawArray(electrode, info)
     raw.plot_psd(average=False)  # looking for inexistent layout
+    raw.plot_psd_topo()
 
 run_tests_if_main()

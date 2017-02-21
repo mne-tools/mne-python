@@ -360,7 +360,7 @@ def make_grid_layout(info, picks=None, n_col=None):
     return layout
 
 
-def find_layout(info, ch_type=None, exclude='bads'):
+def find_layout(info, ch_type=None, exclude='bads', on_failure=None):
     """Choose a layout based on the channels in the info 'chs' field.
 
     Parameters
@@ -375,6 +375,10 @@ def find_layout(info, ch_type=None, exclude='bads'):
     exclude : list of string | str
         List of channels to exclude. If empty do not exclude any.
         If 'bads', exclude channels in info['bads'] (default).
+    on_failure : None | 'generate'
+        What to do if no layout is found. If None (default), None is returned.
+        If 'generate', a custom layout is generated from all the channel
+        locations.
 
     Returns
     -------
@@ -385,7 +389,9 @@ def find_layout(info, ch_type=None, exclude='bads'):
     if ch_type not in (None, 'meg', 'mag', 'grad', 'eeg'):
         raise ValueError('Invalid channel type (%s) requested '
                          '`ch_type` must be %s' % (ch_type, our_types))
-
+    if on_failure is not None and on_failure != 'generate':
+        raise ValueError("on_failure must be None or 'generate'. "
+                         "Got %s." % on_failure)
     chs = info['chs']
     # Only take first 16 bits, as higher bits store CTF comp order
     coil_types = set([ch['coil_type'] & 0xFFFF for ch in chs])
@@ -450,7 +456,15 @@ def find_layout(info, ch_type=None, exclude='bads'):
     elif n_kit_grads > 0:
         layout_name = _find_kit_layout(info, n_kit_grads)
     else:
-        return None
+        if on_failure is None:
+            return None
+        elif on_failure == 'generate':
+            warn('Could not find a layout. Generating custom layout from '
+                 'channel positions.')
+            xy = _auto_topomap_coords(info, picks=range(info['nchan']),
+                                      ignore_overlap=True)
+            return generate_2d_layout(xy, ch_names=info['ch_names'],
+                                      name='custom')
 
     layout = read_layout(layout_name)
     if not is_old_vv:
