@@ -84,8 +84,8 @@ def _apply_reference(inst, ref_from, ref_to=None):
 
         # Apply any other type of projection
         elif (not proj['active'] and
-            len([ch for ch in (ref_from + ref_to)
-                 if ch in proj['data']['col_names']]) > 0):
+              len([ch for ch in (ref_from + ref_to)
+                   if ch in proj['data']['col_names']]) > 0):
 
             logger.info(
                 'Inactive signal space projection (SSP) operators are '
