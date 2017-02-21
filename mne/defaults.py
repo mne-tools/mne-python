@@ -38,6 +38,7 @@ DEFAULTS = dict(
                      markeredgewidth=1,
                      markersize=4),
     coreg=dict(
+        mri_fid_opacity=1.0,
         dig_fid_opacity=0.3,
 
         mri_fid_scale=1e-2,
@@ -48,6 +49,7 @@ DEFAULTS = dict(
         hpi_scale=15e-3,
 
         head_color=(0.988, 0.89, 0.74),
+        hpi_color=(1., 0., 1.),
         extra_color=(1., 1., 1.),
         eeg_color=(1., 0.596, 0.588), eegp_color=(0.839, 0.15, 0.16),
         ecog_color=(1., 1., 1.),

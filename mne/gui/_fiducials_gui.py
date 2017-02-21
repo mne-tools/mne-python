@@ -109,9 +109,15 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         if not fname:
             fname = self.default_fid_fname
 
-        dig = [{'kind': 1, 'ident': 1, 'r': np.array(self.lpa[0])},
-               {'kind': 1, 'ident': 2, 'r': np.array(self.nasion[0])},
-               {'kind': 1, 'ident': 3, 'r': np.array(self.rpa[0])}]
+        dig = [{'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'ident': FIFF.FIFFV_POINT_LPA,
+                'r': np.array(self.lpa[0])},
+               {'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'ident': FIFF.FIFFV_POINT_NASION,
+                'r': np.array(self.nasion[0])},
+               {'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'ident': FIFF.FIFFV_POINT_RPA,
+                'r': np.array(self.rpa[0])}]
         write_fiducials(fname, dig, FIFF.FIFFV_COORD_MRI)
         self.fid_file = fname
 

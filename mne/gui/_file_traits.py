@@ -23,6 +23,7 @@ from ..surface import read_surface
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config
+from ..viz._3d import _fiducial_coords
 
 
 fid_wildcard = "*.fif"
@@ -210,16 +211,9 @@ class FiducialsSource(HasTraits):
             return None
 
         try:
-            points = np.zeros((3, 3))
-            fids, _ = read_fiducials(self.file)
-            for fid in fids:
-                ident = fid['ident']
-                if ident == FIFF.FIFFV_POINT_LPA:
-                    points[0] = fid['r']
-                elif ident == FIFF.FIFFV_POINT_NASION:
-                    points[1] = fid['r']
-                elif ident == FIFF.FIFFV_POINT_RPA:
-                    points[2] = fid['r']
+            fids, coord_frame = read_fiducials(self.file)
+            points = _fiducial_coords(fids, coord_frame)
+            assert points.shape == (3, 3)
             return points
         except Exception as err:
             error(None, "Error reading fiducials from %s: %s (See terminal "
