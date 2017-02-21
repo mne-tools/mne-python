@@ -11,18 +11,18 @@ from ..fixes import get_spectrogram
 from .multitaper import psd_array_multitaper
 
 
-def _psd_func(epoch, noverlap, nperseg, nfft, fs, freq_mask, func):
+def _psd_func(epoch, noverlap, n_per_seg, nfft, fs, freq_mask, func):
     """Aux function."""
-    return func(epoch, fs=fs, nperseg=nperseg, noverlap=noverlap,
+    return func(epoch, fs=fs, nperseg=n_per_seg, noverlap=noverlap,
                 nfft=nfft, window='hann')[2][..., freq_mask, :]
 
 
-def _check_nfft(n, n_fft, nperseg, n_overlap):
-    """Helper to make sure n_fft, nperseg and n_overlap make sense."""
-    nperseg = n_fft if nperseg is None or nperseg > n_fft else nperseg
-    nperseg = n if nperseg > n else nperseg
-    n_overlap = nperseg - 1 if n_overlap >= nperseg else n_overlap
-    return n_fft, nperseg, n_overlap
+def _check_nfft(n, n_fft, n_per_seg, n_overlap):
+    """Helper to make sure n_fft, n_per_seg and n_overlap make sense."""
+    n_per_seg = n_fft if n_per_seg is None or n_per_seg > n_fft else n_per_seg
+    n_per_seg = n if n_per_seg > n else n_per_seg
+    n_overlap = n_per_seg - 1 if n_overlap >= n_per_seg else n_overlap
+    return n_fft, n_per_seg, n_overlap
 
 
 def _check_psd_data(inst, tmin, tmax, picks, proj):
@@ -55,7 +55,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
 
 @verbose
 def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-                    nperseg=None, n_jobs=1, verbose=None):
+                    n_per_seg=None, n_jobs=1, verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
     Parameters
@@ -69,19 +69,19 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     fmax : float
         The upper frequency of interest.
     n_fft : int
-        The length of FFT used. If nperseg is None n_fft sets the length of the
-        the Welch segments. If nperseg is not None and ``n_fft > nperseg`` each
+        The length of FFT used. If n_per_seg is None n_fft sets the length of the
+        the Welch segments. If n_per_seg is not None and ``n_fft > n_per_seg`` each
         segment will be zero-padded to the length of n_fft.
-        If ``n_fft > n_times`` and nperseg is None an error is thrown.
+        If ``n_fft > n_times`` and n_per_seg is None an error is thrown.
         The default value is 256.
     n_overlap : int
         The number of points of overlap between blocks. Will be adjusted
-        to be <= nperseg. The default value is 0.
-    nperseg : int | None
+        to be <= n_per_seg. The default value is 0.
+    n_per_seg : int | None
         Length of each Welch segment. The smaller it is with respect to the
         signal length the smoother are the PSDs. Defaults to None, which sets
-        nperseg equal to n_fft. If nperseg is smaller than n_fft, each window
-        of length nperseg will be zero-padded to the length of n_fft.
+        n_per_seg equal to n_fft. If n_per_seg is smaller than n_fft, each window
+        of length n_per_seg will be zero-padded to the length of n_fft.
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -106,11 +106,11 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     x = x.reshape(-1, n_times)
 
     # Prep the PSD
-    if nperseg is None and n_fft > n_times:
-        raise ValueError('If nperseg is None n_fft is not allowed to be >'
+    if n_per_seg is None and n_fft > n_times:
+        raise ValueError('If n_per_seg is None n_fft is not allowed to be >'
                          ' n_times. If you want zero-padding, you have to set'
-                         ' nperseg to relevant length.')
-    n_fft, nperseg, n_overlap = _check_nfft(n_times, n_fft, nperseg, n_overlap)
+                         ' n_per_seg to relevant length.')
+    n_fft, n_per_seg, n_overlap = _check_nfft(n_times, n_fft, n_per_seg, n_overlap)
     win_size = n_fft / float(sfreq)
     logger.info("Effective window size : %0.3f (s)" % win_size)
     freqs = np.arange(n_fft // 2 + 1, dtype=float) * (sfreq / n_fft)
@@ -122,7 +122,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     x_splits = np.array_split(x, n_jobs)
     f_spectrogram = parallel(my_psd_func(d, noverlap=n_overlap, nfft=n_fft,
                                          fs=sfreq, freq_mask=freq_mask,
-                                         func=spectrogram, nperseg=nperseg)
+                                         func=spectrogram, n_per_seg=n_per_seg)
                              for d in x_splits)
 
     # Combining, reducing windows and reshaping to original data shape
@@ -134,7 +134,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
 
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
-              n_overlap=0, nperseg=None, picks=None, proj=False, n_jobs=1,
+              n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=1,
               verbose=None):
     """Compute the power spectral density (PSD) using Welch's method.
 
@@ -154,19 +154,19 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     tmax : float | None
         Max time of interest
     n_fft : int
-        The length of FFT used. If nperseg is None n_fft sets the length of the
-        the Welch segments. If nperseg is not None and ``n_fft > nperseg`` each
+        The length of FFT used. If n_per_seg is None n_fft sets the length of the
+        the Welch segments. If n_per_seg is not None and ``n_fft > n_per_seg`` each
         segment will be zero-padded to the length of n_fft.
-        If ``n_fft > n_times`` and nperseg is None an error is thrown.
+        If ``n_fft > n_times`` and n_per_seg is None an error is thrown.
         The default value is 256.
     n_overlap : int
         The number of points of overlap between blocks. Will be adjusted
-        to be <= nperseg. The default value is 0.
-    nperseg : int | None
+        to be <= n_per_seg. The default value is 0.
+    n_per_seg : int | None
         Length of each Welch segment. The smaller it is with respect to the
         signal length the smoother are the PSDs. Defaults to None, which sets
-        nperseg equal to n_fft. If nperseg is smaller than n_fft, each window
-        of length nperseg will be zero-padded to the length of n_fft.
+        n_per_seg equal to n_fft. If n_per_seg is smaller than n_fft, each window
+        of length n_per_seg will be zero-padded to the length of n_fft.
     picks : array-like of int | None
         The selection of channels to include in the computation.
         If None, take all channels.
@@ -199,8 +199,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
     return psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
-                           n_overlap=n_overlap, nperseg=padding, n_jobs=n_jobs,
-                           verbose=verbose)
+                           n_overlap=n_overlap, n_per_seg=padding,
+                           n_jobs=n_jobs, verbose=verbose)
 
 
 @verbose
