@@ -127,7 +127,9 @@ def test_set_eeg_reference():
     assert_true(not _has_eeg_average_ref_proj(raw.info['projs']))
     reref, ref_data = set_eeg_reference(raw)
     assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
+    assert_true(not reref.info['projs'][0]['active'])
     assert_true(ref_data is None)
+    reref.apply_proj()
     eeg_chans = [raw.ch_names[ch]
                  for ch in pick_types(raw.info, meg=False, eeg=True)]
     _test_reference(raw, reref, ref_data,

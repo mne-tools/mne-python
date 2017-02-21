@@ -300,8 +300,10 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
                               activate=False))
                 # Apply the reference if data has been preloaded
                 if hasattr(inst, '_data') or hasattr(inst, 'data'):
-                    inst.apply_proj()
-
+                    logger.info('Average reference projection was added, but '
+                                "hasn't been applied yet. Use the "
+                                '.apply_proj() method function to apply '
+                                'projections.')
             except:
                 inst.info['custom_ref_applied'] = custom_ref_applied
                 raise
