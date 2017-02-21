@@ -421,7 +421,7 @@ class ICA(ContainsMixin):
 
         reject_by_annotation = 'omit' if reject_by_annotation else None
         # this will be a copy
-        data = raw.get_data(picks, start, stop, reject_by_annotation, False)
+        data = raw.get_data(picks, start, stop, reject_by_annotation)
 
         # this will be a view
         if decim is not None:

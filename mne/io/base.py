@@ -856,6 +856,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
         return_times : bool
             Whether to return times as well.
+
         Returns
         -------
         data : ndarray, shape (n_channels, n_times)
@@ -863,6 +864,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         times : ndarray, shape (n_times,)
             Times associated with the data samples. Only returned if
             return_times=True.
+
         Notes
         -----
 
