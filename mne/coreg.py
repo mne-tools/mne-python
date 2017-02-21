@@ -19,7 +19,6 @@ import numpy as np
 from numpy import dot
 
 from .io import read_fiducials, write_fiducials
-from .io.constants import FIFF
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
                            write_source_spaces)
