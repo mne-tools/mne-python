@@ -22,7 +22,7 @@ import warnings
 import numpy as np
 from scipy import linalg, __version__ as sp_version
 
-from .externals.six import string_types
+from .externals.six import string_types, iteritems
 
 
 ###############################################################################
@@ -1059,14 +1059,12 @@ def _serialize_volume_info(volume_info):
                 key.ljust(6), val[0], val[1], val[2]).encode('utf-8'))
     return b''.join(strings)
 
+
 ##############################################################################
-# scikit-learn
+# adapted from scikit-learn
 
-
-class SklearnBaseEstimator(object):
-    """Base class for all estimators in scikit-learn.
-
-    Directly copied from scikit-learn. Used for _get_BaseEstimator()
+class BaseEstimator(object):
+    """Base class for all estimators in scikit-learn
 
     Notes
     -----
@@ -1077,7 +1075,8 @@ class SklearnBaseEstimator(object):
 
     @classmethod
     def _get_param_names(cls):
-        """Get parameter names for the estimator."""
+        """Get parameter names for the estimator"""
+        from sklearn.utils.fixes import signature
         # fetch the constructor or the original constructor before
         # deprecation wrapping if any
         init = getattr(cls.__init__, 'deprecated_original', cls.__init__)
@@ -1087,29 +1086,28 @@ class SklearnBaseEstimator(object):
 
         # introspect the constructor arguments to find the model parameters
         # to represent
-        args, varargs = _get_args(init, varargs=True)
-        if varargs is not None:
-            raise RuntimeError("scikit-learn estimators should always "
-                               "specify their parameters in the signature"
-                               " of their __init__ (no varargs)."
-                               " %s doesn't follow this convention."
-                               % (cls, ))
-        # Remove 'self'
-        # XXX: This is going to fail if the init is a staticmethod, but
-        # who would do this?
-        args.pop(0)
-        args.sort()
-        return args
+        init_signature = signature(init)
+        # Consider the constructor parameters excluding 'self'
+        parameters = [p for p in init_signature.parameters.values()
+                      if p.name != 'self' and p.kind != p.VAR_KEYWORD]
+        for p in parameters:
+            if p.kind == p.VAR_POSITIONAL:
+                raise RuntimeError("scikit-learn estimators should always "
+                                   "specify their parameters in the signature"
+                                   " of their __init__ (no varargs)."
+                                   " %s with constructor %s doesn't "
+                                   " follow this convention."
+                                   % (cls, init_signature))
+        # Extract and sort argument names excluding 'self'
+        return sorted([p.name for p in parameters])
 
     def get_params(self, deep=True):
         """Get parameters for this estimator.
-
         Parameters
         ----------
         deep : boolean, optional
             If True, will return the parameters for this estimator and
             contained subobjects that are estimators.
-
         Returns
         -------
         params : mapping of string to any
@@ -1140,9 +1138,8 @@ class SklearnBaseEstimator(object):
 
     def set_params(self, **params):
         """Set the parameters of this estimator.
-
         The method works on simple estimators as well as on nested objects
-        (such as pipelines). The former have parameters of the form
+        (such as pipelines). The latter have parameters of the form
         ``<component>__<parameter>`` so that it's possible to update each
         component of a nested object.
         Returns
@@ -1175,16 +1172,12 @@ class SklearnBaseEstimator(object):
                 setattr(self, key, value)
         return self
 
-    def __repr__(self):  # noqa: D105
+    def __repr__(self):
+        from sklearn.base import _pprint
         class_name = self.__class__.__name__
         return '%s(%s)' % (class_name, _pprint(self.get_params(deep=False),
                                                offset=len(class_name),),)
 
-
-def _get_BaseEstimator():
-    """Attempt to retrieve scikit-learn BaseEstimor"""
-    try:
-        from sklearn.base import BaseEstimator
-        return BaseEstimator
-    except ImportError:
-        return SklearnBaseEstimator
+    # __getstate__ and __setstate__ are omitted because they only contain
+    # conditionals that are not satisfied by our objects (e.g.,
+    # ``if type(self).__module__.startswith('sklearn.')``.
