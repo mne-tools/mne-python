@@ -332,6 +332,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                              exclude=[])
                     else:
                         layout = find_layout(info, None, exclude=[])
+                    head_pos = None
                     # drop channels that are not in the data
                     used_nm = np.array(_clean_names(info['ch_names']))[idx]
                     if layout is None:
@@ -347,16 +348,18 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                         xy = _auto_topomap_coords(info, idx,
                                                   ignore_overlap=True)
                         layout = generate_2d_layout(
-                            xy, ch_names=list(used_nm), name='custom')
+                            xy, ch_names=list(used_nm), name='custom',
+                            normalize=False)
                         names = used_nm
                         name_idx = [layout.names.index(name) for name in
                                     names]
+                        head_pos = {'center': (0, 0), 'scale': (0.85, 0.85)}
 
                     # find indices for bads
                     bads = [np.where(names == bad)[0][0] for bad in
                             info['bads'] if bad in names]
-                    pos, outlines = _check_outlines(layout.pos[:, :2],
-                                                    'skirt', None)
+                    pos, outlines = _check_outlines(layout.pos[:, :2], 'skirt',
+                                                    head_pos)
                     pos = pos[name_idx]
                     loc = 1 if psd else 2  # Legend in top right for psd plot.
                     _plot_legend(pos, colors, ax, bads, outlines, loc)

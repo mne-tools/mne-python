@@ -892,7 +892,8 @@ def _merge_grad_data(data, method='rms'):
 
 
 def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
-                       ch_indices=None, name='ecog', bg_image=None):
+                       ch_indices=None, name='ecog', bg_image=None,
+                       normalize=True):
     """Generate a custom 2D layout from xy points.
 
     Generates a 2-D layout for plotting with plot_topo methods and
@@ -924,6 +925,9 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
         image file, or an array that can be plotted with plt.imshow. If
         provided, xy points will be normalized by the width/height of this
         image. If not, xy points will be normalized by their own min/max.
+    normalize : bool
+        Whether to normalize the coordinates to run from 0 to 1. Defaults to
+        True.
 
     Returns
     -------
@@ -962,7 +966,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
             img = bg_image
         x /= img.shape[1]
         y /= img.shape[0]
-    else:
+    elif normalize:
         # Normalize x and y by their maxes
         for i_dim in [x, y]:
             i_dim -= i_dim.min(0)
