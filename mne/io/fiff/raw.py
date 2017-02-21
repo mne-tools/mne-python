@@ -22,7 +22,8 @@ from ..base import (BaseRaw, _RawShell, _check_raw_compatibility,
                     _check_maxshield)
 from ..utils import _mult_cal_one
 
-from ...annotations import Annotations, _combine_annotations
+from ...annotations import Annotations, _combine_annotations, _onset_to_seconds
+
 from ...event import AcqParserFIF
 from ...utils import check_fname, logger, verbose, warn
 
@@ -132,10 +133,9 @@ class Raw(BaseRaw):
                         self.annotations = Annotations((), (), ())
                     start = skip['first'] - first_samp + offset
                     stop = skip['last'] - first_samp - 1 + offset
-                    self.annotations.append(start / self.info['sfreq'],
-                                            (stop - start) /
-                                            self.info['sfreq'],
-                                            'BAD_ACQ_SKIP')
+                    self.annotations.append(
+                        _onset_to_seconds(self, start / self.info['sfreq']),
+                        (stop - start) / self.info['sfreq'], 'BAD_ACQ_SKIP')
         if preload:
             self._preload_data(preload)
         else:
