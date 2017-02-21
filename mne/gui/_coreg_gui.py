@@ -1311,7 +1311,7 @@ class CoregFrame(HasTraits):
     queue = DelegatesTo('coreg_panel')
 
     view = _make_view()
-    
+
     def _model_default(self):
         return CoregModel(
             scale_labels=self._config.get(
