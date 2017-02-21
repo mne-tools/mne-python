@@ -27,7 +27,7 @@ References
        Frontiers in systems neuroscience 2 (2008): 4.
 .. [4] Cichy, R. M., Pantazis, D., & Oliva, A. "Resolving human object
        recognition in space and time." Nature neuroscience (2014): 17(3),
-       455-462
+       455-462.
 """
 
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>

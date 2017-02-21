@@ -2,6 +2,7 @@
 # Authors: Gael Varoquaux <gael.varoquaux@normalesup.org>
 #          Romain Trachel <trachelr@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -10,7 +11,7 @@ import numpy as np
 
 from ..externals.six import iteritems
 from ..fixes import _get_args
-from ..utils import check_version
+from ..utils import check_version, deprecated
 
 
 class BaseEstimator(object):
@@ -183,14 +184,12 @@ def _pprint(params, offset=0, printer=repr):
 
 
 class LinearModel(BaseEstimator):
-    """Clone a Linear Model from sklearn and update attributes for each fit.
+    """Compute and store patterns from linear models.
 
-    The linear model coefficients
-    (filters) are used to extract discriminant neural sources from
-    the measured data. This class implements the computation of patterns
-    which provides neurophysiologically interpretable information [1]_,
-    in the sense that significant nonzero weights are only observed at channels
-    where activity is related to discriminant neural sources.
+    The linear model coefficients (filters) are used to extract discriminant
+    neural sources from the measured data. This class computes the
+    corresponding patterns of these linear filters to make them more
+    interpretable [1]_.
 
     Parameters
     ----------
@@ -202,9 +201,9 @@ class LinearModel(BaseEstimator):
     Attributes
     ----------
     ``filters_`` : ndarray
-        If fit, the filters used to decompose the data, else None.
+        If fit, the filters used to decompose the data.
     ``patterns_`` : ndarray
-        If fit, the patterns used to restore M/EEG signals, else None.
+        If fit, the patterns used to restore M/EEG signals.
 
     Notes
     -----
@@ -230,8 +229,6 @@ class LinearModel(BaseEstimator):
             model = LogisticRegression()
 
         self.model = model
-        self.patterns_ = None
-        self.filters_ = None
 
     def fit(self, X, y):
         """Estimate the coefficients of the linear model.
@@ -241,41 +238,51 @@ class LinearModel(BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_features)
-            The data to estimate the coeffiscient.
-        y : array, shape (n_epochs,)
-            The class for each epoch.
+        X : array, shape (n_samples, n_features)
+            The training input samples to estimate the linear coefficients.
+        y : array, shape (n_samples,)
+            The target values.
 
         Returns
         -------
         self : instance of LinearModel
             Returns the modified instance.
         """
+        X = np.asarray(X)
+        if X.ndim != 2:
+            raise ValueError('LinearModel only accepts 2-dimensional X, got '
+                             '%s instead.' % (X.shape,))
+
         # fit the Model
         self.model.fit(X, y)
+
         # computes the patterns
-        assert hasattr(self.model, 'coef_'), \
-            "model needs a coef_ attribute to compute the patterns"
-        self.patterns_ = np.dot(X.T, np.dot(X, self.model.coef_.T))
-        self.filters_ = self.model.coef_
+        if (
+            not hasattr(self.model, 'coef_') or  # missing attribute
+            self.model.coef_.ndim > 2 or         # weird case
+            (self.model.coef_.size not in
+             self.model.coef_.shape)             # shape (n), (n, 1) or (1, n)
+        ):
+
+            raise ValueError('model needs a unidimensional coef_ attribute to '
+                             'compute the patterns')
+        self.filters_ = np.squeeze(self.model.coef_)
+        self.patterns_ = np.cov(X.T).dot(self.filters_)
 
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X):
         """Transform the data using the linear model.
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_features)
+        X : array, shape (n_samples, n_features)
             The data to transform.
-        y : array, shape (n_epochs,)
-            The class for each epoch.
 
         Returns
         -------
-        y_pred : array, shape (n_epochs,)
-            Predicted class label per epoch.
-
+        y_pred : array, shape (n_samples,)
+            The predicted targets.
         """
         return self.model.transform(X)
 
@@ -284,15 +291,15 @@ class LinearModel(BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_features)
-            The data to transform.
-        y : array, shape (n_epochs,)
-            The class for each epoch.
+        X : array, shape (n_samples, n_features)
+            The training input samples to estimate the linear coefficients.
+        y : array, shape (n_samples,)
+            The target values.
 
         Returns
         -------
-        y_pred : array, shape (n_epochs,)
-            Predicted class label per epoch.
+        y_pred : array, shape (n_samples,)
+            The predicted targets.
 
         """
         return self.fit(X, y).transform(X)
@@ -302,12 +309,12 @@ class LinearModel(BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_features)
+        X : array, shape (n_samples, n_features)
             The data used to compute the predictions.
 
         Returns
         -------
-        y_pred : array, shape (n_epochs,)
+        y_pred : array, shape (n_samples,)
             The predictions.
         """
         return self.model.predict(X)
@@ -317,10 +324,10 @@ class LinearModel(BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_features)
+        X : array, shape (n_samples, n_features)
             The data to transform.
-        y : array, shape (n_epochs,)
-            The class for each epoch.
+        y : array, shape (n_samples,)
+            The target values.
 
         Returns
         -------
@@ -329,6 +336,8 @@ class LinearModel(BaseEstimator):
         """
         return self.model.score(X, y)
 
+    @deprecated('plot_filters is deprecated and will be removed in 0.15, '
+                'use EvokedArray instead.')
     def plot_patterns(self, info, times=None, ch_type=None, layout=None,
                       vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                       colorbar=True, scale=None, scale_time=1e3, unit='a.u.',
@@ -489,6 +498,8 @@ class LinearModel(BaseEstimator):
                                      image_interp=image_interp, show=show,
                                      head_pos=head_pos, average=average)
 
+    @deprecated('plot_filters is deprecated and will be removed in 0.15, '
+                'use EvokedArray instead.')
     def plot_filters(self, info, times=None, ch_type=None, layout=None,
                      vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                      colorbar=True, scale=None, scale_time=1e3, unit='a.u.',
@@ -731,6 +742,7 @@ def _make_scorer(scoring):
         If str, must be compatible with sklearn sklearn's get_scorer.
         If callable, function with signature ``score_func(y, y_pred,
         **kwargs)``.
+
     Returns
     -------
     scorer : callable | None
@@ -746,3 +758,88 @@ def _make_scorer(scoring):
         return get_scorer(scoring)
     else:
         return make_scorer(scoring)
+
+
+def _get_inverse_funcs(estimator, terminal=True):
+    """Retrieve the inverse functions of an pipeline or an estimator."""
+    inverse_func = [False]
+    if hasattr(estimator, 'steps'):
+        # if pipeline, retrieve all steps by nesting
+        inverse_func = list()
+        for _, est in estimator.steps:
+            inverse_func.extend(_get_inverse_funcs(est, terminal=False))
+    elif hasattr(estimator, 'inverse_transform'):
+        # if not pipeline attempt to retrieve inverse function
+        inverse_func = [estimator.inverse_transform]
+
+    # If terminal node, check that that the last estimator is a classifier,
+    # and remove it from the transformers.
+    if terminal:
+        last_is_estimator = inverse_func[-1] is False
+        all_invertible = not(False in inverse_func[:-1])
+        if last_is_estimator and all_invertible:
+            # keep all inverse transformation and remove last estimation
+            inverse_func = inverse_func[:-1]
+        else:
+            inverse_func = list()
+
+    return inverse_func
+
+
+def get_coef(estimator, attr='filters_', inverse_transform=False):
+    """Retrieve the coefficients of an estimator ending with a Linear Model.
+
+    This is typically useful to retrieve "spatial filters" or "spatial
+    patterns" of decoding models [1]_.
+
+    Parameters
+    ----------
+    estimator : object | None
+        An estimator from scikit-learn.
+    attr : str
+        The name of the coefficient attribute to retrieve. Typically 'filters_'
+        or 'patterns_'. Defaults to 'filters_'.
+    inverse_transform : bool
+        If True, returns the coefficients after inverse transforming them with
+        the transformer steps of the estimator.
+
+    Returns
+    -------
+    coef : array
+        The coefficients.
+
+    References
+    ----------
+    .. [1] Haufe, S., Meinecke, F., Gorgen, K., Dahne, S., Haynes, J.-D.,
+       Blankertz, B., & Biessmann, F. (2014). On the interpretation of weight
+       vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
+       96-110. doi:10.1016/j.neuroimage.2013.10.067.
+    """
+    # If searchlight, loop across estimators
+    if hasattr(estimator, 'estimators_'):
+        coef = list()
+        for est in estimator.estimators_:
+            coef.append(get_coef(est, attr, inverse_transform))
+        return np.array(coef)
+
+    else:
+        # Get the coefficients of the last estimator in case of nested pipeline
+        est = estimator
+        while hasattr(est, 'steps'):
+            est = est.steps[-1][1]
+        if not hasattr(est, attr):
+            raise ValueError('This estimator does not have a %s '
+                             'attribute.' % attr)
+        coef = getattr(est, attr)
+
+        # inverse pattern e.g. to get back physical units
+        if inverse_transform:
+            if not hasattr(estimator, 'steps'):
+                raise ValueError('inverse_transform can only be applied onto '
+                                 'pipeline estimators.')
+
+            # The inverse_transform parameter will call this method on any
+            # estimator contained in the pipeline, in reverse order.
+            for inverse_func in _get_inverse_funcs(estimator)[::-1]:
+                coef = inverse_func([coef])[0]
+        return coef

@@ -1104,6 +1104,7 @@ Functions:
    :template: function.rst
 
    compute_ems
+   get_coef
 
 Realtime
 ========
