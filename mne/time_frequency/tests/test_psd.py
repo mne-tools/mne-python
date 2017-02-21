@@ -62,12 +62,18 @@ def test_psd():
         # Array input shouldn't work
         assert_raises(ValueError, func, raw[:3, :20][0])
 
-    # test padding in psd_welch
-    kws_psd.update(kws_welch)
-    psds1, freqs1 = psd_welch(raw, proj=False, padding=128, **kws_psd)
-    psds2, freqs2 = psd_welch(raw, proj=False, padding=256, **kws_psd)
+    # test nperseg in psd_welch (and padding)
+    psds1, freqs1 = psd_welch(raw, proj=False, n_fft=128, nperseg=128,
+                              **kws_psd)
+    psds2, freqs2 = psd_welch(raw, proj=False, n_fft=256, nperseg=128,
+                              **kws_psd)
     assert_true(len(freqs1) == np.floor(len(freqs2) / 2.))
     assert_true(psds1.shape[-1] == np.floor(psds2.shape[-1] / 2.))
+
+    # tests ValueError when nperseg=None and n_fft > signal length
+    kws_psd.update(dict(n_fft=tmax * 1.1 * raw.info['sfreq']))
+    assert_raises(ValueError, psd_welch, raw, proj=False, nperseg=None,
+                  **kws_psd)
 
     # -- Epochs/Evoked --
     events = read_events(event_fname)
