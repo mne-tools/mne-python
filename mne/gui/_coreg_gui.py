@@ -65,13 +65,14 @@ from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _find_fiducials_files, _point_cloud_error)
 from ..viz._3d import _toggle_mlab_render
 from ..utils import logger, set_config
-from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
+from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel, _mm_fmt
 from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
 from ._viewer import HeadViewController, PointObject, SurfaceObject
 
 defaults = DEFAULTS['coreg']
 
-laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float)
+laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float,
+                                format_func=_mm_fmt)
 
 
 class CoregModel(HasPrivateTraits):
@@ -117,6 +118,10 @@ class CoregModel(HasPrivateTraits):
     trans_y = Float(0, label="A (Y)")
     trans_z = Float(0, label="S (Z)")
 
+    # options during scaling
+    scale_labels = Bool(True, desc="whether to scale *.label files")
+    copy_annot = Bool(True, desc="whether to copy *.annot files for scaled "
+                      "subject")
     prepare_bem_model = Bool(True, desc="whether to run mne_prepare_bem_model "
                              "after scaling the MRI")
 
@@ -501,12 +506,12 @@ class CoregModel(HasPrivateTraits):
             self.scale_x, self.scale_y, self.scale_z = 1. / est[3:]
         self.rot_x, self.rot_y, self.rot_z = est[:3]
 
-    def get_scaling_job(self, subject_to, skip_fiducials, do_bem_sol):
+    def get_scaling_job(self, subject_to, skip_fiducials):
         """Find all arguments needed for the scaling worker."""
         subjects_dir = self.mri.subjects_dir
         subject_from = self.mri.subject
         bem_names = []
-        if do_bem_sol:
+        if self.can_prepare_bem_model and self.prepare_bem_model:
             pattern = bem_fname.format(subjects_dir=subjects_dir,
                                        subject=subject_from, name='(.+-bem)')
             bem_dir, pattern = os.path.split(pattern)
@@ -516,7 +521,7 @@ class CoregModel(HasPrivateTraits):
                     bem_names.append(match.group(1))
 
         return (subjects_dir, subject_from, subject_to, self.scale,
-                skip_fiducials, bem_names)
+                skip_fiducials, self.scale_labels, self.copy_annot, bem_names)
 
     def load_trans(self, fname):
         """Load the head-mri transform from a fif file.
@@ -662,6 +667,8 @@ class CoregPanel(HasPrivateTraits):
     # saving
     can_prepare_bem_model = DelegatesTo('model')
     can_save = DelegatesTo('model')
+    scale_labels = DelegatesTo('model')
+    copy_annot = DelegatesTo('model')
     prepare_bem_model = DelegatesTo('model')
     save = Button(label="Save As...")
     load_trans = Button(label='Load trans...')
@@ -715,7 +722,8 @@ class CoregPanel(HasPrivateTraits):
                              Item('scale_z_inc',
                                   enabled_when='n_scale_params > 1',
                                   width=-50),
-                             show_labels=False, columns=4),
+                             show_labels=False, show_border=True,
+                             label='Scaling', columns=4),
                        HGroup(Item('fits_hsp_points',
                                    enabled_when='n_scale_params',
                                    tooltip="Rotate the digitizer head shape "
@@ -796,10 +804,20 @@ class CoregPanel(HasPrivateTraits):
                        Item('fid_eval_str', style='readonly'),
                        Item('points_eval_str', style='readonly'),
                        '_',
-                       HGroup(Item('prepare_bem_model'),
-                              Label("Run mne_prepare_bem_model"),
-                              show_labels=False,
-                              enabled_when='can_prepare_bem_model'),
+                       VGroup(
+                           Item('scale_labels',
+                                label="Scale *.label files",
+                                enabled_when='n_scale_params > 0'),
+                           Item('copy_annot',
+                                label="Copy annotation files",
+                                enabled_when='n_scale_params > 0'),
+                           Item('prepare_bem_model',
+                                label="Run mne_prepare_bem_model",
+                                enabled_when='can_prepare_bem_model'),
+                           show_left=False,
+                           label='Scaling options',
+                           show_border=True),
+                       '_',
                        HGroup(Item('save', enabled_when='can_save',
                                    tooltip="Save the trans file and (if "
                                    "scaling is enabled) the scaled MRI"),
@@ -819,14 +837,15 @@ class CoregPanel(HasPrivateTraits):
         def worker():
             while True:
                 (subjects_dir, subject_from, subject_to, scale, skip_fiducials,
-                 bem_names) = self.queue.get()
+                 include_labels, include_annot, bem_names) = self.queue.get()
                 self.queue_len -= 1
 
                 # Scale MRI files
                 self.queue_current = 'Scaling %s...' % subject_to
                 try:
                     scale_mri(subject_from, subject_to, scale, True,
-                              subjects_dir, skip_fiducials)
+                              subjects_dir, skip_fiducials, include_labels,
+                              include_annot)
                 except:
                     logger.error('Error scaling %s:\n' % subject_to +
                                  traceback.format_exc())
@@ -1039,9 +1058,7 @@ class CoregPanel(HasPrivateTraits):
 
         # save the scaled MRI
         if self.n_scale_params:
-            do_bem_sol = self.can_prepare_bem_model and self.prepare_bem_model
-            job = self.model.get_scaling_job(subject_to, skip_fiducials,
-                                             do_bem_sol)
+            job = self.model.get_scaling_job(subject_to, skip_fiducials)
             self.queue.put(job)
             self.queue_len += 1
 
@@ -1246,7 +1263,7 @@ class ViewOptionsPanel(HasTraits):
 class CoregFrame(HasTraits):
     """GUI for head-MRI coregistration."""
 
-    model = Instance(CoregModel, ())
+    model = Instance(CoregModel)
 
     scene = Instance(MlabSceneModel, ())
     headview = Instance(HeadViewController)
@@ -1295,6 +1312,15 @@ class CoregFrame(HasTraits):
 
     view = _make_view()
 
+    def _model_default(self):
+        return CoregModel(
+            scale_labels=self._config.get(
+                'MNE_COREG_SCALE_LABELS', 'true') == 'true',
+            copy_annot=self._config.get(
+                'MNE_COREG_COPY_ANNOT', 'true') == 'true',
+            prepare_bem_model=self._config.get(
+                'MNE_COREG_PREPARE_BEM', 'true') == 'true')
+
     def _subject_panel_default(self):
         return SubjectSelectorPanel(model=self.model.mri.subject_source)
 
@@ -1309,11 +1335,10 @@ class CoregFrame(HasTraits):
 
     def __init__(self, raw=None, subject=None, subjects_dir=None,
                  guess_mri_subject=True, head_opacity=1.,
-                 head_high_res=True, prepare_bem=True,
-                 trans=None):  # noqa: D102
+                 head_high_res=True, trans=None, config=None):  # noqa: D102
+        self._config = config or {}
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
         self.subject_panel.model.use_high_res_head = head_high_res
-        self.model.prepare_bem_model = prepare_bem
         if not 0 <= head_opacity <= 1:
             raise ValueError(
                 "head_opacity needs to be a floating point number between 0 "
@@ -1503,6 +1528,12 @@ class CoregFrame(HasTraits):
                    home_dir, set_env=False)
         set_config('MNE_COREG_HEAD_OPACITY',
                    str(self.mri_obj.opacity),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_SCALE_LABELS',
+                   str(self.model.scale_labels).lower(),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_COPY_ANNOT',
+                   str(self.model.copy_annot).lower(),
                    home_dir, set_env=False)
         set_config('MNE_COREG_PREPARE_BEM',
                    str(self.model.prepare_bem_model).lower(),

@@ -98,7 +98,6 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
-    prepare_bem = config.get('MNE_COREG_PREPARE_BEM', 'true') == 'true'
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
             'MNE_COREG_GUESS_MRI_SUBJECT', 'true') == 'true'
@@ -124,7 +123,7 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     from ._coreg_gui import CoregFrame, _make_view
     view = _make_view(tabbed, split, scene_width, scene_height)
     frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
-                       head_opacity, head_high_res, prepare_bem, trans)
+                       head_opacity, head_high_res, trans, config)
     return _initialize_gui(frame, view)
 
 

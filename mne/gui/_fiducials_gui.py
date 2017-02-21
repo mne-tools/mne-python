@@ -31,6 +31,11 @@ from ._viewer import (HeadViewController, PointObject, SurfaceObject,
 defaults = DEFAULTS['coreg']
 
 
+def _mm_fmt(x):
+    """Format mm data."""
+    return '%0.5f' % x
+
+
 class MRIHeadWithFiducialsModel(HasPrivateTraits):
     """Represent an MRI head shape with fiducials.
 
@@ -226,8 +231,10 @@ class FiducialsPanel(HasPrivateTraits):
     # the layout of the dialog created
     view = View(VGroup(Item('fid_file', label='File'),
                        Item('fid_fname', show_label=False, style='readonly'),
-                       Item('set', style='custom', width=50),
-                       Item('current_pos', label='Pos', width=50),
+                       Item('set', style='custom', width=50,
+                            format_func=lambda x: x),
+                       Item('current_pos', label='Pos', width=50,
+                            format_func=_mm_fmt),
                        HGroup(Item('save', enabled_when='can_save',
                                    tooltip="If a filename is currently "
                                    "specified, save to that file, otherwise "

@@ -112,8 +112,12 @@ def test_coreg_model():
     assert_true(isinstance(model.points_eval_str, string_types))
 
     # scaling job
-    sdir, sfrom, sto, scale, skip_fiducials, bemsol = \
-        model.get_scaling_job('sample2', False, True)
+    assert_false(model.can_prepare_bem_model)
+    model.n_scale_params = 1
+    assert_true(model.can_prepare_bem_model)
+    model.prepare_bem_model = True
+    sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
+        model.get_scaling_job('sample2', False)
     assert_equal(sdir, subjects_dir)
     assert_equal(sfrom, 'sample')
     assert_equal(sto, 'sample2')
@@ -126,8 +130,9 @@ def test_coreg_model():
         if match:
             bems.add(match.group(1))
     assert_equal(set(bemsol), bems)
-    sdir, sfrom, sto, scale, skip_fiducials, bemsol = \
-        model.get_scaling_job('sample2', True, False)
+    model.prepare_bem_model = False
+    sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
+        model.get_scaling_job('sample2', True)
     assert_equal(bemsol, [])
     assert_true(skip_fiducials)
 
@@ -235,15 +240,16 @@ def test_coreg_model_with_fsaverage():
     assert_true(avg_point_distance_1param < avg_point_distance)
 
     # scaling job
-    sdir, sfrom, sto, scale, skip_fiducials, bemsol = \
-        model.get_scaling_job('scaled', False, True)
+    sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
+        model.get_scaling_job('scaled', False)
     assert_equal(sdir, tempdir)
     assert_equal(sfrom, 'fsaverage')
     assert_equal(sto, 'scaled')
     assert_equal(scale, model.scale)
     assert_equal(set(bemsol), set(('inner_skull-bem',)))
-    sdir, sfrom, sto, scale, skip_fiducials, bemsol = \
-        model.get_scaling_job('scaled', False, False)
+    model.prepare_bem_model = False
+    sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
+        model.get_scaling_job('scaled', False)
     assert_equal(bemsol, [])
 
     # scale with 3 parameters
