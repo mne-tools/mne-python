@@ -284,6 +284,10 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
     set_bipolar_reference : Convenience function for creating bipolar
                             references.
     """
+    if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
+        raise ValueError('Setting a reference is only supported for instances '
+                         'of Raw, Epochs or Evoked.')
+
     if ref_channels is None:
         # CAR requested
         if _has_eeg_average_ref_proj(inst.info['projs']):
@@ -298,8 +302,9 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
                 inst.info['custom_ref_applied'] = False
                 inst.add_proj(make_eeg_average_ref_proj(inst.info,
                               activate=False))
-                # Apply the reference if data has been preloaded
-                if hasattr(inst, '_data') or hasattr(inst, 'data'):
+                # If the data has been preloaded, projections will no longer be
+                # automatically applied.
+                if isinstance(inst, Evoked) or inst.preload:
                     logger.info('Average reference projection was added, but '
                                 "hasn't been applied yet. Use the "
                                 '.apply_proj() method function to apply '
