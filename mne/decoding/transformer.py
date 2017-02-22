@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Romain Trachel <trachelr@gmail.com>
@@ -17,7 +18,10 @@ from ..utils import _check_type_picks
 
 
 class Scaler(TransformerMixin):
-    """Standardize data across channels.
+    u"""Standardize data across channels.
+
+    By default, this makes each time point (within each epoch) have
+    μ=0, σ=1.
 
     Parameters
     ----------
