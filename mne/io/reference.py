@@ -235,12 +235,12 @@ def add_reference_channels(inst, ref_channels, copy=True):
 def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
     """Specify which reference to use for EEG data.
 
-    By default, MNE-Python will automatically re-reference the EEG signal to use an
-    average reference (see below). Use this function to explicitly specify the
-    desired reference for EEG. This can be either an existing electrode or a
-    new virtual channel. This function will re-reference the data according to
-    the desired reference and prevent MNE-Python from automatically adding an
-    average reference.
+    By default, MNE-Python will automatically re-reference the EEG signal to
+    use an average reference (see below). Use this function to explicitly
+    specify the desired reference for EEG. This can be either an existing
+    electrode or a new virtual channel. This function will re-reference the
+    data according to the desired reference and prevent MNE-Python from
+    automatically adding an average reference.
 
     Some common referencing schemes and the corresponding value for the
     ``ref_channels`` parameter:
@@ -348,10 +348,16 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
                 raise
 
             return inst, None
+
+    if ref_channels == []:
+        logger.info('EEG data marked as having the desired reference. '
+                    'Preventing automatic future re-referencing to an average '
+                    'reference.')
     else:
         logger.info('Applying a custom EEG reference.')
-        inst = inst.copy() if copy else inst
-        return _apply_reference(inst, ref_channels)
+
+    inst = inst.copy() if copy else inst
+    return _apply_reference(inst, ref_channels)
 
 
 def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
