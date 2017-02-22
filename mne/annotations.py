@@ -14,12 +14,12 @@ class Annotations(object):
     """Annotation object for annotating segments of raw data.
 
     Annotations are added to instance of :class:`mne.io.Raw` as an attribute
-    named ``annotations``. See the example below. To reject bad epochs using
-    annotations, use annotation description starting with 'bad' keyword. The
-    epochs with overlapping bad segments are then rejected automatically by
-    default.
+    named ``annotations``. To reject bad epochs using annotations, use
+    annotation description starting with 'bad' keyword. The epochs with
+    overlapping bad segments are then rejected automatically by default.
 
     To remove epochs with blinks you can do::
+
         >>> eog_events = mne.preprocessing.find_eog_events(raw)  # doctest: +SKIP
         >>> n_blinks = len(eog_events)  # doctest: +SKIP
         >>> onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25  # doctest: +SKIP
@@ -83,6 +83,10 @@ class Annotations(object):
         self.onset = onset
         self.duration = duration
         self.description = np.array(description, dtype=str)
+
+    def __len__(self):
+        """The number of annotations."""
+        return len(self.duration)
 
     def append(self, onset, duration, description):
         """Add an annotated segment. Operates inplace.

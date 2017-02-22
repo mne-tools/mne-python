@@ -35,6 +35,7 @@ testing_path = testing.data_path(download=False)
 data_dir = op.join(testing_path, 'MEG', 'sample')
 fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 ms_fname = op.join(testing_path, 'SSS', 'test_move_anon_raw.fif')
+skip_fname = op.join(testing_path, 'misc', 'intervalrecording_raw.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 test_fif_fname = op.join(base_dir, 'test_raw.fif')
@@ -46,6 +47,14 @@ bad_file_works = op.join(base_dir, 'test_bads.txt')
 bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
+
+
+@testing.requires_testing_data
+def test_acq_skip():
+    """Test treatment of acquisition skips."""
+    raw = read_raw_fif(skip_fname)
+    assert_equal(len(raw.times), 17000)
+    assert_equal(len(raw.annotations), 3)  # there are 3 skips
 
 
 def test_fix_types():
