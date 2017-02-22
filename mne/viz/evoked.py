@@ -353,7 +353,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                         names = used_nm
                         name_idx = [layout.names.index(name) for name in
                                     names]
-                        head_pos = {'center': (0, 0), 'scale': (0.85, 0.85)}
+                        head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
 
                     # find indices for bads
                     bads = [np.where(names == bad)[0][0] for bad in
