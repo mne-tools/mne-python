@@ -74,6 +74,9 @@ def test_psd():
     kws_psd.update(dict(n_fft=tmax * 1.1 * raw.info['sfreq']))
     assert_raises(ValueError, psd_welch, raw, proj=False, n_per_seg=None,
                   **kws_psd)
+    # ValueError when n_overlap > n_per_seg
+    kws_psd.update(dict(n_fft=128, n_per_seg=64, n_overlap=90))
+    assert_raises(ValueError, psd_welch, raw, proj=False, **kws_psd)
 
     # -- Epochs/Evoked --
     events = read_events(event_fname)
