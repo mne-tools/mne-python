@@ -1076,7 +1076,10 @@ class BaseEstimator(object):
     @classmethod
     def _get_param_names(cls):
         """Get parameter names for the estimator"""
-        from sklearn.utils.fixes import signature
+        try:
+            from inspect import signature
+        except ImportError:
+            from .externals.funcsigs import signature
         # fetch the constructor or the original constructor before
         # deprecation wrapping if any
         init = getattr(cls.__init__, 'deprecated_original', cls.__init__)
