@@ -17,7 +17,7 @@ from mne import (pick_channels, pick_types, Evoked, Epochs, read_events,
 from mne.epochs import BaseEpochs
 from mne.io import read_raw_fif
 from mne.io.constants import FIFF
-from mne.io.proj import _has_eeg_average_ref_proj
+from mne.io.proj import _has_eeg_average_ref_proj, Projection
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
 from mne.utils import run_tests_if_main
@@ -112,9 +112,32 @@ def test_apply_reference():
     assert_true(reref.info['custom_ref_applied'])
     _test_reference(evoked, reref, ref_data, ['EEG 001', 'EEG 002'])
 
-    # Test invalid input
+    # Referencing needs data to be preloaded
     raw_np = read_raw_fif(fif_fname, preload=False)
     assert_raises(RuntimeError, _apply_reference, raw_np, ['EEG 001'])
+
+    # Test having inactive SSP projections that deal with channels involved
+    # during re-referencing
+    raw = read_raw_fif(fif_fname, preload=True)
+    raw.add_proj(
+        Projection(
+            active=False,
+            data=dict(
+                col_names=['EEG 001', 'EEG 002'],
+                row_names=None,
+                data=[[1, 1]],
+                ncol=2,
+                nrow=1
+            ),
+            desc='test',
+            kind=1,
+        )
+    )
+    # Projection concerns channels mentioned in projector
+    assert_raises(RuntimeError, _apply_reference, raw, ['EEG 001'])
+
+    # Projection does not concern channels mentioned in projector, no error
+    _apply_reference(raw, ['EEG 003'], ['EEG 004'])
 
 
 @testing.requires_testing_data
@@ -182,6 +205,8 @@ def test_set_eeg_reference():
 def test_set_bipolar_reference():
     """Test bipolar referencing."""
     raw = read_raw_fif(fif_fname, preload=True)
+    raw.apply_proj()
+
     reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002', 'bipolar',
                                   {'kind': FIFF.FIFFV_EOG_CH,
                                    'extra': 'some extra value'})

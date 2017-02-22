@@ -74,25 +74,31 @@ def _apply_reference(inst, ref_from, ref_to=None):
         ref_to = [inst.ch_names[i] for i in eeg_idx]
 
     # After referencing, existing SSPs might not be valid anymore.
+    projs_to_remove = []
     for i, proj in enumerate(inst.info['projs']):
         # Remove any average reference projections
         if proj['desc'] == 'Average EEG reference' or \
                 proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF:
             logger.info('Removing existing average EEG reference '
                         'projection.')
-            del inst.info['projs'][i]
+            # Don't remove the projection right away, but do this at the end of
+            # this loop.
+            projs_to_remove.append(i)
 
-        # Apply any other type of projection
+        # Inactive SSPs may block re-referencing
         elif (not proj['active'] and
               len([ch for ch in (ref_from + ref_to)
                    if ch in proj['data']['col_names']]) > 0):
 
-            logger.info(
+            raise RuntimeError(
                 'Inactive signal space projection (SSP) operators are '
-                'present that operate on sensors involved in the current '
-                'referencing scheme. Applying them now. Be aware that '
-                'after re-referencing, these operators will be invalid.')
-            inst.apply_proj()
+                'present that operate on sensors involved in the desired '
+                'referencing scheme. These projectors need to be applied '
+                'using the apply_proj() method function before the desired '
+                'reference can be set.'
+            )
+    for i in projs_to_remove:
+        del inst.info['projs'][i]
 
     ref_from = [inst.ch_names.index(ch) for ch in ref_from]
     ref_to = [inst.ch_names.index(ch) for ch in ref_to]
