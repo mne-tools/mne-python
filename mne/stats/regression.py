@@ -90,12 +90,9 @@ def linear_regression(inst, design_matrix, names=None):
         parameters = [p[name] for p in lm_params]
         for ii, value in enumerate(parameters):
             out_ = out.copy()
-            if isinstance(out_, SourceEstimate):
-                out_._data[:] = value
-            elif isinstance(out_, Evoked):
-                out_.data[:] = value
-            else:
+            if not isinstance(out_, (SourceEstimate, Evoked)):
                 raise RuntimeError('Invalid container.')
+            out_._data[:] = value
             parameters[ii] = out_
         lm_fits[name] = lm(*parameters)
     logger.info('Done')

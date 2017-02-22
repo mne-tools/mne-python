@@ -11,7 +11,7 @@ import numpy as np
 from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_allclose
 
-from mne import (pick_channels, pick_types, Evoked, Epochs, read_events,
+from mne import (pick_channels, pick_types, Epochs, read_events,
                  set_eeg_reference, set_bipolar_reference,
                  add_reference_channels)
 from mne.epochs import BaseEpochs
@@ -41,12 +41,8 @@ def _test_reference(raw, reref, ref_data, ref_from):
     picks_ref = [raw.ch_names.index(ch) for ch in ref_from]
 
     # Get data
-    if isinstance(raw, Evoked):
-        _data = raw.data
-        _reref = reref.data
-    else:
-        _data = raw._data
-        _reref = reref._data
+    _data = raw._data
+    _reref = reref._data
 
     # Check that the ref has been properly computed
     if ref_data is not None:

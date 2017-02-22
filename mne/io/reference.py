@@ -64,7 +64,7 @@ def _apply_reference(inst, ref_from, ref_to=None):
                             reference.
     """
     # Check to see that data is preloaded
-    if not isinstance(inst, Evoked) and not inst.preload:
+    if not inst.preload:
         raise RuntimeError('Data needs to be preloaded. Use '
                            'preload=True (or string) in the constructor.')
 
@@ -102,20 +102,13 @@ def _apply_reference(inst, ref_from, ref_to=None):
 
     ref_from = [inst.ch_names.index(ch) for ch in ref_from]
     ref_to = [inst.ch_names.index(ch) for ch in ref_to]
-
-    if isinstance(inst, Evoked):
-        data = inst.data
-    else:
-        data = inst._data
+    data = inst._data
 
     # Compute reference
     if len(ref_from) > 0:
-        ref_data = data[..., ref_from, :].mean(-2)
-
-        if isinstance(inst, BaseEpochs):
-            data[:, ref_to, :] -= ref_data[:, np.newaxis, :]
-        else:
-            data[ref_to] -= ref_data
+        ref_data = data[..., ref_from, :].mean(-2, keepdims=True)
+        data[..., ref_to, :] -= ref_data
+        ref_data = ref_data[..., 0, :]
     else:
         ref_data = None
 
@@ -152,7 +145,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         Data with added EEG reference channels.
     """
     # Check to see that data is preloaded
-    if not isinstance(inst, Evoked) and not inst.preload:
+    if not inst.preload:
         raise RuntimeError('Data needs to be preloaded.')
     if isinstance(ref_channels, str):
         ref_channels = [ref_channels]
@@ -170,12 +163,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
     if copy:
         inst = inst.copy()
 
-    if isinstance(inst, Evoked):
-        data = inst.data
-        refs = np.zeros((len(ref_channels), data.shape[1]))
-        data = np.vstack((data, refs))
-        inst.data = data
-    elif isinstance(inst, BaseRaw):
+    if isinstance(inst, (BaseRaw, Evoked)):
         data = inst._data
         refs = np.zeros((len(ref_channels), data.shape[1]))
         data = np.vstack((data, refs))
@@ -344,7 +332,7 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
                               activate=False))
                 # If the data has been preloaded, projections will no longer be
                 # automatically applied.
-                if isinstance(inst, Evoked) or inst.preload:
+                if inst.preload:
                     logger.info('Average reference projection was added, but '
                                 "hasn't been applied yet. Use the "
                                 '.apply_proj() method function to apply '

@@ -524,12 +524,10 @@ def _get_inst_data(inst):
     from . import Evoked
     from .time_frequency.tfr import _BaseTFR
 
-    if isinstance(inst, (BaseRaw, BaseEpochs)):
+    if isinstance(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR)):
         if not inst.preload:
             inst.load_data()
         return inst._data
-    elif isinstance(inst, (Evoked, _BaseTFR)):
-        return inst.data
     else:
         raise TypeError('The argument must be an instance of Raw, Epochs, '
                         'Evoked, EpochsTFR or AverageTFR, got {0}.'.format(

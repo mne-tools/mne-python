@@ -110,9 +110,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 fname, condition, kind, allow_maxshield)
         self.kind = _aspect_rev.get(str(self._aspect_kind), 'Unknown')
         self.verbose = verbose
+        self.preload = True
         # project and baseline correct
         if proj:
             self.apply_proj()
+
+    @property
+    def _data(self):
+        return self.data
+
+    @_data.setter
+    def _data(self, data):
+        self.data = data
 
     @verbose
     def apply_baseline(self, baseline=(None, 0), verbose=None):
@@ -721,6 +730,7 @@ class EvokedArray(Evoked):
         self.comment = comment
         self.picks = None
         self.verbose = verbose
+        self.preload = True
         self._projector = None
         if not isinstance(self.kind, string_types):
             raise TypeError('kind must be a string, not "%s"' % (type(kind),))

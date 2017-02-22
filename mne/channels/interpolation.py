@@ -94,13 +94,11 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
 
-    if isinstance(inst, BaseRaw):
+    if isinstance(inst, (BaseRaw, Evoked)):
         inst._data[bads_idx] = interpolation.dot(inst._data[goods_idx])
     elif isinstance(inst, BaseEpochs):
         inst._data[:, bads_idx, :] = np.einsum('ij,xjy->xiy', interpolation,
                                                inst._data[:, goods_idx, :])
-    elif isinstance(inst, Evoked):
-        inst.data[bads_idx] = interpolation.dot(inst.data[goods_idx])
     else:
         raise ValueError('Inputs of type {0} are not supported'
                          .format(type(inst)))

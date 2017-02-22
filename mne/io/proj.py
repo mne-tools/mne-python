@@ -139,6 +139,7 @@ class ProjMixin(object):
             The instance.
         """
         from ..epochs import BaseEpochs
+        from ..evoked import Evoked
         from .base import BaseRaw
         if self.info['projs'] is None or len(self.info['projs']) == 0:
             logger.info('No projector specified for this dataset. '
@@ -163,17 +164,15 @@ class ProjMixin(object):
                         ' Doing nothing.')
             return self
         self._projector, self.info = _projector, info
-        if isinstance(self, BaseRaw):
+        if isinstance(self, (BaseRaw, Evoked)):
             if self.preload:
                 self._data = np.dot(self._projector, self._data)
-        elif isinstance(self, BaseEpochs):
+        else:  # BaseEpochs
             if self.preload:
                 for ii, e in enumerate(self._data):
                     self._data[ii] = self._project_epoch(e)
             else:
                 self.load_data()  # will automatically apply
-        else:  # Evoked
-            self.data = np.dot(self._projector, self.data)
         logger.info('SSP projectors applied...')
         return self
 
