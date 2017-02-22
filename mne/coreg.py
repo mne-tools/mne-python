@@ -94,11 +94,13 @@ def coregister_fiducials(info, fiducials, tol=0.01):
         fiducials, coord_frame_to = read_fiducials(fiducials)
     else:
         coord_frame_to = FIFF.FIFFV_COORD_MRI
-    coords_from, frames_from = _fiducial_coords(info['dig'])
-    if len(set(frames_from)) > 1:
+    frames_from = {d['coord_frame'] for d in info['dig']}
+    if len(frames_from) > 1:
         raise ValueError("info contains fiducials from different coordinate "
                          "frames")
-    coord_frame_from = frames_from[0]
+    else:
+        coord_frame_from = frames_from.pop()
+    coords_from = _fiducial_coords(info['dig'])
     coords_to = _fiducial_coords(fiducials, coord_frame_to)
     trans = fit_matched_points(coords_from, coords_to, tol=tol)
     return Transform(coord_frame_from, coord_frame_to, trans)
