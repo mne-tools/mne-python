@@ -356,7 +356,7 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
             return inst, None
 
     if ref_channels == []:
-        logger.info('EEG data marked as having the desired reference. '
+        logger.info('EEG data marked as already having the desired reference. '
                     'Preventing automatic future re-referencing to an average '
                     'reference.')
     else:
