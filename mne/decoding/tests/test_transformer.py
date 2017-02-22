@@ -47,8 +47,8 @@ def test_scaler():
     X2 = scaler.fit(epochs_data, y).transform(epochs_data)
     assert_array_equal(X2, X)
     # these should be across time
-    assert_allclose(X.std(-2), 1.)
-    assert_allclose(X.mean(-2), 0., atol=1e-12)
+    assert_allclose(X.std(axis=-2), 1.)
+    assert_allclose(X.mean(axis=-2), 0., atol=1e-12)
 
     # Test inverse_transform
     Xi = scaler.inverse_transform(X, y)
