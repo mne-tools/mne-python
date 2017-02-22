@@ -70,7 +70,7 @@ class ConductorModel(dict):
 def _calc_beta(rk, rk_norm, rk1, rk1_norm):
     """These coefficients are used to calculate the magic vector omega."""
     rkk1 = rk1[0] - rk[0]
-    size = np.sqrt(np.dot(rkk1, rkk1))
+    size = np.linalg.norm(rkk1)
     rkk1 /= size
     num = rk_norm + np.dot(rk, rkk1)
     den = rk1_norm + np.dot(rk1, rkk1)
@@ -84,17 +84,18 @@ def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
     omega = np.zeros((len(fros), 3))
 
     # we replicate a little bit of the _get_solids code here for speed
+    # (we need some of the intermediate values later)
     v1 = tri_rr[np.newaxis, 0, :] - fros
     v2 = tri_rr[np.newaxis, 1, :] - fros
     v3 = tri_rr[np.newaxis, 2, :] - fros
     triples = _fast_cross_nd_sum(v1, v2, v3)
-    l1 = np.sqrt(np.sum(v1 * v1, axis=1))
-    l2 = np.sqrt(np.sum(v2 * v2, axis=1))
-    l3 = np.sqrt(np.sum(v3 * v3, axis=1))
-    ss = (l1 * l2 * l3 +
-          np.sum(v1 * v2, axis=1) * l3 +
-          np.sum(v1 * v3, axis=1) * l2 +
-          np.sum(v2 * v3, axis=1) * l1)
+    l1 = np.linalg.norm(v1, axis=1)
+    l2 = np.linalg.norm(v2, axis=1)
+    l3 = np.linalg.norm(v3, axis=1)
+    ss = l1 * l2 * l3
+    ss += np.einsum('ij,ij,i->i', v1, v2, l3)
+    ss += np.einsum('ij,ij,i->i', v1, v3, l2)
+    ss += np.einsum('ij,ij,i->i', v2, v3, l1)
     solids = np.arctan2(triples, ss)
 
     # We *could* subselect the good points from v1, v2, v3, triples, solids,
@@ -956,7 +957,7 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
         warn('Estimated head size (%0.1f mm) exceeded 99th '
              'percentile for adult head size' % (1e3 * radius,))
     # > 2 cm away from head center in X or Y is strange
-    if np.sqrt(np.sum(origin_head[:2] ** 2)) > 0.02:
+    if np.linalg.norm(origin_head[:2]) > 0.02:
         warn('(X, Y) fit (%0.1f, %0.1f) more than 20 mm from '
              'head frame origin' % tuple(1e3 * origin_head[:2]))
     logger.info('Origin head coordinates:'.ljust(30) +
@@ -980,9 +981,9 @@ def _fit_sphere(points, disp='auto'):
     x0 = np.concatenate([center_init, [radius_init]])
 
     def cost_fun(center_rad):
-        d = points - center_rad[:3]
-        d = (np.sqrt(np.sum(d * d, axis=1)) - center_rad[3])
-        return np.sum(d * d)
+        d = np.linalg.norm(points - center_rad[:3], axis=1) - center_rad[3]
+        d *= d
+        return d.sum()
 
     def constraint(center_rad):
         return center_rad[3]  # radius must be >= 0

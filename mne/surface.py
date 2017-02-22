@@ -313,13 +313,10 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
     surf['tri_nn'] = fast_cross_3d((r2 - r1), (r3 - r1))
 
     #   Triangle normals and areas
-    size = np.sqrt(np.sum(surf['tri_nn'] ** 2, axis=1))
-    surf['tri_area'] = size / 2.0
-    zidx = np.where(size == 0)[0]
-    for idx in zidx:
-        logger.info('    Warning: zero size triangle # %s' % idx)
-    size[zidx] = 1.0  # prevent ugly divide-by-zero
-    surf['tri_nn'] /= size[:, None]
+    surf['tri_area'] = _normalize_vectors(surf['tri_nn']) / 2.0
+    zidx = np.where(surf['tri_area'] == 0)[0]
+    if len(zidx) > 0:
+        logger.info('    Warning: zero size triangles: %s' % zidx)
 
     #    Find neighboring triangles, accumulate vertex normals, normalize
     logger.info('    Triangle neighbors and vertex normals...')
@@ -366,9 +363,10 @@ def _get_surf_neighbors(surf, k):
 
 def _normalize_vectors(rr):
     """Normalize surface vertices."""
-    size = np.sqrt(np.sum(rr * rr, axis=1))
-    size[size == 0] = 1.0  # avoid divide-by-zero
-    rr /= size[:, np.newaxis]  # operate in-place
+    size = np.linalg.norm(rr, axis=1)
+    mask = (size > 0)
+    rr[mask] /= size[mask, np.newaxis]  # operate in-place
+    return size
 
 
 def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
@@ -546,10 +544,11 @@ def _tessellate_sphere_surf(level, rad=1.0):
 
 
 def _norm_midpt(ai, bi, rr):
-    a = np.array([rr[aii] for aii in ai])
-    b = np.array([rr[bii] for bii in bi])
-    c = (a + b) / 2.
-    return c / np.sqrt(np.sum(c ** 2, 1))[:, np.newaxis]
+    """Get normalized midpoint."""
+    c = rr[ai]
+    c += rr[bi]
+    _normalize_vectors(c)
+    return c
 
 
 def _tessellate_sphere(mylevel):
@@ -687,8 +686,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
 
     # set some final params
     inds = np.arange(surf['np'])
-    sizes = np.sqrt(np.sum(surf['nn'] ** 2, axis=1))
-    surf['nn'][inds] = surf['nn'][inds] / sizes[:, np.newaxis]
+    sizes = _normalize_vectors(surf['nn'])
     surf['inuse'][sizes <= 0] = False
     surf['nuse'] = np.sum(surf['inuse'])
     surf['subject_his_id'] = subject
@@ -936,10 +934,13 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
 
 def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
     """Get the distance to a triangle edge."""
-    return np.sqrt((p - p0) * (p - p0) * a +
-                   (q - q0) * (q - q0) * b +
-                   (p - p0) * (q - q0) * c +
-                   dist * dist)
+    p1 = p - p0
+    q1 = q - q0
+    out = p1 * p1 * a
+    out += q1 * q1 * b
+    out += p1 * q1 * c
+    out += dist * dist
+    return np.sqrt(out, out=out)
 
 
 def _get_tri_supp_geom(surf):
@@ -948,9 +949,9 @@ def _get_tri_supp_geom(surf):
     r12 = surf['rr'][surf['tris'][:, 1], :] - r1
     r13 = surf['rr'][surf['tris'][:, 2], :] - r1
     r1213 = np.array([r12, r13]).swapaxes(0, 1)
-    a = np.sum(r12 * r12, axis=1)
-    b = np.sum(r13 * r13, axis=1)
-    c = np.sum(r12 * r13, axis=1)
+    a = np.einsum('ij,ij->i', r12, r12)
+    b = np.einsum('ij,ij->i', r13, r13)
+    c = np.einsum('ij,ij->i', r12, r13)
     mat = np.rollaxis(np.array([[b, -c], [-c, a]]), 2)
     mat /= (a * b - c * c)[:, np.newaxis, np.newaxis]
     nn = fast_cross_3d(r12, r13)
@@ -1168,8 +1169,7 @@ def mesh_dist(tris, vert):
     edges = mesh_edges(tris).tocoo()
 
     # Euclidean distances between neighboring vertices
-    dist = np.sqrt(np.sum((vert[edges.row, :] - vert[edges.col, :]) ** 2,
-                          axis=1))
+    dist = np.linalg.norm(vert[edges.row, :] - vert[edges.col, :], axis=1)
     dist_matrix = csr_matrix((dist, (edges.row, edges.col)), shape=edges.shape)
     return dist_matrix
 
@@ -1231,3 +1231,38 @@ def read_tri(fname_in, swap=False, verbose=None):
     else:
         warn('Node normals were not read.')
     return (rr, tris)
+
+
+def _get_solids(tri_rrs, fros):
+    """Compute _sum_solids_div total angle in chunks."""
+    # NOTE: This incorporates the division by 4PI that used to be separate
+    # for tri_rr in tri_rrs:
+    #     v1 = fros - tri_rr[0]
+    #     v2 = fros - tri_rr[1]
+    #     v3 = fros - tri_rr[2]
+    #     triple = np.sum(fast_cross_3d(v1, v2) * v3, axis=1)
+    #     l1 = np.sqrt(np.sum(v1 * v1, axis=1))
+    #     l2 = np.sqrt(np.sum(v2 * v2, axis=1))
+    #     l3 = np.sqrt(np.sum(v3 * v3, axis=1))
+    #     s = (l1 * l2 * l3 +
+    #          np.sum(v1 * v2, axis=1) * l3 +
+    #          np.sum(v1 * v3, axis=1) * l2 +
+    #          np.sum(v2 * v3, axis=1) * l1)
+    #     tot_angle -= np.arctan2(triple, s)
+
+    # This is the vectorized version, but with a slicing heuristic to
+    # prevent memory explosion
+    tot_angle = np.zeros((len(fros)))
+    slices = np.r_[np.arange(0, len(fros), 100), [len(fros)]]
+    for i1, i2 in zip(slices[:-1], slices[1:]):
+        # shape (3 verts, n_tri, n_fro, 3 X/Y/Z)
+        vs = (fros[np.newaxis, np.newaxis, i1:i2] -
+              tri_rrs.transpose([1, 0, 2])[:, :, np.newaxis])
+        triples = _fast_cross_nd_sum(vs[0], vs[1], vs[2])
+        ls = np.linalg.norm(vs, axis=3)
+        ss = np.prod(ls, axis=0)
+        ss += np.einsum('ijk,ijk,ij->ij', vs[0], vs[1], ls[2])
+        ss += np.einsum('ijk,ijk,ij->ij', vs[0], vs[2], ls[1])
+        ss += np.einsum('ijk,ijk,ij->ij', vs[1], vs[2], ls[0])
+        tot_angle[i1:i2] = -np.sum(np.arctan2(triples, ss), axis=0)
+    return tot_angle
