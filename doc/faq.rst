@@ -153,13 +153,6 @@ This can only be done *before* running the function; subsequent changes in the
 same python session will have no effect.
 
 
-I want to edit documentation or modify the FAQ, but don't understand this crazy markup.
----------------------------------------------------------------------------------------
-MNE-python uses `reStructuredText (reST) <http://docutils.sourceforge.net/rst.html>`_ in its documentation. Try
-the `quick reference <http://docutils.sourceforge.net/docs/user/rst/quickref.html>`_ or the `primer <http://docutils.sourceforge.net/docs/user/rst/quickstart.html>`_
-for helpful examples.
-
-
 Resampling and decimating data
 ==============================
 
