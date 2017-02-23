@@ -1562,27 +1562,29 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     t1 = nib.load(t1_fname)
     ras2vox = np.linalg.inv(t1.header.get_vox2ras_tkr())
     trans = _get_trans(trans, fro='head', to='mri')[0]
+    zooms = t1.header.get_zooms()
     if coord_frame == 'head':
         affine_to = trans['trans'].copy()
         affine_to[:3, 3] *= 1000  # to mm
         aff = t1.affine.copy()
-        zooms = t1.header.get_zooms()
+
         aff[:3, :3] /= zooms
         affine_to = np.dot(affine_to, aff)
         t1 = resample_from_to(t1, ([int(t1.shape[i] * zooms[i]) for i
                                     in range(3)], affine_to))
-    else:
-        zooms = (1., 1., 1.)
 
     data = t1.get_data()
     dims = len(data)  # Symmetric size assumed.
-
+    dd = (dims / 2.) / 1000.
+    if coord_frame == 'mri':
+        dd *= t1.header.get_zooms()[0]
     fig = plt.figure()
     ax = Axes3D(fig) if ax is None else ax
     if coord_frame == 'head':
-        dipole_locs = dipole.pos
+        dipole_locs = np.array([apply_trans(ras2vox, loc * 1000.) * zooms
+                                for loc in dipole.pos])
         ori = dipole.ori
-        dd = (dims / 2.) / 1000.
+
         gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
                                    np.linspace(-dd, dd, dims))
     else:
@@ -1592,15 +1594,15 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         # Position in meters -> voxels.
         dipole_locs = np.array([apply_trans(ras2vox, loc * 1000.) for loc
                                 in dipole_locs])
-        gridx, gridy = np.meshgrid(np.linspace(0, dims, dims),
-                                   np.linspace(0, dims, dims))
+        gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
+                                   np.linspace(-dd, dd, dims))
 
     _plot_dipole(ax, data, dipole_locs, idx, dipole, gridx, gridy, ori,
-                 ras2vox, coord_frame, zooms, show_all)
+                 coord_frame, zooms, show_all)
     params = {'ax': ax, 'data': data, 'idx': idx, 'dipole': dipole,
               'dipole_locs': dipole_locs, 'gridx': gridx, 'gridy': gridy,
-              'ori': ori, 'ras2vox': ras2vox, 'coord_frame': coord_frame,
-              'zooms': zooms, 'show_all': show_all}
+              'ori': ori, 'coord_frame': coord_frame, 'zooms': zooms,
+              'show_all': show_all}
     ax.view_init(elev=30, azim=-140)
 
     callback_func = partial(_dipole_changed, params=params)
@@ -1611,21 +1613,27 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     return fig
 
 
-def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, ras2vox,
-                 coord_frame, zooms, show_all):
+def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
+                 zooms, show_all):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
+    point = points[idx]
+    xidx = int(round(point[0]))
+    yidx = int(round(point[1]))
+    zidx = int(round(point[2]))
+    xslice = data[xidx][::-1]
+    yslice = data[:, yidx][::-1].T
+    zslice = data[:, :, zidx][::-1].T[::-1]
     if coord_frame == 'head':
-        point = apply_trans(ras2vox, points[idx] * 1000.) * zooms
+        zooms = (1., 1., 1.)
+        xyz = dipole.pos
+    else:
+        point = points[idx] * zooms
         xidx = int(round(point[0]))
         yidx = int(round(point[1]))
         zidx = int(round(point[2]))
-    else:
-        xidx = int(round(points[idx, 0]))
-        yidx = int(round(points[idx, 1]))
-        zidx = int(round(points[idx, 2]))
+        xyz = dipole.pos
 
-    xyz = points.copy()
     ori = ori[idx]
     if show_all:
         colors = np.repeat('b', len(points))
@@ -1637,56 +1645,33 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, ras2vox,
         colors = 'r'
         size = 20
         visibles = idx
-    if coord_frame == 'head':
-        offset = (len(data) / 2.) / 1000.
-        ax.scatter(xs=xyz[visibles, 0], ys=xyz[visibles, 1],
-                   zs=xyz[visibles, 2], zorder=2, s=size, facecolor=colors)
 
-        xx = np.linspace(-offset, xyz[idx, 0], xidx)
-        yy = np.linspace(-offset, xyz[idx, 1], yidx)
-        zz = np.linspace(-offset, xyz[idx, 2], zidx)
-        ax.plot(xx, np.repeat(xyz[idx, 1], len(xx)), zs=xyz[idx, 2], zorder=1,
-                linestyle='-', color='b')
-        ax.plot(np.repeat(xyz[idx, 0], len(yy)), yy, zs=xyz[idx, 2], zorder=1,
-                linestyle='-', color='b')
-        ax.plot(np.repeat(xyz[idx, 0], len(zz)),
-                np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
-                linestyle='-', color='b')
-        ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1],
-                  ori[2], length=0.05, pivot='tail')
-        dims = np.array([(len(data) / -2.) / 1000., (len(data) / 2.) / 1000.])
-        ax.set_xlim(-1 * dims)  # Set axis lims to RAS coordinates.
-        ax.set_ylim(-1 * dims)
-        ax.set_zlim(dims)
-    else:
-        offset = 0
-        xyz[:, 0] = data.shape[0] - points[:, 0]
-        xyz[:, 1] = data.shape[1] - points[:, 1]
-        ax.scatter(xs=xyz[visibles, 0], ys=xyz[visibles, 2],
-                   zs=xyz[visibles, 1], zorder=2, s=size, facecolor=colors)
-        # Plot dipole position.
-        ax.plot(range(int(xyz[idx, 0])),
-                np.repeat(xyz[idx, 2], int(xyz[idx, 0])), zs=xyz[idx, 1],
-                zorder=1, linestyle='-', color='b')
-        ax.plot(np.repeat(xyz[idx, 0], int(xyz[idx, 2])),
-                range(int(xyz[idx, 2])), zs=xyz[idx, 1], zorder=1,
-                linestyle='-', color='b')
-        ax.plot(np.repeat(xyz[idx, 0], int(xyz[idx, 1])),
-                np.repeat(xyz[idx, 2], int(xyz[idx, 1])),
-                zs=range(int(xyz[idx, 1])), zorder=1, linestyle='-', color='b')
-        # Plot dipole orientation
-        ax.quiver(xyz[idx, 0], xyz[idx, 2], xyz[idx, 1], ori[0], ori[1],
-                  ori[2], length=len(data) / 10, pivot='tail')
-        ax.set_xlim((len(data), 0))  # Set axis lims to RAS coordinates.
-        ax.set_ylim((len(data), 0))
-        ax.set_zlim((0, len(data)))
+    offset = np.min(gridx)
+    ax.scatter(xs=xyz[visibles, 0], ys=xyz[visibles, 1],
+               zs=xyz[visibles, 2], zorder=2, s=size, facecolor=colors)
+    xx = np.linspace(offset, xyz[idx, 0], xidx)
+    yy = np.linspace(offset, xyz[idx, 1], yidx)
+    zz = np.linspace(offset, xyz[idx, 2], zidx)
+    ax.plot(xx, np.repeat(xyz[idx, 1], len(xx)), zs=xyz[idx, 2], zorder=1,
+            linestyle='-', color='b')
+    ax.plot(np.repeat(xyz[idx, 0], len(yy)), yy, zs=xyz[idx, 2], zorder=1,
+            linestyle='-', color='b')
+    ax.plot(np.repeat(xyz[idx, 0], len(zz)),
+            np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
+            linestyle='-', color='b')
+    ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1],
+              ori[2], length=0.05, pivot='tail')
+    dims = np.array([(len(data) / -2.) / 1000., (len(data) / 2.) / 1000.])
+    ax.set_xlim(-1 * dims * zooms[:2])  # Set axis lims to RAS coordinates.
+    ax.set_ylim(-1 * dims * zooms[:2])
+    ax.set_zlim(dims * zooms[:2])
 
     # Plot slices.
-    ax.contourf(data[xidx][::-1], gridx, gridy, offset=-offset, zdir='x',
+    ax.contourf(xslice, gridx, gridy, offset=offset, zdir='x',
                 cmap='gray', zorder=0, alpha=0.5)
-    ax.contourf(gridx, gridy, data[:, yidx][::-1].T, offset=-offset, zdir='z',
+    ax.contourf(gridx, gridy, yslice, offset=offset, zdir='z',
                 cmap='gray', zorder=0, alpha=0.5)
-    ax.contourf(gridx, data[:, :, zidx][::-1].T[::-1], gridy, offset=-offset,
+    ax.contourf(gridx, zslice, gridy, offset=offset,
                 zdir='y', cmap='gray', zorder=0, alpha=0.5)
 
     plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.1f, Amplitude: %.1fnAm\n' % (
@@ -1713,5 +1698,5 @@ def _dipole_changed(event, params):
     params['ax'].clear()
     _plot_dipole(params['ax'], params['data'], params['dipole_locs'],
                  params['idx'], params['dipole'], params['gridx'],
-                 params['gridy'], params['ori'], params['ras2vox'],
-                 params['coord_frame'], params['zooms'], params['show_all'])
+                 params['gridy'], params['ori'], params['coord_frame'],
+                 params['zooms'], params['show_all'])
