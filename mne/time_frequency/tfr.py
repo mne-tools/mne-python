@@ -678,7 +678,11 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 
     See Also
     --------
-    tfr_multitaper, tfr_stockwell
+    mne.time_frequency.tfr_array_morlet
+    mne.time_frequency.tfr_multitaper
+    mne.time_frequency.tfr_array_multitaper
+    mne.time_frequency.tfr_stockwell
+    mne.time_frequency.tfr_array_stockwell
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
                       zero_mean=zero_mean)
@@ -687,23 +691,23 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 
 
 @verbose
-def tfr_array_morlet(epoch_data, frequencies, sfreq=1.0, n_cycles=7.0,
+def tfr_array_morlet(epoch_data, sfreq, frequencies, n_cycles=7.0,
                      zero_mean=False, use_fft=True, decim=1, output='complex',
                      n_jobs=1, verbose=None):
-    """Compute time-frequency transforms.
+    """Compute time-frequency transform using Morlet wavelets.
 
-    Convolves a Morlet wavelet.
+    Convolves epoch data with selected Morlet wavelets.
 
     Parameters
     ----------
     epoch_data : array of shape (n_epochs, n_channels, n_times)
         The epochs.
+    sfreq : float | int
+        Sampling frequency of the data.
     frequencies : array-like of floats, shape (n_freqs)
         The frequencies.
-    sfreq : float | int
-        Sampling frequency of the data. Defaults to 1.0.
     n_cycles : float | array of float, defaults to 7.0
-        Number of cycles  in the Morlet wavelet. Fixed number or one per
+        Number of cycles in the Morlet wavelet. Fixed number or one per
         frequency.
     zero_mean : bool | False
         If True, make sure the wavelets have a mean of zero. Defaults to False.
@@ -744,6 +748,14 @@ def tfr_array_morlet(epoch_data, frequencies, sfreq=1.0, n_cycles=7.0,
         n_times), else it is (n_chans, n_freqs, n_times). If output is
         'avg_power_itc', the real values code for 'avg_power' and the
         imaginary values code for the 'itc': out = avg_power + i * itc
+
+    See Also
+    --------
+    mne.time_frequency.tfr_morlet
+    mne.time_frequency.tfr_multitaper
+    mne.time_frequency.tfr_array_multitaper
+    mne.time_frequency.tfr_stockwell
+    mne.time_frequency.tfr_array_stockwell
     """
     return _compute_tfr(epoch_data=epoch_data, frequencies=frequencies,
                         sfreq=sfreq, method='morlet', n_cycles=n_cycles,
@@ -810,7 +822,11 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
     See Also
     --------
-    tfr_multitaper, tfr_stockwell
+    mne.time_frequency.tfr_array_multitaper
+    mne.time_frequency.tfr_stockwell
+    mne.time_frequency.tfr_array_stockwell
+    mne.time_frequency.tfr_morlet
+    mne.time_frequency.tfr_array_morlet
 
     Notes
     -----

@@ -563,21 +563,21 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
 
 @verbose
-def tfr_array_multitaper(epoch_data, frequencies, sfreq=1.0, n_cycles=7.0,
+def tfr_array_multitaper(epoch_data, sfreq, frequencies, n_cycles=7.0,
                          zero_mean=True, time_bandwidth=None, use_fft=True,
                          decim=1, output='complex', n_jobs=1, verbose=None):
-    """Compute time-frequency transforms.
+    """Compute time-frequency transforms using wavelets and multitaper windows.
 
-    Uses Morlet wavelets windowed with multiple DPSS multitapers.
+    Uses Morlet wavelets windowed with multiple DPSS tapers.
 
     Parameters
     ----------
     epoch_data : array of shape (n_epochs, n_channels, n_times)
         The epochs.
+    sfreq : float | int
+        Sampling frequency of the data.
     frequencies : array-like of floats, shape (n_freqs)
         The frequencies.
-    sfreq : float | int
-        Sampling frequency of the data. Defaults to 1.0.
     n_cycles : float | array of float
         Number of cycles  in the Morlet wavelet. Fixed number or one per
         frequency. Defaults to 7.0.
@@ -624,6 +624,14 @@ def tfr_array_multitaper(epoch_data, frequencies, sfreq=1.0, n_cycles=7.0,
         n_times), else it is (n_chans, n_freqs, n_times). If output is
         'avg_power_itc', the real values code for 'avg_power' and the
         imaginary values code for the 'itc': out = avg_power + i * itc
+
+    See Also
+    --------
+    mne.time_frequency.tfr_multitaper
+    mne.time_frequency.tfr_morlet
+    mne.time_frequency.tfr_array_morlet
+    mne.time_frequency.tfr_stockwell
+    mne.time_frequency.tfr_array_stockwell
     """
     from .tfr import _compute_tfr
     return _compute_tfr(epoch_data, frequencies, sfreq=sfreq,
