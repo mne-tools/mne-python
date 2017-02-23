@@ -151,6 +151,7 @@ BUG
 
     - Raise error in :func:`mne.epochs.concatenate_epochs` when concatenated epochs have conflicting event_id by `Mikołaj Magnuski`_
 
+    - Fix handling of ``n_components=None`` in :class:`mne.preprocessing.ica.ICA` by `Richard Höchenberger`_
 
 API
 ~~~
@@ -2010,3 +2011,5 @@ of commits):
 .. _Leonardo Barbosa: https://github.com/noreun
 
 .. _Erkka Heinila: https://github.com/Teekuningas
+
+.. _Richard Höchenberger: http://hoechenberger.name
