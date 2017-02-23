@@ -756,6 +756,10 @@ def tfr_array_morlet(epoch_data, sfreq, frequencies, n_cycles=7.0,
     mne.time_frequency.tfr_array_multitaper
     mne.time_frequency.tfr_stockwell
     mne.time_frequency.tfr_array_stockwell
+
+    Notes
+    -----
+    .. versionadded:: 0.14.0
     """
     return _compute_tfr(epoch_data=epoch_data, frequencies=frequencies,
                         sfreq=sfreq, method='morlet', n_cycles=n_cycles,

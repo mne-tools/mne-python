@@ -495,7 +495,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, csd_epochs
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, csd_epochs, psd_multitaper
 
     Notes
     -----
@@ -632,6 +632,10 @@ def tfr_array_multitaper(epoch_data, sfreq, frequencies, n_cycles=7.0,
     mne.time_frequency.tfr_array_morlet
     mne.time_frequency.tfr_stockwell
     mne.time_frequency.tfr_array_stockwell
+
+    Notes
+    -----
+    .. versionadded:: 0.14.0
     """
     from .tfr import _compute_tfr
     return _compute_tfr(epoch_data, frequencies, sfreq=sfreq,
