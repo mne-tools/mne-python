@@ -34,7 +34,11 @@ if backend_is_wx:
                     'Pickled markers (*.pickled)|*.pickled']
     mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt"]
 else:
-    mrk_wildcard = ["*.sqd;*.mrk;*.txt;*.pickled"]
+    if os.name == 'nt':
+        # on Windows, multiple wildcards does not seem to work
+        mrk_wildcard = ["*.sqd", "*.mrk", "*.txt", "*.pickled"]
+    else:
+        mrk_wildcard = ["*.sqd;*.mrk;*.txt;*.pickled"]
     mrk_out_wildcard = "*.txt"
 out_ext = '.txt'
 
