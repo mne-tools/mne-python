@@ -7,7 +7,7 @@ import numpy as np
 from scipy import fftpack, linalg
 
 from ..parallel import parallel_func
-from ..utils import sum_squared, warn
+from ..utils import sum_squared, warn, verbose
 
 
 def tridisolve(d, e, b, overwrite_b=True):
@@ -451,9 +451,10 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     return x_mt, freqs
 
 
-def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
-                    adaptive=False, low_bias=True, normalization='length',
-                    n_jobs=1):
+@verbose
+def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
+                         adaptive=False, low_bias=True, normalization='length',
+                         n_jobs=1, verbose=None):
     """Compute power spectrum density (PSD) using a multi-taper method.
 
     Parameters
@@ -480,6 +481,9 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         the signal (as in nitime).
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -491,11 +495,11 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, csd_epochs
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, csd_epochs, psd_multitaper
 
     Notes
     -----
-    .. versionadded:: 0.12.0
+    .. versionadded:: 0.14.0
     """
     if normalization not in ('length', 'full'):
         raise ValueError('Normalization must be "length" or "full", not %s'
@@ -556,3 +560,86 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     if ndim_in == 1:
         psd = psd[0]
     return psd, freqs
+
+
+@verbose
+def tfr_array_multitaper(epoch_data, sfreq, frequencies, n_cycles=7.0,
+                         zero_mean=True, time_bandwidth=None, use_fft=True,
+                         decim=1, output='complex', n_jobs=1, verbose=None):
+    """Compute time-frequency transforms using wavelets and multitaper windows.
+
+    Uses Morlet wavelets windowed with multiple DPSS tapers.
+
+    Parameters
+    ----------
+    epoch_data : array of shape (n_epochs, n_channels, n_times)
+        The epochs.
+    sfreq : float | int
+        Sampling frequency of the data.
+    frequencies : array-like of floats, shape (n_freqs)
+        The frequencies.
+    n_cycles : float | array of float
+        Number of cycles  in the Morlet wavelet. Fixed number or one per
+        frequency. Defaults to 7.0.
+    zero_mean : bool
+        If True, make sure the wavelets have a mean of zero. Defaults to True.
+    time_bandwidth : float
+        If None, will be set to 4.0 (3 tapers). Time x (Full) Bandwidth
+        product. The number of good tapers (low-bias) is chosen automatically
+        based on this to equal floor(time_bandwidth - 1). Defaults to None
+    use_fft : bool
+        Use the FFT for convolutions or not. Defaults to True.
+    decim : int | slice
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition. Defaults to 1.
+        If `int`, returns tfr[..., ::decim].
+        If `slice`, returns tfr[..., decim].
+
+        .. note::
+            Decimation may create aliasing artifacts, yet decimation
+            is done after the convolutions.
+
+    output : str, defaults to 'complex'
+
+        * 'complex' : single trial complex.
+        * 'power' : single trial power.
+        * 'phase' : single trial phase.
+        * 'avg_power' : average of single trial power.
+        * 'itc' : inter-trial coherence.
+        * 'avg_power_itc' : average of single trial power and inter-trial
+          coherence across trials.
+
+    n_jobs : int
+        The number of epochs to process at the same time. The parallelization
+        is implemented across channels. Defaults to 1.
+    verbose : bool, str, int, or None, defaults to None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    out : array
+        Time frequency transform of epoch_data. If output is in ['complex',
+        'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
+        n_times), else it is (n_chans, n_freqs, n_times). If output is
+        'avg_power_itc', the real values code for 'avg_power' and the
+        imaginary values code for the 'itc': out = avg_power + i * itc
+
+    See Also
+    --------
+    mne.time_frequency.tfr_multitaper
+    mne.time_frequency.tfr_morlet
+    mne.time_frequency.tfr_array_morlet
+    mne.time_frequency.tfr_stockwell
+    mne.time_frequency.tfr_array_stockwell
+
+    Notes
+    -----
+    .. versionadded:: 0.14.0
+    """
+    from .tfr import _compute_tfr
+    return _compute_tfr(epoch_data, frequencies, sfreq=sfreq,
+                        method='multitaper', n_cycles=n_cycles,
+                        zero_mean=zero_mean, time_bandwidth=time_bandwidth,
+                        use_fft=use_fft, decim=decim, output=output,
+                        n_jobs=n_jobs, verbose=verbose)

@@ -97,8 +97,8 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     return psd, itc
 
 
-def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
-                             decim=1, return_itc=False, n_jobs=1):
+def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
+                        width=1.0, decim=1, return_itc=False, n_jobs=1):
     """Compute power and intertrial coherence using Stockwell (S) transform.
 
     Parameters
@@ -156,6 +156,14 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
         (2006). S-transform time-frequency analysis of P300 reveals deficits in
         individuals diagnosed with alcoholism.
         Clinical Neurophysiology 117 2128--2143
+
+    See Also
+    --------
+    mne.time_frequency.tfr_stockwell
+    mne.time_frequency.tfr_multitaper
+    mne.time_frequency.tfr_array_multitaper
+    mne.time_frequency.tfr_morlet
+    mne.time_frequency.tfr_array_morlet
     """
     n_epochs, n_channels = data.shape[:2]
     n_out = data.shape[2] // decim + bool(data.shape[2] % decim)
@@ -229,7 +237,11 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
 
     See Also
     --------
-    tfr_morlet, psd_multitaper
+    mne.time_frequency.tfr_array_stockwell
+    mne.time_frequency.tfr_multitaper
+    mne.time_frequency.tfr_array_multitaper
+    mne.time_frequency.tfr_morlet
+    mne.time_frequency.tfr_array_morlet
 
     Notes
     -----
@@ -241,14 +253,11 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     info = pick_info(inst.info, picks)
     data = data[:, picks, :]
     n_jobs = check_n_jobs(n_jobs)
-    power, itc, freqs = _induced_power_stockwell(data,
-                                                 sfreq=info['sfreq'],
-                                                 fmin=fmin, fmax=fmax,
-                                                 n_fft=n_fft,
-                                                 width=width,
-                                                 decim=decim,
-                                                 return_itc=return_itc,
-                                                 n_jobs=n_jobs)
+    power, itc, freqs = tfr_array_stockwell(data, sfreq=info['sfreq'],
+                                            fmin=fmin, fmax=fmax, n_fft=n_fft,
+                                            width=width, decim=decim,
+                                            return_itc=return_itc,
+                                            n_jobs=n_jobs)
     times = inst.times[::decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave, method='stockwell-power')

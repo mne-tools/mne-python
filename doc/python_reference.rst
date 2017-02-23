@@ -946,6 +946,9 @@ Functions that operate on mne-python objects:
    tfr_morlet
    tfr_multitaper
    tfr_stockwell
+   tfr_array_morlet
+   tfr_array_multitaper
+   tfr_array_stockwell
    read_tfrs
    write_tfrs
 
@@ -961,6 +964,8 @@ Functions that operate on ``np.ndarray`` objects:
    stft
    istft
    stftfreq
+   psd_array_multitaper
+   psd_array_welch
 
 
 :py:mod:`mne.time_frequency.tfr`:
