@@ -20,16 +20,16 @@ def _psd_func(epoch, noverlap, n_per_seg, nfft, fs, freq_mask, func):
 def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     """Helper to make sure n_fft, n_per_seg and n_overlap make sense."""
     if n_per_seg is None and n_fft > n:
-        msg = ('If n_per_seg is None n_fft is not allowed to be > n_times. If '
-               'you want zero-padding, you have to set n_per_seg to relevant '
-               'length. Got n_fft of {} while signal length is {}.')
-        raise ValueError(msg.format(n_fft, n))
+        raise ValueError(('If n_per_seg is None n_fft is not allowed to be > '
+                          'n_times. If you want zero-padding, you have to set '
+                          'n_per_seg to relevant length. Got n_fft of %d while'
+                          ' signal length is %d.') % (n_fft, n))
     n_per_seg = n_fft if n_per_seg is None or n_per_seg > n_fft else n_per_seg
     n_per_seg = n if n_per_seg > n else n_per_seg
     if n_overlap >= n_per_seg:
-        msg = ('n_overlap cannot be greater than n_per_seg (or n_fft). Got '
-               'n_overlap of {} while n_per_seg is {}.')
-        raise ValueError(msg.format(n_overlap, n_per_seg))
+        raise ValueError(('n_overlap cannot be greater than n_per_seg (or '
+                          'n_fft). Got n_overlap of %d while n_per_seg is '
+                          '%d.') % (n_overlap, n_per_seg))
     return n_fft, n_per_seg, n_overlap
 
 
