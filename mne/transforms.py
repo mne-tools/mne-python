@@ -8,6 +8,7 @@ import os
 from os import path as op
 import glob
 import copy
+from numbers import Integral
 import numpy as np
 from numpy import sin, cos
 from scipy import linalg
@@ -63,7 +64,7 @@ def _to_const(cf):
         if cf not in _str_to_frame:
             raise ValueError('Unknown cf %s' % cf)
         cf = _str_to_frame[cf]
-    elif not isinstance(cf, (int, np.integer)):
+    elif not isinstance(cf, Integral):
         raise TypeError('cf must be str or int, not %s' % type(cf))
     return int(cf)
 
