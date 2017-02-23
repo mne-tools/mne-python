@@ -25,7 +25,8 @@ from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
-                      _compute_nearest, _get_ico_surface, read_tri)
+                      _compute_nearest, _get_ico_surface, read_tri,
+                      _fast_cross_nd_sum, _get_solids)
 from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn, _pl
 from .externals.six import string_types
 
@@ -80,7 +81,6 @@ def _calc_beta(rk, rk_norm, rk1, rk1_norm):
 
 def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
     """Compute the linear potential matrix element computations."""
-    from .source_space import _fast_cross_nd_sum
     omega = np.zeros((len(fros), 3))
 
     # we replicate a little bit of the _get_solids code here for speed
@@ -392,7 +392,6 @@ def _order_surfaces(surfs):
 def _assert_complete_surface(surf):
     """Check the sum of solid angles as seen from inside."""
     # from surface_checks.c
-    from .source_space import _get_solids
     tot_angle = 0.
     # Center of mass....
     cm = surf['rr'].mean(axis=0)
@@ -417,7 +416,6 @@ _surf_name = {
 def _assert_inside(fro, to):
     """Helper to check one set of points is inside a surface."""
     # this is "is_inside" in surface_checks.c
-    from .source_space import _get_solids
     tot_angle = _get_solids(to['rr'][to['tris']], fro['rr'])
     if (np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5).any():
         raise RuntimeError('Surface %s is not completely inside surface %s'
