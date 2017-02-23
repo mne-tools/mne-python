@@ -486,13 +486,13 @@ def test_compute_tfr():
          'avg_power_itc', 'avg_power', 'itc')):
         # Check exception
         if (func == tfr_array_multitaper) and (output == 'phase'):
-            assert_raises(NotImplementedError, func, data, freqs, sfreq=sfreq,
-                          output=output)
+            assert_raises(NotImplementedError, func, data, sfreq=sfreq,
+                          frequencies=freqs, output=output)
             continue
 
         # Check runs
-        out = func(data, freqs, sfreq, use_fft=use_fft, zero_mean=zero_mean,
-                   n_cycles=2., output=output)
+        out = func(data, sfreq=sfreq, frequencies=freqs, use_fft=use_fft,
+                   zero_mean=zero_mean, n_cycles=2., output=output)
         # Check shapes
         shape = np.r_[data.shape[:2], len(freqs), data.shape[2]]
         if ('avg' in output) or ('itc' in output):
