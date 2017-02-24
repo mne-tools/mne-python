@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eventTrack xmlns="http://www.egi.com/event_mff" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <name>255 DINs</name>
+    <trackType>STIM</trackType>
+    <event>
+        <beginTime>2017-02-23T11:35:15.658824+01:00</beginTime>
+        <duration>1000</duration>
+        <code>DIN1</code>
+        <label>DIN1</label>
+        <description>1</description>
+        <sourceDevice></sourceDevice>
+        <keys>
+            <key>
+                <keyCode>gidx</keyCode>
+                <data dataType="string">1</data>
+            </key>
+            <key>
+                <keyCode>cidx</keyCode>
+                <data dataType="string">1</data>
+            </key>
+        </keys>
+    </event>
+    <event>
+        <beginTime>2017-02-23T11:35:18.670824+01:00</beginTime>
+        <duration>1000</duration>
+        <code>DIN2</code>
+        <label>DIN2</label>
+        <description>2</description>
+        <sourceDevice></sourceDevice>
+        <keys>
+            <key>
+                <keyCode>gidx</keyCode>
+                <data dataType="string">2</data>
+            </key>
+            <key>
+                <keyCode>cidx</keyCode>
+                <data dataType="string">1</data>
+            </key>
+        </keys>
+    </event>
+    <event>
+        <beginTime>2017-02-23T11:35:19.671824+01:00</beginTime>
+        <duration>1000</duration>
+        <code>DIN3</code>
+        <label>DIN3</label>
+        <description>3</description>
+        <sourceDevice></sourceDevice>
+        <keys>
+            <key>
+                <keyCode>gidx</keyCode>
+                <data dataType="string">3</data>
+            </key>
+            <key>
+                <keyCode>cidx</keyCode>
+                <data dataType="string">1</data>
+            </key>
+        </keys>
+    </event>
+    <event>
+        <beginTime>2017-02-23T11:35:27.863824+01:00</beginTime>
+        <duration>1000</duration>
+        <code>DIN4</code>
+        <label>DIN4</label>
+        <description>4</description>
+        <sourceDevice></sourceDevice>
+        <keys>
+            <key>
+                <keyCode>gidx</keyCode>
+                <data dataType="string">4</data>
+            </key>
+            <key>
+                <keyCode>cidx</keyCode>
+                <data dataType="string">1</data>
+            </key>
+        </keys>
+    </event>
+    <event>
+        <beginTime>2017-02-23T11:35:28.863824+01:00</beginTime>
+        <duration>1000</duration>
+        <code>DIN5</code>
+        <label>DIN5</label>
+        <description>5</description>
+        <sourceDevice></sourceDevice>
+        <keys>
+            <key>
+                <keyCode>gidx</keyCode>
+                <data dataType="string">5</data>
+            </key>
+            <key>
+                <keyCode>cidx</keyCode>
+                <data dataType="string">1</data>
+            </key>
+        </keys>
+    </event>
+    <event>
+        <beginTime>2017-02-23T11:35:31.287824+01:00</beginTime>
+        <duration>1000</duration>
+        <code>DIN7</code>
+        <label>DIN7</label>
+        <description>6</description>
+        <sourceDevice></sourceDevice>
+        <keys>
+            <key>
+                <keyCode>gidx</keyCode>
+                <data dataType="string">6</data>
+            </key>
+            <key>
+                <keyCode>cidx</keyCode>
+                <data dataType="string">1</data>
+            </key>
+        </keys>
+    </event>
+    <event>
+        <beginTime>2017-02-23T11:35:33.602824+01:00</beginTime>
+        <duration>1000</duration>
+        <code>DIN7</code>
+        <label>DIN7</label>
+        <description>7</description>
+        <sourceDevice></sourceDevice>
+        <keys>
+            <key>
+                <keyCode>gidx</keyCode>
+                <data dataType="string">7</data>
+            </key>
+            <key>
+                <keyCode>cidx</keyCode>
+                <data dataType="string">2</data>
+            </key>
+        </keys>
+    </event>
+    <event>
+        <beginTime>2017-02-23T11:35:34.331824+01:00</beginTime>
+        <duration>1000</duration>
+        <code>DIN1</code>
+        <label>DIN1</label>
+        <description>8</description>
+        <sourceDevice></sourceDevice>
+        <keys>
+            <key>
+                <keyCode>gidx</keyCode>
+                <data dataType="string">8</data>
+            </key>
+            <key>
+                <keyCode>cidx</keyCode>
+                <data dataType="string">2</data>
+            </key>
+        </keys>
+    </event>
+</eventTrack>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<patient xmlns="http://www.egi.com/subject_mff" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <fields>
+        <field>
+            <name>Patient ID</name>
+            <data dataType="string">testfile23022017</data>
+            <choices></choices>
+        </field>
+        <field>
+            <name>Last (Family) Name</name>
+            <data dataType="string"></data>
+            <choices></choices>
+        </field>
+        <field>
+            <name>First (Given) Name</name>
+            <data dataType="string"></data>
+            <choices></choices>
+        </field>
+        <field>
+            <name>Date of Birth</name>
+            <data dataType="date"></data>
+            <choices></choices>
+        </field>
+        <field>
+            <name>Age</name>
+            <data dataType="string"></data>
+            <choices></choices>
+        </field>
+        <field>
+            <name>Gender</name>
+            <data dataType="choice"></data>
+            <choices>? Male Female</choices>
+        </field>
+        <field>
+            <name>Handedness</name>
+            <data dataType="choice"></data>
+            <choices>? Left Right</choices>
+        </field>
+        <field>
+            <name>Family Handedness</name>
+            <data dataType="choice"></data>
+            <choices>? Left Right</choices>
+        </field>
+        <field>
+            <name>Session Number</name>
+            <data dataType="string">1</data>
+            <choices></choices>
+        </field>
+        <field>
+            <name>Counterbalance Info</name>
+            <data dataType="string"></data>
+            <choices></choices>
+        </field>
+        <field>
+            <name>Patient History</name>
+            <data dataType="string"></data>
+            <choices></choices>
+        </field>
+        <field>
+            <name>Patient State</name>
+            <data dataType="string"></data>
+            <choices></choices>
+        </field>
+        <field>
+            <name>Technician</name>
+            <data dataType="string"></data>
+            <choices></choices>
+        </field>
+        <field>
+            <name>Physician</name>
+            <data dataType="string"></data>
+            <choices></choices>
+        </field>
+        <field>
+            <name>Comments</name>
+            <data dataType="string"></data>
+            <choices></choices>
+        </field>
+    </fields>
+</patient>

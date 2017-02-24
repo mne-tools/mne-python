@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<epochs xmlns="http://www.egi.com/epochs_mff" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <epoch>
+        <beginTime>0</beginTime>
+        <endTime>21926000</endTime>
+        <firstBlock>1</firstBlock>
+        <lastBlock>6</lastBlock>
+    </epoch>
+</epochs>
