@@ -7,7 +7,8 @@ from scipy.stats import trim_mean
 
 from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
-from mne.utils import slow_test, run_tests_if_main
+from mne.fixes import get_trim_mean
+from mne.utils import requires_version, slow_test, run_tests_if_main
 from mne.time_frequency import psd_welch, psd_multitaper, psd_array_welch
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -85,17 +86,19 @@ def test_psd():
     assert_true(psds1.shape[-1] == np.floor(psds2.shape[-1] / 2.))
 
     # tests ValueError when n_per_seg=None and n_fft > signal length
-    kws_psd.update(dict(n_fft=tmax * 1.1 * raw.info['sfreq']))
+    kws_psd_temp = kws_psd.copy()
+    kws_psd_temp.update(dict(n_fft=tmax * 1.1 * raw.info['sfreq']))
     assert_raises(ValueError, psd_welch, raw, proj=False, n_per_seg=None,
-                  **kws_psd)
+                  **kws_psd_temp)
     # ValueError when n_overlap > n_per_seg
-    kws_psd.update(dict(n_fft=128, n_per_seg=64, n_overlap=90))
-    assert_raises(ValueError, psd_welch, raw, proj=False, **kws_psd)
+    kws_psd_temp.update(dict(n_fft=128, n_per_seg=64, n_overlap=90))
+    assert_raises(ValueError, psd_welch, raw, proj=False, **kws_psd_temp)
 
     # test reduction
     windows, freqs = psd_welch(raw, proj=False, reduction=None, **kws_psd)
     windows_mean, _ = psd_welch(raw, proj=False, reduction='mean', **kws_psd)
     assert_array_almost_equal(windows.mean(axis=-3), windows_mean)
+    trim_mean = get_trim_mean()
     windows_trim, _ = psd_welch(raw, proj=False, reduction=0.2, **kws_psd)
     assert_array_almost_equal(trim_mean(windows, 0.2, axis=-3), windows_trim)
 
