@@ -325,44 +325,8 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                          'colors.')
                     spatial_colors = selectable = False
                 if spatial_colors is True and len(idx) != 1:
-                    x, y, z = locs3d.T
-                    colors = _rgb(x, y, z)
-                    if this_type in ('meg', 'mag', 'grad', 'eeg'):
-                        layout = find_layout(info, ch_type=this_type,
-                                             exclude=[])
-                    else:
-                        layout = find_layout(info, None, exclude=[])
-                    head_pos = None
-                    # drop channels that are not in the data
-                    used_nm = np.array(_clean_names(info['ch_names']))[idx]
-                    if layout is None:
-                        name_idx = list()
-                    else:
-                        names = np.asarray([name for name in used_nm
-                                            if name in layout.names])
-                        name_idx = [layout.names.index(name) for name in names]
-                    if len(name_idx) < len(chs):
-                        warn('Could not find layout for all the channels. '
-                             'Generating custom layout from channel '
-                             'positions.')
-                        xy = _auto_topomap_coords(info, idx,
-                                                  ignore_overlap=True)
-                        layout = generate_2d_layout(
-                            xy, ch_names=list(used_nm), name='custom',
-                            normalize=False)
-                        names = used_nm
-                        name_idx = [layout.names.index(name) for name in
-                                    names]
-                        head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
-
-                    # find indices for bads
-                    bads = [np.where(names == bad)[0][0] for bad in
-                            info['bads'] if bad in names]
-                    pos, outlines = _check_outlines(layout.pos[:, :2], 'skirt',
-                                                    head_pos)
-                    pos = pos[name_idx]
-                    loc = 1 if psd else 2  # Legend in top right for psd plot.
-                    _plot_legend(pos, colors, ax, bads, outlines, loc)
+                    colors = _handle_spatial_colors(locs3d, info, idx, chs,
+                                                    this_type, psd, ax)
                 else:
                     if isinstance(spatial_colors, (tuple, string_types)):
                         col = [spatial_colors]
@@ -459,6 +423,44 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             ax._span_selector = SpanSelector(
                 ax, callback_onselect, 'horizontal', minspan=minspan,
                 useblit=blit, rectprops=dict(alpha=0.5, facecolor='red'))
+
+
+def _handle_spatial_colors(locs3d, info, idx, chs, type, psd, ax):
+    """Helper for spatial colors."""
+    x, y, z = locs3d.T
+    colors = _rgb(x, y, z)
+    if type in ('meg', 'mag', 'grad', 'eeg'):
+        layout = find_layout(info, ch_type=type, exclude=[])
+    else:
+        layout = find_layout(info, None, exclude=[])
+    head_pos = None
+    outlines = 'skirt'
+    # drop channels that are not in the data
+    used_nm = np.array(_clean_names(info['ch_names']))[idx]
+    if layout is None:
+        name_idx = list()
+    else:
+        names = np.asarray([name for name in used_nm if name in layout.names])
+        name_idx = [layout.names.index(name) for name in names]
+    if len(name_idx) < len(chs):
+        warn('Could not find layout for all the channels. Generating custom '
+             'layout from channel positions.')
+        xy = _auto_topomap_coords(info, idx, ignore_overlap=True,
+                                  to_sphere=False)
+        layout = generate_2d_layout(xy, ch_names=list(used_nm), name='custom',
+                                    normalize=False)
+        names = used_nm
+        name_idx = [layout.names.index(name) for name in names]
+        head_pos = {'center': (0, 0), 'scale': (4.5, 4.5)}
+        outlines = np.array([0.5, 0.5])
+    # find indices for bads
+    bads = [np.where(names == bad)[0][0] for bad in info['bads'] if bad in
+            names]
+    pos, outlines = _check_outlines(layout.pos[:, :2], outlines, head_pos)
+    pos = pos[name_idx]
+    loc = 1 if psd else 2  # Legend in top right for psd plot.
+    _plot_legend(pos, colors, ax, bads, outlines, loc)
+    return colors
 
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,

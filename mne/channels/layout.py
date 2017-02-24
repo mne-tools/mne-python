@@ -653,7 +653,7 @@ def _find_topomap_coords(info, picks, layout=None):
     return pos
 
 
-def _auto_topomap_coords(info, picks, ignore_overlap=False):
+def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     """Make a 2 dimensional sensor map from sensor positions in an info dict.
 
     The default is to use the electrode locations. The fallback option is to
@@ -669,6 +669,9 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
     ignore_overlap : bool
         Whether to ignore overlapping positions in the layout. If False and
         positions overlap, an error is thrown.
+    to_sphere : bool
+        If True, the radial distance of spherical coordinates is ignored, in
+        effect fitting the xyz-coordinates to a sphere. Defaults to True.
 
     Returns
     -------
@@ -741,8 +744,11 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
         raise ValueError('The following electrodes have overlapping positions:'
                          '\n    ' + str(problematic_electrodes) + '\nThis '
                          'causes problems during visualization.')
-    # use spherical (theta, pol) as (r, theta) for polar->cartesian
-    return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+
+    if to_sphere:
+        # use spherical (theta, pol) as (r, theta) for polar->cartesian
+        return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+    return _pol_to_cart(_cart_to_sph(locs3d))
 
 
 def _topo_to_sphere(pos, eegs):
