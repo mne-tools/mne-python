@@ -594,6 +594,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
 
     psd_list = list()
     if n_fft is None:
+        tmax = raw.times[-1] if not np.isfinite(tmax) else tmax
         n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
