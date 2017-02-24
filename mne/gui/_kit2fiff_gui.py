@@ -46,6 +46,11 @@ if backend_is_wx:
     hsp_wildcard = ['Head Shape Points (*.hsp;*.txt)|*.hsp;*.txt']
     elp_wildcard = ['Head Shape Fiducials (*.elp;*.txt)|*.elp;*.txt']
     kit_con_wildcard = ['Continuous KIT Files (*.sqd;*.con)|*.sqd;*.con']
+elif os.name == 'nt':
+    # on Windows, multiple wildcards does not seem to work
+    hsp_wildcard = ['*.hsp', '*.txt']
+    elp_wildcard = ['*.elp', '*.txt']
+    kit_con_wildcard = ['*.sqd', '*.con']
 else:
     hsp_wildcard = ['*.hsp;*.txt']
     elp_wildcard = ['*.elp;*.txt']
