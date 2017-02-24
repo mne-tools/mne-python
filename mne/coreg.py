@@ -73,7 +73,7 @@ def _find_head_bem(subject, subjects_dir, high_res=False):
 
 
 def coregister_fiducials(info, fiducials, tol=0.01):
-    """Create a head-MRI transform by aligning 3 fiducial points
+    """Create a head-MRI transform by aligning 3 fiducial points.
 
     Parameters
     ----------
