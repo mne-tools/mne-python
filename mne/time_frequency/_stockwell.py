@@ -101,6 +101,8 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
                         width=1.0, decim=1, return_itc=False, n_jobs=1):
     """Compute power and intertrial coherence using Stockwell (S) transform.
 
+    See [1]_, [2]_, [3]_, [4]_ for more information.
+
     Parameters
     ----------
     data : ndarray
@@ -139,23 +141,23 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
 
     References
     ----------
-    Stockwell, R. G. "Why use the S-transform." AMS Pseudo-differential
-        operators: Partial differential equations and time-frequency
-        analysis 52 (2007): 279-309.
-    Moukadem, A., Bouguila, Z., Abdeslam, D. O, and Dieterlen, A. Stockwell
-        transform optimization applied on the detection of split in heart
-        sounds (2014). Signal Processing Conference (EUSIPCO), 2013 Proceedings
-        of the 22nd European, pages 2015--2019.
-    Wheat, K., Cornelissen, P. L., Frost, S.J, and Peter C. Hansen (2010).
-        During Visual Word Recognition, Phonology Is Accessed
-        within 100 ms and May Be Mediated by a Speech Production
-        Code: Evidence from Magnetoencephalography. The Journal of
-        Neuroscience, 30 (15), 5229-5233.
-    K. A. Jones and B. Porjesz and D. Chorlian and M. Rangaswamy and C.
-        Kamarajan and A. Padmanabhapillai and A. Stimus and H. Begleiter
-        (2006). S-transform time-frequency analysis of P300 reveals deficits in
-        individuals diagnosed with alcoholism.
-        Clinical Neurophysiology 117 2128--2143
+    .. [1] Stockwell, R. G. "Why use the S-transform." AMS Pseudo-differential
+       operators: Partial differential equations and time-frequency
+       analysis 52 (2007): 279-309.
+    .. [2] Moukadem, A., Bouguila, Z., Abdeslam, D. O, and Dieterlen, A.
+       Stockwell transform optimization applied on the detection of split in
+       heart sounds (2014). Signal Processing Conference (EUSIPCO), 2013
+       Proceedings of the 22nd European, pages 2015--2019.
+    .. [3] Wheat, K., Cornelissen, P. L., Frost, S.J, and Peter C. Hansen
+       (2010). During Visual Word Recognition, Phonology Is Accessed
+       within 100 ms and May Be Mediated by a Speech Production
+       Code: Evidence from Magnetoencephalography. The Journal of
+       Neuroscience, 30 (15), 5229-5233.
+    .. [4] K. A. Jones and B. Porjesz and D. Chorlian and M. Rangaswamy and C.
+       Kamarajan and A. Padmanabhapillai and A. Stimus and H. Begleiter
+       (2006). S-transform time-frequency analysis of P300 reveals deficits in
+       individuals diagnosed with alcoholism.
+       Clinical Neurophysiology 117 2128--2143
 
     See Also
     --------

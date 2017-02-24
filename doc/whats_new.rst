@@ -81,6 +81,8 @@ Changelog
 
     - Add support for reading in EGI MFF digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
 
+    - Add ``n_per_seg`` keyword argument to :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` that allows to control segment length independently of ``n_fft`` and use zero-padding when ``n_fft > n_per_seg`` by `Mikołaj Magnuski`_
+
     - Add annotation aware data getter :meth:`mne.io.Raw.get_data` by `Jaakko Leppakangas`_
 
 BUG
@@ -150,7 +152,9 @@ BUG
 
     - Fix :func:`mne.fit_dipole` to handle sphere model rank deficiency properly by `Alex Gramfort`_
 
-    - Raise error in :func:`mne.epochs.concatenate_epochs` when concatenated epochs have conflicting event_id by `Mikołaj Magnuski`_
+    - Raise error in :func:`mne.concatenate_epochs` when concatenated epochs have conflicting event_id by `Mikołaj Magnuski`_
+
+    - Fix handling of ``n_components=None`` in :class:`mne.preprocessing.ica.ICA` by `Richard Höchenberger`_
 
 API
 ~~~
@@ -2015,3 +2019,7 @@ of commits):
 .. _Leonardo Barbosa: https://github.com/noreun
 
 .. _Erkka Heinila: https://github.com/Teekuningas
+
+.. _Richard Höchenberger: http://hoechenberger.name
+
+.. _Matt Boggess: https://github.com/mattboggess

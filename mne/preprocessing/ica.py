@@ -233,8 +233,9 @@ class ICA(ContainsMixin):
 
         self.noise_cov = noise_cov
 
-        if max_pca_components is not None and \
-                n_components > max_pca_components:
+        if (n_components is not None and
+                max_pca_components is not None and
+                n_components > max_pca_components):
             raise ValueError('n_components must be smaller than '
                              'max_pca_components')
 
