@@ -848,6 +848,14 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
     """Base TFR class."""
 
     @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, data):
+        self._data = data
+
+    @property
     def ch_names(self):
         """Channel names."""
         return self.info['ch_names']
@@ -968,6 +976,7 @@ class AverageTFR(_BaseTFR):
         self.nave = nave
         self.comment = comment
         self.method = method
+        self.preload = True
 
     @verbose
     def plot(self, picks, baseline=None, mode='mean', tmin=None, tmax=None,
@@ -1497,6 +1506,7 @@ class EpochsTFR(_BaseTFR):
         self.freqs = np.array(freqs, dtype=float)
         self.comment = comment
         self.method = method
+        self.preload = True
 
     def __repr__(self):  # noqa: D105
         s = "time : [%f, %f]" % (self.times[0], self.times[-1])
@@ -1596,7 +1606,7 @@ def _get_data(inst, return_itc):
     else:
         if return_itc:
             raise ValueError('return_itc must be False for evoked data')
-        data = inst.data[np.newaxis, ...].copy()
+        data = inst.data[np.newaxis].copy()
     return data
 
 

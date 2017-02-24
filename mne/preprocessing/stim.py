@@ -9,6 +9,7 @@ from ..io import BaseRaw
 from ..event import find_events
 
 from ..io.pick import _pick_data_channels
+from ..io.base import _check_preload
 
 
 def _get_window(start, end):
@@ -18,14 +19,6 @@ def _get_window(start, end):
                        np.ones(np.abs(end - start) - 4),
                        hann(4)[-2:]].T
     return window
-
-
-def _check_preload(inst):
-    """Check if inst.preload is False. If it is False, raising error."""
-    if inst.preload is False:
-        raise RuntimeError('Modifying data of Instance is only supported '
-                           'when preloading is used. Use preload=True '
-                           '(or string) in the constructor.')
 
 
 def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
@@ -86,8 +79,8 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         window = _get_window(s_start, s_end)
     picks = _pick_data_channels(inst.info)
 
+    _check_preload(inst, 'fix_stim_artifact')
     if isinstance(inst, BaseRaw):
-        _check_preload(inst)
         if events is None:
             events = find_events(inst, stim_channel=stim_channel)
         if len(events) == 0:
@@ -104,7 +97,6 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
             _fix_artifact(data, window, picks, first_samp, last_samp, mode)
 
     elif isinstance(inst, BaseEpochs):
-        _check_preload(inst)
         if inst.reject is not None:
             raise RuntimeError('Reject is already applied. Use reject=None '
                                'in the constructor.')

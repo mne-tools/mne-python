@@ -55,7 +55,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
         data, times = inst[picks, start:(stop + 1)]
     elif isinstance(inst, BaseEpochs):
         data = inst.get_data()[:, picks][:, :, time_mask]
-    elif isinstance(inst, Evoked):
+    else:  # Evoked
         data = inst.data[picks][:, time_mask]
 
     return data, sfreq

@@ -2255,17 +2255,10 @@ class FilterMixin(object):
                Differentiation of Data by Simplified Least Squares
                Procedures". Analytical Chemistry 36 (8): 1627-39.
         """  # noqa: E501
-        from .evoked import Evoked
-        from .epochs import BaseEpochs
         inst = self.copy() if copy else self
-        if isinstance(inst, Evoked):
-            data = inst.data
-            axis = 1
-        elif isinstance(inst, BaseEpochs):
-            if not inst.preload:
-                raise RuntimeError('data must be preloaded to filter')
-            data = inst._data
-            axis = 2
+        if not inst.preload:
+            raise RuntimeError('data must be preloaded to filter')
+        data = inst._data
 
         h_freq = float(h_freq)
         if h_freq >= inst.info['sfreq'] / 2.:
@@ -2277,7 +2270,7 @@ class FilterMixin(object):
         from scipy.signal import savgol_filter
         window_length = (int(np.round(inst.info['sfreq'] /
                                       h_freq)) // 2) * 2 + 1
-        data[...] = savgol_filter(data, axis=axis, polyorder=5,
+        data[...] = savgol_filter(data, axis=-1, polyorder=5,
                                   window_length=window_length)
         return inst
 
