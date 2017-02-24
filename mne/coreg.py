@@ -24,7 +24,7 @@ from .io.constants import FIFF
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
                            write_source_spaces)
-from .surface import read_surface, write_surface
+from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import rotation, rotation3d, scaling, translation, Transform
 from .utils import get_config, get_subjects_dir, logger, pformat
@@ -958,7 +958,7 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
         surf['rr'] *= scale
         if nn_scale is not None:
             surf['nn'] *= nn_scale
-            surf['nn'] /= np.sqrt(np.sum(surf['nn'] ** 2, 1))[:, np.newaxis]
+            _normalize_vectors(surf['nn'])
     write_bem_surfaces(dst, surfs)
 
 
@@ -1190,7 +1190,7 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
                 ss['dist_limit'] *= scale
         else:  # non-uniform scaling
             ss['nn'] *= nn_scale
-            ss['nn'] /= np.sqrt(np.sum(ss['nn'] ** 2, 1))[:, np.newaxis]
+            _normalize_vectors(ss['nn'])
             if ss['dist'] is not None:
                 add_dist = True
 
