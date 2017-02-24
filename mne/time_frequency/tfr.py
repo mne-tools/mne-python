@@ -762,12 +762,12 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
     """Base TFR class."""
 
     @property
-    def _data(self):
-        return self.data
+    def data(self):
+        return self._data
 
-    @_data.setter
-    def _data(self, data):
-        self.data = data
+    @data.setter
+    def data(self, data):
+        self._data = data
 
     @property
     def ch_names(self):

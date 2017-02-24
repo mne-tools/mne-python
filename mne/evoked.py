@@ -116,12 +116,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self.apply_proj()
 
     @property
-    def _data(self):
-        return self.data
+    def data(self):
+        return self._data
 
-    @_data.setter
-    def _data(self, data):
-        self.data = data
+    @data.setter
+    def data(self, data):
+        self._data = data
 
     @verbose
     def apply_baseline(self, baseline=(None, 0), verbose=None):
