@@ -97,7 +97,7 @@ def test_object_size():
     for lower, upper, obj in ((0, 60, ''),
                               (0, 30, 1),
                               (0, 30, 1.),
-                              (0, 60, 'foo'),
+                              (0, 70, 'foo'),
                               (0, 150, np.ones(0)),
                               (0, 150, np.int32(1)),
                               (150, 500, np.ones(20)),
