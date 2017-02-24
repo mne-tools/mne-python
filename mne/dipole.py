@@ -219,12 +219,13 @@ class Dipole(object):
 
     @copy_function_doc_to_method_doc(plot_dipole_mri_orthoview)
     def plot_mri_orthoview(self, trans, subject, subjects_dir=None,
-                           coord_frame='head', idx='gof', ax=None, block=False,
-                           show=True):
+                           coord_frame='head', idx='gof', show_all=True,
+                           ax=None, block=False, show=True):
         return plot_dipole_mri_orthoview(self, trans=trans, subject=subject,
                                          subjects_dir=subjects_dir,
                                          coord_frame=coord_frame, idx=idx,
-                                         ax=ax, block=block, show=show)
+                                         show_all=show_all, ax=ax, block=block,
+                                         show=show)
 
     def __getitem__(self, item):
         """Get a time slice.

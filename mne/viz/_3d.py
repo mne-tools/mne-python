@@ -1560,7 +1560,8 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                                     raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
-    ras2vox = np.linalg.inv(t1.header.get_vox2ras_tkr())
+    vox2ras = t1.header.get_vox2ras_tkr()
+    ras2vox = np.linalg.inv(vox2ras)
     trans = _get_trans(trans, fro='head', to='mri')[0]
     zooms = t1.header.get_zooms()
     if coord_frame == 'head':
@@ -1584,9 +1585,6 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         dipole_locs = np.array([apply_trans(ras2vox, loc * 1000.) * zooms
                                 for loc in dipole.pos])
         ori = dipole.ori
-
-        gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
-                                   np.linspace(-dd, dd, dims))
     else:
         dipole_locs = np.array([apply_trans(trans['trans'], loc) for loc
                                 in dipole.pos])
@@ -1594,15 +1592,15 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         # Position in meters -> voxels.
         dipole_locs = np.array([apply_trans(ras2vox, loc * 1000.) for loc
                                 in dipole_locs])
-        gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
-                                   np.linspace(-dd, dd, dims))
+    gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
+                               np.linspace(-dd, dd, dims))
 
     _plot_dipole(ax, data, dipole_locs, idx, dipole, gridx, gridy, ori,
-                 coord_frame, zooms, show_all)
+                 coord_frame, zooms, show_all, vox2ras)
     params = {'ax': ax, 'data': data, 'idx': idx, 'dipole': dipole,
               'dipole_locs': dipole_locs, 'gridx': gridx, 'gridy': gridy,
               'ori': ori, 'coord_frame': coord_frame, 'zooms': zooms,
-              'show_all': show_all}
+              'show_all': show_all, 'vox2ras': vox2ras}
     ax.view_init(elev=30, azim=-140)
 
     callback_func = partial(_dipole_changed, params=params)
@@ -1614,7 +1612,7 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
 
 
 def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
-                 zooms, show_all):
+                 zooms, show_all, vox2ras):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
     point = points[idx]
@@ -1632,7 +1630,7 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
         xidx = int(round(point[0]))
         yidx = int(round(point[1]))
         zidx = int(round(point[2]))
-        xyz = dipole.pos
+        xyz = np.array([apply_trans(vox2ras, p) for p in points]) / 1000.
 
     ori = ori[idx]
     if show_all:
@@ -1676,7 +1674,7 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
 
     plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.1f, Amplitude: %.1fnAm\n' % (
         idx, dipole.times[idx], dipole.gof[idx], dipole.amplitude[idx] * 1e9) +
-        'Loc: ' + ', '.join(['%0.3f' % x for x in dipole.pos[idx]]))
+        'Loc: ' + ', '.join(['%0.1f' % x for x in xyz[idx] * 1000.]))
 
     plt.draw()
 
@@ -1699,4 +1697,4 @@ def _dipole_changed(event, params):
     _plot_dipole(params['ax'], params['data'], params['dipole_locs'],
                  params['idx'], params['dipole'], params['gridx'],
                  params['gridy'], params['ori'], params['coord_frame'],
-                 params['zooms'], params['show_all'])
+                 params['zooms'], params['show_all'], params['vox2ras'])
