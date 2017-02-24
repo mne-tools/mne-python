@@ -64,7 +64,7 @@ def _to_const(cf):
         if cf not in _str_to_frame:
             raise ValueError('Unknown cf %s' % cf)
         cf = _str_to_frame[cf]
-    elif not isinstance(cf, Integral):
+    elif not isinstance(cf, (Integral, np.int32)):
         raise TypeError('cf must be str or int, not %s' % type(cf))
     return int(cf)
 
