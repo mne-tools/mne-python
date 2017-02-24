@@ -508,7 +508,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 
 @verbose
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
-                 n_fft=2048, picks=None, ax=None, color='black',
+                 n_fft=None, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33, n_overlap=0, dB=True,
                  average=True, show=True, n_jobs=1, line_alpha=None,
                  spatial_colors=None, verbose=None):
@@ -530,6 +530,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Apply projection.
     n_fft : int
         Number of points to use in Welch FFT calculations.
+        Default is None, which uses ``min(2048, len(raw.times))``.
     picks : array-like of int | None
         List of channels to use. Cannot be None if `ax` is supplied. If both
         `picks` and `ax` are None, separate subplots will be created for
@@ -583,7 +584,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
             spatial_colors = True
         else:
             warn('In version 0.15 average will default to False and '
-                 'spatial_colors to True.')  # XXX: deprecation
+                 'spatial_colors to True.', DeprecationWarning)
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
     if line_alpha is None:

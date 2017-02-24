@@ -19,6 +19,7 @@ def _psd_func(epoch, noverlap, n_per_seg, nfft, fs, freq_mask, func):
 
 def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     """Helper to make sure n_fft, n_per_seg and n_overlap make sense."""
+    n_fft = n if n_fft is None else int(n_fft)
     if n_per_seg is None and n_fft > n:
         raise ValueError(('If n_per_seg is None n_fft is not allowed to be > '
                           'n_times. If you want zero-padding, you have to set '
@@ -79,6 +80,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     n_fft : int
         The length of FFT used, must be ``>= n_per_seg`` (default: 256).
         The segments will be zero-padded if ``n_fft > n_per_seg``.
+        Can also be ``None``, which will use the minimum of 2048 and the
+        number of data points.
     n_overlap : int
         The number of points of overlap between segments. Will be adjusted
         to be <= n_per_seg. The default value is 0.
@@ -154,9 +157,11 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         Min time of interest
     tmax : float | None
         Max time of interest
-    n_fft : int
+    n_fft : int | None
         The length of FFT used, must be ``>= n_per_seg`` (default: 256).
         The segments will be zero-padded if ``n_fft > n_per_seg``.
+        Can also be ``None``, which will use the minimum of 2048 and the
+        number of data points.
     n_overlap : int
         The number of points of overlap between segments. Will be adjusted
         to be <= n_per_seg. The default value is 0.
