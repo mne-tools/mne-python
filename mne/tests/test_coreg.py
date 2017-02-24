@@ -91,11 +91,12 @@ def test_scale_mri():
     # add distances to source space
     src = mne.read_source_spaces(path)
     mne.add_source_space_distances(src)
-    src.save(path)
+    src.save(path, overwrite=True)
 
     # scale with distances
     os.remove(src_path)
     scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
+    assert_true(os.path.exists(src_path), "Source space was not scaled")
 
 
 def test_fit_matched_points():
