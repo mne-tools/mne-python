@@ -2429,7 +2429,8 @@ def _get_reduction(reduction, axis=-1):
             raise ValueError('reduction, if float, means proportion to trim in'
                              ' trimmed mean, which has to be > 0 and < 0.5, '
                              'got {}'.format(reduction))
-        from scipy.stats import trim_mean
+        from .fixes import get_trim_mean
+        trim_mean = get_trim_mean()
         return lambda x: trim_mean(x, reduction, axis=axis)
     elif hasattr(reduction, '__call__'):
         return reduction

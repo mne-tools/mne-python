@@ -907,6 +907,64 @@ def get_spectrogram():
 
 
 ###############################################################################
+# Scipy trim_mean (for mne.time_frequency.psd_welch) needed for scipy < 0.12
+
+def _trim_mean(a, proportiontocut, axis=0):
+    """
+    Return mean of array after trimming distribution from both tails.
+    If `proportiontocut` = 0.1, slices off 'leftmost' and 'rightmost' 10% of
+    scores. The input is sorted before slicing. Slices off less if proportion
+    results in a non-integer slice index (i.e., conservatively slices off
+    `proportiontocut` ).
+
+    Parameters
+    ----------
+    a : array_like
+        Input array
+    proportiontocut : float
+        Fraction to cut off of both tails of the distribution
+    axis : int or None, optional
+        Axis along which the trimmed means are computed. Default is 0.
+        If None, compute over the whole array `a`.
+
+    Returns
+    -------
+    trim_mean : ndarray
+        Mean of trimmed array.
+    """
+    a = np.asarray(a)
+
+    if a.size == 0:
+        return np.nan
+
+    if axis is None:
+        a = a.ravel()
+        axis = 0
+
+    nobs = a.shape[axis]
+    lowercut = int(proportiontocut * nobs)
+    uppercut = nobs - lowercut
+    if (lowercut > uppercut):
+        raise ValueError("Proportion too big.")
+
+    atmp = np.partition(a, (lowercut, uppercut - 1), axis)
+
+    sl = [slice(None)] * atmp.ndim
+    sl[axis] = slice(lowercut, uppercut)
+    return np.mean(atmp[sl], axis=axis)
+
+
+def get_trim_mean():
+    '''helper function to get relevant trim_mean'''
+    from .utils import check_version
+    if check_version('scipy', '0.13.0'):
+        from scipy.stats import trim_mean
+    else:
+        trim_mean = _trim_mean
+    return trim_mean
+
+
+###############################################################################
 # Misc utilities
 
 def assert_true(expr, msg='False is not True'):
