@@ -132,18 +132,19 @@ See :ref:`datasets` for a list of all available datasets and some advanced
 configuration options, e.g. to specify a custom location for storing the
 datasets.
 
+.. _faq_cpu:
 
 A function uses multiple CPU cores even though I didn't tell it to. Why?
 ------------------------------------------------------------------------
-Ordinarily in MNE-python the `parallel` module is used to deploy multiple
-cores via the `n_jobs` variable. However, functions like
-:func:`mne.preprocessing.maxwell_filter` that use :func:`numpy.linalg` do not have an
-`n_jobs` flag but may still use multiple cores. This is because `numpy.linalg`
-does not use `parallel`; instead it uses `OpenMP <http://www.openmp.org/>`_ via the `Intel Math Kernel
-Library (MKL) <https://software.intel.com/en-us/intel-mkl>`_. To control how many cores are used for functions like
-`maxwell_filter`, you can either set the OMP_NUM_THREADS environment variable
+Ordinarily in MNE-python the ``parallel`` module is used to deploy multiple
+cores via the ``n_jobs`` variable. However, functions like
+:func:`mne.preprocessing.maxwell_filter` that use :mod:`scipy.linalg` do not have an
+``n_jobs`` flag but may still use multiple cores. This is because :mod:`scipy.linalg`
+does not use ``parallel``; instead it uses `OpenBLAS <http://www.openblas.net/>`_ or `OpenMP <http://www.openmp.org/>`_ via the `Intel
+Math Kernel Library (MKL) <https://software.intel.com/en-us/intel-mkl>`_. To control how many cores are used for functions like
+:func:`mne.preprocessing.maxwell_filter`, you can either set the OMP_NUM_THREADS environment variable
 to the desired number of cores before running python, or inside python you can
-achieve the same effect by:
+achieve the same effect by::
 
     >>> import os
     >>> num_cpu = '4' # Set as a string
