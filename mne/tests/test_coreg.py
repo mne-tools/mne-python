@@ -14,8 +14,8 @@ from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _is_mri_subject, scale_labels, scale_source_space,
                        coregister_fiducials)
 from mne.io.constants import FIFF
-from mne.utils import (requires_mne, requires_freesurfer, _TempDir,
-                       run_tests_if_main, requires_version)
+from mne.utils import (requires_freesurfer, _TempDir, run_tests_if_main,
+                       requires_version)
 from functools import reduce
 
 
@@ -44,7 +44,6 @@ def test_coregister_fiducials():
     assert_array_almost_equal(trans_est['trans'], trans['trans'])
 
 
-@requires_mne
 @requires_freesurfer
 @requires_version('scipy', '0.11')
 def test_scale_mri():
