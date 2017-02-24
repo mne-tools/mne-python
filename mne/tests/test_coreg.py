@@ -28,10 +28,12 @@ def test_coregister_fiducials():
                             [0.00146763, 0.08506715, -0.03483611],
                             [0.08436285, -0.02850276, -0.04127743]])
     coords_trans = apply_trans(trans, coords_orig)
+
     def make_dig(coords, cf):
         return ({'coord_frame': cf, 'ident': 1, 'kind': 1, 'r': coords[0]},
                 {'coord_frame': cf, 'ident': 2, 'kind': 1, 'r': coords[1]},
                 {'coord_frame': cf, 'ident': 3, 'kind': 1, 'r': coords[2]})
+
     mri_fiducials = make_dig(coords_trans, FIFF.FIFFV_COORD_MRI)
     info = {'dig': make_dig(coords_orig, FIFF.FIFFV_COORD_HEAD)}
 
