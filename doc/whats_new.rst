@@ -83,6 +83,7 @@ Changelog
 
     - Add ``n_per_seg`` keyword argument to :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` that allows to control segment length independently of ``n_fft`` and use zero-padding when ``n_fft > n_per_seg`` by `Mikołaj Magnuski`_
 
+    - Add annotation aware data getter :meth:`mne.io.Raw.get_data` by `Jaakko Leppakangas`_
 
 BUG
 ~~~
@@ -181,6 +182,9 @@ API
     - The :class:`mne.decoding.LinearModel` class will no longer support `plot_filters` and `plot_patterns`, use :class:`mne.EvokedArray` with :func:`mne.decoding.get_coef` instead, by `Jean-Remi King`_
 
     - Made functions :func:`mne.time_frequency.tfr_array_multitaper`, :func:`mne.time_frequency.tfr_array_morlet`, :func:`mne.time_frequency.tfr_array_stockwell`, :func:`mne.time_frequency.psd_array_multitaper` and :func:`mne.time_frequency.psd_array_welch` public to allow computing TFRs and PSDs on numpy arrays by `Jaakko Leppakangas`_
+
+    - :meth:`mne.preprocessing.ICA.fit` now rejects data annotated bad by default. Turn off with ``reject_by_annotation=False``, by `Jaakko Leppakangas`_
+
 
 .. _changes_0_13:
 

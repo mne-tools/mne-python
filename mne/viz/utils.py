@@ -28,7 +28,7 @@ from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
-from ..annotations import Annotations, _onset_to_seconds
+from ..annotations import Annotations, _sync_onset
 
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
@@ -1750,7 +1750,7 @@ def _plot_annotations(raw, params):
 
     _setup_annotation_colors(params)
     for idx, onset in enumerate(raw.annotations.onset[ann_order]):
-        annot_start = _onset_to_seconds(raw, onset) + params['first_time']
+        annot_start = _sync_onset(raw, onset) + params['first_time']
         annot_end = annot_start + raw.annotations.duration[ann_order][idx]
         segments.append([annot_start, annot_end])
         ylim = params['ax_hscroll'].get_ylim()

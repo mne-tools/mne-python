@@ -18,7 +18,7 @@ from scipy import stats
 from itertools import product
 
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
-                 EvokedArray)
+                 EvokedArray, Annotations)
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
@@ -69,6 +69,7 @@ def test_ica_full_data_recovery():
     data = raw._data[:n_channels].copy()
     data_epochs = epochs.get_data()
     data_evoked = evoked.data
+    raw.annotations = Annotations([0.5], [0.5], ['BAD'])
     for method in ['fastica']:
         stuff = [(2, n_channels, True), (2, n_channels // 2, False)]
         for n_components, n_pca_components, ok in stuff:
@@ -618,7 +619,7 @@ def test_ica_reject_buffer():
     with catch_logging() as drop_log:
         with warnings.catch_warnings(record=True):
             ica.fit(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
-                    tstep=0.01, verbose=True)
+                    tstep=0.01, verbose=True, reject_by_annotation=False)
         assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
     log = [l for l in drop_log.getvalue().split('\n') if 'detected' in l]
     assert_equal(len(log), 1)

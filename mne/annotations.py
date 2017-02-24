@@ -163,7 +163,7 @@ def _handle_meas_date(meas_date):
     return meas_date
 
 
-def _onset_to_seconds(raw, onset):
+def _sync_onset(raw, onset):
     """Helper for adjusting onsets in relation to raw data."""
     meas_date = _handle_meas_date(raw.info['meas_date'])
     if raw.annotations.orig_time is None:
