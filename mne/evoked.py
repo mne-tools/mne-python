@@ -117,10 +117,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @property
     def data(self):
+        """The data matrix."""
         return self._data
 
     @data.setter
     def data(self, data):
+        """Set the data matrix."""
         self._data = data
 
     @verbose
