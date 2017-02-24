@@ -11,7 +11,7 @@ from .base import BaseEstimator
 
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
-from ..time_frequency.psd import _psd_multitaper
+from ..time_frequency.psd import psd_array_multitaper
 from ..externals import six
 from ..utils import _check_type_picks
 
@@ -343,7 +343,7 @@ class PSDEstimator(TransformerMixin):
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
-        psd, _ = _psd_multitaper(
+        psd, _ = psd_array_multitaper(
             epochs_data, sfreq=self.sfreq, fmin=self.fmin, fmax=self.fmax,
             bandwidth=self.bandwidth, adaptive=self.adaptive,
             low_bias=self.low_bias, normalization=self.normalization,

@@ -171,6 +171,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     permission from Jussi Nurminen. These algorithms are based on work
     from [1]_ and [2]_.
 
+    .. note:: This code may use multiple CPU cores, see the
+              :ref:`FAQ <faq_cpu>` for more information.
+
     Compared to Elekta's MaxFilter™ software, the MNE Maxwell filtering
     routines currently provide the following features:
 

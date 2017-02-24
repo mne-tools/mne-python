@@ -1008,7 +1008,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     labels : bool
         Also scale all labels (default True).
     annot : bool
-        Copy *.annot files to the new location (default False).
+        Copy ``*.annot`` files to the new location (default False).
 
     See Also
     --------

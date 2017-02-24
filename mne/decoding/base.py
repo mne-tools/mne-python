@@ -797,8 +797,8 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     estimator : object | None
         An estimator from scikit-learn.
     attr : str
-        The name of the coefficient attribute to retrieve. Typically 'filters_'
-        or 'patterns_'. Defaults to 'filters_'.
+        The name of the coefficient attribute to retrieve, typically
+        ``'filters_'`` (default) or ``'patterns_'``.
     inverse_transform : bool
         If True, returns the coefficients after inverse transforming them with
         the transformer steps of the estimator.

@@ -81,6 +81,8 @@ Changelog
 
     - Add support for reading in EGI MFF digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
 
+    - Add ``n_per_seg`` keyword argument to :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` that allows to control segment length independently of ``n_fft`` and use zero-padding when ``n_fft > n_per_seg`` by `Mikołaj Magnuski`_
+
 
 BUG
 ~~~
@@ -149,7 +151,7 @@ BUG
 
     - Fix :func:`mne.fit_dipole` to handle sphere model rank deficiency properly by `Alex Gramfort`_
 
-    - Raise error in :func:`mne.epochs.concatenate_epochs` when concatenated epochs have conflicting event_id by `Mikołaj Magnuski`_
+    - Raise error in :func:`mne.concatenate_epochs` when concatenated epochs have conflicting event_id by `Mikołaj Magnuski`_
 
     - Fix handling of ``n_components=None`` in :class:`mne.preprocessing.ica.ICA` by `Richard Höchenberger`_
 
@@ -177,6 +179,8 @@ API
     - An ``overwrite=False`` default parameter has been added to :func:`write_source_spaces` to protect against accidental overwrites, by `Eric Larson`_
 
     - The :class:`mne.decoding.LinearModel` class will no longer support `plot_filters` and `plot_patterns`, use :class:`mne.EvokedArray` with :func:`mne.decoding.get_coef` instead, by `Jean-Remi King`_
+
+    - Made functions :func:`mne.time_frequency.tfr_array_multitaper`, :func:`mne.time_frequency.tfr_array_morlet`, :func:`mne.time_frequency.tfr_array_stockwell`, :func:`mne.time_frequency.psd_array_multitaper` and :func:`mne.time_frequency.psd_array_welch` public to allow computing TFRs and PSDs on numpy arrays by `Jaakko Leppakangas`_
 
 .. _changes_0_13:
 
@@ -2013,3 +2017,5 @@ of commits):
 .. _Erkka Heinila: https://github.com/Teekuningas
 
 .. _Richard Höchenberger: http://hoechenberger.name
+
+.. _Matt Boggess: https://github.com/mattboggess
