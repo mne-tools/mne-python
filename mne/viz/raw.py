@@ -528,9 +528,10 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         End frequency to consider.
     proj : bool
         Apply projection.
-    n_fft : int
+    n_fft : int | None
         Number of points to use in Welch FFT calculations.
-        Default is None, which uses ``min(2048, len(raw.times))``.
+        Default is None, which uses the minimum of 2048 and the
+        number of time points.
     picks : array-like of int | None
         List of channels to use. Cannot be None if `ax` is supplied. If both
         `picks` and `ax` are None, separate subplots will be created for
@@ -592,6 +593,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     line_alpha = float(line_alpha)
 
     psd_list = list()
+    if n_fft is None:
+        n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
         psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
