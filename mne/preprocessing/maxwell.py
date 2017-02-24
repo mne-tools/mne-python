@@ -167,7 +167,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     -----
     .. versionadded:: 0.11
 
-    This code may use multiple CPU cores, see :ref:`faq_cpu`.
+    This code may use multiple CPU cores, see the :ref:`FAQ <faq_cpu>` for more.
     
     Some of this code was adapted and relicensed (with BSD form) with
     permission from Jussi Nurminen. These algorithms are based on work
