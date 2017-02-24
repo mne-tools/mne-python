@@ -18,7 +18,7 @@ from scipy import stats
 from itertools import product
 
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
-                 EvokedArray)
+                 EvokedArray, Annotations)
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
@@ -69,6 +69,7 @@ def test_ica_full_data_recovery():
     data = raw._data[:n_channels].copy()
     data_epochs = epochs.get_data()
     data_evoked = evoked.data
+    raw.annotations = Annotations([0.5], [0.5], ['BAD'])
     for method in ['fastica']:
         stuff = [(2, n_channels, True), (2, n_channels // 2, False)]
         for n_components, n_pca_components, ok in stuff:

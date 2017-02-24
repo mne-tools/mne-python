@@ -867,17 +867,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Notes
         -----
-
         .. versionadded:: 0.14.0
         """
         if picks is None:
-            picks = range(self.info['nchan'])
+            picks = np.arange(self.info['nchan'])
+        start = 0 if start is None else start
+        stop = self.n_times if stop is None else stop
         if self.annotations is None or reject_by_annotation is None:
             data, times = self[picks, start:stop]
             if return_times:
                 return data, times
             return data
-        if reject_by_annotation not in ['omit', 'NaN']:
+        if reject_by_annotation.lower() not in ['omit', 'nan']:
             raise ValueError("reject_by_annotation must be None, 'omit' or "
                              "'NaN'. Got %s." % reject_by_annotation)
         sfreq = self.info['sfreq']
@@ -911,8 +912,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         stops = np.where(used[:-1] & ~used[1:])[0] + start
         if reject_by_annotation == 'omit':
 
-            data = np.zeros((len(picks), np.sum([b - a for a, b in
-                                                 zip(starts, stops)])))
+            data = np.zeros((len(picks), (stops - starts).sum()))
             times = np.zeros(data.shape[1])
             idx = 0
             for start, stop in zip(starts, stops):  # get the data
@@ -922,11 +922,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 data[:, idx:end], times[idx:end] = self[picks, start:stop]
                 idx = end
         else:
-            times = self.times[start:stop].copy()
-            data = np.zeros((len(picks), len(times)))
-            data.fill(np.nan)  # cannot be inserted to existing data array
-            for start, stop in zip(starts, stops):
-                data[:, start:stop] = self[picks, start:stop][0]
+            data, times = self[picks, start:stop]
+            data[:, ~used[1:-1]] = np.nan
 
         if return_times:
             return data, times
