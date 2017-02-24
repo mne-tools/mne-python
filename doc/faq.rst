@@ -140,18 +140,25 @@ Ordinarily in MNE-python the ``parallel`` module is used to deploy multiple
 cores via the ``n_jobs`` variable. However, functions like
 :func:`mne.preprocessing.maxwell_filter` that use :mod:`scipy.linalg` do not have an
 ``n_jobs`` flag but may still use multiple cores. This is because :mod:`scipy.linalg`
-does not use ``parallel``; instead it uses `OpenBLAS <http://www.openblas.net/>`_ or `OpenMP <http://www.openmp.org/>`_ via the `Intel
-Math Kernel Library (MKL) <https://software.intel.com/en-us/intel-mkl>`_. To control how many cores are used for functions like
-:func:`mne.preprocessing.maxwell_filter`, you can either set the OMP_NUM_THREADS environment variable
-to the desired number of cores before running python, or inside python you can
-achieve the same effect by::
+is built with linear algebra libraries that natively support multithreading:
+
+* `OpenBLAS <http://www.openblas.net/>`_
+* `Intel Math Kernel Library (MKL) <https://software.intel.com/en-us/intel-mkl>`_,
+  which uses `OpenMP <http://www.openmp.org/>`_
+
+To control how many cores are used for linear-algebra-heavy functions like
+:func:`mne.preprocessing.maxwell_filter`, you can set the
+``OMP_NUM_THREADS`` or ``OPENBLAS_NUM_THREADS`` environment variable to the
+desired number of cores for MKL or OpenBLAS, respectively. This can be done
+before running Python, or inside Python you can achieve the same effect by,
+e.g.::
 
     >>> import os
     >>> num_cpu = '4' # Set as a string
     >>> os.environ['OMP_NUM_THREADS'] = num_cpu
 
-This can only be done *before* running the function; subsequent changes in the
-same python session will have no effect.
+This must be done *before* running linear algebra functions; subsequent
+changes in the same Python session will have no effect.
 
 
 Resampling and decimating data
