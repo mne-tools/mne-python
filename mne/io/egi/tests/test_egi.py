@@ -45,14 +45,14 @@ def test_io_egi_mff():
         msg = 'Did not find any event code with more than one event.'
         assert_true(msg in '%s' %w[0].message)
     data_read, t_read = raw[:129]
-    #assert_allclose(t_read, t)
-    #assert_allclose(data_read, data, atol=1e-10)
+    # assert_allclose(t_read, t)
+    # assert_allclose(data_read, data, atol=1e-10)
     print('include todos los canales')
     include = ['DIN1', 'DIN2', 'DIN3', 'DIN4',
                'DIN5', 'DIN7']
     with warnings.catch_warnings(record=True):
         raw = _test_raw_reader(read_raw_egi_mff, input_fname=egi_fname_mff,
-                             include=include)
+                               include=include)
 
     assert_equal('eeg' in raw, True)
 
