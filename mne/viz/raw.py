@@ -508,7 +508,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 
 @verbose
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
-                 n_fft=2048, picks=None, ax=None, color='black',
+                 n_fft=None, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33, n_overlap=0, dB=True,
                  average=True, show=True, n_jobs=1, line_alpha=None,
                  spatial_colors=None, verbose=None):
@@ -528,8 +528,10 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         End frequency to consider.
     proj : bool
         Apply projection.
-    n_fft : int
+    n_fft : int | None
         Number of points to use in Welch FFT calculations.
+        Default is None, which uses the minimum of 2048 and the
+        number of time points.
     picks : array-like of int | None
         List of channels to use. Cannot be None if `ax` is supplied. If both
         `picks` and `ax` are None, separate subplots will be created for
@@ -583,7 +585,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
             spatial_colors = True
         else:
             warn('In version 0.15 average will default to False and '
-                 'spatial_colors to True.')  # XXX: deprecation
+                 'spatial_colors to True.', DeprecationWarning)
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
     if line_alpha is None:
@@ -591,6 +593,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     line_alpha = float(line_alpha)
 
     psd_list = list()
+    if n_fft is None:
+        tmax = raw.times[-1] if not np.isfinite(tmax) else tmax
+        n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
         psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,

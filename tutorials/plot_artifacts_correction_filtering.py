@@ -4,7 +4,7 @@
 Filtering and resampling data
 =============================
 
-Certain artifacts are restricted to certain frequencies and can therefore
+Some artifacts are restricted to certain frequencies and can therefore
 be fixed by filtering. An artifact that typically affects only some
 frequencies is due to the power line.
 
