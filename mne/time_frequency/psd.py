@@ -27,9 +27,9 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     n_per_seg = n_fft if n_per_seg is None or n_per_seg > n_fft else n_per_seg
     n_per_seg = n if n_per_seg > n else n_per_seg
     if n_overlap >= n_per_seg:
-        raise ValueError(('n_overlap cannot be greater than n_per_seg (or '
-                          'n_fft). Got n_overlap of %d while n_per_seg is '
-                          '%d.') % (n_overlap, n_per_seg))
+        raise ValueError(('n_overlap cannot be greater than or equal to '
+                          'n_per_seg (or n_fft). Got n_overlap of %d while '
+                          'n_per_seg is %d.') % (n_overlap, n_per_seg))
     return n_fft, n_per_seg, n_overlap
 
 
@@ -81,8 +81,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         The length of FFT used, must be ``>= n_per_seg`` (default: 256).
         The segments will be zero-padded if ``n_fft > n_per_seg``.
     n_overlap : int
-        The number of points of overlap between segments. Will be adjusted
-        to be <= n_per_seg. The default value is 0.
+        The number of points of overlap between segments. Must be < n_per_seg.
+        The default value is 0.
     n_per_seg : int | None
         Length of each Welch segment. The smaller it is with respect to the
         signal length the smoother are the PSDs. Defaults to None, which sets
@@ -180,8 +180,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         If n_per_seg is None, n_fft must be >= number of time points
         in the data.
     n_overlap : int
-        The number of points of overlap between segments. Will be adjusted
-        to be <= n_per_seg. The default value is 0.
+        The number of points of overlap between segments. Must be < n_per_seg.
+        The default value is 0.
     n_per_seg : int | None
         Length of each Welch segment. The smaller it is with respect to the
         signal length the smoother are the PSDs. Defaults to None, which sets
