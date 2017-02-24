@@ -227,8 +227,14 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     solver : str | function
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
-        matrix b; or a string. If str, must be ``'cholesky'``, in which case
-        the solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``.
+        matrix b; or a string. 
+        If a string, if ``'cholesky'``, the solver used is
+        ``linalg.solve(dot(X.T, X), dot(X.T, y))``. If ``'incremental'``,
+        an incremental solver is used that may be slightly numerically off
+        and is usually much slower, but can be used for very large tasks with
+        many variables and/or high sampling rates in case they overload the
+        default solver.
+        
 
     Returns
     -------
@@ -245,11 +251,9 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     """
     if isinstance(solver, string_types):
         if solver == 'cholesky':
-            def solver(X, y):
-                a = (X.T * X).toarray()  # dot product of sparse matrices
-                return linalg.solve(a, X.T * y.T, sym_pos=True,
-                                    overwrite_a=True, overwrite_b=True).T
-
+            solver = _cholesky_solver
+        elif solver == 'incremental':
+            solver = _incremental_solver
         else:
             raise ValueError("No such solver: {0}".format(solver))
 
@@ -387,3 +391,36 @@ def _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info):
             kind='average')  # nave and kind are technically incorrect
         cumul += tmax_ - tmin_
     return evokeds
+
+
+def _solver(X, y):
+    """Return b for y=XB for a sparse X and multiple y using a cholesky
+    factorization of the normal equations.
+    Can be used as a solver for ``linear_regression_raw``."""
+    a = (X.T * X).toarray()  # dot product of sparse matrices
+    return linalg.solve(a, X.T * y.T, sym_pos=True,
+                        overwrite_a=True, overwrite_b=True).T
+
+
+def _incremental_solver(X, y):
+    """Return b for y=XB for a sparse X and multiple y using an 
+    incrementally constructed cholesky factorization of the normal
+    equations. This allows to fit nearly arbitrary large models. The
+    general approach is due to Nathaniel J. Smith.
+    Can be used as a solver for ``linear_regression_raw``."""
+    stride_ratio = 2
+    n_times, n_coefs = X.shape
+    one_stride = int(n_coefs * stride_ratio)
+    loops = (n_times // one_stride) - 1
+
+    XtX_all = np.zeros((n_coefs, n_coefs))
+    XtY_all = np.zeros((n_coefs, y.shape[0]))
+    for ii in range(0, n_times - one_stride + 1, one_stride):
+        reach = (one_stride + (n_times % one_stride)
+                 if ii + (one_stride * stride_ratio) > n_times
+                 else one_stride)
+        XtX_all += (X[ii:ii + reach, :].T * X[ii:ii + reach, :])
+        XtY_all += (X[ii:ii + reach, :].T * y[:, ii:ii + reach].T)
+
+    return linalg.solve(XtX_all, XtY_all, sym_pos=True,
+                        overwrite_a=True, overwrite_b=True).T

@@ -103,10 +103,18 @@ def test_continuous_regression_no_overlap():
                                      tmin=tmin, tmax=tmax,
                                      reject=None)
 
+    # incremental solver
+    incremental = linear_regression_raw(
+        raw, events, event_id, tmin=tmin, tmax=tmax, reject=None,
+        solver='incremental')
+
     # Check that evokeds and revokeds are nearly equivalent
     for cond in event_id.keys():
         assert_allclose(revokeds[cond].data,
                         epochs[cond].average().data, rtol=1e-15)
+        # test the incremental solver
+        assert_allclose(incremental[cond].data,
+                        revokeds[cond].data, rtol=1e-15)
 
     # Test events that will lead to "duplicate" errors
     old_latency = events[1, 0]
