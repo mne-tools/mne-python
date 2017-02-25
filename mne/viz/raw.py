@@ -688,7 +688,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
             if this_type in types:
                 ch_types_used.append(this_type)
         unit = 'dB/Hz' if dB else '$1/\\sqrt{Hz}$)'
-        units = {t: 'PSD (%s/Hz)' % unit for t in ch_types_used}
+        units = {t: 'PSD (%s)' % unit for t in ch_types_used}
         titles = {c: t for c, t in zip(ch_types_used, titles_list)}
         picks = np.arange(len(psd_list))
         if not spatial_colors:
