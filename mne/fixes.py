@@ -726,7 +726,7 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=256,
         nfft = int(nfft)
 
     if noverlap is None:
-        noverlap = nperseg // 2
+        noverlap = nperseg//2
     elif noverlap >= nperseg:
         raise ValueError('noverlap must be less than nperseg.')
     else:
@@ -763,9 +763,9 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=256,
 
     if mode == 'psd':
         if scaling == 'density':
-            scale = 1.0 / (fs * (win * win).sum())
+            scale = 1.0 / (fs * (win*win).sum())
         elif scaling == 'spectrum':
-            scale = 1.0 / win.sum() ** 2
+            scale = 1.0 / win.sum()**2
         else:
             raise ValueError('Unknown scaling: %r' % scaling)
     else:
@@ -786,14 +786,14 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=256,
         num_freqs = nfft
     elif sides == 'onesided':
         if nfft % 2:
-            num_freqs = (nfft + 1) // 2
+            num_freqs = (nfft + 1)//2
         else:
-            num_freqs = nfft // 2 + 1
+            num_freqs = nfft//2 + 1
 
     # Perform the windowed FFTs
     result = _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft)
     result = result[..., :num_freqs]
-    freqs = fftpack.fftfreq(nfft, 1 / fs)[:num_freqs]
+    freqs = fftpack.fftfreq(nfft, 1/fs)[:num_freqs]
 
     if not same_data:
         # All the same operations on the y data
@@ -812,13 +812,12 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=256,
     result *= scale
     if sides == 'onesided':
         if nfft % 2:
-            result[..., 1:] *= 2
+            result[...,1:] *= 2
         else:
             # Last point is unpaired Nyquist freq point, don't double
-            result[..., 1:-1] *= 2
+            result[...,1:-1] *= 2
 
-    t = np.arange(nperseg / 2, x.shape[-1] - nperseg / 2 + 1,
-                  nperseg - noverlap) / float(fs)
+    t = np.arange(nperseg/2, x.shape[-1] - nperseg/2 + 1, nperseg - noverlap)/float(fs)
 
     if sides != 'twosided' and not nfft % 2:
         # get the last value correctly, it is negative otherwise
@@ -838,7 +837,7 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=256,
     if axis != -1:
         # Specify as positive axis index
         if axis < 0:
-            axis = len(result.shape) - 1 - axis
+            axis = len(result.shape)-1-axis
 
         # Roll frequency axis back to axis where the data came from
         result = np.rollaxis(result, -1, axis)
@@ -880,8 +879,8 @@ def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft):
         result = x[..., np.newaxis]
     else:
         step = nperseg - noverlap
-        shape = x.shape[:-1] + ((x.shape[-1] - noverlap) // step, nperseg)
-        strides = x.strides[:-1] + (step * x.strides[-1], x.strides[-1])
+        shape = x.shape[:-1]+((x.shape[-1]-noverlap)//step, nperseg)
+        strides = x.strides[:-1]+(step*x.strides[-1], x.strides[-1])
         result = np.lib.stride_tricks.as_strided(x, shape=shape,
                                                  strides=strides)
 
