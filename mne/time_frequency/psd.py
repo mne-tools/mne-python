@@ -93,9 +93,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         performing mean (has to be > 0 and < 0.5) ie. trimmed-mean. If function
         it has to perform the reduction along last dimension. If None - no
         reduction is performed and psd's for individual windows are returned
-        (so that the output psds are of shape (windows, channels, frequencies)
-        for 2d input data and (windows, epochs, channels, frequencies) for 3d
-        input data)
+        In such case the output psds have one more dimension than the input
+        array with windows at -3 dimension.
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -104,7 +103,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
 
     Returns
     -------
-    psds : ndarray, shape (..., n_freqs) or
+    psds : ndarray, shape (..., n_freqs) or (..., n_windows, ..., n_freqs)
         The power spectral densities. All dimensions up to the last will
         be the same as input.
     freqs : ndarray, shape (n_freqs,)
@@ -142,10 +141,10 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     psds = np.concatenate(f_spectrogram, axis=0)
     if reduction is not None:
         reduction = _get_reduction(reduction)
-        psds = reduction(psds).reshape(np.hstack([dshape, -1]))
+        psds = reduction(psds).reshape(dshape + (-1,))
     else:
         n_windows = psds.shape[-1]
-        psds = psds.reshape(np.hstack([dshape, -1, n_windows]))
+        psds = psds.reshape(dshape + (-1, n_windows))
         # windows are put at -3 position so that the output is of shape
         # windows x channels x frequencies for raw data and
         # epochs x windows x channels x frequencies for epochs
@@ -206,9 +205,9 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         performing mean (has to be > 0 and < 0.5) ie. trimmed-mean. If function
         it has to perform the reduction along last dimension. If None - no
         reduction is performed and psd's for individual windows are returned
-        (so that the output psds are of shape (windows, channels, frequencies)
-        for 2d input data and (windows, epochs, channels, frequencies) for 3d
-        input data)
+        In such case the output psds are of shape (windows, channels,
+        frequencies) for raw data and (epochs, windows, channels, frequencies)
+        for epochs.
 
         .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
@@ -217,7 +216,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
 
     Returns
     -------
-    psds : ndarray, shape (..., n_freqs)
+    psds : ndarray, shape (..., n_freqs) or (..., n_windows, ..., n_freqs)
         The power spectral densities. If input is of type Raw,
         then psds will be shape (n_channels, n_freqs), if input is type Epochs
         then psds will be shape (n_epochs, n_channels, n_freqs).
