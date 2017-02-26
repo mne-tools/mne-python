@@ -122,7 +122,8 @@ def load_data(subject, dataset='001-2014', path=None, force_update=False,
         dictonary containing events and their code.
     """
 
-    dataset_list = ['001-2014', '002-2014', '004-2014', '001-2015', '004-2015']
+    dataset_list = ['001-2014', '002-2014', '004-2014', '008-2014', '009-2014',
+                    '001-2015', '004-2015']
     if dataset not in dataset_list:
         raise ValueError("Dataset '%s' is not a valid BNCI dataset ID."
                          % dataset)
@@ -135,6 +136,12 @@ def load_data(subject, dataset='001-2014', path=None, force_update=False,
                                    base_url, verbose)
     if dataset == '004-2014':
         return _load_data_004_2014(subject, path, force_update, update_path,
+                                   base_url, verbose)
+    if dataset == '008-2014':
+        return _load_data_008_2014(subject, path, force_update, update_path,
+                                   base_url, verbose)
+    if dataset == '009-2014':
+        return _load_data_009_2014(subject, path, force_update, update_path,
                                    base_url, verbose)
     if dataset == '001-2015':
         return _load_data_001_2015(subject, path, force_update, update_path,
@@ -228,6 +235,45 @@ def _load_data_004_2014(subject, path=None, force_update=False,
 
 
 @verbose
+def _load_data_008_2014(subject, path=None, force_update=False,
+                        update_path=None, base_url=BNCI_URL,
+                        verbose=None):
+    """Load data for 008-2014 dataset."""
+    if (subject < 1) or (subject > 8):
+        raise ValueError("Subject must be between 1 and 8.")
+
+    url = '{u}008-2014/A{s:02d}.mat'.format(u=base_url, s=subject)
+    filename = data_path(url, path, force_update, update_path)[0]
+    run = loadmat(filename, struct_as_record=False, squeeze_me=True)['data']
+    raw, event_id = _convert_run_p300_sl(run, verbose=verbose)
+
+    return [raw], event_id
+
+
+@verbose
+def _load_data_009_2014(subject, path=None, force_update=False,
+                        update_path=None, base_url=BNCI_URL,
+                        verbose=None):
+    """Load data for 009-2014 dataset."""
+    if (subject < 1) or (subject > 10):
+        raise ValueError("Subject must be between 1 and 10.")
+
+    # FIXME there is two type of speller, grid speller and geo-speller.
+    # we load only grid speller data
+    url = '{u}009-2014/A{s:02d}S.mat'.format(u=base_url, s=subject)
+    filename = data_path(url, path, force_update, update_path)[0]
+    data = loadmat(filename, struct_as_record=False, squeeze_me=True)['data']
+    raws = []
+    event_id = {}
+    for run in data:
+        raw, ev = _convert_run_p300_sl(run, verbose=verbose)
+        raws.append(raw)
+        event_id.update(ev)
+
+    return raws, event_id
+
+
+@verbose
 def _load_data_001_2015(subject, path=None, force_update=False,
                         update_path=None, base_url=BNCI_URL,
                         verbose=None):
@@ -268,10 +314,9 @@ def _load_data_004_2015(subject, path=None, force_update=False,
         raise ValueError("Subject must be between 1 and 9.")
 
     subjects = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'L']
-    data_paths = []
 
     url = '{u}004-2015/{s}.mat'.format(u=base_url, s=subjects[subject - 1])
-    data_paths.extend(data_path(url, path, force_update, update_path))
+    filename = data_path(url, path, force_update, update_path)[0]
 
     ch_names = ['AFz', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC3', 'FCz',
                 'FC4', 'T3', 'C3', 'Cz', 'C4', 'T4', 'CP3', 'CPz',
@@ -281,12 +326,11 @@ def _load_data_004_2015(subject, path=None, force_update=False,
 
     raws = []
     event_id = {}
-    for filename in data_paths:
-        data = loadmat(filename, struct_as_record=False, squeeze_me=True)
-        for run in data['data']:
-            raw, evd = _convert_run(run, ch_names, ch_types, verbose)
-            raws.append(raw)
-            event_id.update(evd)
+    data = loadmat(filename, struct_as_record=False, squeeze_me=True)
+    for run in data['data']:
+        raw, evd = _convert_run(run, ch_names, ch_types, verbose)
+        raws.append(raw)
+        event_id.update(evd)
     return raws, event_id
 
 
@@ -317,6 +361,26 @@ def _convert_run(run, ch_names=None, ch_types=None, verbose=None):
     ch_types = ch_types + ['stim']
     event_id = {ev: (ii + 1) for ii, ev in enumerate(run.classes)}
 
+    info = create_info(ch_names=ch_names, ch_types=ch_types,
+                       sfreq=sfreq, montage=montage)
+    raw = RawArray(data=eeg_data.T, info=info, verbose=verbose)
+    return raw, event_id
+
+
+@verbose
+def _convert_run_p300_sl(run, verbose=None):
+    """convert one p300 run from santa lucia file format"""
+    montage = read_montage('standard_1005')
+    eeg_data = 1e-6 * run.X
+    sfreq = 256
+    ch_names = list(run.channels) + ['Target stim', 'Flash stim']
+    ch_types = ['eeg'] * len(run.channels) + ['stim'] * 2
+
+    flash_stim = run.y_stim
+    flash_stim[flash_stim > 0] += 2
+    eeg_data = np.c_[eeg_data, run.y, flash_stim]
+    event_id = {ev: (ii + 1) for ii, ev in enumerate(run.classes)}
+    event_id.update({ev: (ii + 3) for ii, ev in enumerate(run.classes_stim)})
     info = create_info(ch_names=ch_names, ch_types=ch_types,
                        sfreq=sfreq, montage=montage)
     raw = RawArray(data=eeg_data.T, info=info, verbose=verbose)
