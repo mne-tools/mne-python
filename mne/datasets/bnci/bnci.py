@@ -121,7 +121,6 @@ def load_data(subject, dataset='001-2014', path=None, force_update=False,
     event_id: dict
         dictonary containing events and their code.
     """
-
     dataset_list = ['001-2014', '002-2014', '004-2014', '008-2014', '009-2014',
                     '001-2015', '004-2015']
     if dataset not in dataset_list:
