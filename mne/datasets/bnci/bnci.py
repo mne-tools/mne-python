@@ -121,33 +121,20 @@ def load_data(subject, dataset='001-2014', path=None, force_update=False,
     event_id: dict
         dictonary containing events and their code.
     """
-    dataset_list = ['001-2014', '002-2014', '004-2014', '008-2014', '009-2014',
-                    '001-2015', '004-2015']
-    if dataset not in dataset_list:
+    dataset_list = {'001-2014': _load_data_001_2014,
+                    '002-2014': _load_data_002_2014,
+                    '004-2014': _load_data_004_2014,
+                    '008-2014': _load_data_008_2014,
+                    '009-2014': _load_data_009_2014,
+                    '001-2015': _load_data_001_2015,
+                    '004-2015': _load_data_004_2015}
+
+    if dataset not in dataset_list.keys():
         raise ValueError("Dataset '%s' is not a valid BNCI dataset ID."
                          % dataset)
 
-    if dataset == '001-2014':
-        return _load_data_001_2014(subject, path, force_update, update_path,
-                                   base_url, verbose)
-    if dataset == '002-2014':
-        return _load_data_002_2014(subject, path, force_update, update_path,
-                                   base_url, verbose)
-    if dataset == '004-2014':
-        return _load_data_004_2014(subject, path, force_update, update_path,
-                                   base_url, verbose)
-    if dataset == '008-2014':
-        return _load_data_008_2014(subject, path, force_update, update_path,
-                                   base_url, verbose)
-    if dataset == '009-2014':
-        return _load_data_009_2014(subject, path, force_update, update_path,
-                                   base_url, verbose)
-    if dataset == '001-2015':
-        return _load_data_001_2015(subject, path, force_update, update_path,
-                                   base_url, verbose)
-    if dataset == '004-2015':
-        return _load_data_004_2015(subject, path, force_update, update_path,
-                                   base_url, verbose)
+    return dataset_list[dataset](subject, path, force_update, update_path,
+                                 base_url, verbose)
 
 
 @verbose
