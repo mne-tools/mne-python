@@ -389,7 +389,8 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                     line_list.append(
                         ax.plot(times, D[ch_idx], picker=3.,
                                 zorder=z + 1 if spatial_colors is True else 1,
-                                color=colors[ch_idx], alpha=line_alpha)[0])
+                                color=colors[ch_idx], alpha=line_alpha,
+                                linewidth=0.5)[0])
 
             if gfp:  # 'only' or boolean True
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
@@ -415,7 +416,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                     line.set_zorder(2)
                     if spatial_colors is True:
                         line.set_linestyle("--")
-            ax.set_ylabel('data (%s)' % ch_unit)
+            ax.set_ylabel(ch_unit)
             # for old matplotlib, we actually need this to have a bounding
             # box (!), so we have to put some valid text here, change
             # alpha and path effects later
