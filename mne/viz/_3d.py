@@ -1586,6 +1586,7 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         dipole_locs = np.array([apply_trans(ras2vox, loc * 1000.) * zooms
                                 for loc in dipole.pos])
         ori = dipole.ori
+        scatter_points = dipole.pos * 1000.
     else:
         dipole_locs = np.array([apply_trans(trans['trans'], loc) for loc
                                 in dipole.pos])
@@ -1593,15 +1594,16 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         # Position in meters -> voxels.
         dipole_locs = np.array([apply_trans(ras2vox, loc * 1000.) for loc
                                 in dipole_locs])
+        scatter_points = apply_trans(vox2ras, dipole_locs)
     gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
                                np.linspace(-dd, dd, dims))
 
     _plot_dipole(ax, data, dipole_locs, idx, dipole, gridx, gridy, ori,
-                 coord_frame, zooms, show_all, vox2ras)
+                 coord_frame, zooms, show_all, scatter_points)
     params = {'ax': ax, 'data': data, 'idx': idx, 'dipole': dipole,
               'dipole_locs': dipole_locs, 'gridx': gridx, 'gridy': gridy,
               'ori': ori, 'coord_frame': coord_frame, 'zooms': zooms,
-              'show_all': show_all, 'vox2ras': vox2ras}
+              'show_all': show_all, 'scatter_points': scatter_points}
     ax.view_init(elev=30, azim=-140)
 
     callback_func = partial(_dipole_changed, params=params)
@@ -1613,7 +1615,7 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
 
 
 def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
-                 zooms, show_all, vox2ras):
+                 zooms, show_all, scatter_points):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
     point = points[idx]
@@ -1625,13 +1627,12 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     zslice = data[:, :, zidx][::-1].T[::-1]
     if coord_frame == 'head':
         zooms = (1., 1., 1.)
-        xyz = dipole.pos * 1000.
     else:
         point = points[idx] * zooms
         xidx = int(round(point[0]))
         yidx = int(round(point[1]))
         zidx = int(round(point[2]))
-        xyz = apply_trans(vox2ras, points)
+    xyz = scatter_points
 
     ori = ori[idx]
     if show_all:
@@ -1675,7 +1676,7 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
 
     plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.1f, Amplitude: %.1fnAm\n' % (
         idx, dipole.times[idx], dipole.gof[idx], dipole.amplitude[idx] * 1e9) +
-        'Loc: ' + ', '.join(['%0.1f' % x for x in xyz[idx]]))
+        'x:%0.1f, y:%0.1f, z:%0.1f' % (xyz[idx, 0], xyz[idx, 1], xyz[idx, 2]))
 
     plt.draw()
 
@@ -1698,4 +1699,4 @@ def _dipole_changed(event, params):
     _plot_dipole(params['ax'], params['data'], params['dipole_locs'],
                  params['idx'], params['dipole'], params['gridx'],
                  params['gridy'], params['ori'], params['coord_frame'],
-                 params['zooms'], params['show_all'], params['vox2ras'])
+                 params['zooms'], params['show_all'], params['scatter_points'])
