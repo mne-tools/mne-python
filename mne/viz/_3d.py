@@ -1636,7 +1636,7 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
 
     ori = ori[idx]
     if show_all:
-        colors = np.repeat('b', len(points))
+        colors = np.repeat('y', len(points))
         colors[idx] = 'r'
         size = np.repeat(5, len(points))
         size[idx] = 20
@@ -1653,14 +1653,14 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     yy = np.linspace(offset, xyz[idx, 1], yidx)
     zz = np.linspace(offset, xyz[idx, 2], zidx)
     ax.plot(xx, np.repeat(xyz[idx, 1], len(xx)), zs=xyz[idx, 2], zorder=1,
-            linestyle='-', color='b')
+            linestyle='-', color='r')
     ax.plot(np.repeat(xyz[idx, 0], len(yy)), yy, zs=xyz[idx, 2], zorder=1,
-            linestyle='-', color='b')
+            linestyle='-', color='r')
     ax.plot(np.repeat(xyz[idx, 0], len(zz)),
             np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
-            linestyle='-', color='b')
+            linestyle='-', color='r')
     ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1],
-              ori[2], length=50, pivot='tail')
+              ori[2], length=50, pivot='tail', color='r')
     dims = np.array([(len(data) / -2.), (len(data) / 2.)])
     ax.set_xlim(-1 * dims * zooms[:2])  # Set axis lims to RAS coordinates.
     ax.set_ylim(-1 * dims * zooms[:2])
@@ -1668,11 +1668,11 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
 
     # Plot slices.
     ax.contourf(xslice, gridx, gridy, offset=offset, zdir='x',
-                cmap='gray', zorder=0, alpha=0.5)
+                cmap='gray', zorder=0, alpha=.5)
     ax.contourf(gridx, gridy, yslice, offset=offset, zdir='z',
-                cmap='gray', zorder=0, alpha=0.5)
+                cmap='gray', zorder=0, alpha=.5)
     ax.contourf(gridx, zslice, gridy, offset=offset,
-                zdir='y', cmap='gray', zorder=0, alpha=0.5)
+                zdir='y', cmap='gray', zorder=0, alpha=.5)
 
     plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.1f, Amplitude: %.1fnAm\n' % (
         idx, dipole.times[idx], dipole.gof[idx], dipole.amplitude[idx] * 1e9) +
