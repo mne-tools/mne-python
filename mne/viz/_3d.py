@@ -1351,9 +1351,6 @@ def _plot_dipole_locations_3d(dipoles, trans, subject, subjects_dir=None,
     if isinstance(dipoles, Dipole):
         dipoles = [dipoles]
 
-    if mode not in ['cone', 'sphere']:
-        raise ValueError('mode must be in "cone" or "sphere"')
-
     if colors is None:
         colors = cycle(COLORS)
 
@@ -1481,7 +1478,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     if mode is None:
         warnings.warn('the mayavi surface based rendering is deprecated '
                       'and will be removed in version 0.15. Set "mode" '
-                      'to "orthoview" not to see this warning.')
+                      'to "orthoview" to avoid seeing this warning.')
         mode = 'cone'
 
     if mode in ['cone', 'sphere']:
@@ -1489,11 +1486,14 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
             dipoles, trans, subject, subjects_dir, bgcolor, opacity,
             brain_color, fig_name, fig_size, mode, scale_factor,
             colors)
-    else:
+    elif mode == 'orthoview':
         fig = _plot_dipole_mri_orthoview(
             dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
             coord_frame=coord_frame, idx=idx, show_all=show_all,
             ax=ax, block=block, show=show)
+    else:
+        raise ValueError('Mode must be "orthoview", "cone" or "sphere". '
+                         'Got %s.' % mode)
 
     return fig
 
