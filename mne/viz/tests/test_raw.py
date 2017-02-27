@@ -178,7 +178,7 @@ def test_plot_annotations():
 
     raw.annotations = Annotations([1], [1], 'test', raw.info['meas_date'])
     fig = raw.plot()
-    assert_raises(NotImplementedError, fig.canvas.key_press_event, 'a')
+    fig.canvas.key_press_event('a')
     plt.close('all')
 
 
