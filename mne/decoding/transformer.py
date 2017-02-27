@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Romain Trachel <trachelr@gmail.com>
@@ -17,7 +18,10 @@ from ..utils import _check_type_picks
 
 
 class Scaler(TransformerMixin):
-    """Standardize data across channels.
+    u"""Standardize data across channels.
+
+    By default, this makes each time point (within each epoch) have
+    μ=0, σ=1.
 
     Parameters
     ----------
@@ -79,10 +83,16 @@ class Scaler(TransformerMixin):
 
         for key, this_pick in picks_list.items():
             if self.with_mean:
-                ch_mean = X[:, this_pick, :].mean(axis=1)[:, None, :]
+                if len(this_pick) == 0:
+                    ch_mean = np.nan * np.ones((X.shape[0], 1, X.shape[2]))
+                else:
+                    ch_mean = X[:, this_pick, :].mean(axis=1, keepdims=True)
                 self.ch_mean_[key] = ch_mean  # TODO rename attribute
             if self.with_std:
-                ch_std = X[:, this_pick, :].mean(axis=1)[:, None, :]
+                if len(this_pick) == 0:
+                    ch_std = np.nan * np.ones((X.shape[0], 1, X.shape[2]))
+                else:
+                    ch_std = np.std(X[:, this_pick, :], axis=1, keepdims=True)
                 self.std_[key] = ch_std  # TODO rename attribute
 
         return self
