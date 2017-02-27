@@ -1675,6 +1675,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     import scipy
+    from .. import Dipole
     if has_nibabel():
         import nibabel as nib
         from nibabel.processing import resample_from_to
@@ -1690,6 +1691,14 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     elif not isinstance(idx, int):
         raise ValueError("idx must be an int or one of ['gof', 'amplitude']. "
                          "Got %s." % idx)
+
+    if not isinstance(dipole, Dipole):
+        dipole = Dipole(np.concatenate([d.times for d in dipole]),
+                        np.concatenate([d.pos for d in dipole]),
+                        np.concatenate([d.amplitude for d in dipole]),
+                        np.concatenate([d.ori for d in dipole]),
+                        np.concatenate([d.gof for d in dipole]))
+
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')

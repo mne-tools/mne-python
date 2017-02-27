@@ -191,18 +191,18 @@ class Dipole(object):
 
             .. versionadded:: 0.14.0
         idx : int | 'gof' | 'amplitude'
-            Index of the initially plotted dipole. Can also be 'gof' to plot the
-            dipole with highest goodness of fit value or 'amplitude' to plot the
-            dipole with the highest amplitude. The dipoles can also be browsed
-            through using up/down arrow keys or mouse scroll. Defaults to 'gof'.
-            Only used if mode equals 'orthoview'.
+            Index of the initially plotted dipole. Can also be 'gof' to plot
+            the dipole with highest goodness of fit value or 'amplitude' to
+            plot the dipole with the highest amplitude. The dipoles can also be
+            browsed through using up/down arrow keys or mouse scroll. Defaults
+            to 'gof'. Only used if mode equals 'orthoview'.
 
             .. versionadded:: 0.14.0
         show_all : bool
-            Whether to always plot all the dipoles. If True (default), the active
-            dipole is plotted as a red dot and it's location determines the shown
-            MRI slices. The the non-active dipoles are plotted as small blue dots.
-            If False, only the active dipole is plotted.
+            Whether to always plot all the dipoles. If True (default), the
+            active dipole is plotted as a red dot and it's location determines
+            the shown MRI slices. The the non-active dipoles are plotted as
+            small blue dots. If False, only the active dipole is plotted.
             Only used if mode equals 'orthoview'.
 
             .. versionadded:: 0.14.0
@@ -212,9 +212,8 @@ class Dipole(object):
 
             .. versionadded:: 0.14.0
         block : bool
-            Whether to halt program execution until the figure is closed. Defaults
-            to False.
-            Only used if mode equals 'orthoview'.
+            Whether to halt program execution until the figure is closed.
+            Defaults to False. Only used if mode equals 'orthoview'.
 
             .. versionadded:: 0.14.0
         show : bool
@@ -223,8 +222,9 @@ class Dipole(object):
 
             .. versionadded:: 0.14.0
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see :func:`mne.verbose`
-            and :ref:`Logging documentation <tut_logging>` for more).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -313,7 +313,6 @@ class Dipole(object):
 def _read_dipole_fixed(fname):
     """Helper to read a fixed dipole FIF file."""
     logger.info('Reading %s ...' % fname)
-    _check_fname(fname, overwrite=True, must_exist=True)
     info, nave, aspect_kind, first, last, comment, times, data = \
         _read_evoked(fname)
     return DipoleFixed(info, data, times, nave, aspect_kind, first, last,
@@ -444,7 +443,7 @@ def read_dipole(fname, verbose=None):
     mne.Dipole
     mne.DipoleFixed
     """
-    _check_fname(fname, overwrite=True, must_exist=True)
+    _check_fname(fname, overwrite='read', must_exist=True)
     if fname.endswith('.fif') or fname.endswith('.fif.gz'):
         return _read_dipole_fixed(fname)
     else:

@@ -265,9 +265,9 @@ def test_plot_dipole_mri_orthoview():
     trans = read_trans(trans_fname)
     for coord_frame, idx, show_all in zip(['head', 'mri'],
                                           ['gof', 'amplitude'], [True, False]):
-        fig = dipoles.plot_mri_orthoview(trans, 'sample', subjects_dir,
-                                         coord_frame=coord_frame, idx=idx,
-                                         show_all=show_all)
+        fig = dipoles.plot_locations(trans, 'sample', subjects_dir,
+                                     coord_frame=coord_frame, idx=idx,
+                                     show_all=show_all, mode='orthoview')
         fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
         fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
         fig.canvas.key_press_event('up')
