@@ -21,7 +21,6 @@ from .evoked import _read_evoked, _aspect_rev, _write_evokeds
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform, Transform)
 from .viz.evoked import _plot_evoked
-from .viz._3d import plot_dipole_mri_orthoview
 from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
 from .forward._compute_forward import (_compute_forwards_meeg,
@@ -35,7 +34,7 @@ from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
-                    check_fname, _pl, copy_function_doc_to_method_doc)
+                    check_fname, _pl)
 
 
 class Dipole(object):
@@ -148,11 +147,16 @@ class Dipole(object):
                        bgcolor=(1, 1, 1), opacity=0.3,
                        brain_color=(1, 1, 0), fig_name=None,
                        fig_size=(600, 600), mode='cone',
-                       scale_factor=0.1e-1, colors=None, verbose=None):
-        """Plot dipole locations as arrows.
+                       scale_factor=0.1e-1, colors=None,
+                       coord_frame='head', idx='gof',
+                       show_all=True, ax=None, block=False,
+                       show=True, verbose=None):
+        """Plot dipole locations in 3d
 
         Parameters
         ----------
+        dipoles : list of instances of Dipole | Dipole
+            The dipoles to plot.
         trans : dict
             The mri to head trans.
         subject : str
@@ -168,36 +172,80 @@ class Dipole(object):
             Opacity of brain mesh.
         brain_color : tuple of length 3
             Brain color.
-        fig_name : tuple of length 2
+        fig_name : str
             Mayavi figure name.
         fig_size : tuple of length 2
             Mayavi figure size.
         mode : str
-            Should be ``'cone'`` or ``'sphere'`` to specify how the
-            dipoles should be shown.
+            Should be ``'cone'`` or ``'sphere'`` or ``'orthoview'`` to specify
+            how the dipoles should be shown. If orthoview then matplotlib is
+            used otherwise it is mayavi.
+
+            .. versionadded:: 0.14.0
         scale_factor : float
             The scaling applied to amplitudes for the plot.
         colors: list of colors | None
-            Color to plot with each dipole. If None defaults colors are used.
+            Color to plot with each dipole. If None default colors are used.
+        coord_frame : str
+            Coordinate frame to use, 'head' or 'mri'.
+
+            .. versionadded:: 0.14.0
+        idx : int | 'gof' | 'amplitude'
+            Index of the initially plotted dipole. Can also be 'gof' to plot the
+            dipole with highest goodness of fit value or 'amplitude' to plot the
+            dipole with the highest amplitude. The dipoles can also be browsed
+            through using up/down arrow keys or mouse scroll. Defaults to 'gof'.
+            Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
+        show_all : bool
+            Whether to always plot all the dipoles. If True (default), the active
+            dipole is plotted as a red dot and it's location determines the shown
+            MRI slices. The the non-active dipoles are plotted as small blue dots.
+            If False, only the active dipole is plotted.
+            Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
+        ax : instance of matplotlib Axes3D | None
+            Axes to plot into. If None (default), axes will be created.
+            Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
+        block : bool
+            Whether to halt program execution until the figure is closed. Defaults
+            to False.
+            Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
+        show : bool
+            Show figure if True. Defaults to True.
+            Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+            If not None, override default verbose level (see :func:`mne.verbose`
+            and :ref:`Logging documentation <tut_logging>` for more).
 
         Returns
         -------
-        fig : instance of mlab.Figure
-            The mayavi figure.
+        fig : instance of mlab.Figure or matplotlib Figure
+            The mayavi figure or matplotlib Figure.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         from .viz import plot_dipole_locations
-        dipoles = []
-        for t in self.times:
-            dipoles.append(self.copy())
-            dipoles[-1].crop(t, t)
+        dipoles = self
+        if mode == [None, 'cone', 'sphere']:  # support old behavior
+            dipoles = []
+            for t in self.times:
+                dipoles.append(self.copy())
+                dipoles[-1].crop(t, t)
         return plot_dipole_locations(
             dipoles, trans, subject, subjects_dir, bgcolor, opacity,
             brain_color, fig_name, fig_size, mode, scale_factor,
-            colors)
+            colors, coord_frame, idx, show_all, ax, block, show)
 
     def plot_amplitudes(self, color='k', show=True):
         """Plot the dipole amplitudes as a function of time.
@@ -216,16 +264,6 @@ class Dipole(object):
         """
         from .viz import plot_dipole_amplitudes
         return plot_dipole_amplitudes([self], [color], show)
-
-    @copy_function_doc_to_method_doc(plot_dipole_mri_orthoview)
-    def plot_mri_orthoview(self, trans, subject, subjects_dir=None,
-                           coord_frame='head', idx='gof', show_all=True,
-                           ax=None, block=False, show=True):
-        return plot_dipole_mri_orthoview(self, trans=trans, subject=subject,
-                                         subjects_dir=subjects_dir,
-                                         coord_frame=coord_frame, idx=idx,
-                                         show_all=show_all, ax=ax, block=block,
-                                         show=show)
 
     def __getitem__(self, item):
         """Get a time slice.

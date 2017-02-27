@@ -85,7 +85,7 @@ Changelog
 
     - Add annotation aware data getter :meth:`mne.io.Raw.get_data` by `Jaakko Leppakangas`_
 
-    - Add :func:`mne.viz.plot_dipole_mri_orthoview` for plotting dipoles by `Jaakko Leppakangas`_
+    - Add support of dipole location visualization with MRI slice overlay with matplotlib to :func:`mne.viz.plot_dipole_locations` via mode='orthoview' parameter by `Jaakko Leppakangas`_ and `Alex Gramfort`_
 
 BUG
 ~~~

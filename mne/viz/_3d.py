@@ -1267,11 +1267,12 @@ def _toggle_mlab_render(fig, render):
         fig.scene.disable_render = not render
 
 
-def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
-                          bgcolor=(1, 1, 1), opacity=0.3,
-                          brain_color=(1, 1, 0), fig_name=None,
-                          fig_size=(600, 600), mode='cone',
-                          scale_factor=0.1e-1, colors=None, verbose=None):
+def _plot_dipole_locations_3d(dipoles, trans, subject, subjects_dir=None,
+                              bgcolor=(1, 1, 1), opacity=0.3,
+                              brain_color=(1, 1, 0), fig_name=None,
+                              fig_size=(600, 600), mode=None,
+                              scale_factor=0.1e-1, colors=None,
+                              verbose=None):
     """Plot dipole locations.
 
     Only the location of the first time point of each dipole is shown.
@@ -1300,12 +1301,31 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     fig_size : tuple of length 2
         Mayavi figure size.
     mode : str
-        Should be ``'cone'`` or ``'sphere'`` to specify how the
-        dipoles should be shown.
+        Should be ``'cone'`` or ``'sphere'`` to specify
+        how the dipoles should be shown.
     scale_factor : float
         The scaling applied to amplitudes for the plot.
     colors: list of colors | None
         Color to plot with each dipole. If None default colors are used.
+    coord_frame : str
+        Coordinate frame to use, 'head' or 'mri'.
+    idx : int | 'gof' | 'amplitude'
+        Index of the initially plotted dipole. Can also be 'gof' to plot the
+        dipole with highest goodness of fit value or 'amplitude' to plot the
+        dipole with the highest amplitude. The dipoles can also be browsed
+        through using up/down arrow keys or mouse scroll. Defaults to 'gof'.
+    show_all : bool
+        Whether to always plot all the dipoles. If True (default), the active
+        dipole is plotted as a red dot and it's location determines the shown
+        MRI slices. The the non-active dipoles are plotted as small blue dots.
+        If False, only the active dipole is plotted.
+    ax : instance of matplotlib Axes3D | None
+        Axes to plot into. If None (default), axes will be created.
+    block : bool
+        Whether to halt program execution until the figure is closed. Defaults
+        to False.
+    show : bool
+        Show figure if True. Defaults to True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1314,10 +1334,6 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     -------
     fig : instance of mlab.Figure
         The mayavi figure.
-
-    Notes
-    -----
-    .. versionadded:: 0.9.0
     """
     mlab = _import_mlab()
     from matplotlib.colors import ColorConverter
@@ -1362,6 +1378,123 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     if fig.scene is not None:  # safe for Travis
         fig.scene.x_plus_view()
     _toggle_mlab_render(fig, True)
+    return fig
+
+
+def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
+                          bgcolor=(1, 1, 1), opacity=0.3,
+                          brain_color=(1, 1, 0), fig_name=None,
+                          fig_size=(600, 600), mode=None,
+                          scale_factor=0.1e-1, colors=None,
+                          coord_frame='head', idx='gof',
+                          show_all=True, ax=None, block=False,
+                          show=True, verbose=None):
+    """Plot dipole locations
+
+    If mode is set to 'cone' or 'sphere', only the location of the first
+    time point of each dipole is shown else use the show_all parameter.
+
+    The option mode='orthoview' was added in version 0.14.
+
+    Parameters
+    ----------
+    dipoles : list of instances of Dipole | Dipole
+        The dipoles to plot.
+    trans : dict
+        The mri to head trans.
+    subject : str
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT.
+    subjects_dir : None | str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+        The default is None.
+    bgcolor : tuple of length 3
+        Background color in 3D.
+    opacity : float in [0, 1]
+        Opacity of brain mesh.
+    brain_color : tuple of length 3
+        Brain color.
+    fig_name : str
+        Mayavi figure name.
+    fig_size : tuple of length 2
+        Mayavi figure size.
+    mode : str
+        Should be ``'cone'`` or ``'sphere'`` or ``'orthoview'`` to specify
+        how the dipoles should be shown. If orthoview then matplotlib is
+        used otherwise it is mayavi.
+
+        .. versionadded:: 0.14.0
+    scale_factor : float
+        The scaling applied to amplitudes for the plot.
+    colors: list of colors | None
+        Color to plot with each dipole. If None default colors are used.
+    coord_frame : str
+        Coordinate frame to use, 'head' or 'mri'.
+
+        .. versionadded:: 0.14.0
+    idx : int | 'gof' | 'amplitude'
+        Index of the initially plotted dipole. Can also be 'gof' to plot the
+        dipole with highest goodness of fit value or 'amplitude' to plot the
+        dipole with the highest amplitude. The dipoles can also be browsed
+        through using up/down arrow keys or mouse scroll. Defaults to 'gof'.
+        Only used if mode equals 'orthoview'.
+
+        .. versionadded:: 0.14.0
+    show_all : bool
+        Whether to always plot all the dipoles. If True (default), the active
+        dipole is plotted as a red dot and it's location determines the shown
+        MRI slices. The the non-active dipoles are plotted as small blue dots.
+        If False, only the active dipole is plotted.
+        Only used if mode equals 'orthoview'.
+
+        .. versionadded:: 0.14.0
+    ax : instance of matplotlib Axes3D | None
+        Axes to plot into. If None (default), axes will be created.
+        Only used if mode equals 'orthoview'.
+
+        .. versionadded:: 0.14.0
+    block : bool
+        Whether to halt program execution until the figure is closed. Defaults
+        to False.
+        Only used if mode equals 'orthoview'.
+
+        .. versionadded:: 0.14.0
+    show : bool
+        Show figure if True. Defaults to True.
+        Only used if mode equals 'orthoview'.
+
+        .. versionadded:: 0.14.0
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    fig : instance of mlab.Figure or matplotlib Figure
+        The mayavi figure or matplotlib Figure.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+    """
+    if mode is None:
+        warnings.warn('the mayavi surface based rendering is deprecated '
+                      'and will be removed in version 0.15. Set "mode" '
+                      'to "orthoview" not to see this warning.')
+        mode = 'cone'
+
+    if mode in ['cone', 'sphere']:
+        fig = _plot_dipole_locations_3d(
+            dipoles, trans, subject, subjects_dir, bgcolor, opacity,
+            brain_color, fig_name, fig_size, mode, scale_factor,
+            colors)
+    else:
+        fig = _plot_dipole_mri_orthoview(
+            dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
+            coord_frame=coord_frame, idx=idx, show_all=show_all,
+            ax=ax, block=block, show=show)
+
     return fig
 
 
@@ -1494,9 +1627,9 @@ def _get_view_to_display_matrix(scene):
     return view_to_disp_mat
 
 
-def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
-                              coord_frame='head', idx='gof', show_all=True,
-                              ax=None, block=False, show=True):
+def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
+                               coord_frame='head', idx='gof', show_all=True,
+                               ax=None, block=False, show=True):
     """Plot dipoles on top of mri slices in 3-D.
 
     Browse through the dipoles using mouse scroll or up/down arrows.
