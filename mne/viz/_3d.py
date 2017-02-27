@@ -1541,6 +1541,7 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     """
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
+    import scipy
     if has_nibabel():
         import nibabel as nib
         from nibabel.processing import resample_from_to
@@ -1561,7 +1562,7 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
     vox2ras = t1.header.get_vox2ras_tkr()
-    ras2vox = np.linalg.inv(vox2ras)
+    ras2vox = scipy.linalg.inv(vox2ras)
     trans = _get_trans(trans, fro='head', to='mri')[0]
     zooms = t1.header.get_zooms()
     if coord_frame == 'head':
@@ -1576,7 +1577,7 @@ def plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
 
     data = t1.get_data()
     dims = len(data)  # Symmetric size assumed.
-    dd = (dims / 2.) / 1000.
+    dd = (dims / 2.)
     if coord_frame == 'mri':
         dd *= t1.header.get_zooms()[0]
     fig = plt.figure()
@@ -1624,13 +1625,13 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     zslice = data[:, :, zidx][::-1].T[::-1]
     if coord_frame == 'head':
         zooms = (1., 1., 1.)
-        xyz = dipole.pos
+        xyz = dipole.pos * 1000.
     else:
         point = points[idx] * zooms
         xidx = int(round(point[0]))
         yidx = int(round(point[1]))
         zidx = int(round(point[2]))
-        xyz = np.array([apply_trans(vox2ras, p) for p in points]) / 1000.
+        xyz = apply_trans(vox2ras, points)
 
     ori = ori[idx]
     if show_all:
@@ -1658,8 +1659,8 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
             np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
             linestyle='-', color='b')
     ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1],
-              ori[2], length=0.05, pivot='tail')
-    dims = np.array([(len(data) / -2.) / 1000., (len(data) / 2.) / 1000.])
+              ori[2], length=50, pivot='tail')
+    dims = np.array([(len(data) / -2.), (len(data) / 2.)])
     ax.set_xlim(-1 * dims * zooms[:2])  # Set axis lims to RAS coordinates.
     ax.set_ylim(-1 * dims * zooms[:2])
     ax.set_zlim(dims * zooms[:2])
@@ -1674,7 +1675,7 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
 
     plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.1f, Amplitude: %.1fnAm\n' % (
         idx, dipole.times[idx], dipole.gof[idx], dipole.amplitude[idx] * 1e9) +
-        'Loc: ' + ', '.join(['%0.1f' % x for x in xyz[idx] * 1000.]))
+        'Loc: ' + ', '.join(['%0.1f' % x for x in xyz[idx]]))
 
     plt.draw()
 
