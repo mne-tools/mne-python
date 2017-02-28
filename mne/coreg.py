@@ -598,7 +598,7 @@ def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
         (sys.environ['SUBJECTS_DIR'])
 
     Returns
-    ------
+    -------
     paths : list
         List of paths relative to the subject's label directory
     """

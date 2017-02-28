@@ -159,6 +159,7 @@ def _inv_block_diag(A, n):
         The matrix.
     n : int
         The block size.
+
     Returns
     -------
     bd : sparse matrix

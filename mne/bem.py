@@ -1709,7 +1709,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     """Create 3-Layer BEM model from prepared flash MRI images.
 
     Parameters
-    -----------
+    ----------
     subject : str
         Subject name.
     overwrite : bool

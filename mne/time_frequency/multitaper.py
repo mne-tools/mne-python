@@ -11,13 +11,12 @@ from ..utils import sum_squared, warn, verbose
 
 
 def tridisolve(d, e, b, overwrite_b=True):
-    """Symmetric tridiagonal system solver, from Golub and Van Loan pg 157.
+    """Symmetric tridiagonal system solver, from Golub and Van Loan p157.
 
-    Note: Copied from NiTime
+    .. note:: Copied from NiTime.
 
     Parameters
     ----------
-
     d : ndarray
       main diagonal stored in d[:]
     e : ndarray
@@ -27,7 +26,6 @@ def tridisolve(d, e, b, overwrite_b=True):
 
     Returns
     -------
-
     x : ndarray
       Solution to Ax = b (if overwrite_b is False). Otherwise solution is
       stored in previous RHS vector b
@@ -63,11 +61,10 @@ def tridi_inverse_iteration(d, e, w, x0=None, rtol=1e-8):
     This will find the eigenvector corresponding to the given eigenvalue
     in a symmetric tridiagonal system.
 
-    Note: Copied from NiTime
+    ..note:: Copied from NiTime.
 
     Parameters
     ----------
-
     d : ndarray
       main diagonal of the tridiagonal system
     e : ndarray
@@ -83,7 +80,6 @@ def tridi_inverse_iteration(d, e, w, x0=None, rtol=1e-8):
     -------
     e: ndarray
       The converged eigenvector
-
     """
     eig_diag = d - w
     if x0 is None:
@@ -108,7 +104,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     Will give of orders [0,Kmax-1] for a given frequency-spacing multiple
     NW and sequence length N.
 
-    Note: Copied from NiTime
+    .. note:: Copied from NiTime.
 
     Parameters
     ----------
@@ -254,11 +250,10 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
                           return_weights=False):
     r"""Use iterative procedure to compute the PSD from tapered spectra.
 
-    Note: Modified from NiTime
+    .. note:: Modified from NiTime.
 
     Parameters
     ----------
-
     x_mt : array, shape=(n_signals, n_tapers, n_freqs)
        The DFTs of the tapered sequences (only positive frequencies)
     eigvals : array, length n_tapers

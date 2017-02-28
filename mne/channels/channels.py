@@ -57,7 +57,7 @@ def _contains_ch_type(info, ch_type):
     """Check whether a certain channel type is in an info object.
 
     Parameters
-    ---------
+    ----------
     info : instance of Info
         The measurement information.
     ch_type : str

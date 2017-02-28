@@ -392,7 +392,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     Parameters
     ----------
-
     epochs : instance of Epochs
         The epochs object
     picks : array-like of int | None
