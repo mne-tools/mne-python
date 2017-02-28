@@ -78,6 +78,9 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
     ch_types = [type_ for type_ in ch_types if type_ in ('eeg', 'grad', 'mag')]
+    if len(ch_types) == 0:
+        raise ValueError('Interactive topomaps only allowed for EEG '
+                         'and MEG channels.')
     if ('grad' in ch_types and
             len(_pair_grad_sensors(info, topomap_coords=False,
                                    raise_error=False)) < 2):
