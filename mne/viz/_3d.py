@@ -35,7 +35,6 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _import_mlab, SilenceStdout, has_nibabel)
-
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS, plt_show
 
 
@@ -1391,7 +1390,8 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     If mode is set to 'cone' or 'sphere', only the location of the first
     time point of each dipole is shown else use the show_all parameter.
 
-    The option mode='orthoview' was added in version 0.14.
+    The option mode='orthoview' was added in version 0.14. Modes 'cone' and
+    'sphere' will be deprecated in version 0.15.
 
     Parameters
     ----------
@@ -1476,7 +1476,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     .. versionadded:: 0.9.0
     """
     if mode is None:
-        warnings.warn('the mayavi surface based rendering is deprecated '
+        warnings.warn('The mayavi surface-based rendering is deprecated '
                       'and will be removed in version 0.15. Set "mode" '
                       'to "orthoview" to avoid seeing this warning.')
         mode = 'cone'
@@ -1676,28 +1676,25 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     from mpl_toolkits.mplot3d import Axes3D
     import scipy
     from .. import Dipole
-    if has_nibabel():
-        import nibabel as nib
-        from nibabel.processing import resample_from_to
-    else:
+    if not has_nibabel():
         raise ImportError('This function requires nibabel.')
+    import nibabel as nib
+    from nibabel.processing import resample_from_to
+
     if coord_frame not in ['head', 'mri']:
         raise ValueError("coord_frame must be 'head' or 'mri'. "
                          "Got %s." % coord_frame)
     if idx == 'gof':
         idx = np.argmax(dipole.gof)
     elif idx == 'amplitude':
-        idx = np.argmax(dipole.amplitude)
+        idx = np.argmax(np.abs(dipole.amplitude))
     elif not isinstance(idx, int):
         raise ValueError("idx must be an int or one of ['gof', 'amplitude']. "
                          "Got %s." % idx)
 
     if not isinstance(dipole, Dipole):
-        dipole = Dipole(np.concatenate([d.times for d in dipole]),
-                        np.concatenate([d.pos for d in dipole]),
-                        np.concatenate([d.amplitude for d in dipole]),
-                        np.concatenate([d.ori for d in dipole]),
-                        np.concatenate([d.gof for d in dipole]))
+        from ..dipole import _concatenate_dipoles
+        dipole = _concatenate_dipoles(dipole)
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
@@ -1716,15 +1713,6 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         affine_to = np.dot(affine_to, aff)
         t1 = resample_from_to(t1, ([int(t1.shape[i] * zooms[i]) for i
                                     in range(3)], affine_to))
-
-    data = t1.get_data()
-    dims = len(data)  # Symmetric size assumed.
-    dd = (dims / 2.)
-    if coord_frame == 'mri':
-        dd *= t1.header.get_zooms()[0]
-    fig = plt.figure()
-    ax = Axes3D(fig) if ax is None else ax
-    if coord_frame == 'head':
         dipole_locs = np.array([apply_trans(ras2vox, loc * 1000.) * zooms
                                 for loc in dipole.pos])
         ori = dipole.ori
@@ -1737,6 +1725,14 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         dipole_locs = np.array([apply_trans(ras2vox, loc * 1000.) for loc
                                 in dipole_locs])
         scatter_points = apply_trans(vox2ras, dipole_locs)
+
+    data = t1.get_data()
+    dims = len(data)  # Symmetric size assumed.
+    dd = (dims / 2.)
+    dd *= t1.header.get_zooms()[0]
+    fig = plt.figure()
+    ax = Axes3D(fig) if ax is None else ax
+
     gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
                                np.linspace(-dd, dd, dims))
 

@@ -155,8 +155,6 @@ class Dipole(object):
 
         Parameters
         ----------
-        dipoles : list of instances of Dipole | Dipole
-            The dipoles to plot.
         trans : dict
             The mri to head trans.
         subject : str
@@ -183,7 +181,8 @@ class Dipole(object):
 
             .. versionadded:: 0.14.0
         scale_factor : float
-            The scaling applied to amplitudes for the plot.
+            The scaling applied to amplitudes for the plot. Only applies for
+            modes ``cone`` and ``sphere``.
         colors: list of colors | None
             Color to plot with each dipole. If None default colors are used.
         coord_frame : str
@@ -242,6 +241,9 @@ class Dipole(object):
             for t in self.times:
                 dipoles.append(self.copy())
                 dipoles[-1].crop(t, t)
+        elif mode != 'orthoview':
+            raise ValueError("mode must be 'cone', 'sphere' or 'orthoview'. "
+                             "Got %s." % mode)
         return plot_dipole_locations(
             dipoles, trans, subject, subjects_dir, bgcolor, opacity,
             brain_color, fig_name, fig_size, mode, scale_factor,
@@ -1220,3 +1222,18 @@ def get_phantom_dipoles(kind='vectorview'):
         ori.append(this_ori)
     ori = np.array(ori)
     return pos, ori
+
+
+def _concatenate_dipoles(dipoles):
+    """Helper for concatenating a list of dipoles."""
+    times, pos, amplitude, ori, gof = [], [], [], [], []
+    for dipole in dipoles:
+        times.append(dipole.times)
+        pos.append(dipole.pos)
+        amplitude.append(dipole.amplitude)
+        ori.append(dipole.ori)
+        gof.append(dipole.gof)
+
+    return Dipole(np.concatenate(times), np.concatenate(pos),
+                  np.concatenate(amplitude), np.concatenate(ori),
+                  np.concatenate(gof), name=None)

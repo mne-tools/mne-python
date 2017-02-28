@@ -2089,12 +2089,10 @@ def _check_fname(fname, overwrite=False, must_exist=False):
     if must_exist and not op.isfile(fname):
         raise IOError('File "%s" does not exist' % fname)
     if op.isfile(fname):
-        if overwrite == 'read':
-            return
-        elif not overwrite:
+        if not overwrite:
             raise IOError('Destination file exists. Please use option '
                           '"overwrite=True" to force overwriting.')
-        else:
+        elif overwrite != 'read':
             logger.info('Overwriting existing file.')
 
 
