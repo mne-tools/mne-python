@@ -164,6 +164,9 @@ def test_read_ctf():
                                 err_msg='raw.info["chs"][%d][%s]' % (ii, key))
         if fname.endswith('catch-alp-good-f.ds'):  # omit points from .pos file
             raw.info['dig'] = raw.info['dig'][:-10]
+
+        # XXX: Next test would fail because c-tools assign the fiducials from
+        # CTF data as HPI. Should eventually clarify/unify with Matti.
         # assert_dig_allclose(raw.info, raw_c.info)
 
         # check data match
