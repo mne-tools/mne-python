@@ -130,9 +130,7 @@ BUG
 
     - Fix bug in :func:`mne.preprocessing.fix_stim_artifact` where non-data channels were interpolated by `Eric Larson`_
 
-    - Fix :func:`mne.viz.plot_topo_image_epochs` and :class:`mne.decoding.Scaler` so that they no longer modify the data in-place and fix to :meth:`mne.decoding.Scaler.inverse_transform` so that the data is scaled before centering by `Jaakko Leppakangas`_
-
-    - Fix bug in :class:`mne.decoding.Scaler` where ``np.mean`` instead of ``np.std`` was used to compute scale factors by `Eric Larson`_
+    - :class:`mne.decoding.Scaler` now scales each channel independently using data from all time points (epochs and times) instead of scaling all channels for each time point. It also now accepts parameter ``scalings`` to determine the data scaling method (default is ``None`` to use static channel-type-based scaling), by `Asish Panda`_, `Jean-Remi King`_, and `Eric Larson`_
 
     - Raise error if the cv parameter of :class:`mne.decoding.GeneralizationAcrossTime` and :class:`mne.decoding.TimeDecoding` is not a partition and the predict_mode is "cross-validation" by `Jean-Remi King`_
 
@@ -186,8 +184,6 @@ API
     - Made functions :func:`mne.time_frequency.tfr_array_multitaper`, :func:`mne.time_frequency.tfr_array_morlet`, :func:`mne.time_frequency.tfr_array_stockwell`, :func:`mne.time_frequency.psd_array_multitaper` and :func:`mne.time_frequency.psd_array_welch` public to allow computing TFRs and PSDs on numpy arrays by `Jaakko Leppakangas`_
 
     - :meth:`mne.preprocessing.ICA.fit` now rejects data annotated bad by default. Turn off with ``reject_by_annotation=False``, by `Jaakko Leppakangas`_
-
-    - :class:`mne.decoding.Scaler` now accepts parameter ``scalings`` that describes the data scaling method (default is ``None`` to use channel-type-based scaling), by `Asish Panda`_, `Jean-Remi King`_, and `Eric Larson`_
 
 
 .. _changes_0_13:

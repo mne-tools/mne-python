@@ -13,75 +13,111 @@ from .base import BaseEstimator
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
-from ..externals import six
+from ..externals.six import string_types
 from ..utils import _check_type_picks, check_version
 from ..io.pick import pick_info, _pick_data_channels, _picks_by_type
-from ..cov import _undo_scaling_array, _apply_scaling_array
+from ..cov import _check_scalings_user
+
+
+class _ConstantScaler():
+    """Scale channel types using constant values."""
+
+    def __init__(self, info, scalings, do_scaling=True):
+        self._scalings = _check_scalings_user(scalings)
+        self._picks_by_type = _picks_by_type(pick_info(
+            info, _pick_data_channels(info, exclude=())))
+        self._do_scaling = do_scaling
+
+    def fit(self, X, y=None):
+        std = np.ones(sum(len(p[1]) for p in self._picks_by_type))
+        if X.shape[1] != len(std):
+            raise ValueError('info had %d data channels but X has %d channels'
+                             % (len(self._std), len(X)))
+        if self._do_scaling:  # this is silly, but necessary for completeness
+            for kind, picks in self._picks_by_type:
+                std[picks] = 1. / self._scalings[kind]
+        self.std_ = std
+        self.mean_ = np.zeros_like(std)
+        return self
+
+    def transform(self, X, y=None):
+        return X / self.std_
+
+    def inverse_transform(self, X, y=None):
+        return X * self.std_
+
+    def fit_transform(self, X, y=None):
+        return self.fit(X, y).transform(X)
+
+
+def _sklearn_reshape_apply(func, return_result, X, *args):
+    """Reshape epochs and apply function."""
+    if not isinstance(X, np.ndarray):
+        raise ValueError("data should be an np.ndarray, got %s." % type(X))
+    X = np.atleast_3d(X)
+    orig_shape = X.shape
+    X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
+    X = func(X, *args)
+    if return_result:
+        X.shape = (orig_shape[0], orig_shape[2], orig_shape[1])
+        X = X.transpose(0, 2, 1)
+        return X
 
 
 class Scaler(TransformerMixin, BaseEstimator):
     u"""Standardize data across channels.
 
-
     Parameters
     ----------
-    scalings : dict, string, defaults to "mean"
-      Scaling method to be applied to data channel wise.
-      * if scalings is 'median' :py:class:`sklearn.proprocessing.RobustScaler`
-        is used. robust requires sklearn version 0.17.
-      * if scalings is 'mean'
-        :py:class:`sklearn.preprocessing.StandardScaler` is used.
-      * if scalings is 'default_constant', scales
-
-          * mag by 1e15
-          * grad by 1e13
-          * eeg by 1e6
-
-    info : instance of Info
-        The measurement info
+    info : instance of Info | None
+        The measurement info. Only necessary if ``scalings`` is a dict or
+        None.
+    scalings : dict, string, defaults to None.
+        Scaling method to be applied to data channel wise.
+        * if scalings is None (default), scales mag by 1e15, grad by 1e13,
+          and eeg by 1e6.
+        * if scalings is :class:`dict`, keys are channel types and values
+          are scale factors.
+        * if ``scalings=='median'``,
+          :class:`sklearn.proprocessing.RobustScaler`
+          is used (requires sklearn version 0.17+).
+        * if ``scalings=='mean'``,
+          :class:`sklearn.preprocessing.StandardScaler`
+          is used.
     with_mean : boolean, True by default
-        If True, center the data using mean before scaling.
+        If True, center the data using mean (or median) before scaling.
+        Ignored for channel-type scaling.
     with_std : boolean, True by default
-        If True, scale the data to unit variance (or equivalently,
-        unit standard deviation).
-    with_centering: boolean, True by default
-        If True, center the data using median before scaling.
-        This is only valid(used) in robust method.
+        If True, scale the data to unit variance (``scalings='mean'``),
+        quantile range (``scalings='median`), or using channel type
+        ``scalings`` is a dict or None).
     """
 
-    def __init__(self, scalings='standard', info=None, with_mean=True,
-                 with_std=True, with_centering=True):  # noqa: D102
+    def __init__(self, info=None, scalings=None, with_mean=True,
+                 with_std=True):  # noqa: D102
         self.info = info
         self.with_mean = with_mean
         self.with_std = with_std
-        self.with_centering = with_centering
-
-        if (isinstance(scalings, str) and scalings not in
-                      ('mean', 'median', 'default_constant')):
-            raise ValueError("Invalid method for scaling")
-
-        if not isinstance(scalings, (dict, str)):
-            raise ValueError("scalings type should be dict or str")
-
-        if scalings == 'robust':
-            if not check_version('sklearn', '0.17'):
-                raise ValueError("robust requires version 0.17 of "
-                                 "sklearn library")
-
         self.scalings = scalings
-        picks = _pick_data_channels(self.info)
-        self._pick_types = _picks_by_type(pick_info(self.info, picks))
 
-    def _pick_apply(self, X, sc, n_channels):
-        """Pick by channel type and fit in each scaler object."""
-        from sklearn.base import clone
-
-        self.scalers_ = list()
-        X = X.reshape(n_channels, -1)
-        for _, pick in self._pick_types:
-            scaler = clone(sc)
-            scaler.fit(X[pick].T)
-            self.scalers_.append(scaler)
+        if not (scalings is None or isinstance(scalings, (dict, str))):
+            raise ValueError('scalings type should be dict, str, or None, '
+                             'got %s' % type(scalings))
+        if isinstance(scalings, string_types) and \
+                scalings not in ('mean', 'median'):
+            raise ValueError('Invalid method for scaling, must be "mean" or '
+                             '"median" but got %s' % scalings)
+        if scalings is None or isinstance(scalings, dict):
+            self._scaler = _ConstantScaler(info, scalings, self.with_std)
+        elif scalings == 'mean':
+            from sklearn.preprocessing import StandardScaler
+            self._scaler = StandardScaler(self.with_mean, self.with_std)
+        else:  # scalings == 'median':
+            if not check_version('sklearn', '0.17'):
+                raise ValueError("median requires version 0.17 of "
+                                 "sklearn library")
+            from sklearn.preprocessing import RobustScaler
+            self._scaler = RobustScaler(self.with_mean, self.with_std)
 
     def fit(self, epochs_data, y):
         """Standardize data across channels.
@@ -98,44 +134,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         self : instance of Scaler
             Returns the modified instance.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
-
-        X = np.atleast_3d(epochs_data)
-        n_epochs, n_channels, n_times = X.shape
-        X = X.transpose(1, 0, 2)
-        self.ch_mean_ = np.zeros(n_channels)
-        self.scale_ = np.zeros(n_channels)
-
-        if self.scalings == "mean":
-            from sklearn.preprocessing import StandardScaler
-
-            std_scaler = StandardScaler(self.with_mean, self.with_std)
-            self._pick_apply(X, std_scaler, n_channels)
-
-        elif self.scalings == 'median':
-            from sklearn.preprocessing import RobustScaler
-
-            rob_scaler = RobustScaler(self.with_centering, self.with_std)
-            self._pick_apply(X, rob_scaler, n_channels)
-
-        elif self.scalings == 'default_constant':
-            from ..defaults import _handle_default
-
-            scaling_dict = _handle_default("scalings")
-            for typ, pick in self._pick_types:
-                if typ in scaling_dict:
-                    self.scale_[pick] = scaling_dict[typ]
-
-        elif isinstance(self.scalings, dict):
-            for typ, pick in self._pick_types:
-                if typ in self.scalings:
-                    self.scale_[pick] = self.scalings[typ]
-
-        else:
-            raise ValueError("Scalings provided is not implemented")
-
+        _sklearn_reshape_apply(self._scaler.fit, False, epochs_data, y)
         return self
 
     def transform(self, epochs_data, y=None):
@@ -159,40 +158,16 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
+        return _sklearn_reshape_apply(self._scaler.transform, True,
+                                      epochs_data, y)
 
-        X = np.atleast_3d(epochs_data).copy()
-        n_epochs, n_channels, n_times = X.shape
-        X = X.transpose(1, 0, 2)
-
-        if self.scalings == 'mean' or self.scalings == 'median':
-            X = X.reshape(n_channels, -1)
-            for scaler, (_, picks) in zip(self.scalers_, self._pick_types):
-                X[picks] = scaler.transform(X[picks].T).T
-
-        elif self.scalings == 'default_constant':
-            _apply_scaling_array(X, self._pick_types, dict())
-
-        elif isinstance(self.scalings, dict):
-            _apply_scaling_array(X, self._pick_types, self.scalings)
-
-        else:
-            raise ValueError("self has not been fitted")
-
-        return X.reshape(n_channels, n_epochs, n_times).transpose(1, 0, 2)
-
-    def inverse_transform(self, epochs_data, y=None):
+    def inverse_transform(self, epochs_data):
         """Invert standardization of data across channels.
 
         Parameters
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
-        y : None | array, shape (n_epochs,)
-            The label for each epoch.
-            If None not used. Defaults to None.
 
         Returns
         -------
@@ -204,24 +179,8 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
-
-        X = np.atleast_3d(epochs_data).copy()
-        n_epochs, n_channels, n_times = X.shape
-        X = X.transpose(1, 0, 2)
-
-        if self.scalings in ['median', 'mean']:
-            X = X.reshape(n_channels, -1)
-            for scaler, (_, picks) in zip(self.scalers_, self._pick_types):
-                X[picks] = scaler.inverse_transform(X[picks].T).T
-
-        elif (self.scalings == 'default_constant' or
-              isinstance(self.scalings, dict)):
-            _undo_scaling_array(X, self._pick_types, dict())
-
-        return X.reshape(n_channels, n_epochs, n_times).transpose(1, 0, 2)
+        return _sklearn_reshape_apply(self._scaler.inverse_transform, True,
+                                      epochs_data)
 
 
 class Vectorizer(TransformerMixin):

@@ -1089,7 +1089,8 @@ def check_version(library, min_version):
         The library name to import. Must have a ``__version__`` property.
     min_version : str
         The minimum version string. Anything that matches
-        ``'(\d+ | [a-z]+ | \.)'``
+        ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
+        check (just check for library presence).
 
     Returns
     -------
@@ -1102,9 +1103,10 @@ def check_version(library, min_version):
     except ImportError:
         ok = False
     else:
-        this_version = LooseVersion(library.__version__)
-        if this_version < min_version:
-            ok = False
+        if min_version:
+            this_version = LooseVersion(library.__version__)
+            if this_version < min_version:
+                ok = False
     return ok
 
 

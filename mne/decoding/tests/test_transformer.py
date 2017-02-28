@@ -8,13 +8,13 @@ import os.path as op
 import numpy as np
 
 from nose.tools import assert_true, assert_raises, assert_equal
-from numpy.testing import (assert_array_equal, assert_equal,
-                           assert_array_almost_equal, assert_allclose)
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_allclose)
 
 from mne import io, read_events, Epochs, pick_types
-from mne.decoding import Scaler, FilterEstimator
-from mne.decoding import (PSDEstimator, Vectorizer,
+from mne.decoding import (Scaler, FilterEstimator, PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)
+from mne.defaults import DEFAULTS
 from mne.utils import requires_sklearn_0_15, run_tests_if_main, check_version
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -41,21 +41,42 @@ def test_scaler():
     epochs_data = epochs.get_data()
     y = epochs.events[:, -1]
 
-    methods = (None, 'mean', dict(mag=1e14, grad=1e12, eeg=1e5),
-               'median')
-    for method in methods:
+    methods = (None, dict(mag=5, grad=10, eeg=20), 'mean', 'median')
+    infos = (epochs.info, epochs.info, None, None)
+    epochs_data_t = epochs_data.transpose([1, 0, 2])
+    for method, info in zip(methods, infos):
         if method == 'median' and not check_version('sklearn', '0.17'):
+            assert_raises(ValueError, Scaler, info, method)
             continue
-        scaler = Scaler(method, epochs.info)
+        if method == 'mean' and not check_version('sklearn', ''):
+            assert_raises(ImportError, Scaler, info, method)
+            continue
+        scaler = Scaler(info, method)
         X = scaler.fit_transform(epochs_data, y)
         assert_equal(X.shape, epochs_data.shape)
+        if method is None or isinstance(method, dict):
+            sd = DEFAULTS['scalings'] if method is None else method
+            stds = np.zeros(len(picks))
+            for key in ('mag', 'grad'):
+                stds[pick_types(epochs.info, meg=key)] = 1. / sd[key]
+            stds[pick_types(epochs.info, meg=False, eeg=True)] = 1. / sd['eeg']
+            means = np.zeros(len(epochs.ch_names))
+        elif method == 'mean':
+            stds = np.array([np.std(e) for e in epochs_data_t])
+            means = np.array([np.mean(e) for e in epochs_data_t])
+        else:  # median
+            percs = np.array([np.percentile(e, [25, 50, 75])
+                              for e in epochs_data_t])
+            stds = percs[:, 2] - percs[:, 0]
+            means = percs[:, 1]
+        assert_allclose(X * stds[:, np.newaxis] + means[:, np.newaxis],
+                        epochs_data, rtol=1e-12, atol=1e-20, err_msg=method)
+
         X2 = scaler.fit(epochs_data, y).transform(epochs_data)
         assert_array_equal(X, X2)
-        assert_equal(scaler.ch_mean_.shape[0], X.shape[1])
-        assert_equal(scaler.scale_.shape[0], X.shape[1])
 
         # inverse_transform
-        Xi = scaler.inverse_transform(X, y)
+        Xi = scaler.inverse_transform(X)
         assert_array_almost_equal(epochs_data, Xi)
 
     # Test init exception
