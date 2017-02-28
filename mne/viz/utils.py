@@ -1620,28 +1620,27 @@ class DraggableColorbar(object):
 
 
 class SelectFromCollection(object):
-    """Select channels from a matplotlib collection using `LassoSelector`.
+    """Select channels from a matplotlib collection using ``LassoSelector``.
 
     Selected channels are saved in the ``selection`` attribute. This tool
     highlights selected points by fading other points out (i.e., reducing their
     alpha values).
 
-    Notes:
-    This tool selects collection objects based on their *origins*
-    (i.e., `offsets`). Emits mpl event 'lasso_event' when selection is ready.
-
     Parameters
     ----------
     ax : Instance of Axes
         Axes to interact with.
-
     collection : Instance of matplotlib collection
         Collection you want to select from.
-
     alpha_other : 0 <= float <= 1
         To highlight a selection, this tool sets all selected points to an
         alpha value of 1 and non-selected points to `alpha_other`.
         Defaults to 0.3.
+
+    Notes
+    -----
+    This tool selects collection objects based on their *origins*
+    (i.e., `offsets`). Emits mpl event 'lasso_event' when selection is ready.
     """
 
     def __init__(self, ax, collection, ch_names,
