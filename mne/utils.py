@@ -1128,7 +1128,7 @@ def _check_pyface_backend():
 
     Notes
     -----
-    See also: http://docs.enthought.com/pyface/
+    See also http://docs.enthought.com/pyface/.
     """
     try:
         from traits.trait_base import ETSConfig

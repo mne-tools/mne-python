@@ -107,6 +107,7 @@ codespell-error:  # running on travis
 
 pydocstyle:
 	@pydocstyle
+	@pydocstyle --convention=numpy
 
 manpages:
 	@echo "I: generating manpages"
