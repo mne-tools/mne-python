@@ -62,11 +62,11 @@ def test_scaler():
             stds[pick_types(epochs.info, meg=False, eeg=True)] = 1. / sd['eeg']
             means = np.zeros(len(epochs.ch_names))
         elif method == 'mean':
-            stds = np.array([np.std(e) for e in epochs_data_t])
-            means = np.array([np.mean(e) for e in epochs_data_t])
+            stds = np.array([np.std(ch_data) for ch_data in epochs_data_t])
+            means = np.array([np.mean(ch_data) for ch_data in epochs_data_t])
         else:  # median
-            percs = np.array([np.percentile(e, [25, 50, 75])
-                              for e in epochs_data_t])
+            percs = np.array([np.percentile(ch_data, [25, 50, 75])
+                              for ch_data in epochs_data_t])
             stds = percs[:, 2] - percs[:, 0]
             means = percs[:, 1]
         assert_allclose(X * stds[:, np.newaxis] + means[:, np.newaxis],
