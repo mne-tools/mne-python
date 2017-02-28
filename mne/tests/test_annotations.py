@@ -13,7 +13,7 @@ import numpy as np
 from mne import create_info
 from mne.utils import run_tests_if_main
 from mne.io import read_raw_fif, RawArray, concatenate_raws
-from mne.annotations import Annotations
+from mne.annotations import Annotations, _sync_onset
 from mne.datasets import testing
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
@@ -112,6 +112,13 @@ def test_raw_reject():
     assert_true(not np.isnan(data[:, 614].any()))
     assert_array_equal(data[:, -100:], raw[:10, 5900:6000][0])
     assert_array_equal(raw.get_data(), raw[:][0])
+
+    # Test _sync_onset
+    times = [10, -88, 190]
+    onsets = _sync_onset(raw, times)
+    assert_array_almost_equal(onsets, times - raw.first_samp /
+                              raw.info['sfreq'])
+    assert_array_almost_equal(times, _sync_onset(raw, onsets, True))
 
 
 run_tests_if_main()
