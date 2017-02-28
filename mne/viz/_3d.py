@@ -1732,12 +1732,14 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     dims = len(data)  # Symmetric size assumed.
     dd = dims / 2.
     dd *= t1.header.get_zooms()[0]
-    fig = plt.figure()
     if ax is None:
+        fig = plt.figure()
         ax = Axes3D(fig)
     elif not isinstance(ax, Axes3D):
         raise ValueError('ax must be an instance of Axes3D. '
                          'Got %s.' % type(ax))
+    else:
+        fig = ax.get_figure()
 
     gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
                                np.linspace(-dd, dd, dims))
