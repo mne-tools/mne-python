@@ -214,11 +214,13 @@ def test_read_spm_ctf():
 
     # Test that LPA, nasion and RPA are correct.
     coord_frames = np.array([d['coord_frame'] for d in raw.info['dig']])
-    np.all(coord_frames == FIFF.FIFFV_COORD_HEAD)
+    assert_true(np.all(coord_frames == FIFF.FIFFV_COORD_HEAD))
     cardinals = {d['ident']: d['r'] for d in raw.info['dig']}
     assert_true(cardinals[1][0] < cardinals[2][0] < cardinals[3][0])  # x coord
     assert_true(cardinals[1][1] < cardinals[2][1])  # y coord
     assert_true(cardinals[3][1] < cardinals[2][1])  # y coord
+    for key in cardinals.keys():
+        assert_allclose(cardinals[key][2], 0, atol=1e-6)  # z coord
 
 
 run_tests_if_main()
