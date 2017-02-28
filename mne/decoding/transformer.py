@@ -74,22 +74,24 @@ class Scaler(TransformerMixin, BaseEstimator):
         None.
     scalings : dict, string, defaults to None.
         Scaling method to be applied to data channel wise.
+
         * if scalings is None (default), scales mag by 1e15, grad by 1e13,
           and eeg by 1e6.
         * if scalings is :class:`dict`, keys are channel types and values
           are scale factors.
         * if ``scalings=='median'``,
-          :class:`sklearn.proprocessing.RobustScaler`
+          :class:`sklearn.preprocessing.RobustScaler`
           is used (requires sklearn version 0.17+).
         * if ``scalings=='mean'``,
           :class:`sklearn.preprocessing.StandardScaler`
           is used.
+
     with_mean : boolean, True by default
         If True, center the data using mean (or median) before scaling.
         Ignored for channel-type scaling.
     with_std : boolean, True by default
         If True, scale the data to unit variance (``scalings='mean'``),
-        quantile range (``scalings='median`), or using channel type
+        quantile range (``scalings='median``), or using channel type
         ``scalings`` is a dict or None).
     """
 
