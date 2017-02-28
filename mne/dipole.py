@@ -146,12 +146,15 @@ class Dipole(object):
     def plot_locations(self, trans, subject, subjects_dir=None,
                        bgcolor=(1, 1, 1), opacity=0.3,
                        brain_color=(1, 1, 0), fig_name=None,
-                       fig_size=(600, 600), mode='cone',
+                       fig_size=(600, 600), mode=None,
                        scale_factor=0.1e-1, colors=None,
                        coord_frame='head', idx='gof',
                        show_all=True, ax=None, block=False,
                        show=True, verbose=None):
         """Plot dipole locations in 3d
+
+        .. warning:: Using mode with option 'cone' or 'sphere' will be
+                     deprecated in version 0.15.
 
         Parameters
         ----------
@@ -236,7 +239,7 @@ class Dipole(object):
         """
         from .viz import plot_dipole_locations
         dipoles = self
-        if mode == [None, 'cone', 'sphere']:  # support old behavior
+        if mode in [None, 'cone', 'sphere']:  # support old behavior
             dipoles = []
             for t in self.times:
                 dipoles.append(self.copy())

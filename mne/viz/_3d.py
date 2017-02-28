@@ -15,6 +15,7 @@ from distutils.version import LooseVersion
 from itertools import cycle
 import os.path as op
 import warnings
+from numbers import Integral
 from functools import partial
 
 import numpy as np
@@ -1390,8 +1391,10 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     If mode is set to 'cone' or 'sphere', only the location of the first
     time point of each dipole is shown else use the show_all parameter.
 
-    The option mode='orthoview' was added in version 0.14. Modes 'cone' and
-    'sphere' will be deprecated in version 0.15.
+    The option mode='orthoview' was added in version 0.14.
+
+    .. warning:: Using mode with option 'cone' or 'sphere' will be
+                 deprecated in version 0.15.
 
     Parameters
     ----------
@@ -1630,7 +1633,7 @@ def _get_view_to_display_matrix(scene):
 def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                                coord_frame='head', idx='gof', show_all=True,
                                ax=None, block=False, show=True):
-    """Plot dipoles on top of mri slices in 3-D.
+    """Plot dipoles on top of MRI slices in 3-D.
 
     Browse through the dipoles using mouse scroll or up/down arrows.
 
@@ -1674,7 +1677,6 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     """
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
-    import scipy
     from .. import Dipole
     if not has_nibabel():
         raise ImportError('This function requires nibabel.')
@@ -1688,7 +1690,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         idx = np.argmax(dipole.gof)
     elif idx == 'amplitude':
         idx = np.argmax(np.abs(dipole.amplitude))
-    elif not isinstance(idx, int):
+    elif not isinstance(idx, Integral):
         raise ValueError("idx must be an int or one of ['gof', 'amplitude']. "
                          "Got %s." % idx)
 
@@ -1701,7 +1703,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
     vox2ras = t1.header.get_vox2ras_tkr()
-    ras2vox = scipy.linalg.inv(vox2ras)
+    ras2vox = linalg.inv(vox2ras)
     trans = _get_trans(trans, fro='head', to='mri')[0]
     zooms = t1.header.get_zooms()
     if coord_frame == 'head':
@@ -1713,22 +1715,22 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         affine_to = np.dot(affine_to, aff)
         t1 = resample_from_to(t1, ([int(t1.shape[i] * zooms[i]) for i
                                     in range(3)], affine_to))
-        dipole_locs = np.array([apply_trans(ras2vox, loc * 1000.) * zooms
+        dipole_locs = np.array([apply_trans(ras2vox, loc * 1e3) * zooms
                                 for loc in dipole.pos])
         ori = dipole.ori
-        scatter_points = dipole.pos * 1000.
+        scatter_points = dipole.pos * 1e3
     else:
         dipole_locs = np.array([apply_trans(trans['trans'], loc) for loc
                                 in dipole.pos])
         ori = [apply_trans(trans['trans'], o) for o in dipole.ori]
         # Position in meters -> voxels.
-        dipole_locs = np.array([apply_trans(ras2vox, loc * 1000.) for loc
+        dipole_locs = np.array([apply_trans(ras2vox, loc * 1e3) for loc
                                 in dipole_locs])
         scatter_points = apply_trans(vox2ras, dipole_locs)
 
     data = t1.get_data()
     dims = len(data)  # Symmetric size assumed.
-    dd = (dims / 2.)
+    dd = dims / 2.
     dd *= t1.header.get_zooms()[0]
     fig = plt.figure()
     ax = Axes3D(fig) if ax is None else ax
@@ -1757,9 +1759,7 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     """Plot dipoles."""
     import matplotlib.pyplot as plt
     point = points[idx]
-    xidx = int(round(point[0]))
-    yidx = int(round(point[1]))
-    zidx = int(round(point[2]))
+    xidx, yidx, zidx = np.round(point).astype(int)
     xslice = data[xidx][::-1]
     yslice = data[:, yidx][::-1].T
     zslice = data[:, :, zidx][::-1].T[::-1]
@@ -1767,9 +1767,7 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
         zooms = (1., 1., 1.)
     else:
         point = points[idx] * zooms
-        xidx = int(round(point[0]))
-        yidx = int(round(point[1]))
-        zidx = int(round(point[2]))
+        xidx, yidx, zidx = np.round(point).astype(int)
     xyz = scatter_points
 
     ori = ori[idx]
@@ -1814,7 +1812,7 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
 
     plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.1f, Amplitude: %.1fnAm\n' % (
         idx, dipole.times[idx], dipole.gof[idx], dipole.amplitude[idx] * 1e9) +
-        'x:%0.1f, y:%0.1f, z:%0.1f' % (xyz[idx, 0], xyz[idx, 1], xyz[idx, 2]))
+        'x:%0.1f, y:%0.1f, z:%0.1f' % tuple(xyz[idx]))
 
     plt.draw()
 
