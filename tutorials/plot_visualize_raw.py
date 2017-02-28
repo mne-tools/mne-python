@@ -52,6 +52,9 @@ raw.plot(block=True)
 # interactive features, hit ``?`` key or click ``help`` in the lower left
 # corner of the browser window.
 #
+# .. warning:: Annotations are modified in-place immediately at run-time.
+#              Deleted annotations cannot be retrieved after deletion.
+#
 # The channels are sorted by channel type by default. You can use the ``order``
 # parameter of :func:`raw.plot <mne.io.Raw.plot>` to group the channels in a
 # different way. ``order='selection'`` uses the same channel groups as MNE-C's
