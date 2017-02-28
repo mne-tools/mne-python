@@ -836,17 +836,13 @@ def _mouse_click(event, params):
     if event.button == 3:
         if params['fig_annotation'] is None:
             return
-        for coll in params['ax'].collections:
-            if coll.contains(event)[0]:
-                raw = params['raw']
-                path = coll.get_paths()[-1]
-                mn = min(path.vertices[:4, 0]) - params['first_time']
-                mx = max(path.vertices[:4, 0]) - params['first_time']
-                ann_idx = np.where(_sync_onset(raw, raw.annotations.onset,
-                                               True) == mn)[0]
-                for idx in ann_idx:
-                    if raw.annotations.duration[idx] == mx - mn:
-                        raw.annotations.delete(idx)
+        raw = params['raw']
+        if np.any([c.contains(event)[0] for c in params['ax'].collections]):
+            xdata = event.xdata - params['first_time']
+            onset = _sync_onset(raw, raw.annotations.onset, True)
+            ends = onset + raw.annotations.duration
+            ann_idx = np.where((xdata > onset) & (xdata < ends))[0]
+            raw.annotations.delete(ann_idx)  # only first one deleted
         _remove_segment_line(params)
         _plot_annotations(raw, params)
         params['plot_fun']()
