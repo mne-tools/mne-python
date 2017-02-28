@@ -1383,7 +1383,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
                           brain_color=(1, 1, 0), fig_name=None,
                           fig_size=(600, 600), mode=None,
                           scale_factor=0.1e-1, colors=None,
-                          coord_frame='head', idx='gof',
+                          coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False,
                           show=True, verbose=None):
     """Plot dipole locations
@@ -1430,7 +1430,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     colors: list of colors | None
         Color to plot with each dipole. If None default colors are used.
     coord_frame : str
-        Coordinate frame to use, 'head' or 'mri'.
+        Coordinate frame to use, 'head' or 'mri'. Defaults to 'mri'.
 
         .. versionadded:: 0.14.0
     idx : int | 'gof' | 'amplitude'
