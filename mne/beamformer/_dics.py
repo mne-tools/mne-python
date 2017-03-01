@@ -22,49 +22,7 @@ from ..externals import six
 def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
                 label=None, picks=None, pick_ori=None, real_filter=False,
                 verbose=None):
-    """Dynamic Imaging of Coherent Sources (DICS).
-
-    Calculate the DICS spatial filter based on a given cross-spectral
-    density object and return estimates of source activity based on given data.
-
-    Parameters
-    ----------
-    data : array or list / iterable
-        Sensor space data. If data.ndim == 2 a single observation is assumed
-        and a single stc is returned. If data.ndim == 3 or if data is
-        a list / iterable, a list of stc's is returned.
-    info : dict
-        Measurement info.
-    tmin : float
-        Time of first sample.
-    forward : dict
-        Forward operator.
-    noise_csd : instance of CrossSpectralDensity
-        The noise cross-spectral density.
-    data_csd : instance of CrossSpectralDensity
-        The data cross-spectral density.
-    reg : float
-        The regularization for the cross-spectral density.
-    label : Label | None
-        Restricts the solution to a given label.
-    picks : array-like of int | None
-        Indices (in info) of data channels. If None, MEG and EEG data channels
-        (without bad channels) will be used.
-    pick_ori : None | 'normal'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept.
-    real_filter : bool
-        If True, take only the real part of the part of the
-        cross-spectral-density matrices to compute real filters.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    stc : SourceEstimate | VolSourceEstimate
-        Source time courses
-    """
+    """Dynamic Imaging of Coherent Sources (DICS)."""
     is_free_ori, _, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
@@ -148,7 +106,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
 
 
 @verbose
-def dics(evoked, forward, noise_csd, data_csd, reg=1., label=None,
+def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
          pick_ori=None, real_filter=False, verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
 
@@ -159,8 +117,8 @@ def dics(evoked, forward, noise_csd, data_csd, reg=1., label=None,
               will result in complex time courses, in which case absolute
               values will be returned.
 
-    .. warning:: This implementation has not been heavily tested so please
-                 report any issues or suggestions.
+    .. note:: This implementation has not been heavily tested so please
+              report any issues or suggestions.
 
     Parameters
     ----------
@@ -225,7 +183,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=1., label=None,
 
 
 @verbose
-def dics_epochs(epochs, forward, noise_csd, data_csd, reg=1., label=None,
+def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
                 pick_ori=None, return_generator=False, real_filter=False,
                 verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
@@ -296,7 +254,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=1., label=None,
 
 
 @verbose
-def dics_source_power(info, forward, noise_csds, data_csds, reg=1.,
+def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
                       label=None, pick_ori=None, real_filter=False,
                       verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
@@ -453,7 +411,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=1.,
 @verbose
 def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, mode='fourier', n_ffts=None,
-            mt_bandwidths=None, mt_adaptive=False, mt_low_bias=True, reg=1.,
+            mt_bandwidths=None, mt_adaptive=False, mt_low_bias=True, reg=0.05,
             label=None, pick_ori=None, real_filter=False, verbose=None):
     """5D time-frequency beamforming based on DICS.
 

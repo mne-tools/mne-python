@@ -64,49 +64,7 @@ def _setup_picks(picks, info, forward, noise_cov=None):
 def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                 label=None, picks=None, pick_ori=None, rank=None,
                 verbose=None):
-    """LCMV beamformer for evoked data, single epochs, and raw data.
-
-    Parameters
-    ----------
-    data : array or list / iterable
-        Sensor space data. If data.ndim == 2 a single observation is assumed
-        and a single stc is returned. If data.ndim == 3 or if data is
-        a list / iterable, a list of stc's is returned.
-    info : dict
-        Measurement info.
-    tmin : float
-        Time of first sample.
-    forward : dict
-        Forward operator.
-    noise_cov : Covariance
-        The noise covariance.
-    data_cov : Covariance
-        The data covariance.
-    reg : float
-        The regularization for the whitened data covariance.
-    label : Label
-        Restricts the LCMV solution to a given label.
-    picks : array-like of int | None
-        Indices (in info) of data channels. If None, MEG and EEG data channels
-        (without bad channels) will be used.
-    pick_ori : None | 'normal' | 'max-power'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source
-        orientation that maximizes output source power is chosen.
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    stc : SourceEstimate | VolSourceEstimate (or list of thereof)
-        Source time courses.
-    """
+    """LCMV beamformer for evoked data, single epochs, and raw data."""
     is_free_ori, ch_names, proj, vertno, G = \
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
@@ -287,15 +245,15 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
 
 
 @verbose
-def lcmv(evoked, forward, noise_cov, data_cov, reg=0.1, label=None,
+def lcmv(evoked, forward, noise_cov, data_cov, reg=0.05, label=None,
          pick_ori=None, picks=None, rank=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on evoked data.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issue or suggestions.
+    .. note:: This implementation has not been heavily tested so please
+              report any issue or suggestions.
 
     Parameters
     ----------
@@ -367,7 +325,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.1, label=None,
 
 
 @verbose
-def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.1, label=None,
+def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
                 pick_ori=None, return_generator=False, picks=None, rank=None,
                 verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
@@ -375,8 +333,8 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.1, label=None,
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on single trial data.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issue or suggestions.
+    .. note:: This implementation has not been heavily tested so please
+              report any issue or suggestions.
 
     Parameters
     ----------
@@ -452,7 +410,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.1, label=None,
 
 
 @verbose
-def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.1, label=None,
+def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
              start=None, stop=None, picks=None, pick_ori=None, rank=None,
              verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
@@ -536,61 +494,10 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.1, label=None,
 
 
 @verbose
-def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.1,
+def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
                        label=None, picks=None, pick_ori=None,
                        rank=None, verbose=None):
-    """Linearly Constrained Minimum Variance (LCMV) beamformer.
-
-    Calculate source power in a time window based on the provided data
-    covariance. Noise covariance is used to whiten the data covariance making
-    the output equivalent to the neural activity index as defined by
-    Van Veen et al. 1997.
-
-    NOTE : This implementation has not been heavily tested so please
-    report any issues or suggestions.
-
-    Parameters
-    ----------
-    info : dict
-        Measurement info, e.g. epochs.info.
-    forward : dict
-        Forward operator.
-    noise_cov : Covariance
-        The noise covariance.
-    data_cov : Covariance
-        The data covariance.
-    reg : float
-        The regularization for the whitened data covariance.
-    label : Label | None
-        Restricts the solution to a given label.
-    picks : array-like of int | None
-        Indices (in info) of data channels. If None, MEG and EEG data channels
-        (without bad channels) will be used.
-    pick_ori : None | 'normal'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept.
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    stc : SourceEstimate
-        Source power with a single time point representing the entire time
-        window for which data covariance was calculated.
-
-    Notes
-    -----
-    The original reference is:
-    Van Veen et al. Localization of brain electrical activity via linearly
-    constrained minimum variance spatial filtering.
-    Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
-    """
+    """Linearly Constrained Minimum Variance (LCMV) beamformer."""
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
@@ -659,7 +566,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.1,
 
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
-            freq_bins, subtract_evoked=False, reg=0.1, label=None,
+            freq_bins, subtract_evoked=False, reg=0.05, label=None,
             pick_ori=None, n_jobs=1, picks=None, rank=None, verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
@@ -669,8 +576,8 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     from which covariance is computed and used to create a beamformer
     spatial filter.
 
-    .. warning:: This implementation has not been heavily tested so please
-                 report any issues or suggestions.
+    .. note:: This implementation has not been heavily tested so please
+              report any issues or suggestions.
 
     Parameters
     ----------

@@ -69,7 +69,8 @@ descriptions = ['Free orientation', 'Normal orientation', 'Max-power '
 colors = ['b', 'k', 'r']
 
 for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
-    stc = lcmv(evoked, forward, noise_cov, data_cov, pick_ori=pick_ori)
+    stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05,
+               pick_ori=pick_ori)
 
     # View activation time-series
     label = mne.read_label(fname_label)

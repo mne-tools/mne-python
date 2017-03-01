@@ -90,10 +90,11 @@ def test_dics():
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
     epochs.crop(0, None)
+    reg = 0.5  # Heavily regularize due to low SNR
 
     for real_filter in (True, False):
         stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd,
-                   label=label, real_filter=real_filter)
+                   label=label, real_filter=real_filter, reg=reg)
         stc_pow = np.sum(stc.data, axis=1)
         idx = np.argmax(stc_pow)
         max_stc = stc.data[idx]
@@ -105,10 +106,11 @@ def test_dics():
 
     # Test picking normal orientation
     stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
-                      pick_ori="normal", label=label, real_filter=True)
+                      pick_ori="normal", label=label, real_filter=True,
+                      reg=reg)
     assert_true(stc_normal.data.min() < 0)  # this doesn't take abs
     stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
-                      pick_ori="normal", label=label)
+                      pick_ori="normal", label=label, reg=reg)
     assert_true(stc_normal.data.min() >= 0)  # this does take abs
 
     # The amplitude of normal orientation results should always be smaller than
@@ -132,11 +134,10 @@ def test_dics():
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
-    stcs = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, reg=0.01,
-                       label=label)
+    stcs = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, label=label)
 
     # Testing returning of generator
-    stcs_ = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, reg=0.01,
+    stcs_ = dics_epochs(epochs, forward_fixed, noise_csd, data_csd,
                         return_generator=True, label=label)
     assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
@@ -154,7 +155,7 @@ def test_dics():
     max_stc = stc_avg[idx]
     tmax = stc.times[np.argmax(max_stc)]
 
-    assert_true(0.120 < tmax < 0.140)  # incorrect due to limited # of epochs
+    assert_true(0.120 < tmax < 0.150, msg=tmax)  # incorrect due to limited #
     assert_true(12 < np.max(max_stc) < 18.5)
 
 
@@ -164,9 +165,10 @@ def test_dics_source_power():
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
     epochs.crop(0, None)
+    reg = 1.
 
     stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
-                                         data_csd, label=label)
+                                         data_csd, label=label, reg=reg)
 
     max_source_idx = np.argmax(stc_source_power.data)
     max_source_power = np.max(stc_source_power.data)
@@ -178,7 +180,7 @@ def test_dics_source_power():
     # Test picking normal orientation and using a list of CSD matrices
     stc_normal = dics_source_power(epochs.info, forward_surf_ori,
                                    [noise_csd] * 2, [data_csd] * 2,
-                                   pick_ori="normal", label=label)
+                                   pick_ori="normal", label=label, reg=reg)
 
     assert_true(stc_normal.data.shape == (stc_source_power.data.shape[0], 2))
 

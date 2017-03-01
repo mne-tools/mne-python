@@ -64,7 +64,7 @@ data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
 # Run free orientation (vector) beamformer. Source orientation can be
 # restricted by setting pick_ori to 'max-power' (or 'normal' but only when
 # using a surface-based source space)
-stc = lcmv(evoked, forward, noise_cov, data_cov, pick_ori=None)
+stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05, pick_ori=None)
 
 # Save result in stc files
 stc.save('lcmv-vol')
