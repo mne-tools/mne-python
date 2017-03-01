@@ -602,7 +602,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         if not all(x is None for x in (hsp, hpi, elp, point_names, egi)):
             raise ValueError('hsp, hpi, elp, point_names, egi must all be '
                              'None if fif is not None')
-        _check_fname(fif, overwrite=True, must_exist=True)
+        _check_fname(fif, overwrite='read', must_exist=True)
         # Load the dig data
         f, tree = fiff_open(fif)[:2]
         with f as fid:
@@ -637,7 +637,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         if not all(x is None for x in (hsp, hpi, elp, point_names, fif)):
             raise ValueError('hsp, hpi, elp, point_names, fif must all be '
                              'None if egi is not None')
-        _check_fname(egi, overwrite=True, must_exist=True)
+        _check_fname(egi, overwrite='read', must_exist=True)
 
         root = ElementTree.parse(egi).getroot()
         ns = root.tag[root.tag.index('{'):root.tag.index('}') + 1]

@@ -15,6 +15,8 @@ from distutils.version import LooseVersion
 from itertools import cycle
 import os.path as op
 import warnings
+from numbers import Integral
+from functools import partial
 
 import numpy as np
 from scipy import linalg
@@ -33,7 +35,7 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     _import_mlab, SilenceStdout)
+                     _import_mlab, SilenceStdout, has_nibabel)
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS, plt_show
 
 
@@ -1265,11 +1267,12 @@ def _toggle_mlab_render(fig, render):
         fig.scene.disable_render = not render
 
 
-def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
-                          bgcolor=(1, 1, 1), opacity=0.3,
-                          brain_color=(1, 1, 0), fig_name=None,
-                          fig_size=(600, 600), mode='cone',
-                          scale_factor=0.1e-1, colors=None, verbose=None):
+def _plot_dipole_locations_3d(dipoles, trans, subject, subjects_dir=None,
+                              bgcolor=(1, 1, 1), opacity=0.3,
+                              brain_color=(1, 1, 0), fig_name=None,
+                              fig_size=(600, 600), mode=None,
+                              scale_factor=0.1e-1, colors=None,
+                              verbose=None):
     """Plot dipole locations.
 
     Only the location of the first time point of each dipole is shown.
@@ -1298,12 +1301,31 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     fig_size : tuple of length 2
         Mayavi figure size.
     mode : str
-        Should be ``'cone'`` or ``'sphere'`` to specify how the
-        dipoles should be shown.
+        Should be ``'cone'`` or ``'sphere'`` to specify
+        how the dipoles should be shown.
     scale_factor : float
         The scaling applied to amplitudes for the plot.
     colors: list of colors | None
         Color to plot with each dipole. If None default colors are used.
+    coord_frame : str
+        Coordinate frame to use, 'head' or 'mri'.
+    idx : int | 'gof' | 'amplitude'
+        Index of the initially plotted dipole. Can also be 'gof' to plot the
+        dipole with highest goodness of fit value or 'amplitude' to plot the
+        dipole with the highest amplitude. The dipoles can also be browsed
+        through using up/down arrow keys or mouse scroll. Defaults to 'gof'.
+    show_all : bool
+        Whether to always plot all the dipoles. If True (default), the active
+        dipole is plotted as a red dot and it's location determines the shown
+        MRI slices. The the non-active dipoles are plotted as small blue dots.
+        If False, only the active dipole is plotted.
+    ax : instance of matplotlib Axes3D | None
+        Axes to plot into. If None (default), axes will be created.
+    block : bool
+        Whether to halt program execution until the figure is closed. Defaults
+        to False.
+    show : bool
+        Show figure if True. Defaults to True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1312,10 +1334,6 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     -------
     fig : instance of mlab.Figure
         The mayavi figure.
-
-    Notes
-    -----
-    .. versionadded:: 0.9.0
     """
     mlab = _import_mlab()
     from matplotlib.colors import ColorConverter
@@ -1332,9 +1350,6 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     from .. import Dipole
     if isinstance(dipoles, Dipole):
         dipoles = [dipoles]
-
-    if mode not in ['cone', 'sphere']:
-        raise ValueError('mode must be in "cone" or "sphere"')
 
     if colors is None:
         colors = cycle(COLORS)
@@ -1360,6 +1375,129 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     if fig.scene is not None:  # safe for Travis
         fig.scene.x_plus_view()
     _toggle_mlab_render(fig, True)
+    return fig
+
+
+def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
+                          bgcolor=(1, 1, 1), opacity=0.3,
+                          brain_color=(1, 1, 0), fig_name=None,
+                          fig_size=(600, 600), mode=None,
+                          scale_factor=0.1e-1, colors=None,
+                          coord_frame='mri', idx='gof',
+                          show_all=True, ax=None, block=False,
+                          show=True, verbose=None):
+    """Plot dipole locations.
+
+    If mode is set to 'cone' or 'sphere', only the location of the first
+    time point of each dipole is shown else use the show_all parameter.
+
+    The option mode='orthoview' was added in version 0.14.
+
+    .. warning:: Using mode with option 'cone' or 'sphere' will be
+                 deprecated in version 0.15.
+
+    Parameters
+    ----------
+    dipoles : list of instances of Dipole | Dipole
+        The dipoles to plot.
+    trans : dict
+        The mri to head trans.
+    subject : str
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT.
+    subjects_dir : None | str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+        The default is None.
+    bgcolor : tuple of length 3
+        Background color in 3D.
+    opacity : float in [0, 1]
+        Opacity of brain mesh.
+    brain_color : tuple of length 3
+        Brain color.
+    fig_name : str
+        Mayavi figure name.
+    fig_size : tuple of length 2
+        Mayavi figure size.
+    mode : str
+        Should be ``'cone'`` or ``'sphere'`` or ``'orthoview'`` to specify
+        how the dipoles should be shown. If orthoview then matplotlib is
+        used otherwise it is mayavi.
+
+        .. versionadded:: 0.14.0
+    scale_factor : float
+        The scaling applied to amplitudes for the plot.
+    colors: list of colors | None
+        Color to plot with each dipole. If None default colors are used.
+    coord_frame : str
+        Coordinate frame to use, 'head' or 'mri'. Defaults to 'mri'.
+
+        .. versionadded:: 0.14.0
+    idx : int | 'gof' | 'amplitude'
+        Index of the initially plotted dipole. Can also be 'gof' to plot the
+        dipole with highest goodness of fit value or 'amplitude' to plot the
+        dipole with the highest amplitude. The dipoles can also be browsed
+        through using up/down arrow keys or mouse scroll. Defaults to 'gof'.
+        Only used if mode equals 'orthoview'.
+
+        .. versionadded:: 0.14.0
+    show_all : bool
+        Whether to always plot all the dipoles. If True (default), the active
+        dipole is plotted as a red dot and it's location determines the shown
+        MRI slices. The the non-active dipoles are plotted as small blue dots.
+        If False, only the active dipole is plotted.
+        Only used if mode equals 'orthoview'.
+
+        .. versionadded:: 0.14.0
+    ax : instance of matplotlib Axes3D | None
+        Axes to plot into. If None (default), axes will be created.
+        Only used if mode equals 'orthoview'.
+
+        .. versionadded:: 0.14.0
+    block : bool
+        Whether to halt program execution until the figure is closed. Defaults
+        to False.
+        Only used if mode equals 'orthoview'.
+
+        .. versionadded:: 0.14.0
+    show : bool
+        Show figure if True. Defaults to True.
+        Only used if mode equals 'orthoview'.
+
+        .. versionadded:: 0.14.0
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    fig : instance of mlab.Figure or matplotlib Figure
+        The mayavi figure or matplotlib Figure.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+    """
+    if mode is None:
+        warnings.warn('The mayavi surface-based rendering is deprecated '
+                      'and will be removed in version 0.15. Set "mode" '
+                      'to "orthoview" to avoid seeing this warning.')
+        mode = 'cone'
+
+    if mode in ['cone', 'sphere']:
+        fig = _plot_dipole_locations_3d(
+            dipoles, trans, subject, subjects_dir, bgcolor, opacity,
+            brain_color, fig_name, fig_size, mode, scale_factor,
+            colors)
+    elif mode == 'orthoview':
+        fig = _plot_dipole_mri_orthoview(
+            dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
+            coord_frame=coord_frame, idx=idx, show_all=show_all,
+            ax=ax, block=block, show=show)
+    else:
+        raise ValueError('Mode must be "orthoview", "cone" or "sphere". '
+                         'Got %s.' % mode)
+
     return fig
 
 
@@ -1490,3 +1628,175 @@ def _get_view_to_display_matrix(scene):
                                  [0.,            0.,   1.,        0.],
                                  [0.,            0.,   0.,        1.]])
     return view_to_disp_mat
+
+
+def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
+                               coord_frame='head', idx='gof', show_all=True,
+                               ax=None, block=False, show=True):
+    """Plot dipoles on top of MRI slices in 3-D."""
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from .. import Dipole
+    if not has_nibabel():
+        raise ImportError('This function requires nibabel.')
+    import nibabel as nib
+    from nibabel.processing import resample_from_to
+
+    if coord_frame not in ['head', 'mri']:
+        raise ValueError("coord_frame must be 'head' or 'mri'. "
+                         "Got %s." % coord_frame)
+    if idx == 'gof':
+        idx = np.argmax(dipole.gof)
+    elif idx == 'amplitude':
+        idx = np.argmax(np.abs(dipole.amplitude))
+    elif not isinstance(idx, Integral):
+        raise ValueError("idx must be an int or one of ['gof', 'amplitude']. "
+                         "Got %s." % idx)
+
+    if not isinstance(dipole, Dipole):
+        from ..dipole import _concatenate_dipoles
+        dipole = _concatenate_dipoles(dipole)
+
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+    t1 = nib.load(t1_fname)
+    vox2ras = t1.header.get_vox2ras_tkr()
+    ras2vox = linalg.inv(vox2ras)
+    trans = _get_trans(trans, fro='head', to='mri')[0]
+    zooms = t1.header.get_zooms()
+    if coord_frame == 'head':
+        affine_to = trans['trans'].copy()
+        affine_to[:3, 3] *= 1000  # to mm
+        aff = t1.affine.copy()
+
+        aff[:3, :3] /= zooms
+        affine_to = np.dot(affine_to, aff)
+        t1 = resample_from_to(t1, ([int(t1.shape[i] * zooms[i]) for i
+                                    in range(3)], affine_to))
+        dipole_locs = apply_trans(ras2vox, dipole.pos * 1e3) * zooms
+
+        ori = dipole.ori
+        scatter_points = dipole.pos * 1e3
+    else:
+        scatter_points = apply_trans(trans['trans'], dipole.pos) * 1e3
+        ori = apply_trans(trans['trans'], dipole.ori, move=False)
+        dipole_locs = apply_trans(ras2vox, scatter_points)
+
+    data = t1.get_data()
+    dims = len(data)  # Symmetric size assumed.
+    dd = dims / 2.
+    dd *= t1.header.get_zooms()[0]
+    if ax is None:
+        fig = plt.figure()
+        ax = Axes3D(fig)
+    elif not isinstance(ax, Axes3D):
+        raise ValueError('ax must be an instance of Axes3D. '
+                         'Got %s.' % type(ax))
+    else:
+        fig = ax.get_figure()
+
+    gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
+                               np.linspace(-dd, dd, dims))
+
+    _plot_dipole(ax, data, dipole_locs, idx, dipole, gridx, gridy, ori,
+                 coord_frame, zooms, show_all, scatter_points)
+    params = {'ax': ax, 'data': data, 'idx': idx, 'dipole': dipole,
+              'dipole_locs': dipole_locs, 'gridx': gridx, 'gridy': gridy,
+              'ori': ori, 'coord_frame': coord_frame, 'zooms': zooms,
+              'show_all': show_all, 'scatter_points': scatter_points}
+    ax.view_init(elev=30, azim=-140)
+
+    callback_func = partial(_dipole_changed, params=params)
+    fig.canvas.mpl_connect('scroll_event', callback_func)
+    fig.canvas.mpl_connect('key_press_event', callback_func)
+
+    plt_show(show, block=block)
+    return fig
+
+
+def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
+                 zooms, show_all, scatter_points):
+    """Plot dipoles."""
+    import matplotlib.pyplot as plt
+    point = points[idx]
+    xidx, yidx, zidx = np.round(point).astype(int)
+    xslice = data[xidx][::-1]
+    yslice = data[:, yidx][::-1].T
+    zslice = data[:, :, zidx][::-1].T[::-1]
+    if coord_frame == 'head':
+        zooms = (1., 1., 1.)
+    else:
+        point = points[idx] * zooms
+        xidx, yidx, zidx = np.round(point).astype(int)
+    xyz = scatter_points
+
+    ori = ori[idx]
+    if show_all:
+        colors = np.repeat('y', len(points))
+        colors[idx] = 'r'
+        size = np.repeat(5, len(points))
+        size[idx] = 20
+        visibles = range(len(points))
+    else:
+        colors = 'r'
+        size = 20
+        visibles = idx
+
+    offset = np.min(gridx)
+    ax.scatter(xs=xyz[visibles, 0], ys=xyz[visibles, 1],
+               zs=xyz[visibles, 2], zorder=2, s=size, facecolor=colors)
+    xx = np.linspace(offset, xyz[idx, 0], xidx)
+    yy = np.linspace(offset, xyz[idx, 1], yidx)
+    zz = np.linspace(offset, xyz[idx, 2], zidx)
+    ax.plot(xx, np.repeat(xyz[idx, 1], len(xx)), zs=xyz[idx, 2], zorder=1,
+            linestyle='-', color='r')
+    ax.plot(np.repeat(xyz[idx, 0], len(yy)), yy, zs=xyz[idx, 2], zorder=1,
+            linestyle='-', color='r')
+    ax.plot(np.repeat(xyz[idx, 0], len(zz)),
+            np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
+            linestyle='-', color='r')
+    ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1],
+              ori[2], length=50, pivot='tail', color='r')
+    dims = np.array([(len(data) / -2.), (len(data) / 2.)])
+    ax.set_xlim(-1 * dims * zooms[:2])  # Set axis lims to RAS coordinates.
+    ax.set_ylim(-1 * dims * zooms[:2])
+    ax.set_zlim(dims * zooms[:2])
+
+    # Plot slices.
+    ax.contourf(xslice, gridx, gridy, offset=offset, zdir='x',
+                cmap='gray', zorder=0, alpha=.5)
+    ax.contourf(gridx, gridy, yslice, offset=offset, zdir='z',
+                cmap='gray', zorder=0, alpha=.5)
+    ax.contourf(gridx, zslice, gridy, offset=offset,
+                zdir='y', cmap='gray', zorder=0, alpha=.5)
+
+    plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.1f, Amplitude: %.1fnAm\n' % (
+        idx, dipole.times[idx], dipole.gof[idx], dipole.amplitude[idx] * 1e9) +
+        '(%0.1f, %0.1f, %0.1f) mm' % tuple(xyz[idx]))
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+
+    plt.draw()
+
+
+def _dipole_changed(event, params):
+    """Callback for dipole plotter scroll/key event."""
+    if event.key is not None:
+        if event.key == 'up':
+            params['idx'] += 1
+        elif event.key == 'down':
+            params['idx'] -= 1
+        else:  # some other key
+            return
+    elif event.step > 0:  # scroll event
+        params['idx'] += 1
+    else:
+        params['idx'] -= 1
+    params['idx'] = min(max(0, params['idx']), len(params['dipole'].pos) - 1)
+    params['ax'].clear()
+    _plot_dipole(params['ax'], params['data'], params['dipole_locs'],
+                 params['idx'], params['dipole'], params['gridx'],
+                 params['gridy'], params['ori'], params['coord_frame'],
+                 params['zooms'], params['show_all'], params['scatter_points'])

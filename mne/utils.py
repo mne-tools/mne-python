@@ -2092,7 +2092,7 @@ def _check_fname(fname, overwrite=False, must_exist=False):
         if not overwrite:
             raise IOError('Destination file exists. Please use option '
                           '"overwrite=True" to force overwriting.')
-        else:
+        elif overwrite != 'read':
             logger.info('Overwriting existing file.')
 
 
