@@ -28,6 +28,7 @@ from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
 from ..io.meas_info import Info
+from ..externals.six import string_types
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -275,7 +276,7 @@ def _check_outlines(pos, outlines, head_pos=None):
             raise ValueError('head_pos["%s"] must have shape (2,), not '
                              '%s' % (key, head_pos[key].shape))
 
-    if outlines in ('head', 'skirt', None) or isinstance(outlines, np.ndarray):
+    if isinstance(outlines, np.ndarray) or outlines in ('head', 'skirt', None):
         radius = 0.5
         l = np.linspace(0, 2 * np.pi, 101)
         head_x = np.cos(l) * radius
@@ -300,7 +301,7 @@ def _check_outlines(pos, outlines, head_pos=None):
         else:
             outlines_dict = dict()
 
-        if outlines == 'skirt':
+        if isinstance(outlines, string_types) and outlines == 'skirt':
             if 'scale' not in head_pos:
                 # By default, fit electrodes inside the head circle
                 head_pos['scale'] = 1.0 / (pos.max(axis=0) - pos.min(axis=0))

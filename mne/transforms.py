@@ -1041,12 +1041,11 @@ class _SphericalSurfaceWarp(object):
 
 def _pol_to_cart(pol):
     """Transform polar coordinates to cartesian."""
+    out = np.empty((len(pol), 2))
     if pol.shape[1] == 2:  # phi, theta
-        out = np.empty_like(pol)
         out[:, 0] = pol[:, 0] * np.cos(pol[:, 1])
         out[:, 1] = pol[:, 0] * np.sin(pol[:, 1])
     else:  # radial distance, theta, phi
-        out = np.zeros((len(pol), 2))
         d = pol[:, 0] * np.sin(pol[:, 2])
         out[:, 0] = d * np.cos(pol[:, 1])
         out[:, 1] = d * np.sin(pol[:, 1])

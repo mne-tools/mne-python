@@ -459,12 +459,10 @@ def find_layout(info, ch_type=None, exclude='bads', on_failure=None):
         if on_failure is None:
             return None
         elif on_failure == 'generate':
-            warn('Could not find a layout. Generating custom layout from '
-                 'channel positions.')
             xy = _auto_topomap_coords(info, picks=range(info['nchan']),
                                       ignore_overlap=True)
             return generate_2d_layout(xy, ch_names=info['ch_names'],
-                                      name='custom')
+                                      name='custom', normalize=False)
 
     layout = read_layout(layout_name)
     if not is_old_vv:

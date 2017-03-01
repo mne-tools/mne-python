@@ -428,14 +428,13 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 useblit=blit, rectprops=dict(alpha=0.5, facecolor='red'))
 
 
-def _handle_spatial_colors(locs3d, info, idx, chs, type, psd, ax):
+def _handle_spatial_colors(locs3d, info, idx, chs, ch_type, psd, ax):
     """Helper for spatial colors."""
     x, y, z = locs3d.T
     colors = _rgb(x, y, z)
-    if type in ('meg', 'mag', 'grad', 'eeg'):
-        layout = find_layout(info, ch_type=type, exclude=[])
-    else:
-        layout = find_layout(info, None, exclude=[])
+    ch_type = None if ch_type not in ('meg', 'mag', 'grad', 'eeg') else ch_type
+    layout = find_layout(info, ch_type=ch_type, exclude=[])
+
     head_pos = None
     outlines = 'skirt'
     # drop channels that are not in the data
