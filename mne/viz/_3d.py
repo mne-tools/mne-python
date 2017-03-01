@@ -1386,7 +1386,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
                           coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False,
                           show=True, verbose=None):
-    """Plot dipole locations
+    """Plot dipole locations.
 
     If mode is set to 'cone' or 'sphere', only the location of the first
     time point of each dipole is shown else use the show_all parameter.

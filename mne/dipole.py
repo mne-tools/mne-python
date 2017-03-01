@@ -151,7 +151,7 @@ class Dipole(object):
                        coord_frame='mri', idx='gof',
                        show_all=True, ax=None, block=False,
                        show=True, verbose=None):
-        """Plot dipole locations in 3d
+        """Plot dipole locations in 3d.
 
         .. warning:: Using mode with option 'cone' or 'sphere' will be
                      deprecated in version 0.15.
