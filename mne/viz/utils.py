@@ -1749,10 +1749,9 @@ def _plot_annotations(raw, params):
         annot_start = _sync_onset(raw, onset) + params['first_time']
         annot_end = annot_start + raw.annotations.duration[ann_order][idx]
         segments.append([annot_start, annot_end])
-        ylim = params['ax_hscroll'].get_ylim()
         dscr = descriptions[idx]
         params['ax_hscroll'].fill_betweenx(
-            ylim, annot_start, annot_end, alpha=0.3,
+            (0., 1.), annot_start, annot_end, alpha=0.3,
             color=params['segment_colors'][dscr])
     params['segments'] = np.array(segments)
     params['annot_description'] = descriptions
