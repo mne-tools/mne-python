@@ -21,6 +21,11 @@ from ..constants import FIFF
 from .constants import CTF
 
 
+_ctf_to_fiff = {CTF.CTFV_COIL_LPA: FIFF.FIFFV_POINT_LPA,
+                CTF.CTFV_COIL_RPA: FIFF.FIFFV_POINT_RPA,
+                CTF.CTFV_COIL_NAS: FIFF.FIFFV_POINT_NASION}
+
+
 def _pick_isotrak_and_hpi_coils(res4, coils, t):
     """Pick the HPI coil locations given in device coordinates."""
     if coils is None:
@@ -31,11 +36,18 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
     n_coil_head = 0
     for p in coils:
         if p['valid']:
+            if p['kind'] in [CTF.CTFV_COIL_LPA, CTF.CTFV_COIL_RPA,
+                             CTF.CTFV_COIL_NAS]:
+                kind = FIFF.FIFFV_POINT_CARDINAL
+                ident = _ctf_to_fiff[p['kind']]
+            else:  # CTF.CTFV_COIL_SPARE
+                kind = FIFF.FIFFV_POINT_HPI
+                ident = p['kind']
             if p['coord_frame'] == FIFF.FIFFV_MNE_COORD_CTF_DEVICE:
                 if t is None or t['t_ctf_dev_dev'] is None:
                     raise RuntimeError('No coordinate transformation '
                                        'available for HPI coil locations')
-                d = dict(kind=FIFF.FIFFV_POINT_HPI, ident=p['kind'],
+                d = dict(kind=kind, ident=ident,
                          r=apply_trans(t['t_ctf_dev_dev'], p['r']),
                          coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
                 hpi_result['dig_points'].append(d)
@@ -44,7 +56,7 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
                 if t is None or t['t_ctf_head_head'] is None:
                     raise RuntimeError('No coordinate transformation '
                                        'available for (virtual) Polhemus data')
-                d = dict(kind=FIFF.FIFFV_POINT_HPI, ident=p['kind'],
+                d = dict(kind=kind, ident=ident,
                          r=apply_trans(t['t_ctf_head_head'], p['r']),
                          coord_frame=FIFF.FIFFV_COORD_HEAD)
                 dig.append(d)
