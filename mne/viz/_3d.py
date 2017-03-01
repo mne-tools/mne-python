@@ -1633,48 +1633,7 @@ def _get_view_to_display_matrix(scene):
 def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                                coord_frame='head', idx='gof', show_all=True,
                                ax=None, block=False, show=True):
-    """Plot dipoles on top of MRI slices in 3-D.
-
-    Browse through the dipoles using mouse scroll or up/down arrows.
-
-    Parameters
-    ----------
-    dipole : instance of mne.Dipole
-        The dipole to plot.
-    trans : dict | str
-        The mri to head trans or path to the transformation file.
-    subject : str
-        The subject name corresponding to FreeSurfer environment variable
-        SUBJECT.
-    subjects_dir : None | str
-        The path to the freesurfer subjects reconstructions. It corresponds to
-        Freesurfer environment variable SUBJECTS_DIR. If None (default),
-        SUBJECTS_DIR is read from environment or config file.
-    coord_frame : str
-        Coordinate frame to use, 'head' or 'mri'.
-    idx : int | 'gof' | 'amplitude'
-        Index of the initially plotted dipole. Can also be 'gof' to plot the
-        dipole with highest goodness of fit value or 'amplitude' to plot the
-        dipole with the highest amplitude. The dipoles can also be browsed
-        through using up/down arrow keys or mouse scroll. Defaults to 'gof'.
-    show_all : bool
-        Whether to always plot all the dipoles. If True (default), the active
-        dipole is plotted as a red dot and it's location determines the shown
-        MRI slices. The the non-active dipoles are plotted as small blue dots.
-        If False, only the active dipole is plotted.
-    ax : instance of matplotlib Axes3D | None
-        Axes to plot into. If None (default), axes will be created.
-    block : bool
-        Whether to halt program execution until the figure is closed. Defaults
-        to False.
-    show : bool
-        Show figure if True. Defaults to True.
-
-    Returns
-    -------
-    fig : instance of matplotlib figure
-        The figure containing 3-D locations of the dipoles.
-    """
+    """Plot dipoles on top of MRI slices in 3-D."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from .. import Dipole
@@ -1715,18 +1674,14 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         affine_to = np.dot(affine_to, aff)
         t1 = resample_from_to(t1, ([int(t1.shape[i] * zooms[i]) for i
                                     in range(3)], affine_to))
-        dipole_locs = np.array([apply_trans(ras2vox, loc * 1e3) * zooms
-                                for loc in dipole.pos])
+        dipole_locs = apply_trans(ras2vox, dipole.pos * 1e3) * zooms
+
         ori = dipole.ori
         scatter_points = dipole.pos * 1e3
     else:
-        dipole_locs = np.array([apply_trans(trans['trans'], loc) for loc
-                                in dipole.pos])
-        ori = [apply_trans(trans['trans'], o) for o in dipole.ori]
-        # Position in meters -> voxels.
-        dipole_locs = np.array([apply_trans(ras2vox, loc * 1e3) for loc
-                                in dipole_locs])
-        scatter_points = apply_trans(vox2ras, dipole_locs)
+        scatter_points = apply_trans(trans['trans'], dipole.pos) * 1e3
+        ori = apply_trans(trans['trans'], dipole.ori, move=False)
+        dipole_locs = apply_trans(ras2vox, scatter_points)
 
     data = t1.get_data()
     dims = len(data)  # Symmetric size assumed.
@@ -1818,7 +1773,10 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
 
     plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.1f, Amplitude: %.1fnAm\n' % (
         idx, dipole.times[idx], dipole.gof[idx], dipole.amplitude[idx] * 1e9) +
-        'x:%0.1f, y:%0.1f, z:%0.1f' % tuple(xyz[idx]))
+        '(%0.1f, %0.1f, %0.1f) mm' % tuple(xyz[idx]))
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
 
     plt.draw()
 
