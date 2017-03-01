@@ -92,7 +92,7 @@ Changelog
 BUG
 ~~~
 
-    - Fix bug with DICS and LCMV (e.g., :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.dics`) where regularization was done improperly. The default ``reg=0.01`` has been changed to ``reg=0.1``, by `Andrea Brovelli`_, `Alex Gramfort`_, and `Eric Larson`_
+    - Fix bug with DICS and LCMV (e.g., :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.dics`) where regularization was done improperly. The default ``reg=0.01`` has been changed to ``reg=0.05``, by `Andrea Brovelli`_, `Alex Gramfort`_, and `Eric Larson`_
 
     - Fix callback function call in ``mne.viz.topo._plot_topo_onpick`` by `Erkka Heinila`_
 
