@@ -839,7 +839,7 @@ def _mouse_click(event, params):
         raw = params['raw']
         if np.any([c.contains(event)[0] for c in params['ax'].collections]):
             xdata = event.xdata - params['first_time']
-            onset = _sync_onset(raw, raw.annotations.onset, True)
+            onset = _sync_onset(raw, raw.annotations.onset)
             ends = onset + raw.annotations.duration
             ann_idx = np.where((xdata > onset) & (xdata < ends))[0]
             raw.annotations.delete(ann_idx)  # only first one deleted

@@ -78,10 +78,10 @@ def _annotation_helper(raw):
     _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1,
                 kind='release')
-    assert_equal(len(raw.annotations.onset), 1)
-    assert_equal(len(raw.annotations.duration), 1)
-    assert_equal(len(raw.annotations.description), 1)
-    assert_equal(raw.annotations.description[0], 'BAD test')
+    assert_equal(len(raw.annotations.onset), n_anns + 1)
+    assert_equal(len(raw.annotations.duration), n_anns + 1)
+    assert_equal(len(raw.annotations.description), n_anns + 1)
+    assert_equal(raw.annotations.description[n_anns], 'BAD test')
 
     # draw another annotation merging the two
     _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')
@@ -90,7 +90,6 @@ def _annotation_helper(raw):
     # delete the annotation
     _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3, kind='press')
     fig.canvas.key_press_event('a')  # exit annotation mode
-    plt.close('all')
 
     assert_equal(len(raw.annotations.onset), n_anns)
     assert_equal(len(raw.annotations.duration), n_anns)
@@ -180,13 +179,11 @@ def test_plot_raw():
 
 def test_plot_annotations():
     """Test annotation mode of the plotter."""
-    import matplotlib.pyplot as plt
     raw = _get_raw()
     _annotation_helper(raw)
 
     raw.annotations = Annotations([42], [1], 'test', raw.info['meas_date'])
     _annotation_helper(raw)
-    plt.close('all')
 
 
 @requires_version('scipy', '0.10')
