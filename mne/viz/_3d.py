@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Functions to make 3D plots with M/EEG data."""
 from __future__ import print_function
 
@@ -36,7 +37,8 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _import_mlab, SilenceStdout, has_nibabel)
-from .utils import mne_analyze_colormap, _prepare_trellis, COLORS, plt_show
+from .utils import (mne_analyze_colormap, _prepare_trellis, COLORS, plt_show,
+                    tight_layout)
 
 
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
@@ -50,6 +52,82 @@ def _fiducial_coords(points, coord_frame=None):
     points_ = dict((p['ident'], p) for p in points if
                    p['kind'] == FIFF.FIFFV_POINT_CARDINAL)
     return np.array([points_[i]['r'] for i in FIDUCIAL_ORDER])
+
+
+def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z'):
+    """Plot head positions.
+
+    Parameters
+    ----------
+    pos : ndarray, shape (n_pos, 10)
+        The head position data.
+    mode : str
+        Can be 'traces' (default) to show position and quaternion traces,
+        or 'field' to show the position as a vector field over time.
+    cmap : matplotlib Colormap
+        Colormap to use for the trace plot, default is "viridis".
+    direction : str
+        Can be any combination of "x", "y", or "z" (default: "z") to show
+        directional axes in "field" mode.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        The figure.
+    """
+    from ..chpi import head_pos_to_trans_rot_t
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize
+    from mpl_toolkits.mplot3d.art3d import Line3DCollection
+    from mpl_toolkits.mplot3d import axes3d  # noqa: F401
+    if not isinstance(mode, string_types) or mode not in ('traces', 'field'):
+        raise ValueError('mode must be "traces" or "field", got %s' % (mode,))
+    trans, rot, t = head_pos_to_trans_rot_t(pos)  # also ensures pos is okay
+    # trans, rot, and t are for dev_head_t, but what we really want
+    # ar head_dev_t (i.e., where the head origin is in device coords)
+    use_trans = np.einsum('ijk,ik->ij', rot[:, :3, :3].transpose([0, 2, 1]),
+                          -trans) * 1000
+    use_rot = rot.transpose([0, 2, 1])
+    use_quats = -pos[:, 1:4]  # inverse (like doing rot.T)
+    if mode == 'traces':
+        fig, axes = plt.subplots(3, 2)
+        labels = ['XYZ', u'αβγ']
+        for ii, (quat, coord) in enumerate(zip(use_quats.T, use_trans.T)):
+            axes[ii, 0].plot(t, coord, 'k')
+            axes[ii, 0].set(ylabel=labels[0][ii], xlim=t[[0, -1]])
+            axes[ii, 1].plot(t, quat, 'k')
+            axes[ii, 1].set(ylabel=labels[1][ii], xlim=t[[0, -1]])
+        for ii, title in enumerate(('Position (mm)', 'Rotation (quat)')):
+            axes[0, ii].set(title=title)
+            axes[-1, ii].set(xlabel='Time (s)')
+    else:  # mode == 'field':
+        fig, ax = plt.subplots(1, subplot_kw=dict(projection='3d'))
+        # First plot the trajectory as a colormap:
+        # http://matplotlib.org/examples/pylab_examples/multicolored_line.html
+        pts = use_trans[:, np.newaxis]
+        segments = np.concatenate([pts[:-1], pts[1:]], axis=1)
+        norm = Normalize(t[0], t[-2])
+        lc = Line3DCollection(segments, cmap=cmap, norm=norm)
+        lc.set_array(t[:-1])
+        ax.add_collection(lc)
+        # now plot the head directions as a quiver
+        dir_idx = dict(x=0, y=1, z=2)
+        for d, length in zip(direction, [1., 0.5, 0.25]):
+            use_dir = use_rot[:, :, dir_idx[d]]
+            # draws stems, then heads
+            array = np.concatenate((t, np.repeat(t, 2)))
+            ax.quiver(use_trans[:, 0], use_trans[:, 1], use_trans[:, 2],
+                      use_dir[:, 0], use_dir[:, 1], use_dir[:, 2],
+                      norm=norm, cmap=cmap, array=array, length=length)
+        mins = use_trans.min(0)
+        maxs = use_trans.max(0)
+        scale = (maxs - mins).max() / 2.
+        xlim, ylim, zlim = (maxs + mins)[:, np.newaxis] / 2. + [-scale, scale]
+        ax.set(xlabel='x', ylabel='y', zlabel='z',
+               xlim=xlim, ylim=ylim, zlim=zlim, aspect='equal')
+        ax.view_init(30, 45)
+    tight_layout(fig=fig)
+    return fig
 
 
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
