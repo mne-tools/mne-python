@@ -91,7 +91,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z'):
     use_quats = -pos[:, 1:4]  # inverse (like doing rot.T)
     if mode == 'traces':
         fig, axes = plt.subplots(3, 2)
-        labels = ['XYZ', u'αβγ']
+        labels = ['xyz', ('$q_1$', '$q_2$', '$q_3$')]
         for ii, (quat, coord) in enumerate(zip(use_quats.T, use_trans.T)):
             axes[ii, 0].plot(t, coord, 'k')
             axes[ii, 0].set(ylabel=labels[0][ii], xlim=t[[0, -1]])

@@ -32,7 +32,7 @@ raw_stat = mne.io.read_raw_fif(op.join(data_path,
 ###############################################################################
 # Visualize the "subject" head movements (traces)
 
-mne.viz.plot_head_pos(pos, mode='traces')
+mne.viz.plot_head_positions(pos, mode='traces')
 
 ###############################################################################
 # Process our simulated raw data (taking into account head movements)
