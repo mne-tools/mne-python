@@ -59,7 +59,7 @@ def test_plot_head_positions():
     plot_head_positions(pos)
     plot_head_positions(pos, mode='field')
     assert_raises(ValueError, plot_head_positions, pos, 'foo')
-    plt.close()
+    plt.close('all')
 
 
 @testing.requires_testing_data
