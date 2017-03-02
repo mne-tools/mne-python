@@ -23,19 +23,21 @@ class _ConstantScaler():
     """Scale channel types using constant values."""
 
     def __init__(self, info, scalings, do_scaling=True):
-        self._scalings = _check_scalings_user(scalings)
-        self._picks_by_type = _picks_by_type(pick_info(
-            info, _pick_data_channels(info, exclude=())))
+        self._scalings = scalings
+        self._info = info
         self._do_scaling = do_scaling
 
     def fit(self, X, y=None):
-        std = np.ones(sum(len(p[1]) for p in self._picks_by_type))
+        scalings = _check_scalings_user(self._scalings)
+        picks_by_type = _picks_by_type(pick_info(
+            self._info, _pick_data_channels(self._info, exclude=())))
+        std = np.ones(sum(len(p[1]) for p in picks_by_type))
         if X.shape[1] != len(std):
             raise ValueError('info had %d data channels but X has %d channels'
-                             % (len(self._std), len(X)))
+                             % (len(std), len(X)))
         if self._do_scaling:  # this is silly, but necessary for completeness
-            for kind, picks in self._picks_by_type:
-                std[picks] = 1. / self._scalings[kind]
+            for kind, picks in picks_by_type:
+                std[picks] = 1. / scalings[kind]
         self.std_ = std
         self.mean_ = np.zeros_like(std)
         return self
@@ -65,7 +67,14 @@ def _sklearn_reshape_apply(func, return_result, X, *args):
 
 
 class Scaler(TransformerMixin, BaseEstimator):
-    u"""Standardize data across channels.
+    u"""Standardize channel data.
+
+    This class scales data for each channel. It differs from scikit-learn_
+    classes (e.g., :class:`sklearn.preprocessing.StandardScaler`) in that
+    it scales each *channel* by estimating μ and σ using data from all
+    time points and epochs, as opposed to standardizing each *feature*
+    (i.e., each time point for each channel) by estimating using μ and σ
+    using data from all epochs.
 
     Parameters
     ----------
@@ -92,7 +101,7 @@ class Scaler(TransformerMixin, BaseEstimator):
     with_std : boolean, True by default
         If True, scale the data to unit variance (``scalings='mean'``),
         quantile range (``scalings='median``), or using channel type
-        ``scalings`` is a dict or None).
+        if ``scalings`` is a dict or None).
     """
 
     def __init__(self, info=None, scalings=None, with_mean=True,

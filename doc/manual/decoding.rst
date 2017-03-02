@@ -1,3 +1,4 @@
+.. include:: ../git_links.inc
 
 .. contents:: Contents
    :local:
@@ -17,11 +18,11 @@ Basic Estimators
 
 Scaler
 ^^^^^^
-This will scale data across channels. Each channel type (mag, grad or eeg) is treated separately. Users can specify the method to scale with. During training time, ``scikit-learn`` objects are created if scaling method is ``StandardScaler`` or ``RobustScaler``. The ``transform`` method is called to transform the training set. To perform both the ``fit`` and ``transform`` operations in a single call, the ``fit_transform`` method may be used. During test time, the stored scaling values are used in the ``transform`` method. To recover the original data, you can use ``inverse_transform``.
+The :class:`mne.decoding.Scaler` will standardize the data based on channel scales. In the simplest modes ``scalings=None`` or ``scalings=dict(...)``, each data channel type (e.g., mag, grad, eeg) is treated separately and scaled by a constant. This is the approach used by e.g., :func:`mne.compute_covariance` to standardize channel scales.
 
-.. note:: For working of every scaling method, atleast scikit-learn version 0.18 is required.
+If ``scalings='mean'`` or ``scalings='median'``, each channel is scaled using empirical measures. Each channel is scaled independently by the mean and standand deviation, or median and interquartile range, respectively, across all epochs and time points during :class:`mne.decoding.Scaler.fit` (during training). The :meth:`mne.decoding.Scaler.transform` method is called to transform data (training or test set) by scaling all time points and epochs on a channel-by-channel basis. To perform both the ``fit`` and ``transform`` operations in a single call, the :meth:`mne.decoding.Scaler.fit_transform` method may be used. To invert the transform, :meth:`mne.decoding.Scaler.inverse_transform` can be used. For ``scalings='median'``, scikit-learn_ version 0.17+ is required.
 
-.. note:: This is different from directly applying ``StandarScaler`` or ``RobustScaler``  estimator offered by Scikit-Learn. The ``StandardScaler`` or ``RobustScaler`` scales each feature, whereas the ``Scaler`` object scales by channel type.
+.. note:: This is different from directly applying :class:`sklearn.preprocessing.StandardScaler` or :class:`sklearn.preprocessing.RobustScaler` offered by scikit-learn_. The ``StandardScaler`` and ``RobustScaler`` scale each *classification feature*, e.g. each time point for each channel, with mean and standard deviation computed across epochs, whereas ``Scaler`` scales each *channel* using mean and standard deviation computed across all of its time points and epochs.
 
 Vectorizer
 ^^^^^^^^^^
