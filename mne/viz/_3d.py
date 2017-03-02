@@ -36,7 +36,7 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     _import_mlab, SilenceStdout, has_nibabel)
+                     _import_mlab, SilenceStdout, has_nibabel, check_version)
 from .utils import (mne_analyze_colormap, _prepare_trellis, COLORS, plt_show,
                     tight_layout)
 
@@ -84,11 +84,15 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z'):
         raise ValueError('mode must be "traces" or "field", got %s' % (mode,))
     trans, rot, t = head_pos_to_trans_rot_t(pos)  # also ensures pos is okay
     # trans, rot, and t are for dev_head_t, but what we really want
-    # ar head_dev_t (i.e., where the head origin is in device coords)
+    # is head_dev_t (i.e., where the head origin is in device coords)
     use_trans = np.einsum('ijk,ik->ij', rot[:, :3, :3].transpose([0, 2, 1]),
                           -trans) * 1000
     use_rot = rot.transpose([0, 2, 1])
     use_quats = -pos[:, 1:4]  # inverse (like doing rot.T)
+    if isinstance(cmap, string_types) and cmap == 'viridis' and \
+            not check_version('matplotlib', '1.5'):
+        warn('viridis is unavailable on matplotlib < 1.4, using "cool"')
+        cmap = 'cool'
     if mode == 'traces':
         fig, axes = plt.subplots(3, 2)
         labels = ['xyz', ('$q_1$', '$q_2$', '$q_3$')]
@@ -118,7 +122,8 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z'):
             array = np.concatenate((t, np.repeat(t, 2)))
             ax.quiver(use_trans[:, 0], use_trans[:, 1], use_trans[:, 2],
                       use_dir[:, 0], use_dir[:, 1], use_dir[:, 2],
-                      norm=norm, cmap=cmap, array=array, length=length)
+                      norm=norm, cmap=cmap, array=array, length=length,
+                      pivot='tail')
         mins = use_trans.min(0)
         maxs = use_trans.max(0)
         scale = (maxs - mins).max() / 2.

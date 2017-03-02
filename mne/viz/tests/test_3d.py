@@ -56,8 +56,9 @@ def test_plot_head_positions():
     import matplotlib.pyplot as plt
     pos = np.random.RandomState(0).randn(4, 10)
     pos[:, 0] = np.arange(len(pos))
-    plot_head_positions(pos)
-    plot_head_positions(pos, mode='field')
+    with warnings.catch_warnings(record=True):  # old MPL will cause a warning
+        plot_head_positions(pos)
+        plot_head_positions(pos, mode='field')
     assert_raises(ValueError, plot_head_positions, pos, 'foo')
     plt.close('all')
 
