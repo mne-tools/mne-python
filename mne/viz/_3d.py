@@ -54,7 +54,8 @@ def _fiducial_coords(points, coord_frame=None):
     return np.array([points_[i]['r'] for i in FIDUCIAL_ORDER])
 
 
-def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z'):
+def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
+                        show=True):
     """Plot head positions.
 
     Parameters
@@ -64,11 +65,14 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z'):
     mode : str
         Can be 'traces' (default) to show position and quaternion traces,
         or 'field' to show the position as a vector field over time.
+        The 'field' mode requires matplotlib 1.4+.
     cmap : matplotlib Colormap
         Colormap to use for the trace plot, default is "viridis".
     direction : str
         Can be any combination of "x", "y", or "z" (default: "z") to show
         directional axes in "field" mode.
+    show : bool
+        Show figure if True. Defaults to True.
 
     Returns
     -------
@@ -91,8 +95,8 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z'):
     use_quats = -pos[:, 1:4]  # inverse (like doing rot.T)
     if isinstance(cmap, string_types) and cmap == 'viridis' and \
             not check_version('matplotlib', '1.5'):
-        warn('viridis is unavailable on matplotlib < 1.4, using "cool"')
-        cmap = 'cool'
+        warn('viridis is unavailable on matplotlib < 1.4, using "YlGnBu_r"')
+        cmap = 'YlGnBu_r'
     if mode == 'traces':
         fig, axes = plt.subplots(3, 2)
         labels = ['xyz', ('$q_1$', '$q_2$', '$q_3$')]
@@ -105,6 +109,9 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z'):
             axes[0, ii].set(title=title)
             axes[-1, ii].set(xlabel='Time (s)')
     else:  # mode == 'field':
+        if not check_version('matplotlib', '1.4'):
+            raise RuntimeError('The "field" mode requires matplotlib version '
+                               '1.4+')
         fig, ax = plt.subplots(1, subplot_kw=dict(projection='3d'))
         # First plot the trajectory as a colormap:
         # http://matplotlib.org/examples/pylab_examples/multicolored_line.html
@@ -116,14 +123,16 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z'):
         ax.add_collection(lc)
         # now plot the head directions as a quiver
         dir_idx = dict(x=0, y=1, z=2)
+        kwargs = dict()
         for d, length in zip(direction, [1., 0.5, 0.25]):
             use_dir = use_rot[:, :, dir_idx[d]]
             # draws stems, then heads
             array = np.concatenate((t, np.repeat(t, 2)))
+            if check_version('matplotlib', '1.4'):
+                kwargs['length'] = length
             ax.quiver(use_trans[:, 0], use_trans[:, 1], use_trans[:, 2],
-                      use_dir[:, 0], use_dir[:, 1], use_dir[:, 2],
-                      norm=norm, cmap=cmap, array=array, length=length,
-                      pivot='tail')
+                      use_dir[:, 0], use_dir[:, 1], use_dir[:, 2], norm=norm,
+                      cmap=cmap, array=array, pivot='tail', **kwargs)
         mins = use_trans.min(0)
         maxs = use_trans.max(0)
         scale = (maxs - mins).max() / 2.
@@ -132,6 +141,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z'):
                xlim=xlim, ylim=ylim, zlim=zlim, aspect='equal')
         ax.view_init(30, 45)
     tight_layout(fig=fig)
+    plt_show(show)
     return fig
 
 

@@ -158,7 +158,7 @@ BUG
 
     - Raise error in :func:`mne.concatenate_epochs` when concatenated epochs have conflicting event_id by `Mikołaj Magnuski`_
 
-    - Fix handling of ``n_components=None`` in :class:`mne.preprocessing.ica.ICA` by `Richard Höchenberger`_
+    - Fix handling of ``n_components=None`` in :class:`mne.preprocessing.ICA` by `Richard Höchenberger`_
 
     - Fix reading of fiducials correctly from CTF data in :func:`mne.io.read_raw_ctf` by `Jaakko Leppakangas`_
 

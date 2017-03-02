@@ -21,7 +21,7 @@ from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans, snapshot_brain_montage, plot_head_positions)
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
-                       _import_mlab, _TempDir, requires_nibabel)
+                       _import_mlab, _TempDir, requires_nibabel, check_version)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 
@@ -58,7 +58,10 @@ def test_plot_head_positions():
     pos[:, 0] = np.arange(len(pos))
     with warnings.catch_warnings(record=True):  # old MPL will cause a warning
         plot_head_positions(pos)
-        plot_head_positions(pos, mode='field')
+        if check_version('matplotlib', '1.4'):
+            plot_head_positions(pos, mode='field')
+        else:
+            assert_raises(RuntimeError, plot_head_positions, pos, mode='field')
     assert_raises(ValueError, plot_head_positions, pos, 'foo')
     plt.close('all')
 
