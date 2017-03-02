@@ -95,6 +95,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
     last = first + len(epochs.times) - 1
     write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
     write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
+    write_string(fid, FIFF.FIFF_COMMENT, epochs.name)
 
     # save baseline
     if epochs.baseline is not None:

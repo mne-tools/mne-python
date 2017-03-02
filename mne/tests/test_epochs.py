@@ -660,9 +660,12 @@ def test_read_write_epochs():
     # test IO
     for preload in (False, True):
         epochs = epochs_orig.copy()
+        epochs.name = 'test'
         epochs.save(temp_fname)
         epochs_no_bl.save(temp_fname_no_bl)
         epochs_read = read_epochs(temp_fname, preload=preload)
+        assert_equal(epochs_read.name, 'test')
+        assert_equal(epochs_read.average().comment, 'test')
         epochs_no_bl.save(temp_fname_no_bl)
         epochs_read = read_epochs(temp_fname)
         epochs_no_bl_read = read_epochs(temp_fname_no_bl)
@@ -698,6 +701,7 @@ def test_read_write_epochs():
         epochs_read2 = read_epochs(op.join(tempdir, 'foo-epo.fif'),
                                    preload=preload)
         assert_equal(epochs_read2.event_id, epochs.event_id)
+        assert_equal(epochs_read2['a:a'].average().comment, 'a:a')
 
         # add reject here so some of the epochs get dropped
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
