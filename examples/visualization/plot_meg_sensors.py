@@ -42,4 +42,11 @@ for system, raw in raws.items():
     ref_meg = False if system == 'KIT' else True
     fig = plot_trans(raw.info, trans=None, dig=False, eeg_sensors=False,
                      meg_sensors=True, coord_frame='meg', ref_meg=ref_meg)
-    mlab.title(system)
+    text = mlab.title(system)
+    text.x_position = 0.5
+    text.y_position = 0.95
+    text.property.vertical_justification = 'top'
+    text.property.justification = 'center'
+    text.actor.text_scale_mode = 'none'
+    text.property.bold = True
+    mlab.draw(fig)

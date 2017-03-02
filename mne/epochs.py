@@ -1933,7 +1933,8 @@ class EpochsArray(BaseEpochs):
     Parameters
     ----------
     data : array, shape (n_epochs, n_channels, n_times)
-        The channels' time series for each epoch.
+        The channels' time series for each epoch. See notes for proper units of
+        measure.
     info : instance of Info
         Info dictionary. Consider using ``create_info`` to populate
         this structure.
@@ -1989,6 +1990,16 @@ class EpochsArray(BaseEpochs):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    Proper units of measure:
+    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * T: mag
+    * T/m: grad
+    * M: hbo, hbr
+    * Am: dipole
+    * AU: misc
 
     See Also
     --------
@@ -2688,6 +2699,16 @@ def _concatenate_epochs(epochs_list, with_data=True):
 
         if epochs.baseline != baseline:
             raise ValueError('Baseline must be same for all epochs')
+
+        # compare event_id
+        common_keys = list(set(event_id).intersection(set(epochs.event_id)))
+        for key in common_keys:
+            if not event_id[key] == epochs.event_id[key]:
+                msg = ('event_id values must be the same for identical keys '
+                       'for all concatenated epochs. Key "{}" maps to {} in '
+                       'some epochs and to {} in others.')
+                raise ValueError(msg.format(key, event_id[key],
+                                            epochs.event_id[key]))
 
         if with_data:
             data.append(epochs.get_data())

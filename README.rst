@@ -35,7 +35,7 @@ development environment .
 Get more information
 ^^^^^^^^^^^^^^^^^^^^
 
-If you're unfamiliar with MNE or MNE-Python, you can visit the
+If you're unfamiliar with MNE, you can visit the
 `MNE homepage <http://mne-tools.github.io/>`_ for full user documentation.
 
 Get the latest code
@@ -50,7 +50,7 @@ To get the latest code using `git <https://git-scm.com/>`_, simply type:
 If you don't have git installed, you can download a
 `zip of the latest code <https://github.com/mne-tools/mne-python/archive/master.zip>`_.
 
-Install mne-python
+Install MNE-python
 ^^^^^^^^^^^^^^^^^^
 
 As with most Python packages, to install the latest stable version of
@@ -86,10 +86,10 @@ to install the NVIDIA CUDA SDK, pycuda, and scikits.cuda. See the
 `getting started page <http://mne-tools.github.io/stable/getting_started.html>`_
 for more information.
 
-Contribute to mne-python
+Contribute to MNE-python
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Please see the documentation on the mne-python homepage:
+Please see the documentation on the MNE-python homepage:
 
 http://martinos.org/mne/contributing.html
 

@@ -13,7 +13,7 @@ from mne.io import RawArray, read_raw_fif
 from mne.filter import (filter_data, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
                         _overlap_add_filter, _smart_pad, design_mne_c_filter,
-                        estimate_ringing_samples, create_filter)
+                        estimate_ringing_samples, create_filter, _Interp2)
 
 from mne.utils import (sum_squared, run_tests_if_main, slow_test,
                        catch_logging, requires_version, _TempDir,
@@ -491,6 +491,25 @@ def test_detrend():
     assert_array_almost_equal(detrend(x, 1), np.zeros_like(x))
     x = np.ones(10)
     assert_array_almost_equal(detrend(x, 0), np.zeros_like(x))
+
+
+def test_interp2():
+    """Test our two-point interpolator."""
+    interp = _Interp2('zero')
+    x = np.ones((1, 100))
+    interp['y'] = np.array([[10.]])
+    interp['y'] = np.array([[-10]])
+    interp.n_samp = 100
+    out = np.zeros_like(x)
+    interp.interpolate('y', x, out)
+    expected = 10 * x
+    assert_allclose(out, expected, atol=1e-7)
+    # Linear
+    interp.interp = 'linear'
+    out.fill(0.)
+    interp.interpolate('y', x, out)
+    expected = np.linspace(10, -10, 100, endpoint=False)[np.newaxis]
+    assert_allclose(out, expected, atol=1e-7)
 
 
 run_tests_if_main()

@@ -233,8 +233,9 @@ class ICA(ContainsMixin):
 
         self.noise_cov = noise_cov
 
-        if max_pca_components is not None and \
-                n_components > max_pca_components:
+        if (n_components is not None and
+                max_pca_components is not None and
+                n_components > max_pca_components):
             raise ValueError('n_components must be smaller than '
                              'max_pca_components')
 
@@ -300,7 +301,8 @@ class ICA(ContainsMixin):
 
     @verbose
     def fit(self, inst, picks=None, start=None, stop=None, decim=None,
-            reject=None, flat=None, tstep=2.0, verbose=None):
+            reject=None, flat=None, tstep=2.0, reject_by_annotation=True,
+            verbose=None):
         """Run the ICA decomposition on raw data.
 
         Caveat! If supplying a noise covariance keep track of the projections
@@ -347,6 +349,14 @@ class ICA(ContainsMixin):
         tstep : float
             Length of data chunks for artifact rejection in seconds.
             It only applies if `inst` is of type Raw.
+        reject_by_annotation : bool
+            Whether to omit bad segments from the data before fitting. If True,
+            annotated segments with a description that starts with 'bad' are
+            omitted. Has no effect if ``inst`` is an Epochs or Evoked object.
+            Defaults to True.
+
+            .. versionadded:: 0.14.0
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -361,7 +371,7 @@ class ICA(ContainsMixin):
             _check_for_unsupported_ica_channels(picks, inst.info)
             if isinstance(inst, BaseRaw):
                 self._fit_raw(inst, picks, start, stop, decim, reject, flat,
-                              tstep, verbose)
+                              tstep, reject_by_annotation, verbose)
             elif isinstance(inst, BaseEpochs):
                 self._fit_epochs(inst, picks, decim, verbose)
         else:
@@ -388,7 +398,7 @@ class ICA(ContainsMixin):
             del self.drop_inds_
 
     def _fit_raw(self, raw, picks, start, stop, decim, reject, flat, tstep,
-                 verbose):
+                 reject_by_annotation, verbose):
         """Aux method."""
         if self.current_fit != 'unfitted':
             self._reset()
@@ -410,8 +420,10 @@ class ICA(ContainsMixin):
         self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
 
+        reject_by_annotation = 'omit' if reject_by_annotation else None
         # this will be a copy
-        data = raw[picks, start:stop][0]
+        data = raw.get_data(picks, start, stop, reject_by_annotation)
+
         # this will be a view
         if decim is not None:
             data = data[:, ::decim]
@@ -921,8 +933,8 @@ class ICA(ContainsMixin):
                       method='ctps', verbose=None):
         """Detect ECG related components using correlation.
 
-        Note. If no ECG channel is available, routine attempts to create
-        an artificial ECG based on cross-channel averaging.
+        .. note:: If no ECG channel is available, routine attempts to create
+                  an artificial ECG based on cross-channel averaging.
 
         Parameters
         ----------
@@ -968,7 +980,7 @@ class ICA(ContainsMixin):
         scores : np.ndarray of float, shape (``n_components_``)
             The correlation scores.
 
-        See also
+        See Also
         --------
         find_bads_eog
 

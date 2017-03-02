@@ -524,12 +524,10 @@ def _get_inst_data(inst):
     from . import Evoked
     from .time_frequency.tfr import _BaseTFR
 
-    if isinstance(inst, (BaseRaw, BaseEpochs)):
+    if isinstance(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR)):
         if not inst.preload:
             inst.load_data()
         return inst._data
-    elif isinstance(inst, (Evoked, _BaseTFR)):
-        return inst.data
     else:
         raise TypeError('The argument must be an instance of Raw, Epochs, '
                         'Evoked, EpochsTFR or AverageTFR, got {0}.'.format(
@@ -1022,7 +1020,8 @@ if version < required_version:
 """
 
 _mayavi_call = """
-from mayavi import mlab
+with warnings.catch_warnings(record=True):  # traits
+    from mayavi import mlab
 mlab.options.backend = 'test'
 """
 
@@ -1063,7 +1062,9 @@ requires_tvtk = partial(requires_module, name='TVTK',
                         call='from tvtk.api import tvtk')
 requires_statsmodels = partial(requires_module, name='statsmodels')
 requires_pysurfer = partial(requires_module, name='PySurfer',
-                            call='from surfer import Brain')
+                            call="""import warnings
+with warnings.catch_warnings(record=True):
+    from surfer import Brain""")
 requires_PIL = partial(requires_module, name='PIL',
                        call='from PIL import Image')
 requires_good_network = partial(
@@ -1127,7 +1128,7 @@ def _check_pyface_backend():
 
     Notes
     -----
-    See also: http://docs.enthought.com/pyface/
+    See also http://docs.enthought.com/pyface/.
     """
     try:
         from traits.trait_base import ETSConfig
@@ -1140,6 +1141,13 @@ def _check_pyface_backend():
     else:
         status = 1
     return backend, status
+
+
+def _import_mlab():
+    """Quietly import mlab."""
+    with warnings.catch_warnings(record=True):
+        from mayavi import mlab
+    return mlab
 
 
 @verbose
@@ -1458,6 +1466,15 @@ def set_memmap_min_size(memmap_min_size):
 known_config_types = (
     'MNE_BROWSE_RAW_SIZE',
     'MNE_CACHE_DIR',
+    'MNE_COREG_COPY_ANNOT',
+    'MNE_COREG_GUESS_MRI_SUBJECT',
+    'MNE_COREG_HEAD_HIGH_RES',
+    'MNE_COREG_HEAD_OPACITY',
+    'MNE_COREG_PREPARE_BEM',
+    'MNE_COREG_SCALE_LABELS',
+    'MNE_COREG_SCENE_HEIGHT',
+    'MNE_COREG_SCENE_WIDTH',
+    'MNE_COREG_SUBJECTS_DIR',
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATA',
     'MNE_DATASETS_BRAINSTORM_PATH',
@@ -1472,6 +1489,10 @@ known_config_types = (
     'MNE_DATASETS_TESTING_PATH',
     'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
     'MNE_FORCE_SERIAL',
+    'MNE_KIT2FIFF_STIM_CHANNELS',
+    'MNE_KIT2FIFF_STIM_CHANNEL_CODING',
+    'MNE_KIT2FIFF_STIM_CHANNEL_SLOPE',
+    'MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD',
     'MNE_LOGGING_LEVEL',
     'MNE_MEMMAP_MIN_SIZE',
     'MNE_SKIP_FTP_TESTS',
@@ -1513,7 +1534,8 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     key : None | str
         The preference key to look for. The os evironment is searched first,
         then the mne-python config file is parsed.
-        If None, all the config parameters present in the path are returned.
+        If None, all the config parameters present in environment variables or
+        the path are returned.
     default : str | None
         Value to return if the key is not found.
     raise_error : bool
@@ -1542,15 +1564,17 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     # second, look for it in mne-python config file
     config_path = get_config_path(home_dir=home_dir)
     if not op.isfile(config_path):
-        key_found = False
-        val = default
+        config = {}
     else:
         config = _load_config(config_path)
-        if key is None:
-            return config
-        key_found = key in config
-        val = config.get(key, default)
-    if not key_found and raise_error is True:
+
+    if key is None:
+        # update config with environment variables
+        env_keys = (set(config).union(known_config_types).
+                    intersection(os.environ))
+        config.update({key: os.environ[key] for key in env_keys})
+        return config
+    elif raise_error is True and key not in config:
         meth_1 = 'os.environ["%s"] = VALUE' % key
         meth_2 = 'mne.utils.set_config("%s", VALUE, set_env=True)' % key
         raise KeyError('Key "%s" not found in environment or in the '
@@ -1561,7 +1585,8 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
                        'set the environment variable before '
                        'running python.'
                        % (key, config_path, meth_1, meth_2))
-    return val
+    else:
+        return config.get(key, default)
 
 
 def set_config(key, value, home_dir=None, set_env=True):
@@ -2067,7 +2092,7 @@ def _check_fname(fname, overwrite=False, must_exist=False):
         if not overwrite:
             raise IOError('Destination file exists. Please use option '
                           '"overwrite=True" to force overwriting.')
-        else:
+        elif overwrite != 'read':
             logger.info('Overwriting existing file.')
 
 
@@ -2238,6 +2263,18 @@ class ArgvSetter(object):
         sys.argv = self.orig_argv
         sys.stdout = self.orig_stdout
         sys.stderr = self.orig_stderr
+
+
+class SilenceStdout(object):
+    """Silence stdout."""
+
+    def __enter__(self):  # noqa: D105
+        self.stdout = sys.stdout
+        sys.stdout = StringIO()
+        return self
+
+    def __exit__(self, *args):  # noqa: D105
+        sys.stdout = self.stdout
 
 
 def md5sum(fname, block_size=1048576):  # 2 ** 20

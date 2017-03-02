@@ -14,18 +14,26 @@ from pyface.api import confirm, error, FileDialog, OK, YES
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         cached_property, DelegatesTo, Event, Instance,
                         Property, Array, Bool, Button, Enum)
-from traitsui.api import HGroup, Item, VGroup, View
+from traitsui.api import HGroup, Item, VGroup, View, ArrayEditor
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
 from ..coreg import fid_fname, _find_fiducials_files, _find_head_bem
+from ..defaults import DEFAULTS
 from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
+from ..viz._3d import _toggle_mlab_render
 from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel)
-from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
+from ._viewer import (HeadViewController, PointObject, SurfaceObject,
                       headview_borders)
+defaults = DEFAULTS['coreg']
+
+
+def _mm_fmt(x):
+    """Format mm data."""
+    return '%0.5f' % x
 
 
 class MRIHeadWithFiducialsModel(HasPrivateTraits):
@@ -101,9 +109,15 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         if not fname:
             fname = self.default_fid_fname
 
-        dig = [{'kind': 1, 'ident': 1, 'r': np.array(self.lpa[0])},
-               {'kind': 1, 'ident': 2, 'r': np.array(self.nasion[0])},
-               {'kind': 1, 'ident': 3, 'r': np.array(self.rpa[0])}]
+        dig = [{'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'ident': FIFF.FIFFV_POINT_LPA,
+                'r': np.array(self.lpa[0])},
+               {'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'ident': FIFF.FIFFV_POINT_NASION,
+                'r': np.array(self.nasion[0])},
+               {'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'ident': FIFF.FIFFV_POINT_RPA,
+                'r': np.array(self.rpa[0])}]
         write_fiducials(fname, dig, FIFF.FIFFV_COORD_MRI)
         self.fid_file = fname
 
@@ -209,7 +223,7 @@ class FiducialsPanel(HasPrivateTraits):
     locked = DelegatesTo('model', 'lock_fiducials')
 
     set = Enum('LPA', 'Nasion', 'RPA')
-    current_pos = Array(float, (1, 3))  # for editing
+    current_pos = Array(float, (1, 3), editor=ArrayEditor(width=50))
 
     save_as = Button(label='Save As...')
     save = Button(label='Save')
@@ -221,16 +235,21 @@ class FiducialsPanel(HasPrivateTraits):
     picker = Instance(object)
 
     # the layout of the dialog created
-    view = View(VGroup(Item('fid_file', label='Fiducials File'),
+    view = View(VGroup(Item('fid_file', label='File'),
                        Item('fid_fname', show_label=False, style='readonly'),
-                       Item('set', style='custom'),
-                       Item('current_pos', label='Pos'),
+                       Item('set', style='custom', width=50,
+                            format_func=lambda x: x),
+                       Item('current_pos', label='Pos', width=50,
+                            format_func=_mm_fmt),
                        HGroup(Item('save', enabled_when='can_save',
                                    tooltip="If a filename is currently "
                                    "specified, save to that file, otherwise "
-                                   "save to the default file name"),
-                              Item('save_as', enabled_when='can_save_as'),
-                              Item('reset_fid', enabled_when='can_reset'),
+                                   "save to the default file name",
+                                   width=10),
+                              Item('save_as', enabled_when='can_save_as',
+                                   width=10),
+                              Item('reset_fid', enabled_when='can_reset',
+                                   width=10),
                               show_labels=False),
                        enabled_when="locked==False"))
 
@@ -409,7 +428,7 @@ class FiducialsFrame(HasTraits):
 
     @on_trait_change('scene.activated')
     def _init_plot(self):
-        self.scene.disable_render = True
+        _toggle_mlab_render(self, False)
 
         lpa_color = defaults['lpa_color']
         nasion_color = defaults['nasion_color']
@@ -440,7 +459,7 @@ class FiducialsFrame(HasTraits):
         self.sync_trait('point_scale', self.rpa_obj, mutual=False)
 
         self.headview.left = True
-        self.scene.disable_render = False
+        _toggle_mlab_render(self, True)
 
         # picker
         self.scene.mayavi_scene.on_mouse_pick(self.panel._on_pick, type='cell')

@@ -1,5 +1,6 @@
 from numpy.testing import assert_equal, assert_array_equal, assert_allclose
-from nose.tools import assert_true, assert_raises, assert_not_equal
+from nose.tools import (assert_true, assert_raises, assert_not_equal,
+                        assert_not_in)
 from copy import deepcopy
 import os.path as op
 import numpy as np
@@ -97,7 +98,7 @@ def test_object_size():
     for lower, upper, obj in ((0, 60, ''),
                               (0, 30, 1),
                               (0, 30, 1.),
-                              (0, 60, 'foo'),
+                              (0, 70, 'foo'),
                               (0, 150, np.ones(0)),
                               (0, 150, np.int32(1)),
                               (150, 500, np.ones(20)),
@@ -388,19 +389,20 @@ def test_config():
     tempdir = _TempDir()
     key = '_MNE_PYTHON_CONFIG_TESTING'
     value = '123456'
+    value2 = '123'
     old_val = os.getenv(key, None)
     os.environ[key] = value
     assert_true(get_config(key) == value)
     del os.environ[key]
     # catch the warning about it being a non-standard config key
     assert_true(len(set_config(None, None)) > 10)  # tuple of valid keys
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True) as w:  # non-standard key
         warnings.simplefilter('always')
         set_config(key, None, home_dir=tempdir, set_env=False)
     assert_true(len(w) == 1)
     assert_true(get_config(key, home_dir=tempdir) is None)
     assert_raises(KeyError, get_config, key, raise_error=True)
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True):  # non-standard key
         warnings.simplefilter('always')
         assert_true(key not in os.environ)
         set_config(key, value, home_dir=tempdir, set_env=True)
@@ -412,21 +414,30 @@ def test_config():
         assert_true(key not in os.environ)
     if old_val is not None:
         os.environ[key] = old_val
-    # Check if get_config with no input returns all config
+    # Check if get_config with key=None returns all config
     key = 'MNE_PYTHON_TESTING_KEY'
-    config = {key: value}
+    assert_not_in(key, get_config(home_dir=tempdir))
     with warnings.catch_warnings(record=True):  # non-standard key
         warnings.simplefilter('always')
         set_config(key, value, home_dir=tempdir)
-    assert_equal(get_config(home_dir=tempdir), config)
+    assert_equal(get_config(home_dir=tempdir)[key], value)
+    old_val = os.environ.get(key)
+    try:  # os.environ should take precedence over config file
+        os.environ[key] = value2
+        assert_equal(get_config(home_dir=tempdir)[key], value2)
+    finally:  # reset os.environ
+        if old_val is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = old_val
     # Check what happens when we use a corrupted file
     json_fname = get_config_path(home_dir=tempdir)
     with open(json_fname, 'w') as fid:
         fid.write('foo{}')
     with warnings.catch_warnings(record=True) as w:
-        assert_equal(get_config(home_dir=tempdir), dict())
+        assert_not_in(key, get_config(home_dir=tempdir))
     assert_true(any('not a valid JSON' in str(ww.message) for ww in w))
-    with warnings.catch_warnings(record=True) as w:  # non-standard key
+    with warnings.catch_warnings(record=True):  # non-standard key
         assert_raises(RuntimeError, set_config, key, 'true', home_dir=tempdir)
 
 

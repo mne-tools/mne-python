@@ -110,9 +110,20 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 fname, condition, kind, allow_maxshield)
         self.kind = _aspect_rev.get(str(self._aspect_kind), 'Unknown')
         self.verbose = verbose
+        self.preload = True
         # project and baseline correct
         if proj:
             self.apply_proj()
+
+    @property
+    def data(self):
+        """The data matrix."""
+        return self._data
+
+    @data.setter
+    def data(self, data):
+        """Set the data matrix."""
+        self._data = data
 
     @verbose
     def apply_baseline(self, baseline=(None, 0), verbose=None):
@@ -662,7 +673,7 @@ class EvokedArray(Evoked):
     Parameters
     ----------
     data : array of shape (n_channels, n_times)
-        The channels' evoked response.
+        The channels' evoked response. See notes for proper units of measure.
     info : instance of Info
         Info dictionary. Consider using ``create_info`` to populate
         this structure.
@@ -677,6 +688,16 @@ class EvokedArray(Evoked):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    Proper units of measure:
+    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * T: mag
+    * T/m: grad
+    * M: hbo, hbr
+    * Am: dipole
+    * AU: misc
 
     See Also
     --------
@@ -711,6 +732,7 @@ class EvokedArray(Evoked):
         self.comment = comment
         self.picks = None
         self.verbose = verbose
+        self.preload = True
         self._projector = None
         if not isinstance(self.kind, string_types):
             raise TypeError('kind must be a string, not "%s"' % (type(kind),))

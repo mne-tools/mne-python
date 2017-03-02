@@ -17,7 +17,7 @@ class RawArray(BaseRaw):
     Parameters
     ----------
     data : array, shape (n_channels, n_times)
-        The channels' time series.
+        The channels' time series. See notes for proper units of measure.
     info : instance of Info
         Info dictionary. Consider using :func:`mne.create_info` to populate
         this structure. This may be modified in place by the class.
@@ -29,6 +29,16 @@ class RawArray(BaseRaw):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    Proper units of measure:
+    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * T: mag
+    * T/m: grad
+    * M: hbo, hbr
+    * Am: dipole
+    * AU: misc
 
     See Also
     --------

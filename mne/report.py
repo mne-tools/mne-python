@@ -20,7 +20,8 @@ import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
 from .io import Raw, read_info
-from .utils import _TempDir, logger, verbose, get_subjects_dir, warn
+from .utils import (_TempDir, logger, verbose, get_subjects_dir, warn,
+                    _import_mlab)
 from .viz import plot_events, plot_trans, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
@@ -53,7 +54,7 @@ def _fig_to_img(function=None, fig=None, image_format='png',
         from scipy.misc import imread
         mlab = None
         try:
-            from mayavi import mlab  # noqa: F401
+            mlab = _import_mlab()
         # on some systems importing Mayavi raises SystemExit (!)
         except Exception as e:
             warn('Could not import mayavi (%r). Trying to render'

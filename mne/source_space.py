@@ -13,6 +13,7 @@ import numpy as np
 from scipy import sparse, linalg
 
 from .io.constants import FIFF
+from .io.meas_info import create_info
 from .io.tree import dir_tree_find
 from .io.tag import find_tag, read_tag
 from .io.open import fiff_open
@@ -23,10 +24,9 @@ from .io.write import (start_block, end_block, write_int,
 from .bem import read_bem_surfaces
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
-                      _normalize_vectors,
-                      complete_surface_info, _compute_nearest,
-                      fast_cross_3d, _fast_cross_nd_sum, mesh_dist,
-                      _triangle_neighbors)
+                      _normalize_vectors, _get_solids, _triangle_neighbors,
+                      complete_surface_info, _compute_nearest, fast_cross_3d,
+                      mesh_dist)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
                     check_version, _get_call_line, warn, _check_fname)
@@ -90,6 +90,54 @@ class SourceSpaces(list):
             self.info = dict()
         else:
             self.info = dict(info)
+
+    @verbose
+    def plot(self, head=False, brain=None, skull=None, subjects_dir=None,
+             verbose=None):
+        """Plot the source space.
+
+        Parameters
+        ----------
+        head : bool
+            If True, show head surface.
+        brain : bool | str
+            If True, show the brain surfaces. Can also be a str for
+            surface type (e.g., 'pial', same as True). Default is None,
+            which means 'white' for surface source spaces and False otherwise.
+        skull : bool | str | list of str | list of dict | None
+            Whether to plot skull surface. If string, common choices would be
+            'inner_skull', or 'outer_skull'. Can also be a list to plot
+            multiple skull surfaces. If a list of dicts, each dict must
+            contain the complete surface info (such as you get from
+            :func:`mne.make_bem_model`). True is an alias of 'outer_skull'.
+            The subjects bem and bem/flash folders are searched for the 'surf'
+            files. Defaults to None, which is False for surface source spaces,
+            and True otherwise.
+        subjects_dir : string, or None
+            Path to SUBJECTS_DIR if it is not set in the environment.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
+
+        Returns
+        -------
+        fig : instance of mlab Figure
+            The figure.
+        """
+        if brain is None:
+            brain = 'white' if any(ss['type'] == 'surf'
+                                   for ss in self) else False
+        if skull is None:
+            skull = False if self.kind == 'surface' else True
+        from .viz import plot_trans
+        info = create_info(0, 1000., 'eeg')
+        return plot_trans(
+            info, trans=None, subject=self[0]['subject_his_id'],
+            subjects_dir=subjects_dir, ch_type=None,
+            source=(), coord_frame='mri', meg_sensors=(), eeg_sensors=False,
+            dig=False, ref_meg=False, ecog_sensors=False, head=False,
+            brain=brain, skull=skull, src=self)
 
     def __repr__(self):  # noqa: D105
         ss_repr = []
@@ -770,9 +818,7 @@ def _complete_source_space_info(this, verbose=None):
     r3 = this['rr'][this['tris'][:, 2], :]
     this['tri_cent'] = (r1 + r2 + r3) / 3.0
     this['tri_nn'] = fast_cross_3d((r2 - r1), (r3 - r1))
-    size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
-    this['tri_area'] = size / 2.0
-    this['tri_nn'] /= size[:, None]
+    this['tri_area'] = _normalize_vectors(this['tri_nn']) / 2.0
     logger.info('[done]')
 
     #   Selected triangles
@@ -783,8 +829,7 @@ def _complete_source_space_info(this, verbose=None):
         r3 = this['rr'][this['use_tris'][:, 2], :]
         this['use_tri_cent'] = (r1 + r2 + r3) / 3.0
         this['use_tri_nn'] = fast_cross_3d((r2 - r1), (r3 - r1))
-        this['use_tri_area'] = np.sqrt(np.sum(this['use_tri_nn'] ** 2, axis=1)
-                                       ) / 2.0
+        this['use_tri_area'] = np.linalg.norm(this['use_tri_nn'], axis=1) / 2.
     logger.info('[done]')
 
 
@@ -1311,13 +1356,11 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
     if fname is True:
         extra = '%s-%s' % (stype, sval) if sval != '' else stype
         fname = op.join(bem_dir, '%s-%s-src.fif' % (subject, extra))
-    if fname is not None and op.isfile(fname) and overwrite is False:
-        raise IOError('file "%s" exists, use overwrite=True if you want '
-                      'to overwrite the file' % fname)
     if fname is not None:
         warn("Parameters 'fname' and 'overwrite' are deprecated and will be "
              "removed in version 0.16. In version 0.15 fname will default to "
              "None. Use mne.write_source_spaces instead.")
+        _check_fname(fname, overwrite)
 
     logger.info('>>> 1. Creating the source space...\n')
 
@@ -1362,7 +1405,7 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
 
     # write out if requested, then return the data
     if fname is not None:
-        write_source_spaces(fname, src)
+        write_source_spaces(fname, src, overwrite)
         logger.info('Wrote %s' % fname)
     logger.info('You are now one step closer to computing the gain matrix')
     return src
@@ -1675,7 +1718,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     cm = np.mean(surf['rr'], axis=0)  # center of mass
 
     # Define the sphere which fits the surface
-    maxdist = np.sqrt(np.max(np.sum((surf['rr'] - cm) ** 2, axis=1)))
+    maxdist = np.linalg.norm(surf['rr'] - cm, axis=1).max()
 
     logger.info('Surface CM = (%6.1f %6.1f %6.1f) mm'
                 % (1000 * cm[0], 1000 * cm[1], 1000 * cm[2]))
@@ -1714,7 +1757,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     logger.info('%d sources before omitting any.', sp['nuse'])
 
     # Exclude infeasible points
-    dists = np.sqrt(np.sum((sp['rr'] - cm) ** 2, axis=1))
+    dists = np.linalg.norm(sp['rr'] - cm, axis=1)
     bads = np.where(np.logical_or(dists < exclude, dists > maxdist))[0]
     sp['inuse'][bads] = False
     sp['nuse'] -= len(bads)
@@ -1835,7 +1878,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
         # Filter out points too far from volume region voxels
         dists = _compute_nearest(rr_voi, sp['rr'], return_dists=True)[1]
         # Maximum distance from center of mass of a voxel to any of its corners
-        maxdist = np.sqrt(((trans[:3, :3].sum(0) / 2.) ** 2).sum())
+        maxdist = np.linalg.norm(trans[:3, :3].sum(0) / 2.)
         bads = np.where(dists > maxdist)[0]
 
         # Update source info
@@ -2145,43 +2188,6 @@ def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
     tot_angles = parallel(p_fun(surf['rr'][tris], rr)
                           for tris in np.array_split(surf['tris'], n_jobs))
     return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
-
-
-def _get_solids(tri_rrs, fros):
-    """Compute _sum_solids_div total angle in chunks."""
-    # NOTE: This incorporates the division by 4PI that used to be separate
-    # for tri_rr in tri_rrs:
-    #     v1 = fros - tri_rr[0]
-    #     v2 = fros - tri_rr[1]
-    #     v3 = fros - tri_rr[2]
-    #     triple = np.sum(fast_cross_3d(v1, v2) * v3, axis=1)
-    #     l1 = np.sqrt(np.sum(v1 * v1, axis=1))
-    #     l2 = np.sqrt(np.sum(v2 * v2, axis=1))
-    #     l3 = np.sqrt(np.sum(v3 * v3, axis=1))
-    #     s = (l1 * l2 * l3 +
-    #          np.sum(v1 * v2, axis=1) * l3 +
-    #          np.sum(v1 * v3, axis=1) * l2 +
-    #          np.sum(v2 * v3, axis=1) * l1)
-    #     tot_angle -= np.arctan2(triple, s)
-
-    # This is the vectorized version, but with a slicing heuristic to
-    # prevent memory explosion
-    tot_angle = np.zeros((len(fros)))
-    slices = np.r_[np.arange(0, len(fros), 100), [len(fros)]]
-    for i1, i2 in zip(slices[:-1], slices[1:]):
-        v1 = fros[i1:i2] - tri_rrs[:, 0, :][:, np.newaxis]
-        v2 = fros[i1:i2] - tri_rrs[:, 1, :][:, np.newaxis]
-        v3 = fros[i1:i2] - tri_rrs[:, 2, :][:, np.newaxis]
-        triples = _fast_cross_nd_sum(v1, v2, v3)
-        l1 = np.sqrt(np.sum(v1 * v1, axis=2))
-        l2 = np.sqrt(np.sum(v2 * v2, axis=2))
-        l3 = np.sqrt(np.sum(v3 * v3, axis=2))
-        ss = (l1 * l2 * l3 +
-              np.sum(v1 * v2, axis=2) * l3 +
-              np.sum(v1 * v3, axis=2) * l2 +
-              np.sum(v2 * v3, axis=2) * l1)
-        tot_angle[i1:i2] = -np.sum(np.arctan2(triples, ss), axis=0)
-    return tot_angle
 
 
 @verbose

@@ -26,9 +26,8 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _helper_raw_resize, _select_bads, _onclick_help,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
-                    _change_channel_group)
+                    _change_channel_group, _plot_annotations)
 from ..defaults import _handle_default
-from ..annotations import _onset_to_seconds
 from .evoked import _plot_lines
 
 
@@ -81,6 +80,8 @@ def _update_raw_data(params):
 def _pick_bad_channels(event, params):
     """Selecting / drop bad channels onpick."""
     # Both bad lists are updated. params['info'] used for colors.
+    if params['fig_annotation'] is not None:
+        return
     bads = params['raw'].info['bads']
     params['info']['bads'] = _select_bads(event, params, bads)
     _plot_update_raw_proj(params, None)
@@ -310,7 +311,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_channels=n_channels, scalings=scalings, types=types,
                   n_times=n_times, event_times=event_times, inds=inds,
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
-                  first_time=first_time)
+                  first_time=first_time, added_label=list())
 
     if isinstance(order, string_types) and order in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -331,31 +332,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                                  bad_color=bad_color, event_lines=event_lines,
                                  event_color=event_color)
 
-    if raw.annotations is not None:
-        segments = list()
-        segment_colors = dict()
-        # sort the segments by start time
-        ann_order = raw.annotations.onset.argsort(axis=0)
-        descriptions = raw.annotations.description[ann_order]
-        color_keys = set(descriptions)
-        color_vals = np.linspace(0, 1, len(color_keys))
-        for idx, key in enumerate(color_keys):
-            if key.lower().startswith('bad'):
-                segment_colors[key] = 'red'
-            else:
-                segment_colors[key] = plt.cm.summer(color_vals[idx])
-        params['segment_colors'] = segment_colors
-        for idx, onset in enumerate(raw.annotations.onset[ann_order]):
-            annot_start = _onset_to_seconds(raw, onset) + first_time
-            annot_end = annot_start + raw.annotations.duration[ann_order][idx]
-            segments.append([annot_start, annot_end])
-            ylim = params['ax_hscroll'].get_ylim()
-            dscr = descriptions[idx]
-            params['ax_hscroll'].fill_betweenx(ylim, annot_start, annot_end,
-                                               alpha=0.3,
-                                               color=segment_colors[dscr])
-        params['segments'] = np.array(segments)
-        params['annot_description'] = descriptions
+    _plot_annotations(raw, params)
 
     params['update_fun'] = partial(_update_raw_data, params=params)
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
@@ -396,13 +373,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # deal with projectors
     if show_options is True:
         _toggle_options(None, params)
+
+    callback_close = partial(_close_event, params=params)
+    params['fig'].canvas.mpl_connect('close_event', callback_close)
     # initialize the first selection set
     if isinstance(order, string_types) and order in ['selection', 'position']:
         _radio_clicked(fig_selection.radio.labels[0]._text, params)
         callback_selection_key = partial(_selection_key_press, params=params)
         callback_selection_scroll = partial(_selection_scroll, params=params)
-        callback_close = partial(_close_event, params=params)
-        params['fig'].canvas.mpl_connect('close_event', callback_close)
         params['fig_selection'].canvas.mpl_connect('close_event',
                                                    callback_close)
         params['fig_selection'].canvas.mpl_connect('key_press_event',
@@ -439,7 +417,10 @@ def _selection_key_press(event, params):
 def _close_event(event, params):
     """Callback for closing of raw browser with selections."""
     import matplotlib.pyplot as plt
-    plt.close(params['fig_selection'])
+    if 'fig_selection' in params:
+        plt.close(params['fig_selection'])
+    if 'fig_annotation' is not None:
+        plt.close(params['fig_annotation'])
     plt.close(params['fig'])
 
 
@@ -478,19 +459,27 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     if area_mode not in [None, 'std', 'range']:
         raise ValueError('"area_mode" must be "std", "range", or None')
     if picks is None:
+        # XXX this could be refactored more with e.g., plot_evoked
         megs = ['mag', 'grad', False, False, False]
         eegs = [False, False, True, False, False]
         seegs = [False, False, False, True, False]
         ecogs = [False, False, False, False, True]
-        names = ['Magnetometers', 'Gradiometers', 'EEG', 'SEEG', 'ECoG']
+        names = ['mag', 'grad', 'eeg', 'seeg', 'ecog']
+        titles = _handle_default('titles', None)
+        units = _handle_default('units', None)
+        scalings = _handle_default('scalings', None)
         picks_list = list()
         titles_list = list()
+        units_list = list()
+        scalings_list = list()
         for meg, eeg, seeg, ecog, name in zip(megs, eegs, seegs, ecogs, names):
             picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
                                ref_meg=False)
             if len(picks) > 0:
                 picks_list.append(picks)
-                titles_list.append(name)
+                titles_list.append(titles[name])
+                units_list.append(units[name])
+                scalings_list.append(scalings[name])
         if len(picks_list) == 0:
             raise RuntimeError('No data channels found')
         if ax is not None:
@@ -504,6 +493,8 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     else:
         picks_list = [picks]
         titles_list = ['Selected channels']
+        units_list = ['amplitude']
+        scalings_list = [1.]
         ax_list = [ax]
 
     make_label = False
@@ -522,15 +513,35 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     else:
         fig = ax_list[0].get_figure()
 
-    return fig, picks_list, titles_list, ax_list, make_label
+    return (fig, picks_list, titles_list, units_list, scalings_list,
+            ax_list, make_label)
+
+
+def _convert_psds(psds, dB, scaling, unit, ch_names):
+    """Convert PSDs to dB (if necessary) and appropriate units."""
+    if dB:
+        where = np.where(psds.min(1) <= 0)[0]
+        if len(where) > 0:
+            raise ValueError("Infinite value in PSD for channel(s) %s. "
+                             "These channels might be dead." %
+                             ', '.join(ch_names[ii] for ii in where))
+        psds *= scaling * scaling
+        np.log10(psds, out=psds)
+        psds *= 10
+        ylabel = '%s/Hz (dB)' % unit
+    else:
+        np.sqrt(psds, out=psds)
+        psds *= scaling
+        ylabel = '$\\frac{%s}{\\sqrt{Hz}}$' % unit
+    return ylabel
 
 
 @verbose
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
-                 n_fft=2048, picks=None, ax=None, color='black',
+                 n_fft=None, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33, n_overlap=0, dB=True,
-                 average=True, show=True, n_jobs=1, line_alpha=None,
-                 spatial_colors=None, verbose=None):
+                 average=None, show=True, n_jobs=1, line_alpha=None,
+                 spatial_colors=None, xscale='linear', verbose=None):
     """Plot the power spectral density across channels.
 
     Parameters
@@ -547,8 +558,10 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         End frequency to consider.
     proj : bool
         Apply projection.
-    n_fft : int
+    n_fft : int | None
         Number of points to use in Welch FFT calculations.
+        Default is None, which uses the minimum of 2048 and the
+        number of time points.
     picks : array-like of int | None
         List of channels to use. Cannot be None if `ax` is supplied. If both
         `picks` and `ax` are None, separate subplots will be created for
@@ -569,7 +582,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
     dB : bool
-        If True, transform data to decibels.
+        If True, transform data to decibels. If False, plot amplitudes.
     average : bool
         If False, the PSDs of all channels is displayed. No averaging
         is done and parameters area_mode and area_alpha are ignored. When
@@ -583,8 +596,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Alpha for the PSD line. Can be None (default) to use 1.0 when
         ``average=True`` and 0.1 when ``average=False``.
     spatial_colors : bool
-        Whether to use spatial colors. Only works when average=False. Defaults
-        to False when average=False, but this will change to True in 0.15.
+        Whether to use spatial colors. Only used when ``average=False``.
+    xscale : str
+        Can be 'linear' (default) or 'log'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -594,40 +608,37 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     fig : instance of matplotlib figure
         Figure with frequency spectra of the data channels.
     """
+    from matplotlib.ticker import ScalarFormatter
+    if average is None:
+        warn('In version 0.15 average will default to False and '
+             'spatial_colors will default to True.', DeprecationWarning)
+        average = True
+
     if average and spatial_colors:
         raise ValueError('Average and spatial_colors cannot be enabled '
                          'simultaneously.')
-    elif spatial_colors is None:
-        if not average:
-            spatial_colors = True
-        else:
-            warn('In version 0.15 average will default to False and '
-                 'spatial_colors to True.')  # XXX: deprecation
-    fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
-        raw.info, proj, picks, ax, area_mode)
+    if spatial_colors is None:
+        spatial_colors = False if average else True
+
+    fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
+        make_label = _set_psd_plot_params(raw.info, proj, picks, ax, area_mode)
+    del ax
     if line_alpha is None:
         line_alpha = 1.0 if average else 0.1
     line_alpha = float(line_alpha)
 
     psd_list = list()
-    for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
-                                                ax_list)):
+    if n_fft is None:
+        tmax = raw.times[-1] if not np.isfinite(tmax) else tmax
+        n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
+    for ii, picks in enumerate(picks_list):
+        ax = ax_list[ii]
         psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
                                 fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
                                 n_overlap=n_overlap, n_jobs=n_jobs)
 
-        # Convert PSDs to dB
-        if dB:
-            where = np.flatnonzero(psds.min(1) <= 0)
-            if where.any():
-                chs = [raw.ch_names[i] for i in picks[where]]
-                raise ValueError("Infinite value in PSD for channel(s) %s. "
-                                 "These channels might be dead." %
-                                 ', '.join(chs))
-            psds = 10 * np.log10(psds)
-            unit = 'dB'
-        else:
-            unit = 'power'
+        ylabel = _convert_psds(psds, dB, scalings_list[ii], units_list[ii],
+                               [raw.ch_names[pi] for pi in picks])
 
         if average:
             psd_mean = np.mean(psds, axis=0)
@@ -639,7 +650,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
             else:  # area_mode is None
                 hyp_limits = None
 
-            ax.plot(freqs, psd_mean, color=color, alpha=line_alpha)
+            ax.plot(freqs, psd_mean, color=color, alpha=line_alpha,
+                    linewidth=0.5)
             if hyp_limits is not None:
                 ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
                                 color=color, alpha=area_alpha)
@@ -649,13 +661,15 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         if make_label:
             if ii == len(picks_list) - 1:
                 ax.set_xlabel('Freq (Hz)')
-            if ii == len(picks_list) // 2:
-                ax.set_ylabel('Power Spectral Density (%s/Hz)' % unit)
-            ax.set_title(title)
+            ax.set_ylabel(ylabel)
+            ax.set_title(titles_list[ii])
             ax.set_xlim(freqs[0], freqs[-1])
-
-    if make_label:
-        tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
+    for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
+                       ['--', '--', '-.']):
+        if raw.info[key] is not None:
+            for ax in ax_list:
+                ax.axvline(raw.info[key], color='k', linestyle=ls, alpha=0.25,
+                           linewidth=2, zorder=2)
 
     if not average:
         picks = np.concatenate(picks_list)
@@ -673,8 +687,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         for this_type in valid_channel_types:
             if this_type in types:
                 ch_types_used.append(this_type)
-        units = {t: 'PSD (%s/Hz)' % unit for t in
-                 ch_types_used}
+        unit = 'dB/Hz' if dB else '$1/\\sqrt{Hz}$)'
+        units = {t: 'PSD (%s)' % unit for t in ch_types_used}
         titles = {c: t for c, t in zip(ch_types_used, titles_list)}
         picks = np.arange(len(psd_list))
         if not spatial_colors:
@@ -685,7 +699,14 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                     ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
                     ch_types_used=ch_types_used, selectable=True, psd=True,
                     line_alpha=line_alpha)
-        tight_layout(fig=fig)
+    for ax in ax_list:
+        ax.grid(True, linestyle=':')
+        if xscale == 'log':
+            ax.set(xscale='log')
+            ax.set(xlim=[freqs[1] if freqs[0] == 0 else freqs[0], freqs[-1]])
+            ax.get_xaxis().set_major_formatter(ScalarFormatter())
+    if make_label:
+        tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
     plt_show(show)
     return fig
 
@@ -785,6 +806,8 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
                        for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
+    params['fig_annotation'] = None
+    params['segment_line'] = None
 
 
 def _plot_raw_traces(params, color, bad_color, event_lines=None,
@@ -874,8 +897,8 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 break  # Since the segments are sorted by t_start
             if segment[1] < times[0] + params['first_time']:
                 continue
-            start = segment[0]
-            end = segment[1]
+            start = max(segment[0], times[0] + params['first_time'])
+            end = min(times[-1] + params['first_time'], segment[1])
             dscr = params['annot_description'][idx]
             segment_color = params['segment_colors'][dscr]
             params['ax'].fill_betweenx(ylim, start, end, color=segment_color,

@@ -10,7 +10,7 @@ import os.path as op
 import warnings
 
 from nose.tools import (assert_true, assert_raises, assert_equal, assert_false,
-                        assert_not_equal)
+                        assert_not_equal, assert_is_none)
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
@@ -18,7 +18,7 @@ from scipy import stats
 from itertools import product
 
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
-                 EvokedArray)
+                 EvokedArray, Annotations)
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
@@ -69,6 +69,7 @@ def test_ica_full_data_recovery():
     data = raw._data[:n_channels].copy()
     data_epochs = epochs.get_data()
     data_evoked = evoked.data
+    raw.annotations = Annotations([0.5], [0.5], ['BAD'])
     for method in ['fastica']:
         stuff = [(2, n_channels, True), (2, n_channels // 2, False)]
         for n_components, n_pca_components, ok in stuff:
@@ -618,7 +619,7 @@ def test_ica_reject_buffer():
     with catch_logging() as drop_log:
         with warnings.catch_warnings(record=True):
             ica.fit(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
-                    tstep=0.01, verbose=True)
+                    tstep=0.01, verbose=True, reject_by_annotation=False)
         assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
     log = [l for l in drop_log.getvalue().split('\n') if 'detected' in l]
     assert_equal(len(log), 1)
@@ -709,5 +710,90 @@ def test_eog_channel():
                             eog=False, exclude='bads')[:5]
         ica.fit(inst, picks=picks1)
         assert_false(any('EOG' in ch for ch in ica.ch_names))
+
+
+@requires_sklearn
+def test_max_pca_components_none():
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+    events = read_events(event_name)
+    picks = pick_types(raw.info, eeg=True, meg=False)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+
+    max_pca_components = None
+    n_components = 10
+    random_state = 12345
+
+    tempdir = _TempDir()
+    output_fname = op.join(tempdir, 'test_ica-ica.fif')
+
+    ica = ICA(max_pca_components=max_pca_components,
+              n_components=n_components, random_state=random_state)
+    ica.fit(epochs)
+    ica.save(output_fname)
+
+    ica = read_ica(output_fname)
+
+    # ICA.fit() replaced max_pca_components, which was previously None,
+    # with the appropriate integer value.
+    assert_equal(ica.max_pca_components, epochs.info['nchan'])
+    assert_equal(ica.n_components, 10)
+
+
+@requires_sklearn
+def test_n_components_none():
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+    events = read_events(event_name)
+    picks = pick_types(raw.info, eeg=True, meg=False)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+
+    max_pca_components = 10
+    n_components = None
+    random_state = 12345
+
+    tempdir = _TempDir()
+    output_fname = op.join(tempdir, 'test_ica-ica.fif')
+
+    ica = ICA(max_pca_components=max_pca_components,
+              n_components=n_components, random_state=random_state)
+    ica.fit(epochs)
+    ica.save(output_fname)
+
+    ica = read_ica(output_fname)
+
+    # ICA.fit() replaced max_pca_components, which was previously None,
+    # with the appropriate integer value.
+    assert_equal(ica.max_pca_components, 10)
+    assert_is_none(ica.n_components)
+
+
+@requires_sklearn
+def test_n_components_and_max_pca_components_none():
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+    events = read_events(event_name)
+    picks = pick_types(raw.info, eeg=True, meg=False)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+
+    max_pca_components = None
+    n_components = None
+    random_state = 12345
+
+    tempdir = _TempDir()
+    output_fname = op.join(tempdir, 'test_ica-ica.fif')
+
+    ica = ICA(max_pca_components=max_pca_components,
+              n_components=n_components, random_state=random_state)
+    ica.fit(epochs)
+    ica.save(output_fname)
+
+    ica = read_ica(output_fname)
+
+    # ICA.fit() replaced max_pca_components, which was previously None,
+    # with the appropriate integer value.
+    assert_equal(ica.max_pca_components, epochs.info['nchan'])
+    assert_is_none(ica.n_components)
+
 
 run_tests_if_main()

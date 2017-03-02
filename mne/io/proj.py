@@ -139,6 +139,7 @@ class ProjMixin(object):
             The instance.
         """
         from ..epochs import BaseEpochs
+        from ..evoked import Evoked
         from .base import BaseRaw
         if self.info['projs'] is None or len(self.info['projs']) == 0:
             logger.info('No projector specified for this dataset. '
@@ -163,21 +164,19 @@ class ProjMixin(object):
                         ' Doing nothing.')
             return self
         self._projector, self.info = _projector, info
-        if isinstance(self, BaseRaw):
+        if isinstance(self, (BaseRaw, Evoked)):
             if self.preload:
                 self._data = np.dot(self._projector, self._data)
-        elif isinstance(self, BaseEpochs):
+        else:  # BaseEpochs
             if self.preload:
                 for ii, e in enumerate(self._data):
                     self._data[ii] = self._project_epoch(e)
             else:
                 self.load_data()  # will automatically apply
-        else:  # Evoked
-            self.data = np.dot(self._projector, self.data)
         logger.info('SSP projectors applied...')
         return self
 
-    def del_proj(self, idx):
+    def del_proj(self, idx='all'):
         """Remove SSP projection vector.
 
         Note: The projection vector can only be removed if it is inactive
@@ -185,19 +184,22 @@ class ProjMixin(object):
 
         Parameters
         ----------
-        idx : int
-            Index of the projector to remove.
+        idx : int | list of int | str
+            Index of the projector to remove. Can also be "all" (default)
+            to remove all projectors.
 
         Returns
         -------
         self : instance of Raw | Epochs | Evoked
         """
-        if self.info['projs'][idx]['active']:
+        if isinstance(idx, string_types) and idx == 'all':
+            idx = list(range(len(self.info['projs'])))
+        idx = np.atleast_1d(np.array(idx, int)).ravel()
+        if any(self.info['projs'][ii]['active'] for ii in idx):
             raise ValueError('Cannot remove projectors that have already '
                              'been applied')
-
-        self.info['projs'].pop(idx)
-
+        self.info['projs'] = [p for pi, p in enumerate(self.info['projs'])
+                              if pi not in idx]
         return self
 
     def plot_projs_topomap(self, ch_type=None, layout=None, axes=None):
@@ -424,6 +426,20 @@ def _write_proj(fid, projs):
 
 ###############################################################################
 # Utils
+
+def _check_projs(projs, copy=True):
+    """Check that projs is a list of Projection."""
+    if not isinstance(projs, (list, tuple)):
+        raise TypeError('projs must be a list or tuple, got %s'
+                        % (type(projs),))
+    for pi, p in enumerate(projs):
+        if not isinstance(p, Projection):
+            raise TypeError('All entries in projs list must be Projection '
+                            'instances, but projs[%d] is type %s'
+                            % (pi, type(p)))
+    return deepcopy(projs) if copy else projs
+
+
 def make_projector(projs, ch_names, bads=(), include_active=True):
     """Create an SSP operator from SSP projection vectors.
 

@@ -57,7 +57,7 @@ def _contains_ch_type(info, ch_type):
     """Check whether a certain channel type is in an info object.
 
     Parameters
-    ---------
+    ----------
     info : instance of Info
         The measurement information.
     ch_type : str
@@ -124,8 +124,8 @@ def equalize_channels(candidates, verbose=None):
 
     if not all(isinstance(c, (BaseRaw, BaseEpochs, Evoked, AverageTFR))
                for c in candidates):
-        valid = ['Raw', 'Epochs', 'Evoked', 'AverageTFR']
-        raise ValueError('candidates must be ' + ' or '.join(valid))
+        raise ValueError('candidates must be Raw, Epochs, Evoked, or '
+                         'AverageTFR')
 
     chan_max_idx = np.argmax([c.info['nchan'] for c in candidates])
     chan_template = candidates[chan_max_idx].ch_names
@@ -674,38 +674,26 @@ class UpdateChannelsMixin(object):
 
     def _pick_drop_channels(self, idx):
         # avoid circular imports
-        from ..io.base import BaseRaw
-        from ..epochs import BaseEpochs
-        from ..evoked import Evoked
+        from ..io.base import _check_preload
         from ..time_frequency import AverageTFR
 
-        if isinstance(self, (BaseRaw, BaseEpochs)):
-            if not self.preload:
-                raise RuntimeError('If Raw or Epochs, data must be preloaded '
-                                   'to drop or pick channels')
+        _check_preload(self, 'adding or dropping channels')
 
-        def inst_has(attr):
-            return getattr(self, attr, None) is not None
-
-        if inst_has('picks'):
+        if getattr(self, 'picks', None) is not None:
             self.picks = self.picks[idx]
 
-        if inst_has('_cals'):
+        if hasattr(self, '_cals'):
             self._cals = self._cals[idx]
 
         pick_info(self.info, idx, copy=False)
 
-        if inst_has('_projector'):
+        if getattr(self, '_projector', None) is not None:
             self._projector = self._projector[idx][:, idx]
 
-        if isinstance(self, BaseRaw) and inst_has('_data'):
-            self._data = self._data.take(idx, axis=0)
-        elif isinstance(self, BaseEpochs) and inst_has('_data'):
-            self._data = self._data.take(idx, axis=1)
-        elif isinstance(self, AverageTFR) and inst_has('data'):
-            self.data = self.data.take(idx, axis=0)
-        elif isinstance(self, Evoked):
-            self.data = self.data.take(idx, axis=0)
+        if self.preload:
+            # All others (Evoked, Epochs, Raw) have chs axis=-2
+            axis = -3 if isinstance(self, AverageTFR) else -2
+            self._data = self._data.take(idx, axis=axis)
 
     def add_channels(self, add_list, force_update_info=False):
         """Append new channels to the instance.
@@ -735,23 +723,20 @@ class UpdateChannelsMixin(object):
             raise AssertionError('Input must be a list or tuple of objs')
 
         # Object-specific checks
-        if isinstance(self, (BaseRaw, BaseEpochs)):
-            if not all([inst.preload for inst in add_list] + [self.preload]):
-                raise AssertionError('All data must be preloaded')
-            data_name = '_data'
-            if isinstance(self, BaseRaw):
-                con_axis = 0
-                comp_class = BaseRaw
-            elif isinstance(self, BaseEpochs):
-                con_axis = 1
-                comp_class = BaseEpochs
+        if not all([inst.preload for inst in add_list] + [self.preload]):
+            raise AssertionError('All data must be preloaded')
+        if isinstance(self, BaseRaw):
+            con_axis = 0
+            comp_class = BaseRaw
+        elif isinstance(self, BaseEpochs):
+            con_axis = 1
+            comp_class = BaseEpochs
         else:
-            data_name = 'data'
             con_axis = 0
             comp_class = type(self)
         if not all(isinstance(inst, comp_class) for inst in add_list):
             raise AssertionError('All input data must be of same type')
-        data = [getattr(inst, data_name) for inst in [self] + add_list]
+        data = [inst._data for inst in [self] + add_list]
 
         # Make sure that all dimensions other than channel axis are the same
         compare_axes = [i for i in range(data[0].ndim) if i != con_axis]
@@ -765,7 +750,7 @@ class UpdateChannelsMixin(object):
         new_info = _merge_info(infos, force_update_to_first=force_update_info)
 
         # Now update the attributes
-        setattr(self, data_name, data)
+        self._data = data
         self.info = new_info
         if isinstance(self, BaseRaw):
             self._cals = np.concatenate([getattr(inst, '_cals')

@@ -17,6 +17,7 @@ import tempfile
 import numpy as np
 from copy import deepcopy
 from distutils.version import LooseVersion
+from itertools import cycle
 
 from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
@@ -27,6 +28,7 @@ from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
+from ..annotations import Annotations, _sync_onset
 
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
@@ -261,10 +263,10 @@ def _get_help_text(params):
     """Aux function for customizing help dialogs text."""
     text, text2 = list(), list()
 
-    text.append(u'\u2190 : \n')
-    text.append(u'\u2192 : \n')
-    text.append(u'\u2193 : \n')
-    text.append(u'\u2191 : \n')
+    text.append(u'\u2190 : \n')  # left arrow
+    text.append(u'\u2192 : \n')  # right arrow
+    text.append(u'\u2193 : \n')  # down arrow
+    text.append(u'\u2191 : \n')  # up arrow
     text.append(u'- : \n')
     text.append(u'+ or = : \n')
     text.append(u'Home : \n')
@@ -305,9 +307,11 @@ def _get_help_text(params):
             text.append(u'click channel name :\n')
             text2.insert(2, 'Navigate channels down\n')
             text2.insert(3, 'Navigate channels up\n')
+            text.insert(6, u'a : \n')
+            text2.insert(6, 'Toggle annotation mode\n')
             if 'fig_selection' not in params:
-                text2.insert(8, 'Reduce the number of channels per view\n')
-                text2.insert(9, 'Increase the number of channels per view\n')
+                text2.insert(9, 'Reduce the number of channels per view\n')
+                text2.insert(10, 'Increase the number of channels per view\n')
             text2.append('Mark bad channel\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
@@ -521,8 +525,6 @@ def figure_nobar(*args, **kwargs):
         cbs = list(fig.canvas.callbacks.callbacks['key_press_event'].keys())
         for key in cbs:
             fig.canvas.callbacks.disconnect(key)
-    except Exception as ex:
-        raise ex
     finally:
         rcParams['toolbar'] = old_val
     return fig
@@ -612,6 +614,23 @@ def _radio_clicked(label, params):
     params['plot_fun']()
 
 
+def _get_active_radiobutton(radio):
+    """Helper to find out active radio button."""
+    # XXX: In mpl 1.5 you can do: fig.radio.value_selected
+    colors = np.array([np.sum(circle.get_facecolor()) for circle
+                       in radio.circles])
+    return np.where(colors < 4.0)[0][0]  # return idx where color != white
+
+
+def _set_annotation_radio_button(idx, params):
+    """Function for setting active button."""
+    radio = params['fig_annotation'].radio
+    for circle in radio.circles:
+        circle.set_facecolor('white')
+    radio.circles[idx].set_facecolor('#cccccc')
+    _annotation_radio_clicked('', radio, params['ax'].selector)
+
+
 def _set_radio_button(idx, params):
     """Helper for setting radio button."""
     # XXX: New version of matplotlib has this implemented for radio buttons,
@@ -629,10 +648,8 @@ def _change_channel_group(step, params):
     if step < 0:
         if idx < len(radio.labels) - 1:
             _set_radio_button(idx + 1, params)
-    else:
-        if idx > 0:
-            _set_radio_button(idx - 1, params)
-    return
+    elif idx > 0:
+        _set_radio_button(idx - 1, params)
 
 
 def _handle_change_selection(event, params):
@@ -654,6 +671,8 @@ def _plot_raw_onkey(event, params):
     import matplotlib.pyplot as plt
     if event.key == 'escape':
         plt.close(params['fig'])
+        if params['fig_annotation'] is not None:
+            plt.close(params['fig_annotation'])
     elif event.key == 'down':
         if 'fig_selection' in params.keys():
             _change_channel_group(-1, params)
@@ -716,12 +735,122 @@ def _plot_raw_onkey(event, params):
     elif event.key == 'f11':
         mng = plt.get_current_fig_manager()
         mng.full_screen_toggle()
+    elif event.key == 'a':
+        if 'ica' in params.keys():
+            return
+        if params['fig_annotation'] is None:
+            _setup_annotation_fig(params)
+        else:
+            params['fig_annotation'].canvas.close_event()
+
+
+def _setup_annotation_fig(params):
+    """Initialize the annotation figure."""
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    from matplotlib.widgets import RadioButtons, SpanSelector, Button
+    if params['fig_annotation'] is not None:
+        params['fig_annotation'].canvas.close_event()
+    annotations = params['raw'].annotations
+    if annotations is not None and annotations.orig_time is not None:
+        raise NotImplementedError('Interactive annotation mode is only '
+                                  'available for annotations with '
+                                  'orig_time=None.')
+    labels = [] if annotations is None else list(set(annotations.description))
+    labels = np.union1d(labels, params['added_label'])
+    fig = figure_nobar(figsize=(4.5, 2.75 + len(labels) * 0.75))
+    fig.patch.set_facecolor('white')
+    ax = plt.subplot2grid((len(labels) + 2, 2), (0, 0), rowspan=len(labels),
+                          colspan=2, frameon=False)
+    ax.set_title('Labels')
+    ax.set_aspect('equal')
+    button_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels), 1),
+                                 rowspan=1, colspan=1)
+    label_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels), 0),
+                                rowspan=1, colspan=1)
+    plt.axis('off')
+    text_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels) + 1, 0),
+                               rowspan=1, colspan=2)
+    text_ax.text(0.5, 0.9, 'Left click & drag - Create/modify annotation\n'
+                           'Right click - Delete annotation\n'
+                           'Letter/number keys - Add character\n'
+                           'Backspace - Delete character\n'
+                           'Esc - Close window/exit annotation mode', va='top',
+                 ha='center')
+    plt.axis('off')
+
+    annotations_closed = partial(_annotations_closed, params=params)
+    fig.canvas.mpl_connect('close_event', annotations_closed)
+    fig.canvas.set_window_title('Annotations')
+    fig.radio = RadioButtons(ax, labels, activecolor='#cccccc')
+    radius = 0.15
+    for circle, label in zip(fig.radio.circles, fig.radio.labels):
+        circle.set_edgecolor(params['segment_colors'][label.get_text()])
+        circle.set_linewidth(4)
+        circle.set_radius(radius / (len(labels)))
+        label.set_x(circle.center[0] + (radius + 0.1) / len(labels))
+    col = 'r' if len(fig.radio.labels) < 1 else fig.radio.labels[0].get_color()
+    fig.canvas.mpl_connect('key_press_event', partial(
+        _change_annotation_description, params=params))
+    fig.button = Button(button_ax, 'Add label')
+    fig.label = label_ax.text(0.5, 0.5, 'BAD_', va='center', ha='center')
+    fig.button.on_clicked(partial(_onclick_new_label, params=params))
+    fig.show()
+    params['fig_annotation'] = fig
+
+    ax = params['ax']
+    cb_onselect = partial(_annotate_select, params=params)
+    selector = SpanSelector(ax, cb_onselect, 'horizontal', minspan=.1,
+                            rectprops=dict(alpha=0.5, facecolor=col))
+    if len(labels) == 0:
+        selector.active = False
+    params['ax'].selector = selector
+    if LooseVersion(mpl.__version__) < LooseVersion('1.5'):
+        # XXX: Hover event messes up callback ids in old mpl.
+        warn('Modifying existing annotations is not possible for '
+             'matplotlib versions < 1.4. Upgrade matplotlib.')
+        return
+    hover_callback = partial(_on_hover, params=params)
+    params['hover_callback'] = params['fig'].canvas.mpl_connect(
+        'motion_notify_event', hover_callback)
+
+    radio_clicked = partial(_annotation_radio_clicked, radio=fig.radio,
+                            selector=selector)
+    fig.radio.on_clicked(radio_clicked)
+
+
+def _onclick_new_label(event, params):
+    """Listener for adding new description on button press."""
+    text = params['fig_annotation'].label.get_text()[:-1]
+    params['added_label'].append(text)
+    _setup_annotation_colors(params)
+    _setup_annotation_fig(params)
+    idx = [label.get_text() for label in
+           params['fig_annotation'].radio.labels].index(text)
+    _set_annotation_radio_button(idx, params)
 
 
 def _mouse_click(event, params):
     """Vertical select callback."""
-    if event.button != 1:
+    if event.button not in (1, 3):
         return
+    if event.button == 3:
+        if params['fig_annotation'] is None:
+            return
+        for coll in params['ax'].collections:
+            if coll.contains(event)[0]:
+                path = coll.get_paths()[-1]
+                mn = min(path.vertices[:4, 0]) - params['first_time']
+                mx = max(path.vertices[:4, 0]) - params['first_time']
+                ann_idx = np.where(params['raw'].annotations.onset == mn)[0]
+                for idx in ann_idx:
+                    if params['raw'].annotations.duration[idx] == mx - mn:
+                        params['raw'].annotations.delete(idx)
+        _remove_segment_line(params)
+        _plot_annotations(params['raw'], params)
+        params['plot_fun']()
+        return
+
     if event.inaxes is None:
         if params['n_channels'] > 100:
             return
@@ -1249,6 +1378,7 @@ def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
 
 
 def _close_event(event, fig):
+    """Listener for sensor plotter close event."""
     fig.lasso.disconnect()
 
 
@@ -1490,28 +1620,27 @@ class DraggableColorbar(object):
 
 
 class SelectFromCollection(object):
-    """Select channels from a matplotlib collection using `LassoSelector`.
+    """Select channels from a matplotlib collection using ``LassoSelector``.
 
     Selected channels are saved in the ``selection`` attribute. This tool
     highlights selected points by fading other points out (i.e., reducing their
     alpha values).
 
-    Notes:
-    This tool selects collection objects based on their *origins*
-    (i.e., `offsets`). Emits mpl event 'lasso_event' when selection is ready.
-
     Parameters
     ----------
     ax : Instance of Axes
         Axes to interact with.
-
     collection : Instance of matplotlib collection
         Collection you want to select from.
-
     alpha_other : 0 <= float <= 1
         To highlight a selection, this tool sets all selected points to an
         alpha value of 1 and non-selected points to `alpha_other`.
         Defaults to 0.3.
+
+    Notes
+    -----
+    This tool selects collection objects based on their *origins*
+    (i.e., `offsets`). Emits mpl event 'lasso_event' when selection is ready.
     """
 
     def __init__(self, ax, collection, ch_names,
@@ -1585,3 +1714,265 @@ class SelectFromCollection(object):
         self.fc[:, -1] = 1
         self.collection.set_facecolors(self.fc)
         self.canvas.draw_idle()
+
+
+def _annotate_select(vmin, vmax, params):
+    """Callback for annotation span selector."""
+    raw = params['raw']
+    onset = vmin - params['first_time']
+    duration = vmax - vmin
+    active_idx = _get_active_radiobutton(params['fig_annotation'].radio)
+    description = params['fig_annotation'].radio.labels[active_idx].get_text()
+    if raw.annotations is None:
+        annot = Annotations([onset], [duration], [description])
+        raw.annotations = annot
+    else:
+        _merge_annotations(onset, onset + duration, description,
+                           raw.annotations)
+
+    _plot_annotations(params['raw'], params)
+    params['plot_fun']()
+
+
+def _plot_annotations(raw, params):
+    """Function for setting up annotations for plotting in raw browser."""
+    if raw.annotations is None:
+        return
+
+    while len(params['ax_hscroll'].collections) > 0:
+        params['ax_hscroll'].collections.pop()
+
+    segments = list()
+    # sort the segments by start time
+    ann_order = raw.annotations.onset.argsort(axis=0)
+    descriptions = raw.annotations.description[ann_order]
+
+    _setup_annotation_colors(params)
+    for idx, onset in enumerate(raw.annotations.onset[ann_order]):
+        annot_start = _sync_onset(raw, onset) + params['first_time']
+        annot_end = annot_start + raw.annotations.duration[ann_order][idx]
+        segments.append([annot_start, annot_end])
+        ylim = params['ax_hscroll'].get_ylim()
+        dscr = descriptions[idx]
+        params['ax_hscroll'].fill_betweenx(
+            ylim, annot_start, annot_end, alpha=0.3,
+            color=params['segment_colors'][dscr])
+    params['segments'] = np.array(segments)
+    params['annot_description'] = descriptions
+
+
+def _setup_annotation_colors(params):
+    """Function for setting up colors for annotations."""
+    raw = params['raw']
+    segment_colors = params.get('segment_colors', dict())
+    # sort the segments by start time
+    if raw.annotations is not None:
+        ann_order = raw.annotations.onset.argsort(axis=0)
+        descriptions = raw.annotations.description[ann_order]
+    else:
+        descriptions = list()
+    color_keys = np.union1d(descriptions, params['added_label'])
+    color_cycle = cycle(np.delete(COLORS, 2))  # no red
+    for _ in np.intersect1d(list(color_keys), list(segment_colors.keys())):
+        next(color_cycle)
+    for idx, key in enumerate(color_keys):
+        if key in segment_colors:
+            continue
+        elif key.lower().startswith('bad'):
+            segment_colors[key] = 'red'
+        else:
+            segment_colors[key] = next(color_cycle)
+    params['segment_colors'] = segment_colors
+
+
+def _annotations_closed(event, params):
+    """Callback for cleaning up on annotation dialog close."""
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    plt.close(params['fig_annotation'])
+    params['ax'].selector.disconnect_events()
+    params['ax'].selector = None
+    params['fig_annotation'] = None
+    if params['segment_line'] is not None:
+        params['segment_line'].remove()
+        params['segment_line'] = None
+    if LooseVersion(mpl.__version__) >= LooseVersion('1.5'):
+        params['fig'].canvas.mpl_disconnect(params['hover_callback'])
+    params['fig_annotation'] = None
+    params['fig'].canvas.draw()
+
+
+def _on_hover(event, params):
+    """Callback for hover event."""
+    if (event.button is not None or
+            event.inaxes != params['ax'] or event.xdata is None):
+        return
+    for coll in params['ax'].collections:
+        if coll.contains(event)[0]:
+            path = coll.get_paths()[-1]
+            mn = min(path.vertices[:, 0])
+            mx = max(path.vertices[:, 0])
+            x = mn if abs(event.xdata - mn) < abs(event.xdata - mx) else mx
+            ylim = params['ax'].get_ylim()
+            if params['segment_line'] is None:
+                modify_callback = partial(_annotation_modify, params=params)
+                line = params['ax'].plot([x, x], ylim, color='r',
+                                         linewidth=3, picker=5.)[0]
+                dl = DraggableLine(line, modify_callback)
+                params['segment_line'] = dl
+            else:
+                params['segment_line'].set_x(x)
+            params['vertline_t'].set_text('%.3f' % x)
+            params['ax_vertline'].set_data(0,
+                                           np.array(params['ax'].get_ylim()))
+            params['ax'].selector.active = False
+            params['fig'].canvas.draw()
+            return
+    _remove_segment_line(params)
+
+
+def _remove_segment_line(params):
+    """Function for removing annotation line from the view."""
+    if params['segment_line'] is not None:
+        params['segment_line'].remove()
+        params['segment_line'] = None
+        params['ax'].selector.active = True
+        params['vertline_t'].set_text('')
+
+
+def _annotation_modify(old_x, new_x, params):
+    """Modify annotation."""
+    segment = np.array(np.where(params['segments'] == old_x))
+    if segment.shape[1] == 0:
+        return
+    annotations = params['raw'].annotations
+    idx = [segment[0][0], segment[1][0]]
+    onset = params['segments'][idx[0]][0]
+    ann_idx = np.where(annotations.onset == onset - params['first_time'])[0]
+    if idx[1] == 0:  # start of annotation
+        onset = new_x - params['first_time']
+        duration = annotations.duration[ann_idx] + old_x - new_x
+    else:  # end of annotation
+        onset = annotations.onset[ann_idx]
+        duration = new_x - onset - params['first_time']
+
+    if duration < 0:
+        onset += duration
+        duration *= -1.
+
+    _merge_annotations(onset, onset + duration,
+                       annotations.description[ann_idx], annotations, ann_idx)
+    _plot_annotations(params['raw'], params)
+    _remove_segment_line(params)
+
+    params['plot_fun']()
+
+
+def _merge_annotations(start, stop, description, annotations, current=()):
+    """Function for handling drew annotations."""
+    ends = annotations.onset + annotations.duration
+    idx = np.intersect1d(np.where(ends >= start)[0],
+                         np.where(annotations.onset <= stop)[0])
+    idx = np.intersect1d(idx,
+                         np.where(annotations.description == description)[0])
+    new_idx = np.setdiff1d(idx, current)  # don't include modified annotation
+    end = max(np.append((annotations.onset[new_idx] +
+                         annotations.duration[new_idx]), stop))
+    onset = min(np.append(annotations.onset[new_idx], start))
+    duration = end - onset
+    annotations.delete(idx)
+    annotations.append(onset, duration, description)
+
+
+def _change_annotation_description(event, params):
+    """Key listener for annotation dialog."""
+    import matplotlib.pyplot as plt
+    fig = event.canvas.figure
+    text = fig.label.get_text()
+    if event.key == 'backspace':
+        if len(text) == 1:
+            return
+        text = text[:-2]
+    elif event.key == 'escape':
+        plt.close(fig)
+        return
+    elif event.key == 'enter':
+        _onclick_new_label(event, params)
+    elif len(event.key) > 1 or event.key == ';':  # ignore modifier keys
+        return
+    else:
+        text = text[:-1] + event.key
+    fig.label.set_text(text + '_')
+    fig.canvas.draw()
+
+
+def _annotation_radio_clicked(label, radio, selector):
+    """Callback for annotation radio buttons."""
+    idx = _get_active_radiobutton(radio)
+    color = radio.circles[idx].get_edgecolor()
+    selector.rect.set_color(color)
+    selector.rectprops.update(dict(facecolor=color))
+
+
+class DraggableLine:
+    """Custom matplotlib line for moving around by drag and drop.
+
+    Parameters
+    ----------
+    line : instance of matplotlib Line2D
+        Line to add interactivity to.
+    callback : function
+        Callback to call when line is released.
+    """
+
+    def __init__(self, line, callback):  # noqa: D102
+        self.line = line
+        self.press = None
+        self.x0 = line.get_xdata()[0]
+        self.callback = callback
+        self.cidpress = self.line.figure.canvas.mpl_connect(
+            'button_press_event', self.on_press)
+        self.cidrelease = self.line.figure.canvas.mpl_connect(
+            'button_release_event', self.on_release)
+        self.cidmotion = self.line.figure.canvas.mpl_connect(
+            'motion_notify_event', self.on_motion)
+
+    def set_x(self, x):
+        """Function for repositioning the line."""
+        self.line.set_xdata([x, x])
+        self.x0 = x
+
+    def on_press(self, event):
+        """Store button press if on top of the line."""
+        if event.inaxes != self.line.axes or not self.line.contains(event)[0]:
+            return
+        x0 = self.line.get_xdata()
+        y0 = self.line.get_ydata()
+        self.press = x0, y0, event.xdata, event.ydata
+
+    def on_motion(self, event):
+        """Function for moving the line on drag."""
+        if self.press is None:
+            return
+        if event.inaxes != self.line.axes:
+            return
+        x0, y0, xpress, ypress = self.press
+        dx = event.xdata - xpress
+        self.line.set_xdata(x0 + dx)
+        self.line.figure.canvas.draw()
+
+    def on_release(self, event):
+        """Callback for release."""
+        if event.inaxes != self.line.axes or self.press is None:
+            return
+        self.press = None
+        self.line.figure.canvas.draw()
+        self.callback(self.x0, event.xdata)
+        self.x0 = event.xdata
+
+    def remove(self):
+        """Remove the line."""
+        self.line.figure.canvas.mpl_disconnect(self.cidpress)
+        self.line.figure.canvas.mpl_disconnect(self.cidrelease)
+        self.line.figure.canvas.mpl_disconnect(self.cidmotion)
+        self.line.figure.axes[0].lines.remove(self.line)

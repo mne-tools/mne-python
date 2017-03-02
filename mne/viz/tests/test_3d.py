@@ -17,9 +17,11 @@ from numpy.testing import assert_raises, assert_equal
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
+from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans, snapshot_brain_montage)
-from mne.utils import requires_mayavi, requires_pysurfer, run_tests_if_main
+from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
+                       _import_mlab, _TempDir, requires_nibabel)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 
@@ -106,8 +108,20 @@ def test_plot_evoked_field():
 @requires_mayavi
 def test_plot_trans():
     """Test plotting of -trans.fif files and MEG sensor layouts."""
-    from mayavi import mlab
+    # generate fiducials file for testing
+    tempdir = _TempDir()
+    fiducials_path = op.join(tempdir, 'fiducials.fif')
+    fid = [{'coord_frame': 5, 'ident': 1, 'kind': 1,
+            'r': [-0.08061612, -0.02908875, -0.04131077]},
+           {'coord_frame': 5, 'ident': 2, 'kind': 1,
+            'r': [0.00146763, 0.08506715, -0.03483611]},
+           {'coord_frame': 5, 'ident': 3, 'kind': 1,
+            'r': [0.08436285, -0.02850276, -0.04127743]}]
+    write_dig(fiducials_path, fid, 5)
+
+    mlab = _import_mlab()
     evoked = read_evokeds(evoked_fname)[0]
+    sample_src = read_source_spaces(src_fname)
     with warnings.catch_warnings(record=True):  # 4D weight tables
         bti = read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
                            preload=False).info
@@ -131,6 +145,13 @@ def test_plot_trans():
                   ch_type='bad-chtype')
     assert_raises(TypeError, plot_trans, 'foo', trans_fname,
                   subject='sample', subjects_dir=subjects_dir)
+    assert_raises(TypeError, plot_trans, info, trans_fname,
+                  subject='sample', subjects_dir=subjects_dir, src='foo')
+    assert_raises(ValueError, plot_trans, info, trans_fname,
+                  subject='fsaverage', subjects_dir=subjects_dir,
+                  src=sample_src)
+    sample_src.plot(subjects_dir=subjects_dir)
+    mlab.close(all=True)
     # no-head version
     plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
     mlab.close(all=True)
@@ -138,7 +159,7 @@ def test_plot_trans():
     for coord_frame in ('meg', 'head', 'mri'):
         plot_trans(info, meg_sensors=True, dig=True, coord_frame=coord_frame,
                    trans=trans_fname, subject='sample',
-                   subjects_dir=subjects_dir)
+                   mri_fiducials=fiducials_path, subjects_dir=subjects_dir)
         mlab.close(all=True)
     # EEG only with strange options
     evoked_eeg_ecog = evoked.copy().pick_types(meg=False, eeg=True)
@@ -168,7 +189,7 @@ def test_limits_to_control_points():
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
 
     # Test for simple use cases
-    from mayavi import mlab
+    mlab = _import_mlab()
     stc.plot(subjects_dir=subjects_dir)
     stc.plot(clim=dict(pos_lims=(10, 50, 90)), subjects_dir=subjects_dir)
     stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99,
@@ -235,8 +256,32 @@ def test_plot_dipole_locations():
                   subjects_dir, mode='foo')
 
 
+@testing.requires_testing_data
+@requires_nibabel
+def test_plot_dipole_mri_orthoview():
+    """Test mpl dipole plotting."""
+    import matplotlib.pyplot as plt
+    dipoles = read_dipole(dip_fname)
+    trans = read_trans(trans_fname)
+    for coord_frame, idx, show_all in zip(['head', 'mri'],
+                                          ['gof', 'amplitude'], [True, False]):
+        fig = dipoles.plot_locations(trans, 'sample', subjects_dir,
+                                     coord_frame=coord_frame, idx=idx,
+                                     show_all=show_all, mode='orthoview')
+        fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
+        fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
+        fig.canvas.key_press_event('up')
+        fig.canvas.key_press_event('down')
+        fig.canvas.key_press_event('a')  # some other key
+    ax = plt.subplot(111)
+    assert_raises(ValueError, dipoles.plot_locations, trans, 'sample',
+                  subjects_dir, ax=ax)
+    plt.close('all')
+
+
 @requires_mayavi
 def test_snapshot_brain_montage():
+    """Test snapshot brain montage."""
     info = read_info(evoked_fname)
     fig = plot_trans(info, trans=None, subject='sample',
                      subjects_dir=subjects_dir)
@@ -254,5 +299,6 @@ def test_snapshot_brain_montage():
 
     # Make sure we raise error if the figure has no scene
     assert_raises(TypeError, snapshot_brain_montage, fig, info)
+
 
 run_tests_if_main()

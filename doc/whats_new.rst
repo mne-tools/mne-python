@@ -61,7 +61,7 @@ Changelog
 
     - Add option in :func:`mne.io.read_raw_edf` to allow channel exclusion by `Jaakko Leppakangas`_
 
-    - Allow integer event codes in :func:`mne.io.read_epochs_eeglab` by `Jaakko Leppakangas`_
+    - Allow integer event codes in :func:`mne.read_epochs_eeglab` by `Jaakko Leppakangas`_
 
     - Add ability to match channel names in a case insensitive manner when applying a :class:`mne.channels.Montage` by `Marijn van Vliet`_
 
@@ -70,6 +70,22 @@ Changelog
     - Add :ref:`Representational Similarity Analysis (RSA) <sphx_glr_auto_examples_decoding_decoding_rsa.py>` example on :mod:`mne.datasets.visual_92_categories` dataset by `Jaakko Leppakangas`_, `Jean-Remi King`_ and `Alex Gramfort`_
 
     - Add support for NeuroScan files with event type 3 in :func:`mne.io.read_raw_cnt` by `Marijn van Vliet`_
+
+    - Add interactive annotation mode to :meth:`mne.io.Raw.plot` (accessed by pressing 'a') by `Jaakko Leppakangas`_
+
+    - Add support for deleting all projectors or a list of indices in :meth:`mne.io.Raw.del_proj` by `Eric Larson`_
+
+    - Add source space plotting with :meth:`mne.SourceSpaces.plot` using :func:`mne.viz.plot_trans` by `Eric Larson`_
+
+    - Add :func:`mne.decoding.get_coef` to retrieve and inverse the coefficients of a linear model - typically a spatial filter or pattern, by `Jean-Remi King`_
+
+    - Add support for reading in EGI MFF digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
+
+    - Add ``n_per_seg`` keyword argument to :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` that allows to control segment length independently of ``n_fft`` and use zero-padding when ``n_fft > n_per_seg`` by `Mikołaj Magnuski`_
+
+    - Add annotation aware data getter :meth:`mne.io.Raw.get_data` by `Jaakko Leppakangas`_
+
+    - Add support of dipole location visualization with MRI slice overlay with matplotlib to :func:`mne.viz.plot_dipole_locations` via mode='orthoview' parameter by `Jaakko Leppakangas`_ and `Alex Gramfort`_
 
 BUG
 ~~~
@@ -118,6 +134,8 @@ BUG
 
     - Fix :func:`mne.viz.plot_topo_image_epochs` and :class:`mne.decoding.Scaler` so that they no longer modify the data in-place and fix to :meth:`mne.decoding.Scaler.inverse_transform` so that the data is scaled before centering by `Jaakko Leppakangas`_
 
+    - Fix bug in :class:`mne.decoding.Scaler` where ``np.mean`` instead of ``np.std`` was used to compute scale factors by `Eric Larson`_
+
     - Raise error if the cv parameter of :class:`mne.decoding.GeneralizationAcrossTime` and :class:`mne.decoding.TimeDecoding` is not a partition and the predict_mode is "cross-validation" by `Jean-Remi King`_
 
     - Fix bug in :func:`mne.io.read_raw_edf` when ``preload=False`` and channels have different sampling rates by `Jaakko Leppakangas`_
@@ -127,6 +145,22 @@ BUG
     - Fix plotting non-uniform freqs (for example log-spaced) in :meth:`mne.time_frequency.AverageTFR.plot` by `Mikołaj Magnuski`_
 
     - Fix :func:`mne.minimum_norm.compute_source_psd` when used with ``pick_ori=None`` by `Annalisa Pascarella`_ and `Alex Gramfort`_
+
+    - Fix bug in :class:`mne.Annotations` where concatenating two raws where ``orig_time`` of the second run is ``None`` by `Jaakko Leppakangas`_
+
+    - Fix reading channel location from eeglab ``.set`` files when some of the channels do not provide this information. Previously all channel locations were ignored in such case, now they are read - unless a montage is provided by the user in which case only channel names are read from set file. By `Mikołaj Magnuski`_
+
+    - Fix reading eeglab ``.set`` files when ``.chanlocs`` structure does not contain ``X``, ``Y`` or ``Z`` fields by `Mikołaj Magnuski`_
+
+    - Fix bug with :func:`mne.simulation.simulate_raw` when ``interp != 'zero'`` by `Eric Larson`_
+
+    - Fix :func:`mne.fit_dipole` to handle sphere model rank deficiency properly by `Alex Gramfort`_
+
+    - Raise error in :func:`mne.concatenate_epochs` when concatenated epochs have conflicting event_id by `Mikołaj Magnuski`_
+
+    - Fix handling of ``n_components=None`` in :class:`mne.preprocessing.ica.ICA` by `Richard Höchenberger`_
+
+    - Fix reading of fiducials correctly from CTF data in :func:`mne.io.read_raw_ctf` by `Jaakko Leppakangas`_
 
 API
 ~~~
@@ -150,6 +184,13 @@ API
     - MNE's additional files for the ``fsaverage`` head/brain model are now included in MNE-Python, and the now superfluous ``mne_root`` parameter to  :func:`create_default_subject` has been deprecated by `Christian Brodbeck`_
 
     - An ``overwrite=False`` default parameter has been added to :func:`write_source_spaces` to protect against accidental overwrites, by `Eric Larson`_
+
+    - The :class:`mne.decoding.LinearModel` class will no longer support `plot_filters` and `plot_patterns`, use :class:`mne.EvokedArray` with :func:`mne.decoding.get_coef` instead, by `Jean-Remi King`_
+
+    - Made functions :func:`mne.time_frequency.tfr_array_multitaper`, :func:`mne.time_frequency.tfr_array_morlet`, :func:`mne.time_frequency.tfr_array_stockwell`, :func:`mne.time_frequency.psd_array_multitaper` and :func:`mne.time_frequency.psd_array_welch` public to allow computing TFRs and PSDs on numpy arrays by `Jaakko Leppakangas`_
+
+    - :meth:`mne.preprocessing.ICA.fit` now rejects data annotated bad by default. Turn off with ``reject_by_annotation=False``, by `Jaakko Leppakangas`_
+
 
 .. _changes_0_13:
 
@@ -521,7 +562,9 @@ BUG
 
     - Fix bug when merging info that has a field with list of dicts by `Jaakko Leppakangas`_
 
-    - The BTI/4D reader now considers user defined channel labels instead of the hard-ware names, however only for channels other than MEG. By `Denis Engemann`_ and `Alex Gramfort`_.
+    - The BTi/4D reader now considers user defined channel labels instead of the hard-ware names, however only for channels other than MEG. By `Denis Engemann`_ and `Alex Gramfort`_.
+
+    - The BTi reader :func:`mne.io.read_raw_bti` can now read 2500 system data, by `Eric Larson`_
 
     - Fix bug in :func:`mne.compute_raw_covariance` where rejection by non-data channels (e.g. EOG) was not done properly by `Eric Larson`_.
 
@@ -530,6 +573,8 @@ BUG
     - Fix bug in :func:`mne.io.Raw.save` where, in rare cases, automatically split files could end up writing an extra empty file that wouldn't be read properly by `Eric Larson`_
 
     - Fix :class:`mne.realtime.StimServer` by removing superfluous argument ``ip`` used while initializing the object by `Mainak Jas`_.
+
+    - Fix removal of projectors in :func:`mne.preprocessing.maxwell_filter` in ``st_only=True`` mode by `Eric Larson`_
 
 API
 ~~~
@@ -1980,3 +2025,7 @@ of commits):
 .. _Leonardo Barbosa: https://github.com/noreun
 
 .. _Erkka Heinila: https://github.com/Teekuningas
+
+.. _Richard Höchenberger: http://hoechenberger.name
+
+.. _Matt Boggess: https://github.com/mattboggess

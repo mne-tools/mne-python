@@ -40,7 +40,7 @@ from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
-from ..annotations import Annotations, _combine_annotations, _onset_to_seconds
+from ..annotations import Annotations, _combine_annotations, _sync_onset
 
 
 class ToDataFrameMixin(object):
@@ -574,7 +574,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if reject_by_annotation and self.annotations is not None:
             annot = self.annotations
             sfreq = self.info['sfreq']
-            onset = _onset_to_seconds(self, annot.onset)
+            onset = _sync_onset(self, annot.onset)
             overlaps = np.where(onset < stop / sfreq)
             overlaps = np.where(onset[overlaps] + annot.duration[overlaps] >
                                 start / sfreq)
@@ -836,6 +836,99 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # set the data
         self._data[sel, start:stop] = value
 
+    def get_data(self, picks=None, start=0, stop=None,
+                 reject_by_annotation=None, return_times=False):
+        """Get data in the given range.
+
+        Parameters
+        ----------
+        picks : array-like of int | None
+            Indices of channels to get data from. If None, data from all
+            channels is returned
+        start : int
+            The first sample to include. Defaults to 0.
+        stop : int | None
+            End sample (first not to include). If None (default), the end of
+            the data is  used.
+        reject_by_annotation : None | 'omit' | 'NaN'
+            Whether to reject by annotation. If None (default), no rejection is
+            done. If 'omit', segments annotated with description starting with
+            'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
+        return_times : bool
+            Whether to return times as well.
+
+        Returns
+        -------
+        data : ndarray, shape (n_channels, n_times)
+            Copy of the data in the given range.
+        times : ndarray, shape (n_times,)
+            Times associated with the data samples. Only returned if
+            return_times=True.
+
+        Notes
+        -----
+        .. versionadded:: 0.14.0
+        """
+        if picks is None:
+            picks = np.arange(self.info['nchan'])
+        start = 0 if start is None else start
+        stop = self.n_times if stop is None else stop
+        if self.annotations is None or reject_by_annotation is None:
+            data, times = self[picks, start:stop]
+            if return_times:
+                return data, times
+            return data
+        if reject_by_annotation.lower() not in ['omit', 'nan']:
+            raise ValueError("reject_by_annotation must be None, 'omit' or "
+                             "'NaN'. Got %s." % reject_by_annotation)
+        sfreq = self.info['sfreq']
+        bads = [idx for idx, desc in enumerate(self.annotations.description)
+                if desc.upper().startswith('BAD')]
+        onsets = self.annotations.onset[bads]
+        onsets = _sync_onset(self, onsets)
+        ends = onsets + self.annotations.duration[bads]
+        omit = np.concatenate([np.where(onsets > stop / sfreq)[0],
+                               np.where(ends < start / sfreq)[0]])
+        onsets, ends = np.delete(onsets, omit), np.delete(ends, omit)
+        if len(onsets) == 0:
+            data, times = self[picks, start:stop]
+            if return_times:
+                return data, times
+            return data
+        stop = min(stop, self.n_times)
+        order = np.argsort(onsets)
+        onsets = self.time_as_index(onsets[order])
+        ends = self.time_as_index(ends[order])
+
+        np.clip(onsets, start, stop, onsets)
+        np.clip(ends, start, stop, ends)
+        used = np.ones(stop - start, bool)
+        for onset, end in zip(onsets, ends):
+            if onset >= end:
+                continue
+            used[onset - start: end - start] = False
+        used = np.concatenate([[False], used, [False]])
+        starts = np.where(~used[:-1] & used[1:])[0] + start
+        stops = np.where(used[:-1] & ~used[1:])[0] + start
+        if reject_by_annotation == 'omit':
+
+            data = np.zeros((len(picks), (stops - starts).sum()))
+            times = np.zeros(data.shape[1])
+            idx = 0
+            for start, stop in zip(starts, stops):  # get the data
+                if start == stop:
+                    continue
+                end = idx + stop - start
+                data[:, idx:end], times[idx:end] = self[picks, start:stop]
+                idx = end
+        else:
+            data, times = self[picks, start:stop]
+            data[:, ~used[1:-1]] = np.nan
+
+        if return_times:
+            return data, times
+        return data
+
     @verbose
     def apply_function(self, fun, picks=None, dtype=None,
                        n_jobs=1, *args, **kwargs):
@@ -864,9 +957,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             A function to be applied to the channels. The first argument of
             fun has to be a timeseries (numpy.ndarray). The function must
             return an numpy.ndarray with the same size as the input.
-        picks : array-like of int (defaul: None)
-            Indices of channels to apply the function to. If None, all
-            M-EEG channels are used. If None, all data channels are used.
+        picks : array-like of int (default: None)
+            Indices of channels to apply the function to. If None, all data
+            channels are used.
         dtype : numpy.dtype (default: None)
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
@@ -1619,23 +1712,22 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
     def plot_psd(self, tmin=0.0, tmax=None, fmin=0, fmax=np.inf,
-                 proj=False, n_fft=2048, picks=None, ax=None,
+                 proj=False, n_fft=None, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, average=True, show=True,
+                 n_overlap=0, dB=True, average=None, show=True,
                  n_jobs=1, line_alpha=None, spatial_colors=None,
-                 verbose=None):
+                 xscale='linear', verbose=None):
         if tmax is None:
             tmax = 60.
             warn('tmax defaults to 60. in 0.14 but will change to np.inf in '
                  '0.15. Set it explicitly to avoid this warning',
                  DeprecationWarning)
-        return plot_raw_psd(self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
-                            proj=proj, n_fft=n_fft, picks=picks, ax=ax,
-                            color=color, area_mode=area_mode,
-                            area_alpha=area_alpha, n_overlap=n_overlap,
-                            dB=dB, average=average, show=show, n_jobs=n_jobs,
-                            line_alpha=line_alpha,
-                            spatial_colors=spatial_colors)
+        return plot_raw_psd(
+            self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj,
+            n_fft=n_fft, picks=picks, ax=ax, color=color, area_mode=area_mode,
+            area_alpha=area_alpha, n_overlap=n_overlap, dB=dB, average=average,
+            show=show, n_jobs=n_jobs, line_alpha=line_alpha,
+            spatial_colors=spatial_colors, xscale=xscale)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
@@ -1875,7 +1967,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             annotations = _combine_annotations((annotations, r.annotations),
                                                self._last_samps,
                                                self._first_samps,
-                                               self.info['sfreq'])
+                                               self.info['sfreq'],
+                                               self.info['meas_date'])
 
         self._update_times()
         self.annotations = annotations
