@@ -29,8 +29,7 @@ from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation,
                       _set_contour_locator)
 from ..channels import find_layout
-from ..channels.layout import (_pair_grad_sensors, generate_2d_layout,
-                               _auto_topomap_coords)
+from ..channels.layout import _pair_grad_sensors
 
 
 def _butterfly_onpick(event, params):
@@ -328,7 +327,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                          'colors.')
                     spatial_colors = selectable = False
                 if spatial_colors is True and len(idx) != 1:
-                    colors = _handle_spatial_colors(locs3d, info, idx, chs,
+                    colors = _handle_spatial_colors(locs3d, info, idx,
                                                     this_type, psd, ax)
                 else:
                     if isinstance(spatial_colors, (tuple, string_types)):
@@ -428,33 +427,26 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 useblit=blit, rectprops=dict(alpha=0.5, facecolor='red'))
 
 
-def _handle_spatial_colors(locs3d, info, idx, chs, ch_type, psd, ax):
+def _handle_spatial_colors(locs3d, info, idx, ch_type, psd, ax):
     """Helper for spatial colors."""
     x, y, z = locs3d.T
     colors = _rgb(x, y, z)
     ch_type = None if ch_type not in ('meg', 'mag', 'grad', 'eeg') else ch_type
-    layout = find_layout(info, ch_type=ch_type, exclude=[])
 
-    head_pos = None
-    outlines = 'skirt'
-    # drop channels that are not in the data
-    used_nm = np.array(_clean_names(info['ch_names']))[idx]
-    if layout is None:
-        name_idx = list()
-    else:
-        names = np.asarray([name for name in used_nm if name in layout.names])
-        name_idx = [layout.names.index(name) for name in names]
-    if len(name_idx) < len(chs):
-        warn('Could not find layout for all the channels. Generating custom '
-             'layout from channel positions.')
-        xy = _auto_topomap_coords(info, idx, ignore_overlap=True,
-                                  to_sphere=False)
-        layout = generate_2d_layout(xy, ch_names=list(used_nm), name='custom',
-                                    normalize=False)
-        names = used_nm
-        name_idx = [layout.names.index(name) for name in names]
+    layout = find_layout(info, ch_type=ch_type, exclude=[],
+                         on_failure='generate')
+    if layout.kind == 'custom':
         head_pos = {'center': (0, 0), 'scale': (4.5, 4.5)}
         outlines = np.array([0.5, 0.5])
+    else:
+        head_pos = None
+        outlines = 'skirt'
+    # drop channels that are not in the data
+    used_nm = np.array(_clean_names(info['ch_names']))[idx]
+
+    names = np.asarray([name for name in used_nm if name in layout.names])
+    name_idx = [layout.names.index(name) for name in names]
+
     # find indices for bads
     bads = [np.where(names == bad)[0][0] for bad in info['bads'] if bad in
             names]

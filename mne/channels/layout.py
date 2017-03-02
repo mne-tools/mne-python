@@ -460,7 +460,7 @@ def find_layout(info, ch_type=None, exclude='bads', on_failure=None):
             return None
         elif on_failure == 'generate':
             xy = _auto_topomap_coords(info, picks=range(info['nchan']),
-                                      ignore_overlap=True)
+                                      ignore_overlap=True, to_sphere=False)
             return generate_2d_layout(xy, ch_names=info['ch_names'],
                                       name='custom', normalize=False)
 
