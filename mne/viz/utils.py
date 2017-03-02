@@ -1431,8 +1431,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
 
         pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=75,
                          edgecolor=edgecolors, linewidth=2, clip_on=False)
-        ax.set_xlim((-1, 1))
-        ax.set_ylim((-1, 1))
+
         if select:
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
 
