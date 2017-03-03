@@ -122,7 +122,6 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         ax.add_collection(lc)
         # now plot the head directions as a quiver
         dir_idx = dict(x=0, y=1, z=2)
-        kwargs = dict()
         for d, length in zip(direction, [1., 0.5, 0.25]):
             use_dir = use_rot[:, :, dir_idx[d]]
             # draws stems, then heads
