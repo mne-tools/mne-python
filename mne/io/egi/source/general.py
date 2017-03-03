@@ -330,7 +330,7 @@ def _bls2blns(n_samples, bn_sample):
 
 def _block_r(fid):
     import numpy as np
-
+    fid.seek(4)
     headersize = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
     blocksize = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
     hl = int(blocksize / 4)  # como sabes que son 4

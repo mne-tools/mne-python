@@ -12,6 +12,7 @@ import numpy as np
 
 from .source.header import read_mff_header
 from .source.data import read_mff_data
+from .source.general import _block_r
 from .source.events import read_mff_events
 
 from ..base import BaseRaw, _check_update_montage
@@ -40,6 +41,8 @@ def _read_header(input_fname):
     mff_hdr = read_mff_header(input_fname)
     with open(input_fname + '/signal1.bin', 'rb') as fid:
         version = np.fromfile(fid, np.int32, 1)[0]
+
+
     # if version > 6 & ~np.bitwise_and(version, 6):
     #    version = version.byteswap().astype(np.uint32)
     # else:
@@ -197,6 +200,7 @@ class RawMff(BaseRaw):
     def __init__(self, input_fname, montage=None, eog=None, misc=None,
                  include=None, exclude=None, preload=False, verbose=None):
         """Init for the RawMff class."""
+        kind = 'raw'
         if eog is None:
             eog = []
         if misc is None:
@@ -264,6 +268,8 @@ class RawMff(BaseRaw):
             # No events
             self.event_id = None
             self._new_trigger = None
+
+
         info = _empty_info(egi_info['samp_rate'])
         info['buffer_size_sec'] = 1.  # reasonable default
         # info['filename'] = input_fname
@@ -293,22 +299,68 @@ class RawMff(BaseRaw):
         info._update_redundant()
         _check_update_montage(info, montage)
         file_bin = input_fname + '/' + egi_hdr['orig']['eegFilename'][0]
-        data = read_mff_data(input_fname,
-                             'epoch', 1, egi_hdr['nTrials'],
-                             egi_hdr)
-        data *= cal
-        if self._new_trigger is not None:
-            sti = self._new_trigger.reshape((1, len(self._new_trigger)))
-            data = np.concatenate((data, egi_events, sti), axis=0)
+
+        if kind == 'epoch':
+            data = read_mff_data(input_fname,
+                                 'epoch', 1, egi_hdr['nTrials'],
+                                 egi_hdr)
+            data *= cal
+            if self._new_trigger is not None:
+                sti = self._new_trigger.reshape((1, len(self._new_trigger)))
+                data = np.concatenate((data, egi_events, sti), axis=0)
+            else:
+                data = np.concatenate((data, egi_events), axis=0)
+            dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
+            data = np.asanyarray(data, dtype=dtype)
+            if len(data) != len(info['ch_names']):
+                raise ValueError('len(data) does not match '
+                                 'len(info["ch_names"])')
+            logger.info('Creating RawArray with %s data, n_channels=%s, '
+                        'n_times=%s' % (dtype.__name__, data.shape[0],
+                                        data.shape[1]))
         else:
-            data = np.concatenate((data, egi_events), axis=0)
-        dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
-        data = np.asanyarray(data, dtype=dtype)
-        if len(data) != len(info['ch_names']):
-            raise ValueError('len(data) does not match len(info["ch_names"])')
-        logger.info('Creating RawArray with %s data, n_channels=%s, n_times=%s'
-                    % (dtype.__name__, data.shape[0], data.shape[1]))
+            with open(file_bin, 'rb') as fid:
+                block_info = _block_r(fid)
+            egi_info['block_info'] = block_info
+            egi_info['egi_events'] = egi_events
+
+            self._filenames = [file_bin]
+
+            data = np.zeros((nchan, egi_info['n_samples']))
+            self._raw_extras = [egi_info]
+
         super(RawMff, self).__init__(
-            info, preload=data, orig_format=egi_info['orig_format'],
+            info, preload=True, orig_format=egi_info['orig_format'],
             filenames=[file_bin], last_samps=[egi_info['n_samples'] - 1],
             raw_extras=[egi_info], verbose=verbose)
+
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        egi_info = self._raw_extras[fi]
+        block_info = egi_info['block_info']
+        offset = block_info['position'] - 4
+        n_channels = egi_info['n_channels']
+        block_size = block_info['hl']
+        dtype = '<f4'
+        from ..utils import _mult_cal_one
+        n_bytes = np.dtype(dtype).itemsize
+
+        data_offset = n_channels * start * n_bytes + offset
+        data_left = (stop - start) * n_channels
+
+        egi_events = egi_info['egi_events'][:, start:stop]
+
+        with open(self._filenames[fi], 'rb', buffering=0) as fid:
+            fid.seek(data_offset)
+            # extract data in chunks
+            for sample_start in np.arange(0, data_left,
+                                          block_size) // n_channels:
+                fid.seek(4, 1)
+                count = min(block_size, data_left - sample_start * n_channels)
+                block = np.fromfile(fid, dtype, count)
+                block = block.reshape(n_channels, -1, order='C')
+                n_samples = block.shape[1]  # = count // n_channels
+                sample_stop = sample_start + n_samples
+                data_view = data[:n_channels, sample_start:sample_stop]
+                _mult_cal_one(data_view, block, idx, cals[:n_channels], mult)
+
+        data[n_channels:] = egi_events
