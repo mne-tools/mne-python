@@ -17,7 +17,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - Add Support for Artemis123 infant/toddler MEG by `Luke Bloy`_
+    - Add I/O support for Artemis123 infant/toddler MEG data by `Luke Bloy`_
 
     - Add filter plotting functions :func:`mne.viz.plot_filter` and :func:`mne.viz.plot_ideal_filter` as well as filter creation function :func:`mne.filter.create_filter` by `Eric Larson`_
 
@@ -86,6 +86,8 @@ Changelog
     - Add annotation aware data getter :meth:`mne.io.Raw.get_data` by `Jaakko Leppakangas`_
 
     - Add support of dipole location visualization with MRI slice overlay with matplotlib to :func:`mne.viz.plot_dipole_locations` via mode='orthoview' parameter by `Jaakko Leppakangas`_ and `Alex Gramfort`_
+
+    - Add plotting of head positions as a function of time in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
 
 BUG
 ~~~
