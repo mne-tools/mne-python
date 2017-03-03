@@ -1382,6 +1382,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if isinstance(item, (list, tuple)) and \
                 isinstance(item[0], string_types):
             select = epochs._keys_to_idx(item)
+            epochs.name = '+'.join(item)
         else:
             select = item if isinstance(item, slice) else np.atleast_1d(item)
 

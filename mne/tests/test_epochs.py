@@ -915,8 +915,8 @@ def test_evoked_standard_error():
     evoked = [epochs.average(), epochs.standard_error()]
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), evoked)
     evoked2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), [0, 1])
-    evoked3 = [read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 'Unknown'),
-               read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 'Unknown',
+    evoked3 = [read_evokeds(op.join(tempdir, 'evoked-ave.fif'), '1'),
+               read_evokeds(op.join(tempdir, 'evoked-ave.fif'), '1',
                             kind='standard_error')]
     for evoked_new in [evoked2, evoked3]:
         assert_true(evoked_new[0]._aspect_kind ==
