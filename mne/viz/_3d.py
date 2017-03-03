@@ -93,8 +93,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
                           -trans) * 1000
     use_rot = rot.transpose([0, 2, 1])
     use_quats = -pos[:, 1:4]  # inverse (like doing rot.T)
-    if isinstance(cmap, string_types) and cmap == 'viridis' and \
-            not check_version('matplotlib', '1.5'):
+    if cmap == 'viridis' and not check_version('matplotlib', '1.5'):
         warn('viridis is unavailable on matplotlib < 1.4, using "YlGnBu_r"')
         cmap = 'YlGnBu_r'
     if mode == 'traces':
@@ -128,11 +127,9 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
             use_dir = use_rot[:, :, dir_idx[d]]
             # draws stems, then heads
             array = np.concatenate((t, np.repeat(t, 2)))
-            if check_version('matplotlib', '1.4'):
-                kwargs['length'] = length
             ax.quiver(use_trans[:, 0], use_trans[:, 1], use_trans[:, 2],
                       use_dir[:, 0], use_dir[:, 1], use_dir[:, 2], norm=norm,
-                      cmap=cmap, array=array, pivot='tail', **kwargs)
+                      cmap=cmap, array=array, pivot='tail', length=length)
         mins = use_trans.min(0)
         maxs = use_trans.max(0)
         scale = (maxs - mins).max() / 2.
