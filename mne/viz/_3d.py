@@ -97,7 +97,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         warn('viridis is unavailable on matplotlib < 1.4, using "YlGnBu_r"')
         cmap = 'YlGnBu_r'
     if mode == 'traces':
-        fig, axes = plt.subplots(3, 2)
+        fig, axes = plt.subplots(3, 2, sharex=True)
         labels = ['xyz', ('$q_1$', '$q_2$', '$q_3$')]
         for ii, (quat, coord) in enumerate(zip(use_quats.T, use_trans.T)):
             axes[ii, 0].plot(t, coord, 'k')
