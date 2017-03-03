@@ -836,7 +836,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Create an evoked object from epoch data."""
         info = deepcopy(info)
         if self.name not in ['Unknown', None]:
-            warn('Epochs.name is deprecated and will be removed in 0.15.')
             comment = self.name
         else:
             if len(self.event_id.keys()) == 1:
