@@ -96,14 +96,14 @@ def load_data(subject, dataset='001-2014', path=None, force_update=False,
     Parameters
     ----------
     subject : int
-        The subject to use.
+        The subject to load.
     dataset : string
-        The bnci dataset name
+        The bnci dataset name.
     path : None | str
         Location of where to look for the BNCI data storing location.
         If None, the environment variable or config parameter
         ``MNE_DATASETS_BNCI_PATH`` is used. If it doesn't exist, the
-        "~/mne_data" directory is used. If the BNCI2014001 dataset
+        "~/mne_data" directory is used. If the BNCI dataset
         is not found under the given path, the data
         will be automatically downloaded to the specified folder.
     force_update : bool
@@ -118,7 +118,8 @@ def load_data(subject, dataset='001-2014', path=None, force_update=False,
     Returns
     -------
     raws : list
-        List of raw instances for each run or sessions.
+        List of raw instances for each non consecutive recording. Depending
+        on the dataset it could be a BCI run or a different recording session.
     event_id: dict
         dictonary containing events and their code.
     """
