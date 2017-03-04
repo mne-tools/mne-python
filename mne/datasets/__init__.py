@@ -3,6 +3,7 @@
 from . import brainstorm
 from . import visual_92_categories
 from . import eegbci
+from . import bnci
 from . import megsim
 from . import misc
 from . import sample
