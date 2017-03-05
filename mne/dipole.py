@@ -21,7 +21,6 @@ from .evoked import _read_evoked, _aspect_rev, _write_evokeds
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform, Transform)
 from .viz.evoked import _plot_evoked
-
 from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
 from .forward._compute_forward import (_compute_forwards_meeg,
@@ -147,9 +146,15 @@ class Dipole(object):
     def plot_locations(self, trans, subject, subjects_dir=None,
                        bgcolor=(1, 1, 1), opacity=0.3,
                        brain_color=(1, 1, 0), fig_name=None,
-                       fig_size=(600, 600), mode='cone',
-                       scale_factor=0.1e-1, colors=None, verbose=None):
-        """Plot dipole locations as arrows.
+                       fig_size=(600, 600), mode=None,
+                       scale_factor=0.1e-1, colors=None,
+                       coord_frame='mri', idx='gof',
+                       show_all=True, ax=None, block=False,
+                       show=True, verbose=None):
+        """Plot dipole locations in 3d.
+
+        .. warning:: Using mode with option 'cone' or 'sphere' will be
+                     deprecated in version 0.15.
 
         Parameters
         ----------
@@ -168,17 +173,56 @@ class Dipole(object):
             Opacity of brain mesh.
         brain_color : tuple of length 3
             Brain color.
-        fig_name : tuple of length 2
+        fig_name : str
             Mayavi figure name.
         fig_size : tuple of length 2
             Mayavi figure size.
         mode : str
-            Should be ``'cone'`` or ``'sphere'`` to specify how the
-            dipoles should be shown.
+            Should be ``'cone'`` or ``'sphere'`` or ``'orthoview'`` to specify
+            how the dipoles should be shown. If orthoview then matplotlib is
+            used otherwise it is mayavi.
+
+            .. versionadded:: 0.14.0
         scale_factor : float
-            The scaling applied to amplitudes for the plot.
+            The scaling applied to amplitudes for the plot. Only applies for
+            modes ``cone`` and ``sphere``.
         colors: list of colors | None
-            Color to plot with each dipole. If None defaults colors are used.
+            Color to plot with each dipole. If None default colors are used.
+        coord_frame : str
+            Coordinate frame to use, 'head' or 'mri'. Defaults to 'mri'.
+
+            .. versionadded:: 0.14.0
+        idx : int | 'gof' | 'amplitude'
+            Index of the initially plotted dipole. Can also be 'gof' to plot
+            the dipole with highest goodness of fit value or 'amplitude' to
+            plot the dipole with the highest amplitude. The dipoles can also be
+            browsed through using up/down arrow keys or mouse scroll. Defaults
+            to 'gof'. Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
+        show_all : bool
+            Whether to always plot all the dipoles. If True (default), the
+            active dipole is plotted as a red dot and it's location determines
+            the shown MRI slices. The the non-active dipoles are plotted as
+            small blue dots. If False, only the active dipole is plotted.
+            Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
+        ax : instance of matplotlib Axes3D | None
+            Axes to plot into. If None (default), axes will be created.
+            Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Defaults to False. Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
+        show : bool
+            Show figure if True. Defaults to True.
+            Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -186,18 +230,27 @@ class Dipole(object):
 
         Returns
         -------
-        fig : instance of mlab.Figure
-            The mayavi figure.
+        fig : instance of mlab.Figure or matplotlib Figure
+            The mayavi figure or matplotlib Figure.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         from .viz import plot_dipole_locations
-        dipoles = []
-        for t in self.times:
-            dipoles.append(self.copy())
-            dipoles[-1].crop(t, t)
+        dipoles = self
+        if mode in [None, 'cone', 'sphere']:  # support old behavior
+            dipoles = []
+            for t in self.times:
+                dipoles.append(self.copy())
+                dipoles[-1].crop(t, t)
+        elif mode != 'orthoview':
+            raise ValueError("mode must be 'cone', 'sphere' or 'orthoview'. "
+                             "Got %s." % mode)
         return plot_dipole_locations(
             dipoles, trans, subject, subjects_dir, bgcolor, opacity,
             brain_color, fig_name, fig_size, mode, scale_factor,
-            colors)
+            colors, coord_frame, idx, show_all, ax, block, show)
 
     def plot_amplitudes(self, color='k', show=True):
         """Plot the dipole amplitudes as a function of time.
@@ -265,7 +318,6 @@ class Dipole(object):
 def _read_dipole_fixed(fname):
     """Helper to read a fixed dipole FIF file."""
     logger.info('Reading %s ...' % fname)
-    _check_fname(fname, overwrite=True, must_exist=True)
     info, nave, aspect_kind, first, last, comment, times, data = \
         _read_evoked(fname)
     return DipoleFixed(info, data, times, nave, aspect_kind, first, last,
@@ -396,7 +448,7 @@ def read_dipole(fname, verbose=None):
     mne.Dipole
     mne.DipoleFixed
     """
-    _check_fname(fname, overwrite=True, must_exist=True)
+    _check_fname(fname, overwrite='read', must_exist=True)
     if fname.endswith('.fif') or fname.endswith('.fif.gz'):
         return _read_dipole_fixed(fname)
     else:
@@ -1173,3 +1225,18 @@ def get_phantom_dipoles(kind='vectorview'):
         ori.append(this_ori)
     ori = np.array(ori)
     return pos, ori
+
+
+def _concatenate_dipoles(dipoles):
+    """Helper for concatenating a list of dipoles."""
+    times, pos, amplitude, ori, gof = [], [], [], [], []
+    for dipole in dipoles:
+        times.append(dipole.times)
+        pos.append(dipole.pos)
+        amplitude.append(dipole.amplitude)
+        ori.append(dipole.ori)
+        gof.append(dipole.gof)
+
+    return Dipole(np.concatenate(times), np.concatenate(pos),
+                  np.concatenate(amplitude), np.concatenate(ori),
+                  np.concatenate(gof), name=None)

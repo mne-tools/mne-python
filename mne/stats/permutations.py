@@ -19,8 +19,8 @@ def bin_perm_rep(ndim, a=0, b=1):
     (0,1) in ndim dimensions.  The array is shaped as (2**ndim,ndim), and is
     ordered with the last index changing fastest.  For examble, for ndim=3:
 
-    Examples:
-
+    Examples
+    --------
     >>> bin_perm_rep(3)
     array([[0, 0, 0],
            [0, 0, 1],

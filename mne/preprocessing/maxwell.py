@@ -1747,17 +1747,15 @@ def _compute_sphere_activation_in(degrees):
     Returns
     -------
     a_power : ndarray
-        The a_lm associated for the associated degrees.
+        The a_lm associated for the associated degrees (see [1]_).
     rho_i : float
         The current density.
 
-    Notes
-    -----
-    See also:
-
-        A 122-channel whole-cortex SQUID system for measuring the brain’s
-        magnetic fields. Knuutila et al. IEEE Transactions on Magnetics,
-        Vol 29 No 6, Nov 1993.
+    References
+    ----------
+    .. [1] A 122-channel whole-cortex SQUID system for measuring the brain’s
+       magnetic fields. Knuutila et al. IEEE Transactions on Magnetics,
+       Vol 29 No 6, Nov 1993.
     """
     r_in = 0.080  # radius of the randomly-activated sphere
 

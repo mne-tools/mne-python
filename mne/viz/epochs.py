@@ -392,7 +392,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     Parameters
     ----------
-
     epochs : instance of Epochs
         The epochs object
     picks : array-like of int | None
@@ -552,9 +551,10 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
-    from .raw import _set_psd_plot_params
-    fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
-        epochs.info, proj, picks, ax, area_mode)
+    from .raw import _set_psd_plot_params, _convert_psds
+    fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
+        make_label = _set_psd_plot_params(
+            epochs.info, proj, picks, ax, area_mode)
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
@@ -565,12 +565,9 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                                      normalization=normalization, proj=proj,
                                      n_jobs=n_jobs)
 
-        # Convert PSDs to dB
-        if dB:
-            psds = 10 * np.log10(psds)
-            unit = 'dB'
-        else:
-            unit = 'power'
+        ylabel = _convert_psds(psds, dB, scalings_list[ii], units_list[ii],
+                               [epochs.ch_names[pi] for pi in picks])
+
         # mean across epochs and channels
         psd_mean = np.mean(psds, axis=0).mean(axis=0)
         if area_mode == 'std':
@@ -590,8 +587,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         if make_label:
             if ii == len(picks_list) - 1:
                 ax.set_xlabel('Freq (Hz)')
-            if ii == len(picks_list) // 2:
-                ax.set_ylabel('Power Spectral Density (%s/Hz)' % unit)
+            ax.set_ylabel(ylabel)
             ax.set_title(title)
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:

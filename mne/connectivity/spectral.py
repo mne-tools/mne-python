@@ -56,7 +56,7 @@ class _EpochMeanConEstBase(_AbstractConEstBase):
         self.con_scores = None
 
     def start_epoch(self):  # noqa: D401
-        """This method is called at the start of each epoch."""
+        """Called at the start of each epoch."""
         pass  # for this type of con. method we don't do anything
 
     def combine(self, other):
@@ -600,32 +600,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             WPLI = ------------------
                       E[|Im(Sxy)|]
 
-        'wpli2_debiased' : Debiased estimator of squared WPLI [5].
+        'wpli2_debiased' : Debiased estimator of squared WPLI [5]_.
 
-
-    References
-    ----------
-
-    .. [1] Nolte et al. "Identifying true brain interaction from EEG data using
-           the imaginary part of coherency" Clinical neurophysiology, vol. 115,
-           no. 10, pp. 2292-2307, Oct. 2004.
-
-    .. [2] Lachaux et al. "Measuring phase synchrony in brain signals" Human
-           brain mapping, vol. 8, no. 4, pp. 194-208, Jan. 1999.
-
-    .. [3] Vinck et al. "The pairwise phase consistency: a bias-free measure of
-           rhythmic neuronal synchronization" NeuroImage, vol. 51, no. 1,
-           pp. 112-122, May 2010.
-
-    .. [4] Stam et al. "Phase lag index: assessment of functional connectivity
-           from multi channel EEG and MEG with diminished bias from common
-           sources" Human brain mapping, vol. 28, no. 11, pp. 1178-1193,
-           Nov. 2007.
-
-    .. [5] Vinck et al. "An improved index of phase-synchronization for
-           electro-physiological data in the presence of volume-conduction,
-           noise and sample-size bias" NeuroImage, vol. 55, no. 4,
-           pp. 1548-1565, Apr. 2011.
 
     Parameters
     ----------
@@ -714,6 +690,29 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     n_tapers : int
         The number of DPSS tapers used. Only defined in 'multitaper' mode.
         Otherwise None is returned.
+
+    References
+    ----------
+    .. [1] Nolte et al. "Identifying true brain interaction from EEG data using
+           the imaginary part of coherency" Clinical neurophysiology, vol. 115,
+           no. 10, pp. 2292-2307, Oct. 2004.
+
+    .. [2] Lachaux et al. "Measuring phase synchrony in brain signals" Human
+           brain mapping, vol. 8, no. 4, pp. 194-208, Jan. 1999.
+
+    .. [3] Vinck et al. "The pairwise phase consistency: a bias-free measure of
+           rhythmic neuronal synchronization" NeuroImage, vol. 51, no. 1,
+           pp. 112-122, May 2010.
+
+    .. [4] Stam et al. "Phase lag index: assessment of functional connectivity
+           from multi channel EEG and MEG with diminished bias from common
+           sources" Human brain mapping, vol. 28, no. 11, pp. 1178-1193,
+           Nov. 2007.
+
+    .. [5] Vinck et al. "An improved index of phase-synchronization for
+           electro-physiological data in the presence of volume-conduction,
+           noise and sample-size bias" NeuroImage, vol. 55, no. 4,
+           pp. 1548-1565, Apr. 2011.
     """
     if n_jobs != 1:
         parallel, my_epoch_spectral_connectivity, _ = \

@@ -1185,7 +1185,7 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400):
     scene_width : int
         Specify a minimum width for the 3d scene (in pixels).
 
-    returns
+    Returns
     -------
     view : traits View
         View object for the CoregFrame.

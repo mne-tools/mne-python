@@ -933,8 +933,8 @@ class ICA(ContainsMixin):
                       method='ctps', verbose=None):
         """Detect ECG related components using correlation.
 
-        Note. If no ECG channel is available, routine attempts to create
-        an artificial ECG based on cross-channel averaging.
+        .. note:: If no ECG channel is available, routine attempts to create
+                  an artificial ECG based on cross-channel averaging.
 
         Parameters
         ----------
@@ -980,7 +980,7 @@ class ICA(ContainsMixin):
         scores : np.ndarray of float, shape (``n_components_``)
             The correlation scores.
 
-        See also
+        See Also
         --------
         find_bads_eog
 

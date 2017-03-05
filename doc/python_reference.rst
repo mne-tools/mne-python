@@ -430,6 +430,7 @@ Functions:
    plot_evoked_field
    plot_evoked_white
    plot_filter
+   plot_head_positions
    plot_ideal_filter
    plot_compare_evokeds
    plot_ica_sources

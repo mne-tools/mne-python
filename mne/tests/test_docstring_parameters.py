@@ -99,7 +99,7 @@ def check_parameters_match(func, doc=None):
 
 @requires_numpydoc
 def test_docstring_parameters():
-    """Test module docstring formatting"""
+    """Test module docstring formatting."""
     from numpydoc import docscrape
 
     # skip modules that require mayavi if mayavi is not installed
@@ -112,7 +112,8 @@ def test_docstring_parameters():
 
     incorrect = []
     for name in public_modules_:
-        module = __import__(name, globals())
+        with warnings.catch_warnings(record=True):  # traits warnings
+            module = __import__(name, globals())
         for submod in name.split('.')[1:]:
             module = getattr(module, submod)
         classes = inspect.getmembers(module, inspect.isclass)
@@ -157,11 +158,15 @@ def test_tabs():
         if not ispkg and modname not in ignore:
             # mod = importlib.import_module(modname)  # not py26 compatible!
             try:
-                __import__(modname)
+                with warnings.catch_warnings(record=True):  # traits
+                    __import__(modname)
             except Exception:  # can't import properly
                 continue
             mod = sys.modules[modname]
-            source = getsource(mod)
+            try:
+                source = getsource(mod)
+            except IOError:  # user probably should have run "make clean"
+                continue
             assert_true('\t' not in source,
                         '"%s" has tabs, please remove them or add it to the'
                         'ignore list' % modname)

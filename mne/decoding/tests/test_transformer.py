@@ -9,7 +9,7 @@ import numpy as np
 
 from nose.tools import assert_true, assert_raises
 from numpy.testing import (assert_array_equal, assert_equal,
-                           assert_array_almost_equal)
+                           assert_array_almost_equal, assert_allclose)
 
 from mne import io, read_events, Epochs, pick_types
 from mne.decoding import Scaler, FilterEstimator
@@ -42,17 +42,16 @@ def test_scaler():
     scaler = Scaler(epochs.info)
     y = epochs.events[:, -1]
 
-    # np invalid divide value warnings
-    with warnings.catch_warnings(record=True):
-        X = scaler.fit_transform(epochs_data, y)
-        assert_true(X.shape == epochs_data.shape)
-        X2 = scaler.fit(epochs_data, y).transform(epochs_data)
-
+    X = scaler.fit_transform(epochs_data, y)
+    assert_true(X.shape == epochs_data.shape)
+    X2 = scaler.fit(epochs_data, y).transform(epochs_data)
     assert_array_equal(X2, X)
+    # these should be across time
+    assert_allclose(X.std(axis=-2), 1.)
+    assert_allclose(X.mean(axis=-2), 0., atol=1e-12)
 
     # Test inverse_transform
-    with warnings.catch_warnings(record=True):  # invalid value in mult
-        Xi = scaler.inverse_transform(X, y)
+    Xi = scaler.inverse_transform(X, y)
     assert_array_almost_equal(epochs_data, Xi)
 
     for kwargs in [{'with_mean': False}, {'with_std': False}]:

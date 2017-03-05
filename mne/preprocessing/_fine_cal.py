@@ -25,7 +25,7 @@ def read_fine_calibration(fname):
         Fine calibration information.
     """
     # Read new sensor locations
-    _check_fname(fname, overwrite=True, must_exist=True)
+    _check_fname(fname, overwrite='read', must_exist=True)
     check_fname(fname, 'cal', ('.dat',))
     ch_names = list()
     locs = list()

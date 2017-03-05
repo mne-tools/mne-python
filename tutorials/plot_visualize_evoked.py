@@ -13,7 +13,7 @@ import mne
 
 ###############################################################################
 # In this tutorial we focus on plotting functions of :class:`mne.Evoked`.
-# Here we read the evoked object from a file. Check out
+# First we read the evoked object from a file. Check out
 # :ref:`tut_epoching_and_averaging` to get to this stage from raw data.
 data_path = mne.datasets.sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
