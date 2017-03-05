@@ -1588,6 +1588,36 @@ class Report(object):
 
         return html
 
+
+    def _render_sensitivity_map(self, fwd_fname, subject):
+        """Render forward.
+        """
+        div_klass = 'forward'
+        caption = u'Forward: %s' % fwd_fname
+        fwd = read_forward_solution(fwd_fname)
+        repr_fwd = re.sub('>', '', re.sub('<', '', repr(fwd)))
+        global_id = self._get_id()
+        html = repr_template.substitute(div_klass=div_klass,
+                                        id=global_id,
+                                        caption=caption,
+                                        repr=repr_fwd)
+
+        mag_map = sensitivity_map(fwd, ch_type='eeg', mode='fixed')
+        brain = mag_map.plot(subject=subject, time_label='Magnetometer sensitivity',
+                             hemi='rh', subjects_dir=subjects_dir)
+        img = _fig_to_img(fig=fig)
+
+        fig = plt.figure()
+        plt.hist(mag_map.data.ravel(),
+                 bins=20, label=['Magnetometers'],
+                 color=['b'])
+        plt.title('Normal orientation sensitivity')
+        plt.xlabel('sensitivity')
+        plt.ylabel('count')
+        plt.legend()
+
+        return html
+
     def _render_inverse(self, inv_fname):
         """Render inverse."""
         div_klass = 'inverse'
