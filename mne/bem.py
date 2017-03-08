@@ -413,24 +413,36 @@ _surf_name = {
 }
 
 
-def _assert_inside(fro, to):
+def _assert_inside(fro, to, expand=False):
     """Helper to check one set of points is inside a surface."""
     # this is "is_inside" in surface_checks.c
     tot_angle = _get_solids(to['rr'][to['tris']], fro['rr'])
+    if expand:
+        while (np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5).any():
+            inds = np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5
+            for ind in np.where(inds)[0]:
+                logger.info('Expanding %s vertice %s outwards.' %
+                            (_surf_name[to['id']], ind))
+                for idx in range(3):
+                    if to['rr'][ind][idx] > 0:  # move vertice outwards
+                        to['rr'][ind][idx] += 0.001
+                    else:
+                        to['rr'][ind][idx] -= 0.001
+            tot_angle = _get_solids(to['rr'][to['tris']], fro['rr'])
     if (np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5).any():
         raise RuntimeError('Surface %s is not completely inside surface %s'
                            % (_surf_name[fro['id']], _surf_name[to['id']]))
 
 
-def _check_surfaces(surfs):
+def _check_surfaces(surfs, expand=False):
     """Check that the surfaces are complete and non-intersecting."""
     for surf in surfs:
         _assert_complete_surface(surf)
     # Then check the topology
-    for surf_1, surf_2 in zip(surfs[:-1], surfs[1:]):
+    for surf_1, surf_2 in zip(surfs[:-1][::-1], surfs[1:][::-1]):
         logger.info('Checking that %s surface is inside %s surface...' %
                     (_surf_name[surf_2['id']], _surf_name[surf_1['id']]))
-        _assert_inside(surf_2, surf_1)
+        _assert_inside(surf_2, surf_1, expand=expand)
 
 
 def _check_surface_size(surf):
@@ -457,7 +469,7 @@ def _check_thicknesses(surfs):
                      1000 * min_dist))
 
 
-def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True):
+def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True, expand=False):
     """Convert surfaces to a BEM."""
     # equivalent of mne_surf2bem
     # surfs can be strings (filenames) or surface dicts
@@ -488,7 +500,7 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True):
     surfs = _order_surfaces(surfs)
 
     # Check topology as best we can
-    _check_surfaces(surfs)
+    _check_surfaces(surfs, expand=expand)
     for surf in surfs:
         _check_surface_size(surf)
     _check_thicknesses(surfs)
@@ -498,7 +510,7 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True):
 
 @verbose
 def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
-                   subjects_dir=None, verbose=None):
+                   subjects_dir=None, expand=False, verbose=None):
     """Create a BEM model for a subject.
 
     .. note:: To get a single layer bem corresponding to the --homog flag in
@@ -519,6 +531,14 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
         single-layer model would be ``[0.3]``.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
+    expand : bool
+        Whether to expand the outer surface when the surfaces intersect. If
+        True, the outer surface vertices are moved radially outwards where the
+        vertices are inside the inner surface until the surfaces no longer
+        intersect. Always make sure the bem model is still valid after the
+        expansion. You can plot them by passing surfaces to
+        :func:`mne.viz.plot_trans` using `skull` argument. If False (default),
+        an error is raised when the surfaces intersect.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -558,7 +578,8 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
     if len(conductivity) == 1:
         surfaces = surfaces[:1]
         ids = ids[:1]
-    surfaces = _surfaces_to_bem(surfaces, ids, conductivity, ico)
+    surfaces = _surfaces_to_bem(surfaces, ids, conductivity, ico,
+                                expand=expand)
     _check_bem_size(surfaces)
     logger.info('Complete.\n')
     return surfaces
