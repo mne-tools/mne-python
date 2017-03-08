@@ -348,10 +348,10 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     for data_, color_ in zip(data, color):
         if not picker_flag:
             # use large tol for picker so we can click anywhere in the axes
-            ax.plot(times, data_[ch_idx], color_, picker=1e9)
+            ax.plot(times, data_[ch_idx], color=color_, picker=1e9)
             picker_flag = True
         else:
-            ax.plot(times, data_[ch_idx], color_)
+            ax.plot(times, data_[ch_idx], color=color_)
     if vline:
         for x in vline:
             plt.axvline(x, color='w', linewidth=0.5)
@@ -385,7 +385,7 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     for data_, color_ in zip(data, color):
         data_lines.append(ax.plot(
             bn.x_t + bn.x_s * times, bn.y_t + bn.y_s * data_[ch_idx],
-            color_, clip_on=True, clip_box=pos)[0])
+            color=color_, clip_on=True, clip_box=pos)[0])
     if vline:
         vline = np.array(vline) * bn.x_s + bn.x_t
         ax.vlines(vline, pos[1], pos[1] + pos[3], color='w', linewidth=0.5)
