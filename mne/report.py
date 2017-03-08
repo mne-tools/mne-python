@@ -259,11 +259,15 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error):
                 report_fname = fname
                 report_sectionlabel = 'raw'
             elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
+                if report.subject is not None:
+                    html = report._render_sensitivity_map(fname, subject)
+                    report_fname = fname
+                    report_sectionlabel = 'sensitivity'
+                    _update_html(html, report_fname, report_sectionlabel)
+
                 html = report._render_forward(fname)
                 report_fname = fname
                 report_sectionlabel = 'forward'
-                if report.subject is not None:
-                    html += report._render_sensitivity_map(fname, subject)
             elif fname.endswith(('-inv.fif', '-inv.fif.gz')):
                 html = report._render_inverse(fname)
                 report_fname = fname
@@ -1558,24 +1562,22 @@ class Report(object):
                                         repr=repr_fwd)
         return html
 
-
     def _render_sensitivity_map(self, fwd_fname, subject):
-        """Render forward.
-        """
-        div_klass = 'forward'
-        caption = u'Forward: %s' % fwd_fname
-        fwd = read_forward_solution(fwd_fname)
-        repr_fwd = re.sub('>', '', re.sub('<', '', repr(fwd)))
-        global_id = self._get_id()
-        html = repr_template.substitute(div_klass=div_klass,
-                                        id=global_id,
-                                        caption=caption,
-                                        repr=repr_fwd)
+        import matplotlib.pyplot as plt
 
+        """Render Sensitivity plots.
+        """
+        caption = u'Sensitivity : %s' % fwd_fname
+        div_klass = 'sensitivity'
+        img_klass = 'Sensitivity'
+        show = True
+
+        fwd = read_forward_solution(fwd_fname)
         mag_map = sensitivity_map(fwd, ch_type='eeg', mode='fixed')
         brain = mag_map.plot(subject=subject, time_label='Magnetometer sensitivity',
                              hemi='rh', subjects_dir=subjects_dir)
-        img = _fig_to_img(fig=fig)
+
+        html = []
 
         fig = plt.figure()
         plt.hist(mag_map.data.ravel(),
@@ -1585,38 +1587,28 @@ class Report(object):
         plt.xlabel('sensitivity')
         plt.ylabel('count')
         plt.legend()
-
-        return html
-
-
-    def _render_sensitivity_map(self, fwd_fname, subject):
-        """Render forward.
-        """
-        div_klass = 'forward'
-        caption = u'Forward: %s' % fwd_fname
-        fwd = read_forward_solution(fwd_fname)
-        repr_fwd = re.sub('>', '', re.sub('<', '', repr(fwd)))
         global_id = self._get_id()
-        html = repr_template.substitute(div_klass=div_klass,
-                                        id=global_id,
-                                        caption=caption,
-                                        repr=repr_fwd)
-
-        mag_map = sensitivity_map(fwd, ch_type='eeg', mode='fixed')
-        brain = mag_map.plot(subject=subject, time_label='Magnetometer sensitivity',
-                             hemi='rh', subjects_dir=subjects_dir)
         img = _fig_to_img(fig=fig)
+        html.append(image_template.substitute(img=img, id=global_id,
+                                         div_klass=div_klass,
+                                         img_klass=img_klass,
+                                         caption=caption,
+                                         show=show))
 
-        fig = plt.figure()
-        plt.hist(mag_map.data.ravel(),
-                 bins=20, label=['Magnetometers'],
-                 color=['b'])
-        plt.title('Normal orientation sensitivity')
-        plt.xlabel('sensitivity')
-        plt.ylabel('count')
-        plt.legend()
-
-        return html
+        brain.save_image('sensitivity_mag.png')
+        # Convert image to binary string.
+        output = BytesIO()
+        with open('sensitivity_mag.png', 'rb') as f:
+            output.write(f.read())
+        global_id = self._get_id()
+        img = base64.b64encode(output.getvalue()).decode('ascii')
+        html.append(image_template.substitute(img=img, id=global_id,
+                                         image_format='png',
+                                         div_klass=div_klass,
+                                         img_klass=img_klass,
+                                         caption=caption,
+                                         show=True))
+        return '\n'.join(html)
 
     def _render_inverse(self, inv_fname):
         """Render inverse."""
