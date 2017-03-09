@@ -651,13 +651,16 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     add_background_image(fig, fig_background)
 
     if legend:
-        labels = [e.comment for e in evoked]
-        legend = plt.legend(labels, loc=legend_loc,
-                            prop={'size': legend_fontsize})
-        legend.get_frame().set_facecolor(axis_facecolor)
-        txts = legend.get_texts()
-        for k, t in enumerate(txts):
-            t.set_color(colors[k])
+        if len(colors) < len(evoked):
+            warn('Not enough colors available for legend.')
+        else:
+            labels = [e.comment for e in evoked]
+            legend = plt.legend(labels, loc=legend_loc,
+                                prop={'size': legend_fontsize})
+            legend.get_frame().set_facecolor(axis_facecolor)
+            txts = legend.get_texts()
+            for k, t in enumerate(txts):
+                t.set_color(colors[k])
 
     if proj == 'interactive':
         for e in evoked:
