@@ -662,7 +662,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         if len(colors) < len(evoked):
             warn('Not enough colors available for legend.')
         else:
-            labels = [e.comment for e in evoked]
+            labels = [e.comment if e.comment else 'Unknown' for e in evoked]
             legend = plt.legend(labels, loc=legend_loc,
                                 prop={'size': legend_fontsize})
             legend.get_frame().set_facecolor(axis_facecolor)
