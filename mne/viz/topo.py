@@ -465,7 +465,7 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
 
 def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
-                      legend=True, legend_loc=4, legend_fontsize=10,
+                      legend=True, legend_loc=0, legend_fontsize=10,
                       proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
                       merge_grads=False, show=True):
