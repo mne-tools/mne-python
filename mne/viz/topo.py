@@ -502,6 +502,14 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
     title : str
         Title of the figure.
+    legend : bool
+        If True, automatically create a legend based on evoked.comment.
+    legend_loc : int | string | tuple
+        The location parameter given to the matplotlib legend call. For
+        example, 'upper right'. By default, the location is chosen
+        automatically.
+    legend_fontsize : int
+        The font size for the legend.
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
