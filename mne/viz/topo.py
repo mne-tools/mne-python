@@ -465,6 +465,7 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
 
 def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
+                      legend=True, legend_loc=4, legend_fontsize=10,
                       proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
                       merge_grads=False, show=True):
@@ -529,6 +530,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+    import matplotlib.pyplot as plt
+
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
 
@@ -646,6 +649,15 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      x_label='Time (s)', y_label=y_label, unified=True)
 
     add_background_image(fig, fig_background)
+
+    if legend:
+        labels = [e.comment for e in evoked]
+        legend = plt.legend(labels, loc=legend_loc,
+                            prop={'size': legend_fontsize})
+        legend.get_frame().set_facecolor(axis_facecolor)
+        txts = legend.get_texts()
+        for k, t in enumerate(txts):
+            t.set_color(colors[k])
 
     if proj == 'interactive':
         for e in evoked:
