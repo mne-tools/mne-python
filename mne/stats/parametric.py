@@ -158,7 +158,7 @@ def _get_contrast_indices(effect_idx, n_factors):  # noqa: D401
 
 
 def _iter_contrasts(n_subjects, factor_levels, effect_picks):
-    """Setup contrasts."""
+    """Set up contrasts."""
     from scipy.signal import detrend
     sc = []
     n_factors = len(factor_levels)

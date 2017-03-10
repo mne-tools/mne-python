@@ -38,7 +38,7 @@ from .externals.six import string_types
 
 
 def _get_lut():
-    """Helper to get the FreeSurfer LUT."""
+    """Get the FreeSurfer LUT."""
     data_dir = op.join(op.dirname(__file__), 'data')
     lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
     return np.genfromtxt(lut_fname, dtype=None,
@@ -1288,7 +1288,7 @@ def _check_spacing(spacing, verbose=None):
 def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
                        overwrite=False, subjects_dir=None, add_dist=True,
                        n_jobs=1, verbose=None):
-    """Setup bilateral hemisphere surface-based source space with subsampling.
+    """Set up bilateral hemisphere surface-based source space with subsampling.
 
     Parameters
     ----------
@@ -1418,7 +1418,7 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
                               overwrite=None, subjects_dir=None,
                               volume_label=None, add_interpolator=True,
                               verbose=None):
-    """Setup a volume source space with grid spacing or discrete source space.
+    """Set up a volume source space with grid spacing or discrete source space.
 
     Parameters
     ----------

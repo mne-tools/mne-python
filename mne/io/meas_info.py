@@ -355,7 +355,7 @@ def write_dig(fname, pts, coord_frame=None):
 
 
 def _read_dig_fif(fid, meas_info):
-    """Helper to read digitizer data from a FIFF file."""
+    """Read digitizer data from a FIFF file."""
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
     dig = None
     if len(isotrak) == 0:

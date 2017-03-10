@@ -16,7 +16,7 @@ from ..utils import warn
 def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
                     ax=None, cmap='RdBu_r', show=True, colorbar=True,
                     xlabel=True, ylabel=True):
-    """Plotting function of GeneralizationAcrossTime object.
+    """Plot a GeneralizationAcrossTime object.
 
     Predict each classifier. If multiple classifiers are passed, average
     prediction across all classifier to result in a single prediction per

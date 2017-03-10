@@ -46,7 +46,7 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None):
 
 
 def _get_artemis123_info(fname):
-    """Function for extracting info from artemis123 header files."""
+    """Extract info from artemis123 header files."""
     fname = op.splitext(op.abspath(fname))[0]
     header = fname + '.txt'
 

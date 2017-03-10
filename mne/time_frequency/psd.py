@@ -18,7 +18,7 @@ def _psd_func(epoch, noverlap, n_per_seg, nfft, fs, freq_mask, func):
 
 
 def _check_nfft(n, n_fft, n_per_seg, n_overlap):
-    """Helper to make sure n_fft, n_per_seg and n_overlap make sense."""
+    """Ensure n_fft, n_per_seg and n_overlap make sense."""
     if n_per_seg is None and n_fft > n:
         raise ValueError(('If n_per_seg is None n_fft is not allowed to be > '
                           'n_times. If you want zero-padding, you have to set '
@@ -34,7 +34,7 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
 
 
 def _check_psd_data(inst, tmin, tmax, picks, proj):
-    """Helper to do checks on PSD data / pull arrays from inst."""
+    """Check PSD data / pull arrays from inst."""
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
     from ..evoked import Evoked

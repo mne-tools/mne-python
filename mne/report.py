@@ -47,7 +47,7 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 
 def _fig_to_img(function=None, fig=None, image_format='png',
                 scale=None, **kwargs):
-    """Wrapper function to plot figure and create a binary image."""
+    """Plot figure and create a binary image."""
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     if not isinstance(fig, Figure) and function is None:
@@ -829,7 +829,7 @@ class Report(object):
         return s
 
     def __len__(self):
-        """The number of items in report."""
+        """Return the number of items in report."""
         return len(self.fnames)
 
     def _get_id(self):

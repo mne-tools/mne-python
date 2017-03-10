@@ -545,7 +545,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def _check_bad_segment(self, start, stop, picks,
                            reject_by_annotation=False):
-        """Function for checking if data segment is bad.
+        """Check if data segment is bad.
 
         If the slice is good, returns the data in desired range.
         If rejected based on annotation, returns description of the
@@ -727,7 +727,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     def __exit__(self, exception_type, exception_val, trace):
-        """Exiting with block."""
+        """Exit with block."""
         try:
             self.close()
         except:
@@ -1836,7 +1836,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self.last_samp - self.first_samp + 1
 
     def __len__(self):
-        """The number of time points.
+        """Return the number of time points.
 
         Returns
         -------

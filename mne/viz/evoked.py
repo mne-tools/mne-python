@@ -289,7 +289,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 scalings, hline, gfp, types, zorder, xlim, ylim, times,
                 bad_ch_idx, titles, ch_types_used, selectable, psd,
                 line_alpha):
-    """Function for plotting data as butterfly plot."""
+    """Plot data as butterfly plot."""
     from matplotlib import patheffects
     from matplotlib.widgets import SpanSelector
     texts = list()
@@ -461,7 +461,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
                 xlim, ylim, titles):
-    """Function for plotting images."""
+    """Plot images."""
     import matplotlib.pyplot as plt
     cmap = _setup_cmap(cmap)
     ch_unit = units[this_type]

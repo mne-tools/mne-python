@@ -63,7 +63,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
 
 def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
                      filter_length='10s', tstart=0.):
-    """Helper function."""
+    """Find EOG events."""
     logger.info('Filtering the data to remove DC offset to help '
                 'distinguish blinks from saccades')
 

@@ -1466,7 +1466,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     def plot(self, title=None, xmin=None, xmax=None, ymin=None, ymax=None,
              ax=None, show=True, color=None, xlabel=True, ylabel=True,
              legend=True, chance=True, label='Classif. score'):
-        """Plotting function.
+        """Plot the decoding results.
 
         Predict each classifier. If multiple classifiers are passed, average
         prediction across all classifiers to result in a single prediction per

@@ -123,7 +123,7 @@ def head_pos_to_trans_rot_t(quats):
 
 @verbose
 def _get_hpi_info(info, adjust=False, verbose=None):
-    """Helper to get HPI information from raw."""
+    """Get HPI information from raw."""
     if len(info['hpi_meas']) == 0 or \
             ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
         raise RuntimeError('Appropriate cHPI information not found in'
@@ -236,7 +236,7 @@ def _fit_magnetic_dipole(B_orig, x0, coils, scale, method):
 
 
 def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
-    """Helper objective function."""
+    """Compute objective function."""
     d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)
     d += x[3:] / 10.  # in decimeters to get quats and head units close
     d -= coil_head_rrs
@@ -268,7 +268,7 @@ def _fit_chpi_pos(coil_dev_rrs, coil_head_rrs, x0):
 def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
                      exclude='bads', add_hpi_stim_pick=True,
                      remove_aliased=False, verbose=None):
-    """Helper to set up cHPI fits."""
+    """Set up cHPI fits."""
     from scipy.spatial.distance import cdist
     from .preprocessing.maxwell import _prep_mf_coils
     if not (check_version('numpy', '1.7') and check_version('scipy', '0.11')):
@@ -361,7 +361,7 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
 
 
 def _time_prefix(fit_time):
-    """Helper to format log messages."""
+    """Format log messages."""
     return ('    t=%0.3f:' % fit_time).ljust(17)
 
 

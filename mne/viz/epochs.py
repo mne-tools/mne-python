@@ -1623,7 +1623,7 @@ def _label2idx(params, pos):
 
 
 def _draw_event_lines(params):
-    """Function for drawing event lines."""
+    """Draw event lines."""
     epochs = params['epochs']
     n_times = len(epochs.times)
     start_idx = int(params['t_start'] / n_times)

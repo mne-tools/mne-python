@@ -728,7 +728,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     def __next__(self, *args, **kwargs):
-        """Wrapper for Py3k."""
+        """Provide a wrapper for Py3k."""
         return self.next(*args, **kwargs)
 
     def average(self, picks=None):
@@ -1059,7 +1059,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     def _get_epoch_from_raw(self, idx, verbose=None):
-        """Method to get a given epoch from disk."""
+        """Get a given epoch from disk."""
         raise NotImplementedError
 
     def _project_epoch(self, epoch):
@@ -1180,7 +1180,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self._get_data()
 
     def __len__(self):
-        """The number of epochs.
+        """Return the number of epochs.
 
         Returns
         -------
@@ -1212,7 +1212,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return len(self.events)
 
     def __iter__(self):
-        """Function to make iteration over epochs easy.
+        """Facilitate iteration over epochs.
 
         Notes
         -----
@@ -1717,7 +1717,7 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
 
 
 def _dep_eeg_ref(add_eeg_ref):
-    """Helper for deprecation add_eeg_ref -> False."""
+    """Assist deprecation add_eeg_ref -> False."""
     # current_default is False
     add_eeg_ref = bool(add_eeg_ref)
     if add_eeg_ref:
@@ -2162,7 +2162,7 @@ def _get_drop_indices(event_times, method):
 
 
 def _fix_fill(fill):
-    """Helper to fix bug on old scipy."""
+    """Fix bug on old scipy."""
     if LooseVersion(scipy.__version__) < LooseVersion('0.12'):
         fill = fill[:, np.newaxis]
     return fill
@@ -2725,7 +2725,7 @@ def _concatenate_epochs(epochs_list, with_data=True):
 
 def _finish_concat(info, data, events, event_id, tmin, tmax, baseline,
                    selection, drop_log, verbose):
-    """Helper to finish concatenation for epochs not read from disk."""
+    """Finish concatenation for epochs not read from disk."""
     events[:, 0] = np.arange(len(events))  # arbitrary after concat
     selection = np.where([len(d) == 0 for d in drop_log])[0]
     out = BaseEpochs(
