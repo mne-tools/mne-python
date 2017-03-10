@@ -158,7 +158,7 @@ conditions = np.atleast_1d(conditions)
 
 
 def url_match(condition, data_format, data_type):
-    """Function to match MEGSIM data files."""
+    """Match MEGSIM data files."""
     inds = np.logical_and(conditions == condition, data_formats == data_format)
     inds = np.logical_and(inds, data_types == data_type)
     inds = np.logical_and(inds, data_formats == data_format)
@@ -173,7 +173,7 @@ def url_match(condition, data_format, data_type):
 
 
 def _load_all_data():
-    """Helper for downloading all megsim datasets."""
+    """Download all megsim datasets."""
     from .megsim import data_path
     for url in urls:
         data_path(url_root + url)

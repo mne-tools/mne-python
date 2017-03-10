@@ -84,7 +84,7 @@ class Layout(object):
         f.close()
 
     def __repr__(self):
-        """String representation."""
+        """Return the string representation."""
         return '<Layout | %s - Channels: %s ...>' % (self.kind,
                                                      ', '.join(self.names[:3]))
 
@@ -732,7 +732,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
 
 
 def _topo_to_sphere(pos, eegs):
-    """Helper function for transforming xy-coordinates to sphere.
+    """Transform xy-coordinates to sphere.
 
     Parameters
     ----------

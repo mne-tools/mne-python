@@ -86,7 +86,7 @@ def _contains_ch_type(info, ch_type):
 
 
 def _get_ch_type(inst, ch_type):
-    """Helper to choose a single channel type (usually for plotting).
+    """Choose a single channel type (usually for plotting).
 
     Usually used in plotting to plot a single datatype, e.g. look for mags,
     then grads, then ... to plot.
@@ -223,7 +223,7 @@ _unit2human = {FIFF.FIFF_UNIT_V: 'V',
 
 
 def _check_set(ch, projs, ch_type):
-    """Helper to make sure type change is compatible with projectors."""
+    """Ensure type change is compatible with projectors."""
     new_kind = _human2fiff[ch_type]
     if ch['kind'] != new_kind:
         for proj in projs:
@@ -855,7 +855,7 @@ def rename_channels(info, mapping):
 
 
 def _recursive_flatten(cell, dtype):
-    """Helper to unpack mat files in Python."""
+    """Unpack mat files in Python."""
     while not isinstance(cell[0], dtype):
         cell = [c for d in cell for c in d]
     return cell
@@ -997,7 +997,7 @@ def fix_mag_coil_types(info):
 
 
 def _get_T1T2_mag_inds(info):
-    """Helper to find T1/T2 magnetometer coil types."""
+    """Find T1/T2 magnetometer coil types."""
     picks = pick_types(info, meg='mag')
     old_mag_inds = []
     for ii in picks:

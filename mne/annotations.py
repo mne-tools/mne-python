@@ -85,7 +85,7 @@ class Annotations(object):
         self.description = np.array(description, dtype=str)
 
     def __len__(self):
-        """The number of annotations."""
+        """Return the number of annotations."""
         return len(self.duration)
 
     def append(self, onset, duration, description):
@@ -121,7 +121,7 @@ class Annotations(object):
 
 def _combine_annotations(annotations, last_samps, first_samps, sfreq,
                          meas_date):
-    """Helper for combining a tuple of annotations."""
+    """Combine a tuple of annotations."""
     if not any(annotations):
         return None
     elif annotations[1] is None:
@@ -152,7 +152,7 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq,
 
 
 def _handle_meas_date(meas_date):
-    """Helper for converting meas_date to seconds."""
+    """Convert meas_date to seconds."""
     if meas_date is None:
         meas_date = 0
     elif not np.isscalar(meas_date):
@@ -164,7 +164,7 @@ def _handle_meas_date(meas_date):
 
 
 def _sync_onset(raw, onset):
-    """Helper for adjusting onsets in relation to raw data."""
+    """Adjust onsets in relation to raw data."""
     meas_date = _handle_meas_date(raw.info['meas_date'])
     if raw.annotations.orig_time is None:
         orig_time = meas_date

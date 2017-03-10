@@ -72,7 +72,7 @@ def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
 
 
 def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
-    """Function for extracting info from Nicolet header files."""
+    """Extract info from Nicolet header files."""
     fname = path.splitext(fname)[0]
     header = fname + '.head'
 

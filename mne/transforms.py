@@ -705,13 +705,13 @@ def _deg_ord_idx(deg, order):
 
 
 def _sh_negate(sh, order):
-    """Helper to get the negative spherical harmonic from a positive one."""
+    """Get the negative spherical harmonic from a positive one."""
     assert order >= 0
     return sh.conj() * (-1. if order % 2 else 1.)  # == (-1) ** order
 
 
 def _sh_complex_to_real(sh, order):
-    """Helper function to convert complex to real basis functions.
+    """Convert complex to real basis functions.
 
     Parameters
     ----------
@@ -1165,7 +1165,7 @@ def _angle_between_quats(x, y):
 
 
 def _skew_symmetric_cross(a):
-    """The skew-symmetric cross product of a vector."""
+    """Compute the skew-symmetric cross product of a vector."""
     return np.array([[0., -a[2], a[1]], [a[2], 0., -a[0]], [-a[1], a[0], 0.]])
 
 

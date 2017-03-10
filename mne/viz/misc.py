@@ -892,7 +892,7 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
 
 
 def _handle_event_colors(unique_events, color, unique_events_id):
-    """Function for handling event colors."""
+    """Handle event colors."""
     if color is None:
         if len(unique_events) > len(COLORS):
             warn('More events than colors available. You should pass a list '

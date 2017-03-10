@@ -67,7 +67,7 @@ class Montage(object):
         self.selection = selection
 
     def __repr__(self):
-        """String representation."""
+        """Return string representation."""
         s = ('<Montage | %s - %d channels: %s ...>'
              % (self.kind, len(self.ch_names), ', '.join(self.ch_names[:3])))
         return s
@@ -414,7 +414,7 @@ class DigMontage(object):
         self.coord_frame = coord_frame
 
     def __repr__(self):
-        """String representation."""
+        """Return string representation."""
         s = ('<DigMontage | %d extras (headshape), %d HPIs, %d fiducials, %d '
              'channels>' %
              (len(self.hsp) if self.hsp is not None else 0,
@@ -508,7 +508,7 @@ _cardinal_ident_mapping = {
 
 
 def _check_frame(d, frame_str):
-    """Helper to check coordinate frames."""
+    """Check coordinate frames."""
     if d['coord_frame'] != _str_to_frame[frame_str]:
         raise RuntimeError('dig point must be in %s coordinate frame, got %s'
                            % (frame_str, _frame_to_str[d['coord_frame']]))

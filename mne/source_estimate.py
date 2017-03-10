@@ -1936,7 +1936,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
 
 
 def _morph_mult(data, e, use_sparse, idx_use_data, idx_use_out=None):
-    """Helper for morphing.
+    """Help morphing.
 
     Equivalent to "data = (e[:, idx_use_data] * data)[idx_use_out]"
     but faster.
@@ -2699,7 +2699,7 @@ def _get_label_flip(labels, label_vertidx, src):
 @verbose
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, verbose=None):
-    """Generator for extract_label_time_course."""
+    """Generate extract_label_time_course."""
     # if src is a mixed src space, the first 2 src spaces are surf type and
     # the other ones are vol type. For mixed source space n_labels will be the
     # given by the number of ROIs of the cortical parcellation plus the number

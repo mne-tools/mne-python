@@ -62,7 +62,7 @@ class Tag(object):
 
 
 def read_big(fid, size=None):
-    """Function to read large chunks of data (>16MB) Windows-friendly.
+    """Read large chunks of data (>16MB) Windows-friendly.
 
     Parameters
     ----------
@@ -148,7 +148,7 @@ def read_tag_info(fid):
 
 
 def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
-    """Helper for getting a range of rows from a large tag."""
+    """Get a range of rows from a large tag."""
     if shape is not None:
         item_size = np.dtype(dtype).itemsize
         if not len(shape) == 2:

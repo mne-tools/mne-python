@@ -1770,7 +1770,7 @@ def plot_layout(layout, show=True):
 
 def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
               cmap, fig, layout=None):
-    """Callback called from topomap for drawing average tfr over channels."""
+    """Handle drawing average tfr over channels called from topomap."""
     import matplotlib.pyplot as plt
     pos, _ = _check_outlines(pos, outlines='head', head_pos=None)
     ax = eclick.inaxes
@@ -1840,7 +1840,7 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
 
 
 def _prepare_topomap(pos, ax):
-    """Helper for preparing the topomap."""
+    """Prepare the topomap."""
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
     _hide_frame(ax)
@@ -1851,7 +1851,7 @@ def _prepare_topomap(pos, ax):
 
 
 def _hide_frame(ax):
-    """Helper to hide axis frame for topomaps."""
+    """Hide axis frame for topomaps."""
     ax.get_yticks()
     ax.xaxis.set_ticks([])
     ax.yaxis.set_ticks([])
@@ -1995,7 +1995,7 @@ def _pause_anim(event, params):
 
 
 def _key_press(event, params):
-    """Function for handling key presses for the animation."""
+    """Handle key presses for the animation."""
     if event.key == 'left':
         params['pause'] = True
         params['frame'] = max(params['frame'] - 1, 0)
@@ -2111,7 +2111,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
 
 
 def _set_contour_locator(vmin, vmax, contours):
-    """Function for setting correct contour levels."""
+    """Set correct contour levels."""
     locator = None
     if isinstance(contours, int):
         from matplotlib import ticker

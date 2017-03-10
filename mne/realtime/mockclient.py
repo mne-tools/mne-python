@@ -157,7 +157,7 @@ class MockRtClient(object):
             return None
 
     def register_receive_callback(self, x):
-        """API boilerplate.
+        """Fake API boilerplate.
 
         Parameters
         ----------
@@ -167,7 +167,7 @@ class MockRtClient(object):
         pass
 
     def start_receive_thread(self, x):
-        """API boilerplate.
+        """Fake API boilerplate.
 
         Parameters
         ----------
@@ -177,15 +177,15 @@ class MockRtClient(object):
         pass
 
     def unregister_receive_callback(self, x):
-        """API boilerplate.
+        """Fake API boilerplate.
 
         Parameters
         ----------
         x : None
             Not used.
-        """
+        """  # noqa: D401
         pass
 
     def _stop_receive_thread(self):
-        """API boilerplate."""
+        """Fake API boilerplate."""
         pass

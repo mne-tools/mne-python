@@ -985,7 +985,7 @@ def _gaussian_loglik_scorer(est, X, y=None):
 
 
 def _cross_val(data, est, cv, n_jobs):
-    """Helper to compute cross validation."""
+    """Compute cross validation."""
     try:
         from sklearn.model_selection import cross_val_score
     except ImportError:
