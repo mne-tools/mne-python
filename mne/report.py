@@ -260,7 +260,7 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error):
                 report_sectionlabel = 'raw'
             elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
                 if report.subject is not None:
-                    html = report._render_sensitivity_map(fname, subject)
+                    html = report._render_sensitivity_map(fname, report.subject, report.subjects_dir)
                     report_fname = fname
                     report_sectionlabel = 'sensitivity'
                     _update_html(html, report_fname, report_sectionlabel)
@@ -315,7 +315,7 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error):
             html = None
             report_fname = None
             report_sectionlabel = None
-        _update_html(html, report_fname, report_sectionlabel)
+        # _update_html(html, report_fname, report_sectionlabel)
 
     return htmls, report_fnames, report_sectionlabels
 
@@ -1562,9 +1562,7 @@ class Report(object):
                                         repr=repr_fwd)
         return html
 
-    def _render_sensitivity_map(self, fwd_fname, subject):
-        import matplotlib.pyplot as plt
-
+    def _render_sensitivity_map(self, fwd_fname, subject, subjects_dir):
         """Render Sensitivity plots.
         """
         caption = u'Sensitivity : %s' % fwd_fname
@@ -1572,13 +1570,25 @@ class Report(object):
         img_klass = 'Sensitivity'
         show = True
 
-        fwd = read_forward_solution(fwd_fname)
-        mag_map = sensitivity_map(fwd, ch_type='eeg', mode='fixed')
-        brain = mag_map.plot(subject=subject, time_label='Magnetometer sensitivity',
-                             hemi='rh', subjects_dir=subjects_dir)
+        fwd = read_forward_solution(fwd_fname, surf_ori=True)
+        mag_map = sensitivity_map(fwd, ch_type='grad', mode='fixed')
+        brain = mag_map.plot(time_label='Gradiometer sensitivity', subjects_dir=subjects_dir, clim=dict(lims=[0, 50, 100]))
 
         html = []
+        from mayavi import mlab
+        img = mlab.gcf()
+        global_id = self._get_id()
+        img = _fig_to_img(fig=img)
+        html.append(image_template.substitute(img=img, id=global_id,
+                                         image_format='png',
+                                         div_klass=div_klass,
+                                         img_klass=img_klass,
+                                         caption=caption,
+                                         show=True))
 
+        import matplotlib
+        matplotlib.use('Qt4Agg')
+        import matplotlib.pyplot as plt
         fig = plt.figure()
         plt.hist(mag_map.data.ravel(),
                  bins=20, label=['Magnetometers'],
@@ -1594,20 +1604,6 @@ class Report(object):
                                          img_klass=img_klass,
                                          caption=caption,
                                          show=show))
-
-        brain.save_image('sensitivity_mag.png')
-        # Convert image to binary string.
-        output = BytesIO()
-        with open('sensitivity_mag.png', 'rb') as f:
-            output.write(f.read())
-        global_id = self._get_id()
-        img = base64.b64encode(output.getvalue()).decode('ascii')
-        html.append(image_template.substitute(img=img, id=global_id,
-                                         image_format='png',
-                                         div_klass=div_klass,
-                                         img_klass=img_klass,
-                                         caption=caption,
-                                         show=True))
         return '\n'.join(html)
 
     def _render_inverse(self, inv_fname):
