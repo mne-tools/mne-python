@@ -18,7 +18,7 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 import mne
-from mne.datasets import sample  # , somato
+from mne.datasets import sample
 from mne.viz import plot_sparse_source_estimates
 
 
@@ -93,6 +93,10 @@ def solver(M, G, n_orient):
         The gain matrix a.k.a. the forward operator. The number of locations
         is n_dipoles / n_orient. n_orient will be 1 for a fixed orientation
         constraint or 3 when using a free orientation model.
+    n_orient : int
+        Can be 1 or 3 depending if one works with fixed or free orientations.
+        If n_orient is 3, then ``G[:, 2::3]`` corresponds to the dipoles that
+        are normal to the cortex.
 
     Returns
     -------
@@ -100,8 +104,8 @@ def solver(M, G, n_orient):
         The time series of the dipoles in the active set.
     active_set : array (n_dipoles)
         Array of bool. Entry j is True if dipole j is in the active set.
-        We have X_full[active_set] == X where X_full is the full X matrix
-        such that `M = G X_full`.
+        We have ``X_full[active_set] == X`` where X_full is the full X matrix
+        such that ``M = G X_full``.
     """
     K = linalg.solve(np.dot(G, G.T) + 1e15 * np.eye(G.shape[0]), G).T
     K /= np.linalg.norm(K, axis=1)[:, None]
