@@ -1586,8 +1586,6 @@ class Report(object):
                                          caption=caption,
                                          show=True))
 
-        import matplotlib
-        matplotlib.use('Qt4Agg')
         import matplotlib.pyplot as plt
         fig = plt.figure()
         plt.hist(mag_map.data.ravel(),
