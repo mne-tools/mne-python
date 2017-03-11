@@ -428,6 +428,16 @@ def test_egi_dig_montage():
     assert_dig_allclose(raw_egi.info, test_raw_egi.info)
 
 
+@testing.requires_testing_data
+def test_set_montage():
+    dig_montage = read_dig_montage(egi=egi_dig_montage_fname)
+    raw_egi = read_raw_egi(egi_raw_fname)
+    raw = raw_egi.set_montage(dig_montage)
+    if not isinstance(raw, type(raw_egi)):
+        raise TypeError("set_montage should return object of type {} "
+                        .format(type(raw_egi)))
+
+
 def _check_roundtrip(montage, fname):
     """Check roundtrip writing."""
     assert_equal(montage.coord_frame, 'head')
