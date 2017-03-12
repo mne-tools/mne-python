@@ -427,7 +427,7 @@ def _download_all_example_data(verbose=True):
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
-                   eegbci, multimodal)
+                   eegbci, multimodal, bnci)
     sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -449,6 +449,7 @@ def _download_all_example_data(verbose=True):
     megsim.load_data(condition='visual', data_format='evoked',
                      data_type='simulation', update_path=True)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
+    bnci.load_data(subject=1, dataset='001-2014', update_path=True)
     sys.argv += ['--accept-hcpmmp-license']
     try:
         fetch_hcp_mmp_parcellation()

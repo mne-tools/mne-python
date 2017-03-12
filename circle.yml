@@ -16,6 +16,7 @@ dependencies:
     - "~/mne_data/MNE-brainstorm-data"
     - "~/mne_data/MEGSIM"
     - "~/mne_data/MNE-eegbci-data"
+    - "~/mne_data/MNE-bnci-data"
     - "~/mne-tools.github.io"
   # Various dependencies
   pre:
@@ -77,6 +78,9 @@ dependencies:
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*eegbci.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.eegbci.load_data(1, [6, 10, 14], update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*bnci.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.bnci.load_data(1, dataset='001-2014', update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_auditory.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path(update_path=True))" --accept-brainstorm-license;
