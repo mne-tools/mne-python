@@ -54,9 +54,9 @@ epochs_tr = mne.Epochs(raws[0], events, event_id, 3.5, 5.5, proj=False,
 psd = PSDEstimator(sfreq=epochs_tr.info['sfreq'], fmin=fmin, fmax=fmax)
 powers = psd.transform(epochs_tr.get_data())
 
-epochs_tr._data = powers
-epochs_tr.times = np.linspace(fmin, fmax, powers.shape[-1])
-y_tr = epochs_tr.events[:, -1]
+powers_tr = mne.EpochsArray(powers, epochs_tr.info, events=epochs_tr.events)
+powers_tr.times = np.linspace(fmin, fmax, powers.shape[-1])
+y_tr = powers_tr.events[:, -1]
 
 # test data
 events = mne.find_events(raws[1])
@@ -67,9 +67,9 @@ epochs_te = mne.Epochs(raws[1], events, event_id, 3.5, 5.5, proj=False,
                        reject=None, verbose=False)
 
 powers = psd.transform(epochs_te.get_data())
-epochs_te._data = powers
-epochs_te.times = np.linspace(fmin, fmax, powers.shape[-1])
-y_te = epochs_te.events[:, -1]
+powers_te = mne.EpochsArray(powers, epochs_te.info, events=epochs_te.events)
+powers_te.times = np.linspace(fmin, fmax, powers.shape[-1])
+y_te = powers_te.events[:, -1]
 
 
 def scorer(true_labels, probas):
@@ -80,8 +80,8 @@ gat = GeneralizationAcrossTime(predict_mode='mean-prediction',
                                predict_method='predict_proba',
                                scorer=scorer, n_jobs=1)
 
-gat.fit(epochs_tr, y=y_tr)
-gat.score(epochs_te, y=y_te)
+gat.fit(powers_tr, y=y_tr)
+gat.score(powers_te, y=y_te)
 
 gat.plot(title="Frequency Generalization", show=False)
 plt.xlabel('Training Frequency (Hz)')

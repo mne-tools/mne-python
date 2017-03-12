@@ -5,8 +5,6 @@ import os
 from os import path as op
 import numpy as np
 
-from scipy.io import loadmat
-
 from ... import create_info, concatenate_raws
 from ...io import RawArray
 from ...channels import read_montage
@@ -163,8 +161,9 @@ def _load_data_001_2014(subject, path=None, force_update=False,
                         update_path=None, base_url=BNCI_URL,
                         verbose=None):
     """Load data for 001-2014 dataset."""
+
     if (subject < 1) or (subject > 9):
-        raise ValueError("Subject must be between 1 and 9.")
+        raise ValueError("Subject must be between 1 and 9. Got %d." % subject)
 
     ch_names = ['Fz', 'FC3', 'FC1', 'FCz', 'FC2', 'FC4', 'C5', 'C3',
                 'C1', 'Cz', 'C2', 'C4', 'C6', 'CP3', 'CP1', 'CPz',
@@ -176,6 +175,7 @@ def _load_data_001_2014(subject, path=None, force_update=False,
         url = '{u}001-2014/A{s:02d}{r}.mat'.format(u=base_url, s=subject, r=r)
         data_paths.extend(data_path(url, path, force_update, update_path))
 
+    from scipy.io import loadmat
     raws = []
     event_id = {}
     for filename in data_paths:
@@ -196,7 +196,7 @@ def _load_data_002_2014(subject, path=None, force_update=False,
                         verbose=None):
     """Load data for 002-2014 dataset."""
     if (subject < 1) or (subject > 14):
-        raise ValueError("Subject must be between 1 and 14.")
+        raise ValueError("Subject must be between 1 and 14. Got %d." % subject)
 
     data_paths = []
     for r in ['T', 'E']:
@@ -205,6 +205,8 @@ def _load_data_002_2014(subject, path=None, force_update=False,
 
     raws = []
     event_id = {}
+    from scipy.io import loadmat
+
     for filename in data_paths:
         data = loadmat(filename, struct_as_record=False, squeeze_me=True)
         for run in data['data']:
@@ -220,7 +222,7 @@ def _load_data_004_2014(subject, path=None, force_update=False,
                         verbose=None):
     """Load data for 004-2014 dataset."""
     if (subject < 1) or (subject > 9):
-        raise ValueError("Subject must be between 1 and 9.")
+        raise ValueError("Subject must be between 1 and 9. Got %d." % subject)
 
     ch_names = ['C3', 'Cz', 'C4', 'EOG1', 'EOG2', 'EOG3']
     ch_types = ['eeg'] * 3 + ['eog'] * 3
@@ -232,6 +234,8 @@ def _load_data_004_2014(subject, path=None, force_update=False,
 
     raws = []
     event_id = {}
+    from scipy.io import loadmat
+
     for filename in data_paths:
         data = loadmat(filename, struct_as_record=False, squeeze_me=True)
         for run in data['data']:
@@ -247,10 +251,12 @@ def _load_data_008_2014(subject, path=None, force_update=False,
                         verbose=None):
     """Load data for 008-2014 dataset."""
     if (subject < 1) or (subject > 8):
-        raise ValueError("Subject must be between 1 and 8.")
+        raise ValueError("Subject must be between 1 and 8. Got %d." % subject)
 
     url = '{u}008-2014/A{s:02d}.mat'.format(u=base_url, s=subject)
     filename = data_path(url, path, force_update, update_path)[0]
+    from scipy.io import loadmat
+
     run = loadmat(filename, struct_as_record=False, squeeze_me=True)['data']
     raw, event_id = _convert_run_p300_sl(run, verbose=verbose)
 
@@ -263,12 +269,14 @@ def _load_data_009_2014(subject, path=None, force_update=False,
                         verbose=None):
     """Load data for 009-2014 dataset."""
     if (subject < 1) or (subject > 10):
-        raise ValueError("Subject must be between 1 and 10.")
+        raise ValueError("Subject must be between 1 and 10. Got %d." % subject)
 
     # FIXME there is two type of speller, grid speller and geo-speller.
     # we load only grid speller data
     url = '{u}009-2014/A{s:02d}S.mat'.format(u=base_url, s=subject)
     filename = data_path(url, path, force_update, update_path)[0]
+    from scipy.io import loadmat
+
     data = loadmat(filename, struct_as_record=False, squeeze_me=True)['data']
     raws = []
     event_id = {}
@@ -286,7 +294,7 @@ def _load_data_001_2015(subject, path=None, force_update=False,
                         verbose=None):
     """Load data for 001-2015 dataset."""
     if (subject < 1) or (subject > 12):
-        raise ValueError("Subject must be between 1 and 12.")
+        raise ValueError("Subject must be between 1 and 12. Got %d." % subject)
 
     if subject in [8, 9, 10, 11]:
         sessions = ['A', 'B', 'C']  # 3 sessions for those subjects
@@ -304,6 +312,8 @@ def _load_data_001_2015(subject, path=None, force_update=False,
 
     raws = []
     event_id = {}
+    from scipy.io import loadmat
+
     for filename in data_paths:
         data = loadmat(filename, struct_as_record=False, squeeze_me=True)
         raw, evd = _convert_run(data['data'], ch_names, ch_types, verbose)
@@ -318,13 +328,14 @@ def _load_data_003_2015(subject, path=None, force_update=False,
                         verbose=None):
     """Load data for 003-2015 dataset."""
     if (subject < 1) or (subject > 10):
-        raise ValueError("Subject must be between 1 and 12.")
+        raise ValueError("Subject must be between 1 and 12. Got %d." % subject)
 
     url = '{u}003-2015/s{s:d}.mat'.format(u=base_url, s=subject)
     filename = data_path(url, path, force_update, update_path)[0]
 
     raws = list()
     event_id = {'Target': 2, 'Non-Target': 1}
+    from scipy.io import loadmat
 
     data = loadmat(filename, struct_as_record=False, squeeze_me=True)
     data = data['s%d' % subject]
@@ -371,7 +382,7 @@ def _load_data_004_2015(subject, path=None, force_update=False,
                         verbose=None):
     """Load data for 004-2015 dataset."""
     if (subject < 1) or (subject > 9):
-        raise ValueError("Subject must be between 1 and 9.")
+        raise ValueError("Subject must be between 1 and 9. Got %d." % subject)
 
     subjects = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'L']
 
@@ -386,6 +397,8 @@ def _load_data_004_2015(subject, path=None, force_update=False,
 
     raws = []
     event_id = {}
+    from scipy.io import loadmat
+
     data = loadmat(filename, struct_as_record=False, squeeze_me=True)
     for run in data['data']:
         raw, evd = _convert_run(run, ch_names, ch_types, verbose)
@@ -400,7 +413,7 @@ def _load_data_009_2015(subject, path=None, force_update=False,
                         verbose=None):
     """Load data for 009-2015 dataset."""
     if (subject < 1) or (subject > 21):
-        raise ValueError("Subject must be between 1 and 21.")
+        raise ValueError("Subject must be between 1 and 21. Got %d." % subject)
 
     subjects = ['fce', 'kw', 'faz', 'fcj', 'fcg', 'far', 'faw', 'fax', 'fcc',
                 'fcm', 'fas', 'fch', 'fcd', 'fca', 'fcb', 'fau', 'fci', 'fav',
@@ -420,14 +433,13 @@ def _load_data_010_2015(subject, path=None, force_update=False,
                         verbose=None):
     """Load data for 010-2015 dataset."""
     if (subject < 1) or (subject > 12):
-        raise ValueError("Subject must be between 1 and 12.")
+        raise ValueError("Subject must be between 1 and 12. Got %d." % subject)
 
     subjects = ['fat', 'gcb', 'gcc', 'gcd', 'gce', 'gcf', 'gcg', 'gch', 'iay',
                 'icn', 'icr', 'pia']
 
     s = subjects[subject - 1]
     url = '{u}BNCIHorizon2020-RSVP/RSVP_VP{s}.mat'.format(u=base_url, s=s)
-    print(url)
     filename = data_path(url, path, force_update, update_path)[0]
 
     ch_types = ['eeg'] * 63
@@ -441,7 +453,7 @@ def _load_data_012_2015(subject, path=None, force_update=False,
                         verbose=None):
     """Load data for 012-2015 dataset."""
     if (subject < 1) or (subject > 12):
-        raise ValueError("Subject must be between 1 and 12.")
+        raise ValueError("Subject must be between 1 and 12. Got %d." % subject)
 
     subjects = ['nv', 'nw', 'nx', 'ny', 'nz', 'mg', 'oa', 'ob', 'oc', 'od',
                 'ja', 'oe']
@@ -462,7 +474,7 @@ def _load_data_013_2015(subject, path=None, force_update=False,
                         verbose=None):
     """Load data for 013-2015 dataset."""
     if (subject < 1) or (subject > 6):
-        raise ValueError("Subject must be between 1 and 6.")
+        raise ValueError("Subject must be between 1 and 6. Got %d." % subject)
 
     data_paths = []
     for r in ['s1', 's2']:
@@ -472,6 +484,8 @@ def _load_data_013_2015(subject, path=None, force_update=False,
 
     raws = []
     event_id = {}
+    from scipy.io import loadmat
+
     for filename in data_paths:
         data = loadmat(filename, struct_as_record=False, squeeze_me=True)
         for run in data['run']:
@@ -539,6 +553,8 @@ def _convert_bbci(filename, ch_types, verbose=None):
     """Convert one file in bbci format."""
     raws = []
     event_id = {}
+    from scipy.io import loadmat
+
     data = loadmat(filename, struct_as_record=False, squeeze_me=True)
     for run in data['data']:
         raw, evd = _convert_run_bbci(run, ch_types, verbose)
