@@ -1877,7 +1877,7 @@ class Epochs(BaseEpochs):
     """
 
     @verbose
-    def __init__(self, raw, events, event_id=None, tmin=-0.2, tmax=0.5,
+    def __init__(self, raw, events=None, event_id=None, tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), picks=None, name='Unknown', preload=False,
                  reject=None, flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, add_eeg_ref=None,
@@ -1890,6 +1890,13 @@ class Epochs(BaseEpochs):
 
         # proj is on when applied in Raw
         proj = proj or raw.proj
+
+        if events is None:
+            if isinstance(info['events'], np.ndarray):
+                events = info['events']
+            else:
+                raise TypeError('events can be None only if raw.info contains'
+                                ' events.')
 
         self.reject_by_annotation = reject_by_annotation
         # call BaseEpochs constructor
