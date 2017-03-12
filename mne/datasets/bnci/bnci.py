@@ -161,7 +161,6 @@ def _load_data_001_2014(subject, path=None, force_update=False,
                         update_path=None, base_url=BNCI_URL,
                         verbose=None):
     """Load data for 001-2014 dataset."""
-
     if (subject < 1) or (subject > 9):
         raise ValueError("Subject must be between 1 and 9. Got %d." % subject)
 
