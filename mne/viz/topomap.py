@@ -99,7 +99,7 @@ def _plot_update_evoked_topomap(params, bools):
     new_evoked.add_proj(projs)
     new_evoked.apply_proj()
 
-    data = new_evoked.data[np.ix_(params['picks'],
+    data = new_evoked.data[np.ix_(range(len(new_evoked.data)),
                                   params['time_idx'])] * params['scale']
     if params['merge_grads']:
         from ..channels.layout import _merge_grad_data

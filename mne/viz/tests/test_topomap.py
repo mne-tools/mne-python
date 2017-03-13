@@ -144,6 +144,8 @@ def test_plot_topomap():
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
         evoked.plot_topomap(0.1, 'mag', proj='interactive', res=res)
+    fig = plt.gcf()
+    _fake_click(fig, fig.axes[0], (0.075, 0.775))  # toggle projector
     assert_raises(RuntimeError, plot_evoked_topomap, evoked,
                   np.repeat(.1, 50))
     assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
