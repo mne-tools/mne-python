@@ -165,7 +165,7 @@ def test_dics_source_power():
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
     epochs.crop(0, None)
-    reg = 1.
+    reg = 0.05
 
     stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
                                          data_csd, label=label, reg=reg)
@@ -175,7 +175,7 @@ def test_dics_source_power():
 
     # TODO: Maybe these could be more directly compared to dics() results?
     assert_true(max_source_idx == 1)
-    assert_true(0.1 < max_source_power < 0.2, msg=max_source_power)
+    assert_true(0.004 < max_source_power < 0.005, msg=max_source_power)
 
     # Test picking normal orientation and using a list of CSD matrices
     stc_normal = dics_source_power(epochs.info, forward_surf_ori,
@@ -234,7 +234,7 @@ def test_tf_dics():
 
     freq_bins = [(4, 20), (30, 55)]
     win_lengths = [0.2, 0.2]
-    reg = 0.001
+    reg = 0.05
 
     noise_csds = []
     for freq_bin, win_length in zip(freq_bins, win_lengths):
@@ -249,6 +249,8 @@ def test_tf_dics():
 
     assert_true(len(stcs) == len(freq_bins))
     assert_true(stcs[0].shape[1] == 4)
+    assert_true(2.2 < stcs[0].data.max() < 2.3)
+    assert_true(0.94 < stcs[0].data.min() < 0.95)
 
     # Manually calculating source power in several time windows to compare
     # results and test overlapping

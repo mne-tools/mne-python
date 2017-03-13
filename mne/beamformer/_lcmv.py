@@ -26,10 +26,7 @@ def _reg_pinv(x, reg):
     """Compute a regularized pseudoinverse of a square array."""
     # This adds it to the diagonal without using np.eye
     d = reg * np.trace(x) / len(x)
-    shape = x.shape
-    x.shape = (-1,)
-    x[::shape[0] + 1] += d
-    x.shape = shape
+    x.flat[::x.shape[0] + 1] += d
     return linalg.pinv(x)
 
 

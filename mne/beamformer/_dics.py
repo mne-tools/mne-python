@@ -138,9 +138,8 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
     real_filter : bool
-        If True, take only the real part of the part of the
-        cross-spectral-density matrices to compute real filters as in
-        [2]_. Default is False.
+        If True, take only the real part of the cross-spectral-density matrices
+        to compute real filters as in [2]_. Default is False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -219,9 +218,8 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
     real_filter : bool
-        If True, take only the real part of the part of the
-        cross-spectral-density matrices to compute real filters.
-        Default is False.
+        If True, take only the real part of the cross-spectral-density matrices
+        to compute real filters as in [2]_. Default is False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -286,8 +284,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
     real_filter : bool
-        If True, take only the real part of the part of the
-        cross-spectral-density matrices to compute real filters.
+        If True, take only the real part of the cross-spectral-density matrices
+        to compute real filters.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
