@@ -156,7 +156,7 @@ def _make_dipoles(times, poss, oris, sol, gof):
     dipoles : list
         The list of Dipole instances.
     """
-    amplitude = sol * 1e9
+    amplitude = sol
     oris = np.array(oris)
 
     dipoles = []
