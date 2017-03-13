@@ -196,7 +196,10 @@ def test_montage():
 
         evoked = EvokedArray(
             data=np.zeros((len(montage.ch_names), 1)), info=info, tmin=0)
-        evoked.set_montage(montage)
+
+        # test return type as well as set montage
+        assert_true(isinstance(evoked.set_montage(montage), type(evoked)))
+
         pos3 = np.array([c['loc'][:3] for c in evoked.info['chs']])
         assert_array_equal(pos3, montage.pos)
         assert_equal(montage.ch_names, evoked.info['ch_names'])
@@ -426,16 +429,6 @@ def test_egi_dig_montage():
         assert_equal(ch_raw['coord_frame'], FIFF.FIFFV_COORD_HEAD)
         assert_allclose(ch_raw['loc'], ch_test_raw['loc'], atol=1e-7)
     assert_dig_allclose(raw_egi.info, test_raw_egi.info)
-
-
-@testing.requires_testing_data
-def test_set_montage():
-    dig_montage = read_dig_montage(egi=egi_dig_montage_fname)
-    raw_egi = read_raw_egi(egi_raw_fname)
-    raw = raw_egi.set_montage(dig_montage)
-    if not isinstance(raw, type(raw_egi)):
-        raise TypeError("set_montage should return object of type {} "
-                        .format(type(raw_egi)))
 
 
 def _check_roundtrip(montage, fname):
