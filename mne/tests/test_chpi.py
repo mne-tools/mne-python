@@ -15,7 +15,8 @@ from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
 from mne.chpi import (_calculate_chpi_positions,
                       head_pos_to_trans_rot_t, read_head_pos,
-                      write_head_pos, filter_chpi, _get_hpi_info)
+                      write_head_pos, filter_chpi,
+                      _get_hpi_info, _get_hpi_initial_fit)
 from mne.fixes import assert_raises_regex
 from mne.transforms import rot_to_quat, _angle_between_quats
 from mne.simulation import simulate_raw
@@ -46,8 +47,8 @@ def test_chpi_adjust():
     """Test cHPI logging and adjustment."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
     with catch_logging() as log:
-        _get_hpi_info(raw.info, adjust=True, verbose='debug')
-
+        _get_hpi_initial_fit(raw.info, adjust=True, verbose='debug')
+        _get_hpi_info(raw.info, verbose='debug')
     # Ran MaxFilter (with -list, -v, -movecomp, etc.), and got:
     msg = ['HPIFIT: 5 coils digitized in order 5 1 4 3 2',
            'HPIFIT: 3 coils accepted: 1 2 4',
@@ -74,7 +75,8 @@ def test_chpi_adjust():
         'Note: HPI coil 3 isotrak is adjusted by 5.3 mm!',
         'Note: HPI coil 5 isotrak is adjusted by 3.2 mm!'] + msg[-2:]
     with catch_logging() as log:
-        _get_hpi_info(raw.info, adjust=True, verbose='debug')
+        _get_hpi_initial_fit(raw.info, adjust=True, verbose='debug')
+        _get_hpi_info(raw.info, verbose='debug')
     log = log.getvalue().splitlines()
     assert_true(set(log) == set(msg), '\n' + '\n'.join(set(msg) - set(log)))
 

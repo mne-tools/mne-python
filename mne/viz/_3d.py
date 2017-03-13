@@ -51,7 +51,10 @@ def _fiducial_coords(points, coord_frame=None):
         points = (p for p in points if p['coord_frame'] == coord_frame)
     points_ = dict((p['ident'], p) for p in points if
                    p['kind'] == FIFF.FIFFV_POINT_CARDINAL)
-    return np.array([points_[i]['r'] for i in FIDUCIAL_ORDER])
+    if points_:
+        return np.array([points_[i]['r'] for i in FIDUCIAL_ORDER])
+    else:
+        return np.array([])
 
 
 def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',

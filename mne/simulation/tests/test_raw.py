@@ -244,7 +244,7 @@ def test_simulate_raw_chpi():
     raw_chpi = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=True,
                             head_pos=pos_fname, interp='zero')
     # test cHPI indication
-    hpi_freqs, _, hpi_pick, hpi_ons = _get_hpi_info(raw.info)[:4]
+    hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(raw.info)
     assert_allclose(raw_sim[hpi_pick][0], 0.)
     assert_allclose(raw_chpi[hpi_pick][0], hpi_ons.sum())
     # test that the cHPI signals make some reasonable values

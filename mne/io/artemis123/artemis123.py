@@ -7,15 +7,18 @@ import os.path as op
 import datetime
 import calendar
 
-from .utils import _load_mne_locs
+from .utils import _load_mne_locs, _read_pos
 from ...utils import logger, warn
 from ..utils import _read_segments_file
 from ..base import BaseRaw
-from ..meas_info import _empty_info
+from ..meas_info import _empty_info, _make_dig_points
 from ..constants import FIFF
+from ...chpi import compute_head_localization as comp_head_loc
+from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
 
 
-def read_raw_artemis123(input_fname, preload=False, verbose=None):
+def read_raw_artemis123(input_fname, preload=False, verbose=None,
+                        pos_fname=None, head_loc=True):
     """Read Artemis123 data as raw object.
 
     Parameters
@@ -42,12 +45,13 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawArtemis123(input_fname, preload=preload, verbose=verbose)
+    return RawArtemis123(input_fname, preload=preload, verbose=verbose,
+                         pos_fname=pos_fname, head_loc=head_loc)
 
 
-def _get_artemis123_info(fname):
-    """Extract info from artemis123 header files."""
-    fname = op.splitext(op.abspath(fname))[0]
+def _get_artemis123_info(fname, pos_fname=None):
+    """Function for extracting info from artemis123 header files."""
+    fname = op.splitext(fname)[0]
     header = fname + '.txt'
 
     logger.info('Reading header...')
@@ -135,8 +139,11 @@ def _get_artemis123_info(fname):
     except Exception:
         meas_date = None
 
-    # build subject info
-    subject_info = {'id': header_info['Subject ID']}
+    # build subject info must be an integer (as per FIFF)
+    try:
+        subject_info = {'id': int(header_info['Subject ID'])}
+    except:
+        subject_info = {'id': 0}
 
     # build description
     desc = ''
@@ -234,6 +241,47 @@ def _get_artemis123_info(fname):
 
     # reduce info['bads'] to unique set
     info['bads'] = list(set(info['bads']))
+
+    # HPI information
+    # print header_info.keys()
+    hpi_sub = dict()
+    # Don't know what event_channel is don't think we have it HPIs are either
+    # always on or always off.
+    # hpi_sub['event_channel'] = ???
+    hpi_sub['hpi_coils'] = [dict(), dict(), dict(), dict()]
+    for i in range(4):
+        k = 'Head Tracking Channel %d' % (i + 1)
+        if (header_info[k] == 'OFF'):
+            hpi_sub['hpi_coils'][i]['event_bits'] = [0]
+        else:
+            hpi_sub['hpi_coils'][i]['event_bits'] = [256]
+    info['hpi_subsystem'] = hpi_sub
+
+    # hpi coils
+    hpi_coils = [dict(), dict(), dict()]
+    hpi_coils[0] = dict()
+    hpi_coils[0]['number'] = 1
+    hpi_coils[0]['coil_freq'] = 700
+    hpi_coils[0]['drive_chan'] = 'MIO_001'
+
+    hpi_coils[1] = dict()
+    hpi_coils[1]['number'] = 2
+    hpi_coils[1]['coil_freq'] = 750
+    hpi_coils[1]['drive_chan'] = 'MIO_003'
+
+    hpi_coils[2] = dict()
+    hpi_coils[2]['number'] = 3
+    hpi_coils[2]['coil_freq'] = 800
+    hpi_coils[2]['drive_chan'] = 'MIO_009'
+
+    info['hpi_meas'] = [{'hpi_coils': hpi_coils}]
+
+    # read in digitized points if supplied
+    if pos_fname is not None:
+        info['dig'] = _read_pos(pos_fname)
+    else:
+        info['dig'] = []
+
     info._update_redundant()
     return info, header_info
 
@@ -259,13 +307,60 @@ class RawArtemis123(BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
 
-    def __init__(self, input_fname, preload=False, verbose=None):  # noqa: D102
-        info, header_info = _get_artemis123_info(input_fname)
+    def __init__(self, input_fname, preload=False, verbose=None,
+                 pos_fname=None, head_loc=True):  # noqa: D102
+
+        fname, ext = op.splitext(input_fname)
+        if ext == '.txt':
+            input_fname = fname + '.bin'
+        elif ext != '.bin':
+            raise RuntimeError('Valid artemis123 files must end in \'txt\'' +
+                               ' or \'.bin\'.')
+
+        if not op.exists(input_fname):
+            raise RuntimeError('%s - Not Found' % input_fname)
+
+        info, header_info = _get_artemis123_info(input_fname,
+                                                 pos_fname=pos_fname)
         last_samps = [header_info['num_samples'] - 1]
+
         super(RawArtemis123, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
             last_samps=last_samps, orig_format=np.float32,
             verbose=verbose)
+
+        if head_loc:
+            n_hpis = 0
+            for d in info['hpi_subsystem']['hpi_coils']:
+                if d['event_bits'] == [256]:
+                    n_hpis += 1
+            if n_hpis < 3:
+                warn('%d HPIs active. At least 3 needed to perform' % n_hpis +
+                     'head localization')
+            else:
+                trans, hpi_dev_rrs = comp_head_loc(self, time_win=[0, 1])
+                if pos_fname is None:
+                    logger.info('Assuming Cardinal HPIs')
+                    nas = hpi_dev_rrs[0]
+                    lpa = hpi_dev_rrs[2]
+                    rpa = hpi_dev_rrs[1]
+                    t = get_ras_to_neuromag_trans(nas, lpa, rpa)
+                    self.info['dev_head_t'] = Transform(FIFF.FIFFV_COORD_DEVICE,
+                                                        FIFF.FIFFV_COORD_HEAD,
+                                                        t)
+                    # transform fiducial points
+                    nas = apply_trans(t, nas)
+                    lpa = apply_trans(t, lpa)
+                    rpa = apply_trans(t, rpa)
+
+                    hpi = [nas, lpa, rpa]
+                    self.info['dig'] = _make_dig_points(nasion=nas, lpa=lpa,
+                                                        rpa=rpa, hpi=hpi)
+
+                # TODO fill in info['hpi_results'][-1]
+
+        else:
+            self.info['dev_head_t'] = trans
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
