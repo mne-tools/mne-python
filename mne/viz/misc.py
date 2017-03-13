@@ -607,7 +607,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
         xlim[1] = max(xlim[1], dip.times[-1])
     ax.set_xlim(xlim)
     ax.set_xlabel('Time (sec)')
-    ax.set_ylabel('Amplitude (nAm)')
+    ax.set_ylabel('Amplitude (Am)')
     if show:
         fig.show(warn=False)
     return fig
