@@ -560,8 +560,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         out.comment = '-' + (out.comment or 'unknown')
         return out
 
-    def get_peak(self, ch_type=None, merge_grads=False, tmin=None, tmax=None,
-                 mode='abs', time_as_index=False):
+    def get_peak(self, ch_type=None, tmin=None, tmax=None,
+                 mode='abs', time_as_index=False, merge_grads=False):
         """Get location and latency of peak amplitude.
 
         Parameters
@@ -570,8 +570,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The channel type to use. Defaults to None. If more than one sensor
             Type is present in the data the channel type has to be explicitly
             set.
-        merge_grads : bool
-            If True, compute peak from merged gradiometer data.
         tmin : float | None
             The minimum point in time to be considered for peak getting.
             If None (default), the beginning of the data is used.
@@ -585,6 +583,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Defaults to 'abs'.
         time_as_index : bool
             Whether to return the time index instead of the latency in seconds.
+        merge_grads : bool
+            If True, compute peak from merged gradiometer data.
 
         Returns
         -------
@@ -618,8 +618,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if ch_type != 'grad':
                 raise ValueError('Channel type must be grad for merge_grads')
             elif mode == 'neg':
-                raise ValueError('Negative mode does not make sense with '
-                                 'merge_grads=True')
+                raise ValueError('Negative mode (mode=neg) does not make '
+                                 'sense with merge_grads=True')
 
         meg = eeg = misc = seeg = ecog = fnirs = False
         picks = None
