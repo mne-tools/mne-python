@@ -647,6 +647,14 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         data. Defaults to False.
     show : bool
         Show figure if True.
+    legend : bool
+        If True, automatically create a legend based on evoked.comment.
+    legend_loc : int | string | tuple
+        The location parameter given to the matplotlib legend call. For
+        example, 'upper right'. By default, the location is chosen
+        automatically.
+    legend_fontsize : int
+        The font size for the legend.
 
     Returns
     -------
