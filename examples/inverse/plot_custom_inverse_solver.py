@@ -6,18 +6,18 @@ Source localization with a custom inverse solver
 
 The objective of this example is to show how to plug a custom inverse solver
 in MNE in order to facilate empirical comparison with the methods MNE already
-implements (wMNE, dSPM, sLORETA, LCMV, (TF-)MxNE) etc.
+implements (wMNE, dSPM, sLORETA, LCMV, (TF-)MxNE etc.).
 
 This script is educational and shall be used for methods
 evaluations and new developments. It is not meant to be an example
 of good practice to analyse your data.
 
 The example makes use of 2 functions ``apply_solver`` and ``solver``
-so changes can be limited to the ``solver`` function in order to
-try out another inverse algorithm.
+so changes can be limited to the ``solver`` function (which only takes three
+parameters: the whitened data, the gain matrix, and the number of orientations)
+in order to try out another inverse algorithm.
 """
 
-from copy import deepcopy
 import numpy as np
 from scipy import linalg
 import mne
@@ -93,7 +93,7 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     all_ch_names = evoked.ch_names
     # put the forward solution in fixed orientation if it's not already
     if loose is None and not is_fixed_orient(forward):
-        forward = deepcopy(forward)
+        forward = forward.copy()
         _to_fixed_ori(forward)
 
     # Handle depth weighting and whitening (here is no weights)
