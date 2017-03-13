@@ -4,14 +4,17 @@
 Source localization with a custom inverse solver
 ================================================
 
-The objective of this example is to show how to plug
-a custom inverse solver in MNE in order to facilate
-empirical comparison with the methods MNE already
+The objective of this example is to show how to plug a custom inverse solver
+in MNE in order to facilate empirical comparison with the methods MNE already
 implements (wMNE, dSPM, sLORETA, LCMV, (TF-)MxNE) etc.
 
 This script is educational and shall be used for methods
 evaluations and new developments. It is not meant to be an example
 of good practice to analyse your data.
+
+The example makes use of 2 functions ``apply_solver`` and ``solver``
+so changes can be limited to the ``solver`` function in order to
+try out another inverse algorithm.
 """
 
 from copy import deepcopy
@@ -44,6 +47,44 @@ forward = mne.read_forward_solution(fwd_fname, surf_ori=True)
 # Auxilary function to run the solver
 
 def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
+    """Function to call a custom solver on evoked data
+
+    This function does all the necessary computation:
+
+    - to select the channels in the forward given the available ones in
+      the data
+    - to take into account the noise covariance and do the spatial whitening
+    - to apply loose orientation constraint as MNE solvers
+    - to apply a weigthing of the columns of the forward operator as in the
+      weighted Minimum Norm formulation in order to limit the problem
+      of depth bias.
+
+    Parameters
+    ----------
+    solver : callable
+        The solver takes 3 parameters: data M, gain matrix G, number of
+        dipoles orientations per location (1 or 3). A solver shall return
+        2 variables: X which contains the time series of the active dipoles
+        and an active set which is a boolean mask to specify what dipoles are
+        present in X.
+    evoked : instance of mne.Evoked
+        The evoked data
+    forward : instance of Forward
+        The forward solution.
+    noise_cov : instance of Covariance
+        The noise covariance.
+    loose : None | float in [0, 1]
+        Value that weights the source variances of the dipole components
+        defining the tangent space of the cortical surfaces. Requires surface-
+        based, free orientation forward solutions.
+    depth : None | float in [0, 1]
+        Depth weighting coefficients. If None, no depth weighting is performed.
+
+    Returns
+    -------
+    stc : instance of SourceEstimate
+        The source estimates.
+    """
     # Import the necessary private functions
     from mne.inverse_sparse.mxne_inverse import \
         (_prepare_gain, _to_fixed_ori, is_fixed_orient,
