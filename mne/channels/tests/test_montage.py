@@ -196,7 +196,10 @@ def test_montage():
 
         evoked = EvokedArray(
             data=np.zeros((len(montage.ch_names), 1)), info=info, tmin=0)
-        evoked.set_montage(montage)
+
+        # test return type as well as set montage
+        assert_true(isinstance(evoked.set_montage(montage), type(evoked)))
+
         pos3 = np.array([c['loc'][:3] for c in evoked.info['chs']])
         assert_array_equal(pos3, montage.pos)
         assert_equal(montage.ch_names, evoked.info['ch_names'])

@@ -437,6 +437,7 @@ class SetChannelsMixin(object):
         """
         from .montage import _set_montage
         _set_montage(self.info, montage)
+        return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
                      show_names=False, ch_groups=None, axes=None, block=False,
