@@ -16,7 +16,7 @@ from copy import deepcopy
 import numpy as np
 
 from ..io.pick import (channel_type, pick_types, _picks_by_type,
-                       _pick_data_channels, _DATA_CH_TYPES_SPLIT)
+                       _pick_data_channels, _VALID_CHANNEL_TYPES)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
@@ -196,10 +196,6 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     scalings = _handle_default('scalings', scalings)
     titles = _handle_default('titles', titles)
     units = _handle_default('units', units)
-    # Valid data types ordered for consistency
-    valid_channel_types = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
-                           'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr',
-                           'misc']
 
     if picks is None:
         picks = list(range(info['nchan']))
@@ -221,7 +217,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
     types = np.array([channel_type(info, idx) for idx in picks])
     ch_types_used = list()
-    for this_type in valid_channel_types:
+    for this_type in _VALID_CHANNEL_TYPES:
         if this_type in types:
             ch_types_used.append(this_type)
 
@@ -1459,6 +1455,10 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         gfp = True
         picks = _pick_data_channels(example.info)
 
+        if len(picks) == 0:
+            raise ValueError("No valid channels were found to plot the GFP. " +
+                             "Use 'picks' instead to select them manually.")
+
     # deal with picks: infer indices and names
     if gfp is True:
         ch_names = ['Global Field Power']
@@ -1473,7 +1473,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     ch_types = list(set(channel_type(example.info, pick_)
                     for pick_ in picks))
     # XXX: could possibly be refactored; plot_joint is doing a similar thing
-    if any([type_ not in _DATA_CH_TYPES_SPLIT for type_ in ch_types]):
+    if any([type_ not in _VALID_CHANNEL_TYPES for type_ in ch_types]):
         raise ValueError("Non-data channel picked.")
     if len(ch_types) > 1:
         warn("Multiple channel types selected, returning one figure per type.")
