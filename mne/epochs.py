@@ -1988,7 +1988,7 @@ class EpochsArray(BaseEpochs):
     proj : bool | 'delayed'
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.
     on_missing : str
-        See `Epochs` docstring.
+        See :class:`mne.Epochs` docstring for details.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
