@@ -281,7 +281,9 @@ class Kit2FiffModel(HasPrivateTraits):
             data, times = self.raw[self.misc_chs]
         except Exception as err:
             if self.show_gui:
-                error(None, str(err), "Error Creating FsAverage")
+                error(None, "Error reading SQD data file: %s (Check the "
+                      "terminal output for details)" % str(err),
+                      "Error Reading SQD File")
             raise
         finally:
             if self.show_gui:
@@ -311,7 +313,7 @@ class Kit2FiffModel(HasPrivateTraits):
             if self.show_gui:
                 error(None, "Error reading SQD data file: %s (Check the "
                       "terminal output for details)" % str(err),
-                      "Error Reading SQD file")
+                      "Error Reading SQD File")
             raise
 
     @cached_property
