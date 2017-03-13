@@ -839,7 +839,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             comment = self.name
         else:
             if len(self.event_id.keys()) == 1:
-                comment = self.event_id.keys()[0]
+                comment = list(self.event_id.keys())[0]
             else:
                 count = np.bincount(self.events[:, 2])
                 comments = list()
