@@ -592,7 +592,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      border='none', ylim=None, scalings=None, title=None,
                      proj=False, vline=[0.0], fig_facecolor='k',
                      fig_background=None, axis_facecolor='k', font_color='w',
-                     merge_grads=False, show=True):
+                     merge_grads=False, show=True, legend=True, legend_loc=0,
+                     legend_fontsize=10):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -660,7 +661,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              fig_background=fig_background,
                              axis_facecolor=axis_facecolor,
                              font_color=font_color, merge_grads=merge_grads,
-                             show=show)
+                             show=show, legend=legend, legend_loc=legend_loc,
+                             legend_fontsize=legend_fontsize)
 
 
 def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,

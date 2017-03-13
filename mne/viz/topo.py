@@ -465,10 +465,10 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
 
 def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
-                      legend=True, legend_loc=0, legend_fontsize=10,
                       proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
-                      merge_grads=False, show=True):
+                      merge_grads=False, show=True, legend=True, legend_loc=0,
+                      legend_fontsize=10):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -502,14 +502,6 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
     title : str
         Title of the figure.
-    legend : bool
-        If True, automatically create a legend based on evoked.comment.
-    legend_loc : int | string | tuple
-        The location parameter given to the matplotlib legend call. For
-        example, 'upper right'. By default, the location is chosen
-        automatically.
-    legend_fontsize : int
-        The font size for the legend.
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
@@ -532,6 +524,14 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         data. Defaults to False.
     show : bool
         Show figure if True.
+    legend : bool
+        If True, automatically create a legend based on evoked.comment.
+    legend_loc : int | string | tuple
+        The location parameter given to the matplotlib legend call. For
+        example, 'upper right'. By default, the location is chosen
+        automatically.
+    legend_fontsize : int
+        The font size for the legend.
 
     Returns
     -------
