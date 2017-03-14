@@ -10,7 +10,7 @@ from __future__ import print_function
 
 from functools import partial
 from itertools import cycle
-from copy import copy
+from copy import deepcopy
 
 import numpy as np
 
@@ -154,7 +154,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
     import matplotlib.pyplot as plt
 
     if layout.kind == 'custom':
-        layout = copy(layout)
+        layout = deepcopy(layout)
         layout.pos[:, :2] -= layout.pos[:, :2].min(0)
         layout.pos[:, :2] /= layout.pos[:, :2].max(0)
 
