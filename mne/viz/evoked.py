@@ -428,7 +428,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
 
 
 def _handle_spatial_colors(locs3d, info, idx, ch_type, psd, ax):
-    """Helper for spatial colors."""
+    """Set up spatial colors."""
     x, y, z = locs3d.T
     colors = _rgb(x, y, z)
     ch_type = None if ch_type not in ('meg', 'mag', 'grad', 'eeg') else ch_type
