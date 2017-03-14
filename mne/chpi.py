@@ -1,3 +1,31 @@
+# -*- coding: utf-8 -*-
+u"""Functions for fitting head positions with (c)HPI coils.
+
+To fit head positions (continuously), the procedure using
+``_calculate_chpi_positions`` is:
+
+    1. Get HPI frequencies, HPI coil locations in head coords, HPI status
+       channel, HPI status bits, and digitization order using
+       ``_get_hpi_info``.
+    2. Window data using ``t_window`` (half before and half after ``t``) and
+       ``t_step_min``.
+       (Here Elekta high-passes the data, but we omit this step.)
+    3. Use a linear model (DC + linear slope + sin + cos terms set up
+       in ``_setup_chpi_fits``) to fit sinusoidal amplitudes to MEG
+       channels.
+    4. Use SVD to determine the phase/amplitude of the sinusoids.
+    5. If the amplitudes are 98% correlated with last position
+       (and Δt < t_step_max), skip fitting.
+    5. Fit magnetic dipoles using the amplitudes for each coil frequency
+       (calling ``_fit_magnetic_dipole``).
+    6. Choose good coils based on pairwise distances, taking into account
+       the tolerance ``dist_limit``.
+    7. Fit dev_head_t (using ``_fit_chpi_pos``).
+    8. Accept or reject fit based on GOF threshold ``gof_limit``.
+
+The function ``filter_chpi`` uses the same linear model to filter cHPI
+and (optionally) line frequencies from the data.
+"""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
