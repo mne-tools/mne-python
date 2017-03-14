@@ -9,7 +9,7 @@ import numpy as np
 import h5py #Added to read newer Matlab files (7.3 and later)
 from collections import Mapping, namedtuple
 
-from scipy import io as scipy_io
+from scipy.io import loadmat, matlab, whosmat
 
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
@@ -44,8 +44,7 @@ def _check_mat_struct(fname):
                            ' files.')
     try:
         #Try to read old style Matlab file
-        mat = scipy_io.whosmat(fname, struct_as_record=False,
-                         squeeze_me=True)
+        mat = whosmat(fname, struct_as_record=False, squeeze_me=True)
     except:
         #Try to read new style Matlab file
         f=h5py.File(fname)
@@ -96,7 +95,7 @@ def _get_info(eeg, montage, eog=()):
         ch_types = [x.type for x in eeg.chanlocs]
         pos_fields = ['X', 'Y', 'Z']
         if (isinstance(eeg.chanlocs, np.ndarray) and not isinstance(
-                eeg.chanlocs[0], scipy_io.matlab.mio5_params.mat_struct)):
+                eeg.chanlocs[0], matlab.mio5_params.mat_struct)):
             has_pos = all(fld in eeg.chanlocs[0].dtype.names
                           for fld in pos_fields)
         else:
@@ -443,7 +442,7 @@ class RawEEGLAB(BaseRaw):
         _check_mat_struct(input_fname)
         try:
             #Try to read old style Matlab file
-            eeg = scipy_io.loadmat(input_fname, struct_as_record=False,
+            eeg = loadmat(input_fname, struct_as_record=False,
                             squeeze_me=True, uint16_codec=uint16_codec)['EEG']
         except:
             #Try to read new style Matlab file (Version 7.3+)
@@ -616,7 +615,7 @@ class EpochsEEGLAB(BaseEpochs):
         _check_mat_struct(input_fname)
         try:
             #Try to read old style Matlab file
-            eeg = scipy_io.loadmat(input_fname, struct_as_record=False,
+            eeg = loadmat(input_fname, struct_as_record=False,
                             squeeze_me=True, uint16_codec=uint16_codec)['EEG']
         except:
             #Try to read new style Matlab file (Version 7.3+)

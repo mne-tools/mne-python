@@ -1477,8 +1477,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
         if not isinstance(kind, string_types):
             raise TypeError('each entry in ch_types must be a string')
         if kind not in _kind_dict:
-            print 'kind must be one of %s, not %s' % (list(_kind_dict.keys()), kind)
-            print '  Changing "%s" to "misc"' % kind
+            print ('kind must be one of %s, not %s' % (list(_kind_dict.keys()), kind))
+            print ('  Changing "%s" to "misc"' % kind)
             ch_types[ci] = 'misc'
             kind = "misc"
             #raise KeyError('kind must be one of %s, not %s'
