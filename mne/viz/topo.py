@@ -306,6 +306,8 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         ax.set_yscale('log')
         ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
 
+    ax.yaxis.set_minor_formatter(ticker.NullFormatter())
+    ax.yaxis.set_minor_locator(ticker.NullLocator())  # get rid of minor ticks
     tick_vals = freq[np.unique(np.linspace(
         0, len(freq) - 1, 12).round().astype('int'))]
     ax.set_yticks(tick_vals)
