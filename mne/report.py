@@ -167,7 +167,7 @@ def _is_bad_fname(fname):
     if fname.endswith('(whitened)'):
         fname = fname[:-11]
 
-    if not fname.endswith(tuple(VALID_EXTENSIONS + ['bem', 'custom'])):
+    if not fname.endswith(tuple(VALID_EXTENSIONS + ['bem', 'custom', '(sensitivity)'])):
         return 'red'
     else:
         return ''
@@ -210,6 +210,10 @@ def _get_toc_property(fname):
         div_klass = 'forward'
         tooltip = fname
         text = op.basename(fname)
+    elif fname.endswith(('(sensitivity)')):
+        div_klass = 'sensitivity'
+        tooltip = 'Sensitivity'
+        text = 'Sensitivity'
     elif fname.endswith(('-inv.fif', '-inv.fif.gz')):
         div_klass = 'inverse'
         tooltip = fname
@@ -259,9 +263,9 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error):
                 report_fname = fname
                 report_sectionlabel = 'raw'
             elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
-                if report.subject is not None:
-                    html = report._render_sensitivity_map(fname, report.subject, report.subjects_dir)
-                    report_fname = fname
+                if report.subjects_dir is not None:
+                    html = report._render_sensitivity_map(fname, report.subjects_dir)
+                    report_fname = fname + '(sensitivity)'
                     report_sectionlabel = 'sensitivity'
                     _update_html(html, report_fname, report_sectionlabel)
 
@@ -315,7 +319,7 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error):
             html = None
             report_fname = None
             report_sectionlabel = None
-        # _update_html(html, report_fname, report_sectionlabel)
+        _update_html(html, report_fname, report_sectionlabel)
 
     return htmls, report_fnames, report_sectionlabels
 
@@ -1404,6 +1408,14 @@ class Report(object):
                                                         text=text)
                         global_id += 1
 
+                    elif fname.endswith(('(sensitivity)')):
+                        html_toc += toc_list.substitute(div_klass=div_klass,
+                                                        id=global_id,
+                                                        tooltip=tooltip,
+                                                        color=color,
+                                                        text=text)
+                        global_id += 2
+
         html_toc += u'\n</ul></div>'
         html_toc += u'<div id="content">'
 
@@ -1562,7 +1574,7 @@ class Report(object):
                                         repr=repr_fwd)
         return html
 
-    def _render_sensitivity_map(self, fwd_fname, subject, subjects_dir):
+    def _render_sensitivity_map(self, fwd_fname, subjects_dir):
         """Render Sensitivity plots.
         """
         caption = u'Sensitivity : %s' % fwd_fname
@@ -1572,22 +1584,23 @@ class Report(object):
 
         fwd = read_forward_solution(fwd_fname, surf_ori=True)
         mag_map = sensitivity_map(fwd, ch_type='grad', mode='fixed')
-        brain = mag_map.plot(time_label='Gradiometer sensitivity', subjects_dir=subjects_dir, clim=dict(lims=[0, 50, 100]))
+        mag_map.plot(time_label='Gradiometer sensitivity',
+                 subjects_dir=subjects_dir,
+                 clim=dict(lims=[0, 50, 100]))
 
         html = []
         from mayavi import mlab
-        img = mlab.gcf()
         global_id = self._get_id()
+        img = mlab.gcf()
         img = _fig_to_img(fig=img)
         html.append(image_template.substitute(img=img, id=global_id,
-                                         image_format='png',
-                                         div_klass=div_klass,
-                                         img_klass=img_klass,
-                                         caption=caption,
-                                         show=True))
-
+                                              image_format='png',
+                                              div_klass=div_klass,
+                                              img_klass=img_klass,
+                                              caption=caption,
+                                              show=True))
         import matplotlib.pyplot as plt
-        fig = plt.figure()
+        plt.figure()
         plt.hist(mag_map.data.ravel(),
                  bins=20, label=['Magnetometers'],
                  color=['b'])
@@ -1596,12 +1609,13 @@ class Report(object):
         plt.ylabel('count')
         plt.legend()
         global_id = self._get_id()
-        img = _fig_to_img(fig=fig)
+        img = plt.gcf()
+        img = _fig_to_img(fig=img)
         html.append(image_template.substitute(img=img, id=global_id,
-                                         div_klass=div_klass,
-                                         img_klass=img_klass,
-                                         caption=caption,
-                                         show=show))
+                                              div_klass=div_klass,
+                                              img_klass=img_klass,
+                                              caption=caption,
+                                              show=show))
         return '\n'.join(html)
 
     def _render_inverse(self, inv_fname):
