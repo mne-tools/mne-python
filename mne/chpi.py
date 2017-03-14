@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Functions for fitting head positions with (c)HPI coils.
+u"""Functions for fitting head positions with (c)HPI coils.
 
 To fit head positions (continuously), the procedure using
 ``_calculate_chpi_positions`` is:
