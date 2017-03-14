@@ -387,7 +387,7 @@ def _check_coefficients(system):
 
 
 def _filtfilt(x, iir_params, picks, n_jobs, copy):
-    """Helper to more easily call filtfilt."""
+    """Call filtfilt."""
     # set up array for filtering, reshape to 2D, operate on last axis
     from scipy.signal import filtfilt
     padlen = min(iir_params['padlen'], len(x))
@@ -650,7 +650,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
 
 
 def _check_method(method, iir_params, extra_types=()):
-    """Helper to parse method arguments."""
+    """Parse method arguments."""
     allowed_types = ['iir', 'fir', 'fft'] + list(extra_types)
     if not isinstance(method, string_types):
         raise TypeError('method must be a string')
@@ -1705,7 +1705,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
 
 def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                       p_value, picks, n_jobs, copy):
-    """Helper to more easily call _mt_spectrum_remove."""
+    """Call _mt_spectrum_remove."""
     from scipy import stats
     # set up array for filtering, reshape to 2D, operate on last axis
     n_jobs = check_n_jobs(n_jobs)
@@ -2074,7 +2074,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                           l_trans_bandwidth, h_trans_bandwidth,
                           filter_length, method, phase, fir_window,
                           bands='scalar', reverse=False):
-    """Helper to validate and automate filter parameter selection."""
+    """Validate and automate filter parameter selection."""
     if not isinstance(phase, string_types) or phase not in \
             ('linear', 'zero', 'zero-double', 'minimum', ''):
         raise ValueError('phase must be "linear", "zero", "zero-double", '

@@ -498,7 +498,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                                pca=True, inv_split=None, bandwidth=4.,
                                adaptive=False, low_bias=True, n_jobs=1,
                                prepared=False, verbose=None):
-    """Generator for compute_source_psd_epochs."""
+    """Generate compute_source_psd_epochs."""
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(

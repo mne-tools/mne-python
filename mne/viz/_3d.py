@@ -1871,7 +1871,7 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
 
 
 def _dipole_changed(event, params):
-    """Callback for dipole plotter scroll/key event."""
+    """Handle dipole plotter scroll/key event."""
     if event.key is not None:
         if event.key == 'up':
             params['idx'] += 1

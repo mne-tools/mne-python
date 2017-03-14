@@ -303,7 +303,7 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
                                  psd, accumulate_psd, con_method_types,
                                  con_methods, n_signals, n_times,
                                  accumulate_inplace=True):
-    """Connectivity estimation for one epoch see spectral_connectivity."""
+    """Estimate connectivity for one epoch (see spectral_connectivity)."""
     n_cons = len(idx_map[0])
 
     if wavelets is not None:
@@ -456,7 +456,7 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
 
 
 def _get_n_epochs(epochs, n):
-    """Generator that returns lists with at most n epochs."""
+    """Generate lists with at most n epochs."""
     epochs_out = []
     for e in epochs:
         if not isinstance(e, (list, tuple)):
@@ -482,7 +482,7 @@ def _check_method(method):
 
 
 def _get_and_verify_data_sizes(data, n_signals=None, n_times=None, times=None):
-    """Helper function to get and/or verify the data sizes and time scales."""
+    """Get and/or verify the data sizes and time scales."""
     if not isinstance(data, (list, tuple)):
         raise ValueError('data has to be a list or tuple')
     n_signals_tot = 0

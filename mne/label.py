@@ -272,7 +272,7 @@ class Label(object):
         return "<Label  |  %s, %s : %i vertices>" % (name, self.hemi, n_vert)
 
     def __len__(self):
-        """The number of vertices."""
+        """Return the number of vertices."""
         return len(self.vertices)
 
     def __add__(self, other):
@@ -803,7 +803,7 @@ class BiHemiLabel(object):
         return temp % (name, len(self.lh), len(self.rh))
 
     def __len__(self):
-        """The number of vertices."""
+        """Return the number of vertices."""
         return len(self.lh) + len(self.rh)
 
     def __add__(self, other):
@@ -1435,7 +1435,7 @@ def _verts_within_dist(graph, sources, max_dist):
 
 
 def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
-    """Helper for parallelization of grow_labels."""
+    """Parallelize grow_labels."""
     labels = []
     for seed, extent, hemi, name in zip(seeds, extents, hemis, names):
         label_verts, label_dist = _verts_within_dist(dist[hemi], seed, extent)
@@ -1727,7 +1727,7 @@ def _read_annot(fname):
 
 
 def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
-    """Helper function to get the .annot filenames and hemispheres."""
+    """Get the .annot filenames and hemispheres."""
     if annot_fname is not None:
         # we use use the .annot file specified by the user
         hemis = [op.basename(annot_fname)[:2]]

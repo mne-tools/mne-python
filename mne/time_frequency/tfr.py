@@ -1111,7 +1111,7 @@ class AverageTFR(_BaseTFR):
         return fig
 
     def _onselect(self, eclick, erelease, baseline, mode, layout):
-        """Callback function called by rubber band selector in channel tfr."""
+        """Handle rubber band selector in channel tfr."""
         import matplotlib.pyplot as plt
         from ..viz import plot_tfr_topomap
         if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:

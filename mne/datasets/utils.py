@@ -154,7 +154,7 @@ def _dataset_version(path, name):
 
 
 def _get_path(path, key, name):
-    """Helper to get a dataset path."""
+    """Get a dataset path."""
     # 1. Input
     if path is not None:
         if not isinstance(path, string_types):
@@ -184,7 +184,7 @@ def _get_path(path, key, name):
 
 
 def _do_path_update(path, update_path, key, name):
-    """Helper to update path."""
+    """Update path."""
     path = op.abspath(path)
     if update_path is None:
         if get_config(key, '') != path:
@@ -394,14 +394,14 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
 
 
 def _get_version(name):
-    """Helper to get a dataset version."""
+    """Get a dataset version."""
     if not has_dataset(name):
         return None
     return _data_path(name=name, return_version=True)[1]
 
 
 def has_dataset(name):
-    """Helper for dataset presence."""
+    """Check for dataset presence."""
     endswith = {
         'brainstorm': 'MNE_brainstorm-data',
         'fake': 'foo',
@@ -422,7 +422,7 @@ def has_dataset(name):
 
 @verbose
 def _download_all_example_data(verbose=True):
-    """Helper to download all datasets used in examples and tutorials."""
+    """Download all datasets used in examples and tutorials."""
     # This function is designed primarily to be used by CircleCI. It has
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build

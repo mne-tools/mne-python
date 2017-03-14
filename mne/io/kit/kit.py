@@ -265,7 +265,7 @@ class RawKIT(BaseRaw):
 
 
 def _default_stim_chs(info):
-    """Default stim channels for SQD files."""
+    """Return default stim channels for SQD files."""
     return pick_types(info, meg=False, ref_meg=False, misc=True,
                       exclude=[])[:8]
 

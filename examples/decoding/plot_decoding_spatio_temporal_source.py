@@ -76,7 +76,7 @@ inverse_operator = read_inverse_operator(fname_inv)
 X = np.zeros([n_epochs, n_vertices, n_times])
 
 # to save memory, we'll load and transform our epochs step by step.
-for condition_count, ep in zip([0, n_epochs / 2], epochs_list):
+for condition_count, ep in zip([0, n_epochs // 2], epochs_list):
     stcs = apply_inverse_epochs(ep, inverse_operator, lambda2,
                                 method, pick_ori="normal",  # saves us memory
                                 return_generator=True)

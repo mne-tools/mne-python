@@ -728,7 +728,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     def __next__(self, *args, **kwargs):
-        """Wrapper for Py3k."""
+        """Provide a wrapper for Py3k."""
         return self.next(*args, **kwargs)
 
     def average(self, picks=None):
@@ -1059,7 +1059,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     def _get_epoch_from_raw(self, idx, verbose=None):
-        """Method to get a given epoch from disk."""
+        """Get a given epoch from disk."""
         raise NotImplementedError
 
     def _project_epoch(self, epoch):
@@ -1180,7 +1180,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self._get_data()
 
     def __len__(self):
-        """The number of epochs.
+        """Return the number of epochs.
 
         Returns
         -------
@@ -1212,7 +1212,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return len(self.events)
 
     def __iter__(self):
-        """Function to make iteration over epochs easy.
+        """Facilitate iteration over epochs.
 
         Notes
         -----
@@ -1717,7 +1717,7 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
 
 
 def _dep_eeg_ref(add_eeg_ref):
-    """Helper for deprecation add_eeg_ref -> False."""
+    """Assist deprecation add_eeg_ref -> False."""
     # current_default is False
     add_eeg_ref = bool(add_eeg_ref)
     if add_eeg_ref:
@@ -1987,6 +1987,8 @@ class EpochsArray(BaseEpochs):
         a <= t <= b.
     proj : bool | 'delayed'
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.
+    on_missing : str
+        See :class:`mne.Epochs` docstring for details.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -2010,7 +2012,7 @@ class EpochsArray(BaseEpochs):
     def __init__(self, data, info, events=None, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, baseline=None, proj=True,
-                 verbose=None):  # noqa: D102
+                 on_missing='error', verbose=None):  # noqa: D102
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
         if data.ndim != 3:
@@ -2035,7 +2037,7 @@ class EpochsArray(BaseEpochs):
                                           tmax, baseline, reject=reject,
                                           flat=flat, reject_tmin=reject_tmin,
                                           reject_tmax=reject_tmax, decim=1,
-                                          proj=proj)
+                                          proj=proj, on_missing=on_missing)
         if len(events) != np.in1d(self.events[:, 2],
                                   list(self.event_id.values())).sum():
             raise ValueError('The events must only contain event numbers from '
@@ -2162,7 +2164,7 @@ def _get_drop_indices(event_times, method):
 
 
 def _fix_fill(fill):
-    """Helper to fix bug on old scipy."""
+    """Fix bug on old scipy."""
     if LooseVersion(scipy.__version__) < LooseVersion('0.12'):
         fill = fill[:, np.newaxis]
     return fill
@@ -2725,7 +2727,7 @@ def _concatenate_epochs(epochs_list, with_data=True):
 
 def _finish_concat(info, data, events, event_id, tmin, tmax, baseline,
                    selection, drop_log, verbose):
-    """Helper to finish concatenation for epochs not read from disk."""
+    """Finish concatenation for epochs not read from disk."""
     events[:, 0] = np.arange(len(events))  # arbitrary after concat
     selection = np.where([len(d) == 0 for d in drop_log])[0]
     out = BaseEpochs(

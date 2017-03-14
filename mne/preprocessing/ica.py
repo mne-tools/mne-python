@@ -2201,7 +2201,7 @@ def _find_max_corrs(all_maps, target, threshold):
 
 def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
                   layout, cmap, contours, template=True):
-    """Customized ica.plot_components for corrmap."""
+    """Customize ica.plot_components for corrmap."""
     if not template:
         title = 'Detected components'
         if label is not None:

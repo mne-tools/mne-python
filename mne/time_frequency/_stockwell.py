@@ -60,7 +60,7 @@ def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
 
 
 def _st(x, start_f, windows):
-    """Implementation based on Ali Moukadem Matlab code (used in tests)."""
+    """Compute ST based on Ali Moukadem MATLAB code (used in tests)."""
     n_samp = x.shape[-1]
     ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex)
     # do the work
