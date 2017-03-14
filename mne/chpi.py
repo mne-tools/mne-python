@@ -34,6 +34,7 @@ from functools import partial
 
 import numpy as np
 from scipy import linalg
+import itertools
 
 from .io.pick import pick_types, pick_channels
 from .io.constants import FIFF
@@ -300,17 +301,16 @@ def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, x0):
 
 def _fit_dev_head_trans(dev_pnts, head_pnts):
     """Compute Device to Head transform allowing for permutiatons of points."""
-    import itertools
     id_quat = np.concatenate([rot_to_quat(np.eye(3)), [0.0, 0.0, 0.0]])
     best_order = None
     best_g = -999
     best_quat = id_quat
-    for i in itertools.permutations(np.arange(len(head_pnts))):
-        head_pnts_tmp = head_pnts[np.array(i)]
+    for this_order in itertools.permutations(np.arange(len(head_pnts))):
+        head_pnts_tmp = head_pnts[np.array(this_order)]
         this_quat, g = _fit_chpi_quat(dev_pnts, head_pnts_tmp, id_quat)
         if g > best_g:
             best_g = g
-            best_order = np.array(i)
+            best_order = np.array(this_order)
             best_quat = this_quat
 
     # Convert Quaterion to transform
@@ -460,7 +460,7 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
 
     data_diff = np.dot(model, X).T - this_data
 
-    # compute amplitude correlation (For logging?)
+    # compute amplitude correlation (For logging)
     g_sin = 1 - np.sqrt((data_diff**2).sum() / (this_data**2).sum())
     g_chan = 1 - np.sqrt((data_diff**2).sum(axis=1) /
                          (this_data**2).sum(axis=1))
@@ -472,7 +472,7 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
 
 
 @verbose
-def compute_head_localization(raw, initalLocs=None, time_win=[0, 1],
+def _compute_head_localization(raw, inital_locs=None, time_win=[0, 1],
                               verbose=None):
     """Compute an updated the head localization Transform.
 
@@ -497,14 +497,11 @@ def compute_head_localization(raw, initalLocs=None, time_win=[0, 1],
     """
     # first localize the cHPIs
     hpi_dev = _fit_device_hpi_positions(raw, t_win=time_win,
-                                        initial_dev_rrs=initalLocs)
+                                        initial_dev_rrs=inital_locs)
 
     # Digitized HPI points are needed.
-    if ('dig' in raw.info and raw.info['dig']):
-        hpi_head = np.array([d['r'] for d in raw.info['dig']
-                            if d['kind'] == FIFF.FIFFV_POINT_HPI])
-    else:
-        hpi_head = []
+    hpi_head = np.array([d['r'] for d in raw.info.get('dig',[])
+                          if d['kind'] == FIFF.FIFFV_POINT_HPI])
 
     if (len(hpi_head) == 0):
         warn('No digitized HPI points - not updating head_loc')
@@ -525,7 +522,7 @@ def compute_head_localization(raw, initalLocs=None, time_win=[0, 1],
 @verbose
 def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
                               verbose=None):
-    """Calculate location of HPI coils in device coords for 1 tiem window.
+    """Calculate location of HPI coils in device coords for 1 time window.
 
     Parameters
     ----------
@@ -541,7 +538,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
 
     Returns
     -------
-    coil_dev_rrs : ndarray, shape (nCHPI, 3)
+    coil_dev_rrs : ndarray, shape (n_CHPI, 3)
         Fit locations of each cHPI coil in device coordinates
     """
     # 0. determine samples to fit.
@@ -568,10 +565,9 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
         return None
 
     # 2. fit each HPI coil
-    outs = [_fit_magnetic_dipole(f, pos, hpi['coils'], hpi['scale'],
-            hpi['method']) for f, pos in zip(sin_fit, initial_dev_rrs)]
-
-    coil_dev_rrs = np.array([o[0] for o in outs])
+    coil_dev_rrs = np.array([_fit_magnetic_dipole(f, pos, hpi['coils'],
+                             hpi['scale'], hpi['method'])[0]
+                             for f, pos in zip(sin_fit, initial_dev_rrs)])
 
     return coil_dev_rrs
 
@@ -666,7 +662,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         #
         sin_fit = _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time)
 
-        # skip this window if it bad.
+        # skip this window if bad
         # logging has already been done! Maybe turn this into an Exception
         if sin_fit is None:
             continue
@@ -731,7 +727,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                         'Bad coil fit! (g=%7.3f)' % (g,))
             continue
 
-        # Convert Quaterion to transform
+        # Convert quaterion to transform
         this_dev_head_t = np.concatenate(
             (quat_to_rot(this_quat[:3]),
              this_quat[3:][:, np.newaxis]), axis=1)

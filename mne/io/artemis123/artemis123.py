@@ -13,7 +13,7 @@ from ..utils import _read_segments_file
 from ..base import BaseRaw
 from ..meas_info import _empty_info, _make_dig_points
 from ..constants import FIFF
-from ...chpi import compute_head_localization as comp_head_loc
+from ...chpi import _compute_head_localization as _comp_head_loc
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
 
 
@@ -344,7 +344,7 @@ class RawArtemis123(BaseRaw):
                 warn('%d HPIs active. At least 3 needed to perform' % n_hpis +
                      'head localization')
             else:
-                trans, hpi_dev_rrs = comp_head_loc(self, time_win=[0, 1])
+                trans, hpi_dev_rrs = _comp_head_loc(self, time_win=[0, 1])
                 if pos_fname is None:
                     logger.info('Assuming Cardinal HPIs')
                     nas = hpi_dev_rrs[0]
