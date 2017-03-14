@@ -35,7 +35,12 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-
+    pos_fname : str or None (defulat None)
+        If not None, load digitized head points from this file
+    head_loc : bool (default False)
+        If True attempt to perform head localization using HPI coils. If no
+        HPI coils are in info['dig'] hpic coils are assumed to be in canonical
+        order of fiducial points (nas, rpa, lpa).
     Returns
     -------
     raw : Instance of Raw
@@ -345,9 +350,10 @@ class RawArtemis123(BaseRaw):
                     lpa = hpi_dev_rrs[2]
                     rpa = hpi_dev_rrs[1]
                     t = get_ras_to_neuromag_trans(nas, lpa, rpa)
-                    self.info['dev_head_t'] = Transform(FIFF.FIFFV_COORD_DEVICE,
-                                                        FIFF.FIFFV_COORD_HEAD,
-                                                        t)
+                    self.info['dev_head_t'] = \
+                        Transform(FIFF.FIFFV_COORD_DEVICE,
+                                  FIFF.FIFFV_COORD_HEAD, t)
+
                     # transform fiducial points
                     nas = apply_trans(t, nas)
                     lpa = apply_trans(t, lpa)

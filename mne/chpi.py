@@ -482,7 +482,7 @@ def compute_head_localization(raw, initalLocs=None, time_win=[0, 1],
         Raw data with cHPI information.
     initalLocs : ndarray, shape(nCHPI, 3)
         Initial localations of HPI coils. used to initalized solver.
-        if None (0, 0, 0) is choosen for each coil
+        if None (0, 0, 0) is chosen for each coil
     time_win : list, shape (2)
         Time window to fit. If None entire data run is used.
     verbose : bool, str, int, or None
