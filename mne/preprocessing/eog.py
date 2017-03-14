@@ -8,7 +8,7 @@ import numpy as np
 
 from .peak_finder import peak_finder
 from .. import pick_types, pick_channels
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _pl
 from ..filter import filter_data
 from ..epochs import Epochs
 from ..externals.six import string_types
@@ -18,7 +18,7 @@ from ..externals.six import string_types
 def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                     filter_length='10s', ch_name=None, tstart=0,
                     verbose=None):
-    """Locate EOG artifacts
+    """Locate EOG artifacts.
 
     Parameters
     ----------
@@ -37,14 +37,14 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
     tstart : float
         Start detection after tstart seconds.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     eog_events : array
         Events.
     """
-
     # Getting EOG Channel
     eog_inds = _get_eog_channel_index(ch_name, raw)
     logger.info('EOG channel index for this subject is: %s' % eog_inds)
@@ -63,8 +63,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
 
 def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
                      filter_length='10s', tstart=0.):
-    """Helper function"""
-
+    """Find EOG events."""
     logger.info('Filtering the data to remove DC offset to help '
                 'distinguish blinks from saccades')
 
@@ -104,6 +103,7 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
 
 
 def _get_eog_channel_index(ch_name, inst):
+    """Get EOG channel index."""
     if isinstance(ch_name, string_types):
         # Check if multiple EOG Channels
         if ',' in ch_name:
@@ -117,8 +117,7 @@ def _get_eog_channel_index(ch_name, inst):
             raise ValueError('%s not in channel list' % ch_name)
         else:
             logger.info('Using channel %s as EOG channel%s' % (
-                        " and ".join(ch_name),
-                        '' if len(eog_inds) < 2 else 's'))
+                        " and ".join(ch_name), _pl(eog_inds)))
     elif ch_name is None:
 
         eog_inds = pick_types(inst.info, meg=False, eeg=False, stim=False,
@@ -143,7 +142,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
                       tmin=-0.5, tmax=0.5, l_freq=1, h_freq=10,
                       reject=None, flat=None, baseline=None,
                       preload=True, verbose=None):
-    """Conveniently generate epochs around EOG artifact events
+    """Conveniently generate epochs around EOG artifact events.
 
     Parameters
     ----------
@@ -192,7 +191,8 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
     preload : bool
         Preload epochs or not.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

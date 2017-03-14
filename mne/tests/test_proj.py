@@ -49,13 +49,27 @@ def test_bad_proj():
     _check_warnings(raw, events, picks)
     # still bad
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
-    _check_warnings(raw, events, np.arange(len(raw.ch_names)))
+    _check_warnings(raw, events)
     # "fixed"
     raw.info.normalize_proj()  # avoid projection warnings
-    _check_warnings(raw, events, np.arange(len(raw.ch_names)), count=0)
+    _check_warnings(raw, events, count=0)
+    # eeg avg ref is okay
+    raw = read_raw_fif(raw_fname, preload=True).pick_types(meg=False, eeg=True)
+    raw.set_eeg_reference()
+    _check_warnings(raw, events, count=0)
+    raw.info['bads'] = raw.ch_names[:10]
+    _check_warnings(raw, events, count=0)
+
+    raw = read_raw_fif(raw_fname)
+    assert_raises(ValueError, raw.del_proj, 'foo')
+    n_proj = len(raw.info['projs'])
+    raw.del_proj(0)
+    assert_equal(len(raw.info['projs']), n_proj - 1)
+    raw.del_proj()
+    assert_equal(len(raw.info['projs']), 0)
 
 
-def _check_warnings(raw, events, picks, count=3):
+def _check_warnings(raw, events, picks=None, count=3):
     """Helper to count warnings."""
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')

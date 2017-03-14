@@ -17,7 +17,7 @@ has_testing_data = partial(has_dataset, name='testing')
 
 @verbose
 def data_path(path=None, force_update=False, update_path=True,
-              download=True, verbose=None):
+              download=True, verbose=None):  # noqa: D103
     # Make sure we don't do something stupid
     if download and \
             get_config('MNE_SKIP_TESTING_DATASET_TESTS', 'false') == 'true':
@@ -30,7 +30,7 @@ data_path.__doc__ = _data_path_doc.format(name='testing',
                                           conf='MNE_DATASETS_TESTING_PATH')
 
 
-def get_version():
+def get_version():  # noqa: D103
     return _get_version('testing')
 
 get_version.__doc__ = _version_doc.format(name='testing')

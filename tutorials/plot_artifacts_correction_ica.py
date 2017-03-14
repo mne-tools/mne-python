@@ -132,7 +132,7 @@ ica.plot_properties(eog_epochs, picks=eog_inds, psd_args={'fmax': 35.},
 # That component is showing a prototypical average vertical EOG time course.
 #
 # Pay attention to the labels, a customized read-out of the
-# :attr:`ica.labels_ <mne.preprocessing.ICA.labels_>`
+# ``mne.preprocessing.ICA.labels_``:
 print(ica.labels_)
 
 ###############################################################################
@@ -236,20 +236,30 @@ reference_ica.plot_sources(eog_average, exclude=eog_inds)
 # Indeed it looks like an EOG, also in the average time course.
 #
 # We construct a list where our reference run is the first element. Then we
-# can detect similar components from the other runs using
-# :func:`mne.preprocessing.corrmap`. So our template must be a tuple like
+# can detect similar components from the other runs (the other ICA objects)
+# using :func:`mne.preprocessing.corrmap`. So our template must be a tuple like
 # (reference_run_index, component_index):
 icas = [reference_ica] + icas_from_other_data
 template = (0, eog_inds[0])
 
 ###############################################################################
-# Now we can do the corrmap.
+# Now we can run the CORRMAP algorithm.
 fig_template, fig_detected = corrmap(icas, template=template, label="blinks",
                                      show=True, threshold=.8, ch_type='mag')
 
 ###############################################################################
 # Nice, we have found similar ICs from the other (simulated) runs!
-# This is even nicer if we have 20 or 100 ICA solutions in a list.
+# In this way, you can detect a type of artifact semi-automatically for example
+# for all subjects in a study.
+# The detected template can also be retrieved as an array and stored; this
+# array can be used as an alternative template to
+# :func:`mne.preprocessing.corrmap`.
+eog_component = reference_ica.get_components()[:, eog_inds[0]]
+
+# If you calculate a new ICA solution, you can provide this array instead of
+# specifying the template in reference to the list of ICA objects you want
+# to run CORRMAP on. (Of course, the retrieved component map arrays can
+# also be used for other purposes than artifact correction.)
 #
 # You can also use SSP to correct for artifacts. It is a bit simpler and
 # faster but also less precise than ICA and requires that you know the event

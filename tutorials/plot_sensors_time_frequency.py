@@ -1,5 +1,4 @@
 """
-
 .. _tut_sensors_time_frequency:
 
 =============================================
@@ -87,7 +86,8 @@ plt.show()
 # but you can also use :func:`mne.time_frequency.tfr_multitaper`
 # or :func:`mne.time_frequency.tfr_stockwell`.
 
-freqs = np.arange(6, 30, 3)  # define frequencies of interest
+# define frequencies of interest (log-spaced)
+freqs = np.logspace(*np.log10([6, 35]), num=8)
 n_cycles = freqs / 2.  # different number of cycle per frequency
 power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
                         return_itc=True, decim=3, n_jobs=1)

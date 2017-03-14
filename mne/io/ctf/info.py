@@ -1,5 +1,4 @@
-"""Populate measurement info
-"""
+"""Populate measurement info."""
 
 # Author: Eric Larson <larson.eric.d<gmail.com>
 #
@@ -22,8 +21,13 @@ from ..constants import FIFF
 from .constants import CTF
 
 
+_ctf_to_fiff = {CTF.CTFV_COIL_LPA: FIFF.FIFFV_POINT_LPA,
+                CTF.CTFV_COIL_RPA: FIFF.FIFFV_POINT_RPA,
+                CTF.CTFV_COIL_NAS: FIFF.FIFFV_POINT_NASION}
+
+
 def _pick_isotrak_and_hpi_coils(res4, coils, t):
-    """Pick the HPI coil locations given in device coordinates"""
+    """Pick the HPI coil locations given in device coordinates."""
     if coils is None:
         return list(), list()
     dig = list()
@@ -32,11 +36,18 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
     n_coil_head = 0
     for p in coils:
         if p['valid']:
+            if p['kind'] in [CTF.CTFV_COIL_LPA, CTF.CTFV_COIL_RPA,
+                             CTF.CTFV_COIL_NAS]:
+                kind = FIFF.FIFFV_POINT_CARDINAL
+                ident = _ctf_to_fiff[p['kind']]
+            else:  # CTF.CTFV_COIL_SPARE
+                kind = FIFF.FIFFV_POINT_HPI
+                ident = p['kind']
             if p['coord_frame'] == FIFF.FIFFV_MNE_COORD_CTF_DEVICE:
                 if t is None or t['t_ctf_dev_dev'] is None:
                     raise RuntimeError('No coordinate transformation '
                                        'available for HPI coil locations')
-                d = dict(kind=FIFF.FIFFV_POINT_HPI, ident=p['kind'],
+                d = dict(kind=kind, ident=ident,
                          r=apply_trans(t['t_ctf_dev_dev'], p['r']),
                          coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
                 hpi_result['dig_points'].append(d)
@@ -45,7 +56,7 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
                 if t is None or t['t_ctf_head_head'] is None:
                     raise RuntimeError('No coordinate transformation '
                                        'available for (virtual) Polhemus data')
-                d = dict(kind=FIFF.FIFFV_POINT_HPI, ident=p['kind'],
+                d = dict(kind=kind, ident=ident,
                          r=apply_trans(t['t_ctf_head_head'], p['r']),
                          coord_frame=FIFF.FIFFV_COORD_HEAD)
                 dig.append(d)
@@ -59,7 +70,7 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
 
 
 def _convert_time(date_str, time_str):
-    """Convert date and time strings to float time"""
+    """Convert date and time strings to float time."""
     for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y"):
         try:
             date = strptime(date_str, fmt)
@@ -95,7 +106,7 @@ def _convert_time(date_str, time_str):
 
 
 def _get_plane_vectors(ez):
-    """Get two orthogonal vectors orthogonal to ez (ez will be modified)"""
+    """Get two orthogonal vectors orthogonal to ez (ez will be modified)."""
     assert ez.shape == (3,)
     ez_len = np.sqrt(np.sum(ez * ez))
     if ez_len == 0:
@@ -116,7 +127,7 @@ def _get_plane_vectors(ez):
 
 
 def _at_origin(x):
-    """Determine if a vector is at the origin"""
+    """Determine if a vector is at the origin."""
     return (np.sum(x * x) < 1e-8)
 
 
@@ -136,7 +147,7 @@ def _check_comp_ch(cch, kind, desired=None):
 
 
 def _convert_channel_info(res4, t, use_eeg_pos):
-    """Convert CTF channel information to fif format"""
+    """Convert CTF channel information to fif format."""
     nmeg = neeg = nstim = nmisc = nref = 0
     chs = list()
     this_comp = None
@@ -258,12 +269,12 @@ def _convert_channel_info(res4, t, use_eeg_pos):
 
 
 def _comp_sort_keys(c):
-    """This is for sorting the compensation data"""
+    """Sort the compensation data."""
     return (int(c['coeff_type']), int(c['scanno']))
 
 
 def _check_comp(comp):
-    """Check that conversion to named matrices is, indeed possible"""
+    """Check that conversion to named matrices is possible."""
     ref_sens = None
     kind = -1
     for k, c_k in enumerate(comp):
@@ -276,7 +287,7 @@ def _check_comp(comp):
 
 
 def _conv_comp(comp, first, last, chs):
-    """Add a new converted compensation data item"""
+    """Add a new converted compensation data item."""
     ccomp = dict(ctfkind=np.array([comp[first]['coeff_type']]),
                  save_calibrated=False)
     _add_kind(ccomp)
@@ -296,7 +307,7 @@ def _conv_comp(comp, first, last, chs):
 
 
 def _convert_comp_data(res4):
-    """Convert the compensation data into named matrices"""
+    """Convert the compensation data into named matrices."""
     if res4['ncomp'] == 0:
         return
     # Sort the coefficients in our favorite order
@@ -320,7 +331,7 @@ def _convert_comp_data(res4):
 
 
 def _pick_eeg_pos(c):
-    """Pick EEG positions"""
+    """Pick EEG positions."""
     eeg = dict(coord_frame=FIFF.FIFFV_COORD_HEAD, assign_to_chs=False,
                labels=list(), ids=list(), rr=list(), kinds=list(), np=0)
     for ch in c['chs']:
@@ -338,7 +349,7 @@ def _pick_eeg_pos(c):
 
 
 def _add_eeg_pos(eeg, t, c):
-    """Pick the (virtual) EEG position data"""
+    """Pick the (virtual) EEG position data."""
     if eeg is None:
         return
     if t is None or t['t_ctf_head_head'] is None:
@@ -397,7 +408,7 @@ _filt_map = {CTF.CTFV_FILTER_LOWPASS: 'lowpass',
 
 
 def _compose_meas_info(res4, coils, trans, eeg):
-    """Create meas info from CTF data"""
+    """Create meas info from CTF data."""
     info = _empty_info(res4['sfreq'])
 
     # Collect all the necessary data from the structures read

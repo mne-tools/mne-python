@@ -1,4 +1,4 @@
-"""EDF+,BDF module for conversion to FIF"""
+"""EDF+,BDF module for conversion to FIF."""
 
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #

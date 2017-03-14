@@ -22,7 +22,8 @@ def stft(x, wsize, tstep=None, verbose=None):
         step between successive windows in samples (must be a multiple of 2,
         a divider of wsize and smaller than wsize/2) (default: wsize/2)
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -103,7 +104,7 @@ def stft(x, wsize, tstep=None, verbose=None):
 
 
 def istft(X, tstep=None, Tx=None):
-    """ISTFT Inverse Short-Term Fourier Transform using a sine window
+    """ISTFT Inverse Short-Term Fourier Transform using a sine window.
 
     Parameters
     ----------
@@ -184,8 +185,8 @@ def istft(X, tstep=None, Tx=None):
     return x
 
 
-def stftfreq(wsize, sfreq=None):
-    """Frequencies of stft transformation
+def stftfreq(wsize, sfreq=None):  # noqa: D401
+    """Frequencies of stft transformation.
 
     Parameters
     ----------
@@ -199,7 +200,6 @@ def stftfreq(wsize, sfreq=None):
     -------
     freqs : array
         The positive frequencies returned by stft
-
 
     See Also
     --------
@@ -215,7 +215,7 @@ def stftfreq(wsize, sfreq=None):
 
 
 def stft_norm2(X):
-    """Compute L2 norm of STFT transform
+    """Compute L2 norm of STFT transform.
 
     It takes into account that stft only return positive frequencies.
     As we use tight frame this quantity is conserved by the stft.

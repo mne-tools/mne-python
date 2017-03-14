@@ -1,5 +1,4 @@
-"""Conversion tool from Neuroscan CNT to FIF
-"""
+"""Conversion tool from Neuroscan CNT to FIF."""
 
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
@@ -15,7 +14,7 @@ from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
 from ..utils import _mult_cal_one, _find_channels, _create_chs
 from ..meas_info import _empty_info
-from ..base import _BaseRaw, _check_update_montage
+from ..base import BaseRaw, _check_update_montage
 from ..utils import read_str
 
 
@@ -75,7 +74,8 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -96,7 +96,7 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
 
 
 def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
-    """Helper for reading the cnt header."""
+    """Read the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
     # Reading only the fields of interest. Structure of the whole header at
@@ -233,7 +233,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
         if event_type == 1:
             event_bytes = 8
-        elif event_type == 2:
+        elif event_type in (2, 3):
             event_bytes = 19
         else:
             raise IOError('Unexpected event size.')
@@ -245,8 +245,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             event_id = np.fromfile(fid, dtype='u2', count=1)[0]
             fid.seek(event_offset + 9 + i * event_bytes + 4)
             offset = np.fromfile(fid, dtype='<i4', count=1)[0]
-            event_time = (offset - 900 - 75 * n_channels) // (n_channels *
-                                                              n_bytes)
+            if event_type == 3:
+                offset *= n_bytes * n_channels
+            event_time = offset - 900 - 75 * n_channels
+            event_time //= n_channels * n_bytes
             stim_channel[event_time - 1] = event_id
 
     info = _empty_info(sfreq)
@@ -284,14 +286,14 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     baselines.append(0)  # For stim channel
     cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
                     stim_channel=stim_channel, n_bytes=n_bytes)
-    info.update(filename=input_fname, meas_date=np.array([meas_date, 0]),
+    info.update(meas_date=np.array([meas_date, 0]),
                 description=str(session_label), buffer_size_sec=10., bads=bads,
                 subject_info=subject_info, chs=chs)
     info._update_redundant()
     return info, cnt_info
 
 
-class RawCNT(_BaseRaw):
+class RawCNT(BaseRaw):
     """Raw object from Neuroscan CNT file.
 
     .. Note::
@@ -344,15 +346,17 @@ class RawCNT(_BaseRaw):
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+
     def __init__(self, input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
                  data_format='auto', date_format='mm/dd/yy', preload=False,
-                 verbose=None):
+                 verbose=None):  # noqa: D102
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
                                        data_format, date_format)
@@ -365,7 +369,7 @@ class RawCNT(_BaseRaw):
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Take a chunk of raw data, multiply by mult or cals, and store"""
+        """Take a chunk of raw data, multiply by mult or cals, and store."""
         n_channels = self.info['nchan'] - 1  # Stim channel already read.
         channel_offset = self._raw_extras[0]['channel_offset']
         baselines = self._raw_extras[0]['baselines']

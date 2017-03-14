@@ -9,14 +9,14 @@ import calendar
 
 from ...utils import logger
 from ..utils import _read_segments_file, _find_channels, _create_chs
-from ..base import _BaseRaw, _check_update_montage
+from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info
 from ..constants import FIFF
 
 
 def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
                      emg=(), misc=(), preload=False, verbose=None):
-    """Read Nicolet data as raw object
+    """Read Nicolet data as raw object.
 
     Note: This reader takes data files with the extension ``.data`` as an
     input. The header file with the same file name stem and an extension
@@ -55,7 +55,8 @@ def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -71,7 +72,7 @@ def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
 
 
 def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
-    """Function for extracting info from Nicolet header files."""
+    """Extract info from Nicolet header files."""
     fname = path.splitext(fname)[0]
     header = fname + '.head'
 
@@ -103,8 +104,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     date = datetime.datetime(int(date[0]), int(date[1]), int(date[2]),
                              int(time[0]), int(time[1]), int(sec), int(msec))
     info = _empty_info(header_info['sample_freq'])
-    info.update({'filename': fname,
-                 'meas_date': calendar.timegm(date.utctimetuple()),
+    info.update({'meas_date': calendar.timegm(date.utctimetuple()),
                  'description': None, 'buffer_size_sec': 1.})
 
     if ch_type == 'eeg':
@@ -125,7 +125,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     return info, header_info
 
 
-class RawNicolet(_BaseRaw):
+class RawNicolet(BaseRaw):
     """Raw object from Nicolet file.
 
     Parameters
@@ -161,14 +161,16 @@ class RawNicolet(_BaseRaw):
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+
     def __init__(self, input_fname, ch_type, montage=None, eog=(), ecg=(),
-                 emg=(), misc=(), preload=False, verbose=None):
+                 emg=(), misc=(), preload=False, verbose=None):  # noqa: D102
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg,
                                               emg, misc)
@@ -180,5 +182,5 @@ class RawNicolet(_BaseRaw):
             verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a chunk of raw data"""
+        """Read a chunk of raw data."""
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult)

@@ -96,7 +96,7 @@ In MNE-Python we default to using FIR filtering. As noted in Widmann *et al.*
 
     Despite IIR filters often being considered as computationally more
     efficient, they are recommended only when high throughput and sharp
-    cutoffs are required (Ifeachor and Jervis, 2002[2]_, p. 321),
+    cutoffs are required (Ifeachor and Jervis, 2002 [2]_, p. 321),
     ...FIR filters are easier to control, are always stable, have a
     well-defined passband, can be corrected to zero-phase without
     additional computations, and can be converted to minimum-phase.
@@ -280,6 +280,33 @@ plot_filter(h, sfreq, freq, gain, 'Windowed 50-Hz transition (0.2 sec)',
             flim=flim)
 
 ###############################################################################
+# So far we have only discussed *acausal* filtering, which means that each
+# sample at each time point :math:`t` is filtered using samples that come
+# after (:math:`t + \Delta t`) *and* before (:math:`t - \Delta t`) :math:`t`.
+# In this sense, each sample is influenced by samples that come both before
+# and after it. This is useful in many cases, espcially because it does not
+# delay the timing of events.
+#
+# However, sometimes it can be beneficial to use *causal* filtering,
+# whereby each sample :math:`t` is filtered only using time points that came
+# after it.
+#
+# Note that the delay is variable (whereas for linear/zero-phase filters it
+# is constant) but small in the pass-band. Unlike zero-phase filters, which
+# require time-shifting backward the output of a linear-phase filtering stage
+# (and thus becoming acausal), minimum-phase filters do not require any
+# compensation to achieve small delays in the passband. Note that as an
+# artifact of the minimum phase filter construction step, the filter does
+# not end up being as steep as the linear/zero-phase version.
+#
+# We can construct a minimum-phase filter from our existing linear-phase
+# filter with the ``minimum_phase`` function (that will be in SciPy 0.19's
+# :mod:`scipy.signal`), and note that the falloff is not as steep:
+
+h_min = mne.fixes.minimum_phase(h)
+plot_filter(h_min, sfreq, freq, gain, 'Minimum-phase', flim=flim)
+
+###############################################################################
 # .. _tut_effect_on_signals:
 #
 # Applying FIR filters
@@ -300,7 +327,7 @@ tlim = [center - 0.2, center + 0.2]
 tticks = [tlim[0], center, tlim[1]]
 flim = [20, 70]
 
-x = np.zeros(int(sfreq * dur))
+x = np.zeros(int(sfreq * dur) + 1)
 blip = morlet(sfreq, [morlet_freq], n_cycles=7)[0].imag / 20.
 n_onset = int(center * sfreq) - len(blip) // 2
 x[n_onset:n_onset + len(blip)] += blip
@@ -350,9 +377,8 @@ x_steep = np.convolve(np.convolve(h, x)[::-1], h)[::-1][len(h) - 1:-len(h) - 1]
 plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.13 default', flim=flim)
 
 ###############################################################################
-# Finally, Let's also filter it with the
-# MNE-C default, which is a long-duration steep-slope FIR filter designed
-# using frequency-domain techniques:
+# Let's also filter it with the MNE-C default, which is a long-duration
+# steep-slope FIR filter designed using frequency-domain techniques:
 
 h = mne.filter.design_mne_c_filter(sfreq, l_freq=None, h_freq=f_p + 2.5)
 x_mne_c = np.convolve(h, x)[len(h) // 2:]
@@ -362,6 +388,21 @@ f_s = f_p + transition_band
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 plot_filter(h, sfreq, freq, gain, 'MNE-C default', flim=flim)
+
+###############################################################################
+# And now an example of a minimum-phase filter:
+
+h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
+                             phase='minimum')
+x_min = np.convolve(h, x)
+transition_band = 0.25 * f_p
+f_s = f_p + transition_band
+filter_dur = 6.6 / transition_band  # sec
+n = int(sfreq * filter_dur)
+freq = [0., f_p, f_s, sfreq / 2.]
+gain = [1., 1., 0., 0.]
+plot_filter(h, sfreq, freq, gain, 'Minimum-phase filter', flim=flim)
+
 
 ###############################################################################
 # Both the MNE-Python 0.13 and MNE-C filhters have excellent frequency
@@ -387,16 +428,17 @@ def plot_signal(x, offset):
     axes[1].plot(freqs, 20 * np.log10(np.abs(X)))
     axes[1].set(xlim=flim)
 
-yticks = np.arange(5) / -30.
+yticks = np.arange(6) / -30.
 yticklabels = ['Original', 'Noisy', 'FIR-shallow (0.14)', 'FIR-steep (0.13)',
-               'FIR-steep (MNE-C)']
+               'FIR-steep (MNE-C)', 'Minimum-phase']
 plot_signal(x_orig, offset=yticks[0])
 plot_signal(x, offset=yticks[1])
 plot_signal(x_shallow, offset=yticks[2])
 plot_signal(x_steep, offset=yticks[3])
 plot_signal(x_mne_c, offset=yticks[4])
+plot_signal(x_min, offset=yticks[5])
 axes[0].set(xlim=tlim, title='FIR, Lowpass=%d Hz' % f_p, xticks=tticks,
-            ylim=[-0.150, 0.025], yticks=yticks, yticklabels=yticklabels,)
+            ylim=[-0.200, 0.025], yticks=yticks, yticklabels=yticklabels,)
 for text in axes[0].get_yticklabels():
     text.set(rotation=45, size=8)
 axes[1].set(xlim=flim, ylim=(-60, 10), xlabel='Frequency (Hz)',

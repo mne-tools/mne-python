@@ -1,5 +1,5 @@
-"""Functions to make simple plots with M/EEG data
-"""
+"""Functions to make simple plots with M/EEG data."""
+
 from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -33,7 +33,7 @@ from .utils import tight_layout, COLORS, _prepare_trellis, plt_show
 @verbose
 def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
              show=True, verbose=None):
-    """Plot Covariance data
+    """Plot Covariance data.
 
     Parameters
     ----------
@@ -54,7 +54,8 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     show : bool
         Show figure if True.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -107,25 +108,27 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
 
     import matplotlib.pyplot as plt
 
-    fig_cov = plt.figure(figsize=(2.5 * len(idx_names), 2.7))
+    fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
+                                 figsize=(2.5 * len(idx_names), 2.7))
     for k, (idx, name, _, _) in enumerate(idx_names):
-        plt.subplot(1, len(idx_names), k + 1)
-        plt.imshow(C[idx][:, idx], interpolation="nearest", cmap='RdBu_r')
-        plt.title(name)
-    plt.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
+        axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
+                          cmap='RdBu_r')
+        axes[0, k].set(title=name)
+    fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
     tight_layout(fig=fig_cov)
 
     fig_svd = None
     if show_svd:
-        fig_svd = plt.figure()
+        fig_svd, axes = plt.subplots(1, len(idx_names), squeeze=False)
         for k, (idx, name, unit, scaling) in enumerate(idx_names):
             s = linalg.svd(C[idx][:, idx], compute_uv=False)
-            plt.subplot(1, len(idx_names), k + 1)
-            plt.ylabel('Noise std (%s)' % unit)
-            plt.xlabel('Eigenvalue index')
-            plt.semilogy(np.sqrt(s) * scaling)
-            plt.title(name)
-            tight_layout(fig=fig_svd)
+            # Protect against true zero singular values
+            s[s <= 0] = 1e-10 * s[s > 0].min()
+            s = np.sqrt(s) * scaling
+            axes[0, k].plot(s)
+            axes[0, k].set(ylabel='Noise std (%s)' % unit, yscale='log',
+                           xlabel='Eigenvalue index', title=name)
+        tight_layout(fig=fig_svd)
 
     plt_show(show)
     return fig_cov, fig_svd
@@ -444,7 +447,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
                 axes=None, equal_spacing=True, show=True):
-    """Plot events to get a visual display of the paradigm
+    """Plot events to get a visual display of the paradigm.
 
     Parameters
     ----------
@@ -482,7 +485,6 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     -----
     .. versionadded:: 0.9.0
     """
-
     if sfreq is None:
         sfreq = 1.0
         xlabel = 'samples'
@@ -511,25 +513,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     else:
         unique_events_id = unique_events
 
-    if color is None:
-        if len(unique_events) > len(COLORS):
-            warn('More events than colors available. You should pass a list '
-                 'of unique colors.')
-        colors = cycle(COLORS)
-        color = dict()
-        for this_event, this_color in zip(unique_events_id, colors):
-            color[this_event] = this_color
-    else:
-        for this_event in color:
-            if this_event not in unique_events_id:
-                raise ValueError('%s from color is not present in events '
-                                 'or event_id.' % this_event)
-
-        for this_event in unique_events_id:
-            if this_event not in color:
-                warn('Color is not available for event %d. Default colors '
-                     'will be used.' % this_event)
-
+    color = _handle_event_colors(unique_events, color, unique_events_id)
     import matplotlib.pyplot as plt
 
     fig = None
@@ -580,7 +564,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
 
 
 def _get_presser(fig):
-    """Helper to get our press callback"""
+    """Get our press callback."""
     callbacks = fig.canvas.callbacks.callbacks['button_press_event']
     func = None
     for key, val in callbacks.items():
@@ -592,7 +576,7 @@ def _get_presser(fig):
 
 
 def plot_dipole_amplitudes(dipoles, colors=None, show=True):
-    """Plot the amplitude traces of a set of dipoles
+    """Plot the amplitude traces of a set of dipoles.
 
     Parameters
     ----------
@@ -630,7 +614,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
 
 
 def adjust_axes(axes, remove_spines=('top', 'right'), grid=True):
-    """Adjust some properties of axes
+    """Adjust some properties of axes.
 
     Parameters
     ----------
@@ -692,7 +676,7 @@ def _check_fscale(fscale):
 
 def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
                 flim=None, fscale='log', alim=(-60, 10), show=True):
-    """Plot properties of a filter
+    """Plot properties of a filter.
 
     Parameters
     ----------
@@ -905,3 +889,26 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
     tight_layout()
     plt_show(show)
     return axes.figure
+
+
+def _handle_event_colors(unique_events, color, unique_events_id):
+    """Handle event colors."""
+    if color is None:
+        if len(unique_events) > len(COLORS):
+            warn('More events than colors available. You should pass a list '
+                 'of unique colors.')
+        colors = cycle(COLORS)
+        color = dict()
+        for this_event, this_color in zip(sorted(unique_events_id), colors):
+            color[this_event] = this_color
+    else:
+        for this_event in color:
+            if this_event not in unique_events_id:
+                raise ValueError('%s from color is not present in events '
+                                 'or event_id.' % this_event)
+
+        for this_event in unique_events_id:
+            if this_event not in color:
+                warn('Color is not available for event %d. Default colors '
+                     'will be used.' % this_event)
+    return color

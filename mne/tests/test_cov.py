@@ -7,7 +7,7 @@ import os.path as op
 
 from nose.tools import assert_true
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 from nose.tools import assert_raises
 import numpy as np
 from scipy import linalg
@@ -16,7 +16,8 @@ import itertools as itt
 
 from mne.cov import (regularize, whiten_evoked, _estimate_rank_meeg_cov,
                      _auto_low_rank_model, _apply_scaling_cov,
-                     _undo_scaling_cov, prepare_noise_cov)
+                     _undo_scaling_cov, prepare_noise_cov, compute_whitener,
+                     _apply_scaling_array, _undo_scaling_array)
 
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
@@ -84,6 +85,42 @@ def test_cov_order():
     cov = read_cov(cov_fname)
     # no avg ref present warning
     prepare_noise_cov(cov, info, ch_names, verbose='error')
+    # big reordering
+    cov_reorder = cov.copy()
+    order = np.random.RandomState(0).permutation(np.arange(len(cov.ch_names)))
+    cov_reorder['names'] = [cov['names'][ii] for ii in order]
+    cov_reorder['data'] = cov['data'][order][:, order]
+    # Make sure we did this properly
+    _assert_reorder(cov_reorder, cov, order)
+    # Now check some functions that should get the same result for both
+    # regularize
+    cov_reg = regularize(cov, info)
+    cov_reg_reorder = regularize(cov_reorder, info)
+    _assert_reorder(cov_reg_reorder, cov_reg, order)
+    # prepare_noise_cov
+    cov_prep = prepare_noise_cov(cov, info, ch_names)
+    cov_prep_reorder = prepare_noise_cov(cov, info, ch_names)
+    _assert_reorder(cov_prep, cov_prep_reorder,
+                    order=np.arange(len(cov_prep['names'])))
+    # compute_whitener
+    whitener, w_ch_names = compute_whitener(cov, info)
+    whitener_2, w_ch_names_2 = compute_whitener(cov_reorder, info)
+    assert_array_equal(w_ch_names_2, w_ch_names)
+    assert_allclose(whitener_2, whitener)
+    # whiten_evoked
+    evoked = read_evokeds(ave_fname)[0]
+    evoked_white = whiten_evoked(evoked, cov)
+    evoked_white_2 = whiten_evoked(evoked, cov_reorder)
+    assert_allclose(evoked_white_2.data, evoked_white.data)
+
+
+def _assert_reorder(cov_new, cov_orig, order):
+    """Check that we get the same result under reordering."""
+    inv_order = np.argsort(order)
+    assert_array_equal([cov_new['names'][ii] for ii in inv_order],
+                       cov_orig['names'])
+    assert_allclose(cov_new['data'][inv_order][:, inv_order],
+                    cov_orig['data'], atol=1e-20)
 
 
 def test_ad_hoc_cov():
@@ -285,6 +322,11 @@ def test_cov_estimation_with_triggers():
                     baseline=(-0.2, -0.1), proj=True, reject=reject)
     compute_covariance(epochs)
 
+    # projs checking
+    compute_covariance(epochs, projs=[])
+    assert_raises(TypeError, compute_covariance, epochs, projs='foo')
+    assert_raises(TypeError, compute_covariance, epochs, projs=['foo'])
+
 
 def test_arithmetic_cov():
     """Test arithmetic with noise covariance matrices."""
@@ -457,6 +499,11 @@ def test_cov_scaling():
     assert_array_equal(cov, cov2)
     assert_true(cov.max() < 1)
 
+    data = evoked.data.copy()
+    _apply_scaling_array(data, picks_list, scalings=scalings)
+    _undo_scaling_array(data, picks_list, scalings=scalings)
+    assert_allclose(data, evoked.data, atol=1e-20)
+
 
 @requires_sklearn_0_15
 def test_auto_low_rank():
@@ -531,7 +578,6 @@ def test_compute_covariance_auto_reg():
 
     covs = compute_covariance(epochs, method='auto',
                               method_params=method_params,
-                              projs=True,
                               return_estimators=True)
 
     logliks = [c['loglik'] for c in covs]

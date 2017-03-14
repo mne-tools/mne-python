@@ -6,23 +6,14 @@
 Permutation t-test on toy data with spatial clustering
 ======================================================
 
-Following the illustrative example of Ridgway et al. 2012,
+Following the illustrative example of Ridgway et al. 2012 [1]_,
 this demonstrates some basic ideas behind both the "hat"
 variance adjustment method, as well as threshold-free
-cluster enhancement (TFCE) methods in mne-python.
+cluster enhancement (TFCE) [2]_ methods in mne-python.
 
 This toy dataset consists of a 40 x 40 square with a "signal"
 present in the center (at pixel [20, 20]) with white noise
 added and a 5-pixel-SD normal smoothing kernel applied.
-
-For more information, see:
-Ridgway et al. 2012, "The problem of low variance voxels in
-statistical parametric mapping; a new hat avoids a 'haircut'",
-NeuroImage. 2012 Feb 1;59(3):2131-41.
-
-Smith and Nichols 2009, "Threshold-free cluster enhancement:
-addressing problems of smoothing, threshold dependence, and
-localisation in cluster inference", NeuroImage 44 (2009) 83-98.
 
 In the top row plot the T statistic over space, peaking toward the
 center. Note that it has peaky edges. Second, with the "hat" variance
@@ -49,8 +40,8 @@ methods tightens the area declared significant (again FWER corrected),
 and allows for evaluation of each point independently instead of as
 a single, broad cluster.
 
-Note that this example does quite a bit of processing, so even on a
-fast machine it can take a few minutes to complete.
+.. note:: This example does quite a bit of processing, so even on a
+          fast machine it can take a few minutes to complete.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
@@ -145,7 +136,7 @@ T_obs_hat, clusters, p_values, H0 = \
     spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold,
                                        connectivity=connectivity,
                                        tail=1, n_permutations=n_permutations,
-                                       stat_fun=stat_fun)
+                                       stat_fun=stat_fun, buffer_size=None)
 
 #    Let's put the cluster data in a readable format
 ps_hat = np.zeros(width * width)
@@ -167,7 +158,7 @@ T_obs_tfce_hat, clusters, p_values, H0 = \
     spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold_tfce,
                                        connectivity=connectivity,
                                        tail=1, n_permutations=n_permutations,
-                                       stat_fun=stat_fun)
+                                       stat_fun=stat_fun, buffer_size=None)
 T_obs_tfce_hat = T_obs_tfce_hat.reshape((width, width))
 ps_tfce_hat = -np.log10(p_values.reshape((width, width)))
 
@@ -210,3 +201,14 @@ for ax in axs:
     cbar.set_ticklabels(['%0.1f' % p for p in p_lims])
 
 plt.show()
+
+###############################################################################
+# References
+# ----------
+# .. [1] Ridgway et al. 2012, "The problem of low variance voxels in
+#        statistical parametric mapping; a new hat avoids a 'haircut'",
+#        NeuroImage. 2012 Feb 1;59(3):2131-41.
+#
+# .. [2] Smith and Nichols 2009, "Threshold-free cluster enhancement:
+#        addressing problems of smoothing, threshold dependence, and
+#        localisation in cluster inference", NeuroImage 44 (2009) 83-98.

@@ -1,5 +1,4 @@
-"""Functions to plot decoding results
-"""
+"""Functions to plot decoding results."""
 from __future__ import print_function
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
@@ -17,7 +16,7 @@ from ..utils import warn
 def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
                     ax=None, cmap='RdBu_r', show=True, colorbar=True,
                     xlabel=True, ylabel=True):
-    """Plotting function of GeneralizationAcrossTime object
+    """Plot a GeneralizationAcrossTime object.
 
     Predict each classifier. If multiple classifiers are passed, average
     prediction across all classifier to result in a single prediction per
@@ -65,9 +64,9 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
 
     # Define time limits
     if tlim is None:
-        tt_times = gat.train_times_['times']
-        tn_times = gat.test_times_['times']
-        tlim = [tn_times[0][0], tn_times[-1][-1], tt_times[0], tt_times[-1]]
+        tn_times = gat.train_times_['times']
+        tt_times = gat.test_times_['times']
+        tlim = [tt_times[0][0], tt_times[-1][-1], tn_times[0], tn_times[-1]]
 
     # Plot scores
     im = ax.imshow(gat.scores_, interpolation='nearest', origin='lower',
@@ -92,7 +91,7 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
                    xmax=None, ymin=None, ymax=None, ax=None, show=True,
                    color=None, xlabel=True, ylabel=True, legend=True,
                    chance=True, label='Classif. score'):
-    """Plotting function of GeneralizationAcrossTime object
+    """Plot the GeneralizationAcrossTime results.
 
     Plot the scores of the classifier trained at 'train_time'.
 
@@ -190,9 +189,7 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
 
 
 def _plot_gat_time(gat, train_time, ax, color, label):
-    """Aux function of plot_gat_time
-
-    Plots a unique score 1d array"""
+    """Plot a unique score 1d array."""
     # Detect whether gat is a full matrix or just its diagonal
     if np.all(np.unique([len(t) for t in gat.test_times_['times']]) == 1):
         scores = gat.scores_
@@ -226,6 +223,7 @@ def _plot_gat_time(gat, train_time, ax, color, label):
 
 
 def _get_chance_level(scorer, y_train):
+    """Get the chance level."""
     # XXX JRK This should probably be solved within sklearn?
     if scorer.__name__ == 'accuracy_score':
         chance = np.max([np.mean(y_train == c) for c in np.unique(y_train)])

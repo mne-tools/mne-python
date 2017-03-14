@@ -5,8 +5,7 @@ from .constants import FIFF
 
 
 def get_current_comp(info):
-    """Get the current compensation in effect in the data
-    """
+    """Get the current compensation in effect in the data."""
     comp = None
     first_comp = -1
     for k, chan in enumerate(info['chs']):
@@ -21,8 +20,7 @@ def get_current_comp(info):
 
 
 def set_current_comp(info, comp):
-    """Set the current compensation in effect in the data
-    """
+    """Set the current compensation in effect in the data."""
     comp_now = get_current_comp(info)
     for k, chan in enumerate(info['chs']):
         if chan['kind'] == FIFF.FIFFV_MEG_CH:
@@ -31,8 +29,7 @@ def set_current_comp(info, comp):
 
 
 def _make_compensator(info, grade):
-    """Auxiliary function for make_compensator
-    """
+    """Auxiliary function for make_compensator."""
     for k in range(len(info['comps'])):
         if info['comps'][k]['kind'] == grade:
             this_data = info['comps'][k]['data']
@@ -67,7 +64,7 @@ def _make_compensator(info, grade):
 
 
 def make_compensator(info, from_, to, exclude_comp_chs=False):
-    """Returns compensation matrix eg. for CTF system.
+    """Return compensation matrix eg. for CTF system.
 
     Create a compensation matrix to bring the data from one compensation
     state to another.

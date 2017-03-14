@@ -1,3 +1,5 @@
+:orphan:
+
 .. _manual:
 
 User Manual
@@ -11,22 +13,20 @@ and class usage information.
 
 .. contents:: Contents
    :local:
-   :depth: 1
+   :depth: 2
 
-.. raw:: html
-
-   <h2>Cookbook</h2>
-   A quick run-through of the basic steps involved in M/EEG source analysis.
+Cookbook
+--------
+A quick run-through of the basic steps involved in M/EEG source analysis.
 
 .. toctree::
    :maxdepth: 2
 
    cookbook
 
-.. raw:: html
-
-   <h2>Reading your data</h2>
-   How to get your raw data loaded in MNE.
+Reading your data
+-----------------
+How to get your raw data loaded in MNE.
 
 .. toctree::
    :maxdepth: 1
@@ -34,10 +34,9 @@ and class usage information.
    io
    memory
 
-.. raw:: html
-
-   <h2>Preprocessing</h2>
-   Dealing with artifacts and noise sources in data.
+Preprocessing
+-------------
+Dealing with artifacts and noise sources in data.
 
 .. toctree::
    :maxdepth: 1
@@ -47,10 +46,9 @@ and class usage information.
    preprocessing/ssp
    channel_interpolation
 
-.. raw:: html
-
-   <h2>Source localization</h2>
-   Projecting raw data into source (brain) space.
+Source localization
+-------------------
+Projecting raw data into source (brain) space.
 
 .. toctree::
    :maxdepth: 1
@@ -59,67 +57,61 @@ and class usage information.
    source_localization/inverse
    source_localization/morph
 
-.. raw:: html
-
-   <h2>Time-frequency analysis</h2>
-   Decomposing time-domain signals into time-frequency representations.
+Time-frequency analysis
+-----------------------
+Decomposing time-domain signals into time-frequency representations.
 
 .. toctree::
    :maxdepth: 2
 
    time_frequency
 
-.. raw:: html
-
-   <h2>Statistics</h2>
-   Using parametric and non-parametric tests with M/EEG data.
+Statistics
+----------
+Using parametric and non-parametric tests with M/EEG data.
 
 .. toctree::
    :maxdepth: 2
 
    statistics
 
-.. raw:: html
-
-   <h2>Decoding</h2>
+Decoding
+--------
+How to do decoding in MNE-Python.
 
 .. toctree::
    :maxdepth: 2
 
    decoding
 
-.. raw:: html
-
-   <h2>Datasets</h2>
-   How to use dataset fetchers for public data
+Datasets
+--------
+How to use dataset fetchers for public data
 
 .. toctree::
    :maxdepth: 2
 
    datasets_index
 
-.. raw:: html
-
-   <h2>Migrating</h2>
+Migrating
+---------
+Migrating from other software packages.
 
 .. toctree::
    :maxdepth: 1
 
    migrating
 
-.. raw:: html
-
-   <h2>Pitfalls</h2>
+Pitfalls
+--------
 
 .. toctree::
    :maxdepth: 2
 
    pitfalls
 
-.. raw:: html
-
-   <h2>C Tools</h2>
-
+C Tools
+-------
 Additional information about various MNE-C tools.
 
 .. toctree::
@@ -129,20 +121,17 @@ Additional information about various MNE-C tools.
    gui/analyze
    gui/browse
 
-.. raw:: html
-
-   <h2>MATLAB Tools</h2>
-   Information about the MATLAB toolbox.
+MNE-MATLAB
+----------
+Information about the MATLAB toolbox.
 
 .. toctree::
    :maxdepth: 2
 
    matlab
 
-.. raw:: html
-
-   <h2>Appendices</h2>
-
+Appendices
+----------
 More details about our implementations and software.
 
 .. toctree::

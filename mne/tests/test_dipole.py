@@ -14,6 +14,7 @@ from mne import (read_dipole, read_forward_solution,
                  pick_info, EvokedArray, read_source_spaces, make_ad_hoc_cov,
                  make_forward_solution, Dipole, DipoleFixed, Epochs,
                  make_fixed_length_events)
+from mne.dipole import get_phantom_dipoles
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
@@ -215,7 +216,9 @@ def test_dipole_fitting_fixed():
     assert_allclose(resid, resid_fixed[:, [t_idx]])
     _check_roundtrip_fixed(dip_fixed)
     # Degenerate conditions
-    assert_raises(ValueError, fit_dipole, evoked, cov, sphere, pos=[0])
+    evoked_nan = evoked.copy().crop(0, 0)
+    evoked_nan.data[0, 0] = None
+    assert_raises(ValueError, fit_dipole, evoked_nan, cov, sphere)
     assert_raises(ValueError, fit_dipole, evoked, cov, sphere, ori=[1, 0, 0])
     assert_raises(ValueError, fit_dipole, evoked, cov, sphere, pos=[0, 0, 0],
                   ori=[2, 0, 0])
@@ -358,5 +361,15 @@ def _check_roundtrip_fixed(dip):
         for key in ('loc', 'kind', 'unit_mul', 'range', 'coord_frame', 'unit',
                     'cal', 'coil_type', 'scanno', 'logno'):
             assert_allclose(ch_1[key], ch_2[key], err_msg=key)
+
+
+def test_get_phantom_dipoles():
+    """Test getting phantom dipole locations."""
+    assert_raises(ValueError, get_phantom_dipoles, 0)
+    assert_raises(ValueError, get_phantom_dipoles, 'foo')
+    for kind in ('vectorview', 'otaniemi'):
+        pos, ori = get_phantom_dipoles(kind)
+        assert_equal(pos.shape, (32, 3))
+        assert_equal(ori.shape, (32, 3))
 
 run_tests_if_main(False)

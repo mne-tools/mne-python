@@ -1,4 +1,4 @@
-"""Mayavi/traits GUI for converting data from KIT systems"""
+"""Mayavi/traits GUI for converting data from KIT systems."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -6,6 +6,7 @@
 
 from collections import Counter
 import os
+from warnings import warn
 
 import numpy as np
 from scipy.linalg import inv
@@ -13,29 +14,19 @@ from threading import Thread
 
 from ..externals.six.moves import queue
 from ..io.meas_info import _read_dig_points, _make_dig_points
-from ..utils import logger
+from ..utils import get_config, set_config, logger
 
-
-# allow import without traits
-try:
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from mayavi.tools.mlab_scene_model import MlabSceneModel
-    from pyface.api import (confirm, error, FileDialog, OK, YES, information,
-                            ProgressDialog)
-    from traits.api import (HasTraits, HasPrivateTraits, cached_property,
-                            Instance, Property, Bool, Button, Enum, File,
-                            Float, Int, List, Str, Array, DelegatesTo)
-    from traitsui.api import (View, Item, HGroup, VGroup, spring, TextEditor,
-                              CheckListEditor, EnumEditor, Handler)
-    from traitsui.menu import NoButtons
-    from tvtk.pyface.scene_editor import SceneEditor
-except Exception:
-    from ..utils import trait_wraith
-    HasTraits = HasPrivateTraits = Handler = object
-    cached_property = MayaviScene = MlabSceneModel = Bool = Button = Float = \
-        DelegatesTo = Enum = File = Instance = Int = List = Property = \
-        Str = Array = spring = View = Item = HGroup = VGroup = EnumEditor = \
-        NoButtons = CheckListEditor = SceneEditor = TextEditor = trait_wraith
+from mayavi.core.ui.mayavi_scene import MayaviScene
+from mayavi.tools.mlab_scene_model import MlabSceneModel
+from pyface.api import (confirm, error, FileDialog, OK, YES, information,
+                        ProgressDialog)
+from traits.api import (HasTraits, HasPrivateTraits, cached_property, Instance,
+                        Property, Bool, Button, Enum, File, Float, Int, List,
+                        Str, Array, DelegatesTo)
+from traitsui.api import (View, Item, HGroup, VGroup, spring, TextEditor,
+                          CheckListEditor, EnumEditor, Handler)
+from traitsui.menu import NoButtons
+from tvtk.pyface.scene_editor import SceneEditor
 
 from ..io.constants import FIFF
 from ..io.kit.kit import RawKIT, KIT, _make_stim_channel, _default_stim_chs
@@ -45,8 +36,7 @@ from ..coreg import _decimate_points, fit_matched_points
 from ..event import _find_events
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._help import read_tooltips
-from ._viewer import (HeadViewController, headview_item, PointObject,
-                      _testing_mode)
+from ._viewer import HeadViewController, PointObject
 
 
 use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
@@ -56,6 +46,11 @@ if backend_is_wx:
     hsp_wildcard = ['Head Shape Points (*.hsp;*.txt)|*.hsp;*.txt']
     elp_wildcard = ['Head Shape Fiducials (*.elp;*.txt)|*.elp;*.txt']
     kit_con_wildcard = ['Continuous KIT Files (*.sqd;*.con)|*.sqd;*.con']
+elif os.name == 'nt':
+    # on Windows, multiple wildcards does not seem to work
+    hsp_wildcard = ['*.hsp', '*.txt']
+    elp_wildcard = ['*.elp', '*.txt']
+    kit_con_wildcard = ['*.sqd', '*.con']
 else:
     hsp_wildcard = ['*.hsp;*.txt']
     elp_wildcard = ['*.elp;*.txt']
@@ -66,13 +61,13 @@ tooltips = read_tooltips('kit2fiff')
 
 
 class Kit2FiffModel(HasPrivateTraits):
-    """Data Model for Kit2Fiff conversion
+    """Data Model for Kit2Fiff conversion.
 
-     - Markers are transformed into RAS coordinate system (as are the sensor
-       coordinates).
-     - Head shape digitizer data is transformed into neuromag-like space.
-
+    - Markers are transformed into RAS coordinate system (as are the sensor
+      coordinates).
+    - Head shape digitizer data is transformed into neuromag-like space.
     """
+
     # Input Traits
     markers = Instance(CombineMarkersModel, ())
     sqd_file = File(exists=True, filter=kit_con_wildcard)
@@ -126,7 +121,7 @@ class Kit2FiffModel(HasPrivateTraits):
 
     @cached_property
     def _get_can_save(self):
-        "Only allow saving when either all or no head shape elements are set."
+        """Only allow saving when all or no head shape elements are set."""
         if not self.stim_chs_ok:
             return False
 
@@ -185,7 +180,7 @@ class Kit2FiffModel(HasPrivateTraits):
             if self.show_gui:
                 error(None, str(err), "Error Reading Fiducials")
             self.reset_traits(['fid_file'])
-            raise err
+            raise
         else:
             return pts
 
@@ -286,7 +281,7 @@ class Kit2FiffModel(HasPrivateTraits):
         except Exception as err:
             if self.show_gui:
                 error(None, str(err), "Error Creating FsAverage")
-            raise err
+            raise
         finally:
             if self.show_gui:
                 prog.close()
@@ -316,7 +311,7 @@ class Kit2FiffModel(HasPrivateTraits):
                 error(None, "Error reading SQD data file: %s (Check the "
                       "terminal output for details)" % str(err),
                       "Error Reading SQD file")
-            raise err
+            raise
 
     @cached_property
     def _get_sqd_fname(self):
@@ -360,12 +355,12 @@ class Kit2FiffModel(HasPrivateTraits):
         return self.stim_chs_array is not None
 
     def clear_all(self):
-        """Clear all specified input parameters"""
+        """Clear all specified input parameters."""
         self.markers.clear = True
         self.reset_traits(['sqd_file', 'hsp_file', 'fid_file', 'use_mrk'])
 
     def get_event_info(self):
-        """Count events with current stim channel settings
+        """Count events with current stim channel settings.
 
         Returns
         -------
@@ -388,8 +383,7 @@ class Kit2FiffModel(HasPrivateTraits):
         return Counter(events[:, 2])
 
     def get_raw(self, preload=False):
-        """Create a raw object based on the current model settings
-        """
+        """Create a raw object based on the current model settings."""
         if not self.can_save:
             raise ValueError("Not all necessary parameters are set")
 
@@ -418,9 +412,9 @@ class Kit2FiffModel(HasPrivateTraits):
 
 
 class Kit2FiffFrameHandler(Handler):
-    """Handler that checks for unfinished processes before closing its window
-    """
-    def close(self, info, is_ok):
+    """Check for unfinished processes before closing its window."""
+
+    def close(self, info, is_ok):  # noqa: D102
         if info.object.kit2fiff_panel.queue.unfinished_tasks:
             msg = ("Can not close the window while saving is still in "
                    "progress. Please wait until all files are processed.")
@@ -428,11 +422,17 @@ class Kit2FiffFrameHandler(Handler):
             information(None, msg, title)
             return False
         else:
+            # store configuration, but don't prevent from closing on error
+            try:
+                info.object.save_config()
+            except Exception as exc:
+                warn("Error saving GUI configuration:\n%s" % (exc,))
             return True
 
 
 class Kit2FiffPanel(HasPrivateTraits):
-    """Control panel for kit2fiff conversion"""
+    """Control panel for kit2fiff conversion."""
+
     model = Instance(Kit2FiffModel)
 
     # model copies for view
@@ -527,11 +527,11 @@ class Kit2FiffPanel(HasPrivateTraits):
                )
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: D102
         super(Kit2FiffPanel, self).__init__(*args, **kwargs)
 
         # setup save worker
-        def worker():
+        def worker():  # noqa: D102
             while True:
                 raw, fname = self.queue.get()
                 basename = os.path.basename(fname)
@@ -557,20 +557,19 @@ class Kit2FiffPanel(HasPrivateTraits):
         t.start()
 
         # setup mayavi visualization
-        m = self.model
-        self.fid_obj = PointObject(scene=self.scene, color=(25, 225, 25),
+        self.fid_obj = PointObject(scene=self.scene, color=(0.1, 1., 0.1),
                                    point_scale=5e-3, name='Fiducials')
-        self.elp_obj = PointObject(scene=self.scene, color=(50, 50, 220),
+        self.elp_obj = PointObject(scene=self.scene,
+                                   color=(0.196, 0.196, 0.863),
                                    point_scale=1e-2, opacity=.2, name='ELP')
-        self.hsp_obj = PointObject(scene=self.scene, color=(200, 200, 200),
+        self.hsp_obj = PointObject(scene=self.scene, color=(0.784,) * 3,
                                    point_scale=2e-3, name='HSP')
-        if not _testing_mode():
-            for name, obj in zip(['fid', 'elp', 'hsp'],
-                                 [self.fid_obj, self.elp_obj, self.hsp_obj]):
-                m.sync_trait(name, obj, 'points', mutual=False)
-                m.sync_trait('head_dev_trans', obj, 'trans', mutual=False)
-            self.scene.camera.parallel_scale = 0.15
-            self.scene.mlab.view(0, 0, .15)
+        for name in ('fid', 'elp', 'hsp'):
+            obj = getattr(self, name + '_obj')
+            self.model.sync_trait(name, obj, 'points', mutual=False)
+            self.model.sync_trait('head_dev_trans', obj, 'trans', mutual=False)
+        self.scene.camera.parallel_scale = 0.15
+        self.scene.mlab.view(0, 0, .15)
 
     def _clear_all_fired(self):
         self.model.clear_all()
@@ -629,7 +628,7 @@ class Kit2FiffPanel(HasPrivateTraits):
             error(None, "Error reading events from SQD data file: %s (Check "
                   "the terminal output for details)" % str(err),
                   "Error Reading events from SQD file")
-            raise err
+            raise
 
         if len(events) == 0:
             information(None, "No events were found with the current "
@@ -642,8 +641,9 @@ class Kit2FiffPanel(HasPrivateTraits):
 
 
 class Kit2FiffFrame(HasTraits):
-    """GUI for interpolating between two KIT marker files"""
-    model = Instance(Kit2FiffModel, kw={'show_gui': True})
+    """GUI for interpolating between two KIT marker files."""
+
+    model = Instance(Kit2FiffModel)
     scene = Instance(MlabSceneModel, ())
     headview = Instance(HeadViewController)
     marker_panel = Instance(CombineMarkersPanel)
@@ -654,7 +654,8 @@ class Kit2FiffFrame(HasTraits):
                        VGroup(Item('scene',
                                    editor=SceneEditor(scene_class=MayaviScene),
                                    dock='vertical', show_label=False),
-                              VGroup(headview_item, show_labels=False),
+                              VGroup(Item('headview', style='custom'),
+                                     show_labels=False),
                               ),
                        VGroup(Item('kit2fiff_panel', style='custom'),
                               show_labels=False),
@@ -662,6 +663,39 @@ class Kit2FiffFrame(HasTraits):
                        ),
                 handler=Kit2FiffFrameHandler(),
                 height=700, resizable=True, buttons=NoButtons)
+
+    # can't be static method due to Traits
+    def _model_default(self):
+        # load configuration values and make sure they're valid
+        config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
+        stim_threshold = 1.
+        if 'MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD' in config:
+            try:
+                stim_threshold = float(
+                    config['MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD'])
+            except ValueError:
+                warn("Ignoring invalid configuration value for "
+                     "MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD: %r (expected "
+                     "float)" %
+                     (config['MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD'],))
+        stim_slope = config.get('MNE_KIT2FIFF_STIM_CHANNEL_SLOPE', '-')
+        if stim_slope not in '+-':
+            warn("Ignoring invalid configuration value for "
+                 "MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD: %s (expected + or -)" %
+                 stim_slope)
+            stim_slope = '-'
+        stim_coding = config.get('MNE_KIT2FIFF_STIM_CHANNEL_CODING', '>')
+        if stim_coding not in ('<', '>', 'channel'):
+            warn("Ignoring invalid configuration value for "
+                 "MNE_KIT2FIFF_STIM_CHANNEL_CODING: %s (expected <, > or "
+                 "channel)" % stim_coding)
+            stim_coding = '>'
+        return Kit2FiffModel(
+            stim_chs=config.get('MNE_KIT2FIFF_STIM_CHANNELS', ''),
+            stim_coding=stim_coding,
+            stim_slope=stim_slope,
+            stim_threshold=stim_threshold,
+            show_gui=True)
 
     def _headview_default(self):
         return HeadViewController(scene=self.scene, scale=160, system='RAS')
@@ -672,3 +706,14 @@ class Kit2FiffFrame(HasTraits):
     def _marker_panel_default(self):
         return CombineMarkersPanel(scene=self.scene, model=self.model.markers,
                                    trans=als_ras_trans)
+
+    def save_config(self, home_dir=None):
+        """Write configuration values."""
+        set_config('MNE_KIT2FIFF_STIM_CHANNELS', self.model.stim_chs, home_dir,
+                   set_env=False)
+        set_config('MNE_KIT2FIFF_STIM_CHANNEL_CODING', self.model.stim_coding,
+                   home_dir, set_env=False)
+        set_config('MNE_KIT2FIFF_STIM_CHANNEL_SLOPE', self.model.stim_slope,
+                   home_dir, set_env=False)
+        set_config('MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD',
+                   str(self.model.stim_threshold), home_dir, set_env=False)

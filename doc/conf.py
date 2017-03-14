@@ -12,11 +12,15 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
+import inspect
 import os
+from os.path import relpath, dirname
+import sys
 from datetime import date
-import sphinx_gallery
+import sphinx_gallery  # noqa
 import sphinx_bootstrap_theme
+from numpydoc import numpydoc, docscrape  # noqa
+import mne
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -25,7 +29,6 @@ curdir = os.path.dirname(__file__)
 sys.path.append(os.path.abspath(os.path.join(curdir, '..', 'mne')))
 sys.path.append(os.path.abspath(os.path.join(curdir, 'sphinxext')))
 
-import mne
 if not os.path.isdir('_images'):
     os.mkdir('_images')
 
@@ -34,25 +37,25 @@ if not os.path.isdir('_images'):
 # If your documentation needs a minimal Sphinx version, state it here.
 #needs_sphinx = '1.0'
 
+# XXX This hack defines what extra methods numpydoc will document
+docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-from numpydoc import numpydoc, docscrape
-docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
 
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'sphinx.ext.coverage',
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
+    'sphinx.ext.linkcode',
     'sphinx.ext.mathjax',
+    'sphinx.ext.todo',
     'sphinx_gallery.gen_gallery',
+    'numpydoc',
+    'gen_commands',
 ]
-
-extensions += ['numpydoc'] 
-extensions += ['gen_commands']  # auto generate the doc for the python commands
-# extensions += ['flow_diagram]  # generate flow chart in cookbook
 
 autosummary_generate = True
 autodoc_default_flags = ['inherited-members']
@@ -74,6 +77,10 @@ project = u'MNE'
 td = date.today()
 copyright = u'2012-%s, MNE Developers. Last updated on %s' % (td.year,
                                                               td.isoformat())
+
+nitpicky = True
+needs_sphinx = '1.5'
+suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -118,7 +125,7 @@ exclude_patterns = ['source/generated']
 #show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'sphinx'  # friendly, manni, murphy, tango
 
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['mne.']
@@ -137,17 +144,20 @@ html_theme = 'bootstrap'
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    'navbar_title': ' ',
-    'source_link_position': "footer",
-    'bootswatch_theme': "flatly",
-    'navbar_sidebarrel': False,
-    'bootstrap_version': "3",
+    'navbar_title': ' ',  # we replace this with an image
+    'source_link_position': "nav",  # default
+    'bootswatch_theme': "flatly",  # yeti paper lumen
+    'navbar_sidebarrel': False,  # Render the next/prev links in navbar?
+    'navbar_pagenav': False,
+    'navbar_class': "navbar",
+    'bootstrap_version': "3",  # default
     'navbar_links': [
         ("Get started", "getting_started"),
         ("Tutorials", "tutorials"),
-        ("Gallery", "auto_examples/index"),
+        ("Examples", "auto_examples/index"),
         ("API", "python_reference"),
         ("Manual", "manual/index"),
+        ("Contribute", "contribute_to_mne"),
         ("FAQ", "faq"),
     ],
     }
@@ -254,7 +264,7 @@ latex_logo = "_static/logo.png"
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
-latex_use_parts = True
+latex_toplevel_sectioning = 'part'
 
 # Additional stuff for the LaTeX preamble.
 # latex_preamble = ''
@@ -272,13 +282,15 @@ intersphinx_mapping = {
     'python': ('http://docs.python.org/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy-dev/', None),
     'scipy': ('http://scipy.github.io/devdocs/', None),
+    'sklearn': ('http://scikit-learn.org/stable/', None),
+    'matplotlib': ('http://matplotlib.org/', None),
 }
 
 examples_dirs = ['../examples', '../tutorials']
 gallery_dirs = ['auto_examples', 'auto_tutorials']
 
 try:
-    from mayavi import mlab
+    mlab = mne.utils._import_mlab()
     find_mayavi_figures = True
     # Do not pop up any mayavi windows while running the
     # examples. These are very annoying since they steal the focus.
@@ -291,8 +303,8 @@ sphinx_gallery_conf = {
     'reference_url': {
         'mne': None,
         'matplotlib': 'http://matplotlib.org',
-        'numpy': 'http://docs.scipy.org/doc/numpy-1.10.1',
-        'scipy': 'http://docs.scipy.org/doc/scipy-0.17.0/reference',
+        'numpy': 'http://docs.scipy.org/doc/numpy/reference',
+        'scipy': 'http://docs.scipy.org/doc/scipy/reference',
         'mayavi': 'http://docs.enthought.com/mayavi/mayavi'},
     'examples_dirs': examples_dirs,
     'gallery_dirs': gallery_dirs,
@@ -302,3 +314,60 @@ sphinx_gallery_conf = {
     }
 
 numpydoc_class_members_toctree = False
+
+
+# -----------------------------------------------------------------------------
+# Source code links (adapted from SciPy (doc/source/conf.py))
+# -----------------------------------------------------------------------------
+
+def linkcode_resolve(domain, info):
+    """
+    Determine the URL corresponding to Python object
+    """
+    if domain != 'py':
+        return None
+
+    modname = info['module']
+    fullname = info['fullname']
+
+    submod = sys.modules.get(modname)
+    if submod is None:
+        return None
+
+    obj = submod
+    for part in fullname.split('.'):
+        try:
+            obj = getattr(obj, part)
+        except:
+            return None
+
+    try:
+        fn = inspect.getsourcefile(obj)
+    except:
+        fn = None
+    if not fn:
+        try:
+            fn = inspect.getsourcefile(sys.modules[obj.__module__])
+        except:
+            fn = None
+    if not fn:
+        return None
+
+    try:
+        source, lineno = inspect.getsourcelines(obj)
+    except:
+        lineno = None
+
+    if lineno:
+        linespec = "#L%d-L%d" % (lineno, lineno + len(source) - 1)
+    else:
+        linespec = ""
+
+    fn = relpath(fn, start=dirname(mne.__file__))
+
+    if 'git' in mne.__version__:
+        return "http://github.com/mne-tools/mne-python/blob/master/mne/%s%s" % (  # noqa
+           fn, linespec)
+    else:
+        return "http://github.com/mne-tools/mne-python/blob/maint/%s/mne/%s%s" % (  # noqa
+           mne.__version__, fn, linespec)

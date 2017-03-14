@@ -7,7 +7,7 @@ from textwrap import TextWrapper
 
 
 def read_tooltips(gui_name):
-    "Read and format tooltips, return a dict"
+    """Read and format tooltips, return a dict."""
     dirname = os.path.dirname(__file__)
     help_path = os.path.join(dirname, 'help', gui_name + '.json')
     with open(help_path) as fid:

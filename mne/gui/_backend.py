@@ -1,7 +1,9 @@
-"""Deal with pyface backend issues"""
+"""Deal with pyface backend issues."""
 # Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
+
+import os
 
 
 def _check_backend():
@@ -25,3 +27,8 @@ def _check_backend():
                "recommend using qt4 which can be enabled by installing the "
                "pyside package." % backend)
     warning(None, msg, "Pyface Backend Warning")
+
+
+def _testing_mode():
+    """Determine if we're running tests."""
+    return os.getenv('_MNE_GUI_TESTING_MODE', '') == 'true'

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from copy import deepcopy
-from functools import partial
 
 import numpy as np
 from scipy import linalg
@@ -15,13 +14,13 @@ from ..io.proj import _has_eeg_average_ref_proj, make_projector
 from ..transforms import transform_surface_to, read_trans, _find_trans
 from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
-                         _get_legen_lut_fast, _get_legen_lut_accurate,
                          _do_cross_dots)
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose
 
 
 def _is_axial_coil(coil):
+    """Determine if the coil is axial."""
     is_ax = coil['coil_class'] in (FIFF.FWD_COILC_MAG,
                                    FIFF.FWD_COILC_AXIAL_GRAD,
                                    FIFF.FWD_COILC_AXIAL_GRAD2)
@@ -29,6 +28,8 @@ def _is_axial_coil(coil):
 
 
 def _ad_hoc_noise(coils, ch_type='meg'):
+    """Create ad-hoc noise covariance."""
+    # XXX should de-duplicate with make_ad_hoc_cov
     v = np.empty(len(coils))
     if ch_type == 'meg':
         axs = np.array([_is_axial_coil(coil) for coil in coils], dtype=bool)
@@ -41,24 +42,18 @@ def _ad_hoc_noise(coils, ch_type='meg'):
 
 
 def _setup_dots(mode, coils, ch_type):
-    """Setup dot products"""
+    """Set up dot products."""
+    from scipy.interpolate import interp1d
     int_rad = 0.06
     noise = _ad_hoc_noise(coils, ch_type)
-    if mode == 'fast':
-        # Use 50 coefficients with nearest-neighbor interpolation
-        n_coeff = 50
-        lut_fun = _get_legen_lut_fast
-    else:  # 'accurate'
-        # Use 100 coefficients with linear interpolation
-        n_coeff = 100
-        lut_fun = _get_legen_lut_accurate
+    n_coeff, interp = (50, 'nearest') if mode == 'fast' else (100, 'linear')
     lut, n_fact = _get_legen_table(ch_type, False, n_coeff, verbose=False)
-    lut_fun = partial(lut_fun, lut=lut)
+    lut_fun = interp1d(np.linspace(-1, 1, lut.shape[0]), lut, interp, axis=0)
     return int_rad, noise, lut_fun, n_fact
 
 
 def _compute_mapping_matrix(fmd, info):
-    """Do the hairy computations"""
+    """Do the hairy computations."""
     logger.info('    Preparing the mapping matrix...')
     # assemble a projector and apply it to the data
     ch_names = fmd['ch_names']
@@ -220,7 +215,7 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
 @verbose
 def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
                           n_jobs=1, origin=(0., 0., 0.04), verbose=None):
-    """Re-map M/EEG data to a surface
+    """Re-map M/EEG data to a surface.
 
     Parameters
     ----------
@@ -245,7 +240,8 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         coords and in meters. The default is ``'auto'``, which means
         a head-digitization-based origin fit.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -333,7 +329,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
                    ch_type=None, mode='fast', meg_surf='helmet',
                    origin=(0., 0., 0.04), n_jobs=1, verbose=None):
-    """Compute surface maps used for field display in 3D
+    """Compute surface maps used for field display in 3D.
 
     Parameters
     ----------
@@ -370,10 +366,10 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     n_jobs : int
         The number of jobs to run in parallel.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
         .. versionadded:: 0.11
-
 
     Returns
     -------

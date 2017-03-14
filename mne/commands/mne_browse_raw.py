@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Browse raw data
+r"""Browse raw data.
 
 You can do for example:
 
@@ -15,6 +15,7 @@ import mne
 
 
 def run():
+    """Run command."""
     import matplotlib.pyplot as plt
 
     from mne.commands.utils import get_optparser

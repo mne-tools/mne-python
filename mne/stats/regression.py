@@ -14,14 +14,14 @@ from scipy import linalg, sparse
 
 from ..externals.six import string_types
 from ..source_estimate import SourceEstimate
-from ..epochs import _BaseEpochs
+from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..utils import logger, _reject_data_segments, warn
 from ..io.pick import pick_types, pick_info
 
 
 def linear_regression(inst, design_matrix, names=None):
-    """Fit Ordinary Least Squares regression (OLS)
+    """Fit Ordinary Least Squares regression (OLS).
 
     Parameters
     ----------
@@ -60,7 +60,7 @@ def linear_regression(inst, design_matrix, names=None):
     if names is None:
         names = ['x%i' % i for i in range(design_matrix.shape[1])]
 
-    if isinstance(inst, _BaseEpochs):
+    if isinstance(inst, BaseEpochs):
         picks = pick_types(inst.info, meg=True, eeg=True, ref_meg=True,
                            stim=False, eog=False, ecg=False,
                            emg=False, exclude=['bads'])
@@ -90,12 +90,9 @@ def linear_regression(inst, design_matrix, names=None):
         parameters = [p[name] for p in lm_params]
         for ii, value in enumerate(parameters):
             out_ = out.copy()
-            if isinstance(out_, SourceEstimate):
-                out_._data[:] = value
-            elif isinstance(out_, Evoked):
-                out_.data[:] = value
-            else:
+            if not isinstance(out_, (SourceEstimate, Evoked)):
                 raise RuntimeError('Invalid container.')
+            out_._data[:] = value
             parameters[ii] = out_
         lm_fits[name] = lm(*parameters)
     logger.info('Done')
@@ -103,7 +100,7 @@ def linear_regression(inst, design_matrix, names=None):
 
 
 def _fit_lm(data, design_matrix, names):
-    """Aux function"""
+    """Aux function."""
     from scipy import stats
     n_samples = len(data)
     n_features = np.product(data.shape[1:])
@@ -155,7 +152,7 @@ def _fit_lm(data, design_matrix, names):
 def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                           covariates=None, reject=None, flat=None, tstep=1.,
                           decim=1, picks=None, solver='cholesky'):
-    """Estimate regression-based evoked potentials/fields by linear modelling
+    """Estimate regression-based evoked potentials/fields by linear modeling.
 
     This models the full M/EEG time course, including correction for
     overlapping potentials and allowing for continuous/scalar predictors.
@@ -243,7 +240,6 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
            waveforms: II. Non-linear effects, overlap correction, and practical
            considerations. Psychophysiology, 52(2), 169-189.
     """
-
     if isinstance(solver, string_types):
         if solver == 'cholesky':
             def solver(X, y):
@@ -276,8 +272,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
 
 def _prepare_rerp_data(raw, events, picks=None, decim=1):
-    """Prepare events and data, primarily for `linear_regression_raw`. See
-    there for an explanation of parameters and output."""
+    """Prepare events and data, primarily for `linear_regression_raw`."""
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
     info = pick_info(raw.info, picks)
@@ -305,9 +300,7 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1):
 
 def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
                         tmax=1, covariates=None):
-    """Build predictor matrix as well as metadata (e.g. condition time
-    windows), primarily for `linear_regression_raw`. See there for
-    an explanation of parameters and output."""
+    """Build predictor matrix and metadata (e.g. condition time windows)."""
     conds = list(event_id)
     if covariates is not None:
         conds += list(covariates)
@@ -362,8 +355,7 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
 
 
 def _clean_rerp_input(X, data, reject, flat, decim, info, tstep):
-    """Remove empty and contaminated points from data and predictor matrices,
-    for `linear_regression_raw`. See there for an explanation of parameters."""
+    """Remove empty and contaminated points from data & predictor matrices."""
     # find only those positions where at least one predictor isn't 0
     has_val = np.unique(X.nonzero()[0])
 
@@ -378,9 +370,10 @@ def _clean_rerp_input(X, data, reject, flat, decim, info, tstep):
 
 
 def _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info):
-    """Create a dictionary of Evoked objects from a coefs matrix and condition
-    durations, primarily for `linear_regression_raw`. See there for an
-    explanation of parameters and output."""
+    """Create a dictionary of Evoked objects.
+
+    These will be created from a coefs matrix and condition durations.
+    """
     evokeds = dict()
     cumul = 0
     for cond in conds:

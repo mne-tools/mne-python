@@ -12,12 +12,12 @@ import numpy as np
 
 from .. import pick_channels
 from ..utils import logger, verbose
-from ..epochs import _BaseEpochs
+from ..epochs import BaseEpochs
 from ..event import _find_events
 
 
-class RtEpochs(_BaseEpochs):
-    """Realtime Epochs
+class RtEpochs(BaseEpochs):
+    """Realtime Epochs.
 
     Can receive epochs in real time from an RtClient.
 
@@ -115,8 +115,9 @@ class RtEpochs(_BaseEpochs):
 
         See :func:`mne.find_events` for detailed explanation of these options.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to client.verbose.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        client.verbose.
 
     Attributes
     ----------
@@ -131,13 +132,14 @@ class RtEpochs(_BaseEpochs):
     verbose : bool, str, int, or None
         See above.
     """
+
     @verbose
     def __init__(self, client, event_id, tmin, tmax, stim_channel='STI 014',
                  sleep_time=0.1, baseline=(None, 0), picks=None,
                  name='Unknown', reject=None, flat=None, proj=True,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
                  add_eeg_ref=False, isi_max=2., find_events=None,
-                 verbose=None):
+                 verbose=None):  # noqa: D102
         info = client.get_measurement_info()
 
         # the measurement info of the data as we receive it
@@ -145,7 +147,7 @@ class RtEpochs(_BaseEpochs):
 
         verbose = client.verbose if verbose is None else verbose
 
-        # call _BaseEpochs constructor
+        # call BaseEpochs constructor
         super(RtEpochs, self).__init__(
             info, None, None, event_id, tmin, tmax, baseline, picks=picks,
             name=name, reject=reject, flat=flat, decim=decim,
@@ -212,7 +214,7 @@ class RtEpochs(_BaseEpochs):
         return np.array(self._events)
 
     def start(self):
-        """Start receiving epochs
+        """Start receiving epochs.
 
         The measurement will be started if it has not already been started.
         """
@@ -227,7 +229,7 @@ class RtEpochs(_BaseEpochs):
             self._last_time = np.inf  # init delay counter. Will stop iters
 
     def stop(self, stop_receive_thread=False, stop_measurement=False):
-        """Stop receiving epochs
+        """Stop receiving epochs.
 
         Parameters
         ----------
@@ -248,7 +250,7 @@ class RtEpochs(_BaseEpochs):
             self._client.stop_receive_thread(stop_measurement=stop_measurement)
 
     def next(self, return_event_id=False):
-        """To make iteration over epochs easy.
+        """Make iteration over epochs easy.
 
         Parameters
         ----------
@@ -284,8 +286,7 @@ class RtEpochs(_BaseEpochs):
                                    'not receiving epochs, cannot get epochs!')
 
     def _get_data(self):
-        """Return the data for n_epochs epochs"""
-
+        """Return the data for n_epochs epochs."""
         epochs = list()
         for epoch in self:
             epochs.append(epoch)
@@ -295,7 +296,7 @@ class RtEpochs(_BaseEpochs):
         return data
 
     def _process_raw_buffer(self, raw_buffer):
-        """Process raw buffer (callback from RtClient)
+        """Process raw buffer (callback from RtClient).
 
         Note: Do not print log messages during regular use. It will be printed
         asynchronously which is annoying when working in an interactive shell.
@@ -320,11 +321,36 @@ class RtEpochs(_BaseEpochs):
 
         # detect events
         data = np.abs(raw_buffer[self._stim_picks]).astype(np.int)
-        data = np.atleast_2d(data)
-        buff_events = _find_events(data, self._first_samp, verbose=verbose,
-                                   **self._find_events_kwargs)
+        # if there is a previous buffer check the last samples from it too
+        if self._last_buffer is not None:
+            prev_data = self._last_buffer[self._stim_picks,
+                                          -raw_buffer.shape[1]:].astype(np.int)
+            data = np.concatenate((prev_data, data), axis=1)
+            data = np.atleast_2d(data)
+            buff_events = _find_events(data,
+                                       self._first_samp - raw_buffer.shape[1],
+                                       verbose=verbose,
+                                       **self._find_events_kwargs)
+        else:
+            data = np.atleast_2d(data)
+            buff_events = _find_events(data, self._first_samp, verbose=verbose,
+                                       **self._find_events_kwargs)
 
         events = self._event_backlog
+
+        # remove events before the last epoch processed
+        min_event_samp = self._first_samp - \
+            int(self._find_events_kwargs['min_samples'])
+        if len(self._event_backlog) > 0:
+            backlog_samps = np.array(self._event_backlog)[:, 0]
+            min_event_samp = backlog_samps[-1] + 1
+
+        if buff_events.shape[0] > 0:
+            valid_events_idx = buff_events[:, 0] >= min_event_samp
+            buff_events = buff_events[valid_events_idx]
+
+        # add events from this buffer to the list of events
+        # processed so far
         for event_id in self.event_id.values():
             idx = np.where(buff_events[:, -1] == event_id)[0]
             events.extend(zip(list(buff_events[idx, 0]),
@@ -375,7 +401,7 @@ class RtEpochs(_BaseEpochs):
             self._last_buffer[:, -n_buffer:] = raw_buffer
 
     def _append_epoch_to_queue(self, epoch, event_samp, event_id):
-        """Append a (raw) epoch to queue
+        """Append a (raw) epoch to queue.
 
         Note: Do not print log messages during regular use. It will be printed
         asynchronously which is annyoing when working in an interactive shell.
@@ -409,7 +435,7 @@ class RtEpochs(_BaseEpochs):
         else:
             self._n_bad += 1
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         s = 'good / bad epochs received: %d / %d, epochs in queue: %d, '\
             % (self._n_good, self._n_bad, len(self._epoch_queue))
         s += ', tmin : %s (s)' % self.tmin

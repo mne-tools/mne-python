@@ -5,18 +5,17 @@
 
 
 class Bunch(dict):
-    """ Container object for datasets: dictionnary-like object that
-        exposes its keys as attributes.
-    """
+    """Dictionnary-like object thatexposes its keys as attributes."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs):  # noqa: D102
         dict.__init__(self, kwargs)
         self.__dict__ = self
 
 
 class BunchConst(Bunch):
-    """Class to prevent us from re-defining constants (DRY)"""
-    def __setattr__(self, attr, val):
+    """Class to prevent us from re-defining constants (DRY)."""
+
+    def __setattr__(self, attr, val):  # noqa: D105
         if attr != '__dict__' and hasattr(self, attr):
             raise AttributeError('Attribute "%s" already set' % attr)
         super(BunchConst, self).__setattr__(attr, val)
@@ -796,15 +795,16 @@ FIFF.FIFFV_COIL_VV_MAG_T3          = 3024  # Vectorview SQ20950N magnetometer
 
 FIFF.FIFFV_COIL_MAGNES_MAG         = 4001  # Magnes WH magnetometer
 FIFF.FIFFV_COIL_MAGNES_GRAD        = 4002  # Magnes WH gradiometer
-FIFF.FIFFV_COIL_MAGNES_R_MAG       = 4003  # Magnes WH reference magnetometer
-FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA  = 4004  # Magnes WH reference diagonal gradioometer
-FIFF.FIFFV_COIL_MAGNES_R_GRAD_OFF  = 4005  # Magnes WH reference off-diagonal gradiometer
 #
 # Magnes reference sensors
 #
 FIFF.FIFFV_COIL_MAGNES_REF_MAG          = 4003
 FIFF.FIFFV_COIL_MAGNES_REF_GRAD         = 4004
 FIFF.FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD = 4005
+FIFF.FIFFV_COIL_MAGNES_R_MAG = FIFF.FIFFV_COIL_MAGNES_REF_MAG
+FIFF.FIFFV_COIL_MAGNES_R_GRAD = FIFF.FIFFV_COIL_MAGNES_REF_GRAD
+FIFF.FIFFV_COIL_MAGNES_R_GRAD_OFF = FIFF.FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD
+
 #
 # CTF coil and channel types
 #
@@ -820,9 +820,24 @@ FIFF.FIFFV_COIL_KIT_REF_MAG      = 6002
 #
 # BabySQUID sensors
 #
-FIFF.FIFFV_COIL_BABY_GRAD               = 7001
-FIFF.FIFFV_COIL_BABY_MAG                = 7002
-FIFF.FIFFV_COIL_BABY_REF_MAG            = 7003
+FIFF.FIFFV_COIL_BABY_GRAD          = 7001
+FIFF.FIFFV_COIL_BABY_MAG           = 7002
+FIFF.FIFFV_COIL_BABY_REF_MAG       = 7003
+FIFF.FIFFV_COIL_BABY_REF_MAG2      = 7004
+#
+# Artemis123 sensors
+#
+FIFF.FIFFV_COIL_ARTEMIS123_GRAD         = 7501
+FIFF.FIFFV_COIL_ARTEMIS123_REF_MAG      = 7502
+FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD     = 7503
+#
+# KRISS sensors
+#
+FIFF.FIFFV_COIL_KRISS_GRAD         = 8001
+#
+# Sample TMS sensors
+#
+FIFF.FIFFV_COIL_SAMPLE_TMS_PLANAR  = 9001
 
 # MNE RealTime
 FIFF.FIFF_MNE_RT_COMMAND           = 3700  # realtime command

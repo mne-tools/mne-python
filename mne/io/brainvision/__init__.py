@@ -1,4 +1,4 @@
-"""Brainvision module for conversion to FIF"""
+"""Brainvision module for conversion to FIF."""
 
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #

@@ -15,8 +15,7 @@ from .constants import FIFF
 
 
 def _find_channels(ch_names, ch_type='EOG'):
-    """Helper to find EOG channel.
-    """
+    """Find EOG channel."""
     substrings = (ch_type,)
     substrings = [s.upper() for s in substrings]
     if ch_type == 'EOG':
@@ -27,7 +26,7 @@ def _find_channels(ch_names, ch_type='EOG'):
 
 
 def _mult_cal_one(data_view, one, idx, cals, mult):
-    """Take a chunk of raw data, multiply by mult or cals, and store"""
+    """Take a chunk of raw data, multiply by mult or cals, and store."""
     one = np.asarray(one, dtype=data_view.dtype)
     assert data_view.shape[1] == one.shape[1]
     if mult is not None:
@@ -43,7 +42,7 @@ def _mult_cal_one(data_view, one, idx, cals, mult):
 
 
 def _blk_read_lims(start, stop, buf_len):
-    """Helper to deal with indexing in the middle of a data block
+    """Deal with indexing in the middle of a data block.
 
     Parameters
     ----------
@@ -108,7 +107,7 @@ def _blk_read_lims(start, stop, buf_len):
 
         >>> data[d_lims[ii, 0]:d_lims[ii, 1]] = this_data[r_lims[ii, 0]:r_lims[ii, 1]]  # doctest: +SKIP
 
-    """  # noqa
+    """  # noqa: E501
     # this is used to deal with indexing in the middle of a sampling period
     assert all(isinstance(x, int) for x in (start, stop, buf_len))
     block_start_idx = (start // buf_len)
@@ -144,7 +143,7 @@ def _blk_read_lims(start, stop, buf_len):
 def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
                         dtype='<i2', n_channels=None, offset=0,
                         trigger_ch=None):
-    """Read a chunk of raw data"""
+    """Read a chunk of raw data."""
     if n_channels is None:
         n_channels = raw.info['nchan']
     n_bytes = np.dtype(dtype).itemsize
@@ -184,7 +183,7 @@ def read_str(fid, count=1):
 
 
 def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
-    """Helper for initializing info['chs'] for eeg channels."""
+    """Initialize info['chs'] for eeg channels."""
     chs = list()
     for idx, ch_name in enumerate(ch_names):
         if ch_name in eog or idx in eog:
@@ -213,7 +212,7 @@ def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
 
 
 def _synthesize_stim_channel(events, n_samples):
-    """Synthesize a stim channel from events read from an event file
+    """Synthesize a stim channel from events read from an event file.
 
     Parameters
     ----------

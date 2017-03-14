@@ -25,7 +25,7 @@ from mne.baseline import rescale
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
-    EpochsArray, concatenate_epochs, _BaseEpochs, average_movements)
+    EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
 from mne.utils import (_TempDir, requires_pandas, slow_test,
                        run_tests_if_main, requires_version)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
@@ -55,7 +55,7 @@ event_name = op.join(base_dir, 'test-eve.fif')
 evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
-event_id_2 = 2
+event_id_2 = np.int64(2)  # to test non Python int types
 rng = np.random.RandomState(42)
 
 
@@ -280,15 +280,25 @@ def test_reject():
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
-            # rejection on annotations
-            raw.annotations = Annotations([(events[0][0] - raw.first_samp) /
-                                           raw.info['sfreq']], [1], ['BAD'])
+        # rejection on annotations
+        sfreq = raw.info['sfreq']
+        onsets = [(event[0] - raw.first_samp) / sfreq for event in
+                  events[::2][:3]]
+        onsets[0] = onsets[0] + tmin - 0.499  # tmin < 0
+        onsets[1] = onsets[1] + tmax - 0.001
+        first_time = (raw.info['meas_date'][0] + raw.info['meas_date'][1] *
+                      0.000001 + raw.first_samp / sfreq)
+        for orig_time in [None, first_time]:
+            raw.annotations = Annotations(onsets, [0.5, 0.5, 0.5], 'BAD',
+                                          orig_time)
             epochs = Epochs(raw, events, event_id, tmin, tmax, picks=[0],
                             reject=None, preload=preload)
             epochs.drop_bad()
-            assert_equal(len(events) - 1, len(epochs.events))
+            assert_equal(len(events) - 3, len(epochs.events))
             assert_equal(epochs.drop_log[0][0], 'BAD')
-            raw.annotations = None
+            assert_equal(epochs.drop_log[2][0], 'BAD')
+            assert_equal(epochs.drop_log[4][0], 'BAD')
+        raw.annotations = None
 
 
 def test_decim():
@@ -403,13 +413,13 @@ def test_decim():
 def test_base_epochs():
     """Test base epochs class."""
     raw = _get_data()[0]
-    epochs = _BaseEpochs(raw.info, None, np.ones((1, 3), int),
-                         event_id, tmin, tmax)
+    epochs = BaseEpochs(raw.info, None, np.ones((1, 3), int),
+                        event_id, tmin, tmax)
     assert_raises(NotImplementedError, epochs.get_data)
     # events with non integers
-    assert_raises(ValueError, _BaseEpochs, raw.info, None,
+    assert_raises(ValueError, BaseEpochs, raw.info, None,
                   np.ones((1, 3), float), event_id, tmin, tmax)
-    assert_raises(ValueError, _BaseEpochs, raw.info, None,
+    assert_raises(ValueError, BaseEpochs, raw.info, None,
                   np.ones((1, 3, 2), int), event_id, tmin, tmax)
 
 
@@ -453,7 +463,7 @@ def test_epochs_hash():
 
 
 def test_event_ordering():
-    """Test event order"""
+    """Test event order."""
     raw, events = _get_data()[:2]
     events2 = events.copy()
     rng.shuffle(events2)
@@ -465,6 +475,13 @@ def test_event_ordering():
             assert_equal(len(w), ii)
             if ii > 0:
                 assert_true('chronologically' in '%s' % w[-1].message)
+    # Duplicate events should be an error...
+    events2 = events[[0, 0]]
+    events2[:, 2] = [1, 2]
+    assert_raises(RuntimeError, Epochs, raw, events2, event_id=None)
+    # But only if duplicates are actually used by event_id
+    assert_equal(len(Epochs(raw, events2, event_id=dict(a=1), preload=True)),
+                 1)
 
 
 def test_epochs_bad_baseline():
@@ -651,7 +668,7 @@ def test_read_write_epochs():
         epochs_no_bl_read = read_epochs(temp_fname_no_bl)
         assert_raises(ValueError, epochs.apply_baseline, baseline=[1, 2, 3])
         epochs_with_bl = epochs_no_bl_read.copy().apply_baseline(baseline)
-        assert_true(isinstance(epochs_with_bl, _BaseEpochs))
+        assert_true(isinstance(epochs_with_bl, BaseEpochs))
         assert_true(epochs_with_bl.baseline == baseline)
         assert_true(epochs_no_bl_read.baseline != baseline)
         assert_true(str(epochs_read).startswith('<Epochs'))
@@ -1698,7 +1715,7 @@ def test_contains():
     seeg = RawArray(np.zeros((1, len(raw.times))),
                     create_info(['SEEG 001'], raw.info['sfreq'], 'seeg'))
     for key in ('dev_head_t', 'buffer_size_sec', 'highpass', 'lowpass',
-                'filename', 'dig', 'description', 'acq_pars', 'experimenter',
+                'dig', 'description', 'acq_pars', 'experimenter',
                 'proj_name'):
         seeg.info[key] = raw.info[key]
     raw.add_channels([seeg])
@@ -1831,7 +1848,6 @@ def test_add_channels_epochs():
     add_channels_epochs([epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs2.info['filename'] = epochs2.info['filename'].upper()
     epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
@@ -2024,6 +2040,13 @@ def test_concatenate_epochs():
     assert_raises(ValueError, concatenate_epochs, [epochs, epochs2])
     epochs.info['dev_head_t'] = None
     concatenate_epochs([epochs, epochs2])  # should work
+
+    # check that different event_id does not work:
+    epochs1 = epochs.copy()
+    epochs2 = epochs.copy()
+    epochs1.event_id = dict(a=1)
+    epochs2.event_id = dict(a=2)
+    assert_raises(ValueError, concatenate_epochs, [epochs1, epochs2])
 
 
 def test_add_channels():

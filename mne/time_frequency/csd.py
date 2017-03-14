@@ -16,7 +16,7 @@ from ..externals.six.moves import xrange as range
 
 
 class CrossSpectralDensity(object):
-    """Cross-spectral density
+    """Cross-spectral density.
 
     Parameters
     ----------
@@ -34,7 +34,9 @@ class CrossSpectralDensity(object):
     n_fft : int
         Length of the FFT used when calculating the CSD matrix.
     """
-    def __init__(self, data, ch_names, projs, bads, frequencies, n_fft):
+
+    def __init__(self, data, ch_names, projs, bads, frequencies,
+                 n_fft):  # noqa: D102
         self.data = data
         self.dim = len(data)
         self.ch_names = cp.deepcopy(ch_names)
@@ -43,7 +45,7 @@ class CrossSpectralDensity(object):
         self.frequencies = np.atleast_1d(np.copy(frequencies))
         self.n_fft = n_fft
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         s = 'frequencies : %s' % self.frequencies
         s += ', size : %s x %s' % self.data.shape
         s += ', data : %s' % self.data
@@ -55,7 +57,7 @@ def csd_epochs(epochs, mode='multitaper', fmin=0, fmax=np.inf,
                fsum=True, tmin=None, tmax=None, n_fft=None,
                mt_bandwidth=None, mt_adaptive=False, mt_low_bias=True,
                projs=None, verbose=None):
-    """Estimate cross-spectral density from epochs
+    """Estimate cross-spectral density from epochs.
 
     Note: Baseline correction should be used when creating the Epochs.
           Otherwise the computed cross-spectral density will be inaccurate.
@@ -98,7 +100,8 @@ def csd_epochs(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         List of projectors to use in CSD calculation, or None to indicate that
         the projectors from the epochs should be inherited.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -251,7 +254,7 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
         Only use tapers with more than 90% spectral concentration within
         bandwidth. Only used in 'multitaper' mode.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`).
 
     Returns
     -------
@@ -259,8 +262,7 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
         The computed cross spectral-density (either summed or not).
     freqs : array
         Frequencies the cross spectral-density is evaluated at.
-    """  # noqa
-
+    """  # noqa: E501
     # Check correctness of input data and parameters
     if fmax < fmin:
         raise ValueError('fmax must be larger than fmin')
@@ -323,7 +325,7 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
 
 def _compute_csd_params(n_times, sfreq, mode, mt_bandwidth, mt_low_bias,
                         mt_adaptive):
-    """ Auxliary function to compute windowing and multitaper parameters.
+    """Compute windowing and multitaper parameters.
 
     Parameters
     ----------
@@ -392,10 +394,10 @@ def _compute_csd_params(n_times, sfreq, mode, mt_bandwidth, mt_low_bias,
 
 def _csd_array(x, sfreq, window_fun, eigvals, freq_mask, freq_mask_mt, n_fft,
                mode, mt_adaptive):
-    """ Calculating Fourier transform using multitaper module.
+    """Calculate Fourier transform using multitaper module.
 
-        The arguments correspond to the values in `compute_csd_epochs` and
-        `csd_array`.
+    The arguments correspond to the values in `compute_csd_epochs` and
+    `csd_array`.
     """
     x_mt, _ = _mt_spectra(x, window_fun, sfreq, n_fft)
 

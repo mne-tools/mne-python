@@ -1,4 +1,4 @@
-"""Mayavi/traits GUI for setting MRI fiducials"""
+"""Mayavi/traits GUI for setting MRI fiducials."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -7,39 +7,37 @@
 import os
 from ..externals.six.moves import map
 
-# allow import without traits
-try:
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from mayavi.tools.mlab_scene_model import MlabSceneModel
-    import numpy as np
-    from pyface.api import confirm, error, FileDialog, OK, YES
-    from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
-                            cached_property, DelegatesTo, Event, Instance,
-                            Property, Array, Bool, Button, Enum)
-    from traitsui.api import HGroup, Item, VGroup, View
-    from traitsui.menu import NoButtons
-    from tvtk.pyface.scene_editor import SceneEditor
-except Exception:
-    from ..utils import trait_wraith
-    HasTraits = HasPrivateTraits = object
-    cached_property = on_trait_change = MayaviScene = MlabSceneModel = \
-        Array = Bool = Button = DelegatesTo = Enum = Event = Instance = \
-        Property = View = Item = HGroup = VGroup = SceneEditor = \
-        NoButtons = error = trait_wraith
+from mayavi.core.ui.mayavi_scene import MayaviScene
+from mayavi.tools.mlab_scene_model import MlabSceneModel
+import numpy as np
+from pyface.api import confirm, error, FileDialog, OK, YES
+from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
+                        cached_property, DelegatesTo, Event, Instance,
+                        Property, Array, Bool, Button, Enum)
+from traitsui.api import HGroup, Item, VGroup, View, ArrayEditor
+from traitsui.menu import NoButtons
+from tvtk.pyface.scene_editor import SceneEditor
 
-from ..coreg import (fid_fname, head_bem_fname, _find_fiducials_files,
-                     _find_high_res_head)
+from ..coreg import fid_fname, _find_fiducials_files, _find_head_bem
+from ..defaults import DEFAULTS
 from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
+from ..viz._3d import _toggle_mlab_render
 from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel)
-from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
+from ._viewer import (HeadViewController, PointObject, SurfaceObject,
                       headview_borders)
+defaults = DEFAULTS['coreg']
+
+
+def _mm_fmt(x):
+    """Format mm data."""
+    return '%0.5f' % x
 
 
 class MRIHeadWithFiducialsModel(HasPrivateTraits):
-    """Represent an MRI head shape with fiducials
+    """Represent an MRI head shape with fiducials.
 
     Attributes
     ----------
@@ -54,6 +52,7 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     rpa : array (1, 3)
         Right peri-auricular point coordinates.
     """
+
     subject_source = Instance(MRISubjectSource, ())
     bem = Instance(SurfaceSource, ())
     fid = Instance(FiducialsSource, ())
@@ -90,14 +89,14 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
                           "model.")
 
     @on_trait_change('fid_points')
-    def reset_fiducials(self):
+    def reset_fiducials(self):  # noqa: D102
         if self.fid_points is not None:
             self.lpa = self.fid_points[0:1]
             self.nasion = self.fid_points[1:2]
             self.rpa = self.fid_points[2:3]
 
     def save(self, fname=None):
-        """Save the current fiducials to a file
+        """Save the current fiducials to a file.
 
         Parameters
         ----------
@@ -110,9 +109,15 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         if not fname:
             fname = self.default_fid_fname
 
-        dig = [{'kind': 1, 'ident': 1, 'r': np.array(self.lpa[0])},
-               {'kind': 1, 'ident': 2, 'r': np.array(self.nasion[0])},
-               {'kind': 1, 'ident': 3, 'r': np.array(self.rpa[0])}]
+        dig = [{'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'ident': FIFF.FIFFV_POINT_LPA,
+                'r': np.array(self.lpa[0])},
+               {'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'ident': FIFF.FIFFV_POINT_NASION,
+                'r': np.array(self.nasion[0])},
+               {'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'ident': FIFF.FIFFV_POINT_RPA,
+                'r': np.array(self.rpa[0])}]
         write_fiducials(fname, dig, FIFF.FIFFV_COORD_MRI)
         self.fid_file = fname
 
@@ -168,20 +173,23 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         if not subjects_dir or not subject:
             return
 
-        path = None
+        # find head model
         if self.use_high_res_head:
-            path = _find_high_res_head(subjects_dir=subjects_dir,
-                                       subject=subject)
+            path = _find_head_bem(subject, subjects_dir, high_res=True)
             if not path:
                 error(None, "No high resolution head model was found for "
                       "subject {0}, using standard head instead. In order to "
                       "generate a high resolution head model, run:\n\n"
                       "    $ mne make_scalp_surfaces -s {0}"
                       "\n\n".format(subject), "No High Resolution Head")
-
-        if not path:
-            path = head_bem_fname.format(subjects_dir=subjects_dir,
-                                         subject=subject)
+                path = _find_head_bem(subject, subjects_dir)
+        else:
+            path = _find_head_bem(subject, subjects_dir)
+            if not path:
+                error(None, "No standard head model was found for subject "
+                      "{0}, using high resolution head model instead."
+                      .format(subject), "No Standard Resolution Head")
+                path = _find_head_bem(subject, subjects_dir, high_res=True)
         self.bem.file = path
 
         # find fiducials file
@@ -199,7 +207,8 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 
 
 class FiducialsPanel(HasPrivateTraits):
-    """Set fiducials on an MRI surface"""
+    """Set fiducials on an MRI surface."""
+
     model = Instance(MRIHeadWithFiducialsModel)
 
     fid_file = DelegatesTo('model')
@@ -214,7 +223,7 @@ class FiducialsPanel(HasPrivateTraits):
     locked = DelegatesTo('model', 'lock_fiducials')
 
     set = Enum('LPA', 'Nasion', 'RPA')
-    current_pos = Array(float, (1, 3))  # for editing
+    current_pos = Array(float, (1, 3), editor=ArrayEditor(width=50))
 
     save_as = Button(label='Save As...')
     save = Button(label='Save')
@@ -226,20 +235,25 @@ class FiducialsPanel(HasPrivateTraits):
     picker = Instance(object)
 
     # the layout of the dialog created
-    view = View(VGroup(Item('fid_file', label='Fiducials File'),
+    view = View(VGroup(Item('fid_file', label='File'),
                        Item('fid_fname', show_label=False, style='readonly'),
-                       Item('set', style='custom'),
-                       Item('current_pos', label='Pos'),
+                       Item('set', style='custom', width=50,
+                            format_func=lambda x: x),
+                       Item('current_pos', label='Pos', width=50,
+                            format_func=_mm_fmt),
                        HGroup(Item('save', enabled_when='can_save',
                                    tooltip="If a filename is currently "
                                    "specified, save to that file, otherwise "
-                                   "save to the default file name"),
-                              Item('save_as', enabled_when='can_save_as'),
-                              Item('reset_fid', enabled_when='can_reset'),
+                                   "save to the default file name",
+                                   width=10),
+                              Item('save_as', enabled_when='can_save_as',
+                                   width=10),
+                              Item('reset_fid', enabled_when='can_reset',
+                                   width=10),
                               show_labels=False),
                        enabled_when="locked==False"))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: D102
         super(FiducialsPanel, self).__init__(*args, **kwargs)
         self.sync_trait('lpa', self, 'current_pos', mutual=True)
 
@@ -350,7 +364,7 @@ view2 = View(VGroup(Item('fid_file', label='Fiducials File'),
 
 
 class FiducialsFrame(HasTraits):
-    """GUI for interpolating between two KIT marker files
+    """GUI for interpolating between two KIT marker files.
 
     Parameters
     ----------
@@ -359,6 +373,7 @@ class FiducialsFrame(HasTraits):
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
+
     model = Instance(MRIHeadWithFiducialsModel, ())
 
     scene = Instance(MlabSceneModel, ())
@@ -399,7 +414,8 @@ class FiducialsFrame(HasTraits):
                 resizable=True,
                 buttons=NoButtons)
 
-    def __init__(self, subject=None, subjects_dir=None, **kwargs):
+    def __init__(self, subject=None, subjects_dir=None,
+                 **kwargs):  # noqa: D102
         super(FiducialsFrame, self).__init__(**kwargs)
 
         subjects_dir = get_subjects_dir(subjects_dir)
@@ -412,7 +428,7 @@ class FiducialsFrame(HasTraits):
 
     @on_trait_change('scene.activated')
     def _init_plot(self):
-        self.scene.disable_render = True
+        _toggle_mlab_render(self, False)
 
         lpa_color = defaults['lpa_color']
         nasion_color = defaults['nasion_color']
@@ -443,7 +459,7 @@ class FiducialsFrame(HasTraits):
         self.sync_trait('point_scale', self.rpa_obj, mutual=False)
 
         self.headview.left = True
-        self.scene.disable_render = False
+        _toggle_mlab_render(self, True)
 
         # picker
         self.scene.mayavi_scene.on_mouse_pick(self.panel._on_pick, type='cell')

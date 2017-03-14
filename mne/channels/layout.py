@@ -15,7 +15,7 @@ import os.path as op
 
 import numpy as np
 
-from ..transforms import _polar_to_cartesian, _cartesian_to_sphere
+from ..transforms import _pol_to_cart, _cart_to_sph
 from ..bem import fit_sphere_to_headshape
 from ..io.pick import pick_types
 from ..io.constants import FIFF
@@ -25,7 +25,7 @@ from ..externals.six.moves import map
 
 
 class Layout(object):
-    """Sensor layouts
+    """Sensor layouts.
 
     Layouts are typically loaded from a file using read_layout. Only use this
     class directly if you're constructing a new layout.
@@ -43,7 +43,8 @@ class Layout(object):
     kind : str
         The type of Layout (e.g. 'Vectorview-all').
     """
-    def __init__(self, box, pos, names, ids, kind):
+
+    def __init__(self, box, pos, names, ids, kind):  # noqa: D102
         self.box = box
         self.pos = pos
         self.names = names
@@ -51,7 +52,7 @@ class Layout(object):
         self.kind = kind
 
     def save(self, fname):
-        """Save Layout to disk
+        """Save Layout to disk.
 
         Parameters
         ----------
@@ -83,6 +84,7 @@ class Layout(object):
         f.close()
 
     def __repr__(self):
+        """Return the string representation."""
         return '<Layout | %s - Channels: %s ...>' % (self.kind,
                                                      ', '.join(self.names[:3]))
 
@@ -108,7 +110,7 @@ class Layout(object):
 
 
 def _read_lout(fname):
-    """Aux function"""
+    """Aux function."""
     with open(fname) as f:
         box_line = f.readline()  # first line contains box dimension
         box = tuple(map(float, box_line.split()))
@@ -130,7 +132,7 @@ def _read_lout(fname):
 
 
 def _read_lay(fname):
-    """Aux function"""
+    """Aux function."""
     with open(fname) as f:
         box = None
         names, pos, ids = [], [], []
@@ -151,7 +153,7 @@ def _read_lay(fname):
 
 
 def read_layout(kind, path=None, scale=True):
-    """Read layout from a file
+    """Read layout from a file.
 
     Parameters
     ----------
@@ -209,7 +211,7 @@ def read_layout(kind, path=None, scale=True):
 
 
 def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
-    """Create .lout file from EEG electrode digitization
+    """Create .lout file from EEG electrode digitization.
 
     Parameters
     ----------
@@ -284,7 +286,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
 
 
 def make_grid_layout(info, picks=None, n_col=None):
-    """ Generate .lout file for custom data, i.e., ICA sources
+    """Generate .lout file for custom data, i.e., ICA sources.
 
     Parameters
     ----------
@@ -359,7 +361,7 @@ def make_grid_layout(info, picks=None, n_col=None):
 
 
 def find_layout(info, ch_type=None, exclude='bads'):
-    """Choose a layout based on the channels in the info 'chs' field
+    """Choose a layout based on the channels in the info 'chs' field.
 
     Parameters
     ----------
@@ -456,11 +458,19 @@ def find_layout(info, ch_type=None, exclude='bads'):
     if has_CTF_grad:
         layout.names = _clean_names(layout.names, before_dash=True)
 
+    # Apply mask for excluded channels.
+    if exclude == 'bads':
+        exclude = info['bads']
+    idx = [ii for ii, name in enumerate(layout.names) if name not in exclude]
+    layout.names = [layout.names[ii] for ii in idx]
+    layout.pos = layout.pos[idx]
+    layout.ids = [layout.ids[ii] for ii in idx]
+
     return layout
 
 
 def _find_kit_layout(info, n_grads):
-    """Determine the KIT layout
+    """Determine the KIT layout.
 
     Parameters
     ----------
@@ -510,7 +520,7 @@ def _find_kit_layout(info, n_grads):
 
 
 def _box_size(points, width=None, height=None, padding=0.0):
-    """ Given a series of points, calculate an appropriate box size.
+    """Given a series of points, calculate an appropriate box size.
 
     Parameters
     ----------
@@ -598,7 +608,7 @@ def _box_size(points, width=None, height=None, padding=0.0):
 
 
 def _find_topomap_coords(info, picks, layout=None):
-    """Try to guess the E/MEG layout and return appropriate topomap coordinates
+    """Guess the E/MEG layout and return appropriate topomap coordinates.
 
     Parameters
     ----------
@@ -631,6 +641,7 @@ def _find_topomap_coords(info, picks, layout=None):
 
 def _auto_topomap_coords(info, picks, ignore_overlap=False):
     """Make a 2 dimensional sensor map from sensor positions in an info dict.
+
     The default is to use the electrode locations. The fallback option is to
     attempt using digitization points of kind FIFFV_POINT_EEG. This only works
     with EEG and requires an equal number of digitization points and sensors.
@@ -641,6 +652,9 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
         The measurement info.
     picks : list of int
         The channel indices to generate topomap coords for.
+    ignore_overlap : bool
+        Whether to ignore overlapping positions in the layout. If False and
+        positions overlap, an error is thrown.
 
     Returns
     -------
@@ -713,15 +727,12 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
         raise ValueError('The following electrodes have overlapping positions:'
                          '\n    ' + str(problematic_electrodes) + '\nThis '
                          'causes problems during visualization.')
-
-    x, y, z = locs3d.T
-    az, el, r = _cartesian_to_sphere(x, y, z)
-    locs2d = np.c_[_polar_to_cartesian(az, np.pi / 2 - el)]
-    return locs2d
+    # use spherical (theta, pol) as (r, theta) for polar->cartesian
+    return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
 
 
 def _topo_to_sphere(pos, eegs):
-    """Helper function for transforming xy-coordinates to sphere.
+    """Transform xy-coordinates to sphere.
 
     Parameters
     ----------
@@ -755,7 +766,7 @@ def _topo_to_sphere(pos, eegs):
 
 def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads',
                        raise_error=True):
-    """Find the picks for pairing grad channels
+    """Find the picks for pairing grad channels.
 
     Parameters
     ----------
@@ -816,7 +827,7 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads',
 # this function is used to pair grad when info is not present
 # it is the case of Projection that don't have the info.
 def _pair_grad_sensors_from_ch_names(ch_names):
-    """Find the indexes for pairing grad channels
+    """Find the indexes for pairing grad channels.
 
     Parameters
     ----------
@@ -841,21 +852,28 @@ def _pair_grad_sensors_from_ch_names(ch_names):
     return grad_chs
 
 
-def _merge_grad_data(data):
-    """Merge data from channel pairs using the RMS
+def _merge_grad_data(data, method='rms'):
+    """Merge data from channel pairs using the RMS or mean.
 
     Parameters
     ----------
     data : array, shape = (n_channels, n_times)
         Data for channels, ordered in pairs.
+    method : str
+        Can be 'rms' or 'mean'.
 
     Returns
     -------
     data : array, shape = (n_channels / 2, n_times)
-        The root mean square for each pair.
+        The root mean square or mean for each pair.
     """
     data = data.reshape((len(data) // 2, 2, -1))
-    data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
+    if method == 'mean':
+        data = np.mean(data, axis=1)
+    elif method == 'rms':
+        data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
+    else:
+        raise ValueError('method must be "rms" or "mean, got %s.' % method)
     return data
 
 

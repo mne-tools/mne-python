@@ -50,7 +50,6 @@ What you're not supposed to do with MNE Python
 
     - **Brain and head surface segmentation** for use with BEM
       models -- use Freesurfer.
-    - **Raw movement compensation** -- use Elekta Maxfilter™
 
 
 .. note:: This package is based on the FIF file format from Neuromag. It
@@ -61,10 +60,10 @@ What you're not supposed to do with MNE Python
 Installation of the required materials
 ---------------------------------------
 
-See :ref:`getting_started` with Python.
+See :ref:`install_python_and_mne_python`.
 
 .. note:: The expected location for the MNE-sample data is
-    my-path-to/mne-python/examples. If you downloaded data and an example asks
+    ``~/mne_data``. If you downloaded data and an example asks
     you whether to download it again, make sure
     the data reside in the examples directory and you run the script from its
     current directory.
@@ -118,7 +117,7 @@ mne.get_config_path()
 
 ##############################################################################
 # By default logging messages print to the console, but look at
-# mne.set_log_file() to save output to a file.
+# :func:`mne.set_log_file` to save output to a file.
 #
 # Access raw data
 # ^^^^^^^^^^^^^^^
@@ -178,7 +177,7 @@ print(events[:5])
 mne.set_config('MNE_STIM_CHANNEL', 'STI101', set_env=True)
 
 ##############################################################################
-# Events are stored as 2D numpy array where the first column is the time
+# Events are stored as a 2D numpy array where the first column is the time
 # instant and the last one is the event number. It is therefore easy to
 # manipulate.
 #
@@ -284,7 +283,7 @@ evoked2 = mne.read_evokeds(
 # Two evoked objects can be contrasted using :func:`mne.combine_evoked`.
 # This function can use ``weights='equal'``, which provides a simple
 # element-by-element subtraction (and sets the
-# :attr:`mne.Evoked.nave` attribute properly based on the underlying number
+# ``mne.Evoked.nave`` attribute properly based on the underlying number
 # of trials) using either equivalent call:
 
 contrast = mne.combine_evoked([evoked1, evoked2], weights=[0.5, -0.5])

@@ -18,7 +18,7 @@ from ..externals.six import string_types, iteritems
 
 
 def _fiff_get_fid(fname):
-    """Helper to open a FIF file with no additional parsing"""
+    """Open a FIF file with no additional parsing."""
     if isinstance(fname, string_types):
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Using gzip')
@@ -33,7 +33,7 @@ def _fiff_get_fid(fname):
 
 
 def _get_next_fname(fid, fname, tree):
-    """Auxiliary function to get the next filename in split files."""
+    """Get the next filename in split files."""
     nodes_list = dir_tree_find(tree, FIFF.FIFFB_REF)
     next_fname = None
     for nodes in nodes_list:
@@ -86,7 +86,8 @@ def fiff_open(fname, preload=False, verbose=None):
         requires more memory, but can be faster for I/O operations that require
         frequent seeks.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -155,7 +156,7 @@ def fiff_open(fname, preload=False, verbose=None):
 
 def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
               output=str, verbose=None):
-    """Show FIFF information
+    """Show FIFF information.
 
     This function is similar to mne_show_fiff.
 
@@ -174,7 +175,8 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
     output : type
         Either str or list. str is a convenience output for printing.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     if output not in [list, str]:
         raise ValueError('output must be list or str')
@@ -191,7 +193,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
 
 
 def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
-    """Helper to find matching values"""
+    """Find matching values."""
     value = int(value)
     vals = [k for k, v in iteritems(FIFF)
             if v == value and any(fmt in k for fmt in fmts) and
@@ -202,7 +204,7 @@ def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
 
 
 def _show_tree(fid, tree, indent, level, read_limit, max_str):
-    """Helper for showing FIFF"""
+    """Show FIFF tree."""
     from scipy import sparse
     this_idt = indent * level
     next_idt = indent * (level + 1)

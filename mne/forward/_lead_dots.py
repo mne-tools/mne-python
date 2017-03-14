@@ -18,7 +18,7 @@ from ..utils import logger, verbose, _get_extra_data_path
 # FAST LEGENDRE (DERIVATIVE) POLYNOMIALS USING LOOKUP TABLE
 
 def _next_legen_der(n, x, p0, p01, p0d, p0dd):
-    """Compute the next Legendre polynomial and its derivatives"""
+    """Compute the next Legendre polynomial and its derivatives."""
     # only good for n > 1 !
     help_ = p0
     helpd = p0d
@@ -30,12 +30,12 @@ def _next_legen_der(n, x, p0, p01, p0d, p0dd):
 
 
 def _get_legen(x, n_coeff=100):
-    """Get Legendre polynomials expanded about x"""
+    """Get Legendre polynomials expanded about x."""
     return legendre.legvander(x, n_coeff - 1)
 
 
 def _get_legen_der(xx, n_coeff=100):
-    """Get Legendre polynomial derivatives expanded about x"""
+    """Get Legendre polynomial derivatives expanded about x."""
     coeffs = np.empty((len(xx), n_coeff, 3))
     for c, x in zip(coeffs, xx):
         p0s, p0ds, p0dds = c[:, 0], c[:, 1], c[:, 2]
@@ -51,7 +51,7 @@ def _get_legen_der(xx, n_coeff=100):
 @verbose
 def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
                      n_interp=20000, force_calc=False, verbose=None):
-    """Return a (generated) LUT of Legendre (derivative) polynomial coeffs"""
+    """Return a (generated) LUT of Legendre (derivative) polynomial coeffs."""
     if n_interp % 2 != 0:
         raise RuntimeError('n_interp must be even')
     fname = op.join(_get_extra_data_path(), 'tables')
@@ -69,9 +69,8 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
         extra_str = ''
         lut_shape = (n_interp + 1, n_coeff)
     if not op.isfile(fname) or force_calc:
-        n_out = (n_interp // 2)
         logger.info('Generating Legendre%s table...' % extra_str)
-        x_interp = np.arange(-n_out, n_out + 1, dtype=np.float64) / n_out
+        x_interp = np.linspace(-1, 1, n_interp + 1)
         lut = leg_fun(x_interp, n_coeff).astype(np.float32)
         if not force_calc:
             with open(fname, 'wb') as fid:
@@ -106,44 +105,8 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
     return lut, n_fact
 
 
-def _get_legen_lut_fast(x, lut, block=None):
-    """Return Legendre coefficients for given x values in -1<=x<=1"""
-    # map into table vals (works for both vals and deriv tables)
-    n_interp = (lut.shape[0] - 1.0)
-    # equiv to "(x + 1.0) / 2.0) * n_interp" but faster
-    mm = x * (n_interp / 2.0)
-    mm += 0.5 * n_interp
-    # nearest-neighbor version (could be decent enough...)
-    idx = np.round(mm).astype(int)
-    if block is None:
-        vals = lut[idx]
-    else:  # read only one block at a time to minimize memory consumption
-        vals = lut[idx, :, block]
-    return vals
-
-
-def _get_legen_lut_accurate(x, lut, block=None):
-    """Return Legendre coefficients for given x values in -1<=x<=1"""
-    # map into table vals (works for both vals and deriv tables)
-    n_interp = (lut.shape[0] - 1.0)
-    # equiv to "(x + 1.0) / 2.0) * n_interp" but faster
-    mm = x * (n_interp / 2.0)
-    mm += 0.5 * n_interp
-    # slower, more accurate interpolation version
-    mm = np.minimum(mm, n_interp - 0.0000000001)
-    idx = np.floor(mm).astype(int)
-    w2 = mm - idx
-    if block is None:
-        w2.shape += tuple([1] * (lut.ndim - w2.ndim))  # expand to correct size
-        vals = (1 - w2) * lut[idx] + w2 * lut[idx + 1]
-    else:  # read only one block at a time to minimize memory consumption
-        w2.shape += tuple([1] * (lut[:, :, block].ndim - w2.ndim))
-        vals = (1 - w2) * lut[idx, :, block] + w2 * lut[idx + 1, :, block]
-    return vals
-
-
 def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
-    """Lead field dot products using Legendre polynomial (P_n) series"""
+    """Lead field dot products using Legendre polynomial (P_n) series."""
     # Compute the sum occurring in the evaluation.
     # The result is
     #   sums[:]    (2n+1)^2/n beta^n P_n
@@ -266,6 +229,7 @@ def _fast_sphere_dot_r0(r, rr1_orig, rr2s, lr1, lr2s, cosmags1, cosmags2s,
 
     # outer product, sum over coords
     ct = np.einsum('ik,jk->ij', rr1_orig, rr2)
+    np.clip(ct, -1, 1, ct)
 
     # expand axes
     rr1 = rr1_orig[:, np.newaxis, :]  # (n_rr1, n_rr2, n_coord) e.g. 4x4x3
@@ -366,7 +330,7 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
 
 def _do_self_dots_subset(intrad, rmags, rlens, cosmags, ws, volume, lut,
                          n_fact, ch_type, idx):
-    """Helper for parallelization"""
+    """Parallelize."""
     # all possible combinations of two magnetometers
     products = np.zeros((len(rmags), len(rmags)))
     for ci1 in idx:
@@ -438,7 +402,7 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
 
 def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
                      lut, n_fact, n_jobs):
-    """Compute the map construction products
+    """Compute the map construction products.
 
     Parameters
     ----------
@@ -505,7 +469,7 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
 def _do_surface_dots_subset(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
                             this_nn, cosmags, ws, volume, lut, n_fact, ch_type,
                             idx):
-    """Helper for parallelization.
+    """Parallelize.
 
     Parameters
     ----------

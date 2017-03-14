@@ -23,11 +23,12 @@ from ..externals.six import string_types
 
 
 class Projection(dict):
-    """Projection vector
+    """Projection vector.
 
     A basic class to proj a meaningful print for projection vectors.
     """
-    def __repr__(self):
+
+    def __repr__(self):  # noqa: D105
         s = "%s" % self['desc']
         s += ", active : %s" % self['active']
         s += ", n_channels : %s" % self['data']['ncol']
@@ -35,7 +36,7 @@ class Projection(dict):
 
 
 class ProjMixin(object):
-    """Mixin class for Raw, Evoked, Epochs
+    """Mixin class for Raw, Evoked, Epochs.
 
     Notes
     -----
@@ -59,14 +60,16 @@ class ProjMixin(object):
     apply_proj(). The reason is that you want to reject with projs although
     it's not stored in proj mode.
     """
+
     @property
     def proj(self):
+        """Whether or not projections are active."""
         return (len(self.info['projs']) > 0 and
                 all(p['active'] for p in self.info['projs']))
 
     @verbose
     def add_proj(self, projs, remove_existing=False, verbose=None):
-        """Add SSP projection vectors
+        """Add SSP projection vectors.
 
         Parameters
         ----------
@@ -75,7 +78,9 @@ class ProjMixin(object):
         remove_existing : bool
             Remove the projection vectors currently in the file.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -133,15 +138,16 @@ class ProjMixin(object):
         self : instance of Raw | Epochs | Evoked
             The instance.
         """
-        from ..epochs import _BaseEpochs
-        from .base import _BaseRaw
+        from ..epochs import BaseEpochs
+        from ..evoked import Evoked
+        from .base import BaseRaw
         if self.info['projs'] is None or len(self.info['projs']) == 0:
             logger.info('No projector specified for this dataset. '
                         'Please consider the method self.add_proj.')
             return self
 
         # Exit delayed mode if you apply proj
-        if isinstance(self, _BaseEpochs) and self._do_delayed_proj:
+        if isinstance(self, BaseEpochs) and self._do_delayed_proj:
             logger.info('Leaving delayed SSP mode.')
             self._do_delayed_proj = False
 
@@ -158,45 +164,46 @@ class ProjMixin(object):
                         ' Doing nothing.')
             return self
         self._projector, self.info = _projector, info
-        if isinstance(self, _BaseRaw):
+        if isinstance(self, (BaseRaw, Evoked)):
             if self.preload:
                 self._data = np.dot(self._projector, self._data)
-        elif isinstance(self, _BaseEpochs):
+        else:  # BaseEpochs
             if self.preload:
                 for ii, e in enumerate(self._data):
                     self._data[ii] = self._project_epoch(e)
             else:
                 self.load_data()  # will automatically apply
-        else:  # Evoked
-            self.data = np.dot(self._projector, self.data)
         logger.info('SSP projectors applied...')
         return self
 
-    def del_proj(self, idx):
-        """Remove SSP projection vector
+    def del_proj(self, idx='all'):
+        """Remove SSP projection vector.
 
         Note: The projection vector can only be removed if it is inactive
               (has not been applied to the data).
 
         Parameters
         ----------
-        idx : int
-            Index of the projector to remove.
+        idx : int | list of int | str
+            Index of the projector to remove. Can also be "all" (default)
+            to remove all projectors.
 
         Returns
         -------
         self : instance of Raw | Epochs | Evoked
         """
-        if self.info['projs'][idx]['active']:
+        if isinstance(idx, string_types) and idx == 'all':
+            idx = list(range(len(self.info['projs'])))
+        idx = np.atleast_1d(np.array(idx, int)).ravel()
+        if any(self.info['projs'][ii]['active'] for ii in idx):
             raise ValueError('Cannot remove projectors that have already '
                              'been applied')
-
-        self.info['projs'].pop(idx)
-
+        self.info['projs'] = [p for pi, p in enumerate(self.info['projs'])
+                              if pi not in idx]
         return self
 
     def plot_projs_topomap(self, ch_type=None, layout=None, axes=None):
-        """Plot SSP vector
+        """Plot SSP vector.
 
         Parameters
         ----------
@@ -244,8 +251,7 @@ class ProjMixin(object):
 
 
 def _proj_equal(a, b, check_active=True):
-    """ Test if two projectors are equal """
-
+    """Test if two projectors are equal."""
     equal = ((a['active'] == b['active'] or not check_active) and
              a['kind'] == b['kind'] and
              a['desc'] == b['desc'] and
@@ -268,7 +274,8 @@ def _read_proj(fid, node, verbose=None):
     node : tree node
         The node of the tree where to look.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -419,8 +426,22 @@ def _write_proj(fid, projs):
 
 ###############################################################################
 # Utils
+
+def _check_projs(projs, copy=True):
+    """Check that projs is a list of Projection."""
+    if not isinstance(projs, (list, tuple)):
+        raise TypeError('projs must be a list or tuple, got %s'
+                        % (type(projs),))
+    for pi, p in enumerate(projs):
+        if not isinstance(p, Projection):
+            raise TypeError('All entries in projs list must be Projection '
+                            'instances, but projs[%d] is type %s'
+                            % (pi, type(p)))
+    return deepcopy(projs) if copy else projs
+
+
 def make_projector(projs, ch_names, bads=(), include_active=True):
-    """Create an SSP operator from SSP projection vectors
+    """Create an SSP operator from SSP projection vectors.
 
     Parameters
     ----------
@@ -450,7 +471,7 @@ def make_projector(projs, ch_names, bads=(), include_active=True):
 
 def _make_projector(projs, ch_names, bads=(), include_active=True,
                     inplace=False):
-    """Helper to subselect projs based on ch_names and bads
+    """Subselect projs based on ch_names and bads.
 
     Use inplace=True mode to modify ``projs`` inplace so that no
     warning will be raised next time projectors are constructed with
@@ -507,7 +528,10 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
                 psize = sqrt(np.sum(this_vecs[:, v] * this_vecs[:, v]))
                 if psize > 0:
                     orig_n = p['data']['data'].shape[1]
-                    if len(vecsel) < 0.9 * orig_n and not inplace:
+                    # Average ref still works if channels are removed
+                    if len(vecsel) < 0.9 * orig_n and not inplace and \
+                            (p['kind'] != FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF or
+                             len(vecsel) == 1):
                         warn('Projection vector "%s" has magnitude %0.2f '
                              '(should be unity), applying projector with '
                              '%s/%s of the original channels available may '
@@ -544,7 +568,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
 
 
 def _normalize_proj(info):
-    """Helper to normalize proj after subselection to avoid warnings
+    """Normalize proj after subselection to avoid warnings.
 
     This is really only useful for tests, and might not be needed
     eventually if we change or improve our handling of projectors
@@ -556,7 +580,7 @@ def _normalize_proj(info):
 
 
 def make_projector_info(info, include_active=True):
-    """Make an SSP operator using the measurement info
+    """Make an SSP operator using the measurement info.
 
     Calls make_projector on good channels.
 
@@ -581,7 +605,7 @@ def make_projector_info(info, include_active=True):
 
 @verbose
 def activate_proj(projs, copy=True, verbose=None):
-    """Set all projections to active
+    """Set all projections to active.
 
     Useful before passing them to make_projector.
 
@@ -592,7 +616,8 @@ def activate_proj(projs, copy=True, verbose=None):
     copy : bool
         Modify projs in place or operate on a copy.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -613,7 +638,7 @@ def activate_proj(projs, copy=True, verbose=None):
 
 @verbose
 def deactivate_proj(projs, copy=True, verbose=None):
-    """Set all projections to inactive
+    """Set all projections to inactive.
 
     Useful before saving raw data without projectors applied.
 
@@ -624,7 +649,8 @@ def deactivate_proj(projs, copy=True, verbose=None):
     copy : bool
         Modify projs in place or operate on a copy.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -645,7 +671,7 @@ def deactivate_proj(projs, copy=True, verbose=None):
 
 @verbose
 def make_eeg_average_ref_proj(info, activate=True, verbose=None):
-    """Create an EEG average reference SSP projection vector
+    """Create an EEG average reference SSP projection vector.
 
     Parameters
     ----------
@@ -654,7 +680,8 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
     activate : bool
         If True projections are activated.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -662,9 +689,10 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
         The SSP/PCA projector.
     """
     if info.get('custom_ref_applied', False):
-        raise RuntimeError('Cannot add an average EEG reference projection '
-                           'since a custom reference has been applied to the '
-                           'data earlier.')
+        raise RuntimeError('A custom reference has been applied to the '
+                           'data earlier. Please use the '
+                           'mne.io.set_eeg_reference function to move from '
+                           'one EEG reference to another.')
 
     logger.info("Adding average EEG reference projection.")
     eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
@@ -688,7 +716,7 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
 
 
 def _has_eeg_average_ref_proj(projs, check_active=False):
-    """Determine if a list of projectors has an average EEG ref
+    """Determine if a list of projectors has an average EEG ref.
 
     Optionally, set check_active=True to additionally check if the CAR
     has already been applied.
@@ -702,7 +730,7 @@ def _has_eeg_average_ref_proj(projs, check_active=False):
 
 
 def _needs_eeg_average_ref_proj(info):
-    """Determine if the EEG needs an averge EEG reference
+    """Determine if the EEG needs an averge EEG reference.
 
     This returns True if no custom reference has been applied and no average
     reference projection is present in the list of projections.
@@ -716,7 +744,7 @@ def _needs_eeg_average_ref_proj(info):
 
 @verbose
 def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
-    """Set up projection for Raw and Epochs
+    """Set up projection for Raw and Epochs.
 
     Parameters
     ----------
@@ -728,7 +756,8 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
     activate : bool
         If True projections are activated.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -761,7 +790,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
 
 
 def _uniquify_projs(projs, check_active=True, sort=True):
-    """Aux function"""
+    """Make unique projs."""
     final_projs = []
     for proj in projs:  # flatten
         if not any(_proj_equal(p, proj, check_active) for p in final_projs):
@@ -770,7 +799,7 @@ def _uniquify_projs(projs, check_active=True, sort=True):
     my_count = count(len(final_projs))
 
     def sorter(x):
-        """sort in a nice way"""
+        """Sort in a nice way."""
         digits = [s for s in x['desc'] if s.isdigit()]
         if digits:
             sort_idx = int(digits[-1])

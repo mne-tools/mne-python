@@ -41,7 +41,8 @@ raw.plot(n_channels=10, order=order, block=True)
 # from an outside source (like a separate file of events), pay special
 # attention in aligning the events correctly with the raw data.
 events = mne.find_events(raw)
-print(events)
+print('Found %s events, first five:' % len(events))
+print(events[:5])
 
 # Plot the events to get an idea of the paradigm
 # Specify colors and an event_id dictionary for the legend.

@@ -18,7 +18,7 @@ from ..cov import _regularized_covariance
 
 
 class CSP(TransformerMixin, BaseEstimator):
-    """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
+    u"""M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
     This object can be used as a supervised decomposition to estimate
     spatial filters for feature extraction in a 2 class decoding problem.
@@ -391,7 +391,6 @@ class CSP(TransformerMixin, BaseEstimator):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-
         from .. import EvokedArray
         if components is None:
             components = np.arange(self.n_components)
@@ -547,7 +546,6 @@ class CSP(TransformerMixin, BaseEstimator):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-
         from .. import EvokedArray
         if components is None:
             components = np.arange(self.n_components)
@@ -652,5 +650,5 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
                 V[[ii, jj], :] = np.dot(tau, V[[ii, jj], :])
         if decr < epsilon:
             break
-    D = np.reshape(A, (n_times, n_m / n_times, n_times)).transpose(1, 0, 2)
+    D = np.reshape(A, (n_times, -1, n_times)).transpose(1, 0, 2)
     return V, D

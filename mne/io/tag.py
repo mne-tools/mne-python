@@ -19,7 +19,7 @@ from ..externals.jdcal import jd2jcal
 # HELPERS
 
 class Tag(object):
-    """Tag in FIF tree structure
+    """Tag in FIF tree structure.
 
     Parameters
     ----------
@@ -35,7 +35,7 @@ class Tag(object):
         Position of Tag is the original file.
     """
 
-    def __init__(self, kind, type_, size, next, pos=None):
+    def __init__(self, kind, type_, size, next, pos=None):  # noqa: D102
         self.kind = int(kind)
         self.type = int(type_)
         self.size = int(size)
@@ -44,7 +44,7 @@ class Tag(object):
         self.pos = int(self.pos)
         self.data = None
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         out = ("kind: %s - type: %s - size: %s - next: %s - pos: %s"
                % (self.kind, self.type, self.size, self.next, self.pos))
         if hasattr(self, 'data'):
@@ -52,7 +52,7 @@ class Tag(object):
         out += "\n"
         return out
 
-    def __cmp__(self, tag):
+    def __cmp__(self, tag):  # noqa: D105
         return int(self.kind == tag.kind and
                    self.type == tag.type and
                    self.size == tag.size and
@@ -62,7 +62,7 @@ class Tag(object):
 
 
 def read_big(fid, size=None):
-    """Function to read large chunks of data (>16MB) Windows-friendly
+    """Read large chunks of data (>16MB) Windows-friendly.
 
     Parameters
     ----------
@@ -136,8 +136,7 @@ def read_big(fid, size=None):
 
 
 def read_tag_info(fid):
-    """Read Tag info (or header)
-    """
+    """Read Tag info (or header)."""
     tag = _read_tag_header(fid)
     if tag is None:
         return None
@@ -149,7 +148,7 @@ def read_tag_info(fid):
 
 
 def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
-    """Helper for getting a range of rows from a large tag"""
+    """Get a range of rows from a large tag."""
     if shape is not None:
         item_size = np.dtype(dtype).itemsize
         if not len(shape) == 2:
@@ -181,7 +180,7 @@ def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
 
 
 def _loc_to_coil_trans(loc):
-    """Helper to convert loc vector to coil_trans"""
+    """Convert loc vector to coil_trans."""
     # deal with nasty OSX Anaconda bug by casting to float64
     loc = loc.astype(np.float64)
     coil_trans = np.concatenate([loc.reshape(4, 3).T[:, [1, 2, 3, 0]],
@@ -190,13 +189,13 @@ def _loc_to_coil_trans(loc):
 
 
 def _coil_trans_to_loc(coil_trans):
-    """Helper to convert coil_trans to loc"""
+    """Convert coil_trans to loc."""
     coil_trans = coil_trans.astype(np.float64)
     return np.roll(coil_trans.T[:, :3], 1, 0).flatten()
 
 
 def _loc_to_eeg_loc(loc):
-    """Helper to convert a loc to an EEG loc"""
+    """Convert a loc to an EEG loc."""
     if loc[3:6].any():
         return np.array([loc[0:3], loc[3:6]]).T
     else:
@@ -219,7 +218,7 @@ _data_type = 65535      # ffff
 
 
 def _read_tag_header(fid):
-    """Read only the header of a Tag"""
+    """Read only the header of a Tag."""
     s = fid.read(4 * 4)
     if len(s) == 0:
         return None
@@ -228,7 +227,7 @@ def _read_tag_header(fid):
 
 
 def _read_matrix(fid, tag, shape, rlims, matrix_coding):
-    """Read a matrix (dense or sparse) tag"""
+    """Read a matrix (dense or sparse) tag."""
     matrix_coding = matrix_coding >> 16
 
     # This should be easy to implement (see _fromstring_rows)
@@ -326,20 +325,20 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
 
 
 def _read_simple(fid, tag, shape, rlims, dtype):
-    """Read simple datatypes from tag (typically used with partial)"""
+    """Read simple datatypes from tag (typically used with partial)."""
     return _fromstring_rows(fid, tag.size, dtype=dtype, shape=shape,
                             rlims=rlims)
 
 
 def _read_string(fid, tag, shape, rlims):
-    """Read a string tag"""
+    """Read a string tag."""
     # Always decode to unicode.
     d = _fromstring_rows(fid, tag.size, dtype='>c', shape=shape, rlims=rlims)
     return text_type(d.tostring().decode('utf-8', 'ignore'))
 
 
 def _read_complex_float(fid, tag, shape, rlims):
-    """Read complex float tag"""
+    """Read complex float tag."""
     # data gets stored twice as large
     if shape is not None:
         shape = (shape[0], shape[1] * 2)
@@ -349,7 +348,7 @@ def _read_complex_float(fid, tag, shape, rlims):
 
 
 def _read_complex_double(fid, tag, shape, rlims):
-    """Read complex double tag"""
+    """Read complex double tag."""
     # data gets stored twice as large
     if shape is not None:
         shape = (shape[0], shape[1] * 2)
@@ -359,7 +358,7 @@ def _read_complex_double(fid, tag, shape, rlims):
 
 
 def _read_id_struct(fid, tag, shape, rlims):
-    """Read ID struct tag"""
+    """Read ID struct tag."""
     return dict(
         version=int(np.fromstring(fid.read(4), dtype=">i4")),
         machid=np.fromstring(fid.read(8), dtype=">i4"),
@@ -368,7 +367,7 @@ def _read_id_struct(fid, tag, shape, rlims):
 
 
 def _read_dig_point_struct(fid, tag, shape, rlims):
-    """Read dig point struct tag"""
+    """Read dig point struct tag."""
     return dict(
         kind=int(np.fromstring(fid.read(4), dtype=">i4")),
         ident=int(np.fromstring(fid.read(4), dtype=">i4")),
@@ -377,7 +376,7 @@ def _read_dig_point_struct(fid, tag, shape, rlims):
 
 
 def _read_coord_trans_struct(fid, tag, shape, rlims):
-    """Read coord trans struct tag"""
+    """Read coord trans struct tag."""
     from ..transforms import Transform
     fro = int(np.fromstring(fid.read(4), dtype=">i4"))
     to = int(np.fromstring(fid.read(4), dtype=">i4"))
@@ -398,7 +397,7 @@ _coord_dict = {
 
 
 def _read_ch_info_struct(fid, tag, shape, rlims):
-    """Read channel info struct tag"""
+    """Read channel info struct tag."""
     d = dict(
         scanno=int(np.fromstring(fid.read(4), dtype=">i4")),
         logno=int(np.fromstring(fid.read(4), dtype=">i4")),
@@ -422,7 +421,7 @@ def _read_ch_info_struct(fid, tag, shape, rlims):
 
 
 def _read_old_pack(fid, tag, shape, rlims):
-    """Read old pack tag"""
+    """Read old pack tag."""
     offset = float(np.fromstring(fid.read(4), dtype=">f4"))
     scale = float(np.fromstring(fid.read(4), dtype=">f4"))
     data = np.fromstring(fid.read(tag.size - 8), dtype=">i2")
@@ -432,12 +431,12 @@ def _read_old_pack(fid, tag, shape, rlims):
 
 
 def _read_dir_entry_struct(fid, tag, shape, rlims):
-    """Read dir entry struct tag"""
+    """Read dir entry struct tag."""
     return [_read_tag_header(fid) for _ in range(tag.size // 16 - 1)]
 
 
 def _read_julian(fid, tag, shape, rlims):
-    """Read julian tag"""
+    """Read julian tag."""
     return jd2jcal(int(np.fromstring(fid.read(4), dtype=">i4")))
 
 # Read types call dict
@@ -470,7 +469,7 @@ for key, dtype in _simple_dict.items():
 
 
 def read_tag(fid, pos=None, shape=None, rlims=None):
-    """Read a Tag from a file at a given position
+    """Read a Tag from a file at a given position.
 
     Parameters
     ----------
@@ -514,7 +513,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
 
 
 def find_tag(fid, node, findkind):
-    """Find Tag in an open FIF file descriptor
+    """Find Tag in an open FIF file descriptor.
 
     Parameters
     ----------
@@ -538,8 +537,7 @@ def find_tag(fid, node, findkind):
 
 
 def has_tag(node, kind):
-    """Does the node contains a Tag of a given kind?
-    """
+    """Check if the node contains a Tag of a given kind."""
     for d in node['directory']:
         if d.kind == kind:
             return True

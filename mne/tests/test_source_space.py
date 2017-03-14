@@ -20,6 +20,7 @@ from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mri_header, _get_mgz_header
 from mne.externals.six.moves import zip
 from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
+                              get_volume_labels_from_src,
                               _compare_source_spaces)
 from mne.tests.common import assert_naming
 from mne.io.constants import FIFF
@@ -46,7 +47,7 @@ rng = np.random.RandomState(0)
 @testing.requires_testing_data
 @requires_nibabel(vox2ras_tkr=True)
 def test_mgz_header():
-    """Test MGZ header reading"""
+    """Test MGZ header reading."""
     header = _get_mgz_header(fname_mri)
     mri_hdr = _get_mri_header(fname_mri)
     assert_allclose(mri_hdr.get_data_shape(), header['dims'])
@@ -56,7 +57,7 @@ def test_mgz_header():
 
 @requires_version('scipy', '0.11')
 def test_add_patch_info():
-    """Test adding patch info to source space"""
+    """Test adding patch info to source space."""
     # let's setup a small source space
     src = read_source_spaces(fname_small)
     src_new = read_source_spaces(fname_small)
@@ -89,7 +90,7 @@ def test_add_patch_info():
 @testing.requires_testing_data
 @requires_version('scipy', '0.11')
 def test_add_source_space_distances_limited():
-    """Test adding distances to source space with a dist_limit"""
+    """Test adding distances to source space with a dist_limit."""
     tempdir = _TempDir()
     src = read_source_spaces(fname)
     src_new = read_source_spaces(fname)
@@ -128,7 +129,7 @@ def test_add_source_space_distances_limited():
 @testing.requires_testing_data
 @requires_version('scipy', '0.11')
 def test_add_source_space_distances():
-    """Test adding distances to source space"""
+    """Test adding distances to source space."""
     tempdir = _TempDir()
     src = read_source_spaces(fname)
     src_new = read_source_spaces(fname)
@@ -171,8 +172,7 @@ def test_add_source_space_distances():
 @testing.requires_testing_data
 @requires_mne
 def test_discrete_source_space():
-    """Test setting up (and reading/writing) discrete source spaces
-    """
+    """Test setting up (and reading/writing) discrete source spaces."""
     tempdir = _TempDir()
     src = read_source_spaces(fname)
     v = src[0]['vertno']
@@ -188,9 +188,7 @@ def test_discrete_source_space():
                         '--pos', temp_pos, '--src', temp_name])
         src_c = read_source_spaces(temp_name)
         pos_dict = dict(rr=src[0]['rr'][v], nn=src[0]['nn'][v])
-        src_new = setup_volume_source_space('sample', None,
-                                            pos=pos_dict,
-                                            subjects_dir=subjects_dir)
+        src_new = setup_volume_source_space(None, None, pos=pos_dict)
         _compare_source_spaces(src_c, src_new, mode='approx')
         assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
                         rtol=1e-3, atol=1e-6)
@@ -215,8 +213,7 @@ def test_discrete_source_space():
 @slow_test
 @testing.requires_testing_data
 def test_volume_source_space():
-    """Test setting up volume source spaces
-    """
+    """Test setting up volume source spaces."""
     tempdir = _TempDir()
     src = read_source_spaces(fname_vol)
     temp_name = op.join(tempdir, 'temp-src.fif')
@@ -224,15 +221,17 @@ def test_volume_source_space():
     surf['rr'] *= 1e3  # convert to mm
     # The one in the testing dataset (uses bem as bounds)
     for bem, surf in zip((fname_bem, None), (None, surf)):
-        src_new = setup_volume_source_space('sample', temp_name, pos=7.0,
+        src_new = setup_volume_source_space('sample', None, pos=7.0,
                                             bem=bem, surface=surf,
-                                            mri=fname_mri,
+                                            mri='T1.mgz',
                                             subjects_dir=subjects_dir)
+        write_source_spaces(temp_name, src_new, overwrite=True)
+        src[0]['subject_his_id'] = 'sample'  # XXX: to make comparison pass
         _compare_source_spaces(src, src_new, mode='approx')
         del src_new
         src_new = read_source_spaces(temp_name)
         _compare_source_spaces(src, src_new, mode='approx')
-    assert_raises(IOError, setup_volume_source_space, 'sample', temp_name,
+    assert_raises(IOError, setup_volume_source_space, 'sample', None,
                   pos=7.0, bem=None, surface='foo',  # bad surf
                   mri=fname_mri, subjects_dir=subjects_dir)
     assert_equal(repr(src), repr(src_new))
@@ -242,7 +241,7 @@ def test_volume_source_space():
 @testing.requires_testing_data
 @requires_mne
 def test_other_volume_source_spaces():
-    """Test setting up other volume source spaces"""
+    """Test setting up other volume source spaces."""
     # these are split off because they require the MNE tools, and
     # Travis doesn't seem to like them
 
@@ -254,8 +253,7 @@ def test_other_volume_source_spaces():
                     '--src', temp_name,
                     '--mri', fname_mri])
     src = read_source_spaces(temp_name)
-    src_new = setup_volume_source_space('sample', temp_name, pos=7.0,
-                                        mri=fname_mri,
+    src_new = setup_volume_source_space(None, pos=7.0, mri=fname_mri,
                                         subjects_dir=subjects_dir)
     _compare_source_spaces(src, src_new, mode='approx')
     assert_true('volume, shape' in repr(src))
@@ -275,7 +273,7 @@ def test_other_volume_source_spaces():
 
 @testing.requires_testing_data
 def test_triangle_neighbors():
-    """Test efficient vertex neighboring triangles for surfaces"""
+    """Test efficient vertex neighboring triangles for surfaces."""
     this = read_source_spaces(fname)[0]
     this['neighbor_tri'] = [list() for _ in range(this['np'])]
     for p in range(this['ntri']):
@@ -291,7 +289,7 @@ def test_triangle_neighbors():
 
 
 def test_accumulate_normals():
-    """Test efficient normal accumulation for surfaces"""
+    """Test efficient normal accumulation for surfaces."""
     # set up comparison
     n_pts = int(1.6e5)  # approx number in sample source space
     n_tris = int(3.2e5)
@@ -318,22 +316,21 @@ def test_accumulate_normals():
 @slow_test
 @testing.requires_testing_data
 def test_setup_source_space():
-    """Test setting up ico, oct, and all source spaces
-    """
+    """Test setting up ico, oct, and all source spaces."""
     tempdir = _TempDir()
     fname_ico = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
     # first lets test some input params
     assert_raises(ValueError, setup_source_space, 'sample', spacing='oct',
-                  add_dist=False)
+                  add_dist=False, subjects_dir=subjects_dir)
     assert_raises(ValueError, setup_source_space, 'sample', spacing='octo',
-                  add_dist=False)
+                  add_dist=False, subjects_dir=subjects_dir)
     assert_raises(ValueError, setup_source_space, 'sample', spacing='oct6e',
-                  add_dist=False)
+                  add_dist=False, subjects_dir=subjects_dir)
     assert_raises(ValueError, setup_source_space, 'sample', spacing='7emm',
-                  add_dist=False)
+                  add_dist=False, subjects_dir=subjects_dir)
     assert_raises(ValueError, setup_source_space, 'sample', spacing='alls',
-                  add_dist=False)
+                  add_dist=False, subjects_dir=subjects_dir)
     assert_raises(IOError, setup_source_space, 'sample', spacing='oct6',
                   subjects_dir=subjects_dir, add_dist=False)
 
@@ -356,9 +353,10 @@ def test_setup_source_space():
     temp_name = op.join(tempdir, 'temp-src.fif')
     with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
         warnings.simplefilter('always')
-        src_new = setup_source_space('sample', temp_name, spacing='oct6',
+        src_new = setup_source_space('sample', None, spacing='oct6',
                                      subjects_dir=subjects_dir,
                                      overwrite=True, add_dist=False)
+        write_source_spaces(temp_name, src_new, overwrite=True)
     _compare_source_spaces(src, src_new, mode='approx', nearest=False)
     src_new = read_source_spaces(temp_name)
     _compare_source_spaces(src, src_new, mode='approx', nearest=False)
@@ -376,8 +374,7 @@ def test_setup_source_space():
 
 @testing.requires_testing_data
 def test_read_source_spaces():
-    """Test reading of source space meshes
-    """
+    """Test reading of source space meshes."""
     src = read_source_spaces(fname, patch_stats=True)
 
     # 3D source space
@@ -400,8 +397,7 @@ def test_read_source_spaces():
 @slow_test
 @testing.requires_testing_data
 def test_write_source_space():
-    """Test reading and writing of source spaces
-    """
+    """Test reading and writing of source spaces."""
     tempdir = _TempDir()
     src0 = read_source_spaces(fname, patch_stats=False)
     write_source_spaces(op.join(tempdir, 'tmp-src.fif'), src0)
@@ -421,8 +417,7 @@ def test_write_source_space():
 @testing.requires_testing_data
 @requires_fs_or_nibabel
 def test_vertex_to_mni():
-    """Test conversion of vertices to MNI coordinates
-    """
+    """Test conversion of vertices to MNI coordinates."""
     # obtained using "tksurfer (sample) (l/r)h white"
     vertices = [100960, 7620, 150549, 96761]
     coords = np.array([[-60.86, -11.18, -3.19], [-36.46, -93.18, -2.36],
@@ -437,8 +432,7 @@ def test_vertex_to_mni():
 @requires_freesurfer
 @requires_nibabel()
 def test_vertex_to_mni_fs_nibabel():
-    """Test equivalence of vert_to_mni for nibabel and freesurfer
-    """
+    """Test equivalence of vert_to_mni for nibabel and freesurfer."""
     n_check = 1000
     subject = 'sample'
     vertices = rng.randint(0, 100000, n_check)
@@ -455,19 +449,20 @@ def test_vertex_to_mni_fs_nibabel():
 @requires_freesurfer
 @requires_nibabel()
 def test_get_volume_label_names():
-    """Test reading volume label names
-    """
+    """Test reading volume label names."""
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names = get_volume_labels_from_aseg(aseg_fname)
+    label_names, label_colors = get_volume_labels_from_aseg(aseg_fname,
+                                                            return_colors=True)
     assert_equal(label_names.count('Brain-Stem'), 1)
+
+    assert_equal(len(label_colors), len(label_names))
 
 
 @testing.requires_testing_data
 @requires_freesurfer
 @requires_nibabel()
 def test_source_space_from_label():
-    """Test generating a source space from volume label
-    """
+    """Test generating a source space from volume label."""
     tempdir = _TempDir()
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_labels_from_aseg(aseg_fname)
@@ -501,9 +496,39 @@ def test_source_space_from_label():
 @testing.requires_testing_data
 @requires_freesurfer
 @requires_nibabel()
+def test_read_volume_from_src():
+    """Test reading volumes from a mixed source space."""
+    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+    labels_vol = ['Left-Amygdala',
+                  'Brain-Stem',
+                  'Right-Amygdala']
+
+    src = read_source_spaces(fname)
+
+    # Setup a volume source space
+    vol_src = setup_volume_source_space('sample', mri=aseg_fname,
+                                        pos=5.0,
+                                        bem=fname_bem,
+                                        volume_label=labels_vol,
+                                        subjects_dir=subjects_dir)
+    # Generate the mixed source space
+    src += vol_src
+
+    volume_src = get_volume_labels_from_src(src, 'sample', subjects_dir)
+    volume_label = volume_src[0].name
+    volume_label = 'Left-' + volume_label.replace('-lh', '')
+
+    # Test
+    assert_equal(volume_label, src[2]['seg_name'])
+
+    assert_equal(src[2]['type'], 'vol')
+
+
+@testing.requires_testing_data
+@requires_freesurfer
+@requires_nibabel()
 def test_combine_source_spaces():
-    """Test combining source spaces
-    """
+    """Test combining source spaces."""
     tempdir = _TempDir()
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_labels_from_aseg(aseg_fname)
@@ -574,8 +599,7 @@ def test_combine_source_spaces():
 
 @testing.requires_testing_data
 def test_morph_source_spaces():
-    """Test morphing of source spaces
-    """
+    """Test morphing of source spaces."""
     src = read_source_spaces(fname_fs)
     src_morph = read_source_spaces(fname_morph)
     src_morph_py = morph_source_spaces(src, 'sample',
@@ -586,7 +610,7 @@ def test_morph_source_spaces():
 @slow_test
 @testing.requires_testing_data
 def test_morphed_source_space_return():
-    """Test returning a morphed source space to the original subject"""
+    """Test returning a morphed source space to the original subject."""
     # let's create some random data on fsaverage
     data = rng.randn(20484, 1)
     tmin, tstep = 0, 1.

@@ -1,4 +1,4 @@
-
+:orphan:
 
 .. _ch_sample_data:
 

@@ -10,8 +10,8 @@ from nose.tools import assert_equal, assert_false, assert_raises, assert_true
 
 from mne.datasets import testing
 from mne.io.tests import data_dir as fiff_data_dir
-from mne.utils import (_TempDir, requires_mne, requires_freesurfer,
-                       requires_traits)
+from mne.utils import (_TempDir, requires_freesurfer, requires_mayavi,
+                       run_tests_if_main)
 
 data_path = testing.data_path(download=False)
 subjects_dir = os.path.join(data_path, 'subjects')
@@ -22,7 +22,7 @@ fid_path = os.path.join(fiff_data_dir, 'fsaverage-fiducials.fif')
 
 
 @testing.requires_testing_data
-@requires_traits
+@requires_mayavi
 def test_bem_source():
     """Test SurfaceSource"""
     from mne.gui._file_traits import SurfaceSource
@@ -37,7 +37,7 @@ def test_bem_source():
 
 
 @testing.requires_testing_data
-@requires_traits
+@requires_mayavi
 def test_fiducials_source():
     """Test FiducialsSource"""
     from mne.gui._file_traits import FiducialsSource
@@ -55,12 +55,12 @@ def test_fiducials_source():
 
 
 @testing.requires_testing_data
-@requires_traits
+@requires_mayavi
 def test_inst_source():
-    """Test InstSource"""
-    from mne.gui._file_traits import InstSource
+    """Test DigSource"""
+    from mne.gui._file_traits import DigSource
 
-    inst = InstSource()
+    inst = DigSource()
     assert_equal(inst.inst_fname, '-')
 
     inst.file = inst_path
@@ -75,7 +75,7 @@ def test_inst_source():
 
 
 @testing.requires_testing_data
-@requires_traits
+@requires_mayavi
 def test_subject_source():
     """Test SubjectSelector"""
     from mne.gui._file_traits import MRISubjectSource
@@ -87,8 +87,7 @@ def test_subject_source():
 
 
 @testing.requires_testing_data
-@requires_traits
-@requires_mne
+@requires_mayavi
 @requires_freesurfer
 def test_subject_source_with_fsaverage():
     """Test SubjectSelector"""
@@ -102,3 +101,6 @@ def test_subject_source_with_fsaverage():
     mri.subjects_dir = tempdir
     assert_true(mri.can_create_fsaverage)
     mri.create_fsaverage()
+
+
+run_tests_if_main()

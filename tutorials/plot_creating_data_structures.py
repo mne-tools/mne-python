@@ -32,7 +32,7 @@ import numpy as np
 # Create some dummy metadata
 n_channels = 32
 sampling_rate = 200
-info = mne.create_info(32, sampling_rate)
+info = mne.create_info(n_channels, sampling_rate)
 print(info)
 
 ###############################################################################
@@ -78,7 +78,16 @@ print(info)
 #
 # To create a :class:`mne.io.Raw` object from scratch, you can use the
 # :class:`mne.io.RawArray` class, which implements raw data that is backed by a
-# numpy array.  Its constructor simply takes the data matrix and
+# numpy array. The correct units for the data are:
+#
+# - V: eeg, eog, seeg, emg, ecg, bio, ecog
+# - T: mag
+# - T/m: grad
+# - M: hbo, hbr
+# - Am: dipole
+# - AU: misc
+#
+# The :class:`mne.io.RawArray` constructor simply takes the data matrix and
 # :class:`mne.Info` object:
 
 # Generate some random data
@@ -102,7 +111,7 @@ print(custom_raw)
 # To create an :class:`mne.Epochs` object from scratch, you can use the
 # :class:`mne.EpochsArray` class, which uses a numpy array directly without
 # wrapping a raw object. The array must be of `shape(n_epochs, n_chans,
-# n_times)`
+# n_times)`. The proper units of measure are listed above.
 
 # Generate some random data: 10 epochs, 5 channels, 2 seconds per epoch
 sfreq = 100
@@ -117,23 +126,23 @@ info = mne.create_info(
 
 ###############################################################################
 # It is necessary to supply an "events" array in order to create an Epochs
-# object. This is of `shape(n_events, 3)` where the first column is the index
-# of the event, the second column is the length of the event, and the third
-# column is the event type.
+# object. This is of `shape(n_events, 3)` where the first column is the sample
+# number (time) of the event, the second column indicates the value from which
+# the transition is made from (only used when the new value is bigger than the
+# old one), and the third column is the new event value.
 
-# Create an event matrix: 10 events with a duration of 1 sample, alternating
-# event codes
+# Create an event matrix: 10 events with alternating event codes
 events = np.array([
-    [0, 1, 1],
-    [1, 1, 2],
-    [2, 1, 1],
-    [3, 1, 2],
-    [4, 1, 1],
-    [5, 1, 2],
-    [6, 1, 1],
-    [7, 1, 2],
-    [8, 1, 1],
-    [9, 1, 2],
+    [0, 0, 1],
+    [1, 0, 2],
+    [2, 0, 1],
+    [3, 0, 2],
+    [4, 0, 1],
+    [5, 0, 2],
+    [6, 0, 1],
+    [7, 0, 2],
+    [8, 0, 1],
+    [9, 0, 2],
 ])
 
 ###############################################################################
@@ -164,6 +173,7 @@ _ = custom_epochs['smiling'].average().plot()
 # If you already have data that is collapsed across trials, you may also
 # directly create an evoked array.  Its constructor accepts an array of
 # `shape(n_chans, n_times)` in addition to some bookkeeping parameters.
+# The proper units of measure for the data are listed above.
 
 # The averaged data
 data_evoked = data.mean(0)

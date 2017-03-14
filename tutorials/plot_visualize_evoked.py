@@ -13,7 +13,7 @@ import mne
 
 ###############################################################################
 # In this tutorial we focus on plotting functions of :class:`mne.Evoked`.
-# Here we read the evoked object from a file. Check out
+# First we read the evoked object from a file. Check out
 # :ref:`tut_epoching_and_averaging` to get to this stage from raw data.
 data_path = mne.datasets.sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
@@ -33,15 +33,15 @@ evoked_r_vis = evoked[3]
 ###############################################################################
 # Let's start with a simple one. We plot event related potentials / fields
 # (ERP/ERF). The bad channels are not plotted by default. Here we explicitly
-# set the exclude parameter to show the bad channels in red. All plotting
+# set the ``exclude`` parameter to show the bad channels in red. All plotting
 # functions of MNE-python return a handle to the figure instance. When we have
 # the handle, we can customise the plots to our liking.
 fig = evoked_l_aud.plot(exclude=())
 
 ###############################################################################
-# All plotting functions of MNE-python returns a handle to the figure instance.
-# When we have the handle, we can customise the plots to our liking. We can get
-# rid of the empty space with a simple function call.
+# All plotting functions of MNE-python return a handle to the figure instance.
+# When we have the handle, we can customise the plots to our liking. For
+# example, we can get rid of the empty space with a simple function call.
 fig.tight_layout()
 
 ###############################################################################
@@ -79,7 +79,7 @@ evoked_r_aud.plot_topomap(times='peaks', ch_type='mag')
 # or simply write ``evoked_r_aud.plot_topomap?`` in your python console to
 # see the different parameters you can pass to this function. Most of the
 # plotting functions also accept ``axes`` parameter. With that, you can
-# customise your plots even further. First we shall create a set of matplotlib
+# customise your plots even further. First we create a set of matplotlib
 # axes in a single figure and plot all of our evoked categories next to each
 # other.
 fig, ax = plt.subplots(1, 5)
@@ -98,33 +98,36 @@ evoked_r_vis.plot_topomap(times=0.1, axes=ax[3], show=True)
 # using for your python session. See http://matplotlib.org/users/shell.html for
 # more information.
 #
-# We can combine the two kinds of plots in one figure using the ``plot_joint``
-# method of Evoked objects. Called as-is (``evoked.plot_joint()``), this
-# function should give a stylish and informative display of spatio-temporal
-# dynamics. Also note the ``topomap_args`` and ``ts_args`` parameters of
-# :func:`mne.Evoked.plot_joint`. You can pass key-value pairs as a python
-# dictionary that gets passed as parameters to the topomaps
-# (:func:`mne.Evoked.plot_topomap`) and time series (:func:`mne.Evoked.plot`)
-# of the joint plot.
-# For specific styling, use these ``topomap_args`` and ``ts_args``
-# arguments. Here, topomaps at specific time points (70 and 105 msec) are
-# shown, sensors are not plotted, and the Global Field Power is shown:
+# We can combine the two kinds of plots in one figure using the
+# :func:`mne.Evoked.plot_joint` method of Evoked objects. Called as-is
+# (``evoked.plot_joint()``), this function should give an informative display
+# of spatio-temporal dynamics.
+# You can directly style the time series part and the topomap part of the plot
+# using the ``topomap_args`` and ``ts_args`` parameters. You can pass key-value
+# pairs as a python dictionary. These are then passed as parameters to the
+# topomaps (:func:`mne.Evoked.plot_topomap`) and time series
+# (:func:`mne.Evoked.plot`) of the joint plot.
+# For an example of specific styling using these ``topomap_args`` and
+# ``ts_args`` arguments, here, topomaps at specific time points
+# (70 and 105 msec) are shown, sensors are not plotted (via an argument
+# forwarded to `plot_topomap`), and the Global Field Power is shown:
 ts_args = dict(gfp=True)
 topomap_args = dict(sensors=False)
 evoked_r_aud.plot_joint(title='right auditory', times=[.07, .105],
                         ts_args=ts_args, topomap_args=topomap_args)
 
 ###############################################################################
-# Sometimes, you may want to compare two conditions at a selection of sensors,
-# or e.g. for the Global Field Power. For this, you can use the function
-# :func:`mne.viz.plot_compare_evokeds`. The easiest way is to create a  Python
-# dictionary, where the keys are condition names and the values are
+# Sometimes, you may want to compare two or more conditions at a selection of
+# sensors, or e.g. for the Global Field Power. For this, you can use the
+# function :func:`mne.viz.plot_compare_evokeds`. The easiest way is to create
+# a  Python dictionary, where the keys are condition names and the values are
 # :class:`mne.Evoked` objects. If you provide lists of :class:`mne.Evoked`
 # objects, such as those for multiple subjects, the grand average is plotted,
 # along with a confidence interval band - this can be used to contrast
 # conditions for a whole experiment.
 # First, we load in the evoked objects into a dictionary, setting the keys to
-# '/'-separated tags. Then, we plot with :func:`mne.viz.plot_compare_evokeds`.
+# '/'-separated tags (as we can do with event_ids for epochs). Then, we plot
+# with :func:`mne.viz.plot_compare_evokeds`.
 # The plot is styled with dictionary arguments, again using "/"-separated tags.
 # We plot a MEG channel with a strong auditory response.
 conditions = ["Left Auditory", "Right Auditory", "Left visual", "Right visual"]
@@ -162,7 +165,6 @@ mne.viz.plot_evoked_topo(evoked, color=colors,
 ###############################################################################
 # Visualizing field lines in 3D
 # -----------------------------
-#
 # We now compute the field maps to project MEG and EEG data to MEG helmet
 # and scalp surface.
 #

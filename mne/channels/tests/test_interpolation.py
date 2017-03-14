@@ -110,8 +110,7 @@ def test_interpolation():
     raw_meg = io.RawArray(data=epochs_meg._data[0], info=epochs_meg.info)
     raw_meg.info['bads'] = ['MEG 0141']
     data1 = raw_meg[pick, :][0][0]
-    # reset_bads=False here because epochs_meg appears to share the same info
-    # dict with raw and we want to test the epochs functionality too
+
     raw_meg.info.normalize_proj()
     data2 = raw_meg.interpolate_bads(reset_bads=False)[pick, :][0][0]
     assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
@@ -124,7 +123,7 @@ def test_interpolation():
     epochs_meg.interpolate_bads()
     data2 = epochs_meg.get_data()[:, pick, :].ravel()
     assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
-    assert_true(len(raw_meg.info['bads']) == 0)
+    assert_true(len(epochs_meg.info['bads']) == 0)
 
     # MEG -- evoked
     data1 = evoked.data[pick]

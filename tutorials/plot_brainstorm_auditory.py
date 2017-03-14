@@ -10,6 +10,7 @@ tutorial dataset. For comparison, see [1]_ and:
     http://neuroimage.usc.edu/brainstorm/Tutorials/Auditory
 
 Experiment:
+
     - One subject, 2 acquisition runs 6 minutes each.
     - Each run contains 200 regular beeps and 40 easy deviant beeps.
     - Random ISI: between 0.7s and 1.7s seconds, uniformly distributed.
@@ -125,7 +126,7 @@ saccades_events = df[df['label'] == 'saccade'].values[:, :3].astype(int)
 # Conversion from samples to times:
 onsets = annotations_df['onset'].values / raw.info['sfreq']
 durations = annotations_df['duration'].values / raw.info['sfreq']
-descriptions = map(str, annotations_df['label'].values)
+descriptions = annotations_df['label'].values
 
 annotations = mne.Annotations(onsets, durations, descriptions)
 raw.annotations = annotations
@@ -168,10 +169,10 @@ raw.plot(block=True)
 # usually would do.
 if not use_precomputed:
     meg_picks = mne.pick_types(raw.info, meg=True, eeg=False)
-    raw.plot_psd(picks=meg_picks)
+    raw.plot_psd(tmax=np.inf, picks=meg_picks)
     notches = np.arange(60, 181, 60)
     raw.notch_filter(notches)
-    raw.plot_psd(picks=meg_picks)
+    raw.plot_psd(tmax=np.inf, picks=meg_picks)
 
 ###############################################################################
 # We also lowpass filter the data at 100 Hz to remove the hf components.
@@ -257,7 +258,8 @@ if use_precomputed:
     notches = [60, 120, 180]
     for evoked in (evoked_std, evoked_dev):
         evoked.data[:] = notch_filter(evoked.data, sfreq, notches)
-        evoked.data[:] = filter_data(evoked_std.data, sfreq, None, 100)
+        evoked.data[:] = filter_data(evoked.data, sfreq, l_freq=None,
+                                     h_freq=100.)
 
 ###############################################################################
 # Here we plot the ERF of standard and deviant conditions. In both conditions
@@ -269,6 +271,7 @@ if use_precomputed:
 # painting an area with clicking and holding the left mouse button.
 evoked_std.plot(window_title='Standard', gfp=True)
 evoked_dev.plot(window_title='Deviant', gfp=True)
+
 
 ###############################################################################
 # Show activations as topography figures.

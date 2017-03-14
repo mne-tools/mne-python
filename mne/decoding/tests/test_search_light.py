@@ -27,7 +27,7 @@ def test_SearchLight():
     """Test _SearchLight"""
     from sklearn.linear_model import Ridge, LogisticRegression
     from sklearn.pipeline import make_pipeline
-    from sklearn.metrics import roc_auc_score
+    from sklearn.metrics import roc_auc_score, get_scorer, make_scorer
 
     X, y = make_data()
     n_epochs, _, n_time = X.shape
@@ -57,33 +57,57 @@ def test_SearchLight():
     assert_true(np.sum(np.abs(score)) != 0)
     assert_true(score.dtype == float)
 
-    # change score method
-    sl1 = _SearchLight(LogisticRegression(), scoring=roc_auc_score)
-    sl1.fit(X, y)
-    score1 = sl1.score(X, y)
-    assert_array_equal(score1.shape, [n_time])
-    assert_true(score1.dtype == float)
-
-    X_2d = X.reshape(X.shape[0], X.shape[1] * X.shape[2])
-    lg_score = LogisticRegression().fit(X_2d, y).predict_proba(X_2d)[:, 1]
-    assert_equal(score1[0], roc_auc_score(y, lg_score))
-
-    sl2 = _SearchLight(LogisticRegression(), scoring='roc_auc')
-    sl2.fit(X, y)
-    assert_array_equal(score1, sl2.score(X, y))
-
-    sl = _SearchLight(LogisticRegression(), scoring='foo')
-    sl.fit(X, y)
-    assert_raises(ValueError, sl.score, X, y)
-
     sl = _SearchLight(LogisticRegression())
     assert_equal(sl.scoring, None)
 
-    # n_jobs
-    sl = _SearchLight(LogisticRegression(), n_jobs=2)
+    # Scoring method
+    for err, scoring in [(ValueError, 'foo'), (TypeError, 999)]:
+        sl = _SearchLight(LogisticRegression(), scoring=scoring)
+        sl.fit(X, y)
+        assert_raises(err, sl.score, X, y)
+
+    # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
+    # -- 3 class problem
+    sl = _SearchLight(LogisticRegression(random_state=0), scoring='roc_auc')
+    y = np.arange(len(X)) % 3
     sl.fit(X, y)
+    assert_raises(ValueError, sl.score, X, y)
+    # -- 2 class problem not in [0, 1]
+    y = np.arange(len(X)) % 2 + 1
+    sl.fit(X, y)
+    score = sl.score(X, y)
+    assert_array_equal(score, [roc_auc_score(y - 1, _y_pred - 1)
+                               for _y_pred in sl.decision_function(X).T])
+    y = np.arange(len(X)) % 2
+
+    for method, scoring in [
+            ('predict_proba', 'roc_auc'), ('predict', roc_auc_score)]:
+        sl1 = _SearchLight(LogisticRegression(), scoring=scoring)
+        sl1.fit(X, y)
+        np.random.seed(0)
+        X = np.random.randn(*X.shape)  # randomize X to avoid AUCs in [0, 1]
+        score_sl = sl1.score(X, y)
+        assert_array_equal(score_sl.shape, [n_time])
+        assert_true(score_sl.dtype == float)
+
+        # Check that scoring was applied adequately
+        if isinstance(scoring, str):
+            scoring = get_scorer(scoring)
+        else:
+            scoring = make_scorer(scoring)
+
+        score_manual = [scoring(est, x, y) for est, x in zip(
+                        sl1.estimators_, X.transpose(2, 0, 1))]
+        assert_array_equal(score_manual, score_sl)
+
+    # n_jobs
+    sl = _SearchLight(LogisticRegression(random_state=0), n_jobs=1,
+                      scoring='roc_auc')
+    score_1job = sl.fit(X, y).score(X, y)
+    sl.n_jobs = 2
+    score_njobs = sl.fit(X, y).score(X, y)
+    assert_array_equal(score_1job, score_njobs)
     sl.predict(X)
-    sl.score(X, y)
 
     # n_jobs > n_estimators
     sl.fit(X[..., [0]], y)
@@ -119,6 +143,8 @@ def test_GeneralizationLight():
     """Test _GeneralizationLight"""
     from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import roc_auc_score
+
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # fit
@@ -144,6 +170,31 @@ def test_GeneralizationLight():
     assert_array_equal(score.shape, [n_time, 3])
     assert_true(np.sum(np.abs(score)) != 0)
     assert_true(score.dtype == float)
+
+    gl = _GeneralizationLight(LogisticRegression(), scoring='roc_auc')
+    gl.fit(X, y)
+    score = gl.score(X, y)
+    auc = roc_auc_score(y, gl.estimators_[0].predict_proba(X[..., 0])[..., 1])
+    assert_equal(score[0, 0], auc)
+
+    for err, scoring in [(ValueError, 'foo'), (TypeError, 999)]:
+        gl = _GeneralizationLight(LogisticRegression(), scoring=scoring)
+        gl.fit(X, y)
+        assert_raises(err, gl.score, X, y)
+
+    # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
+    # -- 3 class problem
+    gl = _GeneralizationLight(LogisticRegression(), scoring='roc_auc')
+    y = np.arange(len(X)) % 3
+    gl.fit(X, y)
+    assert_raises(ValueError, gl.score, X, y)
+    # -- 2 class problem not in [0, 1]
+    y = np.arange(len(X)) % 2 + 1
+    gl.fit(X, y)
+    score = gl.score(X, y)
+    manual_score = [[roc_auc_score(y - 1, _y_pred) for _y_pred in _y_preds]
+                    for _y_preds in gl.decision_function(X).transpose(1, 2, 0)]
+    assert_array_equal(score, manual_score)
 
     # n_jobs
     gl = _GeneralizationLight(LogisticRegression(), n_jobs=2)

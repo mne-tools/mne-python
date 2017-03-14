@@ -4,17 +4,17 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
+from distutils.version import LooseVersion
+from glob import glob
 import os
 from os import path as op
 import sys
 from struct import pack
-from glob import glob
-from distutils.version import LooseVersion
 
 import numpy as np
 from scipy.sparse import coo_matrix, csr_matrix, eye as speye
 
-from .bem import read_bem_surfaces
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tree import dir_tree_find
@@ -25,7 +25,7 @@ from .channels.channels import _get_meg_system
 from .transforms import transform_surface_to
 from .utils import logger, verbose, get_subjects_dir, warn
 from .externals.six import string_types
-from .fixes import _read_volume_info, _serialize_volume_info
+from .fixes import _serialize_volume_info, _get_read_geometry
 
 
 ###############################################################################
@@ -34,7 +34,7 @@ from .fixes import _read_volume_info, _serialize_volume_info
 @verbose
 def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
                   verbose=None):
-    """Load the subject head surface
+    """Load the subject head surface.
 
     Parameters
     ----------
@@ -51,17 +51,25 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     surf : dict
         The head surface.
     """
+    return _get_head_surface(subject=subject, source=source,
+                             subjects_dir=subjects_dir)
+
+
+def _get_head_surface(subject, source, subjects_dir, raise_error=True):
+    """Load the subject head surface."""
+    from .bem import read_bem_surfaces
     # Load the head surface from the BEM
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if not isinstance(subject, string_types):
-        raise TypeError('subject must be a string, not %s' % (type(subject,)))
+        raise TypeError('subject must be a string, not %s.' % (type(subject,)))
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
     if isinstance(source, string_types):
         source = [source]
@@ -77,7 +85,7 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
             # let's do a more sophisticated search
             path = op.join(subjects_dir, subject, 'bem')
             if not op.isdir(path):
-                raise IOError('Subject bem directory "%s" does not exist'
+                raise IOError('Subject bem directory "%s" does not exist.'
                               % path)
             files = sorted(glob(op.join(path, '%s*%s.fif'
                                         % (subject, this_source))))
@@ -94,15 +102,18 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
             break
 
     if surf is None:
-        raise IOError('No file matching "%s*%s" and containing a head '
-                      'surface found' % (subject, this_source))
-    logger.info('Using surface from %s' % this_head)
+        if raise_error:
+            raise IOError('No file matching "%s*%s" and containing a head '
+                          'surface found.' % (subject, this_source))
+        else:
+            return surf
+    logger.info('Using surface from %s.' % this_head)
     return surf
 
 
 @verbose
 def get_meg_helmet_surf(info, trans=None, verbose=None):
-    """Load the MEG helmet associated with the MEG sensors
+    """Load the MEG helmet associated with the MEG sensors.
 
     Parameters
     ----------
@@ -113,13 +124,15 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
         read_trans(). Can be None, in which case the surface will
         be in head coordinates instead of MRI coordinates.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     surf : dict
         The MEG helmet as a surface.
     """
+    from .bem import read_bem_surfaces
     system = _get_meg_system(info)
     logger.info('Getting helmet for system %s' % system)
     fname = op.join(op.split(__file__)[0], 'data', 'helmets',
@@ -139,7 +152,7 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
 # EFFICIENCY UTILITIES
 
 def fast_cross_3d(x, y):
-    """Compute cross product between list of 3D vectors
+    """Compute cross product between list of 3D vectors.
 
     Much faster than np.cross() when the number of cross products
     becomes large (>500). This is because np.cross() methods become
@@ -176,14 +189,14 @@ def fast_cross_3d(x, y):
 
 
 def _fast_cross_nd_sum(a, b, c):
-    """Fast cross and sum"""
+    """Fast cross and sum."""
     return ((a[..., 1] * b[..., 2] - a[..., 2] * b[..., 1]) * c[..., 0] +
             (a[..., 2] * b[..., 0] - a[..., 0] * b[..., 2]) * c[..., 1] +
             (a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]) * c[..., 2])
 
 
 def _accumulate_normals(tris, tri_nn, npts):
-    """Efficiently accumulate triangle normals"""
+    """Efficiently accumulate triangle normals."""
     # this code replaces the following, but is faster (vectorized):
     #
     # this['nn'] = np.zeros((this['np'], 3))
@@ -200,7 +213,7 @@ def _accumulate_normals(tris, tri_nn, npts):
 
 
 def _triangle_neighbors(tris, npts):
-    """Efficiently compute vertex neighboring triangles"""
+    """Efficiently compute vertex neighboring triangles."""
     # this code replaces the following, but is faster (vectorized):
     #
     # this['neighbor_tri'] = [list() for _ in xrange(this['np'])]
@@ -223,7 +236,7 @@ def _triangle_neighbors(tris, npts):
 
 
 def _triangle_coords(r, geom, best):
-    """Get coordinates of a vertex projected to a triangle"""
+    """Get coordinates of a vertex projected to a triangle."""
     r1 = geom['r1'][best]
     tri_nn = geom['nn'][best]
     r12 = geom['r12'][best]
@@ -241,57 +254,99 @@ def _triangle_coords(r, geom, best):
     return x, y, z
 
 
+def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False):
+    """Project points onto (scalp) surface."""
+    surf_geom = _get_tri_supp_geom(surf)
+    coords = np.empty((len(rrs), 3))
+    tri_idx = np.empty((len(rrs),), int)
+    for ri, rr in enumerate(rrs):
+        # Get index of closest tri on scalp BEM to electrode position
+        tri_idx[ri] = _find_nearest_tri_pt(rr, surf_geom)[2]
+        # Calculate a linear interpolation between the vertex values to
+        # get coords of pt projected onto closest triangle
+        coords[ri] = _triangle_coords(rr, surf_geom, tri_idx[ri])
+    weights = np.array([1. - coords[:, 0] - coords[:, 1], coords[:, 0],
+                       coords[:, 1]])
+    out = (weights, tri_idx)
+    if project_rrs:  #
+        out += (np.einsum('ij,jik->jk', weights,
+                          surf['rr'][surf['tris'][tri_idx]]),)
+    if return_nn:
+        out += (surf_geom['nn'][tri_idx],)
+    return out
+
+
 @verbose
-def _complete_surface_info(this, do_neighbor_vert=False, verbose=None):
-    """Complete surface info"""
+def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
+                          verbose=None):
+    """Complete surface information.
+
+    Parameters
+    ----------
+    surf : dict
+        The surface.
+    do_neighbor_vert : bool
+        If True, add neighbor vertex information.
+    copy : bool
+        If True (default), make a copy. If False, operate in-place.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    surf : dict
+        The transformed surface.
+    """
+    if copy:
+        surf = deepcopy(surf)
     # based on mne_source_space_add_geometry_info() in mne_add_geometry_info.c
 
     #   Main triangulation [mne_add_triangle_data()]
-    this['tri_area'] = np.zeros(this['ntri'])
-    r1 = this['rr'][this['tris'][:, 0], :]
-    r2 = this['rr'][this['tris'][:, 1], :]
-    r3 = this['rr'][this['tris'][:, 2], :]
-    this['tri_cent'] = (r1 + r2 + r3) / 3.0
-    this['tri_nn'] = fast_cross_3d((r2 - r1), (r3 - r1))
+    surf['ntri'] = surf.get('ntri', len(surf['tris']))
+    surf['np'] = surf.get('np', len(surf['rr']))
+    surf['tri_area'] = np.zeros(surf['ntri'])
+    r1 = surf['rr'][surf['tris'][:, 0], :]
+    r2 = surf['rr'][surf['tris'][:, 1], :]
+    r3 = surf['rr'][surf['tris'][:, 2], :]
+    surf['tri_cent'] = (r1 + r2 + r3) / 3.0
+    surf['tri_nn'] = fast_cross_3d((r2 - r1), (r3 - r1))
 
     #   Triangle normals and areas
-    size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
-    this['tri_area'] = size / 2.0
-    zidx = np.where(size == 0)[0]
-    for idx in zidx:
-        logger.info('    Warning: zero size triangle # %s' % idx)
-    size[zidx] = 1.0  # prevent ugly divide-by-zero
-    this['tri_nn'] /= size[:, None]
+    surf['tri_area'] = _normalize_vectors(surf['tri_nn']) / 2.0
+    zidx = np.where(surf['tri_area'] == 0)[0]
+    if len(zidx) > 0:
+        logger.info('    Warning: zero size triangles: %s' % zidx)
 
     #    Find neighboring triangles, accumulate vertex normals, normalize
     logger.info('    Triangle neighbors and vertex normals...')
-    this['neighbor_tri'] = _triangle_neighbors(this['tris'], this['np'])
-    this['nn'] = _accumulate_normals(this['tris'], this['tri_nn'], this['np'])
-    _normalize_vectors(this['nn'])
+    surf['neighbor_tri'] = _triangle_neighbors(surf['tris'], surf['np'])
+    surf['nn'] = _accumulate_normals(surf['tris'], surf['tri_nn'], surf['np'])
+    _normalize_vectors(surf['nn'])
 
     #   Check for topological defects
-    idx = np.where([len(n) == 0 for n in this['neighbor_tri']])[0]
+    idx = np.where([len(n) == 0 for n in surf['neighbor_tri']])[0]
     if len(idx) > 0:
         logger.info('    Vertices [%s] do not have any neighboring'
                     'triangles!' % ','.join([str(ii) for ii in idx]))
-    idx = np.where([len(n) < 3 for n in this['neighbor_tri']])[0]
+    idx = np.where([len(n) < 3 for n in surf['neighbor_tri']])[0]
     if len(idx) > 0:
         logger.info('    Vertices [%s] have fewer than three neighboring '
                     'tris, omitted' % ','.join([str(ii) for ii in idx]))
     for k in idx:
-        this['neighbor_tri'] = np.array([], int)
+        surf['neighbor_tri'] = np.array([], int)
 
     #   Determine the neighboring vertices and fix errors
     if do_neighbor_vert is True:
         logger.info('    Vertex neighbors...')
-        this['neighbor_vert'] = [_get_surf_neighbors(this, k)
-                                 for k in range(this['np'])]
+        surf['neighbor_vert'] = [_get_surf_neighbors(surf, k)
+                                 for k in range(surf['np'])]
 
-    return this
+    return surf
 
 
 def _get_surf_neighbors(surf, k):
-    """Calculate the surface neighbors based on triangulation"""
+    """Calculate the surface neighbors based on triangulation."""
     verts = surf['tris'][surf['neighbor_tri'][k]]
     verts = np.setdiff1d(verts, [k], assume_unique=False)
     assert np.all(verts < surf['np'])
@@ -307,14 +362,15 @@ def _get_surf_neighbors(surf, k):
 
 
 def _normalize_vectors(rr):
-    """Normalize surface vertices"""
-    size = np.sqrt(np.sum(rr * rr, axis=1))
-    size[size == 0] = 1.0  # avoid divide-by-zero
-    rr /= size[:, np.newaxis]  # operate in-place
+    """Normalize surface vertices."""
+    size = np.linalg.norm(rr, axis=1)
+    mask = (size > 0)
+    rr[mask] /= size[mask, np.newaxis]  # operate in-place
+    return size
 
 
 def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
-    """Find nearest neighbors
+    """Find nearest neighbors.
 
     Note: The rows in xhs and rr must all be unit-length vectors, otherwise
     the result will be incorrect.
@@ -379,7 +435,7 @@ def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
 # Handle freesurfer
 
 def _fread3(fobj):
-    """Docstring"""
+    """Read 3 bytes and adjust."""
     b1, b2, b3 = np.fromfile(fobj, ">u1", 3)
     return (b1 << 16) + (b2 << 8) + b3
 
@@ -407,8 +463,8 @@ def read_curvature(filepath):
 
 
 @verbose
-def read_surface(fname, read_metadata=False, verbose=None):
-    """Load a Freesurfer surface mesh in triangular format
+def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
+    """Load a Freesurfer surface mesh in triangular format.
 
     Parameters
     ----------
@@ -430,8 +486,11 @@ def read_surface(fname, read_metadata=False, verbose=None):
 
         .. versionadded:: 0.13.0
 
+    return_dict : bool
+        If True, a dictionary with surface parameters is returned.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -442,103 +501,29 @@ def read_surface(fname, read_metadata=False, verbose=None):
         together form a face).
     volume_info : dict-like
         If read_metadata is true, key-value pairs found in the geometry file.
+    surf : dict
+        The surface parameters. Only returned if read_dict is True.
 
     See Also
     --------
     write_surface
     read_tri
     """
-    try:
-        import nibabel as nib
-        has_nibabel = True
-    except ImportError:
-        has_nibabel = False
-    if has_nibabel and LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
-        return nib.freesurfer.read_geometry(fname, read_metadata=read_metadata)
-
-    volume_info = dict()
-    TRIANGLE_MAGIC = 16777214
-    QUAD_MAGIC = 16777215
-    NEW_QUAD_MAGIC = 16777213
-    with open(fname, "rb", buffering=0) as fobj:  # buffering=0 for np bug
-        magic = _fread3(fobj)
-        # Quad file or new quad
-        if magic in (QUAD_MAGIC, NEW_QUAD_MAGIC):
-            create_stamp = ''
-            nvert = _fread3(fobj)
-            nquad = _fread3(fobj)
-            (fmt, div) = (">i2", 100.) if magic == QUAD_MAGIC else (">f4", 1.)
-            coords = np.fromfile(fobj, fmt, nvert * 3).astype(np.float) / div
-            coords = coords.reshape(-1, 3)
-            quads = _fread3_many(fobj, nquad * 4)
-            quads = quads.reshape(nquad, 4)
-
-            # Face splitting follows
-            faces = np.zeros((2 * nquad, 3), dtype=np.int)
-            nface = 0
-            for quad in quads:
-                if (quad[0] % 2) == 0:
-                    faces[nface:nface + 2] = [[quad[0], quad[1], quad[3]],
-                                              [quad[2], quad[3], quad[1]]]
-                else:
-                    faces[nface:nface + 2] = [[quad[0], quad[1], quad[2]],
-                                              [quad[0], quad[2], quad[3]]]
-                nface += 2
-        elif magic == TRIANGLE_MAGIC:  # Triangle file
-            create_stamp = fobj.readline()
-            fobj.readline()
-            vnum = np.fromfile(fobj, ">i4", 1)[0]
-            fnum = np.fromfile(fobj, ">i4", 1)[0]
-            coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
-            faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
-            if read_metadata:
-                volume_info = _read_volume_info(fobj)
-        else:
-            raise ValueError("%s does not appear to be a Freesurfer surface"
-                             % fname)
-        logger.info('Triangle file: %s nvert = %s ntri = %s'
-                    % (create_stamp.strip(), len(coords), len(faces)))
-
-    coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
-
-    ret = (coords, faces)
-    if read_metadata:
-        if len(volume_info) == 0:
-            warn('No volume information contained in the file')
-        ret += (volume_info,)
+    ret = _get_read_geometry()(fname, read_metadata=read_metadata)
+    if return_dict:
+        ret += (dict(rr=ret[0], tris=ret[1], ntri=len(ret[1]), use_tris=ret[1],
+                     np=len(ret[0])),)
     return ret
-
-
-@verbose
-def _read_surface_geom(fname, patch_stats=True, norm_rr=False,
-                       read_metadata=False, verbose=None):
-    """Load the surface as dict, optionally add the geometry information"""
-    # based on mne_load_surface_geom() in mne_surface_io.c
-    if isinstance(fname, string_types):
-        ret = read_surface(fname, read_metadata=read_metadata)
-        nvert = len(ret[0])
-        ntri = len(ret[1])
-        s = dict(rr=ret[0], tris=ret[1], use_tris=ret[1], ntri=ntri, np=nvert)
-    elif isinstance(fname, dict):
-        s = fname
-    else:
-        raise RuntimeError('fname cannot be understood as str or dict')
-    if patch_stats is True:
-        s = _complete_surface_info(s)
-    if norm_rr is True:
-        _normalize_vectors(s['rr'])
-    if read_metadata:
-        return s, ret[2]
-    return s
 
 
 ##############################################################################
 # SURFACE CREATION
 
 def _get_ico_surface(grade, patch_stats=False):
-    """Return an icosahedral surface of the desired grade"""
+    """Return an icosahedral surface of the desired grade."""
     # always use verbose=False since users don't need to know we're pulling
     # these from a file
+    from .bem import read_bem_surfaces
     ico_file_name = op.join(op.dirname(__file__), 'data',
                             'icos.fif.gz')
     ico = read_bem_surfaces(ico_file_name, patch_stats, s_id=9000 + grade,
@@ -547,7 +532,7 @@ def _get_ico_surface(grade, patch_stats=False):
 
 
 def _tessellate_sphere_surf(level, rad=1.0):
-    """Return a surface structure instead of the details"""
+    """Return a surface structure instead of the details."""
     rr, tris = _tessellate_sphere(level)
     npt = len(rr)  # called "npt" instead of "np" because of numpy...
     ntri = len(tris)
@@ -559,14 +544,15 @@ def _tessellate_sphere_surf(level, rad=1.0):
 
 
 def _norm_midpt(ai, bi, rr):
-    a = np.array([rr[aii] for aii in ai])
-    b = np.array([rr[bii] for bii in bi])
-    c = (a + b) / 2.
-    return c / np.sqrt(np.sum(c ** 2, 1))[:, np.newaxis]
+    """Get normalized midpoint."""
+    c = rr[ai]
+    c += rr[bi]
+    _normalize_vectors(c)
+    return c
 
 
 def _tessellate_sphere(mylevel):
-    """Create a tessellation of a unit sphere"""
+    """Create a tessellation of a unit sphere."""
     # Vertices of a unit octahedron
     rr = np.array([[1, 0, 0], [-1, 0, 0],  # xplus, xminus
                    [0, 1, 0], [0, -1, 0],  # yplus, yminus
@@ -643,26 +629,27 @@ def _tessellate_sphere(mylevel):
     return rr, tris
 
 
-def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
-                         subjects_dir):
-    """Load a surf and use the subdivided icosahedron to get points"""
+def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
+    """Load a surf and use the subdivided icosahedron to get points."""
     # Based on load_source_space_surf_spacing() in load_source_space.c
-    surf = _read_surface_geom(surf)
-
-    if stype in ['ico', 'oct']:
+    surf = read_surface(surf, return_dict=True)[-1]
+    complete_surface_info(surf, copy=False)
+    if stype == 'all':
+        surf['inuse'] = np.ones(surf['np'], int)
+        surf['use_tris'] = None
+    else:  # ico or oct
         # ## from mne_ico_downsample.c ## #
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
         logger.info('Loading geometry from %s...' % surf_name)
-        from_surf = _read_surface_geom(surf_name, norm_rr=True,
-                                       patch_stats=False)
-        if not len(from_surf['rr']) == surf['np']:
+        from_surf = read_surface(surf_name, return_dict=True)[-1]
+        complete_surface_info(from_surf, copy=False)
+        _normalize_vectors(from_surf['rr'])
+        if from_surf['np'] != surf['np']:
             raise RuntimeError('Mismatch between number of surface vertices, '
                                'possible parcellation error?')
         _normalize_vectors(ico_surf['rr'])
 
         # Make the maps
-        logger.info('Mapping %s %s -> %s (%d) ...'
-                    % (hemi, subject, stype, sval))
         mmap = _compute_nearest(from_surf['rr'], ico_surf['rr'])
         nmap = len(mmap)
         surf['inuse'] = np.zeros(surf['np'], int)
@@ -690,9 +677,6 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
                     'surface...')
         surf['use_tris'] = np.array([mmap[ist] for ist in ico_surf['tris']],
                                     np.int32)
-    else:  # use_all is True
-        surf['inuse'] = np.ones(surf['np'], int)
-        surf['use_tris'] = None
     if surf['use_tris'] is not None:
         surf['nuse_tri'] = len(surf['use_tris'])
     else:
@@ -702,8 +686,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
 
     # set some final params
     inds = np.arange(surf['np'])
-    sizes = np.sqrt(np.sum(surf['nn'] ** 2, axis=1))
-    surf['nn'][inds] = surf['nn'][inds] / sizes[:, np.newaxis]
+    sizes = _normalize_vectors(surf['nn'])
     surf['inuse'][sizes <= 0] = False
     surf['nuse'] = np.sum(surf['inuse'])
     surf['subject_his_id'] = subject
@@ -711,7 +694,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
 
 
 def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
-    """Write a triangular Freesurfer surface mesh
+    """Write a triangular Freesurfer surface mesh.
 
     Accepts the same data format as is returned by read_surface().
 
@@ -781,7 +764,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
 # Decimation
 
 def _decimate_surface(points, triangles, reduction):
-    """Aux function"""
+    """Aux function."""
     if 'DISPLAY' not in os.environ and sys.platform != 'win32':
         os.environ['ETS_TOOLKIT'] = 'null'
     try:
@@ -800,11 +783,11 @@ def _decimate_surface(points, triangles, reduction):
     out = decimate.output
     tris = out.polys.to_array()
     # n-tuples + interleaved n-next -- reshape trick
-    return out.points.to_array(), tris.reshape(tris.size / 4, 4)[:, 1:]
+    return out.points.to_array(), tris.reshape(tris.size // 4, 4)[:, 1:]
 
 
 def decimate_surface(points, triangles, n_triangles):
-    """ Decimate surface data
+    """Decimate surface data.
 
     Note. Requires TVTK to be installed for this to function.
 
@@ -829,7 +812,6 @@ def decimate_surface(points, triangles, n_triangles):
     triangles : ndarray
         The decimated triangles.
     """
-
     reduction = 1 - (float(n_triangles) / len(triangles))
     return _decimate_surface(points, triangles, reduction)
 
@@ -840,7 +822,7 @@ def decimate_surface(points, triangles, n_triangles):
 @verbose
 def read_morph_map(subject_from, subject_to, subjects_dir=None,
                    verbose=None):
-    """Read morph map
+    """Read morph map.
 
     Morph maps can be generated with mne_make_morph_maps. If one isn't
     available, it will be generated automatically and saved to the
@@ -855,7 +837,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -927,7 +910,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
 
 
 def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
-    """Write a morph map to disk"""
+    """Write a morph map to disk."""
     fid = start_file(fname)
     assert len(mmap_1) == 2
     assert len(mmap_2) == 2
@@ -950,22 +933,25 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
 
 
 def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
-    """Auxiliary function for getting the distance to a triangle edge"""
-    return np.sqrt((p - p0) * (p - p0) * a +
-                   (q - q0) * (q - q0) * b +
-                   (p - p0) * (q - q0) * c +
-                   dist * dist)
+    """Get the distance to a triangle edge."""
+    p1 = p - p0
+    q1 = q - q0
+    out = p1 * p1 * a
+    out += q1 * q1 * b
+    out += p1 * q1 * c
+    out += dist * dist
+    return np.sqrt(out, out=out)
 
 
-def _get_tri_supp_geom(tris, rr):
-    """Create supplementary geometry information using tris and rrs"""
-    r1 = rr[tris[:, 0], :]
-    r12 = rr[tris[:, 1], :] - r1
-    r13 = rr[tris[:, 2], :] - r1
+def _get_tri_supp_geom(surf):
+    """Create supplementary geometry information using tris and rrs."""
+    r1 = surf['rr'][surf['tris'][:, 0], :]
+    r12 = surf['rr'][surf['tris'][:, 1], :] - r1
+    r13 = surf['rr'][surf['tris'][:, 2], :] - r1
     r1213 = np.array([r12, r13]).swapaxes(0, 1)
-    a = np.sum(r12 * r12, axis=1)
-    b = np.sum(r13 * r13, axis=1)
-    c = np.sum(r12 * r13, axis=1)
+    a = np.einsum('ij,ij->i', r12, r12)
+    b = np.einsum('ij,ij->i', r13, r13)
+    c = np.einsum('ij,ij->i', r12, r13)
     mat = np.rollaxis(np.array([[b, -c], [-c, a]]), 2)
     mat /= (a * b - c * c)[:, np.newaxis, np.newaxis]
     nn = fast_cross_3d(r12, r13)
@@ -976,7 +962,7 @@ def _get_tri_supp_geom(tris, rr):
 
 @verbose
 def _make_morph_map(subject_from, subject_to, subjects_dir=None):
-    """Construct morph map from one subject to another
+    """Construct morph map from one subject to another.
 
     Note that this is close, but not exactly like the C version.
     For example, parts are more accurate due to double precision,
@@ -1006,7 +992,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         from_pts, from_tris = read_surface(fname, verbose=False)
         n_from_pts = len(from_pts)
         _normalize_vectors(from_pts)
-        tri_geom = _get_tri_supp_geom(from_tris, from_pts)
+        tri_geom = _get_tri_supp_geom(dict(rr=from_pts, tris=from_tris))
 
         fname = op.join(subjects_dir, subject_to, 'surf',
                         '%s.sphere.reg' % hemi)
@@ -1023,7 +1009,8 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         nn_tri_inds = []
         nn_tris_weights = []
         for pt_tris, to_pt in zip(from_pt_tris, to_pts):
-            p, q, idx, dist = _find_nearest_tri_pt(pt_tris, to_pt, tri_geom)
+            p, q, idx, dist = _find_nearest_tri_pt(to_pt, tri_geom, pt_tris,
+                                                   run_all=False)
             nn_tri_inds.append(idx)
             nn_tris_weights.extend([1. - (p + q), p, q])
 
@@ -1036,8 +1023,8 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
     return morph_maps
 
 
-def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, run_all=False):
-    """Find nearest point mapping to a set of triangles
+def _find_nearest_tri_pt(rr, tri_geom, pt_tris=None, run_all=True):
+    """Find nearest point mapping to a set of triangles.
 
     If run_all is False, if the point lies within a triangle, it stops.
     If run_all is True, edges of other triangles are checked in case
@@ -1057,8 +1044,9 @@ def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, run_all=False):
 
     # This einsum is equivalent to doing:
     # pqs = np.array([np.dot(x, y) for x, y in zip(r1213, r1-to_pt)])
-    r1 = tri_geom['r1'][pt_tris]
-    rrs = to_pt - r1
+    if pt_tris is None:  # use all points
+        pt_tris = slice(len(tri_geom['r1']))
+    rrs = rr - tri_geom['r1'][pt_tris]
     tri_nn = tri_geom['nn'][pt_tris]
     vect = np.einsum('ijk,ik->ij', tri_geom['r1213'][pt_tris], rrs)
     mats = tri_geom['mat'][pt_tris]
@@ -1079,13 +1067,16 @@ def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, run_all=False):
         p, q = pqs[:, pt]
         dist = dists[pt]
         # re-reference back to original numbers
-        pt = pt_tris[pt]
+        if not isinstance(pt_tris, slice):
+            pt = pt_tris[pt]
 
     if found is False or run_all is True:
         # don't include ones that we might have found before
-        s = np.setdiff1d(np.arange(len(pt_tris)), idx)  # ones to check sides
+        # these are the ones that we want to check thesides of
+        s = np.setdiff1d(np.arange(dists.shape[0]), idx)
         # Tough: must investigate the sides
-        pp, qq, ptt, distt = _nearest_tri_edge(pt_tris[s], to_pt, pqs[:, s],
+        use_pt_tris = s if isinstance(pt_tris, slice) else pt_tris[s]
+        pp, qq, ptt, distt = _nearest_tri_edge(use_pt_tris, rr, pqs[:, s],
                                                dists[s], tri_geom)
         if np.abs(distt) < np.abs(dist):
             p, q, pt, dist = pp, qq, ptt, distt
@@ -1093,7 +1084,7 @@ def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, run_all=False):
 
 
 def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, tri_geom):
-    """Get nearest location from a point to the edge of a set of triangles"""
+    """Get nearest location from a point to the edge of a set of triangles."""
     # We might do something intelligent here. However, for now
     # it is ok to do it in the hard way
     aa = tri_geom['a'][pt_tris]
@@ -1129,7 +1120,7 @@ def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, tri_geom):
 
 
 def mesh_edges(tris):
-    """Returns sparse matrix with edges as an adjacency matrix
+    """Return sparse matrix with edges as an adjacency matrix.
 
     Parameters
     ----------
@@ -1158,7 +1149,7 @@ def mesh_edges(tris):
 
 
 def mesh_dist(tris, vert):
-    """Compute adjacency matrix weighted by distances
+    """Compute adjacency matrix weighted by distances.
 
     It generates an adjacency matrix where the entries are the distances
     between neighboring vertices.
@@ -1178,15 +1169,14 @@ def mesh_dist(tris, vert):
     edges = mesh_edges(tris).tocoo()
 
     # Euclidean distances between neighboring vertices
-    dist = np.sqrt(np.sum((vert[edges.row, :] - vert[edges.col, :]) ** 2,
-                          axis=1))
+    dist = np.linalg.norm(vert[edges.row, :] - vert[edges.col, :], axis=1)
     dist_matrix = csr_matrix((dist, (edges.row, edges.col)), shape=edges.shape)
     return dist_matrix
 
 
 @verbose
 def read_tri(fname_in, swap=False, verbose=None):
-    """Function for reading triangle definitions from an ascii file.
+    """Read triangle definitions from an ascii file.
 
     Parameters
     ----------
@@ -1196,7 +1186,8 @@ def read_tri(fname_in, swap=False, verbose=None):
         Assume the ASCII file vertex ordering is clockwise instead of
         counterclockwise.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1240,3 +1231,38 @@ def read_tri(fname_in, swap=False, verbose=None):
     else:
         warn('Node normals were not read.')
     return (rr, tris)
+
+
+def _get_solids(tri_rrs, fros):
+    """Compute _sum_solids_div total angle in chunks."""
+    # NOTE: This incorporates the division by 4PI that used to be separate
+    # for tri_rr in tri_rrs:
+    #     v1 = fros - tri_rr[0]
+    #     v2 = fros - tri_rr[1]
+    #     v3 = fros - tri_rr[2]
+    #     triple = np.sum(fast_cross_3d(v1, v2) * v3, axis=1)
+    #     l1 = np.sqrt(np.sum(v1 * v1, axis=1))
+    #     l2 = np.sqrt(np.sum(v2 * v2, axis=1))
+    #     l3 = np.sqrt(np.sum(v3 * v3, axis=1))
+    #     s = (l1 * l2 * l3 +
+    #          np.sum(v1 * v2, axis=1) * l3 +
+    #          np.sum(v1 * v3, axis=1) * l2 +
+    #          np.sum(v2 * v3, axis=1) * l1)
+    #     tot_angle -= np.arctan2(triple, s)
+
+    # This is the vectorized version, but with a slicing heuristic to
+    # prevent memory explosion
+    tot_angle = np.zeros((len(fros)))
+    slices = np.r_[np.arange(0, len(fros), 100), [len(fros)]]
+    for i1, i2 in zip(slices[:-1], slices[1:]):
+        # shape (3 verts, n_tri, n_fro, 3 X/Y/Z)
+        vs = (fros[np.newaxis, np.newaxis, i1:i2] -
+              tri_rrs.transpose([1, 0, 2])[:, :, np.newaxis])
+        triples = _fast_cross_nd_sum(vs[0], vs[1], vs[2])
+        ls = np.linalg.norm(vs, axis=3)
+        ss = np.prod(ls, axis=0)
+        ss += np.einsum('ijk,ijk,ij->ij', vs[0], vs[1], ls[2])
+        ss += np.einsum('ijk,ijk,ij->ij', vs[0], vs[2], ls[1])
+        ss += np.einsum('ijk,ijk,ij->ij', vs[1], vs[2], ls[0])
+        tot_angle[i1:i2] = -np.sum(np.arctan2(triples, ss), axis=0)
+    return tot_angle

@@ -27,7 +27,7 @@ from .externals.six.moves import zip, xrange
 
 
 def _blend_colors(color_1, color_2):
-    """Blend two colors in HSV space
+    """Blend two colors in HSV space.
 
     Parameters
     ----------
@@ -69,7 +69,7 @@ def _blend_colors(color_1, color_2):
 
 
 def _split_colors(color, n):
-    """Create n colors in HSV space that occupy a gradient in value
+    """Create n colors in HSV space that occupy a gradient in value.
 
     Parameters
     ----------
@@ -101,7 +101,7 @@ def _split_colors(color, n):
 
 
 def _n_colors(n, bytes_=False, cmap='hsv'):
-    """Produce a list of n unique RGBA color tuples based on a colormap
+    """Produce a list of n unique RGBA color tuples based on a colormap.
 
     Parameters
     ----------
@@ -138,7 +138,7 @@ def _n_colors(n, bytes_=False, cmap='hsv'):
 
 
 class Label(object):
-    """A FreeSurfer/MNE label with vertices restricted to one hemisphere
+    """A FreeSurfer/MNE label with vertices restricted to one hemisphere.
 
     Labels can be combined with the ``+`` operator:
 
@@ -169,7 +169,8 @@ class Label(object):
     color : None | matplotlib color
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -194,10 +195,11 @@ class Label(object):
     vertices : array, len = n_pos
         Vertex indices (0 based)
     """
+
     @verbose
     def __init__(self, vertices, pos=None, values=None, hemi=None, comment="",
                  name=None, filename=None, subject=None, color=None,
-                 verbose=None):
+                 verbose=None):  # noqa: D102
         # check parameters
         if not isinstance(hemi, string_types):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
@@ -238,7 +240,7 @@ class Label(object):
         self.name = name
         self.filename = filename
 
-    def __setstate__(self, state):
+    def __setstate__(self, state):  # noqa: D105
         self.vertices = state['vertices']
         self.pos = state['pos']
         self.values = state['values']
@@ -250,7 +252,7 @@ class Label(object):
         self.name = state['name']
         self.filename = state['filename']
 
-    def __getstate__(self):
+    def __getstate__(self):  # noqa: D105
         out = dict(vertices=self.vertices,
                    pos=self.pos,
                    values=self.values,
@@ -263,16 +265,18 @@ class Label(object):
                    filename=self.filename)
         return out
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         name = 'unknown, ' if self.subject is None else self.subject + ', '
         name += repr(self.name) if self.name is not None else "unnamed"
         n_vert = len(self)
         return "<Label  |  %s, %s : %i vertices>" % (name, self.hemi, n_vert)
 
     def __len__(self):
+        """Return the number of vertices."""
         return len(self.vertices)
 
     def __add__(self, other):
+        """Add BiHemiLabels."""
         if isinstance(other, BiHemiLabel):
             return other + self
         elif isinstance(other, Label):
@@ -342,6 +346,7 @@ class Label(object):
         return label
 
     def __sub__(self, other):
+        """Subtract BiHemiLabels."""
         if isinstance(other, BiHemiLabel):
             if self.hemi == 'lh':
                 return self - other.lh
@@ -369,7 +374,7 @@ class Label(object):
                      self.color, self.verbose)
 
     def save(self, filename):
-        """Write to disk as FreeSurfer \*.label file
+        r"""Write to disk as FreeSurfer \*.label file.
 
         Parameters
         ----------
@@ -394,7 +399,7 @@ class Label(object):
         return cp.deepcopy(self)
 
     def fill(self, src, name=None):
-        """Fill the surface between sources for a label defined in source space
+        """Fill the surface between sources for a source space label.
 
         Parameters
         ----------
@@ -452,7 +457,7 @@ class Label(object):
     @verbose
     def smooth(self, subject=None, smooth=2, grade=None,
                subjects_dir=None, n_jobs=1, verbose=None):
-        """Smooth the label
+        """Smooth the label.
 
         Useful for filling in labels made in a
         decimated source space for display.
@@ -483,8 +488,9 @@ class Label(object):
         n_jobs : int
             Number of jobs to run in parallel
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -504,7 +510,7 @@ class Label(object):
     @verbose
     def morph(self, subject_from=None, subject_to=None, smooth=5, grade=None,
               subjects_dir=None, n_jobs=1, verbose=None):
-        """Morph the label
+        """Morph the label.
 
         Useful for transforming a label from one subject to another.
 
@@ -535,7 +541,9 @@ class Label(object):
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -584,7 +592,7 @@ class Label(object):
 
     def split(self, parts=2, subject=None, subjects_dir=None,
               freesurfer=False):
-        """Split the Label into two or more parts
+        """Split the Label into two or more parts.
 
         Parameters
         ----------
@@ -631,7 +639,7 @@ class Label(object):
                              "('contiguous'). Got %s)" % type(parts))
 
     def get_vertices_used(self, vertices=None):
-        """Get the source space's vertices inside the label
+        """Get the source space's vertices inside the label.
 
         Parameters
         ----------
@@ -651,7 +659,7 @@ class Label(object):
         return label_verts
 
     def get_tris(self, tris, vertices=None):
-        """Get the source space's triangles inside the label
+        """Get the source space's triangles inside the label.
 
         Parameters
         ----------
@@ -689,7 +697,7 @@ class Label(object):
 
     def center_of_mass(self, subject=None, restrict_vertices=False,
                        subjects_dir=None, surf='sphere'):
-        """Compute the center of mass of the label
+        """Compute the center of mass of the label.
 
         This function computes the spatial center of mass on the surface
         as in [1]_.
@@ -739,13 +747,17 @@ class Label(object):
         subject = _check_subject(self.subject, subject)
         if np.any(self.values < 0):
             raise ValueError('Cannot compute COM with negative values')
+        if np.all(self.values == 0):
+            raise ValueError('Cannot compute COM with all values == 0. For '
+                             'structural labels, consider setting to ones via '
+                             'label.values[:] = 1.')
         vertex = _center_of_mass(self.vertices, self.values, self.hemi, surf,
                                  subject, subjects_dir, restrict_vertices)
         return vertex
 
 
 class BiHemiLabel(object):
-    """A freesurfer/MNE label with vertices in both hemispheres
+    """A freesurfer/MNE label with vertices in both hemispheres.
 
     Parameters
     ----------
@@ -773,7 +785,7 @@ class BiHemiLabel(object):
 
     """
 
-    def __init__(self, lh, rh, name=None, color=None):
+    def __init__(self, lh, rh, name=None, color=None):  # noqa: D102
         if lh.subject != rh.subject:
             raise ValueError('lh.subject (%s) and rh.subject (%s) must '
                              'agree' % (lh.subject, rh.subject))
@@ -784,16 +796,18 @@ class BiHemiLabel(object):
         self.color = color
         self.hemi = 'both'
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         temp = "<BiHemiLabel  |  %s, lh : %i vertices,  rh : %i vertices>"
         name = 'unknown, ' if self.subject is None else self.subject + ', '
         name += repr(self.name) if self.name is not None else "unnamed"
         return temp % (name, len(self.lh), len(self.rh))
 
     def __len__(self):
+        """Return the number of vertices."""
         return len(self.lh) + len(self.rh)
 
     def __add__(self, other):
+        """Add labels."""
         if isinstance(other, Label):
             if other.hemi == 'lh':
                 lh = self.lh + other
@@ -812,6 +826,7 @@ class BiHemiLabel(object):
         return BiHemiLabel(lh, rh, name, color)
 
     def __sub__(self, other):
+        """Subtract labels."""
         if isinstance(other, Label):
             if other.hemi == 'lh':
                 lh = self.lh - other
@@ -835,7 +850,7 @@ class BiHemiLabel(object):
 
 
 def read_label(filename, subject=None, color=None):
-    """Read FreeSurfer Label file
+    """Read FreeSurfer Label file.
 
     Parameters
     ----------
@@ -913,7 +928,7 @@ def read_label(filename, subject=None, color=None):
 
 @verbose
 def write_label(filename, label, verbose=None):
-    """Write a FreeSurfer label
+    """Write a FreeSurfer label.
 
     Parameters
     ----------
@@ -922,7 +937,8 @@ def write_label(filename, label, verbose=None):
     label : Label
         The label object to save.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -957,8 +973,7 @@ def write_label(filename, label, verbose=None):
 
 
 def _prep_label_split(label, subject=None, subjects_dir=None):
-    """Helper to get label and subject information prior to label spliting"""
-
+    """Get label and subject information prior to label spliting."""
     # If necessary, find the label
     if isinstance(label, BiHemiLabel):
         raise TypeError("Can only split labels restricted to one hemisphere.")
@@ -982,7 +997,7 @@ def _prep_label_split(label, subject=None, subjects_dir=None):
 
 
 def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
-    """Split label into contiguous regions (i.e., connected components)
+    """Split label into contiguous regions (i.e., connected components).
 
     Parameters
     ----------
@@ -1063,7 +1078,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
 
 def split_label(label, parts=2, subject=None, subjects_dir=None,
                 freesurfer=False):
-    """Split a Label into two or more parts
+    """Split a Label into two or more parts.
 
     Parameters
     ----------
@@ -1097,7 +1112,6 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     projecting all label vertex coordinates onto this axis and dividing them at
     regular spatial intervals.
     """
-
     label, subject, subjects_dir = _prep_label_split(label, subject,
                                                      subjects_dir)
 
@@ -1194,7 +1208,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
 
 
 def label_sign_flip(label, src):
-    """Compute sign for label averaging
+    """Compute sign for label averaging.
 
     Parameters
     ----------
@@ -1370,7 +1384,7 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
 
 
 def _verts_within_dist(graph, sources, max_dist):
-    """Find all vertices wihin a maximum geodesic distance from source
+    """Find all vertices wihin a maximum geodesic distance from source.
 
     Parameters
     ----------
@@ -1421,8 +1435,7 @@ def _verts_within_dist(graph, sources, max_dist):
 
 
 def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
-    """Helper for parallelization of grow_labels
-    """
+    """Parallelize grow_labels."""
     labels = []
     for seed, extent, hemi, name in zip(seeds, extents, hemis, names):
         label_verts, label_dist = _verts_within_dist(dist[hemi], seed, extent)
@@ -1447,7 +1460,7 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
 
 def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
                 overlap=True, names=None, surface='white'):
-    """Generate circular labels in source space with region growing
+    """Generate circular labels in source space with region growing.
 
     This function generates a number of labels in source space by growing
     regions starting from the vertices defined in "seeds". For each seed, a
@@ -1568,8 +1581,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
 
 def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
                                 graphs, names_):
-    """Grow labels while ensuring that they don't overlap
-    """
+    """Grow labels while ensuring that they don't overlap."""
     labels = []
     for hemi in set(hemis):
         hemi_index = (hemis == hemi)
@@ -1715,7 +1727,7 @@ def _read_annot(fname):
 
 
 def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
-    """Helper function to get the .annot filenames and hemispheres"""
+    """Get the .annot filenames and hemispheres."""
     if annot_fname is not None:
         # we use use the .annot file specified by the user
         hemis = [op.basename(annot_fname)[:2]]
@@ -1743,7 +1755,7 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
 def read_labels_from_annot(subject, parc='aparc', hemi='both',
                            surf_name='white', annot_fname=None, regexp=None,
                            subjects_dir=None, verbose=None):
-    """Read labels from a FreeSurfer annotation file
+    """Read labels from a FreeSurfer annotation file.
 
     Note: Only cortical labels will be returned.
 
@@ -1768,7 +1780,8 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1812,7 +1825,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
             if (regexp is not None) and not r_.match(name):
                 continue
             pos = vert_pos[vertices, :]
-            values = np.zeros(len(vertices))
+            values = np.ones(len(vertices))
             label_rgba = tuple(label_rgba / 255.)
             label = Label(vertices, pos, values, hemi, name=name,
                           subject=subject, color=label_rgba)
@@ -1849,7 +1862,6 @@ def _write_annot(fname, annot, ctab, names):
     names : list of str
         List of region names to be stored in the annot file
     """
-
     with open(fname, 'wb') as fid:
         n_verts = len(annot)
         np.array(n_verts, dtype='>i4').tofile(fid)
@@ -1889,7 +1901,7 @@ def _write_annot(fname, annot, ctab, names):
 def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
                           subjects_dir=None, annot_fname=None,
                           colormap='hsv', hemi='both', verbose=None):
-    """Create a FreeSurfer annotation from a list of labels
+    r"""Create a FreeSurfer annotation from a list of labels.
 
     Parameters
     ----------
@@ -1913,7 +1925,8 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
         The hemisphere(s) for which to write \*.annot files (only applies if
         annot_fname is not specified; default is 'both').
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----

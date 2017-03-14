@@ -3,8 +3,15 @@
 
 Example usage::
 
-    $ cited_mne --backend selenium --clear
+    $ ./cited_mne.py --backend selenium --clear
 
+This requires joblib, BeautifulSoup, and selenium.
+selenium in turn requires geckodriver:
+
+    https://github.com/mozilla/geckodriver/releases
+
+The process will involve window popups to satisfy
+CAPTCHA checks.
 """
 
 # Author: Mainak Jas <mainak.jas@telecom-paristech.fr>
@@ -37,12 +44,14 @@ UA = ('Mozilla/5.0 (X11; U; FreeBSD i386; en-US; rv:1.9.2.9) '
       'Gecko/20100913 Firefox/3.6.9')
 
 # ##### Templates for citations #####
-html = (u""".. _cited
+html = (u""":orphan:
 
-Publications from MNE users
-===========================
+.. _cited:
 
-Papers citing MNE as extracted from Google Scholar (on %s).
+Publications by users
+=====================
+
+Papers citing MNE (%d) as extracted from Google Scholar (on %s).
 
 """)
 
@@ -203,8 +212,6 @@ if __name__ == '__main__':
 
     random.seed()
     gen_date = time.strftime("%B %d, %Y")
-    html = html % gen_date
-
     url_tails = ['1521584321377182930', '12188330066413208874']
     papers = ['MEG and EEG data analysis with MNE-Python',
               'MNE software for processing MEG and EEG data']
@@ -226,6 +233,8 @@ if __name__ == '__main__':
     # get a union of the citations for the two papers, sorted in
     # alphabetic order
     publications = np.union1d(publications[1], publications[0]).tolist()
+
+    html = html % (len(publications), gen_date)
 
     # sort by year of publication
     years = list()

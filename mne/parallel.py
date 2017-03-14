@@ -1,5 +1,4 @@
-"""Parallel util function
-"""
+"""Parallel util function."""
 
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -21,7 +20,7 @@ else:
 
 @verbose
 def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
-    """Return parallel instance with delayed function
+    """Return parallel instance with delayed function.
 
     Util function to use joblib only if available
 
@@ -32,8 +31,9 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
     n_jobs: int
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        INFO or DEBUG will print parallel status, others will not.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). INFO or DEBUG
+        will print parallel status, others will not.
     max_nbytes : int, str, or None
         Threshold on the minimum size of arrays passed to the workers that
         triggers automated memmory mapping. Can be an int in Bytes,
@@ -104,7 +104,7 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
 
 
 def check_n_jobs(n_jobs, allow_cuda=False):
-    """Check n_jobs in particular for negative values
+    """Check n_jobs in particular for negative values.
 
     Parameters
     ----------

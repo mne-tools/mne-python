@@ -35,6 +35,7 @@ raw = mne.io.read_raw_fif(fname_raw)
 inverse_operator = read_inverse_operator(fname_inv)
 label = mne.read_label(fname_label)
 
+raw.set_eeg_reference()  # set average reference.
 start, stop = raw.time_as_index([0, 15])  # read the first 15s of data
 
 # Compute inverse solution

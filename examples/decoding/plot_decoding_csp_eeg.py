@@ -6,23 +6,22 @@ Motor imagery decoding from EEG data using the Common Spatial Pattern (CSP)
 Decoding of motor imagery applied to EEG data decomposed using CSP.
 Here the classifier is applied to features extracted on CSP filtered signals.
 
-See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]
+See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]_. The EEGBCI
+dataset is documented in [2]_. The data set is available at PhysioNet [3]_.
 
-The EEGBCI dataset is documented in [2]
-The data set is available at PhysioNet [3]
+References
+----------
 
-[1] Zoltan J. Koles. The quantitative extraction and topographic mapping
-    of the abnormal components in the clinical EEG. Electroencephalography
-    and Clinical Neurophysiology, 79(6):440--447, December 1991.
-
-[2] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
-    Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer Interface
-    (BCI) System. IEEE TBME 51(6):1034-1043
-
-[3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
-    Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank,
-    PhysioToolkit, and PhysioNet: Components of a New Research Resource for
-    Complex Physiologic Signals. Circulation 101(23):e215-e220
+.. [1] Zoltan J. Koles. The quantitative extraction and topographic mapping
+       of the abnormal components in the clinical EEG. Electroencephalography
+       and Clinical Neurophysiology, 79(6):440--447, December 1991.
+.. [2] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
+       Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer Interface
+       (BCI) System. IEEE TBME 51(6):1034-1043.
+.. [3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
+       Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank,
+       PhysioToolkit, and PhysioNet: Components of a New Research Resource for
+       Complex Physiologic Signals. Circulation 101(23):e215-e220.
 """
 # Authors: Martin Billinger <martin.billinger@tugraz.at>
 #
@@ -78,7 +77,7 @@ from sklearn.lda import LDA  # noqa
 from sklearn.cross_validation import ShuffleSplit  # noqa
 
 # Assemble a classifier
-svc = LDA()
+lda = LDA()
 csp = CSP(n_components=4, reg=None, log=True)
 
 # Define a monte-carlo cross-validation generator (reduce variance):
@@ -90,7 +89,7 @@ epochs_data_train = epochs_train.get_data()
 # Use scikit-learn Pipeline with cross_val_score function
 from sklearn.pipeline import Pipeline  # noqa
 from sklearn.cross_validation import cross_val_score  # noqa
-clf = Pipeline([('CSP', csp), ('SVC', svc)])
+clf = Pipeline([('CSP', csp), ('LDA', lda)])
 scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=1)
 
 # Printing the results
@@ -128,13 +127,13 @@ for train_idx, test_idx in cv:
     X_test = csp.transform(epochs_data_train[test_idx])
 
     # fit classifier
-    svc.fit(X_train, y_train)
+    lda.fit(X_train, y_train)
 
     # running classifier: test classifier on sliding window
     score_this_window = []
     for n in w_start:
         X_test = csp.transform(epochs_data[test_idx][:, :, n:(n + w_length)])
-        score_this_window.append(svc.score(X_test, y_test))
+        score_this_window.append(lda.score(X_test, y_test))
     scores_windows.append(score_this_window)
 
 # Plot scores over time

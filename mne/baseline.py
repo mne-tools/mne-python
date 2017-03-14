@@ -1,5 +1,4 @@
-"""Util function to baseline correct data
-"""
+"""Util function to baseline correct data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -11,7 +10,7 @@ from .utils import logger, verbose
 
 
 def _log_rescale(baseline, mode='mean'):
-    """Helper to log the rescaling method"""
+    """Log the rescaling method."""
     if baseline is not None:
         valid_modes = ('logratio', 'ratio', 'zscore', 'mean', 'percent',
                        'zlogratio')
@@ -20,12 +19,12 @@ def _log_rescale(baseline, mode='mean'):
         msg = 'Applying baseline correction (mode: %s)' % mode
     else:
         msg = 'No baseline correction applied'
-    logger.info(msg)
+    return msg
 
 
 @verbose
 def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
-    """Rescale aka baseline correct data
+    """Rescale (baseline correct) data.
 
     Parameters
     ----------
@@ -42,7 +41,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         and if ``bmax is None`` then ``bmax`` is set to the end of the
         interval. If baseline is ``(None, None)`` the entire time
         interval is used. If baseline is None, no correction is applied.
-    mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio' # noqa
+    mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
         deviation of power during baseline after subtracting the mean,
@@ -55,15 +54,17 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
     copy : bool
         Whether to return a new instance or modify in place.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     data_scaled: array
         Array of same shape as data after rescaling.
-    """
+    """  # noqa: E501
     data = data.copy() if copy else data
-    _log_rescale(baseline, mode)
+    msg = _log_rescale(baseline, mode)
+    logger.info(msg)
     if baseline is None:
         return data
 
@@ -95,10 +96,10 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         mean = 0  # otherwise we get an ugly nan
     if mode == 'mean':
         data -= mean
-    if mode == 'logratio':
+    elif mode == 'logratio':
         data /= mean
         data = np.log10(data)  # a value of 1 means 10 times bigger
-    if mode == 'ratio':
+    elif mode == 'ratio':
         data /= mean
     elif mode == 'zscore':
         std = np.std(data[..., imin:imax], axis=-1)[..., None]

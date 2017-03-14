@@ -1,4 +1,4 @@
-"""CTF constants"""
+"""CTF constants."""
 
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #

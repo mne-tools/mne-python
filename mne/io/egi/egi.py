@@ -8,7 +8,7 @@ import time
 
 import numpy as np
 
-from ..base import _BaseRaw, _check_update_montage
+from ..base import BaseRaw, _check_update_montage
 from ..utils import _read_segments_file, _create_chs
 from ..meas_info import _empty_info
 from ..constants import FIFF
@@ -16,8 +16,7 @@ from ...utils import verbose, logger, warn
 
 
 def _read_header(fid):
-    """Read EGI binary header"""
-
+    """Read EGI binary header."""
     version = np.fromfile(fid, np.int32, 1)[0]
 
     if version > 6 & ~np.bitwise_and(version, 6):
@@ -74,7 +73,7 @@ def _read_header(fid):
 
 
 def _read_events(fid, info):
-    """Read events"""
+    """Read events."""
     events = np.zeros([info['n_events'],
                        info['n_segments'] * info['n_samples']])
     fid.seek(36 + info['n_events'] * 4, 0)  # skip header
@@ -87,7 +86,7 @@ def _read_events(fid, info):
 
 
 def _combine_triggers(data, remapping=None):
-    """Combine binary triggers"""
+    """Combine binary triggers."""
     new_trigger = np.zeros(data.shape[1])
     if data.astype(bool).sum(axis=0).max() > 1:  # ensure no overlaps
         logger.info('    Found multiple events at the same time '
@@ -105,7 +104,7 @@ def _combine_triggers(data, remapping=None):
 @verbose
 def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
                  include=None, exclude=None, preload=False, verbose=None):
-    """Read EGI simple binary as raw object
+    """Read EGI simple binary as raw object.
 
     .. note:: The trigger channel names are based on the
               arbitrary user dependent event codes used. However this
@@ -156,7 +155,8 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
         ..versionadded:: 0.11
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -171,12 +171,13 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
                   verbose)
 
 
-class RawEGI(_BaseRaw):
-    """Raw object from EGI simple binary file
-    """
+class RawEGI(BaseRaw):
+    """Raw object from EGI simple binary file."""
+
     @verbose
     def __init__(self, input_fname, montage=None, eog=None, misc=None,
-                 include=None, exclude=None, preload=False, verbose=None):
+                 include=None, exclude=None, preload=False,
+                 verbose=None):  # noqa: D102
         if eog is None:
             eog = []
         if misc is None:
@@ -243,7 +244,6 @@ class RawEGI(_BaseRaw):
             self._new_trigger = None
         info = _empty_info(egi_info['samp_rate'])
         info['buffer_size_sec'] = 1.  # reasonable default
-        info['filename'] = input_fname
         my_time = datetime.datetime(
             egi_info['year'], egi_info['month'], egi_info['day'],
             egi_info['hour'], egi_info['minute'], egi_info['second'])
@@ -275,7 +275,7 @@ class RawEGI(_BaseRaw):
             raw_extras=[egi_info], verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a segment of data from a file"""
+        """Read a segment of data from a file."""
         egi_info = self._raw_extras[fi]
         dtype = egi_info['dtype']
         n_chan_read = egi_info['n_channels'] + egi_info['n_events']

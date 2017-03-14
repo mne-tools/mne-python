@@ -24,7 +24,7 @@ def _prepare_source_params(inst, inverse_operator, label=None,
                            lambda2=1.0 / 9.0, method="dSPM", nave=1,
                            decim=1, pca=True, pick_ori="normal",
                            prepared=False, verbose=None):
-    """Prepare inverse operator and params for spectral / TFR analysis"""
+    """Prepare inverse operator and params for spectral / TFR analysis."""
     if not prepared:
         inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
     else:
@@ -64,7 +64,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                               baseline=None, baseline_mode='logratio',
                               pca=True, n_jobs=1, prepared=False,
                               verbose=None):
-    """Compute source space induced power in given frequency bands
+    """Compute source space induced power in given frequency bands.
 
     Parameters
     ----------
@@ -110,7 +110,8 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     prepared : bool
         If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -132,7 +133,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     stcs = dict()
 
     subject = _subject_from_inverse(inverse_operator)
-    _log_rescale(baseline, baseline_mode)
+    _log_rescale(baseline, baseline_mode)  # for early failure
     for name, band in six.iteritems(bands):
         idx = [k for k, f in enumerate(frequencies) if band[0] <= f <= band[1]]
 
@@ -155,7 +156,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
 
 
 def _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori):
-    """Aux function to prepare TFR source localization"""
+    """Prepare TFR source localization."""
     n_times = data[:, :, ::decim].shape[2]
     n_freqs = len(Ws)
     n_sources = K.shape[0]
@@ -171,7 +172,7 @@ def _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori):
 @verbose
 def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
                      with_power, with_plv, pick_ori, decim, verbose=None):
-    """Aux function for induced power and PLV"""
+    """Aux function for induced power and PLV."""
     shape, is_free_ori = _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori)
     n_sources, n_times = shape[:2]
     power = np.zeros(shape, dtype=np.float)  # power or raw TFR
@@ -197,7 +198,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
 
 def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
                       with_plv, with_power):
-    """Compute single trial TFRs, either ITC, power or raw TFR"""
+    """Compute single trial TFRs, either ITC, power or raw TFR."""
     tfr_e = np.zeros(shape, dtype=np.float)  # power or raw TFR
     # phase lock
     plv_e = np.zeros(shape, dtype=np.complex) if with_plv else None
@@ -250,7 +251,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
                           decim=1, use_fft=False, pca=True, pick_ori="normal",
                           n_jobs=1, with_plv=True, zero_mean=False,
                           prepared=False, verbose=None):
-    """Aux function for source induced power"""
+    """Aux function for source induced power."""
     epochs_data = epochs.get_data()
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
         inst=epochs, inverse_operator=inverse_operator, label=label,
@@ -296,7 +297,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                          baseline=None, baseline_mode='logratio', pca=True,
                          n_jobs=1, zero_mean=False, prepared=False,
                          verbose=None):
-    """Compute induced power and phase lock
+    """Compute induced power and phase lock.
 
     Computation can optionaly be restricted in a label.
 
@@ -350,7 +351,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     prepared : bool
         If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     method = _check_method(method)
     pick_ori = _check_ori(pick_ori)
@@ -376,7 +378,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        tmin=None, tmax=None, fmin=0., fmax=200.,
                        n_fft=2048, overlap=0.5, pick_ori=None, label=None,
                        nave=1, pca=True, prepared=False, verbose=None):
-    """Compute source power spectrum density (PSD)
+    """Compute source power spectrum density (PSD).
 
     Parameters
     ----------
@@ -418,7 +420,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     prepared : bool
         If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -447,7 +450,10 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     freqs_mask = (freqs >= 0) & (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freqs_mask]
     fstep = np.mean(np.diff(freqs))
-    psd = np.zeros((K.shape[0], np.sum(freqs_mask)))
+    if is_free_ori and pick_ori is None:
+        psd = np.zeros((K.shape[0] // 3, np.sum(freqs_mask)))
+    else:
+        psd = np.zeros((K.shape[0], np.sum(freqs_mask)))
     n_windows = 0
 
     for this_start in np.arange(start, stop, int(n_fft * (1. - overlap))):
@@ -492,8 +498,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                                pca=True, inv_split=None, bandwidth=4.,
                                adaptive=False, low_bias=True, n_jobs=1,
                                prepared=False, verbose=None):
-    """ Generator for compute_source_psd_epochs """
-
+    """Generate compute_source_psd_epochs."""
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
@@ -603,8 +608,9 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               adaptive=False, low_bias=True,
                               return_generator=False, n_jobs=1,
                               prepared=False, verbose=None):
-    """Compute source power spectrum density (PSD) from Epochs using
-       multi-taper method
+    """Compute source power spectrum density (PSD) from Epochs.
+
+    This uses the multi-taper method to compute the PSD.
 
     Parameters
     ----------
@@ -650,14 +656,14 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     prepared : bool
         If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     stcs : list (or generator object) of SourceEstimate | VolSourceEstimate
         The source space PSDs for each epoch.
     """
-
     # use an auxiliary function so we can either return a generator or a list
     stcs_gen = _compute_source_psd_epochs(epochs, inverse_operator,
                                           lambda2=lambda2, method=method,

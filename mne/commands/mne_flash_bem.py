@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Create 3-Layers BEM model from Flash MRI images
+"""Create 3-layer BEM model from Flash MRI images.
 
 This program assumes that FreeSurfer and MNE are installed and
 sourced properly.
@@ -34,7 +34,6 @@ Before running this script do the following:
 Example usage:
 
 $ mne flash_bem --subject sample
-
 """
 from __future__ import print_function
 
@@ -44,6 +43,7 @@ from mne.bem import convert_flash_mris, make_flash_bem
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)

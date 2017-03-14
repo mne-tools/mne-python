@@ -11,6 +11,7 @@ from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr)
+from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
 from mne.viz.utils import _fake_click
 from itertools import product
 import matplotlib
@@ -385,7 +386,7 @@ def test_plot():
                            ['mag', 'mag', 'mag'])
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
-    tfr.plot([1, 2], title='title')
+    tfr.plot([1, 2], title='title', colorbar=False)
     plt.close('all')
     ax = plt.subplot2grid((2, 2), (0, 0))
     ax2 = plt.subplot2grid((2, 2), (1, 1))
@@ -479,20 +480,19 @@ def test_compute_tfr():
     freqs = np.arange(10, 20, 3).astype(float)
 
     # Check all combination of options
-    for method, use_fft, zero_mean, output in product(
-        ('multitaper', 'morlet'), (False, True), (False, True),
+    for func, use_fft, zero_mean, output in product(
+        (tfr_array_multitaper, tfr_array_morlet), (False, True), (False, True),
         ('complex', 'power', 'phase',
          'avg_power_itc', 'avg_power', 'itc')):
         # Check exception
-        if (method == 'multitaper') and (output == 'phase'):
-            assert_raises(NotImplementedError, _compute_tfr, data, freqs,
-                          sfreq, method=method, output=output)
+        if (func == tfr_array_multitaper) and (output == 'phase'):
+            assert_raises(NotImplementedError, func, data, sfreq=sfreq,
+                          frequencies=freqs, output=output)
             continue
 
         # Check runs
-        out = _compute_tfr(data, freqs, sfreq, method=method,
-                           use_fft=use_fft, zero_mean=zero_mean,
-                           n_cycles=2., output=output)
+        out = func(data, sfreq=sfreq, frequencies=freqs, use_fft=use_fft,
+                   zero_mean=zero_mean, n_cycles=2., output=output)
         # Check shapes
         shape = np.r_[data.shape[:2], len(freqs), data.shape[2]]
         if ('avg' in output) or ('itc' in output):
@@ -543,13 +543,12 @@ def test_compute_tfr():
         shape = np.r_[data.shape[:2], len(freqs), n_time]
         for method in ('multitaper', 'morlet'):
             # Single trials
-            out = _compute_tfr(data, freqs, sfreq, method=method,
-                               decim=decim, n_cycles=2.)
+            out = _compute_tfr(data, freqs, sfreq, method=method, decim=decim,
+                               n_cycles=2.)
             assert_array_equal(shape, out.shape)
             # Averages
-            out = _compute_tfr(data, freqs, sfreq, method=method,
-                               decim=decim, output='avg_power',
-                               n_cycles=2.)
+            out = _compute_tfr(data, freqs, sfreq, method=method, decim=decim,
+                               output='avg_power', n_cycles=2.)
             assert_array_equal(shape[1:], out.shape)
 
 run_tests_if_main()

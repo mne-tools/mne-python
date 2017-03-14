@@ -1,18 +1,15 @@
-from functools import partial
 from os import path as op
 
 import numpy as np
 from numpy.polynomial import legendre
 from numpy.testing import (assert_allclose, assert_array_equal, assert_equal,
                            assert_array_almost_equal)
+from scipy.interpolate import interp1d
 from nose.tools import assert_raises, assert_true
 
 from mne.forward import _make_surface_mapping, make_field_map
 from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
-                                    _get_legen_table,
-                                    _get_legen_lut_fast,
-                                    _get_legen_lut_accurate,
-                                    _do_cross_dots)
+                                    _get_legen_table, _do_cross_dots)
 from mne.forward._make_forward import _create_meg_coils
 from mne.forward._field_interpolation import _setup_dots
 from mne.surface import get_meg_helmet_surf, get_head_surf
@@ -32,7 +29,7 @@ subjects_dir = op.join(data_path, 'subjects')
 
 
 def test_legendre_val():
-    """Test Legendre polynomial (derivative) equivalence"""
+    """Test Legendre polynomial (derivative) equivalence."""
     rng = np.random.RandomState(0)
     # check table equiv
     xs = np.linspace(-1., 1., 1000)
@@ -42,10 +39,11 @@ def test_legendre_val():
     vals_np = legendre.legvander(xs, n_terms - 1)
 
     # Table approximation
-    for fun, nc in zip([_get_legen_lut_fast, _get_legen_lut_accurate],
-                       [100, 50]):
+    for nc, interp in zip([100, 50], ['nearest', 'linear']):
         lut, n_fact = _get_legen_table('eeg', n_coeff=nc, force_calc=True)
-        vals_i = fun(xs, lut)
+        lut_fun = interp1d(np.linspace(-1, 1, lut.shape[0]), lut, interp,
+                           axis=0)
+        vals_i = lut_fun(xs)
         # Need a "1:" here because we omit the first coefficient in our table!
         assert_allclose(vals_np[:, 1:vals_i.shape[1] + 1], vals_i,
                         rtol=1e-2, atol=5e-3)
@@ -53,7 +51,6 @@ def test_legendre_val():
         # Now let's look at our sums
         ctheta = rng.rand(20, 30) * 2.0 - 1.0
         beta = rng.rand(20, 30) * 0.8
-        lut_fun = partial(fun, lut=lut)
         c1 = _comp_sum_eeg(beta.flatten(), ctheta.flatten(), lut_fun, n_fact)
         c1.shape = beta.shape
 
@@ -74,15 +71,15 @@ def test_legendre_val():
     ctheta = rng.rand(20 * 30) * 2.0 - 1.0
     beta = rng.rand(20 * 30) * 0.8
     lut, n_fact = _get_legen_table('meg', n_coeff=10, force_calc=True)
-    fun = partial(_get_legen_lut_fast, lut=lut)
+    fun = interp1d(np.linspace(-1, 1, lut.shape[0]), lut, 'nearest', axis=0)
     coeffs = _comp_sums_meg(beta, ctheta, fun, n_fact, False)
     lut, n_fact = _get_legen_table('meg', n_coeff=20, force_calc=True)
-    fun = partial(_get_legen_lut_accurate, lut=lut)
+    fun = interp1d(np.linspace(-1, 1, lut.shape[0]), lut, 'linear', axis=0)
     coeffs = _comp_sums_meg(beta, ctheta, fun, n_fact, False)
 
 
 def test_legendre_table():
-    """Test Legendre table calculation"""
+    """Test Legendre table calculation."""
     # double-check our table generation
     n = 10
     for ch_type in ['eeg', 'meg']:
@@ -96,7 +93,7 @@ def test_legendre_table():
 
 @testing.requires_testing_data
 def test_make_field_map_eeg():
-    """Test interpolation of EEG field onto head"""
+    """Test interpolation of EEG field onto head."""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory')
     evoked.info['bads'] = ['MEG 2443', 'EEG 053']  # add some bads
     surf = get_head_surf('sample', subjects_dir=subjects_dir)
@@ -121,7 +118,7 @@ def test_make_field_map_eeg():
 @testing.requires_testing_data
 @slow_test
 def test_make_field_map_meg():
-    """Test interpolation of MEG field onto helmet | head"""
+    """Test interpolation of MEG field onto helmet | head."""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory')
     info = evoked.info
     surf = get_meg_helmet_surf(info)
@@ -172,7 +169,7 @@ def test_make_field_map_meg():
 
 @testing.requires_testing_data
 def test_make_field_map_meeg():
-    """Test making a M/EEG field map onto helmet & head"""
+    """Test making a M/EEG field map onto helmet & head."""
     evoked = read_evokeds(evoked_fname, baseline=(-0.2, 0.0))[0]
     picks = pick_types(evoked.info, meg=True, eeg=True)
     picks = picks[::10]
@@ -206,7 +203,6 @@ def _setup_args(info):
 @testing.requires_testing_data
 def test_as_meg_type_evoked():
     """Test interpolation of data on to virtual channels."""
-
     # validation tests
     evoked = read_evokeds(evoked_fname, condition='Left Auditory')
     assert_raises(ValueError, evoked.as_type, 'meg')

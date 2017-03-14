@@ -1,10 +1,11 @@
-"""Coregistration between different coordinate frames"""
+"""Coregistration between different coordinate frames."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
 from .externals.six.moves import configparser
+from .externals.six import string_types
 import fnmatch
 from glob import glob, iglob
 import os
@@ -18,14 +19,16 @@ from functools import reduce
 import numpy as np
 from numpy import dot
 
-from .io import read_fiducials, write_fiducials
+from .io import read_fiducials, write_fiducials, read_info
+from .io.constants import FIFF
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
                            write_source_spaces)
-from .surface import read_surface, write_surface
+from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
-from .transforms import rotation, rotation3d, scaling, translation
+from .transforms import rotation, rotation3d, scaling, translation, Transform
 from .utils import get_config, get_subjects_dir, logger, pformat
+from .viz._3d import _fiducial_coords
 from .externals.six.moves import zip
 
 
@@ -39,17 +42,19 @@ head_bem_fname = pformat(bem_fname, name='head')
 fid_fname = pformat(bem_fname, name='fiducials')
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
+_head_fnames = (head_bem_fname, pformat(bem_fname, name='head-medium'))
 _high_res_head_fnames = (os.path.join(bem_dirname, '{subject}-head-dense.fif'),
                          os.path.join(surf_dirname, 'lh.seghead'),
                          os.path.join(surf_dirname, 'lh.smseghead'))
 
 
 def _make_writable(fname):
+    """Make a file writable."""
     os.chmod(fname, stat.S_IMODE(os.lstat(fname)[stat.ST_MODE]) | 128)  # write
 
 
 def _make_writable_recursive(path):
-    """Recursively set writable"""
+    """Recursively set writable."""
     if sys.platform.startswith('win'):
         return  # can't safely set perms
     for root, dirs, files in os.walk(path, topdown=False):
@@ -57,25 +62,62 @@ def _make_writable_recursive(path):
             _make_writable(os.path.join(root, f))
 
 
-def _find_high_res_head(subject, subjects_dir):
-    for fname in _high_res_head_fnames:
+def _find_head_bem(subject, subjects_dir, high_res=False):
+    """Find a high resolution head."""
+    # XXX this should be refactored with mne.surface.get_head_surf ...
+    fnames = _high_res_head_fnames if high_res else _head_fnames
+    for fname in fnames:
         path = fname.format(subjects_dir=subjects_dir, subject=subject)
         if os.path.exists(path):
             return path
 
 
+def coregister_fiducials(info, fiducials, tol=0.01):
+    """Create a head-MRI transform by aligning 3 fiducial points.
+
+    Parameters
+    ----------
+    info : Info
+        Measurement info object with fiducials in head coordinate space.
+    fiducials : str | list of dict
+        Fiducials in MRI coordinate space (either path to a ``*-fiducials.fif``
+        file or list of fiducials as returned by :func:`read_fiducials`.
+
+    Returns
+    -------
+    trans : Transform
+        The device-MRI transform.
+    """
+    if isinstance(info, string_types):
+        info = read_info(info)
+    if isinstance(fiducials, string_types):
+        fiducials, coord_frame_to = read_fiducials(fiducials)
+    else:
+        coord_frame_to = FIFF.FIFFV_COORD_MRI
+    frames_from = {d['coord_frame'] for d in info['dig']}
+    if len(frames_from) > 1:
+        raise ValueError("info contains fiducials from different coordinate "
+                         "frames")
+    else:
+        coord_frame_from = frames_from.pop()
+    coords_from = _fiducial_coords(info['dig'])
+    coords_to = _fiducial_coords(fiducials, coord_frame_to)
+    trans = fit_matched_points(coords_from, coords_to, tol=tol)
+    return Transform(coord_frame_from, coord_frame_to, trans)
+
+
 def create_default_subject(mne_root=None, fs_home=None, update=False,
                            subjects_dir=None):
-    """Create an average brain subject for subjects without structural MRI
+    """Create an average brain subject for subjects without structural MRI.
 
     Create a copy of fsaverage from the Freesurfer directory in subjects_dir
     and add auxiliary files from the mne package.
 
     Parameters
     ----------
-    mne_root : None | str
-        The mne root directory (only needed if MNE_ROOT is not specified as
-        environment variable).
+    mne_root : None
+        This argument is not used anymore and will be removed in 0.15. Use
+        keyword arguments to make your application forward compatible.
     fs_home : None | str
         The freesurfer home directory (only needed if FREESURFER_HOME is not
         specified as environment variable).
@@ -91,25 +133,18 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
     -----
     When no structural MRI is available for a subject, an average brain can be
     substituted. Freesurfer comes with such an average brain model, and MNE
-    comes with some auxiliary files which make coregistration easier.
-    :py:func:`create_default_subject` copies the relevant files from Freesurfer
-    into the current subjects_dir, and also adds the auxiliary files provided
-    by MNE.
-
-    The files provided by MNE are listed below and can be found under
-    ``share/mne/mne_analyze/fsaverage`` in the MNE directory (see MNE manual
-    section 7.19 Working with the average brain):
-
-    fsaverage_head.fif:
-        The approximate head surface triangulation for fsaverage.
-    fsaverage_inner_skull-bem.fif:
-        The approximate inner skull surface for fsaverage.
-    fsaverage-fiducials.fif:
-        The locations of the fiducial points (LPA, RPA, and nasion).
-    fsaverage-trans.fif:
-        Contains a default MEG-MRI coordinate transformation suitable for
-        fsaverage.
+    comes with some auxiliary files which make coregistration easier (see
+    :ref:`CACGEAFI`). :py:func:`create_default_subject` copies the relevant
+    files from Freesurfer into the current subjects_dir, and also adds the
+    auxiliary files provided by MNE.
     """
+    if mne_root is not None:
+        warn("Because files from MNE-C are not needed anymore for "
+             "creat_default_subject(), the mne_root argument is deprecated "
+             "and will be removed in 0.15. Please call this function with "
+             "keyword arguments to make your application forward compatible.",
+             DeprecationWarning)
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if fs_home is None:
         fs_home = get_config('FREESURFER_HOME', fs_home)
@@ -118,12 +153,6 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
                 "FREESURFER_HOME environment variable not found. Please "
                 "specify the fs_home parameter in your call to "
                 "create_default_subject().")
-    if mne_root is None:
-        mne_root = get_config('MNE_ROOT', mne_root)
-        if mne_root is None:
-            raise ValueError("MNE_ROOT environment variable not found. Please "
-                             "specify the mne_root parameter in your call to "
-                             "create_default_subject().")
 
     # make sure freesurfer files exist
     fs_src = os.path.join(fs_home, 'subjects', 'fsaverage')
@@ -150,36 +179,28 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
             "subjects_dir %r. Delete or rename the existing fsaverage "
             "subject folder." % ('fsaverage', subjects_dir))
 
-    # make sure mne files exist
-    mne_fname = os.path.join(mne_root, 'share', 'mne', 'mne_analyze',
-                             'fsaverage', 'fsaverage-%s.fif')
-    mne_files = ('fiducials', 'head', 'inner_skull-bem', 'trans')
-    for name in mne_files:
-        fname = mne_fname % name
-        if not os.path.isfile(fname):
-            raise IOError("MNE fsaverage incomplete: %s file not found at "
-                          "%s" % (name, fname))
-
     # copy fsaverage from freesurfer
     logger.info("Copying fsaverage subject from freesurfer directory...")
     if (not update) or not os.path.exists(dest):
         shutil.copytree(fs_src, dest)
         _make_writable_recursive(dest)
 
-    # add files from mne
+    # copy files from mne
+    source_fname = os.path.join(os.path.dirname(__file__), 'data', 'fsaverage',
+                                'fsaverage-%s.fif')
     dest_bem = os.path.join(dest, 'bem')
     if not os.path.exists(dest_bem):
         os.mkdir(dest_bem)
-    logger.info("Copying auxiliary fsaverage files from mne directory...")
+    logger.info("Copying auxiliary fsaverage files from mne...")
     dest_fname = os.path.join(dest_bem, 'fsaverage-%s.fif')
     _make_writable_recursive(dest_bem)
-    for name in mne_files:
+    for name in ('fiducials', 'head', 'inner_skull-bem', 'trans'):
         if not os.path.exists(dest_fname % name):
-            shutil.copy(mne_fname % name, dest_bem)
+            shutil.copy(source_fname % name, dest_bem)
 
 
 def _decimate_points(pts, res=10):
-    """Decimate the number of points using a voxel grid
+    """Decimate the number of points using a voxel grid.
 
     Create a voxel grid with a specified resolution and retain at most one
     point per voxel. For each voxel, the point closest to its center is
@@ -233,7 +254,7 @@ def _decimate_points(pts, res=10):
 
 
 def _trans_from_params(param_info, params):
-    """Convert transformation parameters into a transformation matrix
+    """Convert transformation parameters into a transformation matrix.
 
     Parameters
     ----------
@@ -275,8 +296,9 @@ def _trans_from_params(param_info, params):
 
 def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
                        scale=False, tol=None, x0=None, out='trans'):
-    """Find a transform that minimizes the squared distance between two
-    matching sets of points.
+    """Find a transform between matched sets of points.
+
+    This minimizes the squared distance between two matching sets of points.
 
     Uses :func:`scipy.optimize.leastsq` to find a transformation involving
     a combination of rotation, translation, and scaling (in that order).
@@ -395,7 +417,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
 
 
 def _point_cloud_error(src_pts, tgt_pts):
-    """Find the distance from each source point to its closest target point
+    """Find the distance from each source point to its closest target point.
 
     Parameters
     ----------
@@ -417,7 +439,7 @@ def _point_cloud_error(src_pts, tgt_pts):
 
 
 def _point_cloud_error_balltree(src_pts, tgt_tree):
-    """Find the distance from each source point to its closest target point
+    """Find the distance from each source point to its closest target point.
 
     Uses sklearn.neighbors.BallTree for greater efficiency
 
@@ -440,11 +462,11 @@ def _point_cloud_error_balltree(src_pts, tgt_tree):
 
 def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
                     scale=0, x0=None, leastsq_args={}, out='params'):
-    """Find a transform that minimizes the squared distance from each source
-    point to its closest target point
+    """Find a transform between unmatched sets of points.
 
-    Uses :func:`scipy.optimize.leastsq` to find a transformation involving
-    a combination of rotation, translation, and scaling (in that order).
+    This minimizes the squared distance from each source point to its closest
+    target point, using :func:`scipy.optimize.leastsq` to find a
+    transformation using rotation, translation, and scaling (in that order).
 
     Parameters
     ----------
@@ -561,7 +583,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
 
 
 def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
-    """Find paths to label files in a subject's label directory
+    """Find paths to label files in a subject's label directory.
 
     Parameters
     ----------
@@ -576,7 +598,7 @@ def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
         (sys.environ['SUBJECTS_DIR'])
 
     Returns
-    ------
+    -------
     paths : list
         List of paths relative to the subject's label directory
     """
@@ -598,7 +620,7 @@ def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
 
 
 def _find_mri_paths(subject, skip_fiducials, subjects_dir):
-    """Find all files of an mri relevant for source transformation
+    """Find all files of an mri relevant for source transformation.
 
     Parameters
     ----------
@@ -613,7 +635,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
 
     Returns
     -------
-    paths | dict
+    paths : dict
         Dictionary whose keys are relevant file type names (str), and whose
         values are lists of paths.
     """
@@ -647,7 +669,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     bem_pattern = pformat(bem_fname, subjects_dir=subjects_dir,
                           subject=subject, name='*-bem')
     re_pattern = pformat(bem_fname, subjects_dir=subjects_dir, subject=subject,
-                         name='(.+)')
+                         name='(.+)').replace('\\', '\\\\')
     for path in iglob(bem_pattern):
         match = re.match(re_pattern, path)
         name = match.group(1)
@@ -696,6 +718,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
 
 
 def _find_fiducials_files(subject, subjects_dir):
+    """Find fiducial files."""
     fid = []
     # standard fiducials
     if os.path.exists(fid_fname.format(subjects_dir=subjects_dir,
@@ -705,7 +728,7 @@ def _find_fiducials_files(subject, subjects_dir):
     pattern = pformat(fid_fname_general, subjects_dir=subjects_dir,
                       subject=subject, head='*')
     regex = pformat(fid_fname_general, subjects_dir=subjects_dir,
-                    subject=subject, head='(.+)')
+                    subject=subject, head='(.+)').replace('\\', '\\\\')
     for path in iglob(pattern):
         match = re.match(regex, path)
         head = match.group(1).replace(subject, '{subject}')
@@ -714,7 +737,7 @@ def _find_fiducials_files(subject, subjects_dir):
 
 
 def _is_mri_subject(subject, subjects_dir=None):
-    """Check whether a directory in subjects_dir is an mri subject directory
+    """Check whether a directory in subjects_dir is an mri subject directory.
 
     Parameters
     ----------
@@ -729,12 +752,12 @@ def _is_mri_subject(subject, subjects_dir=None):
         Whether ``subject`` is an mri subject.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    fname = head_bem_fname.format(subjects_dir=subjects_dir, subject=subject)
-    return os.path.exists(fname)
+    return bool(_find_head_bem(subject, subjects_dir) or
+                _find_head_bem(subject, subjects_dir, high_res=True))
 
 
 def _is_scaled_mri_subject(subject, subjects_dir=None):
-    """Check whether a directory in subjects_dir is a scaled mri subject
+    """Check whether a directory in subjects_dir is a scaled mri subject.
 
     Parameters
     ----------
@@ -756,7 +779,7 @@ def _is_scaled_mri_subject(subject, subjects_dir=None):
 
 
 def _mri_subject_has_bem(subject, subjects_dir=None):
-    """Check whether an mri subject has a file matching the bem pattern
+    """Check whether an mri subject has a file matching the bem pattern.
 
     Parameters
     ----------
@@ -778,7 +801,7 @@ def _mri_subject_has_bem(subject, subjects_dir=None):
 
 
 def read_mri_cfg(subject, subjects_dir=None):
-    """Read information from the cfg file of a scaled MRI brain
+    """Read information from the cfg file of a scaled MRI brain.
 
     Parameters
     ----------
@@ -817,7 +840,7 @@ def read_mri_cfg(subject, subjects_dir=None):
 
 
 def _write_mri_config(fname, subject_from, subject_to, scale):
-    """Write the cfg file describing a scaled MRI subject
+    """Write the cfg file describing a scaled MRI subject.
 
     Parameters
     ----------
@@ -851,7 +874,7 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
 
 
 def _scale_params(subject_to, subject_from, scale, subjects_dir):
-    """Assemble parameters for scaling
+    """Assemble parameters for scaling.
 
     Returns
     -------
@@ -900,7 +923,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
 
 def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
               subjects_dir=None):
-    """Scale a bem file
+    """Scale a bem file.
 
     Parameters
     ----------
@@ -935,13 +958,13 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
         surf['rr'] *= scale
         if nn_scale is not None:
             surf['nn'] *= nn_scale
-            surf['nn'] /= np.sqrt(np.sum(surf['nn'] ** 2, 1))[:, np.newaxis]
+            _normalize_vectors(surf['nn'])
     write_bem_surfaces(dst, surfs)
 
 
 def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
                  scale=None, subjects_dir=None):
-    """Scale labels to match a brain that was previously created by scaling
+    r"""Scale labels to match a brain that was previously created by scaling.
 
     Parameters
     ----------
@@ -1000,8 +1023,9 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
 
 
 def scale_mri(subject_from, subject_to, scale, overwrite=False,
-              subjects_dir=None, skip_fiducials=False):
-    """Create a scaled copy of an MRI subject
+              subjects_dir=None, skip_fiducials=False, labels=True,
+              annot=False):
+    """Create a scaled copy of an MRI subject.
 
     Parameters
     ----------
@@ -1018,6 +1042,10 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     skip_fiducials : bool
         Do not scale the MRI fiducials. If False (default), an IOError will be
         raised if no fiducials file can be found.
+    labels : bool
+        Also scale all labels (default True).
+    annot : bool
+        Copy ``*.annot`` files to the new location (default False).
 
     See Also
     --------
@@ -1082,13 +1110,23 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
                            subjects_dir)
 
     # labels [in m]
-    scale_labels(subject_to, subject_from=subject_from, scale=scale,
-                 subjects_dir=subjects_dir)
+    os.mkdir(os.path.join(subjects_dir, subject_to, 'label'))
+    if labels:
+        scale_labels(subject_to, subject_from=subject_from, scale=scale,
+                     subjects_dir=subjects_dir)
+
+    # copy *.annot files (they don't contain scale-dependent information)
+    if annot:
+        src_pattern = os.path.join(subjects_dir, subject_from, 'label',
+                                   '*.annot')
+        dst_dir = os.path.join(subjects_dir, subject_to, 'label')
+        for src_file in iglob(src_pattern):
+            shutil.copy(src_file, dst_dir)
 
 
 def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
                        subjects_dir=None, n_jobs=1):
-    """Scale a source space for an mri created with scale_mri()
+    """Scale a source space for an mri created with scale_mri().
 
     Parameters
     ----------
@@ -1152,7 +1190,7 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
                 ss['dist_limit'] *= scale
         else:  # non-uniform scaling
             ss['nn'] *= nn_scale
-            ss['nn'] /= np.sqrt(np.sum(ss['nn'] ** 2, 1))[:, np.newaxis]
+            _normalize_vectors(ss['nn'])
             if ss['dist'] is not None:
                 add_dist = True
 

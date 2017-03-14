@@ -18,7 +18,7 @@ from . import apply_inverse
 
 
 def _prepare_info(inverse_operator):
-    """Helper to get a usable dict"""
+    """Get a usable dict."""
     # in order to convert sub-leadfield matrix to evoked data type (pretending
     # it's an epoch, see in loop below), uses 'info' from inverse solution
     # because this has all the correct projector information
@@ -29,7 +29,7 @@ def _prepare_info(inverse_operator):
 
 
 def _pick_leadfield(leadfield, forward, ch_names):
-    """Helper to pick out correct lead field components"""
+    """Pick out correct lead field components."""
     # NB must pick from fwd['sol']['row_names'], not ['info']['ch_names'],
     # because ['sol']['data'] may be ordered differently from functional data
     picks_fwd = pick_channels(forward['sol']['row_names'], ch_names)
@@ -40,7 +40,7 @@ def _pick_leadfield(leadfield, forward, ch_names):
 def point_spread_function(inverse_operator, forward, labels, method='dSPM',
                           lambda2=1 / 9., pick_ori=None, mode='mean',
                           n_svd_comp=1, verbose=None):
-    """Compute point-spread functions (PSFs) for linear estimators
+    """Compute point-spread functions (PSFs) for linear estimators.
 
     Compute point-spread functions (PSF) in labels for a combination of inverse
     operator and forward solution. PSFs are computed for test sources that are
@@ -78,7 +78,8 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         (irrelevant for 'sum' and 'mean'). Explained variances within
         sub-leadfields are shown in screen output.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -194,7 +195,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
 def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
                                       method='dSPM', lambda2=1. / 9.,
                                       mode='mean', n_svd_comp=1):
-    """Get inverse matrix from an inverse operator
+    """Get inverse matrix from an inverse operator.
 
     Currently works only for fixed/loose orientation constraints
     For loose orientation constraint, the CTFs are computed for the radial
@@ -357,7 +358,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
 def cross_talk_function(inverse_operator, forward, labels,
                         method='dSPM', lambda2=1 / 9., signed=False,
                         mode='mean', n_svd_comp=1, verbose=None):
-    """Compute cross-talk functions (CTFs) for linear estimators
+    """Compute cross-talk functions (CTFs) for linear estimators.
 
     Compute cross-talk functions (CTF) in labels for a combination of inverse
     operator and forward solution. CTFs are computed for test sources that are
@@ -393,7 +394,8 @@ def cross_talk_function(inverse_operator, forward, labels,
         (irrelevant for 'sum' and 'mean'). Explained variances within
         sub-inverses are shown in screen output.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
