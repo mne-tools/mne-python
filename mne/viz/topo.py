@@ -157,7 +157,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
         layout = copy(layout)
         for i_dim in layout.pos.T[:2]:
             i_dim -= i_dim.min(0)
-            i_dim /= (i_dim.max(0) - i_dim.min(0))
+            i_dim /= i_dim.max(0)
     # prepare callbacks
     tmin, tmax = times[[0, -1]]
     click_func = show_func if click_func is None else click_func
