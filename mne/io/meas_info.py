@@ -1421,7 +1421,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
     ch_types : list of str | str
         Channel types. If None, data are assumed to be misc.
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
-        'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'hbr' or 'hbo'.
+        'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr' or 'hbo'.
         If str, then all channels are assumed to be of the same type.
     montage : None | str | Montage | DigMontage | list
         A montage containing channel positions. If str or Montage is
