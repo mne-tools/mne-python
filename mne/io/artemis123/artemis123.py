@@ -41,6 +41,7 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
         If True attempt to perform head localization using HPI coils. If no
         HPI coils are in info['dig'] hpic coils are assumed to be in canonical
         order of fiducial points (nas, rpa, lpa).
+
     Returns
     -------
     raw : Instance of Raw
