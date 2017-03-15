@@ -126,7 +126,8 @@ def _combine_triggers_mff(data, remapping=None):
 
 @verbose
 def read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
-                 include=None, exclude=None, preload=False, verbose=None):
+                     include=None, exclude=None, preload=False, kind='raw',
+                     verbose=None):
     """Read EGI mff binary as raw object.
 
     .. note:: The trigger channel names are based on the
@@ -174,9 +175,6 @@ def read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-
-        ..versionadded:: 0.11
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -190,7 +188,7 @@ def read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
     mne.io.Raw : Documentation of attribute and methods.
     """
     return RawMff(input_fname, montage, eog, misc, include, exclude, preload,
-                  verbose)
+                  kind, verbose)
 
 
 class RawMff(BaseRaw):
@@ -198,9 +196,9 @@ class RawMff(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage=None, eog=None, misc=None,
-                 include=None, exclude=None, preload=False, verbose=None):
+                 include=None, exclude=None, preload=False, kind='raw',
+                 verbose=None):
         """Init for the RawMff class."""
-        kind = 'raw'
         if eog is None:
             eog = []
         if misc is None:
@@ -318,7 +316,7 @@ class RawMff(BaseRaw):
             logger.info('Creating RawArray with %s data, n_channels=%s, '
                         'n_times=%s' % (dtype.__name__, data.shape[0],
                                         data.shape[1]))
-        else:
+        elif kind == 'raw':
             with open(file_bin, 'rb') as fid:
                 block_info = _block_r(fid)
             egi_info['block_info'] = block_info
@@ -328,39 +326,54 @@ class RawMff(BaseRaw):
 
             data = np.zeros((nchan, egi_info['n_samples']))
             self._raw_extras = [egi_info]
+        else:
+            raise ValueError("kind must be 'raw' or 'epoch'. Got %s." % kind)
 
         super(RawMff, self).__init__(
-            info, preload=True, orig_format=egi_info['orig_format'],
+            info, preload=preload, orig_format=egi_info['orig_format'],
             filenames=[file_bin], last_samps=[egi_info['n_samples'] - 1],
             raw_extras=[egi_info], verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        """Read a chunk of data."""
+        from ..utils import _mult_cal_one
         egi_info = self._raw_extras[fi]
         block_info = egi_info['block_info']
         offset = block_info['position'] - 4
         n_channels = egi_info['n_channels']
         block_size = block_info['hl']
         dtype = '<f4'
-        from ..utils import _mult_cal_one
         n_bytes = np.dtype(dtype).itemsize
 
         data_offset = n_channels * start * n_bytes + offset
         data_left = (stop - start) * n_channels
 
         egi_events = egi_info['egi_events'][:, start:stop]
-
+        extra_samps = (start / block_info['nsamples'])
+        beginning = extra_samps * block_size
+        data_left += (data_offset - offset) / n_bytes - beginning
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
-            fid.seek(data_offset)
+            fid.seek(beginning * n_bytes + offset + extra_samps * n_bytes)
             # extract data in chunks
-            for sample_start in np.arange(0, data_left,
-                                          block_size) // n_channels:
+            sample_start = 0
+            s_offset = (data_offset / n_bytes - beginning) / n_channels
+            while sample_start * n_channels < data_left:
                 fid.seek(4, 1)
-                count = min(block_size, data_left - sample_start * n_channels)
-                block = np.fromfile(fid, dtype, count)
+                block = np.fromfile(fid, dtype, block_size)
                 block = block.reshape(n_channels, -1, order='C')
-                n_samples = block.shape[1]  # = count // n_channels
-                sample_stop = sample_start + n_samples
-                data_view = data[:n_channels, sample_start:sample_stop]
+                count = data_left - sample_start * n_channels
+                end = count / n_channels
+                if sample_start == 0:
+                    block = block[:, s_offset:end]
+                    sample_sl = slice(sample_start,
+                                      sample_start + block.shape[1])
+                elif count < block_size:
+                    block = block[:, :end]
+                if sample_start != 0:
+                    sample_sl = slice(sample_start - s_offset,
+                                      sample_start - s_offset + block.shape[1])
+                data_view = data[:n_channels, sample_sl]
+                sample_start = sample_start + block_info['nsamples']
                 _mult_cal_one(data_view, block, idx, cals[:n_channels], mult)
 
         data[n_channels:] = egi_events
