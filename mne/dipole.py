@@ -55,7 +55,7 @@ class Dipole(object):
     pos : array, shape (n_dipoles, 3)
         The dipoles positions (m) in head coordinates.
     amplitude : array, shape (n_dipoles,)
-        The amplitude of the dipoles (nAm).
+        The amplitude of the dipoles (Am).
     ori : array, shape (n_dipoles, 3)
         The dipole orientations (normalized to unit length).
     gof : array, shape (n_dipoles,)

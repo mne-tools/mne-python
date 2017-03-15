@@ -162,6 +162,8 @@ BUG
 
     - Fix reading of fiducials correctly from CTF data in :func:`mne.io.read_raw_ctf` by `Jaakko Leppakangas`_
 
+    - Fix :func:`mne.beamformer.rap_music` to return dipoles with amplitudes in Am instead of nAm by `Jaakko Leppakangas`_
+
 API
 ~~~
 
