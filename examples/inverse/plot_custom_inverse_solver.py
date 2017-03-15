@@ -163,9 +163,9 @@ def solver(M, G, n_orient):
 ###############################################################################
 # Apply your custom solver
 
-# loose, depth = 0.2, 0.8
-loose, depth = 1., 0.
-stc = apply_solver(solver, evoked, forward, noise_cov, loose=loose, depth=depth)
+# loose, depth = 0.2, 0.8  # corresponds to loose orientation
+loose, depth = 1., 0.  # corresponds to free orientation
+stc = apply_solver(solver, evoked, forward, noise_cov, loose, depth)
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
