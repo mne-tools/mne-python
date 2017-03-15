@@ -172,6 +172,13 @@ def test_coreg_gui():
             frame.model.mri.use_high_res_head = False
             frame.model.grow_hair = 40.
 
+            # scale
+            frame.coreg_panel.n_scale_params = 3
+            frame.coreg_panel.scale_x_inc = True
+            assert_equal(frame.model.scale_x, 1.01)
+            frame.coreg_panel.scale_y_dec = True
+            assert_equal(frame.model.scale_y, 0.99)
+
             # reset parameters
             frame.coreg_panel.reset_params = True
             assert_equal(frame.model.grow_hair, 0)
