@@ -44,7 +44,7 @@ forward = mne.read_forward_solution(fwd_fname, surf_ori=True)
 
 
 ###############################################################################
-# Auxilary function to run the solver
+# Auxiliary function to run the solver
 
 def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     """Function to call a custom solver on evoked data
