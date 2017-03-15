@@ -29,6 +29,7 @@ def _read_header(input_fname):
     ----------
     input_fname : str
         Path for the file
+
     Returns
     ------------------------
     info : dictionary
@@ -41,7 +42,6 @@ def _read_header(input_fname):
     mff_hdr = read_mff_header(input_fname)
     with open(input_fname + '/signal1.bin', 'rb') as fid:
         version = np.fromfile(fid, np.int32, 1)[0]
-
 
     # if version > 6 & ~np.bitwise_and(version, 6):
     #    version = version.byteswap().astype(np.uint32)
@@ -259,14 +259,13 @@ class RawMff(BaseRaw):
                         ", ".join([k for i, k in enumerate(event_codes)
                                    if i not in include_]))
             self._new_trigger = _combine_triggers_mff(egi_events[include_],
-                                                  remapping=event_ids)
+                                                      remapping=event_ids)
             self.event_id = dict(zip([e for e in event_codes if e in
                                       include_names], event_ids))
         else:
             # No events
             self.event_id = None
             self._new_trigger = None
-
 
         info = _empty_info(egi_info['samp_rate'])
         info['buffer_size_sec'] = 1.  # reasonable default
@@ -323,8 +322,6 @@ class RawMff(BaseRaw):
             egi_info['egi_events'] = egi_events
 
             self._filenames = [file_bin]
-
-            data = np.zeros((nchan, egi_info['n_samples']))
             self._raw_extras = [egi_info]
         else:
             raise ValueError("kind must be 'raw' or 'epoch'. Got %s." % kind)
@@ -356,6 +353,7 @@ class RawMff(BaseRaw):
             fid.seek(beginning * n_bytes + offset + extra_samps * n_bytes)
             # extract data in chunks
             sample_start = 0
+            # s_offset determines the offset inside the block in samples.
             s_offset = (data_offset / n_bytes - beginning) / n_channels
             while sample_start * n_channels < data_left:
                 fid.seek(4, 1)
