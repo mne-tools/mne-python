@@ -855,7 +855,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             done. If 'omit', segments annotated with description starting with
             'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
         return_times : bool
-            Whether to return times as well.
+            Whether to return times as well. Defaults to False.
 
         Returns
         -------
