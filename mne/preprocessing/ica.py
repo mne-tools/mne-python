@@ -870,6 +870,9 @@ class ICA(ContainsMixin):
             High pass frequency.
         reject_by_annotation : bool
             If True, data annotated as bad will be omitted. Defaults to True.
+
+            .. versionadded:: 0.14.0
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -912,17 +915,14 @@ class ICA(ContainsMixin):
                       reject_by_annotation=False):
         """Aux Method."""
         if isinstance(inst, BaseRaw):
+            reject_by_annotation = 'omit' if reject_by_annotation else None
             start, stop = _check_start_stop(inst, start, stop)
             if hasattr(target, 'ndim'):
                 if target.ndim < 2:
                     target = target.reshape(1, target.shape[-1])
             if isinstance(target, string_types):
                 pick = _get_target_ch(inst, target)
-                if reject_by_annotation:
-                    target = inst.get_data(pick, start, stop,
-                                           reject_by_annotation='omit')
-                else:
-                    target, _ = inst[pick, start:stop]
+                target = inst.get_data(pick, start, stop, reject_by_annotation)
 
         elif isinstance(inst, BaseEpochs):
             if isinstance(target, string_types):
@@ -983,6 +983,9 @@ class ICA(ContainsMixin):
             Defaults to 'ctps'.
         reject_by_annotation : bool
             If True, data annotated as bad will be omitted. Defaults to True.
+
+            .. versionadded:: 0.14.0
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1015,7 +1018,9 @@ class ICA(ContainsMixin):
         if idx_ecg is None:
             if verbose is not None:
                 verbose = self.verbose
-            ecg, times = _make_ecg(inst, start, stop, verbose)
+            ecg, times = _make_ecg(inst, start, stop,
+                                   reject_by_annotation=reject_by_annotation,
+                                   verbose=verbose)
             ch_name = 'ECG-MAG'
         else:
             ecg = inst.ch_names[idx_ecg]
@@ -1086,6 +1091,9 @@ class ICA(ContainsMixin):
             High pass frequency.
         reject_by_annotation : bool
             If True, data annotated as bad will be omitted. Defaults to True.
+
+            .. versionadded:: 0.14.0
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
