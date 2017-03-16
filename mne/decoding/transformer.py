@@ -184,7 +184,7 @@ class Scaler(TransformerMixin, BaseEstimator):
             The data.
         y : None | array, shape (n_epochs,)
             The label for each epoch.
-            If None not used. Defaults to None.
+            Defaults to None.
 
         Returns
         -------
