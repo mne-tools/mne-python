@@ -89,6 +89,8 @@ Changelog
 
     - Add plotting of head positions as a function of time in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
 
+    - Add multiple BNCI dataset downloader and converter by `Alexandre Barachant`_
+
 BUG
 ~~~
 

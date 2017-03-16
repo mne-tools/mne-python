@@ -327,6 +327,21 @@ Datasets
 
    load_data
 
+ :py:mod:`mne.datasets.bnci`:
+
+ .. automodule:: mne.datasets.bnci
+    :no-members:
+    :no-inherited-members:
+
+ .. currentmodule:: mne.datasets.bnci
+
+ .. autosummary::
+    :toctree: generated/
+    :template: function.rst
+
+    load_data
+    data_path
+
 :py:mod:`mne.datasets.somato`:
 
 .. automodule:: mne.datasets.somato
