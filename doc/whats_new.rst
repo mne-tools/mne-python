@@ -89,6 +89,8 @@ Changelog
 
     - Add plotting of head positions as a function of time in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
 
+    - Add a demo script showing how to use a custom inverse solver with MNE by `Alex Gramfort`_
+
 BUG
 ~~~
 
