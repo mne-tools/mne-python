@@ -668,7 +668,7 @@ class Kit2FiffFrame(HasTraits):
                 handler=Kit2FiffFrameHandler(),
                 height=700, resizable=True, buttons=NoButtons)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: D102
         logger.debug(
             "Initializing Kit2fiff-GUI with %s backend", ETSConfig.toolkit)
         HasTraits.__init__(self, *args, **kwargs)
