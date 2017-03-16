@@ -24,6 +24,7 @@ from pyface.api import (confirm, error, FileDialog, OK, YES, information,
 from traits.api import (HasTraits, HasPrivateTraits, cached_property, Instance,
                         Property, Bool, Button, Enum, File, Float, Int, List,
                         Str, Array, DelegatesTo)
+from traits.trait_base import ETSConfig
 from traitsui.api import (View, Item, HGroup, VGroup, spring, TextEditor,
                           CheckListEditor, EnumEditor, Handler)
 from traitsui.menu import NoButtons
@@ -666,6 +667,11 @@ class Kit2FiffFrame(HasTraits):
                        ),
                 handler=Kit2FiffFrameHandler(),
                 height=700, resizable=True, buttons=NoButtons)
+
+    def __init__(self, *args, **kwargs):
+        logger.debug(
+            "Initializing Kit2fiff-GUI with %s backend", ETSConfig.toolkit)
+        HasTraits.__init__(self, *args, **kwargs)
 
     # can't be static method due to Traits
     def _model_default(self):
