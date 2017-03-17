@@ -47,7 +47,7 @@ def test_io_egi():
     include = ['TRSP', 'XXX1']
     with warnings.catch_warnings(record=True):  # preload=None
         raw = _test_raw_reader(read_raw_egi, input_fname=egi_fname,
-                               include=include)
+                               include=include, channel_naming='EEG %03d')
 
     assert_equal('eeg' in raw, True)
 
