@@ -19,6 +19,7 @@ from ..io.proj import setup_proj
 from ..io.meas_info import create_info
 from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
+from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _layout_figure, _plot_raw_onkey, figure_nobar, plt_show,
@@ -27,7 +28,6 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations)
-from ..defaults import _handle_default
 from .evoked import _plot_lines
 
 

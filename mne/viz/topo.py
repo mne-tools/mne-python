@@ -10,6 +10,7 @@ from __future__ import print_function
 
 from functools import partial
 from itertools import cycle
+from copy import deepcopy
 
 import numpy as np
 
@@ -151,6 +152,11 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                y_label=None, font_color='w', unified=False, img=False):
     """Plot on sensor layout."""
     import matplotlib.pyplot as plt
+
+    if layout.kind == 'custom':
+        layout = deepcopy(layout)
+        layout.pos[:, :2] -= layout.pos[:, :2].min(0)
+        layout.pos[:, :2] /= layout.pos[:, :2].max(0)
 
     # prepare callbacks
     tmin, tmax = times[[0, -1]]

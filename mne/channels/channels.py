@@ -440,8 +440,8 @@ class SetChannelsMixin(object):
         return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
-                     show_names=False, ch_groups=None, axes=None, block=False,
-                     show=True):
+                     show_names=False, ch_groups=None, to_sphere=True,
+                     axes=None, block=False, show=True):
         """Plot sensor positions.
 
         Parameters
@@ -470,6 +470,13 @@ class SetChannelsMixin(object):
             array, the channels are divided by picks given in the array.
 
             .. versionadded:: 0.13.0
+
+        to_sphere : bool
+            Whether to project the 3d locations to a sphere. When False, the
+            sensor array appears similar as to looking downwards straight above
+            the subject's head. Has no effect when kind='3d'. Defaults to True.
+
+            .. versionadded:: 0.14.0
 
         axes : instance of Axes | instance of Axes3D | None
             Axes to draw the sensors to. If ``kind='3d'``, axes must be an
@@ -508,7 +515,8 @@ class SetChannelsMixin(object):
         from ..viz.utils import plot_sensors
         return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
                             show_names=show_names, ch_groups=ch_groups,
-                            axes=axes, block=block, show=show)
+                            to_sphere=to_sphere, axes=axes, block=block,
+                            show=show)
 
     @copy_function_doc_to_method_doc(anonymize_info)
     def anonymize(self):

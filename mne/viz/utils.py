@@ -1207,9 +1207,9 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
 
 
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
-                 show_names=False, ch_groups=None, axes=None, block=False,
-                 show=True):
-    """Plot sensor positions.
+                 show_names=False, ch_groups=None, to_sphere=True, axes=None,
+                 block=False, show=True):
+    """Plot sensors positions.
 
     Parameters
     ----------
@@ -1239,6 +1239,13 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         array, the channels are divided by picks given in the array.
 
         .. versionadded:: 0.13.0
+
+    to_sphere : bool
+        Whether to project the 3d locations to a sphere. When False, the
+        sensor array appears similar as to looking downwards straight above the
+        subject's head. Has no effect when kind='3d'. Defaults to True.
+
+        .. versionadded:: 0.14.0
 
     axes : instance of Axes | instance of Axes3D | None
         Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
@@ -1343,11 +1350,12 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                     colors[pick_idx] = color_vals[ind]
                     break
     if kind in ('topomap', 'select'):
-        pos = _auto_topomap_coords(info, picks, True)
+        pos = _auto_topomap_coords(info, picks, True, to_sphere=to_sphere)
 
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, colors, bads, ch_names, title, show_names, axes,
-                        show, kind == 'select', block=block)
+                        show, kind == 'select', block=block,
+                        to_sphere=to_sphere)
     if kind == 'select':
         return fig, fig.lasso.selection
     return fig
@@ -1383,7 +1391,7 @@ def _close_event(event, fig):
 
 
 def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
-                  select, block):
+                  select, block, to_sphere):
     """Plot sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -1413,11 +1421,17 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
         ax.set_yticks([])
         fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
                             hspace=None)
-        pos, outlines = _check_outlines(pos, 'head')
+        if to_sphere:
+            pos, outlines = _check_outlines(pos, 'head')
+        else:
+            pos, outlines = _check_outlines(pos, np.array([0.5, 0.5]),
+                                            {'center': (0, 0),
+                                             'scale': (4.5, 4.5)})
         _draw_outlines(ax, outlines)
 
         pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=75,
-                         edgecolor=edgecolors, linewidth=2)
+                         edgecolor=edgecolors, linewidth=2, clip_on=False)
+
         if select:
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
 
