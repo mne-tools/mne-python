@@ -1960,15 +1960,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # now combine information from each raw file to construct new self
         annotations = self.annotations
         for r in raws:
-            self._first_samps = np.r_[self._first_samps, r._first_samps]
-            self._last_samps = np.r_[self._last_samps, r._last_samps]
-            self._raw_extras += r._raw_extras
-            self._filenames += r._filenames
             annotations = _combine_annotations((annotations, r.annotations),
                                                self._last_samps,
                                                self._first_samps,
                                                self.info['sfreq'],
                                                self.info['meas_date'])
+            self._first_samps = np.r_[self._first_samps, r._first_samps]
+            self._last_samps = np.r_[self._last_samps, r._last_samps]
+            self._raw_extras += r._raw_extras
+            self._filenames += r._filenames
 
         self._update_times()
         self.annotations = annotations

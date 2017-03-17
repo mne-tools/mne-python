@@ -40,6 +40,9 @@ raw.plot(block=True)
 # ``pageup/pagedown`` and ``home/end`` keys you can adjust the amount of data
 # viewed at once.
 #
+# Drawing annotations
+# -------------------
+#
 # You can enter annotation mode by pressing ``a`` key. In annotation mode you
 # can mark segments of data (and modify existing annotations) with the left
 # mouse button. You can use the description of any existing annotation or
@@ -51,6 +54,9 @@ raw.plot(block=True)
 # :class:`mne.Annotations` and :ref:`marking_bad_segments`. To see all the
 # interactive features, hit ``?`` key or click ``help`` in the lower left
 # corner of the browser window.
+#
+# .. warning:: Annotations are modified in-place immediately at run-time.
+#              Deleted annotations cannot be retrieved after deletion.
 #
 # The channels are sorted by channel type by default. You can use the ``order``
 # parameter of :func:`raw.plot <mne.io.Raw.plot>` to group the channels in a

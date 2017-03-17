@@ -751,12 +751,10 @@ def _setup_annotation_fig(params):
     from matplotlib.widgets import RadioButtons, SpanSelector, Button
     if params['fig_annotation'] is not None:
         params['fig_annotation'].canvas.close_event()
+    if params['raw'].annotations is None:
+        params['raw'].annotations = Annotations(list(), list(), list())
     annotations = params['raw'].annotations
-    if annotations is not None and annotations.orig_time is not None:
-        raise NotImplementedError('Interactive annotation mode is only '
-                                  'available for annotations with '
-                                  'orig_time=None.')
-    labels = [] if annotations is None else list(set(annotations.description))
+    labels = list(set(annotations.description))
     labels = np.union1d(labels, params['added_label'])
     fig = figure_nobar(figsize=(4.5, 2.75 + len(labels) * 0.75))
     fig.patch.set_facecolor('white')
@@ -784,12 +782,13 @@ def _setup_annotation_fig(params):
     fig.canvas.set_window_title('Annotations')
     fig.radio = RadioButtons(ax, labels, activecolor='#cccccc')
     radius = 0.15
-    for circle, label in zip(fig.radio.circles, fig.radio.labels):
+    circles = fig.radio.circles
+    for circle, label in zip(circles, fig.radio.labels):
         circle.set_edgecolor(params['segment_colors'][label.get_text()])
         circle.set_linewidth(4)
         circle.set_radius(radius / (len(labels)))
         label.set_x(circle.center[0] + (radius + 0.1) / len(labels))
-    col = 'r' if len(fig.radio.labels) < 1 else fig.radio.labels[0].get_color()
+    col = 'r' if len(fig.radio.circles) < 1 else circles[0].get_edgecolor()
     fig.canvas.mpl_connect('key_press_event', partial(
         _change_annotation_description, params=params))
     fig.button = Button(button_ax, 'Add label')
@@ -837,17 +836,15 @@ def _mouse_click(event, params):
     if event.button == 3:
         if params['fig_annotation'] is None:
             return
-        for coll in params['ax'].collections:
-            if coll.contains(event)[0]:
-                path = coll.get_paths()[-1]
-                mn = min(path.vertices[:4, 0]) - params['first_time']
-                mx = max(path.vertices[:4, 0]) - params['first_time']
-                ann_idx = np.where(params['raw'].annotations.onset == mn)[0]
-                for idx in ann_idx:
-                    if params['raw'].annotations.duration[idx] == mx - mn:
-                        params['raw'].annotations.delete(idx)
+        raw = params['raw']
+        if np.any([c.contains(event)[0] for c in params['ax'].collections]):
+            xdata = event.xdata - params['first_time']
+            onset = _sync_onset(raw, raw.annotations.onset)
+            ends = onset + raw.annotations.duration
+            ann_idx = np.where((xdata > onset) & (xdata < ends))[0]
+            raw.annotations.delete(ann_idx)  # only first one deleted
         _remove_segment_line(params)
-        _plot_annotations(params['raw'], params)
+        _plot_annotations(raw, params)
         params['plot_fun']()
         return
 
@@ -1733,7 +1730,7 @@ class SelectFromCollection(object):
 def _annotate_select(vmin, vmax, params):
     """Handle annotation span selector."""
     raw = params['raw']
-    onset = vmin - params['first_time']
+    onset = _sync_onset(raw, vmin, True) - params['first_time']
     duration = vmax - vmin
     active_idx = _get_active_radiobutton(params['fig_annotation'].radio)
     description = params['fig_annotation'].radio.labels[active_idx].get_text()
@@ -1766,10 +1763,9 @@ def _plot_annotations(raw, params):
         annot_start = _sync_onset(raw, onset) + params['first_time']
         annot_end = annot_start + raw.annotations.duration[ann_order][idx]
         segments.append([annot_start, annot_end])
-        ylim = params['ax_hscroll'].get_ylim()
         dscr = descriptions[idx]
         params['ax_hscroll'].fill_betweenx(
-            ylim, annot_start, annot_end, alpha=0.3,
+            (0., 1.), annot_start, annot_end, alpha=0.3,
             color=params['segment_colors'][dscr])
     params['segments'] = np.array(segments)
     params['annot_description'] = descriptions
@@ -1856,19 +1852,21 @@ def _remove_segment_line(params):
 
 def _annotation_modify(old_x, new_x, params):
     """Modify annotation."""
+    raw = params['raw']
+
     segment = np.array(np.where(params['segments'] == old_x))
     if segment.shape[1] == 0:
         return
     annotations = params['raw'].annotations
     idx = [segment[0][0], segment[1][0]]
-    onset = params['segments'][idx[0]][0]
+    onset = _sync_onset(raw, params['segments'][idx[0]][0], True)
     ann_idx = np.where(annotations.onset == onset - params['first_time'])[0]
     if idx[1] == 0:  # start of annotation
-        onset = new_x - params['first_time']
+        onset = _sync_onset(raw, new_x, True) - params['first_time']
         duration = annotations.duration[ann_idx] + old_x - new_x
     else:  # end of annotation
         onset = annotations.onset[ann_idx]
-        duration = new_x - onset - params['first_time']
+        duration = _sync_onset(raw, new_x, True) - onset - params['first_time']
 
     if duration < 0:
         onset += duration
