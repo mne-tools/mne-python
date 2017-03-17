@@ -40,6 +40,9 @@ raw.plot(block=True)
 # ``pageup/pagedown`` and ``home/end`` keys you can adjust the amount of data
 # viewed at once.
 #
+# Drawing annotations
+# -------------------
+#
 # You can enter annotation mode by pressing ``a`` key. In annotation mode you
 # can mark segments of data (and modify existing annotations) with the left
 # mouse button. You can use the description of any existing annotation or
