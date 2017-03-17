@@ -103,8 +103,8 @@ def _combine_triggers(data, remapping=None):
 
 @verbose
 def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
-                 include=None, exclude=None, channel_naming='E%d',
-                 preload=False, verbose=None):
+                 include=None, exclude=None, preload=False,
+                 channel_naming='E%d', verbose=None):
     """Read EGI simple binary as raw object.
 
     .. note:: The trigger channel names are based on the
@@ -146,12 +146,6 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
        trigger. Defaults to None. If None, channels that have more than
        one event and the ``sync`` and ``TREV`` channels will be
        ignored.
-    channel_naming : str
-        Channel naming convention for the data channels. Defaults to 'E%d'
-        (resulting in channel names 'E1', 'E2', 'E3'...).
-
-         ..versionadded:: 0.14.0
-
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -160,6 +154,12 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
         on the hard drive (slower, requires less memory).
 
         ..versionadded:: 0.11
+
+    channel_naming : str
+        Channel naming convention for the data channels. Defaults to 'E%d'
+        (resulting in channel names 'E1', 'E2', 'E3'...).
+
+         ..versionadded:: 0.14.0
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
@@ -174,8 +174,8 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawEGI(input_fname, montage, eog, misc, include, exclude,
-                  channel_naming, preload, verbose)
+    return RawEGI(input_fname, montage, eog, misc, include, exclude, preload,
+                  channel_naming, verbose)
 
 
 class RawEGI(BaseRaw):
@@ -183,8 +183,8 @@ class RawEGI(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage=None, eog=None, misc=None,
-                 include=None, exclude=None, channel_naming='E%d',
-                 preload=False, verbose=None):  # noqa: D102
+                 include=None, exclude=None, preload=False,
+                 channel_naming='E%d', verbose=None):  # noqa: D102
         if eog is None:
             eog = []
         if misc is None:
