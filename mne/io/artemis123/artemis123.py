@@ -6,7 +6,6 @@ import numpy as np
 import os.path as op
 import datetime
 import calendar
-from scipy.spatial.distance import cdist
 
 from .utils import _load_mne_locs, _read_pos
 from ...utils import logger, warn
@@ -316,6 +315,7 @@ class RawArtemis123(BaseRaw):
 
     def __init__(self, input_fname, preload=False, verbose=None,
                  pos_fname=None, head_loc=True):  # noqa: D102
+        from scipy.spatial.distance import cdist
 
         fname, ext = op.splitext(input_fname)
         if ext == '.txt':
