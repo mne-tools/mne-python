@@ -157,7 +157,8 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
 
     channel_naming : str
         Channel naming convention for the data channels. Defaults to 'E%d'
-        (resulting in channel names 'E1', 'E2', 'E3'...).
+        (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
+        prior to 0.14.0 was 'EEG %03d'.
 
          ..versionadded:: 0.14.0
 
