@@ -93,7 +93,7 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
 
     fig.set_facecolor(fig_facecolor)
     if layout is None:
-        layout = find_layout(info, on_failure='generate')
+        layout = find_layout(info)
 
     if on_pick is not None:
         callback = partial(_plot_topo_onpick, show_func=on_pick)
@@ -587,7 +587,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         y_label = 'RMS amplitude (%s)' % _handle_default('units')['grad']
 
     if layout is None:
-        layout = find_layout(info, on_failure='generate')
+        layout = find_layout(info)
 
     if not merge_grads:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
@@ -751,7 +751,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     if layout is None:
-        layout = find_layout(epochs.info, on_failure='generate')
+        layout = find_layout(epochs.info)
 
     show_func = partial(_erfimage_imshow_unified, scalings=scale_coeffs,
                         order=order, data=data, epochs=epochs, sigma=sigma,

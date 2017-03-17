@@ -977,7 +977,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     """
     if layout is None:
         from ..channels.layout import find_layout
-        layout = find_layout(raw.info, on_failure='generate')
+        layout = find_layout(raw.info)
 
     psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, fmin=fmin,
                             fmax=fmax, proj=proj, n_fft=n_fft,

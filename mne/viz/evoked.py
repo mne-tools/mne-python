@@ -433,8 +433,7 @@ def _handle_spatial_colors(locs3d, info, idx, ch_type, psd, ax):
     colors = _rgb(x, y, z)
     ch_type = None if ch_type not in ('meg', 'mag', 'grad', 'eeg') else ch_type
 
-    layout = find_layout(info, ch_type=ch_type, exclude=[],
-                         on_failure='generate')
+    layout = find_layout(info, ch_type=ch_type, exclude=[])
     if layout.kind == 'custom':
         head_pos = {'center': (0, 0), 'scale': (4.5, 4.5)}
         outlines = np.array([0.5, 0.5])
