@@ -6,6 +6,7 @@ import numpy as np
 import os.path as op
 import datetime
 import calendar
+from scipy.spatial.distance import cdist
 
 from .utils import _load_mne_locs, _read_pos
 from ...utils import logger, warn
@@ -13,7 +14,7 @@ from ..utils import _read_segments_file
 from ..base import BaseRaw
 from ..meas_info import _empty_info, _make_dig_points
 from ..constants import FIFF
-from ...chpi import _compute_head_localization as _comp_head_loc
+from ...chpi import _fit_device_hpi_positions, _fit_dev_head_trans
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
 
 
@@ -344,12 +345,65 @@ class RawArtemis123(BaseRaw):
                 warn('%d HPIs active. At least 3 needed to perform' % n_hpis +
                      'head localization')
             else:
-                trans, hpi_dev_rrs = _comp_head_loc(self, time_win=[0, 1])
-                if pos_fname is None:
+                # Localized HPIs using the 1st seconds of data.
+                hpi_dev, hpi_g = _fit_device_hpi_positions(self, t_win=[0, 1])
+                if pos_fname is not None:
+                    # Digitized HPI points are needed.
+                    hpi_head = np.array([d['r']
+                                         for d in self.info.get('dig', [])
+                                         if d['kind'] == FIFF.FIFFV_POINT_HPI])
+
+                    if (len(hpi_head) != len(hpi_dev)):
+                        raise RuntimeError("number of digitized (%d) and " +
+                                           "active (%d) HPI coils are " +
+                                           "not the same.")
+
+                    head_to_dev_t, order = _fit_dev_head_trans(hpi_dev,
+                                                               hpi_head)
+
+                    # set the device to head transform
+                    self.info['dev_head_t'] = \
+                        Transform(FIFF.FIFFV_COORD_DEVICE,
+                                  FIFF.FIFFV_COORD_HEAD, head_to_dev_t)
+
+                    # fill in hpi_results
+                    hpi_result = dict()
+
+                    # add HPI points in device coords...
+                    dig = []
+                    for idx, point in enumerate(hpi_dev):
+                        dig.append({'r': point, 'ident': idx + 1,
+                                    'kind': FIFF.FIFFV_POINT_HPI,
+                                    'coord_frame': FIFF.FIFFV_COORD_DEVICE})
+                    hpi_result['dig_points'] = dig
+
+                    # attach Transform
+                    hpi_result['coord_trans'] = self.info['dev_head_t']
+
+                    # 1 based indexing
+                    hpi_result['order'] = order + 1
+                    hpi_result['used'] = np.arange(3) + 1
+
+                    dig_dists = cdist(hpi_head, hpi_head)
+                    dev_dists = cdist(hpi_dev, hpi_dev)
+
+                    tmp_dists = np.abs(dig_dists - dev_dists)
+                    hpi_result['dist_limit'] = tmp_dists.max() * 1.1
+                    if hpi_result['dist_limit'] > 0.005:
+                        warn('Large difference between digitized geometry' +
+                             ' and HPI geometry. Max coil to coil difference' +
+                             'is %0.3f\n' % tmp_dists.max() +
+                             'beware of *POOR* head localization')
+
+                    hpi_result['good_limit'] = 0.98
+
+                    self.info['hpi_results'] = [hpi_result]
+
+                else:
                     logger.info('Assuming Cardinal HPIs')
-                    nas = hpi_dev_rrs[0]
-                    lpa = hpi_dev_rrs[2]
-                    rpa = hpi_dev_rrs[1]
+                    nas = hpi_dev[0]
+                    lpa = hpi_dev[2]
+                    rpa = hpi_dev[1]
                     t = get_ras_to_neuromag_trans(nas, lpa, rpa)
                     self.info['dev_head_t'] = \
                         Transform(FIFF.FIFFV_COORD_DEVICE,
@@ -360,14 +414,32 @@ class RawArtemis123(BaseRaw):
                     lpa = apply_trans(t, lpa)
                     rpa = apply_trans(t, rpa)
 
-                    hpi = [nas, lpa, rpa]
+                    hpi = [nas, rpa, lpa]
                     self.info['dig'] = _make_dig_points(nasion=nas, lpa=lpa,
                                                         rpa=rpa, hpi=hpi)
 
-                # TODO fill in info['hpi_results'][-1]
+                    # fill in hpi_results
+                    hpi_result = dict()
 
-        else:
-            self.info['dev_head_t'] = trans
+                    # add HPI points in device coords...
+                    dig = []
+                    for idx, point in enumerate(hpi_dev):
+                        dig.append({'r': point, 'ident': idx + 1,
+                                    'kind': FIFF.FIFFV_POINT_HPI,
+                                    'coord_frame': FIFF.FIFFV_COORD_DEVICE})
+                    hpi_result['dig_points'] = dig
+
+                    # attach Transform
+                    hpi_result['coord_trans'] = self.info['dev_head_t']
+
+                    # 1 based indexing
+                    hpi_result['order'] = np.array([1, 2, 3])
+                    hpi_result['used'] = np.array([1, 2, 3])
+
+                    hpi_result['dist_limit'] = 0.005
+                    hpi_result['good_limit'] = 0.98
+
+                    self.info['hpi_results'] = [hpi_result]
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""

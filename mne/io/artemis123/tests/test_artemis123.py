@@ -24,7 +24,7 @@ def test_data():
     _test_raw_reader(read_raw_artemis123, input_fname=short_no_HPI_fname)
 
     # test a random selected point
-    raw = read_raw_artemis123(short_no_HPI_fname, preload=True)
+    raw = read_raw_artemis123(short_no_HPI_fname, preload=True, head_loc=False)
     meg_picks = pick_types(raw.info, meg=True, eeg=False)
     # checked against matlab reader.
     assert_allclose(raw[meg_picks[12]][0][0][123], 3.072510659694672e-11)

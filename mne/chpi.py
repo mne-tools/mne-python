@@ -473,7 +473,7 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
 
 @verbose
 def _compute_head_localization(raw, inital_locs=None, time_win=[0, 1],
-                              verbose=None):
+                               verbose=None):
     """Compute an updated the head localization Transform.
 
     Parameters
@@ -496,12 +496,12 @@ def _compute_head_localization(raw, inital_locs=None, time_win=[0, 1],
 
     """
     # first localize the cHPIs
-    hpi_dev = _fit_device_hpi_positions(raw, t_win=time_win,
-                                        initial_dev_rrs=inital_locs)
+    hpi_dev, hpi_g = _fit_device_hpi_positions(raw, t_win=time_win,
+                                               initial_dev_rrs=inital_locs)
 
     # Digitized HPI points are needed.
-    hpi_head = np.array([d['r'] for d in raw.info.get('dig',[])
-                          if d['kind'] == FIFF.FIFFV_POINT_HPI])
+    hpi_head = np.array([d['r'] for d in raw.info.get('dig', [])
+                         if d['kind'] == FIFF.FIFFV_POINT_HPI])
 
     if (len(hpi_head) == 0):
         warn('No digitized HPI points - not updating head_loc')
@@ -565,11 +565,14 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
         return None
 
     # 2. fit each HPI coil
-    coil_dev_rrs = np.array([_fit_magnetic_dipole(f, pos, hpi['coils'],
-                             hpi['scale'], hpi['method'])[0]
-                             for f, pos in zip(sin_fit, initial_dev_rrs)])
+    outs = [_fit_magnetic_dipole(f, pos, hpi['coils'], hpi['scale'],
+                                 hpi['method'])
+            for f, pos in zip(sin_fit, initial_dev_rrs)]
 
-    return coil_dev_rrs
+    coil_dev_rrs = np.array([o[0] for o in outs])
+    coil_g = np.array([o[0] for o in outs])
+
+    return coil_dev_rrs, coil_g
 
 
 @verbose
@@ -687,11 +690,11 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                                      hpi['method'])
                 for f, pos in zip(sin_fit, last['coil_dev_rrs'])]
         this_coil_dev_rrs = np.array([o[0] for o in outs])
+        g_coils = [o[1] for o in outs]
 
         # filter coil fits based on the correspodnace to digitization geometry
         use_mask = np.ones(hpi['n_freqs'], bool)
         if enforce_geometry:
-            g_coils = [o[1] for o in outs]
             these_dists = cdist(this_coil_dev_rrs, this_coil_dev_rrs)
             these_dists = np.abs(hpi_coil_dists - these_dists)
             # there is probably a better algorithm for finding the bad ones...
@@ -831,9 +834,6 @@ def filter_chpi(raw, include_line=True, verbose=None):
     t_window = 0.2
     t_step = 0.01
     n_step = int(np.ceil(t_step * raw.info['sfreq']))
-    # hpi = _setup_chpi_fits(raw.info, t_window, t_window, exclude='bads',
-    #                        add_hpi_stim_pick=False, remove_aliased=True,
-    #                        verbose=False)[0]
     hpi = _setup_hpi_struct(raw.info, int(round(t_window * raw.info['sfreq'])),
                             exclude='bads', remove_aliased=True,
                             verbose=False)
