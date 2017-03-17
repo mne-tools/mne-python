@@ -665,8 +665,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                             prop={'size': legend_fontsize})
         legend.get_frame().set_facecolor(axis_facecolor)
         txts = legend.get_texts()
-        for k, t in enumerate(txts):
-            t.set_color(color.next())
+        for txt, col in zip(txts, color):
+            txt.set_color(col)
 
     if proj == 'interactive':
         for e in evoked:
