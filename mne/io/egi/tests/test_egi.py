@@ -51,7 +51,7 @@ def test_io_egi():
 
     assert_equal('eeg' in raw, True)
 
-    eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
+    eeg_chan = [c for c in raw.ch_names if c.startswith('E')]
     assert_equal(len(eeg_chan), 256)
     picks = pick_types(raw.info, eeg=True)
     assert_equal(len(picks), 256)

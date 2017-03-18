@@ -89,7 +89,15 @@ Changelog
 
     - Add plotting of head positions as a function of time in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
 
+
     - Add ``real_filter`` option to :func:`mne.beamformer.dics`, :func:`mne.beamformer.dics_source_power`, :func:`mne.beamformer.tf_dics` and :func:`mne.beamformer.dics_epochs` by `Eric Larson`_, `Alex Gramfort`_ and `Andrea Brovelli`_.
+
+    - Add a demo script showing how to use a custom inverse solver with MNE by `Alex Gramfort`_
+
+    - Functions :func:`mne.preprocessing.create_ecg_epochs`, :func:`mne.preprocessing.create_eog_epochs`, :func:`mne.compute_raw_covariance` and ICA methods :meth:`mne.preprocessing.ICA.score_sources`, :meth:`mne.preprocessing.ICA.find_bads_ecg`, :meth:`mne.preprocessing.ICA.find_bads_eog` are now annotation aware by `Jaakko Leppakangas`_
+
+    - Allow using ``spatial_colors`` for non-standard layouts by creating custom layouts from channel locations and add ``to_sphere`` keyword to :func:`mne.viz.plot_sensors` to allow plotting sensors that are not on the head surface by `Jaakko Leppakangas`_
+
 
 BUG
 ~~~
@@ -166,6 +174,8 @@ BUG
 
     - Fix reading of fiducials correctly from CTF data in :func:`mne.io.read_raw_ctf` by `Jaakko Leppakangas`_
 
+    - Fix :func:`mne.beamformer.rap_music` to return dipoles with amplitudes in Am instead of nAm by `Jaakko Leppakangas`_
+
 API
 ~~~
 
@@ -194,6 +204,8 @@ API
     - Made functions :func:`mne.time_frequency.tfr_array_multitaper`, :func:`mne.time_frequency.tfr_array_morlet`, :func:`mne.time_frequency.tfr_array_stockwell`, :func:`mne.time_frequency.psd_array_multitaper` and :func:`mne.time_frequency.psd_array_welch` public to allow computing TFRs and PSDs on numpy arrays by `Jaakko Leppakangas`_
 
     - :meth:`mne.preprocessing.ICA.fit` now rejects data annotated bad by default. Turn off with ``reject_by_annotation=False``, by `Jaakko Leppakangas`_
+
+    - :func:`mne.io.read_raw_egi` now names channels with pattern 'E<idx>'. This behavior can be changed with parameter ``channel_naming`` by `Jaakko Leppakangas`_
 
 
 .. _changes_0_13:

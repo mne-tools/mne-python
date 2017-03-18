@@ -143,7 +143,13 @@ def test_plot_topomap():
                           baseline=(None, 0), proj=False)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        evoked.plot_topomap(0.1, 'mag', proj='interactive', res=res)
+        fig1 = evoked.plot_topomap(0.1, 'mag', proj='interactive', res=res)
+    data_max = np.max(fig1.axes[0].images[0]._A)
+    fig2 = plt.gcf()
+    _fake_click(fig2, fig2.axes[0], (0.075, 0.775))  # toggle projector
+    # make sure projector gets toggled
+    assert_true(np.max(fig1.axes[0].images[0]._A) != data_max)
+
     assert_raises(RuntimeError, plot_evoked_topomap, evoked,
                   np.repeat(.1, 50))
     assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])

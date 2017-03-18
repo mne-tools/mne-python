@@ -100,10 +100,10 @@ flake:
 	@echo "flake8 passed"
 
 codespell:  # running manually
-	@codespell.py -w -i 3 -q 3 -S $(CODESPELL_SKIPS) -D ./dictionary.txt $(CODESPELL_DIRS)
+	@codespell -w -i 3 -q 3 -S $(CODESPELL_SKIPS) -D ./dictionary.txt $(CODESPELL_DIRS)
 
 codespell-error:  # running on travis
-	@codespell.py -i 0 -q 7 -S $(CODESPELL_SKIPS) -D ./dictionary.txt $(CODESPELL_DIRS)
+	@codespell -i 0 -q 7 -S $(CODESPELL_SKIPS) -D ./dictionary.txt $(CODESPELL_DIRS)
 
 pydocstyle:
 	@pydocstyle

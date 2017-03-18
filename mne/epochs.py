@@ -1987,6 +1987,8 @@ class EpochsArray(BaseEpochs):
         a <= t <= b.
     proj : bool | 'delayed'
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.
+    on_missing : str
+        See :class:`mne.Epochs` docstring for details.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -2010,7 +2012,7 @@ class EpochsArray(BaseEpochs):
     def __init__(self, data, info, events=None, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, baseline=None, proj=True,
-                 verbose=None):  # noqa: D102
+                 on_missing='error', verbose=None):  # noqa: D102
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
         if data.ndim != 3:
@@ -2035,7 +2037,7 @@ class EpochsArray(BaseEpochs):
                                           tmax, baseline, reject=reject,
                                           flat=flat, reject_tmin=reject_tmin,
                                           reject_tmax=reject_tmax, decim=1,
-                                          proj=proj)
+                                          proj=proj, on_missing=on_missing)
         if len(events) != np.in1d(self.events[:, 2],
                                   list(self.event_id.values())).sum():
             raise ValueError('The events must only contain event numbers from '
