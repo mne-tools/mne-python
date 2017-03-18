@@ -103,7 +103,8 @@ def _combine_triggers(data, remapping=None):
 
 @verbose
 def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
-                 include=None, exclude=None, preload=False, verbose=None):
+                 include=None, exclude=None, preload=False,
+                 channel_naming='E%d', verbose=None):
     """Read EGI simple binary as raw object.
 
     .. note:: The trigger channel names are based on the
@@ -154,6 +155,13 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
 
         ..versionadded:: 0.11
 
+    channel_naming : str
+        Channel naming convention for the data channels. Defaults to 'E%d'
+        (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
+        prior to 0.14.0 was 'EEG %03d'.
+
+         ..versionadded:: 0.14.0
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -168,7 +176,7 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
     mne.io.Raw : Documentation of attribute and methods.
     """
     return RawEGI(input_fname, montage, eog, misc, include, exclude, preload,
-                  verbose)
+                  channel_naming, verbose)
 
 
 class RawEGI(BaseRaw):
@@ -177,7 +185,7 @@ class RawEGI(BaseRaw):
     @verbose
     def __init__(self, input_fname, montage=None, eog=None, misc=None,
                  include=None, exclude=None, preload=False,
-                 verbose=None):  # noqa: D102
+                 channel_naming='E%d', verbose=None):  # noqa: D102
         if eog is None:
             eog = []
         if misc is None:
@@ -249,7 +257,7 @@ class RawEGI(BaseRaw):
             egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
         info['meas_date'] = np.array([my_timestamp], dtype=np.float32)
-        ch_names = ['EEG %03d' % (i + 1) for i in
+        ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
         if self._new_trigger is not None:
@@ -260,7 +268,7 @@ class RawEGI(BaseRaw):
         ch_kind = FIFF.FIFFV_EEG_CH
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
-                      name.startswith('STI') or len(name) == 4]
+                      name.startswith('STI') or name in event_codes]
         for idx in sti_ch_idx:
             chs[idx].update({'unit_mul': 0, 'cal': 1,
                              'kind': FIFF.FIFFV_STIM_CH,
