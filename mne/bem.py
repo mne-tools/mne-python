@@ -1879,11 +1879,9 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 def _check_bem_size(surfs):
     """Check bem surface sizes."""
     if len(surfs) > 1 and surfs[0]['np'] > 10000:
-        msg = ('The bem surfaces have %s data points. 5120 (ico grade=4) '
-               'should be enough.' % surfs[0]['np'])
-        if len(surfs) == 3:
-            msg += ' Dense 3-layer bems may not save properly.'
-        warn(msg)
+        warn('The bem surfaces have %s data points. 5120 (ico grade=4) '
+             'should be enough. Dense 3-layer bems may not save properly.' %
+             surfs[0]['np'])
 
 
 def _symlink(src, dest):
