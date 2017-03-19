@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 import os
+import sys
 
 import numpy as np
 
@@ -34,8 +35,8 @@ if backend_is_wx:
                     'Pickled markers (*.pickled)|*.pickled']
     mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt"]
 else:
-    if os.name == 'nt':
-        # on Windows, multiple wildcards does not seem to work
+    if sys.platform in ('win32',  'linux2'):
+        # on Windows and Ubuntu, multiple wildcards does not seem to work
         mrk_wildcard = ["*.sqd", "*.mrk", "*.txt", "*.pickled"]
     else:
         mrk_wildcard = ["*.sqd;*.mrk;*.txt;*.pickled"]
