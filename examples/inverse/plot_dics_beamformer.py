@@ -3,13 +3,14 @@
 Compute DICS beamfomer on evoked data
 =====================================
 
-Compute a Dynamic Imaging of Coherent Sources (DICS) beamformer from single
-trial activity in a time-frequency window to estimate source time courses based
-on evoked data.
+Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ beamformer from
+single-trial activity in a time-frequency window to estimate source time
+courses based on evoked data.
 
-The original reference for DICS is:
-Gross et al. Dynamic imaging of coherent sources: Studying neural interactions
-in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
+References
+----------
+.. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
+       interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 """
 # Author: Roman Goj <roman.goj@gmail.com>
 #
@@ -65,7 +66,7 @@ noise_csd = csd_epochs(epochs, mode='multitaper', tmin=-0.11, tmax=0.0,
 evoked = epochs.average()
 
 # Compute DICS spatial filter and estimate source time courses on evoked data
-stc = dics(evoked, forward, noise_csd, data_csd)
+stc = dics(evoked, forward, noise_csd, data_csd, reg=0.05)
 
 plt.figure()
 ts_show = -30  # show the 40 largest responses
