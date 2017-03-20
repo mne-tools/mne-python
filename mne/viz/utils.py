@@ -319,6 +319,9 @@ def _get_help_text(params):
             if 'fig_selection' not in params:
                 text2.insert(9, 'Reduce the number of channels per view\n')
                 text2.insert(10, 'Increase the number of channels per view\n')
+            else:
+                text.insert(9, u'b : \n')
+                text2.insert(9, 'Toggle butterfly plot on/off\n')
             text2.append('Mark bad channel\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
@@ -551,6 +554,8 @@ def _helper_raw_resize(event, params):
 def _plot_raw_onscroll(event, params, len_channels=None):
     """Interpret scroll events."""
     if 'fig_selection' in params:
+        if params['butterfly']:
+            return
         _change_channel_group(event.step, params)
         return
     if len_channels is None:
@@ -592,6 +597,7 @@ def _plot_raw_time(value, params):
 def _radio_clicked(label, params):
     """Handle radio buttons in selection dialog."""
     from .evoked import _rgb
+    params['butterfly'] = False  # force butterfly mode off
     labels = [l._text for l in params['fig_selection'].radio.labels]
     idx = labels.index(label)
     params['fig_selection'].radio._active_idx = idx
@@ -686,12 +692,16 @@ def _plot_raw_onkey(event, params):
             plt.close(params['fig_annotation'])
     elif event.key == 'down':
         if 'fig_selection' in params.keys():
+            if params['butterfly']:
+                return
             _change_channel_group(-1, params)
             return
         params['ch_start'] += params['n_channels']
         _channels_changed(params, len(params['inds']))
     elif event.key == 'up':
         if 'fig_selection' in params.keys():
+            if params['butterfly']:
+                return
             _change_channel_group(1, params)
             return
         params['ch_start'] -= params['n_channels']
@@ -753,6 +763,8 @@ def _plot_raw_onkey(event, params):
             _setup_annotation_fig(params)
         else:
             params['fig_annotation'].canvas.close_event()
+    elif event.key == 'b':
+        _setup_butterfly(params)
 
 
 def _setup_annotation_fig(params):
@@ -921,10 +933,21 @@ def _find_channel_idx(ch_name, params):
     return indices
 
 
+def _draw_vert_line(xdata, params):
+    """Draw vertical line."""
+    params['ax_vertline'].set_data(xdata, np.array(params['ax'].get_ylim()))
+    params['ax_hscroll_vertline'].set_data(xdata, np.array([0., 1.]))
+    params['vertline_t'].set_text('%0.3f' % xdata[0])
+
+
 def _select_bads(event, params, bads):
     """Select bad channels onpick. Returns updated bads list."""
     # trade-off, avoid selecting more than one channel when drifts are present
     # however for clean data don't click on peaks but on flat segments
+    if params['butterfly']:
+        _draw_vert_line(np.array([event.xdata] * 2), params)
+        return bads
+
     def f(x, y):
         return y(np.mean(x), x.std() * 2)
     lines = event.inaxes.lines
@@ -955,10 +978,7 @@ def _select_bads(event, params, bads):
                         params['ax_vscroll'].patches[idx].set_color(color)
                     break
     else:
-        x = np.array([event.xdata] * 2)
-        params['ax_vertline'].set_data(x, np.array(params['ax'].get_ylim()))
-        params['ax_hscroll_vertline'].set_data(x, np.array([0., 1.]))
-        params['vertline_t'].set_text('%0.3f' % x[0])
+        _draw_vert_line(np.array([event.xdata] * 2), params)
 
     return bads
 
@@ -978,8 +998,7 @@ def _onclick_help(event, params):
     plt.axis('off')
     ax1 = plt.subplot2grid((8, 5), (1, 0), rowspan=7, colspan=2)
     ax1.set_yticklabels(list())
-    plt.text(0.99, 1, text, fontname='STIXGeneral', va='top', weight='bold',
-             ha='right')
+    plt.text(0.99, 1, text, fontname='STIXGeneral', va='top', ha='right')
     plt.axis('off')
 
     ax2 = plt.subplot2grid((8, 5), (1, 2), rowspan=7, colspan=3)
@@ -1943,6 +1962,45 @@ def _annotation_radio_clicked(label, radio, selector):
     color = radio.circles[idx].get_edgecolor()
     selector.rect.set_color(color)
     selector.rectprops.update(dict(facecolor=color))
+
+
+def _setup_butterfly(params):
+    """Setup butterfly view of raw plotter."""
+    if 'selections' not in params:
+        return
+    butterfly = not params['butterfly']
+    ax = params['ax']
+
+    if butterfly:
+        from ..selection import _SELECTIONS
+        selections = _SELECTIONS[1:] + ['Misc']  # Vertex not used
+        picks = list()
+        for selection in selections:
+            picks.append(params['selections'].get(selection, list()))
+
+        labels = ax.yaxis.get_ticklabels()
+        for label in labels:
+            label.set_visible(True)
+        ylim = (5. * len(picks), 0.)
+        ax.set_ylim(ylim)
+        offset = ylim[0] / (len(picks) + 1)
+        ticks = np.arange(0, ylim[0], offset)
+        ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
+        ax.set_yticks(ticks)
+        offsets = np.zeros(len(params['types']))
+        for group_idx, group in enumerate(picks):
+            for pick in group:
+                offsets[pick] = offset * (group_idx + 1)
+
+        params['offsets'] = offsets
+        params['inds'] = np.arange(len(offsets))
+        ax.set_yticklabels([''] + selections, color='black')
+    else:
+        _setup_browser_offsets(params, params['n_channels'])
+        _set_radio_button(0, params)
+    params['ax_vscroll'].set_visible(not butterfly)
+    params['butterfly'] = butterfly
+    params['plot_fun']()
 
 
 class DraggableLine:

@@ -145,10 +145,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         plots in the order of ch_names, 'selection' uses Elekta's channel
         groupings (only works for Neuromag data), 'position' groups the
         channels by the positions of the sensors. 'selection' and 'position'
-        modes allow custom selections by using lasso selector on the topomap.
-        Pressing ``ctrl`` key while selecting allows appending to the current
-        selection. If array, only the channels in the array are plotted in the
-        given order. Defaults to 'type'.
+        modes allow butterfly mode (press 'b') and custom selections by using
+        lasso selector on the topomap. Pressing ``ctrl`` key while selecting
+        allows appending to the current selection. If array, only the channels
+        in the array are plotted in the given order. Defaults to 'type'.
     show_options : bool
         If True, a dialog for options related to projection is shown.
     title : str | None
@@ -323,7 +323,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_channels=n_channels, scalings=scalings, types=types,
                   n_times=n_times, event_times=event_times, inds=inds,
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
-                  first_time=first_time, added_label=list())
+                  first_time=first_time, added_label=list(), butterfly=False)
 
     if isinstance(order, string_types) and order in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -439,6 +439,8 @@ def _close_event(event, params):
 
 def _label_clicked(pos, params):
     """Select bad channels."""
+    if params['butterfly']:
+        return
     labels = params['ax'].yaxis.get_ticklabels()
     offsets = np.array(params['offsets']) + params['offsets'][0]
     line_idx = np.searchsorted(offsets, pos[1])
@@ -829,7 +831,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
     lines = params['lines']
     info = params['info']
     inds = params['inds']
-    n_channels = params['n_channels']
+    n_channels = len(inds) if params['butterfly'] else params['n_channels']
     params['bad_color'] = bad_color
     labels = params['ax'].yaxis.get_ticklabels()
     # do the plotting
@@ -861,9 +863,10 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             vars(lines[ii])['ch_name'] = ch_name
             vars(lines[ii])['def_color'] = color[params['types'][inds[ch_ind]]]
 
-            # set label color
-            this_color = bad_color if ch_name in info['bads'] else 'black'
-            labels[ii].set_color(this_color)
+            if not params['butterfly']:
+                # set label color
+                this_color = bad_color if ch_name in info['bads'] else 'black'
+                labels[ii].set_color(this_color)
         else:
             # "remove" lines
             lines[ii].set_xdata([])
@@ -922,7 +925,8 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
     params['ax'].set_xlim(params['times'][0] + params['first_time'],
                           params['times'][0] + params['first_time'] +
                           params['duration'], False)
-    params['ax'].set_yticklabels(tick_list)
+    if not params['butterfly']:
+        params['ax'].set_yticklabels(tick_list)
     if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()

@@ -134,6 +134,11 @@ def test_plot_raw():
         for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=',
                     'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'escape']:
             fig.canvas.key_press_event(key)
+        fig = plot_raw(raw, events=events, order='selection')  # test butterfly
+        for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=',
+                    'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b',
+                    'escape']:
+            fig.canvas.key_press_event(key)
         # Color setting
         assert_raises(KeyError, raw.plot, event_color={0: 'r'})
         assert_raises(TypeError, raw.plot, event_color={'foo': 'r'})
