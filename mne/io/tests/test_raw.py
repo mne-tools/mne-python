@@ -84,6 +84,9 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     assert_equal(concat_raw.n_times, 2 * raw.n_times)
     assert_equal(concat_raw.first_samp, first_samp)
     assert_equal(concat_raw.last_samp - last_samp + first_samp, last_samp + 1)
+    idx = np.where(concat_raw.annotations.description == 'BAD boundary')[0]
+    assert_array_almost_equal([(last_samp - first_samp) / raw.info['sfreq']],
+                              concat_raw.annotations.onset[idx], decimal=2)
     return raw
 
 

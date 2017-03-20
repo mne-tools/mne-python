@@ -1959,19 +1959,28 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # now combine information from each raw file to construct new self
         annotations = self.annotations
+        edge_samps = list()
         for r in raws:
             annotations = _combine_annotations((annotations, r.annotations),
                                                self._last_samps,
                                                self._first_samps,
                                                self.info['sfreq'],
                                                self.info['meas_date'])
+            edge_samps.append(sum(self._last_samps) - sum(self._first_samps))
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
 
         self._update_times()
+        if annotations is None:
+            annotations = Annotations([], [], [])
         self.annotations = annotations
+        for edge_samp in edge_samps:
+            onset = _sync_onset(self, (edge_samp - 1) / self.info['sfreq'],
+                                True)
+            self.annotations.append(onset, (3. / self.info['sfreq']),
+                                    'BAD boundary')
 
         if not (len(self._first_samps) == len(self._last_samps) ==
                 len(self._raw_extras) == len(self._filenames)):

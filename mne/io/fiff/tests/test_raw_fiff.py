@@ -1201,8 +1201,8 @@ def test_save():
     onsets = raw.annotations.onset
     durations = raw.annotations.duration
     # 2*5s clips combined with annotations at 2.5s + 2s clip, annotation at 1s
-    assert_array_almost_equal([2.5, 7.5, 11.], onsets, decimal=2)
-    assert_array_almost_equal([2., 2.5, 1.], durations, decimal=2)
+    assert_array_almost_equal([2.5, 7.5, 11.], onsets[:3], decimal=2)
+    assert_array_almost_equal([2., 2.5, 1.], durations[:3], decimal=2)
 
     # test annotation clipping
     annot = Annotations([0., raw.times[-1]], [2., 2.], 'test',
