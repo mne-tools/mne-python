@@ -467,8 +467,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
                       proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
-                      merge_grads=False, show=True, legend=True, legend_loc=0,
-                      legend_fontsize=10):
+                      merge_grads=False, legend=True, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -522,16 +521,14 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
-    show : bool
-        Show figure if True.
-    legend : bool
-        If True, automatically create a legend based on evoked.comment.
-    legend_loc : int | string | tuple
-        The location parameter given to the matplotlib legend call. For
+    legend : bool | int | string | tuple
+        If True, create a legend based on evoked.comment. If False, disable the
+        legend. Otherwise the legend is created and the parameter value is
+        passed as the location parameter to the matplotlib legend call. For 
         example, 'upper right'. By default, the location is chosen
         automatically.
-    legend_fontsize : int
-        The font size for the legend.
+    show : bool
+        Show figure if True.
 
     Returns
     -------
@@ -659,10 +656,11 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     add_background_image(fig, fig_background)
 
-    if legend:
+    if legend is not False:
+        legend_loc = 0 if legend is True else legend
         labels = [e.comment if e.comment else 'Unknown' for e in evoked]
         legend = plt.legend(labels, loc=legend_loc,
-                            prop={'size': legend_fontsize})
+                            prop={'size': 10})
         legend.get_frame().set_facecolor(axis_facecolor)
         txts = legend.get_texts()
         for txt, col in zip(txts, color):

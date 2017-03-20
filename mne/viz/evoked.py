@@ -588,8 +588,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      border='none', ylim=None, scalings=None, title=None,
                      proj=False, vline=[0.0], fig_facecolor='k',
                      fig_background=None, axis_facecolor='k', font_color='w',
-                     merge_grads=False, show=True, legend=True, legend_loc=0,
-                     legend_fontsize=10):
+                     merge_grads=False, legend=True, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -641,16 +640,14 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
-    show : bool
-        Show figure if True.
-    legend : bool
-        If True, automatically create a legend based on evoked.comment.
-    legend_loc : int | string | tuple
-        The location parameter given to the matplotlib legend call. For
+    legend : bool | int | string | tuple
+        If True, create a legend based on evoked.comment. If False, disable the
+        legend. Otherwise the legend is created and the parameter value is
+        passed as the location parameter to the matplotlib legend call. For 
         example, 'upper right'. By default, the location is chosen
         automatically.
-    legend_fontsize : int
-        The font size for the legend.
+    show : bool
+        Show figure if True.
 
     Returns
     -------
@@ -665,8 +662,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              fig_background=fig_background,
                              axis_facecolor=axis_facecolor,
                              font_color=font_color, merge_grads=merge_grads,
-                             show=show, legend=legend, legend_loc=legend_loc,
-                             legend_fontsize=legend_fontsize)
+                             legend=legend, show=show)
 
 
 def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
