@@ -762,7 +762,21 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         are not considered data channels (they are of misc type) and only data
         channels are selected when picks is None.
         """
-        return self._compute_mean_or_stderr(picks, 'ave')
+        if self.name not in ['Unknown', None]:
+            comment = self.name
+        else:
+            if len(self.event_id) == 1:
+                comment = next(iter(self.event_id.keys()))
+            else:
+                count = np.bincount(self.events[:, 2])
+                comments = list()
+                for key, value in self.event_id.items():
+                    comments.append('%.2f * %s' % (
+                        float(count[value]) / len(self.events), key))
+                comment = ' + '.join(comments)
+        evoked = self._compute_mean_or_stderr(picks, 'ave')
+        evoked.comment = comment
+        return evoked
 
     def standard_error(self, picks=None):
         """Compute standard error over epochs.
@@ -835,21 +849,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _evoked_from_epoch_data(self, data, info, picks, n_events, kind):
         """Create an evoked object from epoch data."""
         info = deepcopy(info)
-        if self.name not in ['Unknown', None]:
-            comment = self.name
-        else:
-            if len(self.event_id) == 1:
-                comment = next(iter(self.event_id.keys()))
-            else:
-                count = np.bincount(self.events[:, 2])
-                comments = list()
-                for key, value in self.event_id.items():
-                    comments.append('%.2f * %s' % (
-                        float(count[value]) / len(self.events), key))
-                comment = ' + '.join(comments)
-        evoked = EvokedArray(data, info, tmin=self.times[0],
-                             comment=comment, nave=n_events, kind=kind,
-                             verbose=self.verbose)
+        evoked = EvokedArray(data, info, tmin=self.times[0], comment=self.name,
+                             nave=n_events, kind=kind, verbose=self.verbose)
         # XXX: above constructor doesn't recreate the times object precisely
         evoked.times = self.times.copy()
 
