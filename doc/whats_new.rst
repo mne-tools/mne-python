@@ -17,6 +17,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+    - Automatically create a legend in :func:`mne.viz.evoked.plot_evoked_topo` by `Jussi Nurminen`_
+
     - Add I/O support for Artemis123 infant/toddler MEG data by `Luke Bloy`_
 
     - Add filter plotting functions :func:`mne.viz.plot_filter` and :func:`mne.viz.plot_ideal_filter` as well as filter creation function :func:`mne.filter.create_filter` by `Eric Larson`_
