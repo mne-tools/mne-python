@@ -643,7 +643,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     legend : bool | int | string | tuple
         If True, create a legend based on evoked.comment. If False, disable the
         legend. Otherwise the legend is created and the parameter value is
-        passed as the location parameter to the matplotlib legend call. For 
+        passed as the location parameter to the matplotlib legend call. For
         example, 'upper right'. By default, the location is chosen
         automatically.
     show : bool
