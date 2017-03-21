@@ -92,8 +92,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     if isinstance(inst, BaseRaw):
         fig = _plot_sources_raw(ica, inst, picks, exclude, start=start,
                                 stop=stop, show=show, title=title,
-                                block=block,
-                                show_first_samp=show_first_samp)
+                                block=block, show_first_samp=show_first_samp)
     elif isinstance(inst, BaseEpochs):
         fig = _plot_sources_epochs(ica, inst, picks, exclude, start=start,
                                    stop=stop, show=show, title=title,
@@ -821,6 +820,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     params['fig'].canvas.mpl_connect('close_event', callback_close)
     params['fig_proj'] = None
     params['event_times'] = None
+    params['butterfly'] = False
     params['update_fun']()
     params['plot_fun']()
     try:
