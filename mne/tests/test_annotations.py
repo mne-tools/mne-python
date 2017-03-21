@@ -45,6 +45,7 @@ def test_annotations():
     raw2.annotations = annot
     assert_array_equal(raw2.annotations.onset, onset)
     concatenate_raws([raw, raw2])
+    raw.annotations.delete(-1)  # remove boundary annotation
     assert_array_almost_equal(onset + 20., raw.annotations.onset, decimal=2)
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat('test', 10))
@@ -65,6 +66,9 @@ def test_annotations():
     raw.annotations = Annotations([1.], [.5], 'x', None)
     raws.append(raw)
     raw = concatenate_raws(raws)
+    boundary_idx = np.where(raw.annotations.description == 'BAD boundary')[0]
+    assert_equal(len(boundary_idx), 3)
+    raw.annotations.delete(boundary_idx)
     assert_array_equal(raw.annotations.onset, [1., 2., 11., 12., 21., 22.,
                                                31.])
     raw.annotations.delete(2)
@@ -82,7 +86,7 @@ def test_annotations():
     raw.annotations = Annotations([45.], [3], 'test', raw.info['meas_date'])
     raw2.annotations = Annotations([2.], [3], 'BAD', None)
     raw = concatenate_raws([raw, raw2])
-
+    raw.annotations.delete(-1)  # remove boundary annotation
     assert_array_almost_equal(raw.annotations.onset, [45., 2. + last_time],
                               decimal=2)
 

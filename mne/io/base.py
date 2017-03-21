@@ -1977,9 +1977,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             annotations = Annotations([], [], [])
         self.annotations = annotations
         for edge_samp in edge_samps:
-            onset = _sync_onset(self, (edge_samp - 1) / self.info['sfreq'],
-                                True)
-            self.annotations.append(onset, (3. / self.info['sfreq']),
+            onset = _sync_onset(self, (edge_samp) / self.info['sfreq'], True)
+            self.annotations.append(onset, (1. / self.info['sfreq']),
                                     'BAD boundary')
 
         if not (len(self._first_samps) == len(self._last_samps) ==
