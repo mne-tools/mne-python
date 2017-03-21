@@ -475,7 +475,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
                       proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
-                      merge_grads=False, show=True):
+                      merge_grads=False, legend=True, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -529,6 +529,14 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
+    legend : bool | int | string | tuple
+        If True, create a legend based on evoked.comment. If False, disable the
+        legend. Otherwise, the legend is created and the parameter value is
+        passed as the location parameter to the matplotlib legend call. It can
+        be an integer (e.g. 0 corresponds to upper right corner of the plot),
+        a string (e.g. 'upper right'), or a tuple (x, y coordinates of the
+        lower left corner of the legend in the axes coordinate system).
+        See matplotlib documentation for more details.
     show : bool
         Show figure if True.
 
@@ -537,6 +545,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+    import matplotlib.pyplot as plt
+
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
 
@@ -654,6 +664,16 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      x_label='Time (s)', y_label=y_label, unified=True)
 
     add_background_image(fig, fig_background)
+
+    if legend is not False:
+        legend_loc = 0 if legend is True else legend
+        labels = [e.comment if e.comment else 'Unknown' for e in evoked]
+        legend = plt.legend(labels, loc=legend_loc,
+                            prop={'size': 10})
+        legend.get_frame().set_facecolor(axis_facecolor)
+        txts = legend.get_texts()
+        for txt, col in zip(txts, color):
+            txt.set_color(col)
 
     if proj == 'interactive':
         for e in evoked:

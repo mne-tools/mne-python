@@ -589,7 +589,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      border='none', ylim=None, scalings=None, title=None,
                      proj=False, vline=[0.0], fig_facecolor='k',
                      fig_background=None, axis_facecolor='k', font_color='w',
-                     merge_grads=False, show=True):
+                     merge_grads=False, legend=True, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -641,6 +641,14 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
+    legend : bool | int | string | tuple
+        If True, create a legend based on evoked.comment. If False, disable the
+        legend. Otherwise, the legend is created and the parameter value is
+        passed as the location parameter to the matplotlib legend call. It can
+        be an integer (e.g. 0 corresponds to upper right corner of the plot),
+        a string (e.g. 'upper right'), or a tuple (x, y coordinates of the
+        lower left corner of the legend in the axes coordinate system).
+        See matplotlib documentation for more details.
     show : bool
         Show figure if True.
 
@@ -657,7 +665,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              fig_background=fig_background,
                              axis_facecolor=axis_facecolor,
                              font_color=font_color, merge_grads=merge_grads,
-                             show=show)
+                             legend=legend, show=show)
 
 
 def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
