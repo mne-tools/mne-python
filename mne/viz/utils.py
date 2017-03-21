@@ -1965,7 +1965,7 @@ def _annotation_radio_clicked(label, radio, selector):
 
 
 def _setup_butterfly(params):
-    """Setup butterfly view of raw plotter."""
+    """Set butterfly view of raw plotter."""
     if 'selections' not in params:
         return
     butterfly = not params['butterfly']
