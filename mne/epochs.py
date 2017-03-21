@@ -762,21 +762,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         are not considered data channels (they are of misc type) and only data
         channels are selected when picks is None.
         """
-        if self.name not in ['Unknown', None]:
-            comment = self.name
-        else:
-            if len(self.event_id) == 1:
-                comment = next(iter(self.event_id.keys()))
-            else:
-                count = np.bincount(self.events[:, 2])
-                comments = list()
-                for key, value in self.event_id.items():
-                    comments.append('%.2f * %s' % (
-                        float(count[value]) / len(self.events), key))
-                comment = ' + '.join(comments)
-        evoked = self._compute_mean_or_stderr(picks, 'ave')
-        evoked.comment = comment
-        return evoked
+        return self._compute_mean_or_stderr(picks, 'ave')
 
     def standard_error(self, picks=None):
         """Compute standard error over epochs.
@@ -843,13 +829,27 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         else:
             kind = 'standard_error'
             data /= np.sqrt(n_events)
-        return self._evoked_from_epoch_data(data, self.info, picks, n_events,
-                                            kind)
 
-    def _evoked_from_epoch_data(self, data, info, picks, n_events, kind):
+        if self.name not in ['Unknown', None]:
+            comment = self.name
+        else:
+            if len(self.event_id) == 1:
+                comment = next(iter(self.event_id.keys()))
+            else:
+                count = np.bincount(self.events[:, 2])
+                comments = list()
+                for key, value in self.event_id.items():
+                    comments.append('%.2f * %s' % (
+                        float(count[value]) / len(self.events), key))
+                comment = ' + '.join(comments)
+        return self._evoked_from_epoch_data(data, self.info, picks, n_events,
+                                            kind, comment)
+
+    def _evoked_from_epoch_data(self, data, info, picks, n_events, kind,
+                                comment):
         """Create an evoked object from epoch data."""
         info = deepcopy(info)
-        evoked = EvokedArray(data, info, tmin=self.times[0], comment=self.name,
+        evoked = EvokedArray(data, info, tmin=self.times[0], comment=comment,
                              nave=n_events, kind=kind, verbose=self.verbose)
         # XXX: above constructor doesn't recreate the times object precisely
         evoked.times = self.times.copy()
@@ -2991,7 +2991,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         data[meg_picks] = np.dot(mapping, data[good_picks])
     info_to['dev_head_t'] = recon_trans  # set the reconstruction transform
     evoked = epochs._evoked_from_epoch_data(data, info_to, picks,
-                                            n_events=count, kind='average')
+                                            n_events=count, kind='average',
+                                            comment=epochs.name)
     _remove_meg_projs(evoked)  # remove MEG projectors, they won't apply now
     logger.info('Created Evoked dataset from %s epochs' % (count,))
     return (evoked, mapping) if return_mapping else evoked
