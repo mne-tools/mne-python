@@ -523,10 +523,12 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         data. Defaults to False.
     legend : bool | int | string | tuple
         If True, create a legend based on evoked.comment. If False, disable the
-        legend. Otherwise the legend is created and the parameter value is
-        passed as the location parameter to the matplotlib legend call. For 
-        example, 'upper right'. By default, the location is chosen
-        automatically.
+        legend. Otherwise, the legend is created and the parameter value is
+        passed as the location parameter to the matplotlib legend call. It can
+        be an integer (e.g. 0 corresponds to upper right corner of the plot),
+        a string (e.g. 'upper right'), or a tuple (x, y coordinates of the
+        lower left corner of the legend in the axes coordinate system).
+        See matplotlib documentation for more details.
     show : bool
         Show figure if True.
 
@@ -544,7 +546,6 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         if len(color) != len(evoked):
             raise ValueError('Lists of evoked objects and colors'
                              ' must have the same length')
-
     elif color is None:
         colors = ['w'] + COLORS
         stop = (slice(len(evoked)) if len(evoked) < len(colors)
