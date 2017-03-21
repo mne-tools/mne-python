@@ -178,8 +178,6 @@ BUG
 
     - Fix :func:`mne.beamformer.rap_music` to return dipoles with amplitudes in Am instead of nAm by `Jaakko Leppakangas`_
 
-    - Fix bug where name attribute of :class:`mne.Epochs` was not saved by `Jaakko Leppakangas`_
-
 API
 ~~~
 
