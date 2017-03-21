@@ -1306,6 +1306,17 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Last time point."""
         return self.times[-1]
 
+    @property
+    def name(self):
+        """Name for the epoch set."""
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        """Name for the epoch set."""
+        warn('name attribute is deprecated and will be removed in 0.15.')
+        self._name = name
+
     def __repr__(self):
         """Build string representation."""
         s = 'n_events : %s ' % len(self.events)
