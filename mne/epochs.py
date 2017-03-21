@@ -95,7 +95,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
     last = first + len(epochs.times) - 1
     write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
     write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
-    name = 'Unknown' if epochs.name is None else epochs.name
+    name = 'Unknown' if epochs._name is None else epochs._name
     write_string(fid, FIFF.FIFF_COMMENT, name)
 
     # save baseline
@@ -226,7 +226,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             warn('name is deprecated and will be removed in 0.15.')
         else:
             name = 'Unknown'
-        self.name = name
+        self._name = name
 
         if on_missing not in ['error', 'warning', 'ignore']:
             raise ValueError('on_missing must be one of: error, '
@@ -830,8 +830,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             kind = 'standard_error'
             data /= np.sqrt(n_events)
 
-        if self.name not in ['Unknown', None]:
-            comment = self.name
+        if self._name not in ['Unknown', None]:
+            comment = self._name
         else:
             if len(self.event_id) == 1:
                 comment = next(iter(self.event_id.keys()))
@@ -1309,6 +1309,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @property
     def name(self):
         """Name for the epoch set."""
+        warn('name attribute is deprecated and will be removed in 0.15.')
         return self._name
 
     @name.setter
@@ -1393,7 +1394,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if isinstance(item, (list, tuple)) and \
                 isinstance(item[0], string_types):
             select = epochs._keys_to_idx(item)
-            epochs.name = '+'.join(item)
+            epochs._name = '+'.join(item)
         else:
             select = item if isinstance(item, slice) else np.atleast_1d(item)
 
@@ -2666,7 +2667,7 @@ def add_channels_epochs(epochs_list, name=None, add_eeg_ref=False,
     epochs = epochs_list[0].copy()
     epochs.info = info
     epochs.picks = None
-    epochs.name = name
+    epochs._name = name
     epochs.verbose = verbose
     epochs.events = events
     epochs.preload = True
@@ -3003,7 +3004,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     info_to['dev_head_t'] = recon_trans  # set the reconstruction transform
     evoked = epochs._evoked_from_epoch_data(data, info_to, picks,
                                             n_events=count, kind='average',
-                                            comment=epochs.name)
+                                            comment=epochs._name)
     _remove_meg_projs(evoked)  # remove MEG projectors, they won't apply now
     logger.info('Created Evoked dataset from %s epochs' % (count,))
     return (evoked, mapping) if return_mapping else evoked
