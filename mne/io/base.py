@@ -1893,6 +1893,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def append(self, raws, preload=None):
         """Concatenate raw instances as if they were continuous.
 
+        .. note:: Boundaries of the raw files are annotated bad. If you wish to
+                  use the data as continuous recording, you can remove the
+                  boundary annotations after concatenation (see
+                  :meth:`mne.Annotations.delete`).
+
         Parameters
         ----------
         raws : list, or Raw instance
@@ -2395,6 +2400,10 @@ def concatenate_raws(raws, preload=None, events_list=None):
     """Concatenate raw instances as if they were continuous.
 
     .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
+              Boundaries of the raw files are annotated bad. If you wish to use
+              the data as continuous recording, you can remove the boundary
+              annotations after concatenation (see
+              :meth:`mne.Annotations.delete`).
 
     Parameters
     ----------
