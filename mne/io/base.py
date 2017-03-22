@@ -1893,6 +1893,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def append(self, raws, preload=None):
         """Concatenate raw instances as if they were continuous.
 
+        .. note:: Boundaries of the raw files are annotated bad. If you wish to
+                  use the data as continuous recording, you can remove the
+                  boundary annotations after concatenation (see
+                  :meth:`mne.Annotations.delete`).
+
         Parameters
         ----------
         raws : list, or Raw instance
@@ -1959,19 +1964,27 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # now combine information from each raw file to construct new self
         annotations = self.annotations
+        edge_samps = list()
         for r in raws:
             annotations = _combine_annotations((annotations, r.annotations),
                                                self._last_samps,
                                                self._first_samps,
                                                self.info['sfreq'],
                                                self.info['meas_date'])
+            edge_samps.append(sum(self._last_samps) - sum(self._first_samps))
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
 
         self._update_times()
+        if annotations is None:
+            annotations = Annotations([], [], [])
         self.annotations = annotations
+        for edge_samp in edge_samps:
+            onset = _sync_onset(self, (edge_samp) / self.info['sfreq'], True)
+            self.annotations.append(onset, (1. / self.info['sfreq']),
+                                    'BAD boundary')
 
         if not (len(self._first_samps) == len(self._last_samps) ==
                 len(self._raw_extras) == len(self._filenames)):
@@ -2387,6 +2400,10 @@ def concatenate_raws(raws, preload=None, events_list=None):
     """Concatenate raw instances as if they were continuous.
 
     .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
+              Boundaries of the raw files are annotated bad. If you wish to use
+              the data as continuous recording, you can remove the boundary
+              annotations after concatenation (see
+              :meth:`mne.Annotations.delete`).
 
     Parameters
     ----------
