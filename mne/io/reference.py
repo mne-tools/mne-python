@@ -260,7 +260,6 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
         channels to use. For example, to apply an average mastoid reference,
         when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
 
-
     Parameters
     ----------
     inst : instance of Raw | Epochs | Evoked

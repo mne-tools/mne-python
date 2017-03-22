@@ -239,11 +239,39 @@ class SetChannelsMixin(object):
 
     @verbose
     def set_eeg_reference(self, ref_channels=None, verbose=None):
-        """Rereference EEG channels to new reference channel(s).
+        """Specify which reference to use for EEG data.
 
-        If multiple reference channels are specified, they will be averaged. If
-        no reference channels are specified, an average reference will be
-        applied.
+        By default, MNE-Python will automatically re-reference the EEG signal
+        to use an average reference (see below). Use this function to
+        explicitly specify the desired reference for EEG. This can be either an
+        existing electrode or a new virtual channel. This function will
+        re-reference the data according to the desired reference and prevent
+        MNE-Python from automatically adding an average reference.
+
+        Some common referencing schemes and the corresponding value for the
+        ``ref_channels`` parameter:
+
+        No re-referencing:
+            If the EEG data is already using the proper reference, set
+            ``ref_channels=[]``. This will prevent MNE-Python from
+            automatically re-referencing the data to an average reference.
+
+        Average reference:
+            A new virtual reference electrode is created by averaging the
+            current EEG signal. Make sure that all bad EEG channels are
+            properly marked and set ``ref_channels=None``.
+
+        A single electrode:
+            Set ``ref_channels`` to the name of the channel that will act as
+            the new reference.
+
+        The mean of multiple electrodes:
+            A new virtual reference electrode is created by computing the
+            average of the current EEG signal recorded from two or more
+            selected channels. Set ``ref_channels`` to a list of channel names,
+            indicating which channels to use. For example, to apply an average
+            mastoid reference, when using the 10-20 naming scheme, set
+            ``ref_channels=['M1', 'M2']``.
 
         Parameters
         ----------
@@ -276,6 +304,12 @@ class SetChannelsMixin(object):
 
         3. In order to apply a reference other than an average reference, the
            data must be preloaded.
+
+        4. Re-referencing to an average reference is done with an SSP
+           projector. This allows applying this reference without preloading
+           the data. Be aware that on preloaded data, SSP projectors are not
+           automatically applied. Use the ``apply_proj()`` method to apply
+           them.
 
         .. versionadded:: 0.13.0
 
