@@ -658,8 +658,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         size = size.split(',')
         size = tuple(float(s) for s in size)
     if title is None:
-        title = epochs.name
-        if epochs.name is None or len(title) == 0:
+        title = epochs._name
+        if title is None or len(title) == 0:
             title = ''
     fig = figure_nobar(facecolor='w', figsize=size, dpi=80)
     fig.canvas.set_window_title('mne_browse_epochs')

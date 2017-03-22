@@ -209,6 +209,7 @@ API
 
     - :func:`mne.io.read_raw_egi` now names channels with pattern 'E<idx>'. This behavior can be changed with parameter ``channel_naming`` by `Jaakko Leppakangas`_
 
+    - the `name`` parameter in :class:`mne.Epochs` is deprecated, by `Jaakko Leppakangas`_
 
 .. _changes_0_13:
 
