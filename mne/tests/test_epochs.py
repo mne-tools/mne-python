@@ -660,12 +660,9 @@ def test_read_write_epochs():
     # test IO
     for preload in (False, True):
         epochs = epochs_orig.copy()
-        epochs._name = 'test'
         epochs.save(temp_fname)
         epochs_no_bl.save(temp_fname_no_bl)
         epochs_read = read_epochs(temp_fname, preload=preload)
-        assert_equal(epochs_read._name, 'test')
-        assert_equal(epochs_read.average().comment, 'test')
         epochs_no_bl.save(temp_fname_no_bl)
         epochs_read = read_epochs(temp_fname)
         epochs_no_bl_read = read_epochs(temp_fname_no_bl)
