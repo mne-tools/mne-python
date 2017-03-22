@@ -11,8 +11,10 @@ MNE-Python Code Updates
 
 .. currentmodule:: mne
 
-Current
--------
+.. _changes_0_14:
+
+Version 0.14
+------------
 
 Changelog
 ~~~~~~~~~
