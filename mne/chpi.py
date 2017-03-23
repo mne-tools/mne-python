@@ -4,24 +4,27 @@ u"""Functions for fitting head positions with (c)HPI coils.
 To fit head positions (continuously), the procedure using
 ``_calculate_chpi_positions`` is:
 
-    1. Get HPI frequencies, HPI coil locations in head coords, HPI status
-       channel, HPI status bits, and digitization order using
-       ``_get_hpi_info``.
-    2. Window data using ``t_window`` (half before and half after ``t``) and
+    1. Get HPI coil locations (as digitized in info['dig'] in head coords
+       using ``_get_hpi_initial_fit``.
+    2. Get HPI frequencies,  HPI status channel, HPI status bits,
+       and digitization order using ``_setup_hpi_struct``.
+    3. Map HPI coil locations into device coords and compute coil to coil
+       distances.
+    4. Window data using ``t_window`` (half before and half after ``t``) and
        ``t_step_min``.
        (Here Elekta high-passes the data, but we omit this step.)
-    3. Use a linear model (DC + linear slope + sin + cos terms set up
-       in ``_setup_chpi_fits``) to fit sinusoidal amplitudes to MEG
-       channels.
-    4. Use SVD to determine the phase/amplitude of the sinusoids.
-    5. If the amplitudes are 98% correlated with last position
+    5. Use a linear model (DC + linear slope + sin + cos terms set up
+       in ``_setup_hpi_struct``) to fit sinusoidal amplitudes to MEG
+       channels. Use SVD to determine the phase/amplitude of the sinusoids.
+       This step is accomplished using using ``_fit_cHPI_amplitudes``
+    6. If the amplitudes are 98% correlated with last position
        (and Δt < t_step_max), skip fitting.
-    5. Fit magnetic dipoles using the amplitudes for each coil frequency
+    7. Fit magnetic dipoles using the amplitudes for each coil frequency
        (calling ``_fit_magnetic_dipole``).
-    6. Choose good coils based on pairwise distances, taking into account
-       the tolerance ``dist_limit``.
-    7. Fit dev_head_t (using ``_fit_chpi_pos``).
-    8. Accept or reject fit based on GOF threshold ``gof_limit``.
+    8. If ``use_distances is True`` choose good coils based on pairwise
+       distances, taking into account the tolerance ``dist_limit``.
+    9. Fit dev_head_t quaternion (using ``_fit_chpi_quat``).
+    10. Accept or reject fit based on GOF threshold ``gof_limit``.
 
 The function ``filter_chpi`` uses the same linear model to filter cHPI
 and (optionally) line frequencies from the data.
@@ -42,7 +45,7 @@ from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
                       _concatenate_coils, _read_coil_defs)
 from .cov import make_ad_hoc_cov, _get_whitener_data
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
-                         quat_to_rot, rot_to_quat, Transform)
+                         quat_to_rot, rot_to_quat)
 from .utils import verbose, logger, use_log_level, _check_fname, warn
 
 # Eventually we should add:
@@ -148,7 +151,7 @@ def head_pos_to_trans_rot_t(quats):
 
 @verbose
 def _get_hpi_info(info, verbose=None):
-    """Helper to get HPI information from raw."""
+    """Get HPI information from raw."""
     if len(info['hpi_meas']) == 0 or \
             ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
         raise RuntimeError('Appropriate cHPI information not found in'
@@ -179,7 +182,7 @@ def _get_hpi_info(info, verbose=None):
 
 @verbose
 def _get_hpi_initial_fit(info, adjust=False, verbose=None):
-    """Helper to get HPI fit information from raw."""
+    """Get HPI fit locations from raw."""
     hpi_result = info['hpi_results'][-1]
     hpi_coils = sorted(info['hpi_meas'][-1]['hpi_coils'],
                        key=lambda x: x['number'])  # ascending (info) order
@@ -326,7 +329,7 @@ def _setup_hpi_struct(info, model_n_window,
                       method='forward',
                       exclude='bads',
                       remove_aliased=False, verbose=None):
-    """Helper function to setup HPI structure for HPI localization.
+    """Setup HPI structure for HPI localization.
 
     Returns
     -------
@@ -472,54 +475,6 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
 
 
 @verbose
-def _compute_head_localization(raw, inital_locs=None, time_win=[0, 1],
-                               verbose=None):
-    """Compute an updated the head localization Transform.
-
-    Parameters
-    ----------
-    raw : instance of Raw
-        Raw data with cHPI information.
-    initalLocs : ndarray, shape(nCHPI, 3)
-        Initial localations of HPI coils. used to initalized solver.
-        if None (0, 0, 0) is chosen for each coil
-    time_win : list, shape (2)
-        Time window to fit. If None entire data run is used.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    dev_head_t,
-    hpi_dev,
-
-    """
-    # first localize the cHPIs
-    hpi_dev, hpi_g = _fit_device_hpi_positions(raw, t_win=time_win,
-                                               initial_dev_rrs=inital_locs)
-
-    # Digitized HPI points are needed.
-    hpi_head = np.array([d['r'] for d in raw.info.get('dig', [])
-                         if d['kind'] == FIFF.FIFFV_POINT_HPI])
-
-    if (len(hpi_head) == 0):
-        warn('No digitized HPI points - not updating head_loc')
-        return raw.info['dev_head_t'], hpi_dev
-
-    if (len(hpi_head) != len(hpi_dev)):
-        raise RuntimeError("number of digitized (%d) and active (%d) " +
-                           "HPI coils not the same.")
-
-    t, order = _fit_dev_head_trans(hpi_dev, hpi_head)
-    dev_head_t = Transform(FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_HEAD, t)
-
-    # TODO this should return an HPI_reulsts dict
-    # pos_order = order + 1
-    return dev_head_t, hpi_dev
-
-
-@verbose
 def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
                               verbose=None):
     """Calculate location of HPI coils in device coords for 1 time window.
@@ -578,7 +533,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
 @verbose
 def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                               t_window=0.2, dist_limit=0.005, gof_limit=0.98,
-                              enforce_geometry=True, verbose=None):
+                              use_distances=True, verbose=None):
     """Calculate head positions using cHPI coils.
 
     Parameters
@@ -592,12 +547,12 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         Maximum time step to use.
     t_window : float
         Time window to use to estimate the head positions.
-    max_step : float
-        Maximum time step to go between estimations.
     dist_limit : float
         Minimum distance (m) to accept for coil position fitting.
     gof_limit : float
         Minimum goodness of fit to accept.
+    use_distances : bool
+        use dist_limit to choose 'good' coils based on pairwise distancs.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -694,7 +649,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 
         # filter coil fits based on the correspodnace to digitization geometry
         use_mask = np.ones(hpi['n_freqs'], bool)
-        if enforce_geometry:
+        if use_distances:
             these_dists = cdist(this_coil_dev_rrs, this_coil_dev_rrs)
             these_dists = np.abs(hpi_coil_dists - these_dists)
             # there is probably a better algorithm for finding the bad ones...
