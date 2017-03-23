@@ -41,7 +41,6 @@ import itertools
 
 from .io.pick import pick_types, pick_channels, pick_channels_regexp
 from .io.constants import FIFF
-from .io.ctf import RawCTF
 from .io.ctf.trans import _make_ctf_coord_trans_set
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
                       _concatenate_coils, _read_coil_defs)
@@ -165,8 +164,8 @@ def extract_head_pos_ctf(raw, gof_limit=0.98):
 
     Parameters
     ----------
-    raw : instance of RawCTF
-        Raw data with cHPI information.
+    raw : instance of raw
+        Raw data with cHPI information. HLC00 channels
     gof_limit : float
         Minimum goodness of fit to accept.
 
@@ -186,15 +185,12 @@ def extract_head_pos_ctf(raw, gof_limit=0.98):
     HLC002[123]-* - lpa
     HLC003[123]-* - rpa
     """
-    if not isinstance(raw, RawCTF):
-        raise RuntimeError('Raw must be from a ctf dataset')
-
     # make picks to match order of dig cardinial ident codes.
     # LPA, NAS, RPA
     hpi_picks = []
     for i in [2, 1, 3]:
         hpi_picks.extend(pick_channels_regexp(raw.info['ch_names'],
-                                             'HLC00%d[123]-.*' % i))
+                                              'HLC00%d[123]-.*' % i))
     # make sure we get 9 channels
     if len(hpi_picks) != 9:
         raise RuntimeError('Could not find all 9 cHPI channels')
@@ -230,7 +226,7 @@ def extract_head_pos_ctf(raw, gof_limit=0.98):
     quats = []
     for idx in indicies:
         # data in channels are in ctf device coordinates (cm)
-        this_ctf_dev = chpi_data[:, idx].reshape(3,3)  # m
+        this_ctf_dev = chpi_data[:, idx].reshape(3, 3)  # m
 
         # map to mne device coords
         this_dev = apply_trans(ctf_dev_dev_t, this_ctf_dev)
@@ -242,7 +238,7 @@ def extract_head_pos_ctf(raw, gof_limit=0.98):
             raise RuntimeError('Bad coil fit! (g=%7.3f)' % (g,))
 
         if (idx > 0):
-            dt = float(raw.times[idx] - raw.times[idx-1])
+            dt = float(raw.times[idx] - raw.times[idx - 1])
         else:
             dt = 0.001
 
@@ -261,9 +257,9 @@ def extract_head_pos_ctf(raw, gof_limit=0.98):
     quats = np.zeros((0, 10)) if quats.size == 0 else quats
     return quats
 
+
 # ############################################################################
 # Estimate positions from data
-
 @verbose
 def _get_hpi_info(info, verbose=None):
     """Get HPI information from raw."""

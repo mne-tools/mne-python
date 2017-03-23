@@ -12,11 +12,12 @@ import pytest
 
 from mne import (pick_types, Dipole, make_sphere_model, make_forward_dipole,
                  pick_info)
-from mne.io import read_raw_fif, read_raw_artemis123, read_info, RawArray
+from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
+                    RawArray)
 from mne.io.constants import FIFF
 from mne.chpi import (_calculate_chpi_positions, _calculate_chpi_coil_locs,
-                      head_pos_to_trans_rot_t, read_head_pos,
-                      write_head_pos, filter_chpi,
+                      extract_head_pos_ctf, head_pos_to_trans_rot_t,
+                      read_head_pos, write_head_pos, filter_chpi,
                       _get_hpi_info, _get_hpi_initial_fit)
 from mne.fixes import assert_raises_regex
 from mne.transforms import rot_to_quat, _angle_between_quats
@@ -421,8 +422,12 @@ def test_chpi_subtraction():
 @testing.requires_testing_data
 def test_extract_head_pos_ctf():
     """Test extracting of cHPI positions from ctf data."""
-    raw = read_raw_ctf(fname_ctf)
+    raw = read_raw_ctf(ctf_chpi_fname)
     quats = extract_head_pos_ctf(raw)
+    # TODO add regression test here
+
+    raw = read_raw_fif(ctf_fname)
+    assert_raises(RuntimeError, extract_head_pos_ctf, raw)
 
     # fail until there is a regression test
     assert_true(False)
