@@ -329,7 +329,7 @@ def _setup_hpi_struct(info, model_n_window,
                       method='forward',
                       exclude='bads',
                       remove_aliased=False, verbose=None):
-    """Setup HPI structure for HPI localization.
+    """Generate HPI structure for HPI localization.
 
     Returns
     -------
