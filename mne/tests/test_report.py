@@ -71,7 +71,7 @@ def test_render_report():
     epochs.save(epochs_fname)
     # This can take forever (stall Travis), so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
-    epochs.average().crop(0.1, 0.2).save(evoked_fname) 
+    epochs.average().crop(0.1, 0.2).save(evoked_fname)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
     with warnings.catch_warnings(record=True) as w:
