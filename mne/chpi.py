@@ -39,8 +39,10 @@ import numpy as np
 from scipy import linalg
 import itertools
 
-from .io.pick import pick_types, pick_channels
+from .io.pick import pick_types, pick_channels, pick_channels_regexp
 from .io.constants import FIFF
+from .io.ctf import RawCTF
+from .io.ctf.trans import _make_ctf_coord_trans_set
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
                       _concatenate_coils, _read_coil_defs)
 from .cov import make_ad_hoc_cov, compute_whitener
@@ -148,6 +150,119 @@ def head_pos_to_trans_rot_t(quats):
     translation = quats[..., 4:7].copy()
     return translation, rotation, t
 
+
+def _apply_quat(quat, pts, move=True):
+    """Apply MaxFilter-formatted head position parameters to points."""
+    trans = np.concatenate(
+        (quat_to_rot(quat[:3]),
+         quat[3:][:, np.newaxis]), axis=1)
+
+    return(apply_trans(trans, pts, move=move))
+
+
+def extract_head_pos_ctf(raw, gof_limit=0.98):
+    """Extract MaxFilter-formatted head position parameters from ctf dataset.
+
+    Parameters
+    ----------
+    raw : instance of RawCTF
+        Raw data with cHPI information.
+    gof_limit : float
+        Minimum goodness of fit to accept.
+
+    Returns
+    -------
+    pos : array, shape (N, 10)
+        The position and quaternion parameters from cHPI fitting.
+
+    See Also
+    --------
+
+    Notes
+    -----
+    CTF continuous head monitoring stores the x,y,z location (m) of each chpi
+    coil as seperate channels in the dataset.
+    HLC001[123]-* - nasion
+    HLC002[123]-* - lpa
+    HLC003[123]-* - rpa
+    """
+    if not isinstance(raw, RawCTF):
+        raise RuntimeError('Raw must be from a ctf dataset')
+
+    # make picks to match order of dig cardinial ident codes.
+    # LPA, NAS, RPA
+    hpi_picks = []
+    for i in [2, 1, 3]:
+        hpi_picks.extend(pick_channels_regexp(raw.info['ch_names'],
+                                             'HLC00%d[123]-.*' % i))
+    # make sure we get 9 channels
+    if len(hpi_picks) != 9:
+        raise RuntimeError('Could not find all 9 cHPI channels')
+
+    # process the entire run
+    time_sl = slice(0, len(raw.times))
+    chpi_data = raw[hpi_picks, time_sl][0]
+
+    # grab initial cHPI locations
+    # point sorted in hpi_results are in mne device coords
+    chpi_locs_dev = sorted([d for d in raw.info['hpi_results'][-1]
+                            ['dig_points']], key=lambda x: x['ident'])
+    chpi_locs_dev = np.array([d['r'] for d in chpi_locs_dev])
+
+    # transforms
+    dev_head_t = raw.info['dev_head_t']
+    tmp_trans = _make_ctf_coord_trans_set(None, None)
+    ctf_dev_dev_t = tmp_trans['t_ctf_dev_dev']
+    del tmp_trans
+
+    # move to head coords
+    chpi_locs_head = apply_trans(dev_head_t, chpi_locs_dev)
+
+    # find indicies where chpi locations change
+    indicies = [0]
+    indicies.extend(np.where(np.all(chpi_data[:, :-1] != chpi_data[:, 1:],
+                             axis=0))[0] + 1)
+
+    # initialized quaternion
+    last_quat = np.concatenate([rot_to_quat(dev_head_t['trans'][:3, :3]),
+                                dev_head_t['trans'][:3, 3]])
+
+    quats = []
+    for idx in indicies:
+        # data in channels are in ctf device coordinates (cm)
+        this_ctf_dev = chpi_data[:, idx].reshape(3,3)  # m
+
+        # map to mne device coords
+        this_dev = apply_trans(ctf_dev_dev_t, this_ctf_dev)
+
+        # fit quaternion
+        # this_quat, g = _fit_chpi_quat(this_dev, chpi_locs_head, last_quat)
+        this_quat, g = _fit_chpi_pos(this_dev, chpi_locs_head, last_quat)
+        if g < gof_limit:
+            raise RuntimeError('Bad coil fit! (g=%7.3f)' % (g,))
+
+        if (idx > 0):
+            dt = float(raw.times[idx] - raw.times[idx-1])
+        else:
+            dt = 0.001
+
+        this_locs_head = _apply_quat(this_quat, this_dev, move=True)
+        errs = 1000. * np.sqrt(((chpi_locs_head -
+                                 this_locs_head) ** 2).sum(axis=-1))
+        e = errs.mean() / 1000.  # mm -> m
+        d = 100 * np.sqrt(np.sum(last_quat[3:] - this_quat[3:]) ** 2)  # cm
+        v = d / dt  # cm/sec
+
+        quats.append(np.concatenate(([raw.times[idx]], this_quat, [g],
+                                     [e * 100], [v])))  # e in centimeters
+        last_quat = this_quat
+
+    quats = np.array(quats, np.float64)
+    quats = np.zeros((0, 10)) if quats.size == 0 else quats
+    return quats
+
+# ############################################################################
+# Estimate positions from data
 
 @verbose
 def _get_hpi_info(info, verbose=None):
