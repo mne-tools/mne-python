@@ -30,7 +30,7 @@ from ..io.meas_info import read_fiducials
 from ..source_space import SourceSpaces
 from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
-                       complete_surface_info)
+                       complete_surface_info, mesh_edges)
 from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
@@ -953,6 +953,88 @@ def _limits_to_control_points(clim, stc_data, colormap):
     return ctrl_pts, colormap
 
 
+def _handle_time(time_label, time_unit, times):
+    """Handle time label string and units."""
+    if time_label == 'auto':
+        time_label = 'time=%0.3f ms'
+    if time_unit == 's':
+        times = times
+    elif time_unit == 'ms':
+        times = 1e3 * times
+    else:
+        raise ValueError("time_unit needs to be 's' or 'ms', got %r" %
+                         (time_unit,))
+
+    return time_label, times
+
+
+def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
+                  colormap='RdBu_r', time_label='auto', smoothing_steps=10,
+                  alpha=1.0, subjects_dir=None, views='lat', initial_time=None,
+                  time_unit='s'):
+    """Plot source estimate using mpl."""
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib import cm
+    import nibabel as nib
+    from surfer.utils import smoothing_matrix
+    if colormap == 'auto':
+        colormap = 'RdBu_r'
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    time_label, times = _handle_time(time_label, time_unit, stc.times)
+    time_idx = np.argmin(np.abs(times - initial_time))
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
+    coords, faces = nib.freesurfer.read_geometry(surf)
+    adj_mat = mesh_edges(faces)
+    hemi_idx = 0 if hemi == 'lh' else 1
+
+    if hemi_idx == 0:
+        data = stc.data[:len(stc.vertices[0]), time_idx]
+    else:
+        data = stc.data[len(stc.vertices[0]):, time_idx]
+    vertices = stc.vertices[hemi_idx]
+    smooth_mat = smoothing_matrix(vertices, adj_mat, smoothing_steps)
+    array_plot = smooth_mat * data
+    vmax = np.max(array_plot)
+
+    colors = array_plot / vmax
+    cmap = cm.get_cmap(colormap)
+
+    ax.plot_trisurf(coords[:, 0], coords[:, 1], coords[:, 2], triangles=faces)
+    polyc = ax.collections[0]
+    facecolors = polyc._facecolors3d
+    for idx, face in enumerate(faces):
+        facecolors[idx] = cmap(np.mean(colors[face]))
+    facecolors[:, 3] = alpha
+    polyc.set_facecolors(facecolors)
+
+    if views == 'lat':
+        kwargs = {'elev': 5, 'azim': 0}
+    elif views == 'med':
+        kwargs = {'elev': 5, 'azim': 180}
+    elif views == 'fos':
+        kwargs = {'elev': 5, 'azim': 90}
+    elif views == 'cau':
+        kwargs = {'elev': 5, 'azim': -90}
+    elif views == 'dor':
+        kwargs = {'elev': 90, 'azim': 0}
+    elif views == 'ven':
+        kwargs = {'elev': -90, 'azim': 0}
+    elif views == 'fro':
+        kwargs = {'elev': 5, 'azim': 110}
+    elif views == 'par':
+        kwargs = {'elev': 5, 'azim': -110}
+    ax.view_init(**kwargs)
+    ax.set_title(time_label % times[time_idx])
+    ax.set_xlim(-100, 100)
+    ax.set_ylim(-100, 100)
+    ax.set_zlim(-100, 100)
+    return fig
+
+
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
                           smoothing_steps=10, transparent=None, alpha=1.0,
@@ -1054,13 +1136,19 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     brain : Brain
         A instance of surfer.viz.Brain from PySurfer.
     """
-    import surfer
-    from surfer import Brain, TimeViewer
-    import mayavi
-
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
-
+    import surfer
+    from surfer import Brain, TimeViewer
+    try:
+        import mayavi
+    except ImportError:
+        warn('Mayavi not found. Resorting to matplotlib 3d.')
+        return _plot_mpl_stc(stc, subject=subject, surface=surface, hemi=hemi,
+                             colormap=colormap, time_label=time_label,
+                             smoothing_steps=smoothing_steps, alpha=alpha,
+                             subjects_dir=subjects_dir, views=views,
+                             initial_time=initial_time, time_unit=time_unit)
     surfer_version = LooseVersion(surfer.__version__)
     v06 = LooseVersion('0.6')
     if surfer_version < v06:
@@ -1069,22 +1157,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           "using:\n\n    $ pip install -U pysurfer" %
                           surfer.__version__)
 
-    if time_unit not in ('s', 'ms'):
-        raise ValueError("time_unit needs to be 's' or 'ms', got %r" %
-                         (time_unit,))
-
     if initial_time is not None and surfer_version > v06:
         kwargs = {'initial_time': initial_time}
         initial_time = None  # don't set it twice
     else:
         kwargs = {}
 
-    if time_label == 'auto':
-        if time_unit == 'ms':
-            time_label = 'time=%0.2f ms'
-        else:
-            def time_label(t):
-                return 'time=%0.2f ms' % (t * 1e3)
+    time_label, times = _handle_time(time_label, time_unit, stc.times)
 
     if not isinstance(stc, SourceEstimate):
         raise ValueError('stc has to be a surface source estimate')
@@ -1132,11 +1211,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
                       views=views)
-
-    if time_unit == 's':
-        times = stc.times
-    else:  # time_unit == 'ms'
-        times = 1e3 * stc.times
 
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
