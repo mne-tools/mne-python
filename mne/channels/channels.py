@@ -273,6 +273,13 @@ class SetChannelsMixin(object):
             mastoid reference, when using the 10-20 naming scheme, set
             ``ref_channels=['M1', 'M2']``.
 
+        .. note:: In case of average reference (ref_channels=None), the
+                  reference is added as an SSP projector and it is not applied
+                  automatically. For it to take effect, apply with method
+                  :meth:`apply_proj <mne.io.proj.ProjMixin.apply_proj>`.
+                  For custom reference (ref_channel is not None), this method
+                  operates in place.
+
         Parameters
         ----------
         ref_channels : list of str | None
