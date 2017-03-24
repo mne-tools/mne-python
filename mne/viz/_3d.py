@@ -1064,6 +1064,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     SUBJECTS_DIR environment variable or always use the same value for
     subjects_dir (within the same Python session).
 
+    This function uses Mayavi to plot the source estimates. If Mayavi is not
+    installed, the plotting is done with matplotlib (extremely slow,
+    interactivity disabled).
+
     Parameters
     ----------
     stc : SourceEstimates
@@ -1089,23 +1093,28 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         The amount of smoothing
     transparent : bool | None
         If True, use a linear transparency between fmin and fmid.
-        None will choose automatically based on colormap type.
+        None will choose automatically based on colormap type. Has no effect
+        with mpl backend.
     alpha : float
-        Alpha value to apply globally to the overlay.
+        Alpha value to apply globally to the overlay. Has no effect with mpl
+        backend.
     time_viewer : bool
-        Display time viewer GUI.
+        Display time viewer GUI. Has no effect with mpl backend.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-    figure : instance of mayavi.core.scene.Scene | list | int | None
+    figure : instance of mayavi.core.scene.Scene | instance of matplotlib.figure.Figure | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the Mayavi
-        figure by it's id or create a new figure with the given id.
+        figure by it's id or create a new figure with the given id. If an
+        instance of matplotlib figure, mpl backend is used for plotting.
     views : str | list
-        View to use. See surfer.Brain().
+        View to use. See surfer.Brain(). Supported views: ['lat', 'med', 'fos',
+        'cau', 'dor' 'ven', 'fro', 'par']. Using multiple views is not
+        supported for mpl backend.
     colorbar : bool
-        If True, display colorbar on scene.
+        If True, display colorbar on scene. Not available on mpl backend.
     clim : str | dict
         Colorbar properties specification. If 'auto', set clim automatically
         based on data percentiles. If dict, should contain:
@@ -1121,19 +1130,23 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 will be mirrored directly across zero during colormap
                 construction to obtain negative control points.
 
+        Has no effect with mpl backend.
     cortex : str or tuple
-        specifies how binarized curvature values are rendered.
-        either the name of a preset PySurfer cortex colorscheme (one of
-        'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
-        name of mayavi colormap, or a tuple with values (colormap, min,
-        max, reverse) to fully specify the curvature colors.
+        Specifies how binarized curvature values are rendered.
+        Either the name of a preset PySurfer cortex colorscheme (one of
+        'classic', 'bone', 'low_contrast', or 'high_contrast'), or the name of
+        mayavi colormap, or a tuple with values (colormap, min, max, reverse)
+        to fully specify the curvature colors. Has no effect with mpl backend.
     size : float or pair of floats
         The size of the window, in pixels. can be one number to specify
         a square window, or the (width, height) of a rectangular window.
+        Has no effect with mpl backend.
     background : matplotlib color
-        Color of the background of the display window.
+        Color of the background of the display window. Has no effect with mpl
+        backend.
     foreground : matplotlib color
-        Color of the foreground of the display window.
+        Color of the foreground of the display window. Has no effect with mpl
+        backend.
     initial_time : float | None
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).
@@ -1145,8 +1158,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     Returns
     -------
     brain : Brain
-        A instance of surfer.viz.Brain from PySurfer.
-    """
+        A instance of surfer.viz.Brain from PySurfer or matplotlib figure.
+    """  # noqa: E501
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     import surfer
@@ -1202,7 +1215,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         elif not isinstance(figure, (list, tuple)):
             figure = [figure]
         if not all(isinstance(f, mayavi.core.scene.Scene) for f in figure):
-            raise TypeError('figure must be a mayavi scene or list of scenes')
+            raise TypeError('figure must be a matplotlib figure, mayavi scene '
+                            'or list of scenes')
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
