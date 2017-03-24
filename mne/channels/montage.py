@@ -649,18 +649,17 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                         'Right periauricular point': 'rpa',
                         'Left periauricular point': 'lpa'}
 
-        scale = dict(mm=1e-3, cm=1e-2, auto=1e-2, m=None)
+        scale = dict(mm=1e-3, cm=1e-2, auto=1e-2, m=1)
         if unit not in scale:
             raise ValueError("Unit needs to be one of %s, not %r" %
-                             (tuple(map(repr, scale)), unit))
+                             (sorted(scale.keys()), unit))
 
         for s in sensors:
             name, number, kind = s[0].text, int(s[1].text), int(s[2].text)
             coordinates = np.array([float(s[3].text), float(s[4].text),
                                     float(s[5].text)])
 
-            if scale[unit] is not None:
-                coordinates *= scale[unit]
+            coordinates *= scale[unit]
 
             # EEG Channels
             if kind == 0:
