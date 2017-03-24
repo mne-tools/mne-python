@@ -683,15 +683,15 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     else:
         fids = [None] * 3
         dig_ch_pos = None
-        scale = {'mm': 1e-3, 'cm': 1e-2, 'auto': 1e-3, 'm': None}
+        scale = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
         if unit not in scale:
             raise ValueError("Unit needs to be one of %s, not %r" %
-                             (tuple(map(repr, scale)), unit))
+                             (sorted(scale.keys()), unit))
 
         # HSP
         if isinstance(hsp, string_types):
             hsp = _read_dig_points(hsp, unit=unit)
-        elif hsp is not None and scale[unit]:
+        elif hsp is not None:
             hsp *= scale[unit]
 
         # HPI
