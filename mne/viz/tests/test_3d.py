@@ -191,6 +191,7 @@ def test_plot_trans():
 @requires_mayavi
 def test_limits_to_control_points():
     """Test functionality for determing control points."""
+    import matplotlib.pyplot as plt
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
 
@@ -229,6 +230,12 @@ def test_limits_to_control_points():
     assert_raises(ValueError, plot_source_estimates, 'foo', clim='auto',
                   **kwargs)
     assert_raises(ValueError, stc.plot, hemi='foo', clim='auto', **kwargs)
+
+    # Test mpl plottting
+    fig = plt.figure()
+    stc.plot(subjects_dir=subjects_dir, figure=fig)
+    assert_raises(ValueError, stc.plot, figure=fig, hemi='both')
+    plt.close('all')
 
     # Test handling of degenerate data
     with warnings.catch_warnings(record=True) as w:

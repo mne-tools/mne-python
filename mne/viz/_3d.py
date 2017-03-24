@@ -969,22 +969,46 @@ def _handle_time(time_label, time_unit, times):
 
 
 def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
-                  colormap='RdBu_r', time_label='auto', smoothing_steps=10,
-                  alpha=1.0, subjects_dir=None, views='lat', initial_time=None,
-                  time_unit='s'):
+                  colormap='auto', time_label='auto', smoothing_steps=10,
+                  alpha=1.0, subjects_dir=None, views='lat', figure=None,
+                  initial_time=0, time_unit='s'):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
+    from mpl_toolkits.mplot3d import Axes3D, art3d
     from matplotlib import cm
     import nibabel as nib
     from surfer.utils import smoothing_matrix
+    if hemi not in ['lh', 'rh']:
+        raise ValueError("hemi must be 'lh' or 'rh' when using matplotlib. "
+                         "Got %s." % hemi)
+    if views == 'lat':
+        kwargs = {'elev': 5, 'azim': 0}
+    elif views == 'med':
+        kwargs = {'elev': 5, 'azim': 180}
+    elif views == 'fos':
+        kwargs = {'elev': 5, 'azim': 90}
+    elif views == 'cau':
+        kwargs = {'elev': 5, 'azim': -90}
+    elif views == 'dor':
+        kwargs = {'elev': 90, 'azim': 0}
+    elif views == 'ven':
+        kwargs = {'elev': -90, 'azim': 0}
+    elif views == 'fro':
+        kwargs = {'elev': 5, 'azim': 110}
+    elif views == 'par':
+        kwargs = {'elev': 5, 'azim': -110}
+    else:
+        raise ValueError("views must be one of ['lat', 'med', 'fos', 'cau', "
+                         "'dor' 'ven', 'fro', 'par']. Got %s." % views)
     if colormap == 'auto':
-        colormap = 'RdBu_r'
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
+        colormap = mne_analyze_colormap(format='matplotlib')
+
     time_label, times = _handle_time(time_label, time_unit, stc.times)
-    time_idx = np.argmin(np.abs(times - initial_time))
-    fig = plt.figure()
+    if initial_time is None:
+        time_idx = 0
+    else:
+        time_idx = np.argmin(np.abs(times - initial_time))
+    fig = plt.figure() if figure is None else figure
     ax = Axes3D(fig)
     surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
     coords, faces = nib.freesurfer.read_geometry(surf)
@@ -1005,33 +1029,20 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     ax.plot_trisurf(coords[:, 0], coords[:, 1], coords[:, 2], triangles=faces)
     polyc = ax.collections[0]
-    facecolors = polyc._facecolors3d
+    facecolors = art3d.PolyCollection.get_facecolors(polyc)
     for idx, face in enumerate(faces):
         facecolors[idx] = cmap(np.mean(colors[face]))
     facecolors[:, 3] = alpha
     polyc.set_facecolors(facecolors)
 
-    if views == 'lat':
-        kwargs = {'elev': 5, 'azim': 0}
-    elif views == 'med':
-        kwargs = {'elev': 5, 'azim': 180}
-    elif views == 'fos':
-        kwargs = {'elev': 5, 'azim': 90}
-    elif views == 'cau':
-        kwargs = {'elev': 5, 'azim': -90}
-    elif views == 'dor':
-        kwargs = {'elev': 90, 'azim': 0}
-    elif views == 'ven':
-        kwargs = {'elev': -90, 'azim': 0}
-    elif views == 'fro':
-        kwargs = {'elev': 5, 'azim': 110}
-    elif views == 'par':
-        kwargs = {'elev': 5, 'azim': -110}
     ax.view_init(**kwargs)
     ax.set_title(time_label % times[time_idx])
     ax.set_xlim(-100, 100)
     ax.set_ylim(-100, 100)
     ax.set_zlim(-100, 100)
+    ax.set_aspect('equal')
+    ax.disable_mouse_rotation()
+    plt.show()
     return fig
 
 
@@ -1140,6 +1151,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     from ..source_estimate import SourceEstimate
     import surfer
     from surfer import Brain, TimeViewer
+    import matplotlib.pyplot as plt
+    if not isinstance(stc, SourceEstimate):
+        raise ValueError('stc has to be a surface source estimate')
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    subject = _check_subject(stc.subject, subject, True)
     try:
         import mayavi
     except ImportError:
@@ -1148,7 +1165,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              colormap=colormap, time_label=time_label,
                              smoothing_steps=smoothing_steps, alpha=alpha,
                              subjects_dir=subjects_dir, views=views,
-                             initial_time=initial_time, time_unit=time_unit)
+                             figure=figure, initial_time=initial_time,
+                             time_unit=time_unit)
     surfer_version = LooseVersion(surfer.__version__)
     v06 = LooseVersion('0.6')
     if surfer_version < v06:
@@ -1163,11 +1181,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     else:
         kwargs = {}
 
-    time_label, times = _handle_time(time_label, time_unit, stc.times)
-
-    if not isinstance(stc, SourceEstimate):
-        raise ValueError('stc has to be a surface source estimate')
-
     if hemi not in ['lh', 'rh', 'split', 'both']:
         raise ValueError('hemi has to be either "lh", "rh", "split", '
                          'or "both"')
@@ -1178,11 +1191,20 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             # use figure with specified id
             size_ = size if isinstance(size, (tuple, list)) else (size, size)
             figure = [mayavi.mlab.figure(figure, size=size_)]
+        elif isinstance(figure, plt.Figure):
+            return _plot_mpl_stc(stc, subject=subject, surface=surface,
+                                 hemi=hemi, colormap=colormap,
+                                 time_label=time_label,
+                                 smoothing_steps=smoothing_steps, alpha=alpha,
+                                 subjects_dir=subjects_dir, views=views,
+                                 figure=figure, initial_time=initial_time,
+                                 time_unit=time_unit)
         elif not isinstance(figure, (list, tuple)):
             figure = [figure]
         if not all(isinstance(f, mayavi.core.scene.Scene) for f in figure):
             raise TypeError('figure must be a mayavi scene or list of scenes')
 
+    time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
     ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
 
@@ -1196,9 +1218,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         scale_pts = ctrl_pts
         transparent = True if transparent is None else transparent
 
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
-    subject = _check_subject(stc.subject, subject, True)
     if hemi in ['both', 'split']:
         hemis = ['lh', 'rh']
     else:
