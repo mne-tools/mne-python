@@ -401,7 +401,7 @@ def test_fif_dig_montage():
 @testing.requires_testing_data
 def test_egi_dig_montage():
     """Test EGI MFF XML dig montage support."""
-    dig_montage = read_dig_montage(egi=egi_dig_montage_fname)
+    dig_montage = read_dig_montage(egi=egi_dig_montage_fname, unit='im')
 
     # # test round-trip IO
     temp_dir = _TempDir()
