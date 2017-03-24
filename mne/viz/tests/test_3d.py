@@ -71,6 +71,7 @@ def test_plot_head_positions():
 @requires_mayavi
 def test_plot_sparse_source_estimates():
     """Test plotting of (sparse) source estimates."""
+    import matplotlib.pyplot as plt
     sample_src = read_source_spaces(src_fname)
 
     # dense version
@@ -102,6 +103,17 @@ def test_plot_sparse_source_estimates():
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                  opacity=0.5, high_resolution=False)
+
+    # Test plotting with mpl.
+    fig = plt.figure()
+    stc.plot(subjects_dir=subjects_dir, figure=fig, time_unit='ms',
+             views='dor', smoothing_steps=2, subject='sample')
+
+    assert_raises(ValueError, stc.plot, figure=fig, hemi='both',
+                  subject='sample')
+    assert_raises(ValueError, stc.plot, figure=fig, time_unit='ss',
+                  subject='sample')
+    plt.close('all')
 
 
 @testing.requires_testing_data
@@ -191,7 +203,6 @@ def test_plot_trans():
 @requires_mayavi
 def test_limits_to_control_points():
     """Test functionality for determing control points."""
-    import matplotlib.pyplot as plt
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
 
@@ -230,12 +241,6 @@ def test_limits_to_control_points():
     assert_raises(ValueError, plot_source_estimates, 'foo', clim='auto',
                   **kwargs)
     assert_raises(ValueError, stc.plot, hemi='foo', clim='auto', **kwargs)
-
-    # Test mpl plottting
-    fig = plt.figure()
-    stc.plot(subjects_dir=subjects_dir, figure=fig)
-    assert_raises(ValueError, stc.plot, figure=fig, hemi='both')
-    plt.close('all')
 
     # Test handling of degenerate data
     with warnings.catch_warnings(record=True) as w:
