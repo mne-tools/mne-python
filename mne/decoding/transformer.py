@@ -175,7 +175,7 @@ class Scaler(TransformerMixin, BaseEstimator):
     def fit_transform(self, epochs_data, y=None):
         """Fit to data, then transform it.
 
-        Fits transformer to epochs_data and y and returns a transformed version 
+        Fits transformer to epochs_data and y and returns a transformed version
         of epochs_data.
 
         Parameters
@@ -196,9 +196,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
-        return _sklearn_reshape_apply(self._scaler.fit_transform, True,
-                                      epochs_data, y)
-
+        return self.fit(epochs_data, y).transform(epochs_data)
 
     def inverse_transform(self, epochs_data):
         """Invert standardization of data across channels.
