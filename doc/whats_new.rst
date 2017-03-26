@@ -25,7 +25,7 @@ Changelog
 BUG
 ~~~
 
-    - ...
+    - Fix unit scaling when reading in EGI digitization files using :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
 
 API
 ~~~

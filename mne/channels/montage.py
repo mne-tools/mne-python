@@ -649,10 +649,18 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                         'Right periauricular point': 'rpa',
                         'Left periauricular point': 'lpa'}
 
+        scale = dict(mm=1e-3, cm=1e-2, auto=1e-2, m=1)
+        if unit not in scale:
+            raise ValueError("Unit needs to be one of %s, not %r" %
+                             (sorted(scale.keys()), unit))
+
         for s in sensors:
             name, number, kind = s[0].text, int(s[1].text), int(s[2].text)
             coordinates = np.array([float(s[3].text), float(s[4].text),
                                     float(s[5].text)])
+
+            coordinates *= scale[unit]
+
             # EEG Channels
             if kind == 0:
                 dig_ch_pos['EEG %03d' % number] = coordinates
@@ -675,15 +683,15 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     else:
         fids = [None] * 3
         dig_ch_pos = None
-        scale = {'mm': 1e-3, 'cm': 1e-2, 'auto': 1e-3, 'm': None}
+        scale = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
         if unit not in scale:
             raise ValueError("Unit needs to be one of %s, not %r" %
-                             (tuple(map(repr, scale)), unit))
+                             (sorted(scale.keys()), unit))
 
         # HSP
         if isinstance(hsp, string_types):
             hsp = _read_dig_points(hsp, unit=unit)
-        elif hsp is not None and scale[unit]:
+        elif hsp is not None:
             hsp *= scale[unit]
 
         # HPI
