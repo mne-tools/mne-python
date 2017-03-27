@@ -130,8 +130,8 @@ class _SearchLight(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : array, shape (n_samples, nd_features, n_tasks)
-            The input samples. For each data slice/task, the corresponding estimator
-            makes a transformation of the data:
+            The input samples. For each data slice/task, the corresponding
+            estimator makes a transformation of the data:
             e.g. [estimators[ii].transform(X[..., ii])
                   for ii in range(n_estimators)]
             The feature dimension can be multidimensional e.g.
@@ -358,13 +358,10 @@ def _sl_score(estimators, scoring, X, y):
     score : array, shape (n_tasks,)
         The score for each task / slice of data.
     """
-    from sklearn.metrics.scorer import check_scoring
     n_tasks = X.shape[-1]
     score = np.zeros(n_tasks)
     for ii, est in enumerate(estimators):
-        this_scoring = check_scoring(est, scoring)
-        this_y = _fix_auc(this_scoring, y)
-        score[ii] = this_scoring(est, X[..., ii], this_y)
+        score[ii] = scoring(est, X[..., ii], y)
     return score
 
 
@@ -614,24 +611,14 @@ def _gl_score(estimators, scoring, X, y):
     """
     # FIXME: The level parallization may be a bit high, and might be memory
     # consuming. Perhaps need to lower it down to the loop across X slices.
-    n_iter = X.shape[-1]
-    n_est = len(estimators)
+    score_shape = [len(estimators), X.shape[-1]]
     for ii, est in enumerate(estimators):
         for jj in range(X.shape[-1]):
-            if scoring is not None:
-                _score = scoring(est, X[..., jj], y)
-            else:
-                _score = est.score(X[..., jj], y)
-
+            _score = scoring(est, X[..., jj], y)
             # Initialize array of predictions on the first score iteration
             if (ii == 0) & (jj == 0):
-                if isinstance(_score, np.ndarray):
-                    dtype = _score.dtype
-                    shape = np.r_[n_est, n_iter, _score.shape]
-                else:
-                    dtype = type(_score)
-                    shape = [n_est, n_iter]
-                score = np.zeros(shape, dtype)
+                dtype = type(_score)
+                score = np.zeros(score_shape, dtype)
             score[ii, jj, ...] = _score
     return score
 

@@ -96,7 +96,6 @@ def test_search_light():
 
     # Check that scoring was applied adequately
     scoring = make_scorer(roc_auc_score)
-
     score_manual = [scoring(est, x, y) for est, x in zip(
                     sl1.estimators_, X.transpose(2, 0, 1))]
     assert_array_equal(score_manual, score_sl)
