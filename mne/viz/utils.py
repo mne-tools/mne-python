@@ -1031,7 +1031,7 @@ class ClickableImage(object):
         self.ax = self.fig.add_subplot(111)
         self.ymax = self.imdata.shape[0]
         self.xmax = self.imdata.shape[1]
-        self.im = self.ax.imshow(imdata, aspect='auto',
+        self.im = self.ax.imshow(imdata,
                                  extent=(0, self.xmax, 0, self.ymax),
                                  picker=True, **kwargs)
         self.ax.axis('off')
