@@ -1937,6 +1937,8 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
               % (len(data_sum) - len(idx_use), len(data_sum)))
 
     logger.info('    %d smooth iterations done.' % (k + 1))
+    if maps is None:
+        return data
     data_morphed = maps[nearest, :] * data
     return data_morphed
 

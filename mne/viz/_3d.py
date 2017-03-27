@@ -28,6 +28,7 @@ from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials
 from ..source_space import SourceSpaces
+from ..source_estimate import _morph_buffer
 from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
                        complete_surface_info, mesh_edges)
@@ -977,27 +978,18 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     from mpl_toolkits.mplot3d import Axes3D, art3d
     from matplotlib import cm
     import nibabel as nib
-    from surfer.utils import smoothing_matrix
     if hemi not in ['lh', 'rh']:
         raise ValueError("hemi must be 'lh' or 'rh' when using matplotlib. "
                          "Got %s." % hemi)
-    if views == 'lat':
-        kwargs = {'elev': 5, 'azim': 0}
-    elif views == 'med':
-        kwargs = {'elev': 5, 'azim': 180}
-    elif views == 'fos':
-        kwargs = {'elev': 5, 'azim': 90}
-    elif views == 'cau':
-        kwargs = {'elev': 5, 'azim': -90}
-    elif views == 'dor':
-        kwargs = {'elev': 90, 'azim': 0}
-    elif views == 'ven':
-        kwargs = {'elev': -90, 'azim': 0}
-    elif views == 'fro':
-        kwargs = {'elev': 5, 'azim': 110}
-    elif views == 'par':
-        kwargs = {'elev': 5, 'azim': -110}
-    else:
+    kwargs = {'lat': {'elev': 5, 'azim': 0},
+              'med': {'elev': 5, 'azim': 180},
+              'fos': {'elev': 5, 'azim': 90},
+              'cau': {'elev': 5, 'azim': -90},
+              'dor': {'elev': 90, 'azim': 0},
+              'ven': {'elev': -90, 'azim': 0},
+              'fro': {'elev': 5, 'azim': 110},
+              'par': {'elev': 5, 'azim': -110}}
+    if views not in kwargs:
         raise ValueError("views must be one of ['lat', 'med', 'fos', 'cau', "
                          "'dor' 'ven', 'fro', 'par']. Got %s." % views)
     if colormap == 'auto':
@@ -1016,12 +1008,13 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     hemi_idx = 0 if hemi == 'lh' else 1
 
     if hemi_idx == 0:
-        data = stc.data[:len(stc.vertices[0]), time_idx]
+        data = stc.data[:len(stc.vertices[0]), time_idx:time_idx + 1]
     else:
-        data = stc.data[len(stc.vertices[0]):, time_idx]
+        data = stc.data[len(stc.vertices[0]):, time_idx:time_idx + 1]
     vertices = stc.vertices[hemi_idx]
-    smooth_mat = smoothing_matrix(vertices, adj_mat, smoothing_steps)
-    array_plot = smooth_mat * data
+    n_verts = len(vertices)
+    array_plot = _morph_buffer(data, np.arange(n_verts), adj_mat,
+                               smoothing_steps, n_verts, vertices, None)
     vmax = np.max(array_plot)
 
     colors = array_plot / vmax
@@ -1035,7 +1028,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     facecolors[:, 3] = alpha
     polyc.set_facecolors(facecolors)
 
-    ax.view_init(**kwargs)
+    ax.view_init(**kwargs[views])
     ax.set_title(time_label % times[time_idx])
     ax.set_xlim(-100, 100)
     ax.set_ylim(-100, 100)
@@ -1162,8 +1155,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     """  # noqa: E501
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
-    import surfer
-    from surfer import Brain, TimeViewer
     import matplotlib.pyplot as plt
     if not isinstance(stc, SourceEstimate):
         raise ValueError('stc has to be a surface source estimate')
@@ -1180,6 +1171,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              subjects_dir=subjects_dir, views=views,
                              figure=figure, initial_time=initial_time,
                              time_unit=time_unit)
+    import surfer
+    from surfer import Brain, TimeViewer
     surfer_version = LooseVersion(surfer.__version__)
     v06 = LooseVersion('0.6')
     if surfer_version < v06:
