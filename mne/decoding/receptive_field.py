@@ -26,8 +26,9 @@ class ReceptiveField(BaseEstimator):
         float is passed, it will be interpreted as the `alpha` parameter
         to be passed to a Ridge regression model. If `None`, then a Ridge
         regression model with an alpha of 0 will be used.
-    scorer : object | None | str
-        scikit-learn Scorer instance or str type indicating the name of the
+    scoring : object | None | str
+        A function that takes the inputs `y_true` and `y_pred` and outputs
+        a score between them. Or, a str type indicating the name of the
         scorer. If None, set to ``r2``.
 
     Attributes
@@ -73,13 +74,13 @@ class ReceptiveField(BaseEstimator):
     """
 
     def __init__(self, tmin, tmax, sfreq, feature_names=None,
-                 estimator=None, scorer=None):  # noqa: D102
+                 estimator=None, scoring=None):  # noqa: D102
         self.feature_names = feature_names
         self.sfreq = float(sfreq)
         self.tmin = tmin
         self.tmax = tmax
         self.estimator = 0. if estimator is None else estimator
-        self.scorer = scorer
+        self.scoring = scoring
 
         # Initialize delays
         self._delays = _times_to_delays(self.tmin, self.tmax, self.sfreq)
@@ -206,8 +207,9 @@ class ReceptiveField(BaseEstimator):
         from sklearn import metrics
 
         # Create our scoring object
-        self.scorer_ = self.scorer
-        self.scorer_ = metrics.r2_score if self.scorer is None else self.scorer
+        self.scorer_ = self.scoring
+        if self.scorer_ is None:
+            self.scorer_ = metrics.r2_score
 
         if isinstance(self.scorer_, str):
             if hasattr(metrics, '%s_score' % self.scorer_):
@@ -232,13 +234,13 @@ class ReceptiveField(BaseEstimator):
 
     def _delay_for_fit(self, X):
         # First delay
-        X_del = delay_time_series(X, self.tmin, self.tmax, self.sfreq,
-                                  newaxis=X.ndim)
+        X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
+                                   newaxis=X.ndim)
 
         # Mask for removing edges later
         msk_helper = np.ones(X.shape[0])
-        msk_helper = delay_time_series(msk_helper, self.tmin, self.tmax,
-                                       self.sfreq)
+        msk_helper = _delay_time_series(msk_helper, self.tmin, self.tmax,
+                                        self.sfreq)
         msk = ~np.any(msk_helper == 0, axis=0)
         return X_del, msk
 
@@ -286,7 +288,7 @@ class ReceptiveField(BaseEstimator):
         return X, y
 
 
-def delay_time_series(X, tmin, tmax, sfreq, newaxis=0, axis=0):
+def _delay_time_series(X, tmin, tmax, sfreq, newaxis=0, axis=0):
     """Return a time-lagged input time series.
 
     Parameters

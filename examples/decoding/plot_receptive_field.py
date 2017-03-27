@@ -72,9 +72,10 @@ n_channels = len(raw.ch_names)
 
 # Plot a sample of brain and stimulus activity
 fig, ax = plt.subplots()
-ax.plot(scale(raw[:][0][..., :800].T), color='k', alpha=.1)
-ax.plot(scale(speech[0, :800]), color='r', lw=2)
-ax.set(title="Sample brain and stimulus activity", xlabel="Time (s)")
+lns = ax.plot(scale(raw[:, :800][0].T), color='k', alpha=.1)
+ln1 = ax.plot(scale(speech[0, :800]), color='r', lw=2)
+ax.legend([lns[0], ln1[0]], ['EEG', 'Speech Envelope'], frameon=False)
+ax.set(title="Sample activity", xlabel="Time (s)")
 mne.viz.tight_layout()
 
 ###############################################################################
@@ -89,9 +90,8 @@ mne.viz.tight_layout()
 tmin, tmax = -.4, .2
 
 # Initialize the model
-spec_names = ['freq_%s' % ii for ii in range(speech.shape[0])]
-rf = ReceptiveField(tmin, tmax, sfreq, feature_names=spec_names,
-                    estimator=Ridge(alpha=1.), scorer=corr_score)
+rf = ReceptiveField(tmin, tmax, sfreq, feature_names=['envelope'],
+                    estimator=Ridge(alpha=1.), scoring=corr_score)
 n_delays = int((tmax - tmin) * sfreq) + 2  # +2 to account for 0 + end
 
 n_splits = 3
@@ -103,8 +103,8 @@ Y, _ = raw[:]  # Outputs for the model
 Y = Y.T
 
 # Iterate through folds, fit the model, and predict/test on held-out data
-coefs = np.zeros([n_splits, n_channels, n_delays])
-scores = np.zeros([n_splits, n_channels])
+coefs = np.zeros((n_splits, n_channels, n_delays))
+scores = np.zeros((n_splits, n_channels))
 for ii, (train, test) in enumerate(cv.split(speech)):
     print('CV iteration %s' % ii)
     rf.fit(speech[train], Y[train])
@@ -112,8 +112,8 @@ for ii, (train, test) in enumerate(cv.split(speech)):
     coefs[ii] = rf.coef_
 
 # Average scores and coefficients across CV splits
-mean_coefs = coefs.mean(0)
-mean_scores = scores.mean(0)
+mean_coefs = coefs.mean(axis=0)
+mean_scores = scores.mean(axis=0)
 
 # Plot mean prediction scores across all channels
 fig, ax = plt.subplots()

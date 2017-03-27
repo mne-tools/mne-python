@@ -41,7 +41,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne.decoding import ReceptiveField, delay_time_series
+from mne.decoding import ReceptiveField
 
 from scipy.stats import multivariate_normal
 from scipy.io import loadmat
@@ -54,6 +54,11 @@ rng = np.random.RandomState(1337)  # To make this example reproducible
 # ---------------
 #
 # We'll read in the audio data from [3]_ in order to simulate a response.
+#
+# In addition, we'll downsample the data along the time dimension in order to
+# speed up computation. Note that depending on the input values, this may
+# not be desired. For example if your input stimulus varies more quickly than
+# 1/2 the sampling rate to which we are downsampling.
 
 # Read in audio that's been recorded in epochs.
 path_audio = mne.datasets.mtrf.data_path()
@@ -107,6 +112,12 @@ mne.viz.tight_layout()
 #
 # Using this receptive field, we'll create an artificial neural response to
 # a stimulus.
+#
+# To do this, we'll create a time-delayed version of the receptive field, and
+# then calculate the dot product between this and the stimulus. Note that this
+# is effectively doing a convolution between the stimulus and the receptive
+# field. See `here <https://en.wikipedia.org/wiki/Convolution>`_ for more
+# information.
 
 # Reshape audio to split into epochs, then make epochs the first dimension.
 n_epochs, n_seconds = 30, 3
@@ -116,13 +127,33 @@ n_times = X.shape[-1]
 
 # Delay the spectrogram according to delays so it can be combined w/ the STRF
 # Lags will now be in axis 1, then we reshape to vectorize
-X_del = delay_time_series(X, tmin, tmax, sfreq, newaxis=1, axis=-1)
+delays = np.arange(np.round(tmin * sfreq),
+                   np.round(tmax * sfreq) + 1).astype(int)
+
+# Iterate through indices and append
+X_del = np.zeros((len(delays),) + X.shape)
+for ii, ix_delay in enumerate(delays):
+    # These arrays will take/put particular indices in the data
+    take = [slice(None)] * X.ndim
+    put = [slice(None)] * X.ndim
+    if ix_delay < 0:
+        take[-1] = slice(None, ix_delay)
+        put[-1] = slice(-ix_delay, None)
+    elif ix_delay > 0:
+        take[-1] = slice(ix_delay, None)
+        put[-1] = slice(None, -ix_delay)
+    else:
+        pass
+    X_del[ii][put] = X[take]
+
+# Now set the delayed axis to the 2nd dimension
+X_del = np.rollaxis(X_del, 0, 2)
 X_del = X_del.reshape([n_epochs, -1, n_times])
 n_features = X_del.shape[1]
 weights_sim = weights.ravel()
 
 # Simulate a neural response to the sound, given this STRF
-y = np.zeros([n_epochs, n_times])
+y = np.zeros((n_epochs, n_times))
 for ii, iep in enumerate(X_del):
     # Simulate this epoch and add random noise
     noise_amp = .0005
@@ -172,7 +203,7 @@ for ii, alpha in enumerate(alphas):
 ix_best_alpha = np.argmax(scores)
 best_mod = models[ix_best_alpha]
 coefs = best_mod.coef_
-best_pred = best_mod.predict(X_test).squeeze()
+best_pred = best_mod.predict(X_test)[:, 0]
 
 # Plot the original STRF, and the one that we recovered with modeling.
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)

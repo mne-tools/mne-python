@@ -7,10 +7,13 @@ import os.path as op
 from nose.tools import assert_raises, assert_true, assert_equal
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
+from scipy.stats import pearsonr
+from sklearn.metrics import r2_score
 
 from mne import io, pick_types
 from mne.utils import requires_sklearn_0_15, run_tests_if_main
-from mne.decoding import ReceptiveField, delay_time_series
+from mne.decoding import ReceptiveField
+from mne.decoding.receptive_field import _delay_time_series
 from mne.decoding.base import _get_final_est
 
 
@@ -43,18 +46,18 @@ def test_time_delay():
     X_sp = csr_matrix(X_sp)
     for (tmin, tmax), isfreq in [((0, 2), 1), ((0, .2), 10)]:
         # sfreq must be int/float
-        assert_raises(ValueError, delay_time_series, X, tmin, tmax,
+        assert_raises(ValueError, _delay_time_series, X, tmin, tmax,
                       sfreq=[1])
         # Delays must be int/float
-        assert_raises(ValueError, delay_time_series, X,
+        assert_raises(ValueError, _delay_time_series, X,
                       np.complex(tmin), tmax, 1)
         # Make sure swapaxes works
-        delayed = delay_time_series(X, tmin, tmax, isfreq,
-                                    newaxis=2, axis=-1)
+        delayed = _delay_time_series(X, tmin, tmax, isfreq,
+                                     newaxis=2, axis=-1)
         assert_equal(delayed.shape[2], 3)
 
         for idata in [X, X_sp]:
-            X_delayed = delay_time_series(X, tmin, tmax, isfreq, axis=-1)
+            X_delayed = _delay_time_series(X, tmin, tmax, isfreq, axis=-1)
             assert_array_equal(X_delayed[0], X)
             assert_array_equal(X_delayed[1][0, :-1], X[0, 1:])
             assert_equal(len(X_delayed), (tmax - tmin) * isfreq + 1)
@@ -79,7 +82,7 @@ def test_receptive_field():
     w = rng.randn((tmax - tmin + 1) * n_feats)
 
     # Delay inputs and cut off first 4 values since they'll be cut in the fit
-    X_del = np.vstack(delay_time_series(X, tmin, tmax, 1., axis=-1))
+    X_del = np.vstack(_delay_time_series(X, tmin, tmax, 1., axis=-1))
     y = np.dot(w, X_del)
     X = np.rollaxis(X, -1, 0)  # time to first dimension
 
@@ -127,6 +130,20 @@ def test_receptive_field():
     # tmin must be <= tmax
     rf = ReceptiveField(5, 4, 1)
     assert_raises(ValueError, rf.fit, X, y)
+    # Custom scorer
+    rf = ReceptiveField(tmin, tmax, 1, ['one'],
+                        estimator=0, scoring='r2')
+    rf.fit(X[:, [0]], y)
+    y_pred = rf.predict(X[:, [0]])
+    assert_array_almost_equal(r2_score(y, y_pred), rf.score(X[:, [0]], y), 4)
+
+    def corr_score(y_true, y, multioutput=None):
+        return pearsonr(y_true, y)[0]
+    rf = ReceptiveField(tmin, tmax, 1, ['one'],
+                        estimator=0, scoring=corr_score)
+    rf.fit(X[:, [0]], y)
+    y_pred = rf.predict(X[:, [0]]).squeeze()
+    assert_array_almost_equal(corr_score(y, y_pred), rf.score(X[:, [0]], y), 4)
 
 
 run_tests_if_main()
