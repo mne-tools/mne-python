@@ -17,7 +17,7 @@ from sklearn.linear_model import LogisticRegression
 
 import mne
 from mne.datasets import sample
-from mne.decoding import (_SearchLight, _GeneralizationLight,
+from mne.decoding import (SearchLight, GeneralizationLight,
                           cross_val_multiscore)
 
 data_path = sample.data_path()
@@ -64,7 +64,7 @@ y = epochs.events[:, 2]  # target: Audio left or right
 
 clf = make_pipeline(StandardScaler(), LogisticRegression())
 
-sl = _SearchLight(clf, n_jobs=1, scoring='roc_auc')
+sl = SearchLight(clf, n_jobs=1, scoring='roc_auc')
 
 scores = cross_val_multiscore(sl, X, y, cv=4, n_jobs=1)
 
@@ -92,7 +92,7 @@ plt.show()
 # generalizes to any other time point.
 
 # define the Generalization Across Time (GAT) object
-gl = _GeneralizationLight(clf, n_jobs=1, scoring='roc_auc')
+gl = GeneralizationLight(clf, n_jobs=1, scoring='roc_auc')
 
 scores = cross_val_multiscore(gl, X, y, cv=4, n_jobs=1)
 

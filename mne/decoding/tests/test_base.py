@@ -8,7 +8,7 @@ from nose.tools import assert_true, assert_equal, assert_raises
 from ...utils import requires_sklearn_0_15
 from ..base import (_get_inverse_funcs, LinearModel, get_coef,
                     cross_val_multiscore)
-from ..search_light import _SearchLight
+from ..search_light import SearchLight
 
 
 @requires_sklearn_0_15
@@ -105,7 +105,7 @@ def test_get_coef():
     n_samples, n_features, n_times = 20, 3, 5
     y = np.arange(n_samples) % 2
     X = np.random.rand(n_samples, n_features, n_times)
-    clf = _SearchLight(make_pipeline(StandardScaler(), LinearModel()))
+    clf = SearchLight(make_pipeline(StandardScaler(), LinearModel()))
     clf.fit(X, y)
     for inverse in (True, False):
         patterns = get_coef(clf, 'patterns_', inverse)
@@ -146,7 +146,7 @@ def test_cross_val_multiscore():
     # Test with search light
     X = np.random.rand(20, 4, 3)
     y = np.arange(20) % 2
-    clf = _SearchLight(LogisticRegression(), scoring='accuracy')
+    clf = SearchLight(LogisticRegression(), scoring='accuracy')
     scores_acc = cross_val_multiscore(clf, X, y, cv=cv)
     assert_array_equal(np.shape(scores_acc), [2, 3])
 
@@ -163,7 +163,7 @@ def test_cross_val_multiscore():
     # prediction.
     assert_raises(ValueError, cross_val_multiscore, clf, X, y, cv=cv,
                   scoring='roc_auc')
-    clf = _SearchLight(LogisticRegression(), scoring='roc_auc')
+    clf = SearchLight(LogisticRegression(), scoring='roc_auc')
     scores_auc = cross_val_multiscore(clf, X, y, cv=cv, n_jobs=2)
     scores_auc_manual = list()
     for train, test in cv.split(X, y):

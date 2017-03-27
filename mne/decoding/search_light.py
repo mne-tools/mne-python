@@ -9,7 +9,7 @@ from .base import BaseEstimator, _check_estimator
 from ..parallel import parallel_func
 
 
-class _SearchLight(BaseEstimator, TransformerMixin):
+class SearchLight(BaseEstimator, TransformerMixin):
     """Search Light.
 
     Fit, predict and score a series of models to each subset of the dataset
@@ -47,7 +47,7 @@ class _SearchLight(BaseEstimator, TransformerMixin):
             raise ValueError('n_jobs must be int, got %s' % n_jobs)
 
     def __repr__(self):  # noqa: D105
-        repr_str = '<' + super(_SearchLight, self).__repr__()
+        repr_str = '<' + super(SearchLight, self).__repr__()
         if hasattr(self, 'estimators_'):
             repr_str = repr_str[:-1]
             repr_str += ', fitted with %i estimators' % len(self.estimators_)
@@ -269,7 +269,7 @@ class _SearchLight(BaseEstimator, TransformerMixin):
 
 
 def _sl_fit(estimator, X, y):
-    """Aux. function to fit _SearchLight in parallel.
+    """Aux. function to fit SearchLight in parallel.
 
     Fit a clone estimator to each slice of data.
 
@@ -298,7 +298,7 @@ def _sl_fit(estimator, X, y):
 
 
 def _sl_transform(estimators, X, method):
-    """Aux. function to transform _SearchLight in parallel.
+    """Aux. function to transform SearchLight in parallel.
 
     Applies transform/predict/decision_function etc for each slice of data.
 
@@ -328,14 +328,14 @@ def _sl_transform(estimators, X, method):
 
 
 def _sl_init_pred(y_pred, X):
-    """Aux. function to _SearchLight to initialize y_pred."""
+    """Aux. function to SearchLight to initialize y_pred."""
     n_sample, n_tasks = X.shape[0], X.shape[-1]
     y_pred = np.zeros((n_sample, n_tasks) + y_pred.shape[1:], y_pred.dtype)
     return y_pred
 
 
 def _sl_score(estimators, scoring, X, y):
-    """Aux. function to score _SearchLight in parallel.
+    """Aux. function to score SearchLight in parallel.
 
     Predict and score each slice of data.
 
@@ -378,11 +378,11 @@ def _check_method(estimator, method):
     return method
 
 
-class _GeneralizationLight(_SearchLight):
+class GeneralizationLight(SearchLight):
     """Generalization Light.
 
     Fit a search-light along the last dimension and use them to apply a
-    systematic cross-feature generalization.
+    systematic cross-tasks generalization.
 
     Parameters
     ----------
@@ -401,7 +401,7 @@ class _GeneralizationLight(_SearchLight):
     """
 
     def __repr__(self):  # noqa: D105
-        repr_str = super(_GeneralizationLight, self).__repr__()
+        repr_str = super(GeneralizationLight, self).__repr__()
         if hasattr(self, 'estimators_'):
             repr_str = repr_str[:-1]
             repr_str += ', fitted with %i estimators>' % len(self.estimators_)
@@ -574,7 +574,7 @@ def _gl_transform(estimators, X, method):
 
 
 def _gl_init_pred(y_pred, X, n_train):
-    """Aux. function to _GeneralizationLight to initialize y_pred."""
+    """Aux. function to GeneralizationLight to initialize y_pred."""
     n_sample, n_iter = X.shape[0], X.shape[-1]
     if y_pred.ndim == 3:
         y_pred = np.zeros((n_sample, n_train, n_iter, y_pred.shape[-1]),
@@ -585,7 +585,7 @@ def _gl_init_pred(y_pred, X, n_train):
 
 
 def _gl_score(estimators, scoring, X, y):
-    """Score _GeneralizationLight in parallel.
+    """Score GeneralizationLight in parallel.
 
     Predict and score each slice of data.
 

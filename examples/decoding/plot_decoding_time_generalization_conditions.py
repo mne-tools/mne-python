@@ -29,7 +29,7 @@ from sklearn.linear_model import LogisticRegression
 
 import mne
 from mne.datasets import sample
-from mne.decoding.search_light import _GeneralizationLight
+from mne.decoding.search_light import GeneralizationLight
 
 print(__doc__)
 
@@ -56,7 +56,7 @@ epochs_right = mne.Epochs(raw, events, event_id={'AudR': 2, 'VisR': 4},
 # We will train the classifier on all left visual vs auditory trials
 # and test on all right visual vs auditory trials.
 clf = make_pipeline(StandardScaler(), LogisticRegression())
-tg = _GeneralizationLight(clf, scoring='roc_auc', n_jobs=1)
+tg = GeneralizationLight(clf, scoring='roc_auc', n_jobs=1)
 
 # Encode the y with similar values in both cases
 y_left = epochs_left.events[:, 2] > 2

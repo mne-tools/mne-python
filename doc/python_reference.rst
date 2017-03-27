@@ -58,11 +58,11 @@ Classes
    preprocessing.Xdawn
    decoding.CSP
    decoding.FilterEstimator
-   decoding.GeneralizationAcrossTime
    decoding.PSDEstimator
-   decoding.Scaler
-   decoding.TimeDecoding
+   decoding.Scale
    decoding.ReceptiveField
+   decoding.SearchLight
+   decoding.GeneralizationLight
    realtime.RtEpochs
    realtime.RtClient
    realtime.MockRtClient
