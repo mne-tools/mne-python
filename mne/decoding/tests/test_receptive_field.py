@@ -109,7 +109,7 @@ def test_receptive_field():
     assert_equal(rf.feature_names, ['feature_%s' % ii for ii in [0, 1, 2]])
     # X/y same n timepoints
     assert_raises(ValueError, rf.fit, X, y[:-2])
-    # String becomes ridge
+    # Float becomes ridge
     rf = ReceptiveField(tmin, tmax, 1, ['one', 'two', 'three'],
                         estimator=0)
     str(rf)  # repr works before fit
