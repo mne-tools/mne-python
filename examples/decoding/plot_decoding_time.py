@@ -15,11 +15,11 @@ import matplotlib.pyplot as plt
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import KFold
 
 import mne
 from mne.datasets import sample
 from mne.decoding.search_light import _SearchLight
+from mne.decoding import cross_val_multiscore
 
 
 print(__doc__)
@@ -40,28 +40,16 @@ epochs = mne.Epochs(raw, events, event_id, -0.050, 0.400, proj=True,
                     reject=dict(mag=5e-12), decim=decim, verbose=False)
 
 # We will train the classifier on all left visual vs auditory trials
-
-# In this case, because the test data is independent from the train data,
-# we test the classifier of each fold and average the respective predictions.
-
 X = epochs.get_data()  # MEG signals: n_epochs, n_channels, n_times
 y = epochs.events[:, 2]  # target: Audio left or right
 
 # We will apply a logistic regression classifier on each time sample:
 clf = make_pipeline(StandardScaler(), LogisticRegression())
-sl = _SearchLight(clf, scoring='roc_auc', n_jobs=2)
+sl = _SearchLight(clf, n_jobs=1, scoring='roc_auc')
 
-# Define cross-validation
-cv = KFold(n_splits=4)
+scores = cross_val_multiscore(sl, X, y, cv=4, n_jobs=1)
 
-# XXX cross_val_multiscore
-scores = list()
-for train, test in cv.split(X, y):
-    sl.fit(X[train], y[train])
-    score = sl.score(X[test], y[test])
-    scores.append(score)
-
-# Mean scores across folds
+# Mean scores across cross-validation splits
 scores = np.mean(scores, axis=0)
 
 # Plot
