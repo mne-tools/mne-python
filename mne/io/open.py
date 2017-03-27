@@ -236,6 +236,8 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
                 postpend = ''
                 # print tag data nicely
                 if tag.data is not None:
+                    if isinstance(tag.data, unicode):
+                        tag.data = tag.data.encode('utf-8')
                     postpend = ' = ' + str(tag.data)[:max_str]
                     if isinstance(tag.data, np.ndarray):
                         if tag.data.size > 1:
@@ -255,7 +257,6 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
                 out += [next_idt + prepend + str(k) + ' = ' +
                         '/'.join(this_type) + ' (' + str(size) + ')' +
                         postpend]
-                out[-1] = out[-1].replace('\n', u'¶')
                 counter = 0
                 good = True
 
