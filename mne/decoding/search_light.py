@@ -5,7 +5,7 @@
 import numpy as np
 
 from .mixin import TransformerMixin
-from .base import BaseEstimator, _check_estimator
+from .base import BaseEstimator, _check_estimator, _check_scoring
 from ..parallel import parallel_func
 
 
@@ -245,14 +245,13 @@ class _SearchLight(BaseEstimator, TransformerMixin):
         score : array, shape (n_samples, n_estimators)
             Score for each estimator/task.
         """
-        from sklearn.metrics.scorer import check_scoring
 
         self._check_Xy(X)
         if X.shape[-1] != len(self.estimators_):
             raise ValueError('The number of estimators does not match '
                              'X.shape[-1]')
 
-        scoring = check_scoring(self.base_estimator, self.scoring)
+        scoring = _check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
 
         # For predictions/transforms the parallelization is across the data and
@@ -520,14 +519,13 @@ class _GeneralizationLight(_SearchLight):
         score : array, shape (n_samples, n_estimators, n_slices)
             Score for each estimator / data slice couple.
         """
-        from sklearn.metrics.scorer import check_scoring
         self._check_Xy(X)
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(_gl_score, self.n_jobs)
         n_jobs = min(n_jobs, X.shape[-1])
         X_splits = np.array_split(X, n_jobs, axis=-1)
-        scoring = check_scoring(self.base_estimator, self.scoring)
+        scoring = _check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
 
         score = parallel(p_func(self.estimators_, scoring, x, y)
