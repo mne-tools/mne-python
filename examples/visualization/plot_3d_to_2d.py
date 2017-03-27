@@ -12,13 +12,12 @@ In this example, we'll show two ways of doing this in MNE-Python. First,
 if we have the 3D locations of each electrode then we can use Mayavi to
 take a snapshot of a view of the brain. If we do not have these 3D locations,
 and only have a 2D image of the electrodes on the brain, we can use the
-:ref:`mne.viz.ClickableImage` class to choose our own electrode positions
+:class:`mne.viz.ClickableImage` class to choose our own electrode positions
 on the image.
 """
 # Authors: Christopher Holdgraf <choldgraf@berkeley.edu>
 #
 # License: BSD (3-clause)
-from scipy.ndimage import imread
 from scipy.io import loadmat
 import numpy as np
 from mayavi import mlab
@@ -60,9 +59,9 @@ print('Created %s channel positions' % len(ch_names))
 # --------------------------------------
 #
 # Because we have the 3D location of each electrode, we can use the
-# `mne.viz.snapshot_brain_montage` function to return a 2D image along with the
-# electrode positions on that image. We use this in conjunction with the
-# `mne.viz.plot_trans` function, which visualizes electrode positions.
+# :func:`mne.viz.snapshot_brain_montage` function to return a 2D image along
+# with the electrode positions on that image. We use this in conjunction with
+# :func:`mne.viz.plot_trans`, which visualizes electrode positions.
 
 fig = plot_trans(info, trans=None, subject='sample', subjects_dir=subjects_dir)
 mlab.view(200, 70)
@@ -87,7 +86,7 @@ ax.set_axis_off()
 #
 # If we don't have the 3D electrode positions then we can still create a
 # 2D representation of the electrodes. Assuming that you can see the electrodes
-# on the 2D image, we can use `mne.viz.ClickableImage` to open the image
+# on the 2D image, we can use :class:`mne.viz.ClickableImage` to open the image
 # interactively. You can click points on the image and the x/y coordinate will
 # be stored.
 #
