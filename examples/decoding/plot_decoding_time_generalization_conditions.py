@@ -29,7 +29,7 @@ from sklearn.linear_model import LogisticRegression
 
 import mne
 from mne.datasets import sample
-from mne.decoding.search_light import GeneralizationLight
+from mne.decoding import GeneralizationLight
 
 print(__doc__)
 
@@ -42,16 +42,17 @@ raw = mne.io.read_raw_fif(raw_fname, preload=True)
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')  # Pick MEG channels
 raw.filter(1, 30, method='fft')  # Band pass filtering signals
 events = mne.read_events(events_fname)
-event_id = {'AudR': 2, 'VisL': 3}
+event_id = {'Auditory/Left': 1, 'Auditory/Right': 2,
+            'Visual/Left': 3, 'Visual/Right': 4}
 tmin = -0.050
 tmax = 0.400
 decim = 2  # decimate to make the example faster to run
-params = dict(tmin=tmin, tmax=tmax, proj=True, picks=picks, baseline=None,
-              preload=True, reject=dict(mag=5e-12), decim=decim, verbose=False)
-epochs_left = mne.Epochs(raw, events, event_id={'AudL': 1, 'VisL': 3},
-                         **params)
-epochs_right = mne.Epochs(raw, events, event_id={'AudR': 2, 'VisR': 4},
-                          **params)
+epochs = mne.Epochs(raw, events, event_id=event_id, tmin=tmin, tmax=tmax,
+                    proj=True, picks=picks, baseline=None, preload=True,
+                    reject=dict(mag=5e-12), decim=decim)
+
+epochs_left = epochs['Left']
+epochs_right = epochs['Right']
 
 # We will train the classifier on all left visual vs auditory trials
 # and test on all right visual vs auditory trials.
@@ -71,5 +72,8 @@ im = ax.matshow(scores, vmin=0, vmax=1., cmap='RdBu_r', origin='lower',
 ax.axhline(0., color='k')
 ax.axvline(0., color='k')
 ax.xaxis.set_ticks_position('bottom')
+ax.set_xlabel('Testing Time (s)')
+ax.set_ylabel('Training Time (s)')
+ax.set_title('Generalization across time and condition')
 plt.colorbar(im, ax=ax)
 plt.show()
