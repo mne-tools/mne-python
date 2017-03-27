@@ -10,12 +10,15 @@ point.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sklearn.metrics import roc_auc_score
-from sklearn.cross_validation import StratifiedKFold
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+
 
 import mne
 from mne.datasets import sample
-from mne.decoding import TimeDecoding, GeneralizationAcrossTime
+from mne.decoding import (_SearchLight, _GeneralizationLight,
+                          cross_val_multiscore)
 
 data_path = sample.data_path()
 
@@ -45,25 +48,39 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 
 epochs_list = [epochs[k] for k in event_id]
 mne.epochs.equalize_epoch_counts(epochs_list)
-data_picks = mne.pick_types(epochs.info, meg=True, exclude='bads')
 
 ###############################################################################
 # Temporal decoding
 # -----------------
 #
-# We'll use the default classifer for a binary classification problem
-# which is a linear Support Vector Machine (SVM).
+# We'll use a Logistic Regression for a binary classification as machine
+# learning model.
 
-td = TimeDecoding(predict_mode='cross-validation', n_jobs=1)
+# We will train the classifier on all left visual vs auditory trials on MEG
+data_picks = mne.pick_types(epochs.info, meg=True, exclude='bads')
+X = epochs.get_data()  # MEG signals: n_epochs, n_channels, n_times
+X = X[:, data_picks, :]  # take only MEG channels
+y = epochs.events[:, 2]  # target: Audio left or right
 
-# Fit
-td.fit(epochs)
+clf = make_pipeline(StandardScaler(), LogisticRegression())
 
-# Compute accuracy
-td.score(epochs)
+sl = _SearchLight(clf, n_jobs=1, scoring='roc_auc')
 
-# Plot scores across time
-td.plot(title='Sensor space decoding')
+scores = cross_val_multiscore(sl, X, y, cv=4, n_jobs=1)
+
+# Mean scores across cross-validation splits
+scores = np.mean(scores, axis=0)
+
+# Plot
+fig, ax = plt.subplots()
+ax.plot(epochs.times, scores, label='score')
+ax.axhline(.5, color='k', linestyle='--', label='chance')
+ax.set_xlabel('Times')
+ax.set_ylabel('ROC AUC')
+ax.legend()
+ax.axvline(.0, color='k', linestyle='-')
+ax.set_title('Sensor space decoding')
+plt.show()
 
 ###############################################################################
 # Generalization Across Time
@@ -71,24 +88,44 @@ td.plot(title='Sensor space decoding')
 #
 # This runs the analysis used in [1]_ and further detailed in [2]_
 #
-# Here we'll use a stratified cross-validation scheme.
+# The idea is to fit the models on each time instant and see how it
+# generalizes to any other time point.
 
-# make response vector
-y = np.zeros(len(epochs.events), dtype=int)
-y[epochs.events[:, 2] == 3] = 1
-cv = StratifiedKFold(y=y)  # do a stratified cross-validation
+# define the Generalization Across Time (GAT) object
+gl = _GeneralizationLight(clf, n_jobs=1, scoring='roc_auc')
 
-# define the GeneralizationAcrossTime object
-gat = GeneralizationAcrossTime(predict_mode='cross-validation', n_jobs=1,
-                               cv=cv, scorer=roc_auc_score)
+scores = cross_val_multiscore(gl, X, y, cv=4, n_jobs=1)
 
-# fit and score
-gat.fit(epochs, y=y)
-gat.score(epochs)
+# Mean scores across cross-validation splits
+scores = np.mean(scores, axis=0)
 
-# let's visualize now
-gat.plot()
-gat.plot_diagonal()
+# Plot the diagonal (it's exactly the same as the time-by-time decoding above)
+fig, ax = plt.subplots()
+ax.plot(epochs.times, np.diag(scores), label='score')
+ax.axhline(.5, color='k', linestyle='--', label='chance')
+ax.set_xlabel('Times')
+ax.set_ylabel('ROC AUC')
+ax.legend()
+ax.axvline(.0, color='k', linestyle='-')
+ax.set_title('Sensor space decoding')
+plt.show()
+
+# Plot the full matrix
+fig, ax = plt.subplots(1, 1)
+times = epochs.times
+tlim = [times[0], times[-1], times[0], times[-1]]
+vmin, vmax = 0., 1.
+im = ax.imshow(scores, interpolation='nearest', origin='lower',
+               extent=tlim, vmin=vmin, vmax=vmax, cmap='RdBu_r')
+ax.set_xlabel('Testing Time (s)')
+ax.set_ylabel('Training Time (s)')
+ax.set_title('Generalization across time (GAT)')
+ax.axvline(0, color='k')
+ax.axhline(0, color='k')
+ax.set_xlim(tlim[:2])
+ax.set_ylim(tlim[2:])
+plt.colorbar(im, ax=ax)
+plt.show()
 
 ###############################################################################
 # Exercise
