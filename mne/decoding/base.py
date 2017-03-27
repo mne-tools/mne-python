@@ -416,7 +416,8 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     # We clone the estimator to make sure that all the folds are
     # independent, and that it is pickle-able.
     # Note: this parallelization is implemented using MNE Parallel
-    parallel, p_func, n_jobs = parallel_func(_fit_and_score, n_jobs)
+    parallel, p_func, n_jobs = parallel_func(_fit_and_score, n_jobs,
+                                             pre_dispatch=pre_dispatch)
     scores = parallel(p_func(clone(estimator), X, y, scorer, train, test,
                              verbose, None, fit_params)
                       for train, test in cv_iter)
