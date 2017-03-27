@@ -91,7 +91,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
     end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
     # First and last sample
-    first = int(round(epochs.tmin * info['sfreq']))  # round just to be safe
+    first = int(round(epochs.tmin * info['adsfreq']))  # round just to be safe
     last = first + len(epochs.times) - 1
     write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
     write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
@@ -168,8 +168,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         An instance of Raw.
     picks : array-like of int | None (default)
         See `Epochs` docstring.
-    name : string
-        See `Epochs` docstring.
     reject : dict | None
         See `Epochs` docstring.
     flat : dict | None
@@ -181,8 +179,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     reject_tmax : scalar | None
         See `Epochs` docstring.
     detrend : int | None
-        See `Epochs` docstring.
-    add_eeg_ref : bool
         See `Epochs` docstring.
     proj : bool | 'delayed'
         See `Epochs` docstring.
@@ -213,18 +209,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     """
 
     def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
-                 baseline=(None, 0), raw=None,
-                 picks=None, name=None, reject=None, flat=None,
-                 decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
-                 add_eeg_ref=False, proj=True, on_missing='error',
+                 baseline=(None, 0), raw=None, picks=None, reject=None,
+                 flat=None, decim=1, reject_tmin=None, reject_tmax=None,
+                 detrend=None, proj=True, on_missing='error',
                  preload_at_end=False, selection=None, drop_log=None,
                  filename=None, verbose=None):  # noqa: D102
         self.verbose = verbose
-        if name is not None:
-            warn('name is deprecated and will be removed in 0.15.')
-        else:
-            name = 'Unknown'
-        self._name = name
 
         if on_missing not in ['error', 'warning', 'ignore']:
             raise ValueError('on_missing must be one of: error, '
@@ -368,9 +358,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             logger.info('Entering delayed SSP mode.')
         else:
             self._do_delayed_proj = False
-        add_eeg_ref = _dep_eeg_ref(add_eeg_ref)
         activate = False if self._do_delayed_proj else proj
-        self._projector, self.info = setup_proj(self.info, add_eeg_ref,
+        self._projector, self.info = setup_proj(self.info, False,
                                                 activate=activate)
         if preload_at_end:
             assert self._data is None
@@ -828,18 +817,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             kind = 'standard_error'
             data /= np.sqrt(n_events)
 
-        if self._name not in ['Unknown', None]:
-            comment = self._name
+        if len(self.event_id) == 1:
+            comment = next(iter(self.event_id.keys()))
         else:
-            if len(self.event_id) == 1:
-                comment = next(iter(self.event_id.keys()))
-            else:
-                count = np.bincount(self.events[:, 2])
-                comments = list()
-                for key, value in self.event_id.items():
-                    comments.append('%.2f * %s' % (
-                        float(count[value]) / len(self.events), key))
-                comment = ' + '.join(comments)
+            count = np.bincount(self.events[:, 2])
+            comments = list()
+            for key, value in self.event_id.items():
+                comments.append('%.2f * %s' % (
+                    float(count[value]) / len(self.events), key))
+            comment = ' + '.join(comments)
         return self._evoked_from_epoch_data(data, self.info, picks, n_events,
                                             kind, comment)
 
@@ -1304,18 +1290,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Last time point."""
         return self.times[-1]
 
-    @property
-    def name(self):
-        """Name for the epoch set."""
-        warn('name attribute is deprecated and will be removed in 0.15.')
-        return self._name
-
-    @name.setter
-    def name(self, name):
-        """Name for the epoch set."""
-        warn('name attribute is deprecated and will be removed in 0.15.')
-        self._name = name
-
     def __repr__(self):
         """Build string representation."""
         s = 'n_events : %s ' % len(self.events)
@@ -1745,16 +1719,6 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
     return perc
 
 
-def _dep_eeg_ref(add_eeg_ref):
-    """Assist deprecation add_eeg_ref -> False."""
-    # current_default is False
-    add_eeg_ref = bool(add_eeg_ref)
-    if add_eeg_ref:
-        warn('add_eeg_ref will be removed in 0.15, use set_eeg_reference()'
-             ' instead', DeprecationWarning)
-    return add_eeg_ref
-
-
 class Epochs(BaseEpochs):
     """Epochs extracted from a Raw instance.
 
@@ -1789,8 +1753,6 @@ class Epochs(BaseEpochs):
         a <= t <= b.
     picks : array-like of int | None (default)
         Indices of channels to include (if None, all channels are used).
-    name : string
-        Comment that describes the Epochs data created. Deprecated.
     preload : boolean
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
@@ -1840,11 +1802,6 @@ class Epochs(BaseEpochs):
         either turn off baseline correction, as this may introduce a DC
         shift, or set baseline correction to use the entire time interval
         (will yield equivalent results but be slower).
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists). The default value of True in 0.13 will change to
-        False in 0.14, and the parameter will be removed in 0.15. Use
-        :func:`mne.set_eeg_reference` instead.
     on_missing : str
         What to do if one or several event ids are not found in the recording.
         Valid keys are 'error' | 'warning' | 'ignore'
@@ -1907,11 +1864,10 @@ class Epochs(BaseEpochs):
 
     @verbose
     def __init__(self, raw, events, event_id=None, tmin=-0.2, tmax=0.5,
-                 baseline=(None, 0), picks=None, name=None, preload=False,
+                 baseline=(None, 0), picks=None, preload=False,
                  reject=None, flat=None, proj=True, decim=1, reject_tmin=None,
-                 reject_tmax=None, detrend=None, add_eeg_ref=None,
-                 on_missing='error', reject_by_annotation=True,
-                 verbose=None):  # noqa: D102
+                 reject_tmax=None, detrend=None, on_missing='error',
+                 reject_by_annotation=True, verbose=None):  # noqa: D102
         if not isinstance(raw, BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of `mne.io.Raw`')
@@ -1924,10 +1880,10 @@ class Epochs(BaseEpochs):
         # call BaseEpochs constructor
         super(Epochs, self).__init__(
             info, None, events, event_id, tmin, tmax, baseline=baseline,
-            raw=raw, picks=picks, name=name, reject=reject, flat=flat,
-            decim=decim, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
-            detrend=detrend, add_eeg_ref=add_eeg_ref, proj=proj,
-            on_missing=on_missing, preload_at_end=preload, verbose=verbose)
+            raw=raw, picks=picks, reject=reject, flat=flat, decim=decim,
+            reject_tmin=reject_tmin, reject_tmax=reject_tmax, detrend=detrend,
+            proj=proj, on_missing=on_missing, preload_at_end=preload,
+            verbose=verbose)
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -2459,10 +2415,6 @@ class EpochsFIF(BaseEpochs):
         detrending and temporal decimation will be postponed.
         If proj is False no projections will be applied which is the
         recommended value if SSPs are not used for cleaning the data.
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists). This parameter will be removed in 0.15. Use
-        :func:`mne.set_eeg_reference` instead.
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
@@ -2479,7 +2431,7 @@ class EpochsFIF(BaseEpochs):
     """
 
     @verbose
-    def __init__(self, fname, proj=True, add_eeg_ref=False, preload=True,
+    def __init__(self, fname, proj=True, preload=True,
                  verbose=None):  # noqa: D102
         check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
         fnames = [fname]
@@ -2528,9 +2480,9 @@ class EpochsFIF(BaseEpochs):
         # call BaseEpochs constructor
         super(EpochsFIF, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline, raw=raw,
-            name=name, proj=proj, add_eeg_ref=add_eeg_ref,
-            preload_at_end=False, on_missing='ignore', selection=selection,
-            drop_log=drop_log, filename=fname, verbose=verbose)
+            name=name, proj=proj, preload_at_end=False, on_missing='ignore',
+            selection=selection, drop_log=drop_log, filename=fname,
+            verbose=verbose)
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True
@@ -2608,20 +2560,13 @@ def _check_merge_epochs(epochs_list):
 
 
 @verbose
-def add_channels_epochs(epochs_list, name=None, add_eeg_ref=False,
-                        verbose=None):
+def add_channels_epochs(epochs_list, verbose=None):
     """Concatenate channels, info and data from two Epochs objects.
 
     Parameters
     ----------
     epochs_list : list of Epochs
         Epochs object to concatenate.
-    name : str
-        Comment that describes the Epochs data created. Deprecated.
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless there is
-        no EEG in the data). This parameter will be removed in 0.15. Use
-        :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -2632,9 +2577,6 @@ def add_channels_epochs(epochs_list, name=None, add_eeg_ref=False,
     epochs : instance of Epochs
         Concatenated epochs.
     """
-    if name is not None:
-        warn('name is deprecated and will be removed in 0.15.')
-    add_eeg_ref = _dep_eeg_ref(add_eeg_ref)
     if not all(e.preload for e in epochs_list):
         raise ValueError('All epochs must be preloaded.')
 
@@ -2657,7 +2599,7 @@ def add_channels_epochs(epochs_list, name=None, add_eeg_ref=False,
     if not all_same:
         raise ValueError('Events must be the same.')
 
-    proj = any(e.proj for e in epochs_list) or add_eeg_ref
+    proj = any(e.proj for e in epochs_list)
 
     if verbose is None:
         verbose = any(e.verbose for e in epochs_list)
@@ -2665,13 +2607,12 @@ def add_channels_epochs(epochs_list, name=None, add_eeg_ref=False,
     epochs = epochs_list[0].copy()
     epochs.info = info
     epochs.picks = None
-    epochs._name = name
     epochs.verbose = verbose
     epochs.events = events
     epochs.preload = True
     epochs._bad_dropped = True
     epochs._data = data
-    epochs._projector, epochs.info = setup_proj(epochs.info, add_eeg_ref,
+    epochs._projector, epochs.info = setup_proj(epochs.info, False,
                                                 activate=proj)
     return epochs
 
@@ -3030,4 +2971,4 @@ def _segment_raw(raw, segment_length=1., verbose=None, **kwargs):
     """
     events = make_fixed_length_events(raw, 1, duration=segment_length)
     return Epochs(raw, events, event_id=[1], tmin=0., tmax=segment_length,
-                  verbose=verbose, baseline=None, add_eeg_ref=False, **kwargs)
+                  verbose=verbose, baseline=None, **kwargs)
