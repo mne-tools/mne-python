@@ -23,11 +23,11 @@ def make_data():
 
 
 @requires_sklearn_0_15
-def test_SearchLight():
+def test_search_light():
     """Test _SearchLight"""
     from sklearn.linear_model import Ridge, LogisticRegression
     from sklearn.pipeline import make_pipeline
-    from sklearn.metrics import roc_auc_score, get_scorer, make_scorer
+    from sklearn.metrics import roc_auc_score, make_scorer
 
     X, y = make_data()
     n_epochs, _, n_time = X.shape
@@ -80,25 +80,26 @@ def test_SearchLight():
                                for _y_pred in sl.decision_function(X).T])
     y = np.arange(len(X)) % 2
 
-    for method, scoring in [
-            ('predict_proba', 'roc_auc'), ('predict', roc_auc_score)]:
-        sl1 = _SearchLight(LogisticRegression(), scoring=scoring)
-        sl1.fit(X, y)
-        np.random.seed(0)
-        X = np.random.randn(*X.shape)  # randomize X to avoid AUCs in [0, 1]
-        score_sl = sl1.score(X, y)
-        assert_array_equal(score_sl.shape, [n_time])
-        assert_true(score_sl.dtype == float)
+    # Cannot pass a metric as a scoring parameter
+    sl1 = _SearchLight(LogisticRegression(), scoring=roc_auc_score)
+    sl1.fit(X, y)
+    assert_raises(ValueError, sl1.score, X, y)
 
-        # Check that scoring was applied adequately
-        if isinstance(scoring, str):
-            scoring = get_scorer(scoring)
-        else:
-            scoring = make_scorer(scoring)
+    # Now use string as scoring
+    sl1 = _SearchLight(LogisticRegression(), scoring='roc_auc')
+    sl1.fit(X, y)
+    rng = np.random.RandomState(0)
+    X = rng.randn(*X.shape)  # randomize X to avoid AUCs in [0, 1]
+    score_sl = sl1.score(X, y)
+    assert_array_equal(score_sl.shape, [n_time])
+    assert_true(score_sl.dtype == float)
 
-        score_manual = [scoring(est, x, y) for est, x in zip(
-                        sl1.estimators_, X.transpose(2, 0, 1))]
-        assert_array_equal(score_manual, score_sl)
+    # Check that scoring was applied adequately
+    scoring = make_scorer(roc_auc_score)
+
+    score_manual = [scoring(est, x, y) for est, x in zip(
+                    sl1.estimators_, X.transpose(2, 0, 1))]
+    assert_array_equal(score_manual, score_sl)
 
     # n_jobs
     sl = _SearchLight(LogisticRegression(random_state=0), n_jobs=1,
@@ -139,7 +140,7 @@ def test_SearchLight():
 
 
 @requires_sklearn_0_15
-def test_GeneralizationLight():
+def test_generalization_light():
     """Test _GeneralizationLight"""
     from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LogisticRegression

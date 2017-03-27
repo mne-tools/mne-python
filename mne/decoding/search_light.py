@@ -5,7 +5,7 @@
 import numpy as np
 
 from .mixin import TransformerMixin
-from .base import BaseEstimator, _check_estimator, _make_scorer
+from .base import BaseEstimator, _check_estimator
 from ..parallel import parallel_func
 
 
@@ -13,7 +13,8 @@ class _SearchLight(BaseEstimator, TransformerMixin):
     """Search Light.
 
     Fit, predict and score a series of models to each subset of the dataset
-    along the last dimension.
+    along the last dimension. Each entry in the last dimension is referred
+    to as a task.
 
     Parameters
     ----------
@@ -29,6 +30,11 @@ class _SearchLight(BaseEstimator, TransformerMixin):
     n_jobs : int, optional (default=1)
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
+
+    Attributes
+    ----------
+    `estimators_` : array-like, shape (n_tasks,)
+        List of fitted scikit-learn estimators (one per task).
     """
 
     def __init__(self, base_estimator, scoring=None, n_jobs=1):  # noqa: D102
@@ -47,36 +53,16 @@ class _SearchLight(BaseEstimator, TransformerMixin):
             repr_str += ', fitted with %i estimators' % len(self.estimators_)
         return repr_str + '>'
 
-    def fit_transform(self, X, y):
-        """Fit and transform a series of independent estimators to the dataset.
-
-        Parameters
-        ----------
-        X : array, shape (n_samples, nd_features, n_estimators)
-            The training input samples. For each data slice, a clone estimator
-            is fitted independently. The feature dimension can be
-            multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
-        y : array, shape (n_samples,) | (n_samples, n_targets)
-            The target values.
-
-        Returns
-        -------
-        y_pred : array, shape (n_samples, n_estimators) | (n_samples, n_estimators, n_targets)
-            The predicted values for each estimator.
-        """  # noqa: E501
-        return self.fit(X, y).transform(X)
-
     def fit(self, X, y):
         """Fit a series of independent estimators to the dataset.
 
         Parameters
         ----------
-        X : array, shape (n_samples, nd_features, n_estimators)
+        X : array, shape (n_samples, nd_features, n_tasks)
             The training input samples. For each data slice, a clone estimator
             is fitted independently. The feature dimension can be
             multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
 
@@ -96,6 +82,26 @@ class _SearchLight(BaseEstimator, TransformerMixin):
         self.estimators_ = np.concatenate(estimators, 0)
         return self
 
+    def fit_transform(self, X, y):
+        """Fit and transform a series of independent estimators to the dataset.
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, nd_features, n_tasks)
+            The training input samples. For each task, a clone estimator
+            is fitted independently. The feature dimension can be
+            multidimensional e.g.
+            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+        y : array, shape (n_samples,) | (n_samples, n_targets)
+            The target values.
+
+        Returns
+        -------
+        y_pred : array, shape (n_samples, n_tasks) | (n_samples, n_tasks, n_targets)
+            The predicted values for each estimator.
+        """  # noqa: E501
+        return self.fit(X, y).transform(X)
+
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation."""
         self._check_Xy(X)
@@ -112,24 +118,24 @@ class _SearchLight(BaseEstimator, TransformerMixin):
         y_pred = parallel(p_func(est, x, method)
                           for (est, x) in zip(est_splits, X_splits))
 
-        if n_jobs > 1:
-            y_pred = np.concatenate(y_pred, axis=1)
-        else:
-            y_pred = y_pred[0]
+        y_pred = np.concatenate(y_pred, axis=1)
         return y_pred
 
     def transform(self, X):
-        """Transform each data slice with a series of independent estimators.
+        """Transform each data slice/task with a series of independent estimators.
+
+        The number of tasks in X should match the number of tasks/estimators
+        given at fit time.
 
         Parameters
         ----------
-        X : array, shape (n_samples, nd_features, n_estimators)
-            The input samples. For each data slice, the corresponding estimator
+        X : array, shape (n_samples, nd_features, n_tasks)
+            The input samples. For each data slice/task, the corresponding estimator
             makes a transformation of the data:
             e.g. [estimators[ii].transform(X[..., ii])
                   for ii in range(n_estimators)]
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
 
         Returns
         -------
@@ -139,21 +145,24 @@ class _SearchLight(BaseEstimator, TransformerMixin):
         return self._transform(X, 'transform')
 
     def predict(self, X):
-        """Predict each data slice with a series of independent estimators.
+        """Predict each data slice/task with a series of independent estimators.
+
+        The number of tasks in X should match the number of tasks/estimators
+        given at fit time.
 
         Parameters
         ----------
-        X : array, shape (n_samples, nd_features, n_estimators)
+        X : array, shape (n_samples, nd_features, n_tasks)
             The input samples. For each data slice, the corresponding estimator
             makes the sample predictions:
             e.g. [estimators[ii].predict(X[..., ii])
                   for ii in range(n_estimators)]
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
 
         Returns
         -------
-        y_pred : array, shape (n_samples, n_estimators) | (n_samples, n_estimators, n_targets)
+        y_pred : array, shape (n_samples, n_estimators) | (n_samples, n_tasks, n_targets)
             Predicted values for each estimator/data slice.
         """  # noqa: E501
         return self._transform(X, 'predict')
@@ -161,21 +170,23 @@ class _SearchLight(BaseEstimator, TransformerMixin):
     def predict_proba(self, X):
         """Predict each data slice with a series of independent estimators.
 
+        The number of tasks in X should match the number of tasks/estimators
+        given at fit time.
+
         Parameters
         ----------
-        X : array, shape (n_samples, nd_features, n_estimators)
+        X : array, shape (n_samples, nd_features, n_tasks)
             The input samples. For each data slice, the corresponding estimator
             makes the sample probabilistic predictions:
             e.g. [estimators[ii].predict_proba(X[..., ii])
                   for ii in range(n_estimators)]
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
-
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
 
         Returns
         -------
-        y_pred : array, shape (n_samples, n_estimators, n_classes)
-            Predicted probabilities for each estimator/data slice.
+        y_pred : array, shape (n_samples, n_tasks, n_classes)
+            Predicted probabilities for each estimator/data slice/task.
         """
         return self._transform(X, 'predict_proba')
 
@@ -184,7 +195,7 @@ class _SearchLight(BaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        X : array, shape (n_samples, nd_features, n_estimators)
+        X : array, shape (n_samples, nd_features, n_tasks)
             The input samples. For each data slice, the corresponding estimator
             outputs the distance to the hyperplane:
             e.g. [estimators[ii].decision_function(X[..., ii])
@@ -212,16 +223,19 @@ class _SearchLight(BaseEstimator, TransformerMixin):
             raise ValueError('X must have at least 3 dimensions.')
 
     def score(self, X, y):
-        """Score each estimator/data slice couple.
+        """Score each estimator on each task.
+
+        The number of tasks in X should match the number of tasks/estimators
+        given at fit time, i.e. we need `X.shape[-1] == len(self.estimators_)`
 
         Parameters
         ----------
-        X : array, shape (n_samples, nd_features, n_estimators)
+        X : array, shape (n_samples, nd_features, n_tasks)
             The input samples. For each data slice, the corresponding estimator
             scores the prediction: e.g. [estimators[ii].score(X[..., ii], y)
                                          for ii in range(n_estimators)]
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
 
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
@@ -229,14 +243,16 @@ class _SearchLight(BaseEstimator, TransformerMixin):
         Returns
         -------
         score : array, shape (n_samples, n_estimators)
-            Score for each estimator / data slice couple.
+            Score for each estimator/task.
         """
+        from sklearn.metrics.scorer import check_scoring
+
         self._check_Xy(X)
         if X.shape[-1] != len(self.estimators_):
             raise ValueError('The number of estimators does not match '
                              'X.shape[-1]')
 
-        scoring = _make_scorer(self.scoring)
+        scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
 
         # For predictions/transforms the parallelization is across the data and
@@ -248,10 +264,7 @@ class _SearchLight(BaseEstimator, TransformerMixin):
         score = parallel(p_func(est, scoring, x, y)
                          for (est, x) in zip(est_splits, X_splits))
 
-        if n_jobs > 1:
-            score = np.concatenate(score, axis=0)
-        else:
-            score = score[0]
+        score = np.concatenate(score, axis=0)
         return score
 
 
@@ -316,16 +329,8 @@ def _sl_transform(estimators, X, method):
 
 def _sl_init_pred(y_pred, X):
     """Aux. function to _SearchLight to initialize y_pred."""
-    n_sample, n_iter = X.shape[0], X.shape[-1]
-    if y_pred.ndim > 1:
-        # for estimator that generate multidimensional y_pred,
-        # e.g. clf.predict_proba()
-        y_pred = np.zeros(np.r_[n_sample, n_iter, y_pred.shape[1:]],
-                          y_pred.dtype)
-    else:
-        # for estimator that generate unidimensional y_pred,
-        # e.g. clf.predict()
-        y_pred = np.zeros((n_sample, n_iter), y_pred.dtype)
+    n_sample, n_tasks = X.shape[0], X.shape[-1]
+    y_pred = np.zeros((n_sample, n_tasks) + y_pred.shape[1:], y_pred.dtype)
     return y_pred
 
 
@@ -336,11 +341,11 @@ def _sl_score(estimators, scoring, X, y):
 
     Parameters
     ----------
-    estimators : list of estimators
+    estimators : list, shape (n_tasks,)
         The fitted estimators.
-    X : array, shape (n_samples, nd_features, n_estimators)
+    X : array, shape (n_samples, nd_features, n_tasks)
         The target data. The feature dimension can be multidimensional e.g.
-        X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+        X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
     scoring : callable, string or None
         If scoring is None (default), the predictions are internally
         generated by estimator.score(). Else, we must first get the
@@ -350,26 +355,16 @@ def _sl_score(estimators, scoring, X, y):
 
     Returns
     -------
-    score : array, shape (n_estimators,)
-        The score for each slice of data.
+    score : array, shape (n_tasks,)
+        The score for each task / slice of data.
     """
-    n_iter = X.shape[-1]
+    from sklearn.metrics.scorer import check_scoring
+    n_tasks = X.shape[-1]
+    score = np.zeros(n_tasks)
     for ii, est in enumerate(estimators):
-        if scoring is not None:
-            _score = scoring(est, X[..., ii], y)
-        else:
-            _score = est.score(X[..., ii], y)
-        # Initialize array of scores on the first score iteration
-        if ii == 0:
-            if isinstance(_score, np.ndarray):
-                dtype = _score.dtype
-                shape = _score.shape
-                np.r_[n_iter, _score.shape]
-            else:
-                dtype = type(_score)
-                shape = n_iter
-            score = np.zeros(shape, dtype)
-        score[ii] = _score
+        this_scoring = check_scoring(est, scoring)
+        this_y = _fix_auc(this_scoring, y)
+        score[ii] = this_scoring(est, X[..., ii], this_y)
     return score
 
 
@@ -528,22 +523,20 @@ class _GeneralizationLight(_SearchLight):
         score : array, shape (n_samples, n_estimators, n_slices)
             Score for each estimator / data slice couple.
         """
+        from sklearn.metrics.scorer import check_scoring
         self._check_Xy(X)
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(_gl_score, self.n_jobs)
         n_jobs = min(n_jobs, X.shape[-1])
         X_splits = np.array_split(X, n_jobs, axis=-1)
-        scoring = _make_scorer(self.scoring)
+        scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
 
         score = parallel(p_func(self.estimators_, scoring, x, y)
                          for x in X_splits)
 
-        if n_jobs > 1:
-            score = np.concatenate(score, axis=1)
-        else:
-            score = score[0]
+        score = np.concatenate(score, axis=1)
         return score
 
 
