@@ -35,6 +35,7 @@ events = mne.read_events(fname, exclude=[4, 32])
 mne.viz.plot_events(events, axes=axs[2], show=False)
 axs[2].set(title="keep all but 4 and 32")
 plt.setp([ax.get_xticklabels() for ax in axs], rotation=45)
+plt.tight_layout()
 plt.show()
 
 # Writing events
