@@ -28,7 +28,6 @@ from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials
 from ..source_space import SourceSpaces
-from ..source_estimate import _morph_buffer
 from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
                        complete_surface_info, mesh_edges)
@@ -978,6 +977,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     from mpl_toolkits.mplot3d import Axes3D, art3d
     from matplotlib import cm
     import nibabel as nib
+    from ..source_estimate import _morph_buffer
     if hemi not in ['lh', 'rh']:
         raise ValueError("hemi must be 'lh' or 'rh' when using matplotlib. "
                          "Got %s." % hemi)
