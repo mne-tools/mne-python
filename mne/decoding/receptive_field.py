@@ -118,12 +118,16 @@ class ReceptiveField(BaseEstimator):
             The output features for the model.
         """
         from sklearn.linear_model import Ridge
+        from sklearn.base import is_regressor
         X, y = self._check_dimensions(X, y)
 
         if isinstance(self.estimator, (float, int)):
             estimator = Ridge(alpha=self.estimator)
-        else:
+        elif is_regressor(self.estimator):
             estimator = self.estimator
+        else:
+            raise ValueError('`estimator` must be a float or an instance'
+                             ' of `BaseEstimator`.')
         self.estimator_ = estimator
         _check_estimator(self.estimator_)
 

@@ -119,8 +119,10 @@ def test_receptive_field():
     rf = ReceptiveField(tmin, tmax, 1, ['one'], estimator=0)
     rf.fit(X[:, [0]], y)
     str(rf)  # repr with one feature
-    # Correct strings
+    # Should only accept estimators or floats
     rf = ReceptiveField(tmin, tmax, 1, estimator='foo')
+    assert_raises(ValueError, rf.fit, X, y)
+    rf = ReceptiveField(tmin, tmax, 1, estimator=np.array([1, 2, 3]))
     assert_raises(ValueError, rf.fit, X, y)
     # tmin must be <= tmax
     rf = ReceptiveField(5, 4, 1)
