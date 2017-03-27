@@ -95,7 +95,7 @@ def test_search_light():
     assert_true(score_sl.dtype == float)
 
     # Check that scoring was applied adequately
-    scoring = make_scorer(roc_auc_score)
+    scoring = make_scorer(roc_auc_score, needs_threshold=True)
     score_manual = [scoring(est, x, y) for est, x in zip(
                     sl1.estimators_, X.transpose(2, 0, 1))]
     assert_array_equal(score_manual, score_sl)
