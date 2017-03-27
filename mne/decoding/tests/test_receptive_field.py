@@ -111,12 +111,12 @@ def test_receptive_field():
     assert_raises(ValueError, rf.fit, X, y[:-2])
     # String becomes ridge
     rf = ReceptiveField(tmin, tmax, 1, ['one', 'two', 'three'],
-                        estimator='ridge')
+                        estimator=0)
     str(rf)  # repr works before fit
     rf.fit(X, y)
     assert_true(isinstance(rf.estimator_, Ridge))
     str(rf)  # repr works after fit
-    rf = ReceptiveField(tmin, tmax, 1, ['one'], estimator='ridge')
+    rf = ReceptiveField(tmin, tmax, 1, ['one'], estimator=0)
     rf.fit(X[:, [0]], y)
     str(rf)  # repr with one feature
     # Correct strings

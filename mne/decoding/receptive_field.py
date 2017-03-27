@@ -20,11 +20,12 @@ class ReceptiveField(BaseEstimator):
     feature_names : array, shape (n_features,) | None
         Names for input features to the model. If None, feature names will
         be auto-generated from the shape of input data after running `fit`.
-    estimator : instance of sklearn estimator | string | None
+    estimator : instance of sklearn estimator | float | None
         The model used in fitting inputs and outputs. This can be any
-        sklearn-style model that contains a fit and predict method. Currently
-        the only supported string is 'ridge', which uses the default
-        :mod:`sklearn` ridge model. This is also what `None` defaults to.
+        sklearn-style model that contains a fit and predict method. If a
+        float is passed, it will be interpreted as the `alpha` parameter
+        to be passed to a Ridge regression model. If `None`, then a Ridge
+        regression model with an alpha of 0 will be used.
     scorer : object | None | str
         scikit-learn Scorer instance or str type indicating the name of the
         scorer. If None, set to ``r2``.
@@ -77,7 +78,7 @@ class ReceptiveField(BaseEstimator):
         self.sfreq = float(sfreq)
         self.tmin = tmin
         self.tmax = tmax
-        self.estimator = 'ridge' if estimator is None else estimator
+        self.estimator = 0. if estimator is None else estimator
         self.scorer = scorer
 
         # Initialize delays
@@ -117,14 +118,10 @@ class ReceptiveField(BaseEstimator):
             The output features for the model.
         """
         from sklearn.linear_model import Ridge
-        model_dict = dict(ridge=Ridge())
         X, y = self._check_dimensions(X, y)
 
-        if isinstance(self.estimator, str):
-            if self.estimator not in list(model_dict.keys()):
-                raise ValueError('If string, model must be one'
-                                 ' of %s' % model_dict.keys())
-            estimator = model_dict[self.estimator]
+        if isinstance(self.estimator, (float, int)):
+            estimator = Ridge(alpha=self.estimator)
         else:
             estimator = self.estimator
         self.estimator_ = estimator
