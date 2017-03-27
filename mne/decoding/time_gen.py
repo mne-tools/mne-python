@@ -12,7 +12,7 @@ from .base import _set_cv
 from ..io.pick import _pick_data_channels
 from ..viz.decoding import plot_gat_matrix, plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import warn, check_version
+from ..utils import warn, check_version, deprecated
 
 
 class _DecodingTime(dict):
@@ -872,6 +872,8 @@ def _predict(X, estimators, vectorize_times, predict_method):
     return y_pred
 
 
+@deprecated('GeneralizationAcrossTime is deprecated and will be removed in ',
+            ' 0.15, use _GeneralizationLight instead.')
 class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     """Generalize across time and conditions.
 
@@ -1203,6 +1205,8 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
                               legend=legend, chance=chance, label=label)
 
 
+@deprecated('TimeDecoding is deprecated and will be removed in ',
+            ' 0.15, use _SearchLight instead.')
 class TimeDecoding(_GeneralizationAcrossTime):
     """Train and test a series of classifiers at each time point.
 

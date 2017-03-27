@@ -122,9 +122,9 @@ To plot the corresponding filter, you can do::
 Sensor-space decoding
 =====================
 
-Generalization Across Time
+Temporal Generalization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-Generalization Across Time (GAT) is a modern strategy to infer neuroscientific conclusions from decoding analysis of sensor-space data. An accuracy matrix is constructed where each point represents the performance of the model trained on one time window and tested on another.
+Temporal Generalization is a modern strategy to infer neuroscientific conclusions from decoding analysis of sensor-space data. An accuracy matrix is constructed where each point represents the performance of the model trained on one time window and tested on another.
 
 .. image:: ../../_images/sphx_glr_plot_decoding_time_generalization_001.png
    :align: center
@@ -132,10 +132,15 @@ Generalization Across Time (GAT) is a modern strategy to infer neuroscientific c
 
 To use this functionality, simply do::
 
-    >>> gat = GeneralizationAcrossTime(predict_mode='cross-validation', n_jobs=1)
-    >>> gat.fit(epochs)
-    >>> gat.score(epochs)
-    >>> gat.plot(vmin=0.1, vmax=0.9, title="Generalization Across Time (faces vs. scrambled)")
+    >>> clf = LogisticRegression()
+    >>> tg = GeneralizationLight(clf, n_jobs=1)
+    >>> score = cross_val_multiscore(clf, X=epochs.get_data(),
+                                     y=epochs.events[:, 2], cv=4)
+    >>> tg.fit(epochs)
+    >>> scores = tg.score(epochs)
+    >>> plt.matshow(scores, vmin=0.1, vmax=0.9,
+                    extent=[epochs.times[0], epochs.times[-1]] * 2,
+                    title="Temporal Generalization (faces vs. scrambled)")
 
 .. topic:: Examples:
 
@@ -150,9 +155,16 @@ In this strategy, a model trained on one time window is tested on the same time 
    :align: center
    :width: 400px
 
-To generate this plot, you need to initialize a GAT object and then use the method ``plot_diagonal``::
+To generate this plot, you need to use ``SearchLight` over time samples::
 
-    >>> gat.plot_diagonal()
+    >>> clf = LogisticRegression()
+    >>> tg = SearchLight(clf, n_jobs=1)
+    >>> scores = cross_val_multiscore(clf, X=epochs.get_data(),
+                                     y=epochs.events[:, 2], cv=4)
+    >>> plt.plot(epochs.times, scores, vmin=0.1, vmax=0.9,
+                 title="Temporal Decoding (faces vs. scrambled)")
+
+
 
 .. topic:: Examples:
 
