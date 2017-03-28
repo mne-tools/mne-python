@@ -1,5 +1,7 @@
 import numpy as np
-from .base import _get_final_est, BaseEstimator, _check_estimator
+import numbers
+from sklearn.base import clone
+from .base import get_coef, BaseEstimator, _check_estimator
 
 
 class ReceptiveField(BaseEstimator):
@@ -37,7 +39,7 @@ class ReceptiveField(BaseEstimator):
         The coefficients from the model fit, reshaped for easy visualization.
         If you want the raw (1d) coefficients, access them from the estimator
         stored in ``self.estimator_``.
-    ``delays_``: array, shape (n_delays), dtype int
+    ``delays_``: array, shape (n_delays,), dtype int
         The delays used to fit the model, in indices. To return the delays
         in seconds, use ``self.delays_ / self.sfreq``
     ``keep_samples_`` : slice
@@ -76,7 +78,8 @@ class ReceptiveField(BaseEstimator):
         self.tmax = tmax
         self.estimator = 0. if estimator is None else estimator
         if scoring not in _SCORERS.keys():
-            raise ValueError('scoring must be one of %s' % _SCORERS.keys())
+            raise ValueError('scoring must be one of %s, got'
+                             '%s ' % (_SCORERS.keys(), scoring))
         self.scoring = scoring
 
     def __repr__(self):  # noqa: D105
@@ -106,9 +109,9 @@ class ReceptiveField(BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape (n_times, [n_epochs], n_features)
+        X : array, shape (n_times[, n_epochs], n_features)
             The input features for the model.
-        y : array, shape (n_times, [n_epochs], n_outputs)
+        y : array, shape (n_times[, n_epochs], n_outputs)
             The output features for the model.
         """
         from sklearn.linear_model import Ridge
@@ -121,13 +124,14 @@ class ReceptiveField(BaseEstimator):
         # Define the slice that we should use in the middle
         self.keep_samples_ = _delays_to_slice(self.delays_)
 
-        if isinstance(self.estimator, (float, int)):
+        if isinstance(self.estimator, numbers.Real):
             estimator = Ridge(alpha=self.estimator)
         elif is_regressor(self.estimator):
-            estimator = self.estimator
+            estimator = clone(self.estimator)
         else:
             raise ValueError('`estimator` must be a float or an instance'
-                             ' of `BaseEstimator`.')
+                             ' of `BaseEstimator`,'
+                             ' got type %s.' % type(self.estimator))
         self.estimator_ = estimator
         _check_estimator(self.estimator_)
 
@@ -154,16 +158,20 @@ class ReceptiveField(BaseEstimator):
 
         self.estimator_.fit(X_del, y)
 
-        coefs = _get_final_est(self.estimator_).coef_
+        coefs = get_coef(self.estimator_, 'coef_')
         coefs = coefs.reshape([n_outputs, n_feats, len(self.delays_)])
-        self.coef_ = coefs.squeeze()
+        if len(coefs) == 1:
+            # Remove a singleton first dimension if only 1 output
+            coefs = coefs[0]
+        self.coef_ = coefs
+        return self
 
     def predict(self, X, y=None):
         """Generate predictions with a receptive field.
 
         Parameters
         ----------
-        X : array, shape (n_times, [n_epochs], n_channels)
+        X : array, shape (n_times[, n_epochs], n_channels)
             The input features for the model.
         y : None
             Used for sklearn compatibility.
@@ -193,9 +201,9 @@ class ReceptiveField(BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape (n_times, [n_epochs], n_channels)
+        X : array, shape (n_times[, n_epochs], n_channels)
             The input features for the model.
-        y : array, shape (n_times, [n_epochs], n_outputs)
+        y : array, shape (n_times[, n_epochs], n_outputs)
             Used for sklearn compatibility.
 
         Returns
@@ -223,7 +231,7 @@ class ReceptiveField(BaseEstimator):
 
     def _check_dimensions(self, X, y, predict=False):
         if X.ndim == 1:
-            raise ValueError('X must be shape (n_times, [n_epochs],'
+            raise ValueError('X must be shape (n_times[, n_epochs],'
                              ' n_features)')
         elif X.ndim == 2:
             # Ensure we have a 3D input by adding singleton epochs dimension
@@ -235,7 +243,7 @@ class ReceptiveField(BaseEstimator):
             elif y.ndim == 2:
                 y = y[:, np.newaxis]  # Only add epochs dim
             else:
-                raise ValueError('y must be shape (n_times, [n_epochs],'
+                raise ValueError('y must be shape (n_times[, n_epochs],'
                                  ' n_outputs')
         elif X.ndim == 3:
             if y is None:
@@ -247,7 +255,7 @@ class ReceptiveField(BaseEstimator):
                                  'y must be at least 2 dimensions')
         else:
             raise ValueError('X must be of shape '
-                             '(n_times, [n_epochs], n_features)')
+                             '(n_times[, n_epochs], n_features)')
         if y is None:
             # If y is None, then we don't need any more checks
             return X, y
@@ -270,7 +278,7 @@ def _delay_time_series(X, tmin, tmax, sfreq, newaxis=0, axis=0):
 
     Parameters
     ----------
-    X : array, shape (n_times, [n_epochs], n_features)
+    X : array, shape (n_times[, n_epochs], n_features)
         The time series to delay.
     tmin : int | float
         The starting lag. Negative values correspond to times in the past.

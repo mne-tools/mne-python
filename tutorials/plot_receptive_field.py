@@ -163,13 +163,13 @@ for ii, iep in enumerate(X_del):
 X_plt = scale(np.hstack(X[:2]).T).T
 y_plt = scale(np.hstack(y[:2]))
 time = np.arange(X_plt.shape[-1]) / sfreq
-fig, axs = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
-axs[0].pcolormesh(time, freqs, X_plt, vmin=0, vmax=4, cmap='viridis')
-axs[0].set_title('Input auditory features')
-axs[0].set(ylim=[freqs.min(), freqs.max()], ylabel='Frequency (Hz)')
-axs[1].plot(time, y_plt)
-axs[1].set(xlim=[time.min(), time.max()], title='Simulated response',
-           xlabel='Time (s)', ylabel='Activity (a.u.)')
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
+ax1.pcolormesh(time, freqs, X_plt, vmin=0, vmax=4, cmap='viridis')
+ax1.set_title('Input auditory features')
+ax1.set(ylim=[freqs.min(), freqs.max()], ylabel='Frequency (Hz)')
+ax2.plot(time, y_plt)
+ax2.set(xlim=[time.min(), time.max()], title='Simulated response',
+        xlabel='Time (s)', ylabel='Activity (a.u.)')
 mne.viz.tight_layout()
 
 

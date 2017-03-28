@@ -13,7 +13,6 @@ from mne.utils import requires_sklearn_0_15, run_tests_if_main
 from mne.decoding import ReceptiveField
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
-from mne.decoding.base import _get_final_est
 
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -73,13 +72,9 @@ def test_time_delay():
 @requires_sklearn_0_15
 def test_receptive_field():
     """Test model prep and fitting"""
-    from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import Ridge
     # Make sure estimator pulling works
     mod = Ridge()
-    pipe = make_pipeline(Ridge())
-    est = _get_final_est(pipe)
-    assert_true(isinstance(est, type(mod)))
 
     # Test the receptive field model
     # Define parameters for the model and simulate inputs + weights
@@ -150,7 +145,6 @@ def test_receptive_field():
     assert_raises(ValueError, _SCORERS['corrcoef'], y.squeeze(), y_pred)
     # Need correct scorers
     assert_raises(ValueError, ReceptiveField, tmin, tmax, 1, scoring='foo')
-    # Make sure delay taking is correct
 
 
 run_tests_if_main()

@@ -103,7 +103,7 @@ for ii, (train, test) in enumerate(cv.split(speech)):
     print('CV iteration %s' % ii)
     rf.fit(speech[train], Y[train])
     scores[ii] = rf.score(speech[test], Y[test])
-    coefs[ii] = rf.coef_
+    coefs[ii] = rf.coef_[:, 0, :]  # We only have one feature
 times = rf.delays_ / float(rf.sfreq)
 
 # Average scores and coefficients across CV splits

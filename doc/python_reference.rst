@@ -1117,10 +1117,9 @@ Classes:
    TimeFrequency
    UnsupervisedSpatialFilter
    Vectorizer
+   ReceptiveField
 
 Functions:
-
-   ReceptiveField
 
 Functions that assist with decoding and model fitting:
 
@@ -1130,7 +1129,6 @@ Functions that assist with decoding and model fitting:
 
    compute_ems
    get_coef
-   delay_time_series
 
 Realtime
 ========
