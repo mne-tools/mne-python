@@ -14,8 +14,8 @@ a list of 92 images). Subjects were presented with images of human, animal
 and inanimate objects [4]_. Here we use the 24 unique images of faces
 and body parts.
 
-.. note:: this example will download a very large (~6GB) file, so we will not build the
-          images below.
+.. note:: this example will download a very large (~6GB) file, so we will not
+          build the images below.
 
 References
 ----------
