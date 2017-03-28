@@ -26,6 +26,7 @@ from os import path as op
 
 import mne
 from mne.viz import ClickableImage  # noqa
+from mne.channels import generate_2d_layout  # noqa
 from mne.viz import plot_trans, snapshot_brain_montage
 
 
@@ -102,7 +103,6 @@ ax.set_axis_off()
 # im = plt.imread('./brain.png')
 # click = ClickableImage(im)
 # click.plot_clicks()
-# coords = click.coords
 
 # # Generate a layout from our clicks and normalize by the image
 # print('Generating and saving layout...')
