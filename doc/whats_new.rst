@@ -19,7 +19,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - ...
+    - Add .bvef extension (BrainVision Electrodes File) to :func:`mne.channels.read_montage` by `Jean-Baptiste Schiratti`_
 
 
 BUG
@@ -114,8 +114,6 @@ Changelog
     - Add support of dipole location visualization with MRI slice overlay with matplotlib to :func:`mne.viz.plot_dipole_locations` via mode='orthoview' parameter by `Jaakko Leppakangas`_ and `Alex Gramfort`_
 
     - Add plotting of head positions as a function of time in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
-
-    - Add .bvef extension (BrainVision Electrodes File) to :func:`mne.channels.read_montage` by `Jean-Baptiste Schiratti`_
 
     - Add ``real_filter`` option to :func:`mne.beamformer.dics`, :func:`mne.beamformer.dics_source_power`, :func:`mne.beamformer.tf_dics` and :func:`mne.beamformer.dics_epochs` by `Eric Larson`_, `Alex Gramfort`_ and `Andrea Brovelli`_.
 
