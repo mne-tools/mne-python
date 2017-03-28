@@ -66,7 +66,7 @@ clf = make_pipeline(StandardScaler(), LogisticRegression())
 
 sl = SearchLight(clf, n_jobs=1, scoring='roc_auc')
 
-scores = cross_val_multiscore(sl, X, y, cv=4, n_jobs=1)
+scores = cross_val_multiscore(sl, X, y, cv=5, n_jobs=1)
 
 # Mean scores across cross-validation splits
 scores = np.mean(scores, axis=0)
@@ -94,7 +94,7 @@ plt.show()
 # define the Generalization Across Time (GAT) object
 gl = GeneralizationLight(clf, n_jobs=1, scoring='roc_auc')
 
-scores = cross_val_multiscore(gl, X, y, cv=4, n_jobs=1)
+scores = cross_val_multiscore(gl, X, y, cv=5, n_jobs=1)
 
 # Mean scores across cross-validation splits
 scores = np.mean(scores, axis=0)
