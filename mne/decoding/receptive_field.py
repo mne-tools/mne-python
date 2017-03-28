@@ -1,6 +1,4 @@
 import numpy as np
-from sklearn.metrics import r2_score
-from scipy.stats import pearsonr
 from .base import _get_final_est, BaseEstimator, _check_estimator
 
 
@@ -354,9 +352,15 @@ def _check_delayer_params(tmin, tmax, sfreq):
 
 # Create a correlation sklearn-style scorer
 def _corr_score(y_true, y, multioutput=None):
+    from scipy.stats import pearsonr
     if any(ii.ndim != 2 for ii in [y_true, y]):
         raise ValueError('inputs must shape (samples, outputs)')
     return [pearsonr(y_true[:, ii], y[:, ii])[0] for ii in range(y.shape[-1])]
 
-_SCORERS = {'r2': r2_score,
+
+def _r2_score(y_true, y, multioutput=None):
+    from sklearn.metrics import r2_score
+    return r2_score(y_true, y)
+
+_SCORERS = {'r2': _r2_score,
             'corrcoef': _corr_score}
