@@ -278,10 +278,9 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     # solve linear system
     coefs = solver(X, data.T)
     if coefs.shape[0] != data.shape[0]:
-        msg = ("solver output has unexcepted shape. Supply a function that "
-               "returns coefficients in the form (n_targets, n_features), "
-               "where targets == channels.")
-        raise ValueError(msg)
+        raise ValueError("solver output has unexcepted shape. Supply a "
+                         "function that returns coefficients in the form "
+                         "(n_targets, n_features), where targets == channels.")
 
     # construct Evoked objects to be returned from output
     evokeds = _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info)
