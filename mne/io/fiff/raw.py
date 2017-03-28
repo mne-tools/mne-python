@@ -17,7 +17,6 @@ from ..open import fiff_open, _fiff_get_fid, _get_next_fname
 from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
 from ..tag import read_tag, read_tag_info
-from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
 from ..base import (BaseRaw, _RawShell, _check_raw_compatibility,
                     _check_maxshield)
 from ..utils import _mult_cal_one

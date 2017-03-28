@@ -192,7 +192,7 @@ def test_simulate_raw_sphere():
 def test_simulate_raw_bem():
     """Test simulation of raw data with BEM."""
     raw, src, stc, trans, sphere = _get_data()
-    src = setup_source_space('sample', 
+    src = setup_source_space('sample',
                              'oct1', subjects_dir=subjects_dir)
     # use different / more complete STC here
     vertices = [s['vertno'] for s in src]
