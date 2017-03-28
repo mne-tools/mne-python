@@ -154,7 +154,7 @@ def _fit_lm(data, design_matrix, names):
 
 def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
                           covariates=None, reject=None, flat=None, tstep=1.,
-                          decim=1, picks=None, solver='cholesky'):
+                          decim=1, picks=None, solver='lstsq'):
     """Estimate regression-based evoked potentials/fields by linear modeling.
 
     This models the full M/EEG time course, including correction for
@@ -399,6 +399,8 @@ def _get_solver(solver='cholesky'):
             return _cho_solver
         elif solver == "pinv":
             return _pinv_solver
+        elif solver == 'lstsq':
+            return _lstsq
         else:
             raise ValueError("No such solver: {0}".format(solver))
 
@@ -413,3 +415,8 @@ def _pinv_solver(X, y):
     from ..utils import _get_fast_dot
     fast_dot = _get_fast_dot()
     return fast_dot(linalg.pinv(X.T.dot(X).todense()), X.T.dot(y.T)).T
+
+
+def _lstsq(X, y):
+    from scipy.linalg import lstsq
+    return lstsq(X.todense(), y.T, lapack_driver='gelsy')[0].T
