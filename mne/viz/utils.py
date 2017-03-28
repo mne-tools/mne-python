@@ -1058,6 +1058,9 @@ class ClickableImage(object):
             Arguments are passed to imshow in displaying the bg image.
         """
         from matplotlib.pyplot import subplots
+        if len(self.coords) == 0:
+            raise ValueError('No coordinates found, make sure you click '
+                             'on the image that is first shown.')
         f, ax = subplots()
         ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
         xlim, ylim = [ax.get_xlim(), ax.get_ylim()]
