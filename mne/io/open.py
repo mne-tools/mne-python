@@ -236,7 +236,7 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
                 postpend = ''
                 # print tag data nicely
                 if tag.data is not None:
-                    if isinstance(tag.data, unicode):
+                    if isinstance(tag.data, string_types):
                         tag.data = tag.data.encode('utf-8')
                     postpend = ' = ' + str(tag.data)[:max_str]
                     if isinstance(tag.data, np.ndarray):
