@@ -396,8 +396,9 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
 
     Returns
     -------
-    scores : array of float, shape=(len(list(cv)),) | array of array
+    scores : array of float
         Array of scores of the estimator for each run of the cross validation.
+        The first dimensions is n_splits, the other depends on estimator.
 
     """
     # This code is copied from sklearn

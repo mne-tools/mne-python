@@ -132,6 +132,8 @@ def test_linearmodel():
 
 @requires_sklearn_0_15
 def test_cross_val_multiscore():
+    """Test cross_val_multiscore for computing scores on decoding over time.
+    """
     from sklearn.model_selection import KFold, cross_val_score
     from sklearn.linear_model import LogisticRegression
 
@@ -164,7 +166,7 @@ def test_cross_val_multiscore():
     assert_raises(ValueError, cross_val_multiscore, clf, X, y, cv=cv,
                   scoring='roc_auc')
     clf = SearchLight(LogisticRegression(), scoring='roc_auc')
-    scores_auc = cross_val_multiscore(clf, X, y, cv=cv, n_jobs=2)
+    scores_auc = cross_val_multiscore(clf, X, y, cv=cv, n_jobs=1)
     scores_auc_manual = list()
     for train, test in cv.split(X, y):
         clf.fit(X[train], y[train])

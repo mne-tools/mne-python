@@ -149,7 +149,7 @@ def test_generalization_light():
     n_epochs, _, n_time = X.shape
     # fit
     gl = GeneralizationLight(LogisticRegression())
-    assert_equal(gl.__repr__()[:21], '<GeneralizationLight(')
+    assert_equal(repr(gl)[:21], '<GeneralizationLight(')
     gl.fit(X, y)
 
     assert_equal(gl.__repr__()[-28:], ', fitted with 10 estimators>')

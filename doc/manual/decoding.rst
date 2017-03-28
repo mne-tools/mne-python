@@ -150,19 +150,21 @@ To generate this plot see our tutorial :ref:`sphx_glr_auto_tutorials_plot_sensor
 Temporal Generalization
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Temporal generalization is an extension of the decoding over time idea
-where one tries to evaluate if the model estimated at a certain time
-predicts accuratly at any another instant. It's the idea of transfering
-a trained model to another learning problem where here the new problem
-corresponds to different time instants.
+Temporal generalization is an extension of the decoding over time approach.
+It consists in evaluating whether the model estimated at a particular
+time instant accurately predicts any other time instant. It is analogous to
+transferring a trained model to a distinct learning problem, where the problems
+correspond to decoding the patterns of brain activity recorded at distinct time
+instants.
 
-The object to use is :class:`decoding.GeneralizationLight`. It expects
-as input :math:`X` and :math:`y` like the :class:`decoding.SearchLight`
-but when predicting it will return the prediction of each model
-for all time instants. The class :class:`decoding.GeneralizationLight`
-is generic and will treat the last dimension as the different tasks.
-If :math:`X` corresponds to epochs data then the last dimension
-is time.
+The object to for Temporal Generalization is
+:class:`decoding.GeneralizationLight`. It expects as input :math:`X` and
+:math:`y` (similarly to :class:`decoding.SearchLight`) but, when generate
+predictions from each model for all time instants. The class
+:class:`decoding.GeneralizationLight` is generic and will treat the last
+dimension as the one to be used for generalization testing. For convenience,
+here, we refer to it different tasks. If :math:`X` corresponds to epochs data
+then the last dimension is time.
 
 .. image:: ../../_images/sphx_glr_plot_decoding_time_generalization_001.png
    :align: center
