@@ -135,18 +135,16 @@ def test_continuous_regression_with_overlap():
     signal = np.convolve(signal, effect)[:len(signal)]
     raw = RawArray(signal[np.newaxis, :], mne.create_info(1, 100, 'eeg'))
 
-    assert_allclose(effect,
-                    linear_regression_raw(raw, events, {1: 1}, tmin=0)[1]
-                    .data.flatten())
+    assert_allclose(effect, linear_regression_raw(
+        raw, events, {1: 1}, tmin=0)[1].data.flatten())
 
     # test that sklearn solvers can be used
     from sklearn.linear_model.ridge import ridge_regression
     solver = lambda X, y: ridge_regression(X, y, alpha=1.)
-    assert_allclose(effect,
-                    linear_regression_raw(raw, events, tmin=0,
-                                          solver=solver)[1].data.flatten())
+    assert_allclose(effect, linear_regression_raw(
+        raw, events, tmin=0, solver=solver)['1'].data.flatten())
 
-	# test bad solvers
+    # test bad solvers
     solver = lambda X, y: ridge_regression(X, y, alpha=1.).T
     assert_raises(ValueError, linear_regression_raw, events, solver=solver)
     assert_raises(ValueError, linear_regression_raw, events, solver='error')
