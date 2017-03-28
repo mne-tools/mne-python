@@ -349,8 +349,27 @@ freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent:
 # h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
-h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p)
-x_shallow = np.convolve(h, x)[len(h) // 2:]
+h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
+                             fir_design='firwin')
+x_v16 = np.convolve(h, x)[len(h) // 2:]
+
+plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.16 default', flim=flim)
+
+###############################################################################
+# Filter it with a different design mode (firwin2), and also
+# compensate for the constant filter delay):
+
+transition_band = 0.25 * f_p
+f_s = f_p + transition_band
+filter_dur = 6.6 / transition_band  # sec
+n = int(sfreq * filter_dur)
+freq = [0., f_p, f_s, sfreq / 2.]
+gain = [1., 1., 0., 0.]
+# This would be equivalent:
+# h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
+h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
+                             fir_design='firwin2')
+x_v14 = np.convolve(h, x)[len(h) // 2:]
 
 plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default', flim=flim)
 
@@ -371,8 +390,9 @@ gain = [1., 1., 0., 0.]
 # h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                              h_trans_bandwidth=transition_band,
-                             filter_length='%ss' % filter_dur)
-x_steep = np.convolve(np.convolve(h, x)[::-1], h)[::-1][len(h) - 1:-len(h) - 1]
+                             filter_length='%ss' % filter_dur,
+                             fir_design='firwin2')
+x_v13 = np.convolve(np.convolve(h, x)[::-1], h)[::-1][len(h) - 1:-len(h) - 1]
 
 plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.13 default', flim=flim)
 
@@ -393,7 +413,7 @@ plot_filter(h, sfreq, freq, gain, 'MNE-C default', flim=flim)
 # And now an example of a minimum-phase filter:
 
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
-                             phase='minimum')
+                             phase='minimum', fir_design='firwin2')
 x_min = np.convolve(h, x)
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
@@ -428,15 +448,16 @@ def plot_signal(x, offset):
     axes[1].plot(freqs, 20 * np.log10(np.abs(X)))
     axes[1].set(xlim=flim)
 
-yticks = np.arange(6) / -30.
-yticklabels = ['Original', 'Noisy', 'FIR-shallow (0.14)', 'FIR-steep (0.13)',
-               'FIR-steep (MNE-C)', 'Minimum-phase']
+yticks = np.arange(7) / -30.
+yticklabels = ['Original', 'Noisy', 'FIR-firwin (0.16)', 'FIR-firwin2 (0.14)',
+               'FIR-steep (0.13)', 'FIR-steep (MNE-C)', 'Minimum-phase']
 plot_signal(x_orig, offset=yticks[0])
 plot_signal(x, offset=yticks[1])
-plot_signal(x_shallow, offset=yticks[2])
-plot_signal(x_steep, offset=yticks[3])
-plot_signal(x_mne_c, offset=yticks[4])
-plot_signal(x_min, offset=yticks[5])
+plot_signal(x_v16, offset=yticks[2])
+plot_signal(x_v14, offset=yticks[3])
+plot_signal(x_v13, offset=yticks[4])
+plot_signal(x_mne_c, offset=yticks[5])
+plot_signal(x_min, offset=yticks[6])
 axes[0].set(xlim=tlim, title='FIR, Lowpass=%d Hz' % f_p, xticks=tticks,
             ylim=[-0.200, 0.025], yticks=yticks, yticklabels=yticklabels,)
 for text in axes[0].get_yticklabels():

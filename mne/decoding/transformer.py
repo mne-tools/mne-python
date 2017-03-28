@@ -724,6 +724,13 @@ class TemporalFilter(TransformerMixin):
     fir_window : str, defaults to 'hamming'
         The window to use in FIR design, can be "hamming", "hann",
         or "blackman".
+    fir_design : str
+        Can be "firwin" (default in 0.16) to use :func:`scipy.signal.firwin`,
+        or "firwin2" (default in 0.15 and before) to use
+        :func:`scipy.signal.firwin2`.
+
+        ..versionadded:: 0.15
+
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -739,7 +746,7 @@ class TemporalFilter(TransformerMixin):
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
                  filter_length='auto', l_trans_bandwidth='auto',
                  h_trans_bandwidth='auto', n_jobs=1, method='fir',
-                 iir_params=None, fir_window='hamming',
+                 iir_params=None, fir_window='hamming', fir_design=None,
                  verbose=None):  # noqa: D102
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -751,6 +758,7 @@ class TemporalFilter(TransformerMixin):
         self.method = method
         self.iir_params = iir_params
         self.fir_window = fir_window
+        self.fir_design = fir_design
         self.verbose = verbose
 
         if not isinstance(self.n_jobs, int) and self.n_jobs == 'cuda':
@@ -803,7 +811,8 @@ class TemporalFilter(TransformerMixin):
                                   self.l_trans_bandwidth,
                                   self.h_trans_bandwidth, self.filter_length,
                                   self.method, phase='zero',
-                                  fir_window=self.fir_window)
+                                  fir_window=self.fir_window,
+                                  fir_design=self.fir_design)
         X = filter_data(X, self.sfreq, self.l_freq, self.h_freq,
                         filter_length=self.filter_length,
                         l_trans_bandwidth=self.l_trans_bandwidth,
