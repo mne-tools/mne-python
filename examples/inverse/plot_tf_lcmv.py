@@ -3,12 +3,14 @@
 Time-frequency beamforming using LCMV
 =====================================
 
-Compute LCMV source power in a grid of time-frequency windows and display
-results.
+Compute LCMV source power [1]_ in a grid of time-frequency windows and
+display results.
 
-The original reference is:
-Dalal et al. Five-dimensional neuroimaging: Localization of the time-frequency
-dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
+References
+----------
+.. [1] Dalal et al. Five-dimensional neuroimaging: Localization of the
+       time-frequency dynamics of cortical activity.
+       NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 """
 # Author: Roman Goj <roman.goj@gmail.com>
 #

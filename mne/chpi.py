@@ -1,3 +1,31 @@
+# -*- coding: utf-8 -*-
+u"""Functions for fitting head positions with (c)HPI coils.
+
+To fit head positions (continuously), the procedure using
+``_calculate_chpi_positions`` is:
+
+    1. Get HPI frequencies, HPI coil locations in head coords, HPI status
+       channel, HPI status bits, and digitization order using
+       ``_get_hpi_info``.
+    2. Window data using ``t_window`` (half before and half after ``t``) and
+       ``t_step_min``.
+       (Here Elekta high-passes the data, but we omit this step.)
+    3. Use a linear model (DC + linear slope + sin + cos terms set up
+       in ``_setup_chpi_fits``) to fit sinusoidal amplitudes to MEG
+       channels.
+    4. Use SVD to determine the phase/amplitude of the sinusoids.
+    5. If the amplitudes are 98% correlated with last position
+       (and Δt < t_step_max), skip fitting.
+    5. Fit magnetic dipoles using the amplitudes for each coil frequency
+       (calling ``_fit_magnetic_dipole``).
+    6. Choose good coils based on pairwise distances, taking into account
+       the tolerance ``dist_limit``.
+    7. Fit dev_head_t (using ``_fit_chpi_pos``).
+    8. Accept or reject fit based on GOF threshold ``gof_limit``.
+
+The function ``filter_chpi`` uses the same linear model to filter cHPI
+and (optionally) line frequencies from the data.
+"""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
@@ -123,7 +151,7 @@ def head_pos_to_trans_rot_t(quats):
 
 @verbose
 def _get_hpi_info(info, adjust=False, verbose=None):
-    """Helper to get HPI information from raw."""
+    """Get HPI information from raw."""
     if len(info['hpi_meas']) == 0 or \
             ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
         raise RuntimeError('Appropriate cHPI information not found in'
@@ -236,7 +264,7 @@ def _fit_magnetic_dipole(B_orig, x0, coils, scale, method):
 
 
 def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
-    """Helper objective function."""
+    """Compute objective function."""
     d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)
     d += x[3:] / 10.  # in decimeters to get quats and head units close
     d -= coil_head_rrs
@@ -268,7 +296,7 @@ def _fit_chpi_pos(coil_dev_rrs, coil_head_rrs, x0):
 def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
                      exclude='bads', add_hpi_stim_pick=True,
                      remove_aliased=False, verbose=None):
-    """Helper to set up cHPI fits."""
+    """Set up cHPI fits."""
     from scipy.spatial.distance import cdist
     from .preprocessing.maxwell import _prep_mf_coils
     if not (check_version('numpy', '1.7') and check_version('scipy', '0.11')):
@@ -361,7 +389,7 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
 
 
 def _time_prefix(fit_time):
-    """Helper to format log messages."""
+    """Format log messages."""
     return ('    t=%0.3f:' % fit_time).ljust(17)
 
 

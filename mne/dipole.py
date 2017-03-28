@@ -55,7 +55,7 @@ class Dipole(object):
     pos : array, shape (n_dipoles, 3)
         The dipoles positions (m) in head coordinates.
     amplitude : array, shape (n_dipoles,)
-        The amplitude of the dipoles (nAm).
+        The amplitude of the dipoles (Am).
     ori : array, shape (n_dipoles, 3)
         The dipole orientations (normalized to unit length).
     gof : array, shape (n_dipoles,)
@@ -297,7 +297,7 @@ class Dipole(object):
             selected_gof, selected_name)
 
     def __len__(self):
-        """The number of dipoles.
+        """Return the number of dipoles.
 
         Returns
         -------
@@ -316,7 +316,7 @@ class Dipole(object):
 
 
 def _read_dipole_fixed(fname):
-    """Helper to read a fixed dipole FIF file."""
+    """Read a fixed dipole FIF file."""
     logger.info('Reading %s ...' % fname)
     info, nave, aspect_kind, first, last, comment, times, data = \
         _read_evoked(fname)
@@ -1228,7 +1228,7 @@ def get_phantom_dipoles(kind='vectorview'):
 
 
 def _concatenate_dipoles(dipoles):
-    """Helper for concatenating a list of dipoles."""
+    """Concatenate a list of dipoles."""
     times, pos, amplitude, ori, gof = [], [], [], [], []
     for dipole in dipoles:
         times.append(dipole.times)

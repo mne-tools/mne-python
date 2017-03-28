@@ -115,13 +115,14 @@ class Raw(BaseRaw):
             first_samps = list()
             last_samps = list()
             for r in raws:
-                first_samps = np.r_[first_samps, r.first_samp]
-                last_samps = np.r_[last_samps, r.last_samp]
                 self.annotations = _combine_annotations((self.annotations,
                                                          r.annotations),
                                                         last_samps,
                                                         first_samps,
-                                                        r.info['sfreq'])
+                                                        r.info['sfreq'],
+                                                        self.info['meas_date'])
+                first_samps = np.r_[first_samps, r.first_samp]
+                last_samps = np.r_[last_samps, r.last_samp]
 
         # Add annotations for in-data skips
         offsets = [0] + self._raw_lengths[:-1]

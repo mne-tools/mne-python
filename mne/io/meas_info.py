@@ -41,6 +41,7 @@ _kind_dict = dict(
     stim=(FIFF.FIFFV_STIM_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     eog=(FIFF.FIFFV_EOG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     ecg=(FIFF.FIFFV_ECG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
+    emg=(FIFF.FIFFV_EMG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     seeg=(FIFF.FIFFV_SEEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
     bio=(FIFF.FIFFV_BIO_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     ecog=(FIFF.FIFFV_ECOG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
@@ -355,7 +356,7 @@ def write_dig(fname, pts, coord_frame=None):
 
 
 def _read_dig_fif(fid, meas_info):
-    """Helper to read digitizer data from a FIFF file."""
+    """Read digitizer data from a FIFF file."""
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
     dig = None
     if len(isotrak) == 0:
@@ -1420,7 +1421,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
     ch_types : list of str | str
         Channel types. If None, data are assumed to be misc.
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
-        'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'hbr' or 'hbo'.
+        'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr' or 'hbo'.
         If str, then all channels are assumed to be of the same type.
     montage : None | str | Montage | DigMontage | list
         A montage containing channel positions. If str or Montage is

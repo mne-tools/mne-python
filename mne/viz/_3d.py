@@ -1734,6 +1734,10 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     if coord_frame not in ['head', 'mri']:
         raise ValueError("coord_frame must be 'head' or 'mri'. "
                          "Got %s." % coord_frame)
+
+    if not isinstance(dipole, Dipole):
+        from ..dipole import _concatenate_dipoles
+        dipole = _concatenate_dipoles(dipole)
     if idx == 'gof':
         idx = np.argmax(dipole.gof)
     elif idx == 'amplitude':
@@ -1741,10 +1745,6 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     elif not isinstance(idx, Integral):
         raise ValueError("idx must be an int or one of ['gof', 'amplitude']. "
                          "Got %s." % idx)
-
-    if not isinstance(dipole, Dipole):
-        from ..dipole import _concatenate_dipoles
-        dipole = _concatenate_dipoles(dipole)
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
@@ -1871,7 +1871,7 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
 
 
 def _dipole_changed(event, params):
-    """Callback for dipole plotter scroll/key event."""
+    """Handle dipole plotter scroll/key event."""
     if event.key is not None:
         if event.key == 'up':
             params['idx'] += 1

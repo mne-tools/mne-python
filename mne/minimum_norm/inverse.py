@@ -73,7 +73,7 @@ class InverseOperator(dict):
 
 
 def _pick_channels_inverse_operator(ch_names, inv):
-    """Data channel indices to be used knowing an inverse operator.
+    """Return data channel indices to be used knowing an inverse operator.
 
     Unlike ``pick_channels``, this respects the order of ch_names.
     """
@@ -943,7 +943,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
                               prepared=False, verbose=None):
-    """Generator for apply_inverse_epochs."""
+    """Generate for apply_inverse_epochs."""
     method = _check_method(method)
     pick_ori = _check_ori(pick_ori)
 

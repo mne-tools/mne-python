@@ -62,7 +62,7 @@ class RtEpochs(BaseEpochs):
     picks : array-like of int | None (default)
         Indices of channels to include (if None, all channels are used).
     name : string
-        Comment that describes the Evoked data created.
+        Comment that describes the Evoked data created. Deprecated.
     reject : dict | None
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -136,7 +136,7 @@ class RtEpochs(BaseEpochs):
     @verbose
     def __init__(self, client, event_id, tmin, tmax, stim_channel='STI 014',
                  sleep_time=0.1, baseline=(None, 0), picks=None,
-                 name='Unknown', reject=None, flat=None, proj=True,
+                 name=None, reject=None, flat=None, proj=True,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
                  add_eeg_ref=False, isi_max=2., find_events=None,
                  verbose=None):  # noqa: D102

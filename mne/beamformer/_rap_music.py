@@ -156,15 +156,13 @@ def _make_dipoles(times, poss, oris, sol, gof):
     dipoles : list
         The list of Dipole instances.
     """
-    amplitude = sol * 1e9
     oris = np.array(oris)
 
     dipoles = []
     for i_dip in range(poss.shape[0]):
         i_pos = poss[i_dip][np.newaxis, :].repeat(len(times), axis=0)
         i_ori = oris[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        dipoles.append(Dipole(times, i_pos, amplitude[i_dip],
-                              i_ori, gof))
+        dipoles.append(Dipole(times, i_pos, sol[i_dip], i_ori, gof))
 
     return dipoles
 

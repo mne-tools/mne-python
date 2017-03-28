@@ -19,6 +19,7 @@ from ..io.proj import setup_proj
 from ..io.meas_info import create_info
 from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
+from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _layout_figure, _plot_raw_onkey, figure_nobar, plt_show,
@@ -27,7 +28,6 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations)
-from ..defaults import _handle_default
 from .evoked import _plot_lines
 
 
@@ -78,7 +78,7 @@ def _update_raw_data(params):
 
 
 def _pick_bad_channels(event, params):
-    """Selecting / drop bad channels onpick."""
+    """Select or drop bad channels onpick."""
     # Both bad lists are updated. params['info'] used for colors.
     if params['fig_annotation'] is not None:
         return
@@ -397,7 +397,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
 
 def _selection_scroll(event, params):
-    """Callback for scroll in selection dialog."""
+    """Handle scroll in selection dialog."""
     if event.step < 0:
         _change_channel_group(-1, params)
     elif event.step > 0:
@@ -405,7 +405,7 @@ def _selection_scroll(event, params):
 
 
 def _selection_key_press(event, params):
-    """Callback for keys in selection dialog."""
+    """Handle keys in selection dialog."""
     if event.key == 'down':
         _change_channel_group(-1, params)
     elif event.key == 'up':
@@ -415,7 +415,7 @@ def _selection_key_press(event, params):
 
 
 def _close_event(event, params):
-    """Callback for closing of raw browser with selections."""
+    """Handle closing of raw browser with selections."""
     import matplotlib.pyplot as plt
     if 'fig_selection' in params:
         plt.close(params['fig_selection'])

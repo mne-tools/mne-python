@@ -171,5 +171,8 @@ def test_rap_music_simulated_sphere():
     # Test that there is one dipole on each hemisphere
     assert_true(dipoles[0].pos[0, 0] < 0.)
     assert_true(dipoles[1].pos[0, 0] > 0.)
+    # Check the amplitude scale
+    assert_true(1e-10 < dipoles[0].amplitude[0] < 1e-7)
+
 
 run_tests_if_main()

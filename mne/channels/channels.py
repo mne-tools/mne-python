@@ -86,7 +86,7 @@ def _contains_ch_type(info, ch_type):
 
 
 def _get_ch_type(inst, ch_type):
-    """Helper to choose a single channel type (usually for plotting).
+    """Choose a single channel type (usually for plotting).
 
     Usually used in plotting to plot a single datatype, e.g. look for mags,
     then grads, then ... to plot.
@@ -223,7 +223,7 @@ _unit2human = {FIFF.FIFF_UNIT_V: 'V',
 
 
 def _check_set(ch, projs, ch_type):
-    """Helper to make sure type change is compatible with projectors."""
+    """Ensure type change is compatible with projectors."""
     new_kind = _human2fiff[ch_type]
     if ch['kind'] != new_kind:
         for proj in projs:
@@ -239,11 +239,46 @@ class SetChannelsMixin(object):
 
     @verbose
     def set_eeg_reference(self, ref_channels=None, verbose=None):
-        """Rereference EEG channels to new reference channel(s).
+        """Specify which reference to use for EEG data.
 
-        If multiple reference channels are specified, they will be averaged. If
-        no reference channels are specified, an average reference will be
-        applied.
+        By default, MNE-Python will automatically re-reference the EEG signal
+        to use an average reference (see below). Use this function to
+        explicitly specify the desired reference for EEG. This can be either an
+        existing electrode or a new virtual channel. This function will
+        re-reference the data according to the desired reference and prevent
+        MNE-Python from automatically adding an average reference.
+
+        Some common referencing schemes and the corresponding value for the
+        ``ref_channels`` parameter:
+
+        No re-referencing:
+            If the EEG data is already using the proper reference, set
+            ``ref_channels=[]``. This will prevent MNE-Python from
+            automatically re-referencing the data to an average reference.
+
+        Average reference:
+            A new virtual reference electrode is created by averaging the
+            current EEG signal. Make sure that all bad EEG channels are
+            properly marked and set ``ref_channels=None``.
+
+        A single electrode:
+            Set ``ref_channels`` to the name of the channel that will act as
+            the new reference.
+
+        The mean of multiple electrodes:
+            A new virtual reference electrode is created by computing the
+            average of the current EEG signal recorded from two or more
+            selected channels. Set ``ref_channels`` to a list of channel names,
+            indicating which channels to use. For example, to apply an average
+            mastoid reference, when using the 10-20 naming scheme, set
+            ``ref_channels=['M1', 'M2']``.
+
+        .. note:: In case of average reference (ref_channels=None), the
+                  reference is added as an SSP projector and it is not applied
+                  automatically. For it to take effect, apply with method
+                  :meth:`apply_proj <mne.io.proj.ProjMixin.apply_proj>`.
+                  For custom reference (ref_channel is not None), this method
+                  operates in place.
 
         Parameters
         ----------
@@ -276,6 +311,12 @@ class SetChannelsMixin(object):
 
         3. In order to apply a reference other than an average reference, the
            data must be preloaded.
+
+        4. Re-referencing to an average reference is done with an SSP
+           projector. This allows applying this reference without preloading
+           the data. Be aware that on preloaded data, SSP projectors are not
+           automatically applied. Use the ``apply_proj()`` method to apply
+           them.
 
         .. versionadded:: 0.13.0
 
@@ -437,10 +478,11 @@ class SetChannelsMixin(object):
         """
         from .montage import _set_montage
         _set_montage(self.info, montage)
+        return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
-                     show_names=False, ch_groups=None, axes=None, block=False,
-                     show=True):
+                     show_names=False, ch_groups=None, to_sphere=True,
+                     axes=None, block=False, show=True):
         """Plot sensor positions.
 
         Parameters
@@ -469,6 +511,13 @@ class SetChannelsMixin(object):
             array, the channels are divided by picks given in the array.
 
             .. versionadded:: 0.13.0
+
+        to_sphere : bool
+            Whether to project the 3d locations to a sphere. When False, the
+            sensor array appears similar as to looking downwards straight above
+            the subject's head. Has no effect when kind='3d'. Defaults to True.
+
+            .. versionadded:: 0.14.0
 
         axes : instance of Axes | instance of Axes3D | None
             Axes to draw the sensors to. If ``kind='3d'``, axes must be an
@@ -507,7 +556,8 @@ class SetChannelsMixin(object):
         from ..viz.utils import plot_sensors
         return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
                             show_names=show_names, ch_groups=ch_groups,
-                            axes=axes, block=block, show=show)
+                            to_sphere=to_sphere, axes=axes, block=block,
+                            show=show)
 
     @copy_function_doc_to_method_doc(anonymize_info)
     def anonymize(self):
@@ -855,7 +905,7 @@ def rename_channels(info, mapping):
 
 
 def _recursive_flatten(cell, dtype):
-    """Helper to unpack mat files in Python."""
+    """Unpack mat files in Python."""
     while not isinstance(cell[0], dtype):
         cell = [c for d in cell for c in d]
     return cell
@@ -997,7 +1047,7 @@ def fix_mag_coil_types(info):
 
 
 def _get_T1T2_mag_inds(info):
-    """Helper to find T1/T2 magnetometer coil types."""
+    """Find T1/T2 magnetometer coil types."""
     picks = pick_types(info, meg='mag')
     old_mag_inds = []
     for ii in picks:

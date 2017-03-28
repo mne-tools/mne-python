@@ -57,7 +57,7 @@ except ImportError:
 
 
 def nottest(f):
-    """Decorator to mark a function as not a test."""
+    """Mark a function as not a test (decorator)."""
     f.__test__ = False
     return f
 
@@ -535,14 +535,14 @@ def _get_inst_data(inst):
 
 
 class _FormatDict(dict):
-    """Helper for pformat()."""
+    """Help pformat() work properly."""
 
     def __missing__(self, key):
         return "{" + key + "}"
 
 
 def pformat(temp, **fmt):
-    """Partially format a template string.
+    """Format a template string partially.
 
     Examples
     --------
@@ -564,7 +564,7 @@ warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
 class deprecated(object):
-    """Decorator to mark a function or class as deprecated.
+    """Mark a function or class as deprecated (decorator).
 
     Issue a warning when the function is called/the class is instantiated and
     adds a warning to the docstring.
@@ -728,14 +728,14 @@ class use_log_level(object):
 
 @nottest
 def slow_test(f):
-    """Decorator for slow tests."""
+    """Mark slow tests (decorator)."""
     f.slow_test = True
     return f
 
 
 @nottest
 def ultra_slow_test(f):
-    """Decorator for ultra slow tests."""
+    """Mark ultra slow tests (decorator)."""
     f.ultra_slow_test = True
     f.slow_test = True
     return f
@@ -767,24 +767,24 @@ def has_nibabel(vox2ras_tkr=False):
 
 
 def has_mne_c():
-    """Aux function."""
+    """Check for MNE-C."""
     return 'MNE_ROOT' in os.environ
 
 
 def has_freesurfer():
-    """Aux function."""
+    """Check for Freesurfer."""
     return 'FREESURFER_HOME' in os.environ
 
 
 def requires_nibabel(vox2ras_tkr=False):
-    """Aux function."""
+    """Check for nibabel."""
     extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
     return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
                                  'Requires nibabel%s' % extra)
 
 
 def buggy_mkl_svd(function):
-    """Decorator for tests that make calls to SVD and intermittently fail."""
+    """Decorate tests that make calls to SVD and intermittently fail."""
     @wraps(function)
     def dec(*args, **kwargs):
         try:
@@ -800,14 +800,14 @@ def buggy_mkl_svd(function):
 
 
 def requires_version(library, min_version):
-    """Helper for testing."""
+    """Check for a library version."""
     return np.testing.dec.skipif(not check_version(library, min_version),
                                  'Requires %s version >= %s'
                                  % (library, min_version))
 
 
 def requires_module(function, name, call=None):
-    """Decorator to skip test if package is not available."""
+    """Skip a test if package is not available (decorator)."""
     call = ('import %s' % name) if call is None else call
     try:
         from nose.plugins.skip import SkipTest
@@ -826,7 +826,7 @@ def requires_module(function, name, call=None):
 
 
 def copy_doc(source):
-    """Decorator to copy the docstring from another function.
+    """Copy the docstring from another function (decorator).
 
     The docstring of the source function is prepepended to the docstring of the
     function wrapped by this decorator.
@@ -1089,7 +1089,8 @@ def check_version(library, min_version):
         The library name to import. Must have a ``__version__`` property.
     min_version : str
         The minimum version string. Anything that matches
-        ``'(\d+ | [a-z]+ | \.)'``
+        ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
+        check (just check for library presence).
 
     Returns
     -------
@@ -1102,14 +1103,15 @@ def check_version(library, min_version):
     except ImportError:
         ok = False
     else:
-        this_version = LooseVersion(library.__version__)
-        if this_version < min_version:
-            ok = False
+        if min_version:
+            this_version = LooseVersion(library.__version__)
+            if this_version < min_version:
+                ok = False
     return ok
 
 
 def _check_mayavi_version(min_version='4.3.0'):
-    """Helper for mayavi."""
+    """Check mayavi version."""
     if not check_version('mayavi', min_version):
         raise RuntimeError("Need mayavi >= %s" % min_version)
 
@@ -1321,7 +1323,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
 
 
 class catch_logging(object):
-    """Helper to store logging.
+    """Store logging.
 
     This will remove all other logging handlers, and return the handler to
     stdout when complete.

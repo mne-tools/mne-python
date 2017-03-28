@@ -23,30 +23,28 @@ fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-vol-7-fwd.fif')
 fname_event = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc_raw-eve.fif')
-label = 'Aud-lh'
-fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
+fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-def read_forward_solution_meg(*args, **kwargs):
+def _read_forward_solution_meg(*args, **kwargs):
     fwd = mne.read_forward_solution(*args, **kwargs)
     return mne.pick_types_forward(fwd, meg=True, eeg=False)
 
 
 def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
               epochs_preload=True, data_cov=True):
-    """Read in data used in tests
-    """
+    """Read in data used in tests."""
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
     raw = mne.io.read_raw_fif(fname_raw, preload=True)
     forward = mne.read_forward_solution(fname_fwd)
     if all_forward:
-        forward_surf_ori = read_forward_solution_meg(fname_fwd, surf_ori=True)
-        forward_fixed = read_forward_solution_meg(fname_fwd, force_fixed=True,
-                                                  surf_ori=True)
-        forward_vol = read_forward_solution_meg(fname_fwd_vol, surf_ori=True)
+        forward_surf_ori = _read_forward_solution_meg(fname_fwd, surf_ori=True)
+        forward_fixed = _read_forward_solution_meg(fname_fwd, force_fixed=True,
+                                                   surf_ori=True)
+        forward_vol = _read_forward_solution_meg(fname_fwd_vol, surf_ori=True)
     else:
         forward_surf_ori = None
         forward_fixed = None
@@ -72,6 +70,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
             reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
         if epochs_preload:
             epochs.resample(200, npad=0, n_jobs=2)
+        epochs.crop(0, None)
         evoked = epochs.average()
         info = evoked.info
     else:
@@ -96,8 +95,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
 @slow_test
 @testing.requires_testing_data
 def test_lcmv():
-    """Test LCMV with evoked data and single trials
-    """
+    """Test LCMV with evoked data and single trials."""
     raw, epochs, evoked, data_cov, noise_cov, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
@@ -195,8 +193,7 @@ def test_lcmv():
 
 @testing.requires_testing_data
 def test_lcmv_raw():
-    """Test LCMV with raw data
-    """
+    """Test LCMV with raw data."""
     raw, _, _, _, noise_cov, label, forward, _, _, _ =\
         _get_data(all_forward=False, epochs=False, data_cov=False)
 
@@ -221,8 +218,7 @@ def test_lcmv_raw():
 
 @testing.requires_testing_data
 def test_lcmv_source_power():
-    """Test LCMV source power computation
-    """
+    """Test LCMV source power computation."""
     raw, epochs, evoked, data_cov, noise_cov, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
@@ -263,8 +259,7 @@ def test_lcmv_source_power():
 
 @testing.requires_testing_data
 def test_tf_lcmv():
-    """Test TF beamforming based on LCMV
-    """
+    """Test TF beamforming based on LCMV."""
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
     raw = mne.io.read_raw_fif(fname_raw, preload=True)

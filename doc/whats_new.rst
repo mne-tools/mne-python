@@ -11,11 +11,37 @@ MNE-Python Code Updates
 
 .. currentmodule:: mne
 
+.. _current:
+
 Current
 -------
 
 Changelog
 ~~~~~~~~~
+
+    - ...
+
+
+BUG
+~~~
+
+    - Fix unit scaling when reading in EGI digitization files using :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
+
+API
+~~~
+
+    - ...
+
+
+.. _changes_0_14:
+
+Version 0.14
+------------
+
+Changelog
+~~~~~~~~~
+
+    - Automatically create a legend in :func:`mne.viz.evoked.plot_evoked_topo` by `Jussi Nurminen`_
 
     - Add I/O support for Artemis123 infant/toddler MEG data by `Luke Bloy`_
 
@@ -91,8 +117,20 @@ Changelog
 
     - Add .bvef extension (BrainVision Electrodes File) to :func:`mne.channels.read_montage` by `Jean-Baptiste Schiratti`_
 
+    - Add ``real_filter`` option to :func:`mne.beamformer.dics`, :func:`mne.beamformer.dics_source_power`, :func:`mne.beamformer.tf_dics` and :func:`mne.beamformer.dics_epochs` by `Eric Larson`_, `Alex Gramfort`_ and `Andrea Brovelli`_.
+
+    - Add a demo script showing how to use a custom inverse solver with MNE by `Alex Gramfort`_
+
+    - Functions :func:`mne.preprocessing.create_ecg_epochs`, :func:`mne.preprocessing.create_eog_epochs`, :func:`mne.compute_raw_covariance` and ICA methods :meth:`mne.preprocessing.ICA.score_sources`, :meth:`mne.preprocessing.ICA.find_bads_ecg`, :meth:`mne.preprocessing.ICA.find_bads_eog` are now annotation aware by `Jaakko Leppakangas`_
+
+    - Allow using ``spatial_colors`` for non-standard layouts by creating custom layouts from channel locations and add ``to_sphere`` keyword to :func:`mne.viz.plot_sensors` to allow plotting sensors that are not on the head surface by `Jaakko Leppakangas`_
+
+    - Concatenating raws with :func:`mne.concatenate_raws` now creates boundary annotations automatically by `Jaakko Leppakangas`_
+
 BUG
 ~~~
+
+    - Fix bug with DICS and LCMV (e.g., :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.dics`) where regularization was done improperly. The default ``reg=0.01`` has been changed to ``reg=0.05``, by `Andrea Brovelli`_, `Alex Gramfort`_, and `Eric Larson`_
 
     - Fix callback function call in ``mne.viz.topo._plot_topo_onpick`` by `Erkka Heinila`_
 
@@ -136,9 +174,7 @@ BUG
 
     - Fix bug in :func:`mne.preprocessing.fix_stim_artifact` where non-data channels were interpolated by `Eric Larson`_
 
-    - Fix :func:`mne.viz.plot_topo_image_epochs` and :class:`mne.decoding.Scaler` so that they no longer modify the data in-place and fix to :meth:`mne.decoding.Scaler.inverse_transform` so that the data is scaled before centering by `Jaakko Leppakangas`_
-
-    - Fix bug in :class:`mne.decoding.Scaler` where ``np.mean`` instead of ``np.std`` was used to compute scale factors by `Eric Larson`_
+    - :class:`mne.decoding.Scaler` now scales each channel independently using data from all time points (epochs and times) instead of scaling all channels for each time point. It also now accepts parameter ``scalings`` to determine the data scaling method (default is ``None`` to use static channel-type-based scaling), by `Asish Panda`_, `Jean-Remi King`_, and `Eric Larson`_
 
     - Raise error if the cv parameter of :class:`mne.decoding.GeneralizationAcrossTime` and :class:`mne.decoding.TimeDecoding` is not a partition and the predict_mode is "cross-validation" by `Jean-Remi King`_
 
@@ -165,6 +201,8 @@ BUG
     - Fix handling of ``n_components=None`` in :class:`mne.preprocessing.ICA` by `Richard Höchenberger`_
 
     - Fix reading of fiducials correctly from CTF data in :func:`mne.io.read_raw_ctf` by `Jaakko Leppakangas`_
+
+    - Fix :func:`mne.beamformer.rap_music` to return dipoles with amplitudes in Am instead of nAm by `Jaakko Leppakangas`_
 
 API
 ~~~
@@ -195,6 +233,9 @@ API
 
     - :meth:`mne.preprocessing.ICA.fit` now rejects data annotated bad by default. Turn off with ``reject_by_annotation=False``, by `Jaakko Leppakangas`_
 
+    - :func:`mne.io.read_raw_egi` now names channels with pattern 'E<idx>'. This behavior can be changed with parameter ``channel_naming`` by `Jaakko Leppakangas`_
+
+    - the `name`` parameter in :class:`mne.Epochs` is deprecated, by `Jaakko Leppakangas`_
 
 .. _changes_0_13:
 
@@ -2029,6 +2070,8 @@ of commits):
 .. _Leonardo Barbosa: https://github.com/noreun
 
 .. _Erkka Heinila: https://github.com/Teekuningas
+
+.. _Andrea Brovelli: http://www.int.univ-amu.fr/_BROVELLI-Andrea_?lang=en
 
 .. _Richard Höchenberger: http://hoechenberger.name
 

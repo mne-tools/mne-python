@@ -232,7 +232,10 @@ def test_montage():
 
         evoked = EvokedArray(
             data=np.zeros((len(montage.ch_names), 1)), info=info, tmin=0)
-        evoked.set_montage(montage)
+
+        # test return type as well as set montage
+        assert_true(isinstance(evoked.set_montage(montage), type(evoked)))
+
         pos3 = np.array([c['loc'][:3] for c in evoked.info['chs']])
         assert_array_equal(pos3, montage.pos)
         assert_equal(montage.ch_names, evoked.info['ch_names'])
@@ -434,7 +437,7 @@ def test_fif_dig_montage():
 @testing.requires_testing_data
 def test_egi_dig_montage():
     """Test EGI MFF XML dig montage support."""
-    dig_montage = read_dig_montage(egi=egi_dig_montage_fname)
+    dig_montage = read_dig_montage(egi=egi_dig_montage_fname, unit='m')
 
     # # test round-trip IO
     temp_dir = _TempDir()
@@ -451,7 +454,7 @@ def test_egi_dig_montage():
     assert_allclose(dig_montage.rpa[1:], 0, atol=1e-16)
 
     # Test accuracy and embedding within raw object
-    raw_egi = read_raw_egi(egi_raw_fname)
+    raw_egi = read_raw_egi(egi_raw_fname, channel_naming='EEG %03d')
     raw_egi.set_montage(dig_montage)
     test_raw_egi = Raw(egi_fif_fname)
 

@@ -173,8 +173,7 @@ def test_ica_reset():
 def test_ica_core():
     """Test ICA on raw and epochs."""
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
-    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
+
     # XXX. The None cases helped revealing bugs but are time consuming.
     test_cov = read_cov(test_cov_name)
     events = read_events(event_name)
@@ -283,6 +282,7 @@ def test_ica_additional():
     tempdir = _TempDir()
     stop2 = 500
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+    raw.annotations = Annotations([0.5], [0.5], ['BAD'])
     # XXX This breaks the tests :(
     # raw.info['bads'] = [raw.ch_names[1]]
     test_cov = read_cov(test_cov_name)

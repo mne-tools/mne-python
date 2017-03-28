@@ -214,13 +214,17 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), raw=None,
-                 picks=None, name='Unknown', reject=None, flat=None,
+                 picks=None, name=None, reject=None, flat=None,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
                  add_eeg_ref=False, proj=True, on_missing='error',
                  preload_at_end=False, selection=None, drop_log=None,
                  filename=None, verbose=None):  # noqa: D102
         self.verbose = verbose
-        self.name = name
+        if name is not None:
+            warn('name is deprecated and will be removed in 0.15.')
+        else:
+            name = 'Unknown'
+        self._name = name
 
         if on_missing not in ['error', 'warning', 'ignore']:
             raise ValueError('on_missing must be one of: error, '
@@ -728,7 +732,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     def __next__(self, *args, **kwargs):
-        """Wrapper for Py3k."""
+        """Provide a wrapper for Py3k."""
         return self.next(*args, **kwargs)
 
     def average(self, picks=None):
@@ -823,15 +827,28 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         else:
             kind = 'standard_error'
             data /= np.sqrt(n_events)
-        return self._evoked_from_epoch_data(data, self.info, picks, n_events,
-                                            kind)
 
-    def _evoked_from_epoch_data(self, data, info, picks, n_events, kind):
+        if self._name not in ['Unknown', None]:
+            comment = self._name
+        else:
+            if len(self.event_id) == 1:
+                comment = next(iter(self.event_id.keys()))
+            else:
+                count = np.bincount(self.events[:, 2])
+                comments = list()
+                for key, value in self.event_id.items():
+                    comments.append('%.2f * %s' % (
+                        float(count[value]) / len(self.events), key))
+                comment = ' + '.join(comments)
+        return self._evoked_from_epoch_data(data, self.info, picks, n_events,
+                                            kind, comment)
+
+    def _evoked_from_epoch_data(self, data, info, picks, n_events, kind,
+                                comment):
         """Create an evoked object from epoch data."""
         info = deepcopy(info)
-        evoked = EvokedArray(data, info, tmin=self.times[0],
-                             comment=self.name, nave=n_events, kind=kind,
-                             verbose=self.verbose)
+        evoked = EvokedArray(data, info, tmin=self.times[0], comment=comment,
+                             nave=n_events, kind=kind, verbose=self.verbose)
         # XXX: above constructor doesn't recreate the times object precisely
         evoked.times = self.times.copy()
 
@@ -1059,7 +1076,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     def _get_epoch_from_raw(self, idx, verbose=None):
-        """Method to get a given epoch from disk."""
+        """Get a given epoch from disk."""
         raise NotImplementedError
 
     def _project_epoch(self, epoch):
@@ -1180,7 +1197,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self._get_data()
 
     def __len__(self):
-        """The number of epochs.
+        """Return the number of epochs.
 
         Returns
         -------
@@ -1212,7 +1229,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return len(self.events)
 
     def __iter__(self):
-        """Function to make iteration over epochs easy.
+        """Facilitate iteration over epochs.
 
         Notes
         -----
@@ -1286,6 +1303,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def tmax(self):
         """Last time point."""
         return self.times[-1]
+
+    @property
+    def name(self):
+        """Name for the epoch set."""
+        warn('name attribute is deprecated and will be removed in 0.15.')
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        """Name for the epoch set."""
+        warn('name attribute is deprecated and will be removed in 0.15.')
+        self._name = name
 
     def __repr__(self):
         """Build string representation."""
@@ -1363,7 +1392,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if isinstance(item, (list, tuple)) and \
                 isinstance(item[0], string_types):
             select = epochs._keys_to_idx(item)
-            epochs.name = '+'.join(item)
+            epochs._name = '+'.join(item)
         else:
             select = item if isinstance(item, slice) else np.atleast_1d(item)
 
@@ -1717,7 +1746,7 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
 
 
 def _dep_eeg_ref(add_eeg_ref):
-    """Helper for deprecation add_eeg_ref -> False."""
+    """Assist deprecation add_eeg_ref -> False."""
     # current_default is False
     add_eeg_ref = bool(add_eeg_ref)
     if add_eeg_ref:
@@ -1761,7 +1790,7 @@ class Epochs(BaseEpochs):
     picks : array-like of int | None (default)
         Indices of channels to include (if None, all channels are used).
     name : string
-        Comment that describes the Epochs data created.
+        Comment that describes the Epochs data created. Deprecated.
     preload : boolean
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
@@ -1878,7 +1907,7 @@ class Epochs(BaseEpochs):
 
     @verbose
     def __init__(self, raw, events, event_id=None, tmin=-0.2, tmax=0.5,
-                 baseline=(None, 0), picks=None, name='Unknown', preload=False,
+                 baseline=(None, 0), picks=None, name=None, preload=False,
                  reject=None, flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, add_eeg_ref=None,
                  on_missing='error', reject_by_annotation=True,
@@ -1987,6 +2016,8 @@ class EpochsArray(BaseEpochs):
         a <= t <= b.
     proj : bool | 'delayed'
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.
+    on_missing : str
+        See :class:`mne.Epochs` docstring for details.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -2010,7 +2041,7 @@ class EpochsArray(BaseEpochs):
     def __init__(self, data, info, events=None, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, baseline=None, proj=True,
-                 verbose=None):  # noqa: D102
+                 on_missing='error', verbose=None):  # noqa: D102
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
         if data.ndim != 3:
@@ -2035,7 +2066,7 @@ class EpochsArray(BaseEpochs):
                                           tmax, baseline, reject=reject,
                                           flat=flat, reject_tmin=reject_tmin,
                                           reject_tmax=reject_tmax, decim=1,
-                                          proj=proj)
+                                          proj=proj, on_missing=on_missing)
         if len(events) != np.in1d(self.events[:, 2],
                                   list(self.event_id.values())).sum():
             raise ValueError('The events must only contain event numbers from '
@@ -2162,7 +2193,7 @@ def _get_drop_indices(event_times, method):
 
 
 def _fix_fill(fill):
-    """Helper to fix bug on old scipy."""
+    """Fix bug on old scipy."""
     if LooseVersion(scipy.__version__) < LooseVersion('0.12'):
         fill = fill[:, np.newaxis]
     return fill
@@ -2577,7 +2608,7 @@ def _check_merge_epochs(epochs_list):
 
 
 @verbose
-def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=False,
+def add_channels_epochs(epochs_list, name=None, add_eeg_ref=False,
                         verbose=None):
     """Concatenate channels, info and data from two Epochs objects.
 
@@ -2586,7 +2617,7 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=False,
     epochs_list : list of Epochs
         Epochs object to concatenate.
     name : str
-        Comment that describes the Epochs data created.
+        Comment that describes the Epochs data created. Deprecated.
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless there is
         no EEG in the data). This parameter will be removed in 0.15. Use
@@ -2601,6 +2632,8 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=False,
     epochs : instance of Epochs
         Concatenated epochs.
     """
+    if name is not None:
+        warn('name is deprecated and will be removed in 0.15.')
     add_eeg_ref = _dep_eeg_ref(add_eeg_ref)
     if not all(e.preload for e in epochs_list):
         raise ValueError('All epochs must be preloaded.')
@@ -2632,7 +2665,7 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=False,
     epochs = epochs_list[0].copy()
     epochs.info = info
     epochs.picks = None
-    epochs.name = name
+    epochs._name = name
     epochs.verbose = verbose
     epochs.events = events
     epochs.preload = True
@@ -2725,7 +2758,7 @@ def _concatenate_epochs(epochs_list, with_data=True):
 
 def _finish_concat(info, data, events, event_id, tmin, tmax, baseline,
                    selection, drop_log, verbose):
-    """Helper to finish concatenation for epochs not read from disk."""
+    """Finish concatenation for epochs not read from disk."""
     events[:, 0] = np.arange(len(events))  # arbitrary after concat
     selection = np.where([len(d) == 0 for d in drop_log])[0]
     out = BaseEpochs(
@@ -2968,7 +3001,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         data[meg_picks] = np.dot(mapping, data[good_picks])
     info_to['dev_head_t'] = recon_trans  # set the reconstruction transform
     evoked = epochs._evoked_from_epoch_data(data, info_to, picks,
-                                            n_events=count, kind='average')
+                                            n_events=count, kind='average',
+                                            comment=epochs._name)
     _remove_meg_projs(evoked)  # remove MEG projectors, they won't apply now
     logger.info('Created Evoked dataset from %s epochs' % (count,))
     return (evoked, mapping) if return_mapping else evoked

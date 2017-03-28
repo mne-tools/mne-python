@@ -36,7 +36,7 @@ COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
 
 
 def _setup_vmin_vmax(data, vmin, vmax, norm=False):
-    """Aux function to handle vmin and vmax parameters."""
+    """Handle vmin and vmax parameters."""
     if vmax is None and vmin is None:
         vmax = np.abs(data).max()
         if norm:
@@ -59,7 +59,7 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
 
 
 def plt_show(show=True, **kwargs):
-    """Helper to show a figure while suppressing warnings."""
+    """Show a figure while suppressing warnings."""
     import matplotlib
     import matplotlib.pyplot as plt
     if show and matplotlib.get_backend() != 'agg':
@@ -69,7 +69,8 @@ def plt_show(show=True, **kwargs):
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     """Adjust subplot parameters to give specified padding.
 
-    Note. For plotting please use this function instead of plt.tight_layout
+    .. note:: For plotting please use this function instead of
+              ``plt.tight_layout``.
 
     Parameters
     ----------
@@ -100,7 +101,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
 
 
 def _check_delayed_ssp(container):
-    """Aux function to be used for interactive SSP selection."""
+    """Handle interactive SSP selection."""
     if container.proj is True or\
        all(p['active'] for p in container.info['projs']):
         raise RuntimeError('Projs are already applied. Please initialize'
@@ -110,7 +111,7 @@ def _check_delayed_ssp(container):
 
 
 def _validate_if_list_of_axes(axes, obligatory_len=None):
-    """Helper function that validates whether input is a list/array of axes."""
+    """Validate whether input is a list/array of axes."""
     import matplotlib as mpl
     if obligatory_len is not None and not isinstance(obligatory_len, int):
         raise ValueError('obligatory_len must be None or int, got %d',
@@ -237,7 +238,7 @@ def _toggle_options(event, params):
 
 
 def _toggle_proj(event, params):
-    """Operation to perform when proj boxes clicked."""
+    """Perform operations when proj boxes clicked."""
     # read options if possible
     if 'proj_checks' in params:
         bools = [x[0].get_visible() for x in params['proj_checks'].lines]
@@ -260,7 +261,7 @@ def _toggle_proj(event, params):
 
 
 def _get_help_text(params):
-    """Aux function for customizing help dialogs text."""
+    """Customize help dialogs text."""
     text, text2 = list(), list()
 
     text.append(u'\u2190 : \n')  # left arrow
@@ -353,7 +354,6 @@ def _get_help_text(params):
 
 
 def _prepare_trellis(n_cells, max_col):
-    """Aux function."""
     import matplotlib.pyplot as plt
     if n_cells == 1:
         nrow = ncol = 1
@@ -410,7 +410,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
 
 def _layout_figure(params):
-    """Function for setting figure layout. Shared with raw and epoch plots."""
+    """Set figure layout. Shared with raw and epoch plots."""
     size = params['fig'].get_size_inches() * params['fig'].dpi
     scroll_width = 25
     hscroll_dist = 25
@@ -531,7 +531,7 @@ def figure_nobar(*args, **kwargs):
 
 
 def _helper_raw_resize(event, params):
-    """Helper for resizing."""
+    """Resize."""
     size = ','.join([str(s) for s in params['fig'].get_size_inches()])
     set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
     _layout_figure(params)
@@ -555,7 +555,7 @@ def _plot_raw_onscroll(event, params, len_channels=None):
 
 
 def _channels_changed(params, len_channels):
-    """Helper function for dealing with the vertical shift of the viewport."""
+    """Deal with the vertical shift of the viewport."""
     if params['ch_start'] + params['n_channels'] > len_channels:
         params['ch_start'] = len_channels - params['n_channels']
     if params['ch_start'] < 0:
@@ -579,7 +579,7 @@ def _plot_raw_time(value, params):
 
 
 def _radio_clicked(label, params):
-    """Callback for radio buttons in selection dialog."""
+    """Handle radio buttons in selection dialog."""
     from .evoked import _rgb
     labels = [l._text for l in params['fig_selection'].radio.labels]
     idx = labels.index(label)
@@ -615,7 +615,7 @@ def _radio_clicked(label, params):
 
 
 def _get_active_radiobutton(radio):
-    """Helper to find out active radio button."""
+    """Find out active radio button."""
     # XXX: In mpl 1.5 you can do: fig.radio.value_selected
     colors = np.array([np.sum(circle.get_facecolor()) for circle
                        in radio.circles])
@@ -623,7 +623,7 @@ def _get_active_radiobutton(radio):
 
 
 def _set_annotation_radio_button(idx, params):
-    """Function for setting active button."""
+    """Set active button."""
     radio = params['fig_annotation'].radio
     for circle in radio.circles:
         circle.set_facecolor('white')
@@ -632,7 +632,7 @@ def _set_annotation_radio_button(idx, params):
 
 
 def _set_radio_button(idx, params):
-    """Helper for setting radio button."""
+    """Set radio button."""
     # XXX: New version of matplotlib has this implemented for radio buttons,
     # This function is for compatibility with old versions of mpl.
     radio = params['fig_selection'].radio
@@ -653,7 +653,7 @@ def _change_channel_group(step, params):
 
 
 def _handle_change_selection(event, params):
-    """Helper for handling clicks on vertical scrollbar using selections."""
+    """Handle clicks on vertical scrollbar using selections."""
     radio = params['fig_selection'].radio
     ydata = event.ydata
     labels = [label._text for label in radio.labels]
@@ -751,12 +751,10 @@ def _setup_annotation_fig(params):
     from matplotlib.widgets import RadioButtons, SpanSelector, Button
     if params['fig_annotation'] is not None:
         params['fig_annotation'].canvas.close_event()
+    if params['raw'].annotations is None:
+        params['raw'].annotations = Annotations(list(), list(), list())
     annotations = params['raw'].annotations
-    if annotations is not None and annotations.orig_time is not None:
-        raise NotImplementedError('Interactive annotation mode is only '
-                                  'available for annotations with '
-                                  'orig_time=None.')
-    labels = [] if annotations is None else list(set(annotations.description))
+    labels = list(set(annotations.description))
     labels = np.union1d(labels, params['added_label'])
     fig = figure_nobar(figsize=(4.5, 2.75 + len(labels) * 0.75))
     fig.patch.set_facecolor('white')
@@ -784,12 +782,13 @@ def _setup_annotation_fig(params):
     fig.canvas.set_window_title('Annotations')
     fig.radio = RadioButtons(ax, labels, activecolor='#cccccc')
     radius = 0.15
-    for circle, label in zip(fig.radio.circles, fig.radio.labels):
+    circles = fig.radio.circles
+    for circle, label in zip(circles, fig.radio.labels):
         circle.set_edgecolor(params['segment_colors'][label.get_text()])
         circle.set_linewidth(4)
         circle.set_radius(radius / (len(labels)))
         label.set_x(circle.center[0] + (radius + 0.1) / len(labels))
-    col = 'r' if len(fig.radio.labels) < 1 else fig.radio.labels[0].get_color()
+    col = 'r' if len(fig.radio.circles) < 1 else circles[0].get_edgecolor()
     fig.canvas.mpl_connect('key_press_event', partial(
         _change_annotation_description, params=params))
     fig.button = Button(button_ax, 'Add label')
@@ -820,7 +819,7 @@ def _setup_annotation_fig(params):
 
 
 def _onclick_new_label(event, params):
-    """Listener for adding new description on button press."""
+    """Add new description on button press."""
     text = params['fig_annotation'].label.get_text()[:-1]
     params['added_label'].append(text)
     _setup_annotation_colors(params)
@@ -831,23 +830,21 @@ def _onclick_new_label(event, params):
 
 
 def _mouse_click(event, params):
-    """Vertical select callback."""
+    """Handle vertical selection."""
     if event.button not in (1, 3):
         return
     if event.button == 3:
         if params['fig_annotation'] is None:
             return
-        for coll in params['ax'].collections:
-            if coll.contains(event)[0]:
-                path = coll.get_paths()[-1]
-                mn = min(path.vertices[:4, 0]) - params['first_time']
-                mx = max(path.vertices[:4, 0]) - params['first_time']
-                ann_idx = np.where(params['raw'].annotations.onset == mn)[0]
-                for idx in ann_idx:
-                    if params['raw'].annotations.duration[idx] == mx - mn:
-                        params['raw'].annotations.delete(idx)
+        raw = params['raw']
+        if np.any([c.contains(event)[0] for c in params['ax'].collections]):
+            xdata = event.xdata - params['first_time']
+            onset = _sync_onset(raw, raw.annotations.onset)
+            ends = onset + raw.annotations.duration
+            ann_idx = np.where((xdata > onset) & (xdata < ends))[0]
+            raw.annotations.delete(ann_idx)  # only first one deleted
         _remove_segment_line(params)
-        _plot_annotations(params['raw'], params)
+        _plot_annotations(raw, params)
         params['plot_fun']()
         return
 
@@ -898,7 +895,7 @@ def _handle_topomap_bads(ch_name, params):
 
 
 def _find_channel_idx(ch_name, params):
-    """Helper for finding all indices when using selections."""
+    """Find all indices when using selections."""
     indices = list()
     offset = 0
     labels = [l._text for l in params['fig_selection'].radio.labels]
@@ -914,7 +911,7 @@ def _find_channel_idx(ch_name, params):
 
 
 def _select_bads(event, params, bads):
-    """Helper for selecting bad channels onpick. Returns updated bads list."""
+    """Select bad channels onpick. Returns updated bads list."""
     # trade-off, avoid selecting more than one channel when drifts are present
     # however for clean data don't click on peaks but on flat segments
     def f(x, y):
@@ -956,7 +953,7 @@ def _select_bads(event, params, bads):
 
 
 def _onclick_help(event, params):
-    """Function for drawing help window."""
+    """Draw help window."""
     import matplotlib.pyplot as plt
     text, text2 = _get_help_text(params)
 
@@ -989,7 +986,7 @@ def _onclick_help(event, params):
 
 
 def _setup_browser_offsets(params, n_channels):
-    """Aux function for computing viewport height and adjusting offsets."""
+    """Compute viewport height and adjusting offsets."""
     ylim = [n_channels * 2 + 1, 0]
     offset = ylim[0] / n_channels
     params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
@@ -1042,7 +1039,7 @@ class ClickableImage(object):
         plt_show()
 
     def onclick(self, event):
-        """Mouse click handler.
+        """Handle Mouse clicks.
 
         Parameters
         ----------
@@ -1090,7 +1087,7 @@ class ClickableImage(object):
 
 
 def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
-    """Helper to fake a click at a relative point within axes."""
+    """Fake a click at a relative point within axes."""
     if xform == 'ax':
         x, y = ax.transAxes.transform_point(point)
     elif xform == 'data':
@@ -1177,7 +1174,7 @@ def _find_peaks(evoked, npeaks):
 
 
 def _process_times(inst, use_times, n_peaks=None, few=False):
-    """Helper to return a list of times for topomaps."""
+    """Return a list of times for topomaps."""
     if isinstance(use_times, string_types):
         if use_times == "peaks":
             if n_peaks is None:
@@ -1207,8 +1204,8 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
 
 
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
-                 show_names=False, ch_groups=None, axes=None, block=False,
-                 show=True):
+                 show_names=False, ch_groups=None, to_sphere=True, axes=None,
+                 block=False, show=True):
     """Plot sensors positions.
 
     Parameters
@@ -1239,6 +1236,13 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         array, the channels are divided by picks given in the array.
 
         .. versionadded:: 0.13.0
+
+    to_sphere : bool
+        Whether to project the 3d locations to a sphere. When False, the
+        sensor array appears similar as to looking downwards straight above the
+        subject's head. Has no effect when kind='3d'. Defaults to True.
+
+        .. versionadded:: 0.14.0
 
     axes : instance of Axes | instance of Axes3D | None
         Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
@@ -1343,18 +1347,19 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                     colors[pick_idx] = color_vals[ind]
                     break
     if kind in ('topomap', 'select'):
-        pos = _auto_topomap_coords(info, picks, True)
+        pos = _auto_topomap_coords(info, picks, True, to_sphere=to_sphere)
 
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, colors, bads, ch_names, title, show_names, axes,
-                        show, kind == 'select', block=block)
+                        show, kind == 'select', block=block,
+                        to_sphere=to_sphere)
     if kind == 'select':
         return fig, fig.lasso.selection
     return fig
 
 
 def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
-    """Callback for picked channel in plot_sensors."""
+    """Pick a channel in plot_sensors."""
     if event.mouseevent.key == 'control' and fig.lasso is not None:
         for ind in event.ind:
             fig.lasso.select_one(ind)
@@ -1378,13 +1383,13 @@ def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
 
 
 def _close_event(event, fig):
-    """Listener for sensor plotter close event."""
+    """Listen for sensor plotter close event."""
     fig.lasso.disconnect()
 
 
 def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
-                  select, block):
-    """Helper function for plotting sensors."""
+                  select, block, to_sphere):
+    """Plot sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from .topomap import _check_outlines, _draw_outlines
@@ -1413,11 +1418,17 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
         ax.set_yticks([])
         fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
                             hspace=None)
-        pos, outlines = _check_outlines(pos, 'head')
+        if to_sphere:
+            pos, outlines = _check_outlines(pos, 'head')
+        else:
+            pos, outlines = _check_outlines(pos, np.array([0.5, 0.5]),
+                                            {'center': (0, 0),
+                                             'scale': (4.5, 4.5)})
         _draw_outlines(ax, outlines)
 
         pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=75,
-                         edgecolor=edgecolors, linewidth=2)
+                         edgecolor=edgecolors, linewidth=2, clip_on=False)
+
         if select:
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
 
@@ -1515,7 +1526,7 @@ def _compute_scalings(scalings, inst):
 
 
 def _setup_cmap(cmap, n_axes=1, norm=False):
-    """Function for setting color map interactivity."""
+    """Set color map interactivity."""
     if cmap == 'interactive':
         cmap = ('Reds' if norm else 'RdBu_r', True)
     elif not isinstance(cmap, tuple):
@@ -1526,7 +1537,7 @@ def _setup_cmap(cmap, n_axes=1, norm=False):
 
 
 class DraggableColorbar(object):
-    """Class for enabling interactive colorbar.
+    """Enable interactive colorbar.
 
     See http://www.ster.kuleuven.be/~pieterd/python/html/plotting/interactive_colorbar.html
     """  # noqa: E501
@@ -1556,13 +1567,13 @@ class DraggableColorbar(object):
             'scroll_event', self.on_scroll)
 
     def on_press(self, event):
-        """Callback for button press."""
+        """Handle button press."""
         if event.inaxes != self.cbar.ax:
             return
         self.press = event.y
 
     def key_press(self, event):
-        """Callback for key press."""
+        """Handle key press."""
         if event.key == 'down':
             self.index += 1
         elif event.key == 'up':
@@ -1583,7 +1594,7 @@ class DraggableColorbar(object):
         self.cbar.patch.figure.canvas.draw()
 
     def on_motion(self, event):
-        """Callback for mouse movements."""
+        """Handle mouse movements."""
         if self.press is None:
             return
         if event.inaxes != self.cbar.ax:
@@ -1604,13 +1615,13 @@ class DraggableColorbar(object):
         self.cbar.patch.figure.canvas.draw()
 
     def on_release(self, event):
-        """Callback for release."""
+        """Handle release."""
         self.press = None
         self.mappable.set_norm(self.cbar.norm)
         self.cbar.patch.figure.canvas.draw()
 
     def on_scroll(self, event):
-        """Callback for scroll."""
+        """Handle scroll."""
         scale = 1.1 if event.step < 0 else 1. / 1.1
         self.cbar.norm.vmin *= scale
         self.cbar.norm.vmax *= scale
@@ -1672,7 +1683,7 @@ class SelectFromCollection(object):
         self.selection = list()
 
     def on_select(self, verts):
-        """Callback for selecting a subset from the collection."""
+        """Select a subset from the collection."""
         from matplotlib.path import Path
         if len(verts) <= 3:  # Seems to be a good way to exclude single clicks.
             return
@@ -1694,7 +1705,7 @@ class SelectFromCollection(object):
         self.canvas.callbacks.process('lasso_event')
 
     def select_one(self, ind):
-        """Helper for selecting/deselecting one sensor."""
+        """Select or deselect one sensor."""
         ch_name = self.ch_names[ind]
         if ch_name in self.selection:
             sel_ind = self.selection.index(ch_name)
@@ -1709,7 +1720,7 @@ class SelectFromCollection(object):
         self.canvas.callbacks.process('lasso_event')
 
     def disconnect(self):
-        """Method for disconnecting the lasso selector."""
+        """Disconnect the lasso selector."""
         self.lasso.disconnect_events()
         self.fc[:, -1] = 1
         self.collection.set_facecolors(self.fc)
@@ -1717,9 +1728,9 @@ class SelectFromCollection(object):
 
 
 def _annotate_select(vmin, vmax, params):
-    """Callback for annotation span selector."""
+    """Handle annotation span selector."""
     raw = params['raw']
-    onset = vmin - params['first_time']
+    onset = _sync_onset(raw, vmin, True) - params['first_time']
     duration = vmax - vmin
     active_idx = _get_active_radiobutton(params['fig_annotation'].radio)
     description = params['fig_annotation'].radio.labels[active_idx].get_text()
@@ -1735,7 +1746,7 @@ def _annotate_select(vmin, vmax, params):
 
 
 def _plot_annotations(raw, params):
-    """Function for setting up annotations for plotting in raw browser."""
+    """Set up annotations for plotting in raw browser."""
     if raw.annotations is None:
         return
 
@@ -1752,17 +1763,16 @@ def _plot_annotations(raw, params):
         annot_start = _sync_onset(raw, onset) + params['first_time']
         annot_end = annot_start + raw.annotations.duration[ann_order][idx]
         segments.append([annot_start, annot_end])
-        ylim = params['ax_hscroll'].get_ylim()
         dscr = descriptions[idx]
         params['ax_hscroll'].fill_betweenx(
-            ylim, annot_start, annot_end, alpha=0.3,
+            (0., 1.), annot_start, annot_end, alpha=0.3,
             color=params['segment_colors'][dscr])
     params['segments'] = np.array(segments)
     params['annot_description'] = descriptions
 
 
 def _setup_annotation_colors(params):
-    """Function for setting up colors for annotations."""
+    """Set up colors for annotations."""
     raw = params['raw']
     segment_colors = params.get('segment_colors', dict())
     # sort the segments by start time
@@ -1786,7 +1796,7 @@ def _setup_annotation_colors(params):
 
 
 def _annotations_closed(event, params):
-    """Callback for cleaning up on annotation dialog close."""
+    """Clean up on annotation dialog close."""
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     plt.close(params['fig_annotation'])
@@ -1803,7 +1813,7 @@ def _annotations_closed(event, params):
 
 
 def _on_hover(event, params):
-    """Callback for hover event."""
+    """Handle hover event."""
     if (event.button is not None or
             event.inaxes != params['ax'] or event.xdata is None):
         return
@@ -1832,7 +1842,7 @@ def _on_hover(event, params):
 
 
 def _remove_segment_line(params):
-    """Function for removing annotation line from the view."""
+    """Remove annotation line from the view."""
     if params['segment_line'] is not None:
         params['segment_line'].remove()
         params['segment_line'] = None
@@ -1842,19 +1852,21 @@ def _remove_segment_line(params):
 
 def _annotation_modify(old_x, new_x, params):
     """Modify annotation."""
+    raw = params['raw']
+
     segment = np.array(np.where(params['segments'] == old_x))
     if segment.shape[1] == 0:
         return
     annotations = params['raw'].annotations
     idx = [segment[0][0], segment[1][0]]
-    onset = params['segments'][idx[0]][0]
+    onset = _sync_onset(raw, params['segments'][idx[0]][0], True)
     ann_idx = np.where(annotations.onset == onset - params['first_time'])[0]
     if idx[1] == 0:  # start of annotation
-        onset = new_x - params['first_time']
+        onset = _sync_onset(raw, new_x, True) - params['first_time']
         duration = annotations.duration[ann_idx] + old_x - new_x
     else:  # end of annotation
         onset = annotations.onset[ann_idx]
-        duration = new_x - onset - params['first_time']
+        duration = _sync_onset(raw, new_x, True) - onset - params['first_time']
 
     if duration < 0:
         onset += duration
@@ -1869,7 +1881,7 @@ def _annotation_modify(old_x, new_x, params):
 
 
 def _merge_annotations(start, stop, description, annotations, current=()):
-    """Function for handling drew annotations."""
+    """Handle drawn annotations."""
     ends = annotations.onset + annotations.duration
     idx = np.intersect1d(np.where(ends >= start)[0],
                          np.where(annotations.onset <= stop)[0])
@@ -1885,7 +1897,7 @@ def _merge_annotations(start, stop, description, annotations, current=()):
 
 
 def _change_annotation_description(event, params):
-    """Key listener for annotation dialog."""
+    """Handle keys in annotation dialog."""
     import matplotlib.pyplot as plt
     fig = event.canvas.figure
     text = fig.label.get_text()
@@ -1907,7 +1919,7 @@ def _change_annotation_description(event, params):
 
 
 def _annotation_radio_clicked(label, radio, selector):
-    """Callback for annotation radio buttons."""
+    """Handle annotation radio buttons."""
     idx = _get_active_radiobutton(radio)
     color = radio.circles[idx].get_edgecolor()
     selector.rect.set_color(color)
@@ -1938,7 +1950,7 @@ class DraggableLine:
             'motion_notify_event', self.on_motion)
 
     def set_x(self, x):
-        """Function for repositioning the line."""
+        """Repoisition the line."""
         self.line.set_xdata([x, x])
         self.x0 = x
 
@@ -1951,7 +1963,7 @@ class DraggableLine:
         self.press = x0, y0, event.xdata, event.ydata
 
     def on_motion(self, event):
-        """Function for moving the line on drag."""
+        """Move the line on drag."""
         if self.press is None:
             return
         if event.inaxes != self.line.axes:
@@ -1962,7 +1974,7 @@ class DraggableLine:
         self.line.figure.canvas.draw()
 
     def on_release(self, event):
-        """Callback for release."""
+        """Handle release."""
         if event.inaxes != self.line.axes or self.press is None:
             return
         self.press = None

@@ -22,6 +22,14 @@ from .. import Epochs
 from ..externals import six
 
 
+def _reg_pinv(x, reg):
+    """Compute a regularized pseudoinverse of a square array."""
+    # This adds it to the diagonal without using np.eye
+    d = reg * np.trace(x) / len(x)
+    x.flat[::x.shape[0] + 1] += d
+    return linalg.pinv(x)
+
+
 def _setup_picks(picks, info, forward, noise_cov=None):
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
@@ -53,49 +61,7 @@ def _setup_picks(picks, info, forward, noise_cov=None):
 def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                 label=None, picks=None, pick_ori=None, rank=None,
                 verbose=None):
-    """LCMV beamformer for evoked data, single epochs, and raw data.
-
-    Parameters
-    ----------
-    data : array or list / iterable
-        Sensor space data. If data.ndim == 2 a single observation is assumed
-        and a single stc is returned. If data.ndim == 3 or if data is
-        a list / iterable, a list of stc's is returned.
-    info : dict
-        Measurement info.
-    tmin : float
-        Time of first sample.
-    forward : dict
-        Forward operator.
-    noise_cov : Covariance
-        The noise covariance.
-    data_cov : Covariance
-        The data covariance.
-    reg : float
-        The regularization for the whitened data covariance.
-    label : Label
-        Restricts the LCMV solution to a given label.
-    picks : array-like of int | None
-        Indices (in info) of data channels. If None, MEG and EEG data channels
-        (without bad channels) will be used.
-    pick_ori : None | 'normal' | 'max-power'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source
-        orientation that maximizes output source power is chosen.
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    stc : SourceEstimate | VolSourceEstimate (or list of thereof)
-        Source time courses.
-    """
+    """LCMV beamformer for evoked data, single epochs, and raw data."""
     is_free_ori, ch_names, proj, vertno, G = \
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
@@ -112,10 +78,10 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         Cm = np.dot(proj, np.dot(Cm, proj.T))
     Cm = np.dot(whitener, np.dot(Cm, whitener.T))
 
-    # Calculating regularized inverse, equivalent to an inverse operation after
-    # the following regularization:
-    # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
-    Cm_inv = linalg.pinv(Cm, reg)
+    # Tikhonov regularization using reg parameter to control for
+    # trade-off between spatial resolution and noise sensitivity
+    Cm_inv = _reg_pinv(Cm.copy(), reg)
+    del Cm
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
@@ -124,6 +90,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
+        if np.all(Gk == 0.):
+            continue
         Ck = np.dot(Wk, Gk)
 
         # Find source orientation maximizing output source power
@@ -169,8 +137,10 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         is_free_ori = False
 
     # Applying noise normalization
+    noise_norm_inv = 1. / noise_norm
+    noise_norm_inv[noise_norm == 0.] = 0.
     if not is_free_ori:
-        W /= noise_norm[:, None]
+        W *= noise_norm_inv[:, None]
 
     if isinstance(data, np.ndarray) and data.ndim == 2:
         data = [data]
@@ -197,7 +167,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
             sol = np.dot(W, M)
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
-            sol /= noise_norm[:, None]
+            sol *= noise_norm_inv[:, None]
         else:
             # Linear inverse: do computation here or delayed
             if M.shape[0] < W.shape[0] and pick_ori != 'max-power':
@@ -272,15 +242,15 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
 
 
 @verbose
-def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
+def lcmv(evoked, forward, noise_cov, data_cov, reg=0.05, label=None,
          pick_ori=None, picks=None, rank=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on evoked data.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issue or suggestions.
+    .. note:: This implementation has not been heavily tested so please
+              report any issue or suggestions.
 
     Parameters
     ----------
@@ -352,7 +322,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
 
 
 @verbose
-def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
+def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
                 pick_ori=None, return_generator=False, picks=None, rank=None,
                 verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
@@ -360,8 +330,8 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on single trial data.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issue or suggestions.
+    .. note:: This implementation has not been heavily tested so please
+              report any issue or suggestions.
 
     Parameters
     ----------
@@ -437,7 +407,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
 
 
 @verbose
-def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
+def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
              start=None, stop=None, picks=None, pick_ori=None, rank=None,
              verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
@@ -521,61 +491,10 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
 
 
 @verbose
-def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
+def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
                        label=None, picks=None, pick_ori=None,
                        rank=None, verbose=None):
-    """Linearly Constrained Minimum Variance (LCMV) beamformer.
-
-    Calculate source power in a time window based on the provided data
-    covariance. Noise covariance is used to whiten the data covariance making
-    the output equivalent to the neural activity index as defined by
-    Van Veen et al. 1997.
-
-    NOTE : This implementation has not been heavily tested so please
-    report any issues or suggestions.
-
-    Parameters
-    ----------
-    info : dict
-        Measurement info, e.g. epochs.info.
-    forward : dict
-        Forward operator.
-    noise_cov : Covariance
-        The noise covariance.
-    data_cov : Covariance
-        The data covariance.
-    reg : float
-        The regularization for the whitened data covariance.
-    label : Label | None
-        Restricts the solution to a given label.
-    picks : array-like of int | None
-        Indices (in info) of data channels. If None, MEG and EEG data channels
-        (without bad channels) will be used.
-    pick_ori : None | 'normal'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept.
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    stc : SourceEstimate
-        Source power with a single time point representing the entire time
-        window for which data covariance was calculated.
-
-    Notes
-    -----
-    The original reference is:
-    Van Veen et al. Localization of brain electrical activity via linearly
-    constrained minimum variance spatial filtering.
-    Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
-    """
+    """Linearly Constrained Minimum Variance (LCMV) beamformer."""
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
@@ -600,10 +519,10 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
         Cm = np.dot(proj, np.dot(Cm, proj.T))
     Cm = np.dot(whitener, np.dot(Cm, whitener.T))
 
-    # Calculating regularized inverse, equivalent to an inverse operation after
-    # the following regularization:
-    # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
-    Cm_inv = linalg.pinv(Cm, reg)
+    # Tikhonov regularization using reg parameter to control for
+    # trade-off between spatial resolution and noise sensitivity
+    # This modifies Cm inplace, regularizing it
+    Cm_inv = _reg_pinv(Cm, reg)
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
@@ -644,18 +563,18 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
-            freq_bins, subtract_evoked=False, reg=0.01, label=None,
+            freq_bins, subtract_evoked=False, reg=0.05, label=None,
             pick_ori=None, n_jobs=1, picks=None, rank=None, verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
     Calculate source power in time-frequency windows using a spatial filter
     based on the Linearly Constrained Minimum Variance (LCMV) beamforming
-    approach. Band-pass filtered epochs are divided into time windows from
-    which covariance is computed and used to create a beamformer spatial
-    filter.
+    approach [1]_. Band-pass filtered epochs are divided into time windows
+    from which covariance is computed and used to create a beamformer
+    spatial filter.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issues or suggestions.
+    .. note:: This implementation has not been heavily tested so please
+              report any issues or suggestions.
 
     Parameters
     ----------
@@ -708,12 +627,11 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         Source power at each time window. One SourceEstimate object is returned
         for each frequency bin.
 
-    Notes
-    -----
-    The original reference is:
-    Dalal et al. Five-dimensional neuroimaging: Localization of the
-    time-frequency dynamics of cortical activity.
-    NeuroImage (2008) vol. 40 (4) pp. 1686-1700
+    References
+    ----------
+    .. [1] Dalal et al. Five-dimensional neuroimaging: Localization of the
+           time-frequency dynamics of cortical activity.
+           NeuroImage (2008) vol. 40 (4) pp. 1686-1700
     """
     _check_reference(epochs)
 

@@ -327,6 +327,10 @@ def test_get_peak():
     assert_true(time_idx < len(evoked.times))
     assert_equal(ch_name, 'MEG 1421')
 
+    assert_raises(ValueError, evoked.get_peak, ch_type='mag', merge_grads=True)
+    ch_name, time_idx = evoked.get_peak(ch_type='grad', merge_grads=True)
+    assert_equal(ch_name, 'MEG 244X')
+
     data = np.array([[0., 1.,  2.],
                      [0., -3.,  0]])
 

@@ -63,7 +63,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
 
 def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
                      filter_length='10s', tstart=0.):
-    """Helper function."""
+    """Find EOG events."""
     logger.info('Filtering the data to remove DC offset to help '
                 'distinguish blinks from saccades')
 
@@ -138,10 +138,10 @@ def _get_eog_channel_index(ch_name, inst):
 
 
 @verbose
-def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
-                      tmin=-0.5, tmax=0.5, l_freq=1, h_freq=10,
-                      reject=None, flat=None, baseline=None,
-                      preload=True, verbose=None):
+def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
+                      tmax=0.5, l_freq=1, h_freq=10, reject=None, flat=None,
+                      baseline=None, preload=True, reject_by_annotation=True,
+                      verbose=None):
     """Conveniently generate epochs around EOG artifact events.
 
     Parameters
@@ -190,6 +190,13 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
         interval is used. If None, no correction is applied.
     preload : bool
         Preload epochs or not.
+    reject_by_annotation : bool
+        Whether to reject based on annotations. If True (default), epochs
+        overlapping with segments whose description begins with ``'bad'`` are
+        rejected. If False, no rejection based on annotations is performed.
+
+        .. versionadded:: 0.14.0
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -203,8 +210,8 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
                              l_freq=l_freq, h_freq=h_freq)
 
     # create epochs around EOG events
-    eog_epochs = Epochs(raw, events=events, event_id=event_id,
-                        tmin=tmin, tmax=tmax, proj=False, reject=reject,
-                        flat=flat, picks=picks, baseline=baseline,
-                        preload=preload)
+    eog_epochs = Epochs(raw, events=events, event_id=event_id, tmin=tmin,
+                        tmax=tmax, proj=False, reject=reject, flat=flat,
+                        picks=picks, baseline=baseline, preload=preload,
+                        reject_by_annotation=reject_by_annotation)
     return eog_epochs

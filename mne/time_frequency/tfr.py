@@ -1060,6 +1060,9 @@ class AverageTFR(_BaseTFR):
             The scale of y (frequency) axis. 'linear' gives linear y axis,
             'log' leads to log-spaced y axis and 'auto' detects if frequencies
             are log-spaced and only then sets the y axis to 'log'.
+
+            .. versionadded:: 0.14.0
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see :func:`mne.verbose`).
 
@@ -1111,7 +1114,7 @@ class AverageTFR(_BaseTFR):
         return fig
 
     def _onselect(self, eclick, erelease, baseline, mode, layout):
-        """Callback function called by rubber band selector in channel tfr."""
+        """Handle rubber band selector in channel tfr."""
         import matplotlib.pyplot as plt
         from ..viz import plot_tfr_topomap
         if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
