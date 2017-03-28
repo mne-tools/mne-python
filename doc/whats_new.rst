@@ -19,8 +19,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - ...
-
+    - :meth:`mne.channels.Layout.plot` and :func:`mne.viz.plot_layout` now allows plotting a subset of channels with ``picks`` argument by `Jaakko Leppakangas`_
 
 BUG
 ~~~
