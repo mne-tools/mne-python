@@ -61,6 +61,7 @@ Classes
    decoding.PSDEstimator
    decoding.Scale
    decoding.ReceptiveField
+   decoding.Scaler
    decoding.SearchLight
    decoding.GeneralizationLight
    realtime.RtEpochs
@@ -1108,16 +1109,19 @@ Classes:
    CSP
    EMS
    FilterEstimator
-   GeneralizationAcrossTime
    LinearModel
    PSDEstimator
    Scaler
    TemporalFilter
-   TimeDecoding
    TimeFrequency
    UnsupervisedSpatialFilter
    Vectorizer
+<<<<<<< HEAD
    ReceptiveField
+=======
+   SearchLight
+   GeneralizationLight
+>>>>>>> remove some refs
 
 Functions:
 
