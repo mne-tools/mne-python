@@ -1036,7 +1036,7 @@ class ClickableImage(object):
                                  picker=True, **kwargs)
         self.ax.axis('off')
         self.fig.canvas.mpl_connect('pick_event', self.onclick)
-        plt_show()
+        plt_show(block=True)
 
     def onclick(self, event):
         """Handle Mouse clicks.
