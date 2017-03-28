@@ -199,6 +199,8 @@ for ii, alpha in enumerate(alphas):
     scores[ii] = rf.score(X_test, y_test)
     models.append(rf)
 
+times = rf.delays_ / float(rf.sfreq)
+
 # Choose the model that performed best on the held out data
 ix_best_alpha = np.argmax(scores)
 best_mod = models[ix_best_alpha]
@@ -208,7 +210,7 @@ best_pred = best_mod.predict(X_test)[:, 0]
 # Plot the original STRF, and the one that we recovered with modeling.
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
 ax1.pcolormesh(delays_sec, freqs, weights, **kwargs)
-ax2.pcolormesh(rf.times, rf.feature_names, coefs, **kwargs)
+ax2.pcolormesh(times, rf.feature_names, coefs, **kwargs)
 ax1.set_title('Original STRF')
 ax2.set_title('Best Reconstructed STRF')
 plt.setp([iax.get_xticklabels() for iax in [ax1, ax2]], rotation=45)
@@ -251,7 +253,7 @@ mne.viz.tight_layout()
 # Plot the STRF of each ridge parameter
 for ii, (rf, i_alpha) in enumerate(zip(models, alphas)):
     ax = plt.subplot2grid([2, 10], [0, ii], 1, 1)
-    ax.pcolormesh(rf.times, rf.feature_names, rf.coef_, **kwargs)
+    ax.pcolormesh(times, rf.feature_names, rf.coef_, **kwargs)
     plt.xticks([], [])
     plt.yticks([], [])
     plt.autoscale(tight=True)

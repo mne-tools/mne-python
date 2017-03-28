@@ -104,6 +104,7 @@ for ii, (train, test) in enumerate(cv.split(speech)):
     rf.fit(speech[train], Y[train])
     scores[ii] = rf.score(speech[test], Y[test])
     coefs[ii] = rf.coef_
+times = rf.delays_ / float(rf.sfreq)
 
 # Average scores and coefficients across CV splits
 mean_coefs = coefs.mean(axis=0)
@@ -130,17 +131,17 @@ time_plot = -.180  # For highlighting a specific time.
 fig, ax = plt.subplots(figsize=(4, 8))
 vmax = np.abs(mean_coefs.max())
 vmin = -vmax
-ax.pcolormesh(rf.times, ix_chs, mean_coefs, cmap='RdBu_r',
+ax.pcolormesh(times, ix_chs, mean_coefs, cmap='RdBu_r',
               vmin=vmin, vmax=vmax)
 ax.axvline(time_plot, ls='--', color='k', lw=2)
 ax.set(xlabel='Delay (s)', ylabel='Channel', title="Mean Model\nCoefficients",
-       xlim=[rf.times.min(), rf.times.max()], ylim=[len(ix_chs) - 1, 0],
+       xlim=[times.min(), times.max()], ylim=[len(ix_chs) - 1, 0],
        xticks=np.arange(tmin, tmax + .2, .2))
 plt.setp(ax.get_xticklabels(), rotation=45)
 mne.viz.tight_layout()
 
 # Make a topographic map of coefficients for a given delay (see Fig 2C in [1])
-ix_plot = np.argmin(np.abs(time_plot - rf.times))
+ix_plot = np.argmin(np.abs(time_plot - times))
 fig, ax = plt.subplots()
 mne.viz.plot_topomap(mean_coefs[:, ix_plot], pos=info, axes=ax, show=False,
                      vmin=vmin, vmax=vmax)

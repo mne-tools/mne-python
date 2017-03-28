@@ -11,7 +11,8 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne import io, pick_types
 from mne.utils import requires_sklearn_0_15, run_tests_if_main
 from mne.decoding import ReceptiveField
-from mne.decoding.receptive_field import _delay_time_series, _SCORERS
+from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
+                                          _times_to_delays, _delays_to_slice)
 from mne.decoding.base import _get_final_est
 
 
@@ -42,7 +43,8 @@ def test_time_delay():
     X_sp = np.zeros([2, 10])
     X_sp[0, 1] = 1
     X_sp = csr_matrix(X_sp)
-    for (tmin, tmax), isfreq in [((0, 2), 1), ((0, .2), 10)]:
+    test_tlims = [((0, 2), 1), ((0, .2), 10), ((-.1, .1), 10)]
+    for (tmin, tmax), isfreq in test_tlims:
         # sfreq must be int/float
         assert_raises(ValueError, _delay_time_series, X, tmin, tmax,
                       sfreq=[1])
@@ -53,8 +55,15 @@ def test_time_delay():
         delayed = _delay_time_series(X, tmin, tmax, isfreq,
                                      newaxis=2, axis=-1)
         assert_equal(delayed.shape[2], 3)
+        # Make sure delay slice is correct
+        delays = _times_to_delays(tmin, tmax, isfreq)
+        keep = _delays_to_slice(delays)
+        assert_true(delayed[..., keep].shape[-1] > 0)
+        assert_true(np.isnan(delayed[..., keep]).sum() == 0)
 
         for idata in [X, X_sp]:
+            if tmin < 0:
+                continue
             X_delayed = _delay_time_series(X, tmin, tmax, isfreq, axis=-1)
             assert_array_equal(X_delayed[0], X)
             assert_array_equal(X_delayed[1][0, :-1], X[0, 1:])
@@ -87,11 +96,12 @@ def test_receptive_field():
     # Fit the model and test values
     feature_names = ['feature_%i' % ii for ii in [0, 1, 2]]
     rf = ReceptiveField(tmin, tmax, 1, feature_names, estimator=mod)
-    assert_array_equal(rf._delays, np.arange(tmin, tmax + 1))
     rf.fit(X, y)
+    assert_array_equal(rf.delays_, np.arange(tmin, tmax + 1))
+
     y_pred = rf.predict(X)
-    assert_array_almost_equal(y[rf.mask_predict_],
-                              y_pred.squeeze()[rf.mask_predict_], 2)
+    assert_array_almost_equal(y[rf.keep_samples_],
+                              y_pred.squeeze()[rf.keep_samples_], 2)
     scores = rf.score(X, y)
     assert_true(scores > .99)
     assert_array_almost_equal(np.hstack(rf.coef_), w, 2)
@@ -140,5 +150,7 @@ def test_receptive_field():
     assert_raises(ValueError, _SCORERS['corrcoef'], y.squeeze(), y_pred)
     # Need correct scorers
     assert_raises(ValueError, ReceptiveField, tmin, tmax, 1, scoring='foo')
+    # Make sure delay taking is correct
+
 
 run_tests_if_main()

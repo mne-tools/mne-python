@@ -36,18 +36,13 @@ class ReceptiveField(BaseEstimator):
     ``coef_`` : array, shape (n_features, n_delays)
         The coefficients from the model fit, reshaped for easy visualization.
         If you want the raw (1d) coefficients, access them from the estimator
-        stored in `self.estimator_`.
-    ``times``: array, shape (n_delays), dtype float
-        The delays used to fit the model, in seconds
-    ``mask_fit_`` : array of bool, shape (n_times,)
-        A mask with True values corresponding to datapoints that were used
-        in fitting the model. Creating time delays necessitates that
-        datapoints at edges of the input do not have matching time-lagged
-        datapoints for all lags, and are thus removed in model fitting.
-    ``mask_pred_`` : array of bool, shape (n_times_pred,)
-        A mask with True values corresponding to samples that have matching
-        time-lagged datapoints for all lags. This is created after calling
-        `self.predict`. The mask is applied in `self.score`.
+        stored in ``self.estimator_``.
+    ``delays_``: array, shape (n_delays), dtype int
+        The delays used to fit the model, in indices. To return the delays
+        in seconds, use ``self.delays_ / self.sfreq``
+    ``keep_samples_`` : slice
+        The rows to keep during model fitting after removing rows with
+        missing values due to time delaying.
     ``scorer_`` : object
         scikit-learn Scorer instance.
 
@@ -83,10 +78,6 @@ class ReceptiveField(BaseEstimator):
         if scoring not in _SCORERS.keys():
             raise ValueError('scoring must be one of %s' % _SCORERS.keys())
         self.scoring = scoring
-
-        # Initialize delays
-        self._delays = _times_to_delays(self.tmin, self.tmax, self.sfreq)
-        self.times = self._delays / self.sfreq
 
     def __repr__(self):  # noqa: D105
         s = "tmin, tmax : (%.3f, %.3f), " % (self.tmin, self.tmax)
@@ -124,6 +115,12 @@ class ReceptiveField(BaseEstimator):
         from sklearn.base import is_regressor
         X, y = self._check_dimensions(X, y)
 
+        # Initialize delays
+        self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq)
+
+        # Define the slice that we should use in the middle
+        self.keep_samples_ = _delays_to_slice(self.delays_)
+
         if isinstance(self.estimator, (float, int)):
             estimator = Ridge(alpha=self.estimator)
         elif is_regressor(self.estimator):
@@ -137,15 +134,15 @@ class ReceptiveField(BaseEstimator):
         # Create input features
         n_times, n_epochs, n_feats = X.shape
         n_outputs = y.shape[-1]
-        X_del, msk = self._delay_for_fit(X)
-        n_delays = len(self._delays)
+        X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
+                                   newaxis=X.ndim)
 
         # Remove timepoints that don't have lag data after delaying
-        X_del = X_del[msk]
-        y = y[msk]
+        X_del = X_del[self.keep_samples_]
+        y = y[self.keep_samples_]
 
         # Convert to 2d by making epochs 1st axis and vstacking
-        X_del = X_del.reshape([-1, n_delays * n_feats], order='F')
+        X_del = X_del.reshape([-1, len(self.delays_) * n_feats], order='F')
         y = y.reshape([-1, n_outputs], order='F')
 
         # Update feature names if we have none
@@ -156,10 +153,9 @@ class ReceptiveField(BaseEstimator):
                              '(%s != %s)' % (n_feats, len(self.feature_names)))
 
         self.estimator_.fit(X_del, y)
-        self.mask_fit_ = msk
 
         coefs = _get_final_est(self.estimator_).coef_
-        coefs = coefs.reshape([n_outputs, n_feats, len(self._delays)])
+        coefs = coefs.reshape([n_outputs, n_feats, len(self.delays_)])
         self.coef_ = coefs.squeeze()
 
     def predict(self, X, y=None):
@@ -177,13 +173,15 @@ class ReceptiveField(BaseEstimator):
         y_pred : array, shape (n_times * n_epochs)
             The output predictions with time concatenated.
         """
-        if not hasattr(self, '_delays'):
+        if not hasattr(self, 'delays_'):
             raise ValueError('Estimator has not been fit yet.')
         X, y = self._check_dimensions(X, y, predict=True)
-        X_del, msk = self._delay_for_fit(X)
-        X_del = X_del.reshape([-1, len(self._delays) * X.shape[-1]], order='F')
+        X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
+                                   newaxis=X.ndim)
+        # Convert nans to 0 since sklearn will error otherwise
+        X_del[np.isnan(X_del)] = 0
+        X_del = X_del.reshape([-1, len(self.delays_) * X.shape[-1]], order='F')
         y_pred = self.estimator_.predict(X_del)
-        self.mask_predict_ = msk
         return y_pred
 
     def score(self, X, y):
@@ -214,26 +212,14 @@ class ReceptiveField(BaseEstimator):
         y_pred = self.predict(X)
         n_outputs = y_pred.shape[-1]
         y_pred = y_pred.reshape(y.shape, order='F')
-        y_pred = y_pred[self.mask_predict_]
-        y = y[self.mask_predict_]
+        y_pred = y_pred[self.keep_samples_]
+        y = y[self.keep_samples_]
 
         # Re-vectorize and call scorer
         y = y.reshape([-1, n_outputs], order='F')
         y_pred = y_pred.reshape([-1, n_outputs], order='F')
         scores = self.scorer_(y, y_pred, multioutput='raw_values')
         return scores
-
-    def _delay_for_fit(self, X):
-        # First delay
-        X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
-                                   newaxis=X.ndim)
-
-        # Mask for removing edges later
-        msk_helper = np.ones(X.shape[0]) * np.nan
-        msk_helper = _delay_time_series(msk_helper, self.tmin, self.tmax,
-                                        self.sfreq)
-        msk = ~np.any(msk_helper == np.nan, axis=0)
-        return X_del, msk
 
     def _check_dimensions(self, X, y, predict=False):
         if X.ndim == 1:
@@ -335,6 +321,17 @@ def _times_to_delays(tmin, tmax, sfreq):
     delays = np.arange(np.round(tmin * sfreq),
                        np.round(tmax * sfreq) + 1).astype(int)
     return delays
+
+
+def _delays_to_slice(delays):
+    """Find the slice to be taken in order to remove missing values."""
+    # Negative values == cut off rows at the beginning
+    min_delay = np.clip(delays.min(), None, 0)
+    min_delay = None if min_delay >= 0 else -1 * min_delay
+    # Positive values == cut off rows at the end
+    max_delay = np.clip(delays.max(), 0, None)
+    max_delay = None if max_delay <= 0 else -1 * max_delay
+    return slice(min_delay, max_delay)
 
 
 def _check_delayer_params(tmin, tmax, sfreq):
