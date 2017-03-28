@@ -122,8 +122,8 @@ print('Frequencies in Hz over which coherence was averaged for beta: ')
 print(freqs[1])
 
 ###############################################################################
-# Generate a coherence sources and plot
-# -------------------------------------
+# Generate coherence sources and plot
+# -----------------------------------
 #
 # Finally, we'll generate a SourceEstimate with the coherence. This is simple
 # since we used a single seed. For more than one seed we would have to split

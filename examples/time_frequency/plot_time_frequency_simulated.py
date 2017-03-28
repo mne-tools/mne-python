@@ -3,7 +3,7 @@
 Time-frequency on simulated data (Multitaper vs. Morlet)
 ========================================================
 
-This examples demonstrates the different time-frequency estimation methods.
+This example demonstrates the different time-frequency estimation methods.
 on simulated data. It shows the time-frequency resolution trade-off
 and the problem of estimation variance.
 """
@@ -67,11 +67,11 @@ epochs = EpochsArray(data=data, info=info, events=events, event_id=event_id,
 # Multitaper transform
 # ====================
 # First we'll use the multitaper method for calculating the TFR.
-# this creates several orthogonal tapering windows which reduces variance
+# This creates several orthogonal tapering windows which reduces variance
 # in the TFR estimation. We'll also show some of the parameters that can be
 # tweaked (e.g., ``time_bandwidth``) that will result in different multitaper
 # properties, and thus a different TFR. You can trade time resolution or
-# frequency resolution or both in order to get a reduction in variance
+# frequency resolution or both in order to get a reduction in variance.
 
 freqs = np.arange(5., 100., 3.)
 
@@ -84,7 +84,7 @@ power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
 # Plot results. Baseline correct based on first 100 ms.
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
-           title='Sim: Least smoothing, most variance', show=True)
+           title='Sim: Least smoothing, most variance')
 
 ###############################################################################
 # **(2) Less frequency smoothing, more time smoothing.**
@@ -95,8 +95,7 @@ power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
 # Plot results. Baseline correct based on first 100 ms.
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
-           title='Sim: Less frequency smoothing, more time smoothing',
-           show=True)
+           title='Sim: Less frequency smoothing, more time smoothing')
 
 ###############################################################################
 # **(3) Less time smoothing, more frequency smoothing.**
@@ -107,14 +106,13 @@ power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
 # Plot results. Baseline correct based on first 100 ms.
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
-           title='Sim: Less time smoothing, more frequency smoothing',
-           show=True)
+           title='Sim: Less time smoothing, more frequency smoothing')
 
 ###############################################################################
 # Stockwell (S) transform
 # =======================
 #
-# Stockwell uses a Gaussian window to balance temporal and spectral resolution
+# Stockwell uses a Gaussian window to balance temporal and spectral resolution.
 # Importantly, frequency bands are phase-normalized, hence strictly comparable
 # with regard to timing, and, the input signal can be recoverd from the
 # transform in a lossless way if we disregard numerical errors.
@@ -124,7 +122,7 @@ for width in (0.7, 3.0):
     power = tfr_stockwell(epochs, fmin=fmin, fmax=fmax, width=width)
     power.plot([0], baseline=(0., 0.1), mode='mean',
                title='Sim: Using S transform, width '
-                     '= {:0.1f}'.format(width), show=True)
+                     '= {:0.1f}'.format(width))
 
 ###############################################################################
 # Morlet Wavelets
@@ -136,4 +134,4 @@ for width in (0.7, 3.0):
 n_cycles = freqs / 2.
 power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, return_itc=False)
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
-           title='Sim: Using Morlet wavelet', show=True)
+           title='Sim: Using Morlet wavelet')

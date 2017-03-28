@@ -37,7 +37,7 @@ proj_fname = data_path + '/MEG/sample/sample_audvis_eog-proj.fif'
 tmin, tmax = 0, 60  # use the first 60s of data
 
 # Setup for reading the raw data (to save memory, crop before loading)
-raw = io.Raw(raw_fname).crop(tmin, tmax).load_data()
+raw = io.read_raw_fif(raw_fname).crop(tmin, tmax).load_data()
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # Add SSP projection vectors to reduce EOG and ECG artifacts

@@ -66,12 +66,12 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 # Now we are ready to compute the connectivity in the alpha band. Notice
 # from the status messages how mne-python:
 #
-#  1. reads an epoch from the raw file
-#  2. applies SSP and baseline correction
-#  3. computes the inverse to obtain a source estimate
-#  4. averages the source estimate to obtain a time series for each label
-#  5. includes the label time series in the connectivity computation
-#  6. moves to the next epoch.
+# 1. reads an epoch from the raw file
+# 2. applies SSP and baseline correction
+# 3. computes the inverse to obtain a source estimate
+# 4. averages the source estimate to obtain a time series for each label
+# 5. includes the label time series in the connectivity computation
+# 6. moves to the next epoch.
 #
 # This behaviour is because we are using generators, which allows us to
 # compute connectivity in a computationally efficient manner where the amount
