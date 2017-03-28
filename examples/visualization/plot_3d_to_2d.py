@@ -26,7 +26,6 @@ from os import path as op
 
 import mne
 from mne.viz import ClickableImage  # noqa
-from mne.channels import generate_2d_layout  # noqa
 from mne.viz import plot_trans, snapshot_brain_montage
 
 
