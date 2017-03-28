@@ -664,8 +664,8 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
 
     # Forward operator created for channels in info (use pick_info to restrict)
     # Use defaults for most params, including min_dist
-    fwd = make_forward_solution(info, trans, src, bem, fname=None,
-                                n_jobs=n_jobs, verbose=verbose)
+    fwd = make_forward_solution(info, trans, src, bem, n_jobs=n_jobs,
+                                verbose=verbose)
     # Convert from free orientations to fixed (in-place)
     convert_forward_solution(fwd, surf_ori=False, force_fixed=True,
                              copy=False, verbose=None)

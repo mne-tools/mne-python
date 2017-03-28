@@ -684,11 +684,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                     return_nn=True)[2:4]
             if 'original' not in eeg_sensors:
                 eeg_loc = list()
-        else:
-            # only warn if EEG explicitly requested, or EEG channels exist but
-            # no locations are provided
-            warn('EEG electrode locations not found. Cannot plot EEG '
-                 'electrodes.')
     del eeg_sensors
     if 'sensors' in meg_sensors:
         coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
@@ -1441,8 +1436,6 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     .. versionadded:: 0.9.0
     """
     if mode == 'orthoview':
-        raise ValueError('Only mode=="orthoview" is supported, got %s'
-                         % (mode,))
         fig = _plot_dipole_mri_orthoview(
             dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
             coord_frame=coord_frame, idx=idx, show_all=show_all,
