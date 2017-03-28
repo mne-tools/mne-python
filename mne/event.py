@@ -190,7 +190,8 @@ def _read_events_fif(fid, tree):
 
 def read_events(filename, include=None, exclude=None, mask=None,
                 mask_type='not_and'):
-    """Read events from fif or text file.
+    """Read events from fif or text file. See :ref:`tut_epoching_and_averaging`
+    as well as :ref:`ex_read_events` for more information about events.
 
     Parameters
     ----------
@@ -493,7 +494,8 @@ def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
                 shortest_event=2, mask=None, uint_cast=False,
                 mask_type='not_and', verbose=None):
-    """Find events from raw file.
+    """Find events from raw file. See :ref:`tut_epoching_and_averaging`
+    as well as :ref:`ex_read_events` for more information about events.
 
     Parameters
     ----------
