@@ -1,9 +1,9 @@
 """
+.. _ex_read_events:
+
 =====================
 Reading an event file
 =====================
-
-.. _ex_read_events:
 
 Read events from a file. For a more detailed guide on how to read events
 using MNE-Python, see :ref:`tut_epoching_and_averaging`.
