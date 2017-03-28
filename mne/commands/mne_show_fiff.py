@@ -21,6 +21,11 @@ def run():
     if len(args) != 1:
         parser.print_help()
         sys.exit(1)
+    if sys.platform == "win32" and int(sys.version[0]) < 3:
+        # This works around an annoying bug on Windows for show_fiff, see:
+        # https://pythonhosted.org/kitchen/unicode-frustrations.html
+        UTF8Writer = codecs.getwriter('utf8')
+        sys.stdout = UTF8Writer(sys.stdout)
     print(mne.io.show_fiff(args[0]))
 
 
