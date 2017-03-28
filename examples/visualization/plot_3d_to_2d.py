@@ -25,8 +25,7 @@ from matplotlib import pyplot as plt
 from os import path as op
 
 import mne
-from mne.viz import ClickableImage, add_background_image  # noqa
-from mne.channels import generate_2d_layout  # noqa
+from mne.viz import ClickableImage  # noqa
 from mne.viz import plot_trans, snapshot_brain_montage
 
 
@@ -92,9 +91,8 @@ ax.set_axis_off()
 #
 # We'll open an image file, then use ClickableImage to
 # return 2D locations of mouse clicks (or load a file already created).
-# Then, we use generate_2d_layout to turn those xy positions into a layout
-# for use with plotting topo maps. In this way, you can take arbitrary xy
-# positions and turn them into a plottable layout.
+# Then, we'll return these xy positions as a layout for use with plotting topo
+# maps.
 
 
 # This code opens the image so you can click on it. Commented out
@@ -108,7 +106,7 @@ ax.set_axis_off()
 
 # # Generate a layout from our clicks and normalize by the image
 # print('Generating and saving layout...')
-# lt = generate_2d_layout(np.vstack(coords), bg_image=im)
+# lt = click.to_layout()
 # lt.save(op.join(layout_path, layout_name))  # To save if we want
 
 # # We've already got the layout, load it
