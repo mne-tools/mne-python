@@ -28,7 +28,7 @@ def _buffer_recv_worker(ft_client):
         print('Buffer receive thread stopped: %s' % err)
 
 
-class FieldTripClient(object):
+class FieldTripClient(_BaseClient):
     """Realtime FieldTrip client.
 
     Parameters
