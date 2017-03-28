@@ -137,7 +137,7 @@ def test_receptive_field():
         assert_array_almost_equal(val(y[:, np.newaxis], y_pred),
                                   rf.score(X[:, [0]], y), 4)
     # Need 2D input
-    assert_raises(ValueError, val, y, y_pred)
+    assert_raises(ValueError, _SCORERS['corrcoef'], y.squeeze(), y_pred)
     # Need correct scorers
     assert_raises(ValueError, ReceptiveField, tmin, tmax, 1, scoring='foo')
 
