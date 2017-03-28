@@ -88,11 +88,14 @@ class Layout(object):
         return '<Layout | %s - Channels: %s ...>' % (self.kind,
                                                      ', '.join(self.names[:3]))
 
-    def plot(self, show=True):
+    def plot(self, picks=None, show=True):
         """Plot the sensor positions.
 
         Parameters
         ----------
+        picks : array-like
+            Indices of the channels to show. If None (default), all the
+            channels are shown.
         show : bool
             Show figure if True. Defaults to True.
 
@@ -106,7 +109,7 @@ class Layout(object):
         .. versionadded:: 0.12.0
         """
         from ..viz.topomap import plot_layout
-        return plot_layout(self, show=show)
+        return plot_layout(self, picks=picks, show=show)
 
 
 def _read_lout(fname):
