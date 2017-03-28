@@ -447,7 +447,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         pick_mask = slice(None)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
-                    preload=False, proj=False, add_eeg_ref=False,
+                    preload=False, proj=False,
                     reject_by_annotation=reject_by_annotation)
     if method is None:
         method = 'empirical'

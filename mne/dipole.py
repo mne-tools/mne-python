@@ -146,15 +146,12 @@ class Dipole(object):
     def plot_locations(self, trans, subject, subjects_dir=None,
                        bgcolor=(1, 1, 1), opacity=0.3,
                        brain_color=(1, 1, 0), fig_name=None,
-                       fig_size=(600, 600), mode=None,
+                       fig_size=(600, 600), mode='orthoview',
                        scale_factor=0.1e-1, colors=None,
                        coord_frame='mri', idx='gof',
                        show_all=True, ax=None, block=False,
                        show=True, verbose=None):
         """Plot dipole locations in 3d.
-
-        .. warning:: Using mode with option 'cone' or 'sphere' will be
-                     deprecated in version 0.15.
 
         Parameters
         ----------
@@ -178,9 +175,7 @@ class Dipole(object):
         fig_size : tuple of length 2
             Mayavi figure size.
         mode : str
-            Should be ``'cone'`` or ``'sphere'`` or ``'orthoview'`` to specify
-            how the dipoles should be shown. If orthoview then matplotlib is
-            used otherwise it is mayavi.
+            Currently only ``'orthoview'`` is supported.
 
             .. versionadded:: 0.14.0
         scale_factor : float

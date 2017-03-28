@@ -254,12 +254,10 @@ def test_forward_mixed_source_space():
     label_names = get_volume_labels_from_aseg(fname_aseg)
     vol_labels = [label_names[int(np.random.rand() * len(label_names))]
                   for _ in range(2)]
-    vol1 = setup_volume_source_space('sample', fname=None, pos=20.,
-                                     mri=fname_aseg,
+    vol1 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
                                      volume_label=vol_labels[0],
                                      add_interpolator=False)
-    vol2 = setup_volume_source_space('sample', fname=None, pos=20.,
-                                     mri=fname_aseg,
+    vol2 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
                                      volume_label=vol_labels[1],
                                      add_interpolator=False)
 
