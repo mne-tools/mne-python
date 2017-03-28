@@ -89,6 +89,8 @@ Changelog
 
     - Add plotting of head positions as a function of time in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
 
+    - Add .bvef extension (BrainVision Electrodes File) to :func:`mne.channels.read_montage` by `Jean-Baptiste Schiratti`_
+
 BUG
 ~~~
 
@@ -2031,3 +2033,5 @@ of commits):
 .. _Richard Höchenberger: http://hoechenberger.name
 
 .. _Matt Boggess: https://github.com/mattboggess
+
+.. _Jean-Baptiste Schiratti: https://github.com/jbschiratti
