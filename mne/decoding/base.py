@@ -9,10 +9,9 @@
 import numpy as np
 import time
 import numbers
-import warnings  # XXX
 from ..parallel import parallel_func
 from ..fixes import BaseEstimator
-from ..utils import check_version, requires_sklearn_0_15, logger
+from ..utils import check_version, requires_sklearn_0_15, logger, warn
 
 
 class LinearModel(BaseEstimator):
@@ -535,11 +534,9 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
             test_score = error_score
             if return_train_score:
                 train_score = error_score
-            # XXX TODO
-            warnings.warn("Classifier fit failed. The score on this train-test"
-                          " partition for these parameters will be set to %f. "
-                          "Details: \n%r" % (error_score, e),
-                          'FitFailedWarning')
+            warn("Classifier fit failed. The score on this train-test"
+                 " partition for these parameters will be set to %f. "
+                 "Details: \n%r" % (error_score, e))
         else:
             raise ValueError("error_score must be the string 'raise' or a"
                              " numeric value. (Hint: if using 'raise', please"
