@@ -1742,13 +1742,16 @@ def plot_psds_topomap(
     return fig
 
 
-def plot_layout(layout, show=True):
+def plot_layout(layout, picks=None, show=True):
     """Plot the sensor positions.
 
     Parameters
     ----------
     layout : None | Layout
         Layout instance specifying sensor positions.
+    picks : array-like
+        Indices of the channels to show. If None (default), all the channels
+        are shown.
     show : bool
         Show figure if True. Defaults to True.
 
@@ -1771,7 +1774,12 @@ def plot_layout(layout, show=True):
     pos = [(p[0] + p[2] / 2., p[1] + p[3] / 2.) for p in layout.pos]
     pos, outlines = _check_outlines(pos, 'head')
     _draw_outlines(ax, outlines)
-    for ii, (this_pos, ch_id) in enumerate(zip(pos, layout.names)):
+    if picks is None:
+        names = layout.names
+    else:
+        pos = pos[picks]
+        names = np.array(layout.names)[picks]
+    for ii, (this_pos, ch_id) in enumerate(zip(pos, names)):
         ax.annotate(ch_id, xy=this_pos[:2], horizontalalignment='center',
                     verticalalignment='center', size='x-small')
     plt_show(show)
