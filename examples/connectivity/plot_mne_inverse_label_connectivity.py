@@ -25,6 +25,13 @@ from mne.viz import circular_layout, plot_connectivity_circle
 
 print(__doc__)
 
+###############################################################################
+# Load our data
+# -------------
+#
+# First we'll load the data we'll use in connectivity estimation. We'll use
+# the sample MEG data provided with MNE.
+
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
@@ -49,6 +56,27 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(mag=4e-12, grad=4000e-13,
                                                     eog=150e-6))
 
+###############################################################################
+# Compute inverse solutions and their connectivity
+# ------------------------------------------------
+#
+# Next, we need to compute the inverse solution for this data. This will return
+# the sources / source activity that we'll use in computing connectivity.
+#
+# Now we are ready to compute the connectivity in the alpha band. Notice
+# from the status messages how mne-python:
+#
+#  1. reads an epoch from the raw file
+#  2. applies SSP and baseline correction
+#  3. computes the inverse to obtain a source estimate
+#  4. averages the source estimate to obtain a time series for each label
+#  5. includes the label time series in the connectivity computation
+#  6. moves to the next epoch.
+#
+# This behaviour is because we are using generators, which allows us to
+# compute connectivity in a computationally efficient manner where the amount
+# of memory (RAM) needed is independent from the number of epochs.
+
 # Compute inverse solution and for each epoch. By using "return_generator=True"
 # stcs will be a generator object instead of a list.
 snr = 1.0  # use lower SNR for single epochs
@@ -68,15 +96,6 @@ src = inverse_operator['src']
 label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
                                          return_generator=True)
 
-# Now we are ready to compute the connectivity in the alpha band. Notice
-# from the status messages, how mne-python: 1) reads an epoch from the raw
-# file, 2) applies SSP and baseline correction, 3) computes the inverse to
-# obtain a source estimate, 4) averages the source estimate to obtain a
-# time series for each label, 5) includes the label time series in the
-# connectivity computation, and then moves to the next epoch. This
-# behaviour is because we are using generators and allows us to
-# compute connectivity in computationally efficient manner where the amount
-# of memory (RAM) needed is independent from the number of epochs.
 fmin = 8.
 fmax = 13.
 sfreq = raw.info['sfreq']  # the sampling frequency
@@ -91,7 +110,11 @@ con_res = dict()
 for method, c in zip(con_methods, con):
     con_res[method] = c[:, :, 0]
 
-# Now, we visualize the connectivity using a circular graph layout
+###############################################################################
+# Make a connectivity plot
+# ------------------------
+#
+# Now, we visualize this connectivity using a circular graph layout.
 
 # First, we reorder the labels based on their location in the left hemi
 label_names = [label.name for label in labels]
@@ -127,7 +150,13 @@ plot_connectivity_circle(con_res['pli'], label_names, n_lines=300,
                                'Condition (PLI)')
 plt.savefig('circle.png', facecolor='black')
 
-# Plot connectivity for both methods in the same plot
+###############################################################################
+# Make two connectivity plots in the same figure
+# ----------------------------------------------
+#
+# We can also assign these connectivity plots to axes in a figure. Below we'll
+# show the connectivity plot using two different connectivity methods.
+
 fig = plt.figure(num=None, figsize=(8, 4), facecolor='black')
 no_names = [''] * len(label_names)
 for ii, method in enumerate(con_methods):
