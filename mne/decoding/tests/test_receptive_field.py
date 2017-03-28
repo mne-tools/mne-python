@@ -138,6 +138,7 @@ def test_receptive_field():
                                   rf.score(X[:, [0]], y), 4)
     # Need 2D input
     assert_raises(ValueError, val, y, y_pred)
-
+    # Need correct scorers
+    assert_raises(ValueError, ReceptiveField, tmin, tmax, 1, scoring='foo')
 
 run_tests_if_main()
