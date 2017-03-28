@@ -7,13 +7,11 @@ import os.path as op
 from nose.tools import assert_raises, assert_true, assert_equal
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from scipy.stats import pearsonr
-from sklearn.metrics import r2_score
 
 from mne import io, pick_types
 from mne.utils import requires_sklearn_0_15, run_tests_if_main
 from mne.decoding import ReceptiveField
-from mne.decoding.receptive_field import _delay_time_series
+from mne.decoding.receptive_field import _delay_time_series, _SCORERS
 from mne.decoding.base import _get_final_est
 
 
@@ -130,20 +128,16 @@ def test_receptive_field():
     # tmin must be <= tmax
     rf = ReceptiveField(5, 4, 1)
     assert_raises(ValueError, rf.fit, X, y)
-    # Custom scorer
-    rf = ReceptiveField(tmin, tmax, 1, ['one'],
-                        estimator=0, scoring='r2')
-    rf.fit(X[:, [0]], y)
-    y_pred = rf.predict(X[:, [0]])
-    assert_array_almost_equal(r2_score(y, y_pred), rf.score(X[:, [0]], y), 4)
-
-    def corr_score(y_true, y, multioutput=None):
-        return pearsonr(y_true, y)[0]
-    rf = ReceptiveField(tmin, tmax, 1, ['one'],
-                        estimator=0, scoring=corr_score)
-    rf.fit(X[:, [0]], y)
-    y_pred = rf.predict(X[:, [0]]).squeeze()
-    assert_array_almost_equal(corr_score(y, y_pred), rf.score(X[:, [0]], y), 4)
+    # scorers
+    for key, val in _SCORERS.items():
+        rf = ReceptiveField(tmin, tmax, 1, ['one'],
+                            estimator=0, scoring=key)
+        rf.fit(X[:, [0]], y)
+        y_pred = rf.predict(X[:, [0]])
+        assert_array_almost_equal(val(y[:, np.newaxis], y_pred),
+                                  rf.score(X[:, [0]], y), 4)
+    # Need 2D input
+    assert_raises(ValueError, val, y, y_pred)
 
 
 run_tests_if_main()

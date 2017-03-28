@@ -1,4 +1,6 @@
 import numpy as np
+from sklearn.metrics import r2_score
+from scipy.stats import pearsonr
 from .base import _get_final_est, BaseEstimator, _check_estimator
 
 
@@ -26,10 +28,10 @@ class ReceptiveField(BaseEstimator):
         float is passed, it will be interpreted as the `alpha` parameter
         to be passed to a Ridge regression model. If `None`, then a Ridge
         regression model with an alpha of 0 will be used.
-    scoring : object | None | str
-        A function that takes the inputs `y_true` and `y_pred` and outputs
-        a score between them. Or, a str type indicating the name of the
-        scorer. If None, set to ``r2``.
+    scoring : ['r2', 'corrcoef']
+        Defines how predictions will be scored. Currently must be one of
+        'r2' (coefficient of determination) or 'corrcoef' (the correlation
+        coefficient).
 
     Attributes
     ----------
@@ -74,12 +76,14 @@ class ReceptiveField(BaseEstimator):
     """
 
     def __init__(self, tmin, tmax, sfreq, feature_names=None,
-                 estimator=None, scoring=None):  # noqa: D102
+                 estimator=None, scoring='r2'):  # noqa: D102
         self.feature_names = feature_names
         self.sfreq = float(sfreq)
         self.tmin = tmin
         self.tmax = tmax
         self.estimator = 0. if estimator is None else estimator
+        if scoring not in _SCORERS.keys():
+            raise ValueError('scoring must be one of %s' % _SCORERS.keys())
         self.scoring = scoring
 
         # Initialize delays
@@ -204,19 +208,8 @@ class ReceptiveField(BaseEstimator):
             The scores estimated by ``scorer_`` for each output (e.g. mean
             R2 of ``predict(X)``).
         """
-        from sklearn import metrics
-
         # Create our scoring object
-        self.scorer_ = self.scoring
-        if self.scorer_ is None:
-            self.scorer_ = metrics.r2_score
-
-        if isinstance(self.scorer_, str):
-            if hasattr(metrics, '%s_score' % self.scorer_):
-                self.scorer_ = getattr(metrics, '%s_score' % self.scorer_)
-            else:
-                raise KeyError("{0} scorer Doesn't appear to be valid a "
-                               "scikit-learn scorer.".format(self.scorer_))
+        self.scorer_ = _SCORERS[self.scoring]
 
         # Generate predictions, then reshape so we can mask time
         X, y = self._check_dimensions(X, y, predict=True)
@@ -238,10 +231,10 @@ class ReceptiveField(BaseEstimator):
                                    newaxis=X.ndim)
 
         # Mask for removing edges later
-        msk_helper = np.ones(X.shape[0])
+        msk_helper = np.ones(X.shape[0]) * np.nan
         msk_helper = _delay_time_series(msk_helper, self.tmin, self.tmax,
                                         self.sfreq)
-        msk = ~np.any(msk_helper == 0, axis=0)
+        msk = ~np.any(msk_helper == np.nan, axis=0)
         return X_del, msk
 
     def _check_dimensions(self, X, y, predict=False):
@@ -357,3 +350,13 @@ def _check_delayer_params(tmin, tmax, sfreq):
         raise ValueError('tmin/tmax must be an integer or float')
     if not tmin <= tmax:
         raise ValueError('tmin must be <= tmax')
+
+
+# Create a correlation sklearn-style scorer
+def _corr_score(y_true, y, multioutput=None):
+    if any(ii.ndim != 2 for ii in [y_true, y]):
+        raise ValueError('inputs must shape (samples, outputs)')
+    return [pearsonr(y_true[:, ii], y[:, ii])[0] for ii in range(y.shape[-1])]
+
+_SCORERS = {'r2': r2_score,
+            'corrcoef': _corr_score}

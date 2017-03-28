@@ -28,18 +28,12 @@ References
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
-from scipy.stats import pearsonr
 
 import mne
 from mne.decoding import ReceptiveField
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import scale
-
-
-# Create a correlation sklearn-style scorer
-def corr_score(y_true, y, multioutput=None):
-    return [pearsonr(y_true[:, ii], y[:, ii])[0] for ii in range(y.shape[-1])]
 
 
 ###############################################################################
@@ -91,7 +85,7 @@ tmin, tmax = -.4, .2
 
 # Initialize the model
 rf = ReceptiveField(tmin, tmax, sfreq, feature_names=['envelope'],
-                    estimator=Ridge(alpha=1.), scoring=corr_score)
+                    estimator=Ridge(alpha=1.), scoring='corrcoef')
 n_delays = int((tmax - tmin) * sfreq) + 2  # +2 to account for 0 + end
 
 n_splits = 3
