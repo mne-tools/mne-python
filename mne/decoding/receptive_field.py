@@ -1,6 +1,5 @@
 import numpy as np
 import numbers
-from sklearn.base import clone
 from .base import get_coef, BaseEstimator, _check_estimator
 
 
@@ -115,7 +114,7 @@ class ReceptiveField(BaseEstimator):
             The output features for the model.
         """
         from sklearn.linear_model import Ridge
-        from sklearn.base import is_regressor
+        from sklearn.base import is_regressor, clone
         X, y = self._check_dimensions(X, y)
 
         # Initialize delays
