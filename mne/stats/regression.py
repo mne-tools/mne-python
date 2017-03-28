@@ -228,10 +228,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         matrix b; or a string.
         X is of shape (n_times, n_predictors * time_window_length).
         y is of shape (n_channels, n_times).
-        If str, must be either ``'cholesky'``, in which
-        case the solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``,
-        or ``'ridge'``, in which case importing `ridge_regression` from
-        sklearn is attempted; otherwise, defaults to the same solver as before.
+        If str, must be ``'cholesky'``, in which case the solver used is
+        ``linalg.solve(dot(X.T, X), dot(X.T, y))``.
 
     Returns
     -------
@@ -247,24 +245,19 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
            considerations. Psychophysiology, 52(2), 169-189.
     """
     if isinstance(solver, string_types):
-        if solver not in ("cholesky", "ridge"):
+        if solver not in {"cholesky"}:
             raise ValueError("No such solver: {0}".format(solver))
-
-        if solver == 'ridge':
-            try:
-                from sklearn.linear_model.ridge import ridge_regression
-
-                def solver(X, y):
-                    return ridge_regression(X, y, solver='cholesky', alpha=1.)
-            except ImportError:
-                warn("sklearn not found, falling back to reimplementation.")
-                solver = "cholesky"
-
         if solver == 'cholesky':
             def solver(X, y):
                 a = (X.T * X).toarray()  # dot product of sparse matrices
                 return linalg.solve(a, X.T * y, sym_pos=True,
                                     overwrite_a=True, overwrite_b=True).T
+    elif callable(solver):
+        warn("When using a custom solver, note that since MNE 0.15, this "
+             "function will pass the transposed data (n_channels, n_times) "
+             "to the solver. If you are using a solver that expects a "
+             "different format, it will give wrong results and might in "
+             "extreme cases crash your session.")
 
     # build data
     data, info, events = _prepare_rerp_data(raw, events, picks=picks,
@@ -285,9 +278,10 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     # solve linear system
     coefs = solver(X, data.T)
     if coefs.shape[0] != data.shape[0]:
-        warn("solver output has unexcepted shape. Supply a function that "
-             "returns coefficients in the form (n_targets, n_features), "
-             "where targets == channels.")
+        msg = ("solver output has unexcepted shape. Supply a function that "
+               "returns coefficients in the form (n_targets, n_features), "
+               "where targets == channels.")
+        raise ValueError(msg)
 
     # construct Evoked objects to be returned from output
     evokeds = _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info)
