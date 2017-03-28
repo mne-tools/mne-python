@@ -122,54 +122,53 @@ To plot the corresponding filter, you can do::
 Sensor-space decoding
 =====================
 
-Temporal Generalization
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-Temporal Generalization is a modern strategy to infer neuroscientific conclusions from decoding analysis of sensor-space data. An accuracy matrix is constructed where each point represents the performance of the model trained on one time window and tested on another.
+Decoding over time
+^^^^^^^^^^^^^^^^^^
 
-.. image:: ../../_images/sphx_glr_plot_decoding_time_generalization_001.png
-   :align: center
-   :width: 400px
+This strategy consists in fitting a multivariate predictive model on each
+time instant and evaluating its performance at the same instant on new
+epochs. The :class:`decoding.SearchLight` will take as input a
+pair of features :math:`X` and targets :math:`y`, where :math:`X` has
+more than 2 dimensions. For decoding over time the data :math:`X`
+is the epochs data of shape n_epochs x n_channels x n_times. As the
+last dimension of :math:`X` is the time an estimator will be fit
+on every time instant.
 
-To use this functionality, simply do::
+This approach is analogous to searchlight-based approaches in fMRI,
+where here we are interested in when one can discriminate experimental
+conditions and therefore figure out when the effect of interest happens.
 
-    >>> clf = LogisticRegression()
-    >>> tg = GeneralizationLight(clf, n_jobs=1)
-    >>> score = cross_val_multiscore(clf, X=epochs.get_data(),
-                                     y=epochs.events[:, 2], cv=4)
-    >>> tg.fit(epochs)
-    >>> scores = tg.score(epochs)
-    >>> plt.matshow(scores, vmin=0.1, vmax=0.9,
-                    extent=[epochs.times[0], epochs.times[-1]] * 2,
-                    title="Temporal Generalization (faces vs. scrambled)")
-
-.. topic:: Examples:
-
-    * :ref:`sphx_glr_auto_examples_decoding_plot_ems_filtering.py`
-    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_time_generalization_conditions.py`
-
-Time Decoding
-^^^^^^^^^^^^^
-In this strategy, a model trained on one time window is tested on the same time window. A moving time window will thus yield an accuracy curve similar to an ERP, but is considered more sensitive to effects in some situations. It is related to searchlight-based approaches in fMRI. This is also the diagonal of the GAT matrix.
+When working with linear models as estimators, this approach boils
+down to estimating a discriminative spatial filter for each time instant.
 
 .. image:: ../../_images/sphx_glr_plot_decoding_sensors_001.png
    :align: center
    :width: 400px
 
-To generate this plot, you need to use ``SearchLight` over time samples::
+To generate this plot see our tutorial :ref:`sphx_glr_auto_tutorials_plot_sensors_decoding.py`.
 
-    >>> clf = LogisticRegression()
-    >>> tg = SearchLight(clf, n_jobs=1)
-    >>> scores = cross_val_multiscore(clf, X=epochs.get_data(),
-                                     y=epochs.events[:, 2], cv=4)
-    >>> plt.plot(epochs.times, scores, vmin=0.1, vmax=0.9,
-                 title="Temporal Decoding (faces vs. scrambled)")
+Temporal Generalization
+^^^^^^^^^^^^^^^^^^^^^^^
 
+Temporal generalization is an extension of the decoding over time idea
+where one tries to evaluate if the model estimated at a certain time
+predicts accuratly at any another instant. It's the idea of transfering
+a trained model to another learning problem where here the new problem
+corresponds to different time instants.
 
+The object to use is :class:`decoding.GeneralizationLight`. It expects
+as input :math:`X` and :math:`y` like the :class:`decoding.SearchLight`
+but when predicting it will return the prediction of each model
+for all time instants. The class :class:`decoding.GeneralizationLight`
+is generic and will treat the last dimension as the different tasks.
+If :math:`X` corresponds to epochs data then the last dimension
+is time.
 
-.. topic:: Examples:
+.. image:: ../../_images/sphx_glr_plot_decoding_time_generalization_001.png
+   :align: center
+   :width: 400px
 
-    * :ref:`sphx_glr_auto_tutorials_plot_sensors_decoding.py`
-    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_time_generalization_conditions.py`
+To generate this plot see our tutorial :ref:`sphx_glr_auto_tutorials_plot_sensors_decoding.py`.
 
 Source-space decoding
 =====================
