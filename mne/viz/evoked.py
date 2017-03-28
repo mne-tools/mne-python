@@ -1715,7 +1715,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     # finishing touches
     if invert_y:
         axes.invert_yaxis()
-    axes.patch.set_alpha(0)
     axes.spines['right'].set_color('none')
     axes.set_xlim(tmin, tmax)
 
