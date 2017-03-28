@@ -50,10 +50,6 @@ class Raw(BaseRaw):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists). This parameter will be removed in 0.15. Use
-        :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -74,7 +70,7 @@ class Raw(BaseRaw):
 
     @verbose
     def __init__(self, fname, allow_maxshield=False, preload=False,
-                 add_eeg_ref=False, verbose=None):  # noqa: D102
+                 verbose=None):  # noqa: D102
         fnames = [op.realpath(fname)]
         del fname
         split_fnames = []
@@ -101,13 +97,6 @@ class Raw(BaseRaw):
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._raw_extras for r in raws],
             raws[0].orig_format, None, verbose=verbose)
-        from ...epochs import _dep_eeg_ref
-        add_eeg_ref = _dep_eeg_ref(add_eeg_ref)
-
-        # combine information from each raw file to construct self
-        if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
-            eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
-            self.add_proj(eeg_ref)
 
         # combine annotations
         self.annotations = raws[0].annotations
@@ -449,8 +438,7 @@ def _check_entry(first, nent):
         raise IOError('Could not read data, perhaps this is a corrupt file')
 
 
-def read_raw_fif(fname, allow_maxshield=False, preload=False,
-                 add_eeg_ref=False, verbose=None):
+def read_raw_fif(fname, allow_maxshield=False, preload=False, verbose=None):
     """Reader function for Raw FIF data.
 
     Parameters
@@ -472,10 +460,6 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists). This parameter will be removed in 0.15. Use
-        :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -490,4 +474,4 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
     .. versionadded:: 0.9.0
     """
     return Raw(fname=fname, allow_maxshield=allow_maxshield,
-               preload=preload, add_eeg_ref=add_eeg_ref, verbose=verbose)
+               preload=preload, verbose=verbose)

@@ -91,7 +91,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
     end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
     # First and last sample
-    first = int(round(epochs.tmin * info['adsfreq']))  # round just to be safe
+    first = int(round(epochs.tmin * info['sfreq']))  # round just to be safe
     last = first + len(epochs.times) - 1
     write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
     write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
@@ -817,6 +817,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             kind = 'standard_error'
             data /= np.sqrt(n_events)
 
+        return self._evoked_from_epoch_data(data, self.info, picks, n_events,
+                                            kind, self._name)
+
+    @property
+    def _name(self):
+        """Give a nice string representation based on event ids."""
         if len(self.event_id) == 1:
             comment = next(iter(self.event_id.keys()))
         else:
@@ -826,8 +832,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 comments.append('%.2f * %s' % (
                     float(count[value]) / len(self.events), key))
             comment = ' + '.join(comments)
-        return self._evoked_from_epoch_data(data, self.info, picks, n_events,
-                                            kind, comment)
+        return comment
 
     def _evoked_from_epoch_data(self, data, info, picks, n_events, kind,
                                 comment):
@@ -1366,7 +1371,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if isinstance(item, (list, tuple)) and \
                 isinstance(item[0], string_types):
             select = epochs._keys_to_idx(item)
-            epochs._name = '+'.join(item)
         else:
             select = item if isinstance(item, slice) else np.atleast_1d(item)
 
@@ -2261,7 +2265,6 @@ def _read_one_epoch_file(f, tree, preload):
         my_epochs = epochs_node[0]
 
         # Now find the data in the block
-        name = None
         data = None
         data_tag = None
         bmin, bmax = None, None
@@ -2277,9 +2280,6 @@ def _read_one_epoch_file(f, tree, preload):
             elif kind == FIFF.FIFF_LAST_SAMPLE:
                 tag = read_tag(fid, pos)
                 last = int(tag.data)
-            elif kind == FIFF.FIFF_COMMENT:
-                tag = read_tag(fid, pos)
-                name = tag.data
             elif kind == FIFF.FIFF_EPOCH:
                 # delay reading until later
                 fid.seek(pos, 0)
@@ -2305,9 +2305,9 @@ def _read_one_epoch_file(f, tree, preload):
 
         n_samp = last - first + 1
         logger.info('    Found the data of interest:')
-        logger.info('        t = %10.2f ... %10.2f ms (%s)'
+        logger.info('        t = %10.2f ... %10.2f ms'
                     % (1000 * first / info['sfreq'],
-                       1000 * last / info['sfreq'], name))
+                       1000 * last / info['sfreq']))
         if info['comps'] is not None:
             logger.info('        %d CTF compensation matrices available'
                         % len(info['comps']))
@@ -2343,7 +2343,7 @@ def _read_one_epoch_file(f, tree, preload):
         if drop_log is None:
             drop_log = [[] for _ in range(len(events))]
 
-    return (info, data, data_tag, events, event_id, tmin, tmax, baseline, name,
+    return (info, data, data_tag, events, event_id, tmin, tmax, baseline,
             selection, drop_log, epoch_shape, cals)
 
 
@@ -2378,7 +2378,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
     epochs : instance of Epochs
         The epochs
     """
-    return EpochsFIF(fname, proj, False, preload, verbose)
+    return EpochsFIF(fname, proj, preload, verbose)
 
 
 class _RawContainer(object):
@@ -2442,7 +2442,7 @@ class EpochsFIF(BaseEpochs):
             fid, tree, _ = fiff_open(fname)
             next_fname = _get_next_fname(fid, fname, tree)
             (info, data, data_tag, events, event_id, tmin, tmax, baseline,
-             name, selection, drop_log, epoch_shape, cals) = \
+             selection, drop_log, epoch_shape, cals) = \
                 _read_one_epoch_file(fid, tree, preload)
             # here we ignore missing events, since users should already be
             # aware of missing events if they have saved data that way
@@ -2480,7 +2480,7 @@ class EpochsFIF(BaseEpochs):
         # call BaseEpochs constructor
         super(EpochsFIF, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline, raw=raw,
-            name=name, proj=proj, preload_at_end=False, on_missing='ignore',
+            proj=proj, preload_at_end=False, on_missing='ignore',
             selection=selection, drop_log=drop_log, filename=fname,
             verbose=verbose)
         # use the private property instead of drop_bad so that epochs
