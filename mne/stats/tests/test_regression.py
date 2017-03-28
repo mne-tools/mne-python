@@ -19,6 +19,7 @@ from mne import read_source_estimate
 from mne.datasets import testing
 from mne.stats.regression import linear_regression, linear_regression_raw
 from mne.io import RawArray
+from mne.utils import requires_sklearn
 
 warnings.simplefilter('always')
 
@@ -120,6 +121,8 @@ def test_continuous_regression_no_overlap():
                   events, event_id, tmin, tmax, decim=2)
 
 
+@requires_sklearn
+@testing.requires_testing_data
 def test_continuous_regression_with_overlap():
     """Test regression with overlap correction."""
     signal = np.zeros(100000)
@@ -135,3 +138,11 @@ def test_continuous_regression_with_overlap():
     assert_allclose(effect,
                     linear_regression_raw(raw, events, {1: 1}, tmin=0)[1]
                     .data.flatten())
+
+    # test that sklearn solvers can be used
+    from sklearn.linear_model.ridge import ridge_regression
+    solver = lambda X, Y: ridge_regression(X, Y.T, alpha=1.)
+
+    assert_allclose(effect,
+                    linear_regression_raw(raw, events, {1: 1}, tmin=0,
+                                          solver=solver)[1].data.flatten())
