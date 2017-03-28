@@ -19,7 +19,10 @@ Current
 Changelog
 ~~~~~~~~~
 
+
     - :meth:`mne.channels.Layout.plot` and :func:`mne.viz.plot_layout` now allows plotting a subset of channels with ``picks`` argument by `Jaakko Leppakangas`_
+
+    - Add .bvef extension (BrainVision Electrodes File) to :func:`mne.channels.read_montage` by `Jean-Baptiste Schiratti`_
 
 BUG
 ~~~
@@ -2073,3 +2076,5 @@ of commits):
 .. _Richard Höchenberger: http://hoechenberger.name
 
 .. _Matt Boggess: https://github.com/mattboggess
+
+.. _Jean-Baptiste Schiratti: https://github.com/jbschiratti

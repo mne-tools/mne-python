@@ -275,7 +275,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
 
-    plt_show(show, block=True)
+    block = True if selectable else False
+    plt_show(show, block=block)
     fig.canvas.draw()  # for axes plots update axes.
     if set_tight_layout:
         tight_layout(fig=fig)
@@ -297,15 +298,17 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                            alpha=0.75)]
     gfp_path_effects = [patheffects.withStroke(linewidth=5, foreground="w",
                                                alpha=0.75)]
-    # Parameters for butterfly interactive plots
-    params = dict(axes=axes, texts=texts, lines=lines,
-                  ch_names=info['ch_names'], idxs=idxs, need_draw=False,
-                  path_effects=path_effects)
-    fig.canvas.mpl_connect('pick_event',
-                           partial(_butterfly_onpick, params=params))
-    fig.canvas.mpl_connect('button_press_event',
-                           partial(_butterfly_on_button_press,
-                                   params=params))
+
+    if selectable:
+        # Parameters for butterfly interactive plots
+        params = dict(axes=axes, texts=texts, lines=lines,
+                      ch_names=info['ch_names'], idxs=idxs, need_draw=False,
+                      path_effects=path_effects)
+        fig.canvas.mpl_connect('pick_event',
+                               partial(_butterfly_onpick, params=params))
+        fig.canvas.mpl_connect('button_press_event',
+                               partial(_butterfly_on_button_press,
+                                       params=params))
     for ax, this_type in zip(axes, ch_types_used):
         line_list = list()  # 'line_list' contains the lines for this axes
         ch_unit = units[this_type]

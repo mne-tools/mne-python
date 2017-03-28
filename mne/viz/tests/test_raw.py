@@ -206,8 +206,7 @@ def test_plot_raw_psd():
     import matplotlib.pyplot as plt
     raw = _get_raw()
     # normal mode
-    with warnings.catch_warnings(record=True):  # deprecation of tmax
-        raw.plot_psd()
+    raw.plot_psd()
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psd(tmax=np.inf, picks=picks, area_mode='range', average=False,

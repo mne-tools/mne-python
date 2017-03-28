@@ -1711,17 +1711,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
-    def plot_psd(self, tmin=0.0, tmax=None, fmin=0, fmax=np.inf,
+    def plot_psd(self, tmin=0.0, tmax=np.inf, fmin=0, fmax=np.inf,
                  proj=False, n_fft=None, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
                  n_overlap=0, dB=True, average=None, show=True,
                  n_jobs=1, line_alpha=None, spatial_colors=None,
                  xscale='linear', verbose=None):
-        if tmax is None:
-            tmax = 60.
-            warn('tmax defaults to 60. in 0.14 but will change to np.inf in '
-                 '0.15. Set it explicitly to avoid this warning',
-                 DeprecationWarning)
         return plot_raw_psd(
             self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj,
             n_fft=n_fft, picks=picks, ax=ax, color=color, area_mode=area_mode,

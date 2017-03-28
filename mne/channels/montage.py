@@ -92,8 +92,8 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     kind : str
         The name of the montage file without the file extension (e.g.
         kind='easycap-M10' for 'easycap-M10.txt'). Files with extensions
-        '.elc', '.txt', '.csd', '.elp', '.hpts', '.sfp' or '.loc' ('.locs' and
-        '.eloc') are supported.
+        '.elc', '.txt', '.csd', '.elp', '.hpts', '.sfp', '.loc' ('.locs' and
+        '.eloc') or .bvef are supported.
     ch_names : list of str | None
         If not all electrodes defined in the montage are present in the EEG
         data, use this parameter to select subset of electrode positions to
@@ -183,7 +183,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         path = op.join(op.dirname(__file__), 'data', 'montages')
     if not op.isabs(kind):
         supported = ('.elc', '.txt', '.csd', '.sfp', '.elp', '.hpts', '.loc',
-                     '.locs', '.eloc')
+                     '.locs', '.eloc', '.bvef')
         montages = [op.splitext(f) for f in os.listdir(path)]
         montages = [m for m in montages if m[1] in supported and kind == m[0]]
         if len(montages) != 1:
@@ -289,6 +289,15 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         sph = _topo_to_sph(topo)
         pos = _sph_to_cart(sph)
         pos[:, [0, 1]] = pos[:, [1, 0]] * [-1, 1]
+    elif ext == '.bvef':
+        # 'BrainVision Electrodes File' format
+        root = ElementTree.parse(fname).getroot()
+        ch_names_ = [s.text for s in root.findall("./Electrode/Name")]
+        theta = [float(s.text) for s in root.findall("./Electrode/Theta")]
+        pol = np.deg2rad(np.array(theta))
+        phi = [float(s.text) for s in root.findall("./Electrode/Phi")]
+        az = np.deg2rad(np.array(phi))
+        pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)

@@ -155,9 +155,6 @@ def test_plot_trans():
     plot_trans(infos['KIT'], None, meg_sensors=True, ref_meg=True)
     mlab.close(all=True)
     info = infos['Neuromag']
-    assert_raises(ValueError, plot_trans, info, trans_fname,
-                  subject='sample', subjects_dir=subjects_dir,
-                  ch_type='bad-chtype')
     assert_raises(TypeError, plot_trans, 'foo', trans_fname,
                   subject='sample', subjects_dir=subjects_dir)
     assert_raises(TypeError, plot_trans, info, trans_fname,
@@ -258,17 +255,6 @@ def test_limits_to_control_points():
         plot_source_estimates(stc, subjects_dir=subjects_dir, time_unit='s')
         assert_equal(len(w), 1)
     mlab.close(all=True)
-
-
-@testing.requires_testing_data
-@requires_mayavi
-def test_plot_dipole_locations():
-    """Test plotting dipole locations."""
-    dipoles = read_dipole(dip_fname)
-    trans = read_trans(trans_fname)
-    dipoles.plot_locations(trans, 'sample', subjects_dir, fig_name='foo')
-    assert_raises(ValueError, dipoles.plot_locations, trans, 'sample',
-                  subjects_dir, mode='foo')
 
 
 @testing.requires_testing_data

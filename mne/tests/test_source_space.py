@@ -221,17 +221,16 @@ def test_volume_source_space():
     surf['rr'] *= 1e3  # convert to mm
     # The one in the testing dataset (uses bem as bounds)
     for bem, surf in zip((fname_bem, None), (None, surf)):
-        src_new = setup_volume_source_space('sample', None, pos=7.0,
-                                            bem=bem, surface=surf,
-                                            mri='T1.mgz',
-                                            subjects_dir=subjects_dir)
+        src_new = setup_volume_source_space(
+            'sample', pos=7.0, bem=bem, surface=surf, mri='T1.mgz',
+            subjects_dir=subjects_dir)
         write_source_spaces(temp_name, src_new, overwrite=True)
         src[0]['subject_his_id'] = 'sample'  # XXX: to make comparison pass
         _compare_source_spaces(src, src_new, mode='approx')
         del src_new
         src_new = read_source_spaces(temp_name)
         _compare_source_spaces(src, src_new, mode='approx')
-    assert_raises(IOError, setup_volume_source_space, 'sample', None,
+    assert_raises(IOError, setup_volume_source_space, 'sample',
                   pos=7.0, bem=None, surface='foo',  # bad surf
                   mri=fname_mri, subjects_dir=subjects_dir)
     assert_equal(repr(src), repr(src_new))
@@ -331,17 +330,13 @@ def test_setup_source_space():
                   add_dist=False, subjects_dir=subjects_dir)
     assert_raises(ValueError, setup_source_space, 'sample', spacing='alls',
                   add_dist=False, subjects_dir=subjects_dir)
-    assert_raises(IOError, setup_source_space, 'sample', spacing='oct6',
-                  subjects_dir=subjects_dir, add_dist=False)
 
     # ico 5 (fsaverage) - write to temp file
     src = read_source_spaces(fname_ico)
-    temp_name = op.join(tempdir, 'temp-src.fif')
     with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
         warnings.simplefilter('always')
-        src_new = setup_source_space('fsaverage', temp_name, spacing='ico5',
-                                     subjects_dir=subjects_dir, add_dist=False,
-                                     overwrite=True)
+        src_new = setup_source_space('fsaverage', spacing='ico5',
+                                     subjects_dir=subjects_dir, add_dist=False)
     _compare_source_spaces(src, src_new, mode='approx')
     assert_equal(repr(src), repr(src_new))
     assert_equal(repr(src).count('surface ('), 2)
@@ -353,22 +348,21 @@ def test_setup_source_space():
     temp_name = op.join(tempdir, 'temp-src.fif')
     with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
         warnings.simplefilter('always')
-        src_new = setup_source_space('sample', None, spacing='oct6',
-                                     subjects_dir=subjects_dir,
-                                     overwrite=True, add_dist=False)
+        src_new = setup_source_space('sample', spacing='oct6',
+                                     subjects_dir=subjects_dir, add_dist=False)
         write_source_spaces(temp_name, src_new, overwrite=True)
     _compare_source_spaces(src, src_new, mode='approx', nearest=False)
     src_new = read_source_spaces(temp_name)
     _compare_source_spaces(src, src_new, mode='approx', nearest=False)
 
     # all source points - no file writing
-    src_new = setup_source_space('sample', None, spacing='all',
+    src_new = setup_source_space('sample', spacing='all',
                                  subjects_dir=subjects_dir, add_dist=False)
     assert_true(src_new[0]['nuse'] == len(src_new[0]['rr']))
     assert_true(src_new[1]['nuse'] == len(src_new[1]['rr']))
 
     # dense source space to hit surf['inuse'] lines of _create_surf_spacing
-    assert_raises(RuntimeError, setup_source_space, 'sample', None,
+    assert_raises(RuntimeError, setup_source_space, 'sample',
                   spacing='ico6', subjects_dir=subjects_dir, add_dist=False)
 
 
