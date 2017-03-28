@@ -265,7 +265,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
     if event_id is None:
         event_id = dict((str(ii), v) for ii, v in
-                        enumerate(np.unique(events[:, 2])))
+                        enumerate(set(events[:, 2])))
 
     # build predictors
     X, conds, cond_length, tmin_s, tmax_s = _prepare_rerp_preds(
