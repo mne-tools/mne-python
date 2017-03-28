@@ -420,7 +420,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     scores = parallel(p_func(clone(estimator), X, y, scorer, train, test,
                              verbose, None, fit_params)
                       for train, test in cv_iter)
-    return np.array(scores)[:, 0, ...]
+    return np.array(scores)[:, 0, ...]  # flatten over joblib output.
 
 
 def _fit_and_score(estimator, X, y, scorer, train, test, verbose,

@@ -83,18 +83,18 @@ ax.set_title('Sensor space decoding')
 plt.show()
 
 ###############################################################################
-# Generalization Across Time
-# --------------------------
+# Temporal Generalization
+# -----------------------
 #
 # This runs the analysis used in [1]_ and further detailed in [2]_
 #
 # The idea is to fit the models on each time instant and see how it
 # generalizes to any other time point.
 
-# define the Generalization Across Time (GAT) object
-gl = GeneralizationLight(clf, n_jobs=1, scoring='roc_auc')
+# define the temporal generalization object
+time_gen = GeneralizationLight(clf, n_jobs=1, scoring='roc_auc')
 
-scores = cross_val_multiscore(gl, X, y, cv=5, n_jobs=1)
+scores = cross_val_multiscore(time_gen, X, y, cv=5, n_jobs=1)
 
 # Mean scores across cross-validation splits
 scores = np.mean(scores, axis=0)
