@@ -29,7 +29,7 @@ def _buffer_recv_worker(ft_client):
 
 
 @fill_doc
-class FieldTripClient(object):
+class FieldTripClient(_BaseClient):
     """Realtime FieldTrip client.
 
     Parameters
