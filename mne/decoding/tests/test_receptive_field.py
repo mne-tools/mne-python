@@ -30,7 +30,7 @@ warnings.simplefilter('always')
 raw = io.read_raw_fif(raw_fname, preload=True)
 picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                    eog=False, exclude='bads')
-picks = picks[0:2]
+picks = picks[:2]
 
 
 def test_time_delay():
@@ -78,10 +78,10 @@ def test_receptive_field():
 
     # Test the receptive field model
     # Define parameters for the model and simulate inputs + weights
-    tmin, tmax = 0, 10
+    tmin, tmax = 0., 10.
     n_feats = 3
     X = rng.randn(n_feats, 10000)
-    w = rng.randn((tmax - tmin + 1) * n_feats)
+    w = rng.randn(int((tmax - tmin) + 1) * n_feats)
 
     # Delay inputs and cut off first 4 values since they'll be cut in the fit
     X_del = np.vstack(_delay_time_series(X, tmin, tmax, 1., axis=-1))

@@ -12,9 +12,11 @@ class ReceptiveField(BaseEstimator):
     Parameters
     ----------
     tmin : int | float
-        The starting lag. Negative values correspond to times in the past.
+        The starting lag, in seconds (or samples if ``sfreq`` == 1).
+        Negative values correspond to times in the past.
     tmax : int | float
-        The ending lag. Positive values correspond to times in the future.
+        The ending lag, in seconds (or samples if ``sfreq`` == 1).
+        Positive values correspond to times in the future.
         Must be >= tmin.
     sfreq : float
         The sampling frequency used to convert times into samples.
@@ -23,7 +25,7 @@ class ReceptiveField(BaseEstimator):
         be auto-generated from the shape of input data after running `fit`.
     estimator : instance of sklearn estimator | float | None
         The model used in fitting inputs and outputs. This can be any
-        sklearn-style model that contains a fit and predict method. If a
+        scikit-learn-style model that contains a fit and predict method. If a
         float is passed, it will be interpreted as the `alpha` parameter
         to be passed to a Ridge regression model. If `None`, then a Ridge
         regression model with an alpha of 0 will be used.
@@ -34,7 +36,7 @@ class ReceptiveField(BaseEstimator):
 
     Attributes
     ----------
-    ``coef_`` : array, shape (n_features, n_delays)
+    ``coef_`` : array, shape (n_outputs, n_features, n_delays)
         The coefficients from the model fit, reshaped for easy visualization.
         If you want the raw (1d) coefficients, access them from the estimator
         stored in ``self.estimator_``.
@@ -44,8 +46,6 @@ class ReceptiveField(BaseEstimator):
     ``keep_samples_`` : slice
         The rows to keep during model fitting after removing rows with
         missing values due to time delaying.
-    ``scorer_`` : object
-        scikit-learn Scorer instance.
 
 
     References
@@ -98,9 +98,7 @@ class ReceptiveField(BaseEstimator):
         else:
             s += "fit: False"
         if hasattr(self, 'scores_'):
-            s += "scored"
-            if callable(self.scorer_):
-                s += " (%s)" % (self.scorer_.__name__)
+            s += "scored (%s)" % self.scoring
         return "<ReceptiveField  |  %s>" % s
 
     def fit(self, X, y):
@@ -136,7 +134,7 @@ class ReceptiveField(BaseEstimator):
 
         # Create input features
         n_times, n_epochs, n_feats = X.shape
-        n_outputs = y.shape[-1]
+        n_outputs = y.shape[2]
         X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
                                    newaxis=X.ndim)
 
@@ -172,8 +170,6 @@ class ReceptiveField(BaseEstimator):
         ----------
         X : array, shape (n_times[, n_epochs], n_channels)
             The input features for the model.
-        y : None
-            Used for sklearn compatibility.
 
         Returns
         -------
@@ -185,7 +181,7 @@ class ReceptiveField(BaseEstimator):
         X, y = self._check_dimensions(X, y, predict=True)
         X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
                                    newaxis=X.ndim)
-        # Convert nans to 0 since sklearn will error otherwise
+        # Convert nans to 0 since scikit-learn will error otherwise
         X_del[np.isnan(X_del)] = 0
         X_del = X_del.reshape([-1, len(self.delays_) * X.shape[-1]], order='F')
         y_pred = self.estimator_.predict(X_del)
@@ -203,16 +199,16 @@ class ReceptiveField(BaseEstimator):
         X : array, shape (n_times[, n_epochs], n_channels)
             The input features for the model.
         y : array, shape (n_times[, n_epochs], n_outputs)
-            Used for sklearn compatibility.
+            Used for scikit-learn compatibility.
 
         Returns
         -------
         scores : list of float, shape (n_outputs,)
-            The scores estimated by ``scorer_`` for each output (e.g. mean
+            The scores estimated by the model for each output (e.g. mean
             R2 of ``predict(X)``).
         """
         # Create our scoring object
-        self.scorer_ = _SCORERS[self.scoring]
+        scorer_ = _SCORERS[self.scoring]
 
         # Generate predictions, then reshape so we can mask time
         X, y = self._check_dimensions(X, y, predict=True)
@@ -225,7 +221,7 @@ class ReceptiveField(BaseEstimator):
         # Re-vectorize and call scorer
         y = y.reshape([-1, n_outputs], order='F')
         y_pred = y_pred.reshape([-1, n_outputs], order='F')
-        scores = self.scorer_(y, y_pred, multioutput='raw_values')
+        scores = scorer_(y, y_pred, multioutput='raw_values')
         return scores
 
     def _check_dimensions(self, X, y, predict=False):
@@ -257,15 +253,14 @@ class ReceptiveField(BaseEstimator):
                              '(n_times[, n_epochs], n_features)')
         if y is None:
             # If y is None, then we don't need any more checks
-            return X, y
-
-        if X.shape[0] != y.shape[0]:
+            pass
+        elif X.shape[0] != y.shape[0]:
             raise ValueError('X any y do not have the same n_times\n'
                              '%s != %s' % (X.shape[0], y.shape[0]))
-        if X.shape[1] != y.shape[1]:
+        elif X.shape[1] != y.shape[1]:
             raise ValueError('X any y do not have the same n_epochs\n'
                              '%s != %s' % (X.shape[1], y.shape[1]))
-        if predict is True:
+        elif predict is True:
             if y.shape[-1] != len(self.estimator_.coef_):
                 raise ValueError('Number of outputs does not match'
                                  ' estimator coefficients dimensions')
@@ -313,8 +308,6 @@ def _delay_time_series(X, tmin, tmax, sfreq, newaxis=0, axis=0):
         elif ix_delay > 0:
             take[axis] = slice(ix_delay, None)
             put[axis] = slice(None, -ix_delay)
-        else:
-            pass
         delayed[ii][put] = X[take]
 
     # Now swapaxes so that the new axis is in the right place
@@ -354,7 +347,7 @@ def _check_delayer_params(tmin, tmax, sfreq):
         raise ValueError('tmin must be <= tmax')
 
 
-# Create a correlation sklearn-style scorer
+# Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
     from scipy.stats import pearsonr
     if any(ii.ndim != 2 for ii in [y_true, y]):
@@ -366,5 +359,4 @@ def _r2_score(y_true, y, multioutput=None):
     from sklearn.metrics import r2_score
     return r2_score(y_true, y)
 
-_SCORERS = {'r2': _r2_score,
-            'corrcoef': _corr_score}
+_SCORERS = {'r2': _r2_score, 'corrcoef': _corr_score}

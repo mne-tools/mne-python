@@ -28,6 +28,7 @@ References
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
+from os.path import join
 
 import mne
 from mne.decoding import ReceptiveField
@@ -47,14 +48,14 @@ from sklearn.preprocessing import scale
 # nature. Then we'll visualize both the EEG and speech envelope.
 
 path = mne.datasets.mtrf.data_path()
-n_decim = 2
-data = loadmat(path + '/speech_data.mat')
+decim = 2
+data = loadmat(join(path, 'speech_data.mat'))
 raw = data['EEG'].T
 speech = data['envelope'].T
 sfreq = float(data['Fs'])
-sfreq /= n_decim
-speech = mne.filter.resample(speech, down=n_decim, npad='auto')
-raw = mne.filter.resample(raw, down=n_decim, npad='auto')
+sfreq /= decim
+speech = mne.filter.resample(speech, down=decim, npad='auto')
+raw = mne.filter.resample(raw, down=decim, npad='auto')
 
 
 # Read in channel positions and create our MNE objects from the raw data
@@ -86,7 +87,9 @@ tmin, tmax = -.4, .2
 # Initialize the model
 rf = ReceptiveField(tmin, tmax, sfreq, feature_names=['envelope'],
                     estimator=Ridge(alpha=1.), scoring='corrcoef')
-n_delays = int((tmax - tmin) * sfreq) + 2  # +2 to account for 0 + end
+# We'll have (tmax - tmin) * sfreq delays
+# and an extra 2 delays since we are inclusive on the beginning / end index
+n_delays = int((tmax - tmin) * sfreq) + 2
 
 n_splits = 3
 cv = KFold(n_splits)
@@ -96,14 +99,15 @@ speech = speech.T
 Y, _ = raw[:]  # Outputs for the model
 Y = Y.T
 
-# Iterate through folds, fit the model, and predict/test on held-out data
+# Iterate through splits, fit the model, and predict/test on held-out data
 coefs = np.zeros((n_splits, n_channels, n_delays))
 scores = np.zeros((n_splits, n_channels))
 for ii, (train, test) in enumerate(cv.split(speech)):
-    print('CV iteration %s' % ii)
+    print('split %s / %s' % (ii, n_splits))
     rf.fit(speech[train], Y[train])
     scores[ii] = rf.score(speech[test], Y[test])
-    coefs[ii] = rf.coef_[:, 0, :]  # We only have one feature
+    # coef_ is shape (n_outputs, n_features, n_delays). we only have 1 feature
+    coefs[ii] = rf.coef_[:, 0, :]
 times = rf.delays_ / float(rf.sfreq)
 
 # Average scores and coefficients across CV splits
@@ -129,13 +133,12 @@ mne.viz.tight_layout()
 # Print mean coefficients across all time delays / channels (see Fig 1 in [1])
 time_plot = -.180  # For highlighting a specific time.
 fig, ax = plt.subplots(figsize=(4, 8))
-vmax = np.abs(mean_coefs.max())
-vmin = -vmax
+max_coef = mean_coefs.max()
 ax.pcolormesh(times, ix_chs, mean_coefs, cmap='RdBu_r',
-              vmin=vmin, vmax=vmax)
+              vmin=-max_coef, vmax=max_coef)
 ax.axvline(time_plot, ls='--', color='k', lw=2)
 ax.set(xlabel='Delay (s)', ylabel='Channel', title="Mean Model\nCoefficients",
-       xlim=[times.min(), times.max()], ylim=[len(ix_chs) - 1, 0],
+       xlim=times[[0, -1]], ylim=[len(ix_chs) - 1, 0],
        xticks=np.arange(tmin, tmax + .2, .2))
 plt.setp(ax.get_xticklabels(), rotation=45)
 mne.viz.tight_layout()
@@ -144,7 +147,7 @@ mne.viz.tight_layout()
 ix_plot = np.argmin(np.abs(time_plot - times))
 fig, ax = plt.subplots()
 mne.viz.plot_topomap(mean_coefs[:, ix_plot], pos=info, axes=ax, show=False,
-                     vmin=vmin, vmax=vmax)
+                     vmin=-max_coef, vmax=max_coef)
 ax.set(title="Topomap of model coefficicients\nfor delay %s" % time_plot)
 mne.viz.tight_layout()
 

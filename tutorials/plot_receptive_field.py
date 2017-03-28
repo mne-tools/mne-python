@@ -142,8 +142,6 @@ for ii, ix_delay in enumerate(delays):
     elif ix_delay > 0:
         take[-1] = slice(ix_delay, None)
         put[-1] = slice(None, -ix_delay)
-    else:
-        pass
     X_del[ii][put] = X[take]
 
 # Now set the delayed axis to the 2nd dimension
