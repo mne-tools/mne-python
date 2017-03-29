@@ -33,41 +33,47 @@ from .externals.h5io import read_hdf5, write_hdf5
 
 def _read_stc(filename):
     """Aux Function."""
-    fid = open(filename, 'rb')
+    with open(filename, 'rb') as fid:
+        buf = fid.read()
 
     stc = dict()
-
-    fid.seek(0, 2)  # go to end of file
-    file_length = fid.tell()
-    fid.seek(0, 0)  # go to beginning of file
+    offset = 0
+    num_bytes = 4
 
     # read tmin in ms
-    stc['tmin'] = float(np.fromfile(fid, dtype=">f4", count=1))
+    stc['tmin'] = float(np.frombuffer(buf, dtype=">f4", count=1,
+                                      offset=offset))
     stc['tmin'] /= 1000.0
+    offset += num_bytes
 
     # read sampling rate in ms
-    stc['tstep'] = float(np.fromfile(fid, dtype=">f4", count=1))
+    stc['tstep'] = float(np.frombuffer(buf, dtype=">f4", count=1,
+                                       offset=offset))
     stc['tstep'] /= 1000.0
+    offset += num_bytes
 
     # read number of vertices/sources
-    vertices_n = int(np.fromfile(fid, dtype=">u4", count=1))
+    vertices_n = int(np.frombuffer(buf, dtype=">u4", count=1, offset=offset))
+    offset += num_bytes
 
     # read the source vector
-    stc['vertices'] = np.fromfile(fid, dtype=">u4", count=vertices_n)
+    stc['vertices'] = np.frombuffer(buf, dtype=">u4", count=vertices_n,
+                                    offset=offset)
+    offset += num_bytes * vertices_n
 
     # read the number of timepts
-    data_n = int(np.fromfile(fid, dtype=">u4", count=1))
+    data_n = int(np.frombuffer(buf, dtype=">u4", count=1, offset=offset))
+    offset += num_bytes
 
     if (vertices_n and  # vertices_n can be 0 (empty stc)
-            ((file_length / 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0):
+            ((len(buf) // 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0):
         raise ValueError('incorrect stc file size')
 
     # read the data matrix
-    stc['data'] = np.fromfile(fid, dtype=">f4", count=vertices_n * data_n)
+    stc['data'] = np.frombuffer(buf, dtype=">f4", count=vertices_n * data_n,
+                                offset=offset)
     stc['data'] = stc['data'].reshape([data_n, vertices_n]).T
 
-    # close the file
-    fid.close()
     return stc
 
 
