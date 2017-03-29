@@ -24,7 +24,7 @@ Changelog
 
     - Add .bvef extension (BrainVision Electrodes File) to :func:`mne.channels.read_montage` by `Jean-Baptiste Schiratti`_
 
-    - Add :class:`mne.decoding.ReceptiveField` module for modeling electrode response to input features. by `Chris Holdgraf`_
+    - Add :class:`mne.decoding.ReceptiveField` module for modeling electrode response to input features by `Chris Holdgraf`_
 
     - Add new :mod:`mne.datasets.mtrf` dataset by `Chris Holdgraf`_
 
