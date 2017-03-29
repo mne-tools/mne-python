@@ -28,8 +28,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from sklearn.pipeline import make_pipeline
 
-# #############################################################################
-
+###############################################################################
 # Set parameters and read data
 event_id = dict(hands=2, feet=3)  # motor imagery: hands vs feet
 subject = 1
@@ -65,7 +64,8 @@ window_spacing = (n_cycles / np.max(freqs) / 2.)
 centered_w_times = np.arange(tmin, tmax, window_spacing)[1:]
 n_windows = len(centered_w_times)
 
-# #############################################################################
+###############################################################################
+# Loop through frequencies and time, apply classifier and save scores
 
 # init scores
 scores = np.zeros((n_freqs - 1, n_windows))
@@ -99,7 +99,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
         scores[freq, t] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
                                                   cv=cv, n_jobs=1), axis=0)
 
-# #############################################################################
+###############################################################################
 # Plot results
 
 # Set up time frequency object
