@@ -1,5 +1,5 @@
-# Authors: Jean-Remi King <jeanremi.king@gmail.com>
-#          Laura Gwilliams <laura.gwilliams@nyu.edu>
+# Authors: Laura Gwilliams <laura.gwilliams@nyu.edu>
+#          Jean-Remi King <jeanremi.king@gmail.com>
 #          Alex Barachant <alexandre.barachant@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
