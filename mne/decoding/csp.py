@@ -267,18 +267,18 @@ class CSP(TransformerMixin, BaseEstimator):
                       show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
                       image_interp='bilinear', average=None, head_pos=None):
-        """Plot topographic patterns of CSP components.
+        """Plot topographic patterns of components.
 
-        The CSP patterns explain how the measured data was generated
-        from the neural sources (a.k.a. the forward model).
+        The patterns explain how the measured data was generated from the
+        neural sources (a.k.a. the forward model).
 
         Parameters
         ----------
         info : instance of Info
-            Info dictionary of the epochs used to fit CSP.
+            Info dictionary of the epochs used for fitting.
             If not possible, consider using ``create_info``.
         components : float | array of floats | None.
-           The CSP patterns to plot. If None, n_components will be shown.
+           The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
@@ -422,18 +422,18 @@ class CSP(TransformerMixin, BaseEstimator):
                      show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
                      image_interp='bilinear', average=None, head_pos=None):
-        """Plot topographic filters of CSP components.
+        """Plot topographic filters of components.
 
-        The CSP filters are used to extract discriminant neural sources from
+        The filters are used to extract discriminant neural sources from
         the measured data (a.k.a. the backward model).
 
         Parameters
         ----------
         info : instance of Info
-            Info dictionary of the epochs used to fit CSP.
+            Info dictionary of the epochs used for fitting.
             If not possible, consider using ``create_info``.
         components : float | array of floats | None.
-           The CSP patterns to plot. If None, n_components will be shown.
+           The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
@@ -652,3 +652,152 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
             break
     D = np.reshape(A, (n_times, -1, n_times)).transpose(1, 0, 2)
     return V, D
+
+
+class SPoC(CSP):
+    """Implementation of the SPoC spatial filtering with Covariance as input.
+
+    Source Power Comodulation (SPoC) [1] allow to extract spatial filters and
+    patterns by using a target (continuous) variable in the decomposition
+    process in order to give preference to components whose power comodulates
+    with the target variable.
+
+    SPoC can be seen as an extension of the `CSP` driven by a continuous
+    variable rather than a discrete variable. Typical applications include
+    extraction of motor patterns using EMG power or audio paterns using sound
+    envelope.
+
+    Parameters
+    ----------
+    n_components : int
+        The number of components to decompose M/EEG signals.
+    reg : float | str | None, defaults to None
+        if not None, allow regularization for covariance estimation
+        if float, shrinkage covariance is used (0 <= shrinkage <= 1).
+        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
+        or Oracle Approximating Shrinkage ('oas').
+    log : None | bool, defaults to None
+        If transform_into == 'average_power' and log is None or True, then
+        applies a log transform to standardize the features, else the features
+        are z-scored. If transform_into == 'csp_space', then log must be None.
+    transform_into : {'average_power', 'csp_space'}
+        If 'average_power' then self.transform will return the average power of
+        each spatial filter. If 'csp_space' self.transform will return the data
+        in CSP space. Defaults to 'average_power'.
+
+    Attributes
+    ----------
+    filters_ : ndarray
+        If fit, the SPoC spatial filters, else None.
+    patterns_ : ndarray
+        If fit, the SPoC spatial patterns, else None.
+    mean_ : ndarray, shape (n_components,)
+        If fit, the mean squared power for each component.
+    std_ : ndarray, shape (n_components,)
+        If fit, the std squared power for each component.
+
+    See Also
+    --------
+    mne.decoding.CSP
+
+    References
+    ----------
+    [1] Dahne, S., Meinecke, F. C., Haufe, S., Hohne, J., Tangermann, M.,
+        Muller, K. R., & Nikulin, V. V. (2014). SPoC: a novel framework for
+        relating the amplitude of neuronal oscillations to behaviorally
+        relevant parameters. NeuroImage, 86, 111-122.
+    """
+
+    def __init__(self, n_components=4, reg=None, log=None,
+                 transform_into='average_power'):
+        """Init of SPoC."""
+        super(SPoC, self).__init__(n_components=n_components, reg=reg, log=log,
+                                   cov_est="epoch",
+                                   transform_into=transform_into)
+        delattr(self, 'cov_est')
+
+    def fit(self, X, y):
+        """Estimate the SPoC decomposition on epochs.
+
+        Parameters
+        ----------
+        X : ndarray, shape (n_epochs, n_channels, n_times)
+            The data on which to estimate the SPoC.
+        y : array, shape (n_epochs,)
+            The class for each epoch.
+
+        Returns
+        -------
+        self : instance of SPoC
+            Returns the modified instance.
+        """
+        if not isinstance(X, np.ndarray):
+            raise ValueError("X should be of type ndarray (got %s)."
+                             % type(X))
+        self._check_Xy(X, y)
+
+        # Code direclty copied from pyRiemann, by Alexandre Barachant
+
+        # Normalize target variable
+        target = np.float64(y.copy())
+        target -= target.mean()
+        target /= target.std()
+
+        n_epochs, n_channels = X.shape[:2]
+
+        if len(set(y)) < 2:
+            raise ValueError("y must have at least two distinct values.")
+
+        covs = np.zeros((n_epochs, n_channels, n_channels))
+        for ii, epoch in enumerate(X):
+            cov = np.cov(epoch)
+            cov = _regularized_covariance(cov, reg=self.reg)
+            # normalize by trace and stack
+            covs[ii] = cov / np.trace(cov)
+
+        C = covs.mean(0)
+        Cz = np.mean(covs * target[:, np.newaxis, np.newaxis], axis=0)
+
+        # solve eigenvalue decomposition
+        evals, evecs = linalg.eigh(Cz, C)
+        evals = evals.real  # XXX check
+        evecs = evecs.real
+        # sort vectors
+        ix = np.argsort(np.abs(evals))[::-1]
+
+        # sort eigenvectors
+        evecs = evecs[:, ix]
+
+        # spatial patterns
+        self.patterns_ = np.linalg.pinv(evecs)
+        self.filters_ = evecs.T
+
+        pick_filters = self.filters_[:self.n_components]
+        X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
+
+        # compute features (mean band power)
+        X = (X ** 2).mean(axis=-1)
+
+        # To standardize features
+        self.mean_ = X.mean(axis=0)
+        self.std_ = X.std(axis=0)
+
+        return self
+
+    def transform(self, X):
+        """Estimate epochs sources given the SPoC filters.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data.
+
+        Returns
+        -------
+        X : ndarray
+            If self.transform_into == 'average_power' then returns the power of
+            CSP features averaged over time and shape (n_epochs, n_sources)
+            If self.transform_into == 'csp_space' then returns the data in CSP
+            space and shape is (n_epochs, n_sources, n_times)
+        """
+        return super(SPoC, self).transform(X)
