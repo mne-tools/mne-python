@@ -1,75 +1,98 @@
-import numpy as np
-import matplotlib.pyplot as plt
+# Authors: Jean-Remi King <jeanremi.king@gmail.com>
+#          Laura Gwilliams <laura.gwilliams@nyu.edu>
+#          Alex Barachant <alexandre.barachant@gmail.com>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#
+# License: BSD (3-clause)
 
-from mne import Epochs, find_events
+import numpy as np
+
+from mne import Epochs, find_events, create_info
 from mne.io import concatenate_raws, read_raw_edf
 from mne.datasets import eegbci
 from mne.decoding import CSP
+from mne.time_frequency import AverageTFR
 
 from sklearn.lda import LDA
-# Time Split sklearn
-from sklearn.model_selection import ShuffleSplit, cross_val_score
+from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from sklearn.pipeline import make_pipeline
 
 # #############################################################################
-event_id = dict(hands=2, feet=3)
+
+# Set parameters and read data
+event_id = dict(hands=2, feet=3)  # motor imagery: hands vs feet
 subject = 1
-runs = [6, 10, 14]  # motor imagery: hands vs feet
+runs = [6, 10, 14]
 raw_fnames = eegbci.load_data(subject, runs)
 raw_files = [read_raw_edf(f, preload=True) for f in raw_fnames]
 raw = concatenate_raws(raw_files)
-raw.rename_channels(lambda x: x.strip('.'))
+
+# Extract information from the raw file
+sfreq = raw.info['sfreq']
 events = find_events(raw, shortest_event=0, stim_channel='STI 014')
 raw.pick_types(meg=False, eeg=True, stim=False, eog=False, exclude='bads')
 
-# Assemble a classifier
+# Assemble the classifier using scikit-learn pipeline
 clf = make_pipeline(CSP(n_components=4, reg=None, log=True), LDA())
-
-n_splits = 5
-cv = ShuffleSplit(n_splits=n_splits, test_size=0.2, random_state=42)
+n_splits = 5  # how many folds to use for cross-validation
+cv = TimeSeriesSplit(n_splits=n_splits)
 
 # Classification & Time-frequency parameters
 tmin, tmax = -.200, 2.000
-n_cycles = 10.
-n_windows = 10  # this needs to be inferred from freq_max and n_cycles
-n_freqs = 5
-freqs = np.linspace(5., 25., n_freqs)
+n_cycles = 15.  # how many complete cycles: used to define window size
+min_freq = 5.
+max_freq = 25.
+n_freqs = 8  # how many frequency bins to use
+
+# Assemble list of frequency range tuples
+freqs = np.linspace(min_freq, max_freq, n_freqs)  # assemble frequencies
+freq_ranges = zip(freqs[:-1], freqs[1:])  # make freqs into a list of tuples
+
+# Infer window spacing from the max freq and number of cycles to avoid gaps
+window_spacing = (n_cycles / np.max(freqs) / 2.)
+centered_w_times = np.arange(tmin, tmax, window_spacing)[1:]
+n_windows = len(centered_w_times)
+
+# #############################################################################
 
 # init scores
-scores = np.zeros((n_splits, n_freqs - 1, n_windows))
-w_times = np.linspace(tmin, tmax, n_windows + 2)[1:-1]
+scores = np.zeros((n_freqs - 1, n_windows))
 
-for freq, (fmin, fmax) in enumerate(zip(freqs[:-1], freqs[1:])):
-    # Apply band-pass filter
-    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=-1)
+# Loop through each frequency range of interest
+for freq, (fmin, fmax) in enumerate(freq_ranges):
 
-    # Read epochs (train will be done only between 1 and 2s)
-    # Testing will be done with a running classifier
-    epochs = Epochs(raw_filter, events, event_id, tmin, tmax, proj=False,
-                    baseline=None, add_eeg_ref=False, preload=True)
+    # Infer window size based on the frequency being used
+    w_size = n_cycles / ((fmax + fmin) / 2.)  # in seconds
+
+    # Apply band-pass filter to isolate the specified frequencies
+    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1)
+
+    # Extract epochs from filtered data, padded by window size
+    epochs = Epochs(raw_filter, events, event_id, tmin - w_size, tmax + w_size,
+                    proj=False, baseline=None, add_eeg_ref=False, preload=True)
     epochs.drop_bad()
     y = epochs.events[:, 2] - 2
 
-    # Slice time window of interest to compute covariance.
-    sfreq = raw.info['sfreq']
-    w_size = n_cycles / ((fmax + fmin) / 2.)  # in seconds
-
     # Roll covariance, csp and lda over time
-    for t, w_time in enumerate(w_times):
+    for t, w_time in enumerate(centered_w_times):
+
+        # Center the min and max of the window
         w_tmin = w_time - w_size / 2.
         w_tmax = w_time + w_size / 2.
+
+        # Crop data into time-window of interest
         X = epochs.copy().crop(w_tmin, w_tmax).get_data()
-        # mean scores over splits directly
-        scores[:, freq, t] = cross_val_score(estimator=clf,
-                                             X=X, y=y,
-                                             cv=cv, n_jobs=-1)
 
+        # Save mean scores over folds for each frequency and time window
+        scores[freq, t] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
+                                                  cv=cv, n_jobs=1), axis=0)
 
-# Use TimeFreqEVoked for plotting
-fig, ax = plt.subplots(1)
-im = ax.matshow(scores.mean(0), extent=[tmin, tmax, freqs[0], freqs[-1]],
-                origin='lower', aspect='auto')
-ax.set_xlabel('Time (s)')
-ax.set_ylabel('Freqs (Hz)')
-plt.colorbar(im, ax=ax)
-plt.show()
+# #############################################################################
+# Plot results
+
+# Set up time frequency object
+av_tfr = AverageTFR(create_info(['freq'], sfreq), scores[None, :],
+                    centered_w_times, freqs[1:], 1)
+
+chance = np.mean(y)  # set chance level to white in the plot
+av_tfr.plot([0], vmin=chance, title="Time-Frequency Decoding Scores")
