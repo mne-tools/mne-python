@@ -38,35 +38,40 @@ def _read_stc(filename):
 
     stc = dict()
     offset = 0
+    num_bytes = 4
 
     # read tmin in ms
-    stc['tmin'] = float(np.frombuffer(buf, dtype=">f4", count=1, offset=offset))
+    stc['tmin'] = float(np.frombuffer(buf, dtype=">f4", count=1,
+                                      offset=offset))
     stc['tmin'] /= 1000.0
-    offset += np.dtype('>f4').itemsize
+    offset += num_bytes
 
     # read sampling rate in ms
-    stc['tstep'] = float(np.frombuffer(buf, dtype=">f4", count=1, offset=offset))
+    stc['tstep'] = float(np.frombuffer(buf, dtype=">f4", count=1,
+                                       offset=offset))
     stc['tstep'] /= 1000.0
-    offset += np.dtype('>f4').itemsize
+    offset += num_bytes
 
     # read number of vertices/sources
     vertices_n = int(np.frombuffer(buf, dtype=">u4", count=1, offset=offset))
-    offset += np.dtype('>u4').itemsize
+    offset += num_bytes
 
     # read the source vector
-    stc['vertices'] = np.frombuffer(buf, dtype=">u4", count=vertices_n, offset=offset)
-    offset += np.dtype('>u4').itemsize * vertices_n
+    stc['vertices'] = np.frombuffer(buf, dtype=">u4", count=vertices_n,
+                                    offset=offset)
+    offset += num_bytes * vertices_n
 
     # read the number of timepts
     data_n = int(np.frombuffer(buf, dtype=">u4", count=1, offset=offset))
-    offset += np.dtype('>u4').itemsize
+    offset += num_bytes
 
     if (vertices_n and  # vertices_n can be 0 (empty stc)
             ((len(buf) / 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0):
         raise ValueError('incorrect stc file size')
 
     # read the data matrix
-    stc['data'] = np.frombuffer(buf, dtype=">f4", count=vertices_n * data_n, offset=offset)
+    stc['data'] = np.frombuffer(buf, dtype=">f4", count=vertices_n * data_n,
+                                offset=offset)
     stc['data'] = stc['data'].reshape([data_n, vertices_n]).T
 
     return stc
