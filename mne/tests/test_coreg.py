@@ -16,6 +16,7 @@ from mne.coreg import (fit_matched_points, fit_point_cloud,
 from mne.io.constants import FIFF
 from mne.utils import (requires_freesurfer, _TempDir, run_tests_if_main,
                        requires_version)
+from mne.source_space import write_source_spaces
 from functools import reduce
 
 
@@ -68,8 +69,11 @@ def test_scale_mri():
 
     # create source space
     path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-ico-0-src.fif')
-    mne.setup_source_space('fsaverage', path, 'ico0', overwrite=True,
-                           subjects_dir=tempdir, add_dist=False)
+    src = mne.setup_source_space('fsaverage', 'ico0', subjects_dir=tempdir,
+                                 add_dist=False)
+    src_path = os.path.join(tempdir, 'fsaverage', 'bem',
+                            'fsaverage-ico-0-src.fif')
+    write_source_spaces(src_path, src)
 
     # scale fsaverage
     os.environ['_MNE_FEW_SURFACES'] = 'true'
@@ -80,6 +84,7 @@ def test_scale_mri():
     assert_true(is_mri, "Scaling fsaverage failed")
     src_path = os.path.join(tempdir, 'flachkopf', 'bem',
                             'flachkopf-ico-0-src.fif')
+
     assert_true(os.path.exists(src_path), "Source space was not scaled")
     scale_labels('flachkopf', subjects_dir=tempdir)
 

@@ -188,7 +188,7 @@ def test_discrete_source_space():
                         '--pos', temp_pos, '--src', temp_name])
         src_c = read_source_spaces(temp_name)
         pos_dict = dict(rr=src[0]['rr'][v], nn=src[0]['nn'][v])
-        src_new = setup_volume_source_space(None, None, pos=pos_dict)
+        src_new = setup_volume_source_space(None, pos=pos_dict)
         _compare_source_spaces(src_c, src_new, mode='approx')
         assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
                         rtol=1e-3, atol=1e-6)
@@ -196,7 +196,7 @@ def test_discrete_source_space():
                         rtol=1e-3, atol=1e-6)
 
         # now do writing
-        write_source_spaces(temp_name, src_c)
+        write_source_spaces(temp_name, src_c, overwrite=True)
         src_c2 = read_source_spaces(temp_name)
         _compare_source_spaces(src_c, src_c2)
 
@@ -258,8 +258,8 @@ def test_other_volume_source_spaces():
     assert_true('volume, shape' in repr(src))
     del src
     del src_new
-    assert_raises(ValueError, setup_volume_source_space, 'sample', temp_name,
-                  pos=7.0, sphere=[1., 1.], mri=fname_mri,  # bad sphere
+    assert_raises(ValueError, setup_volume_source_space, 'sample', pos=7.0,
+                  sphere=[1., 1.], mri=fname_mri,  # bad sphere
                   subjects_dir=subjects_dir)
 
     # now without MRI argument, it should give an error when we try
