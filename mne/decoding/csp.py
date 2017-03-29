@@ -61,6 +61,10 @@ class CSP(TransformerMixin, BaseEstimator):
     ``std_`` : ndarray, shape (n_components,)
         If fit, the std squared power for each component.
 
+    See Also
+    --------
+    mne.preprocessing.Xdawn, SPoC
+
     References
     ----------
     [1] Zoltan J. Koles, Michael S. Lazar, Steven Z. Zhou. Spatial Patterns
@@ -657,14 +661,14 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
 class SPoC(CSP):
     """Implementation of the SPoC spatial filtering with Covariance as input.
 
-    Source Power Comodulation (SPoC) [1] allow to extract spatial filters and
+    Source Power Comodulation (SPoC) [1] allows to extract spatial filters and
     patterns by using a target (continuous) variable in the decomposition
-    process in order to give preference to components whose power comodulates
+    process in order to give preference to components whose power correlates
     with the target variable.
 
-    SPoC can be seen as an extension of the `CSP` driven by a continuous
+    SPoC can be seen as an extension of the CSP driven by a continuous
     variable rather than a discrete variable. Typical applications include
-    extraction of motor patterns using EMG power or audio paterns using sound
+    extraction of motor patterns using EMG power or audio patterns using sound
     envelope.
 
     Parameters
@@ -698,7 +702,7 @@ class SPoC(CSP):
 
     See Also
     --------
-    mne.decoding.CSP
+    mne.preprocessing.mne.preprocessing.Xdawn, CSP
 
     References
     ----------

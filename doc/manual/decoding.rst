@@ -75,6 +75,17 @@ Large entries in the diagonal matrix corresponds to a spatial filter which gives
 
     The winning entry of the Grasp-and-lift EEG competition in Kaggle uses the CSP implementation in MNE. It was featured as a `script of the week`_.
 
+
+Source Power Comodulation (SPoC)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Source Power Comodulation (SPoC) [1] allows to extract spatial filters and patterns by using a target (continuous) variable in the decomposition process in order to give preference to components whose power correlates with the target variable.
+
+SPoC can be seen as an extension of the CSP where the target is driven by a continuous variable rather than a discrete variable. Typical applications include extraction of motor patterns using EMG power or audio patterns using sound envelope.
+
+  .. reference::
+  * [1] :ref: Dahne, S., Meinecke, F. C., Haufe, S., Hohne, J., Tangermann, M., Muller, K. R., & Nikulin, V. V. (2014). SPoC: a novel framework for relating the amplitude of neuronal oscillations to behaviorally relevant parameters. NeuroImage, 86, 111-122.
+
+
 xDAWN
 ^^^^^
 Xdawn is a spatial filtering method designed to improve the signal to signal + noise ratio (SSNR) of the ERP responses. Xdawn was originally  designed for P300 evoked potential by enhancing the target response with respect to the non-target response. The implementation in MNE-Python is a generalization to any type of ERP.
