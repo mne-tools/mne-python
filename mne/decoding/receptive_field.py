@@ -110,6 +110,11 @@ class ReceptiveField(BaseEstimator):
             The input features for the model.
         y : array, shape (n_times[, n_epochs], n_outputs)
             The output features for the model.
+
+        Returns
+        -------
+        self : instance
+            The instance so you can chain operations.
         """
         from sklearn.linear_model import Ridge
         from sklearn.base import is_regressor, clone

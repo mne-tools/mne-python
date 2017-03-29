@@ -190,7 +190,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         used.
     covariates : dict-like | None
         If dict-like (e.g., a pandas DataFrame), values have to be array-like
-        and of the same length as the columns in ```events```. Keys correspond
+        and of the same length as the rows in ```events```. Keys correspond
         to additional event types/conditions to be estimated and are matched
         with the time points given by the first column of ```events```. If
         None, only binary events (from event_id) are used.
