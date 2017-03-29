@@ -111,12 +111,12 @@ def test_continuous_regression_no_overlap():
                         epochs[cond].average().data, rtol=1e-15)
 
     # Test events that will lead to "duplicate" errors
-    old_latency = events[1, 0]
-    events[1, 0] = events[0, 0]
+    old_latency = events[1]
+    events[1] = events[0]
     assert_raises(ValueError, linear_regression_raw,
                   raw, events, event_id, tmin, tmax)
 
-    events[1, 0] = old_latency
+    events[1] = old_latency
     events[:, 0] = range(len(events))
     assert_raises(ValueError, linear_regression_raw, raw,
                   events, event_id, tmin, tmax, decim=2)

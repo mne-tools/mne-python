@@ -6,12 +6,12 @@
 #
 # License: BSD (3-clause)
 
+import numbers
 from inspect import isgenerator
 from collections import namedtuple
-from distutils.version import LooseVersion
 
 import numpy as np
-from scipy import linalg, sparse, __version__
+from scipy import linalg, sparse
 
 from ..externals.six import string_types
 from ..source_estimate import SourceEstimate
@@ -152,7 +152,7 @@ def _fit_lm(data, design_matrix, names):
 
 def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
                           covariates=None, reject=None, flat=None, tstep=1.,
-                          decim=1, picks=None, solver='lstsq'):
+                          decim=1, picks=None, solver='cholesky'):
     """Estimate regression-based evoked potentials/fields by linear modeling.
 
     This models the full M/EEG time course, including correction for
@@ -232,8 +232,6 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
 
             ``'pinv'``: a solver based on a pseudo-inverse
 
-            ``'lstsq'`` : Least-squares solving (`scipy.linalg.lstsq`)
-
         When passing a function/custom solver, note:
         X is of shape (n_times, n_predictors * time_window_length).
         y is of shape (n_channels, n_times).
@@ -285,6 +283,10 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
     return evokeds
 
 
+def _has_duplicated_rows(events):
+    return np.any(np.diff(np.lexsort(events.T[::-1]), axis=0) == 0)
+
+
 def _prepare_rerp_data(raw, events, picks=None, decim=1, sfreq=None):
     """Prepare events and data, primarily for `linear_regression_raw`."""
     decim = int(decim)
@@ -305,17 +307,11 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1, sfreq=None):
         data = raw[:, ::decim]
         info = dict(sfreq=sfreq)
 
-    if len(set(events[:, 0])) < len(events[:, 0]):
-        raise ValueError("`events` contains duplicate time points. Make "
-                         "sure all entries in the first column of `events` "
-                         "are unique.")
-
-    if len(set(events[:, 0])) < len(events[:, 0]):
-        raise ValueError("After decimating, `events` contains duplicate time "
-                         "points. This means some events are too closely "
-                         "spaced for the requested decimation factor. Choose "
-                         "different events, drop close events, or choose a "
-                         "different decimation factor.")
+    if _has_duplicated_rows(events):
+        raise ValueError("`events` contains duplicate rows. Make "
+                         "sure all entries in `events` are unique. "
+                         "This can be due to a decimation with events "
+                         "too close in time.")
 
     return data, info, events
 
@@ -328,12 +324,12 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
         conds += list(covariates)
 
     # time windows (per event type) are converted to sample points from times
-    if isinstance(tmin, (float, int)):
+    if isinstance(tmin, numbers.Real):
         tmin_s = dict((cond, int(tmin * sfreq)) for cond in conds)
     else:
         tmin_s = dict((cond, int(tmin.get(cond, -.1) * sfreq))
                       for cond in conds)
-    if isinstance(tmax, (float, int)):
+    if isinstance(tmax, numbers.Real):
         tmax_s = dict(
             (cond, int((tmax * sfreq) + pad)) for cond in conds)
     else:
@@ -373,7 +369,8 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
         xs.append(sparse.dia_matrix((values, onsets),
                                     shape=(n_samples, n_lags)))
 
-    return sparse.hstack(xs), conds, cond_length, tmin_s, tmax_s
+    X = sparse.hstack(xs).tocsc()
+    return X, conds, cond_length, tmin_s, tmax_s
 
 
 def _clean_rerp_input(X, data, reject=None, flat=None, decim=None,
@@ -417,8 +414,6 @@ def _get_solver(solver='cholesky'):
             return _cho_solver
         elif solver == "pinv":
             return _pinv_solver
-        elif solver == 'lstsq':
-            return _lstsq
         else:
             raise ValueError("No such solver: {0}".format(solver))
     elif callable(solver):
@@ -440,12 +435,4 @@ def _cho_solver(X, y):
 def _pinv_solver(X, y):
     from ..utils import _get_fast_dot
     fast_dot = _get_fast_dot()
-    return fast_dot(linalg.pinv(X.T.dot(X).todense()), X.T.dot(y)).T
-
-
-def _lstsq(X, y):
-    if LooseVersion(__version__) < LooseVersion('0.17.1'):
-        return lstsq(X.todense(), y, lapack_driver='gelsy')[0].T
-    else:
-        warn("Scipy version < 0.16.0, cannot use 'gelsy' LAPACK driver.")
-        return lstsq(X.todense(), y)[0].T
+    return fast_dot(linalg.pinv(X.T.dot(X).toarray()), X.T.dot(y)).T

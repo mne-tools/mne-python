@@ -96,11 +96,14 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq, solver='pinv'):
                             tmax=tmax, pad=0)[0]
 
     # least square estimation
-    coefs = solver(X, data)
+    coefs = solver(X, data.T)
 
     # shape data correctly (split by class) and return
     evoked_data = np.asarray(np.hsplit(coefs, len(classes)))
-    return evoked_data, np.vsplit(X.T, len(classes))
+    X = X.T
+    chunk_size = X.shape[0] // len(classes)
+    Xs = [X[i: i + chunk_size] for i in range(0, X.shape[0], chunk_size)]
+    return evoked_data, Xs
 
 
 def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
@@ -178,14 +181,14 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
     _fast_dot = _get_fast_dot()
     for evo, toeplitz in zip(evokeds, toeplitzs):
         # Estimate covariance matrix of the prototype response
-        evo = _fast_dot(evo, toeplitz)
-        evo_cov = np.matrix(_regularized_covariance(evo, reg))
+        evo1 = evo * toeplitz
+        evo_cov = _regularized_covariance(evo1, reg)
 
         # Fit spatial filters
         evals, evecs = linalg.eigh(evo_cov, signal_cov)
         evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
-        evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
-        _patterns = np.linalg.pinv(evecs.T)
+        evecs /= np.linalg.norm(evecs, axis=0)
+        _patterns = linalg.pinv(evecs.T)
         filters.append(evecs[:, :n_components].T)
         patterns.append(_patterns[:, :n_components].T)
 
@@ -450,7 +453,7 @@ class Xdawn(_XdawnTransformer):
 
         # Main fitting function
         filters, patterns, evokeds = _fit_xdawn(
-            X, y,  n_components=n_components, reg=self.reg,
+            X, y, n_components=n_components, reg=self.reg,
             signal_cov=self.signal_cov, events=events, tmin=tmin, sfreq=sfreq)
 
         # Re-order filters and patterns according to event_id
@@ -576,7 +579,6 @@ class Xdawn(_XdawnTransformer):
         data = np.hstack(epochs.get_data()[:, picks])
 
         for eid in event_id:
-
             data_r = self._pick_sources(data, include, exclude, eid)
             data_r = np.array(np.split(data_r, len(epochs.events), 1))
             info_r = cp.deepcopy(epochs.info)
