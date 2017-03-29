@@ -1,21 +1,27 @@
 """
-========================================================
-Time-frequency on simulated data (Multitaper vs. Morlet)
-========================================================
+======================================================================
+Time-frequency on simulated data (Multitaper vs. Morlet vs. Stockwell)
+======================================================================
 
-This example demonstrates the different time-frequency estimation methods.
+This example demonstrates the different time-frequency estimation methods
 on simulated data. It shows the time-frequency resolution trade-off
-and the problem of estimation variance.
+and the problem of estimation variance. In addition it highlights
+alternative functions for generating TFRs without averaging across
+trials, or by operating on numpy arrays.
 """
 # Authors: Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
+#          Chris Holdgraf <choldgraf@berkeley.edu>
 #
 # License: BSD (3-clause)
 
 import numpy as np
+from matplotlib import pyplot as plt
 
 from mne import create_info, EpochsArray
-from mne.time_frequency import tfr_multitaper, tfr_stockwell, tfr_morlet
+from mne.baseline import rescale
+from mne.time_frequency import (tfr_multitaper, tfr_stockwell, tfr_morlet,
+                                tfr_array_morlet)
 
 print(__doc__)
 
@@ -23,7 +29,7 @@ print(__doc__)
 # Simulate data
 # -------------
 #
-# We'll simulate data with a known spectro-temporal structure to it.
+# We'll simulate data with a known spectro-temporal structure.
 
 sfreq = 1000.0
 ch_names = ['SIM0001', 'SIM0002']
@@ -67,8 +73,8 @@ epochs = EpochsArray(data=data, info=info, events=events, event_id=event_id,
 # Multitaper transform
 # ====================
 # First we'll use the multitaper method for calculating the TFR.
-# This creates several orthogonal tapering windows which reduces variance
-# in the TFR estimation. We'll also show some of the parameters that can be
+# This creates several orthogonal tapering windows in the TFR estimation,
+# which reduces variance. We'll also show some of the parameters that can be
 # tweaked (e.g., ``time_bandwidth``) that will result in different multitaper
 # properties, and thus a different TFR. You can trade time resolution or
 # frequency resolution or both in order to get a reduction in variance.
@@ -108,30 +114,81 @@ power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
            title='Sim: Less time smoothing, more frequency smoothing')
 
-###############################################################################
+##############################################################################
 # Stockwell (S) transform
 # =======================
-#
+
 # Stockwell uses a Gaussian window to balance temporal and spectral resolution.
 # Importantly, frequency bands are phase-normalized, hence strictly comparable
 # with regard to timing, and, the input signal can be recoverd from the
-# transform in a lossless way if we disregard numerical errors.
+# transform in a lossless way if we disregard numerical errors. In this case,
+# we control the spectral / temporal resolution by specifying different widths
+# of the gaussian window using the ``width`` parameter.
 
+fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
 fmin, fmax = freqs[[0, -1]]
-for width in (0.7, 3.0):
+for width, ax in zip((0.2, .7, 3.0), axs):
     power = tfr_stockwell(epochs, fmin=fmin, fmax=fmax, width=width)
-    power.plot([0], baseline=(0., 0.1), mode='mean',
-               title='Sim: Using S transform, width '
-                     '= {:0.1f}'.format(width))
+    power.plot([0], baseline=(0., 0.1), mode='mean', axes=ax, show=False,
+               colorbar=False)
+    ax.set_title('Sim: Using S transform, width = {:0.1f}'.format(width))
+plt.tight_layout()
 
 ###############################################################################
 # Morlet Wavelets
 # ===============
 #
 # Finally, show the TFR using morlet wavelets, which are a sinusoidal wave
-# with a gaussian envelope.
+# with a gaussian envelope. We can control the balance between spectral and
+# temporal resolution with the ``n_cycles`` parameter, which defines the
+# number of cycles to include in the window.
+
+fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
+all_n_cycles = [1, 3, freqs / 2.]
+for n_cycles, ax in zip(all_n_cycles, axs):
+    power = tfr_morlet(epochs, freqs=freqs,
+                       n_cycles=n_cycles, return_itc=False)
+    power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
+               axes=ax, show=False, colorbar=False)
+    n_cycles = 'scaled by freqs' if not isinstance(n_cycles, int) else n_cycles
+    ax.set_title('Sim: Using Morlet wavelet, n_cycles = %s' % n_cycles)
+plt.tight_layout()
+
+###############################################################################
+# Calculating a TFR without averaging over epochs
+# -----------------------------------------------
+#
+# It is also possible to calculate a TFR without averaging across trials.
+# We can do this by using ``average=False``. In this case, an instance of
+# :class:`mne.time_frequency.EpochsTFR` is returned.
 
 n_cycles = freqs / 2.
-power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, return_itc=False)
-power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
-           title='Sim: Using Morlet wavelet')
+power = tfr_morlet(epochs, freqs=freqs,
+                   n_cycles=n_cycles, return_itc=False, average=False)
+print(type(power))
+avgpower = power.average()
+avgpower.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
+              title='Using Morlet wavelets and EpochsTFR', show=False)
+
+###############################################################################
+# Operating on arrays
+# -------------------
+#
+# MNE also has versions of the functions above which operate on numpy arrays
+# instead of MNE objects. They expect inputs of the shape
+# ``(n_epochs, n_channels, n_times)``. They will also return a numpy array
+# of shape ``(n_epochs, n_channels, n_frequencies, n_times)``.
+
+power = tfr_array_morlet(epochs.get_data(), sfreq=epochs.info['sfreq'],
+                         frequencies=freqs, n_cycles=n_cycles,
+                         output='avg_power')
+# Baseline the output
+rescale(power, epochs.times, (0., 0.1), mode='mean', copy=False)
+fig, ax = plt.subplots()
+mesh = ax.pcolormesh(epochs.times, freqs, power[0],
+                     cmap='RdBu_r', vmin=-1., vmax=3.)
+ax.set_title('TFR calculated on a numpy array')
+fig.colorbar(mesh)
+plt.tight_layout()
+
+plt.show()

@@ -61,10 +61,10 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 # ------------------------------------------------
 #
 # Next, we need to compute the inverse solution for this data. This will return
-# the sources / source activity that we'll use in computing connectivity.
-#
-# Now we are ready to compute the connectivity in the alpha band. Notice
-# from the status messages how mne-python:
+# the sources / source activity that we'll use in computing connectivity. We'll
+# compute the connectivity in the alpha band of these sources. We can specify
+# particular frequencies to include in the connectivity with the ``fmin`` and
+# ``fmax`` flags. Notice from the status messages how mne-python:
 #
 # 1. reads an epoch from the raw file
 # 2. applies SSP and baseline correction
@@ -73,7 +73,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 # 5. includes the label time series in the connectivity computation
 # 6. moves to the next epoch.
 #
-# This behaviour is because we are using generators, which allows us to
+# This behaviour is because we are using generators. Since we only need to
+# operate on the data one epoch at a time, using a generator allows us to
 # compute connectivity in a computationally efficient manner where the amount
 # of memory (RAM) needed is independent from the number of epochs.
 

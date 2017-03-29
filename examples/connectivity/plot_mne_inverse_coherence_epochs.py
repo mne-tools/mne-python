@@ -63,7 +63,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 # Choose channels for coherence estimation
 # ----------------------------------------
 #
-# First, we'll calculate our channel sources. Then we'll find the most active
+# Next we'll calculate our channel sources. Then we'll find the most active
 # vertex in the left auditory cortex, which we will later use as seed for the
 # connectivity computation.
 
@@ -126,8 +126,10 @@ print(freqs[1])
 # -----------------------------------
 #
 # Finally, we'll generate a SourceEstimate with the coherence. This is simple
-# since we used a single seed. For more than one seed we would have to split
-# coh. Note: We use a hack to save the frequency axis as time.
+# since we used a single seed. For more than one seed we would have to choose
+# one of the slices within `coh`.
+#
+# .. note:: We use a hack to save the frequency axis as time.
 #
 # Finally, we'll plot this source estimate on the brain.
 
