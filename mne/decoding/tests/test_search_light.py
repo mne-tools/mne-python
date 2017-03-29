@@ -36,7 +36,7 @@ def test_search_light():
     sl = SlidingEstimator(Ridge())
     sl = SlidingEstimator(LogisticRegression())
     # fit
-    assert_equal(sl.__repr__()[:13], '<SlidingEstimator(')
+    assert_equal(sl.__repr__()[:18], '<SlidingEstimator(')
     sl.fit(X, y)
     assert_equal(sl.__repr__()[-28:], ', fitted with 10 estimators>')
     assert_raises(ValueError, sl.fit, X[1:], y)
@@ -68,7 +68,8 @@ def test_search_light():
 
     # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
     # -- 3 class problem
-    sl = SlidingEstimator(LogisticRegression(random_state=0), scoring='roc_auc')
+    sl = SlidingEstimator(LogisticRegression(random_state=0),
+                          scoring='roc_auc')
     y = np.arange(len(X)) % 3
     sl.fit(X, y)
     assert_raises(ValueError, sl.score, X, y)
@@ -102,7 +103,7 @@ def test_search_light():
 
     # n_jobs
     sl = SlidingEstimator(LogisticRegression(random_state=0), n_jobs=1,
-                     scoring='roc_auc')
+                          scoring='roc_auc')
     score_1job = sl.fit(X, y).score(X, y)
     sl.n_jobs = 2
     score_njobs = sl.fit(X, y).score(X, y)
@@ -130,8 +131,8 @@ def test_search_light():
     y = np.arange(10) % 2
     y_preds = list()
     for n_jobs in [1, 2]:
-        pipe = SlidingEstimator(make_pipeline(Vectorizer(), LogisticRegression()),
-                           n_jobs=n_jobs)
+        pipe = SlidingEstimator(
+            make_pipeline(Vectorizer(), LogisticRegression()), n_jobs=n_jobs)
         y_preds.append(pipe.fit(X, y).predict(X))
         features_shape = pipe.estimators_[0].steps[0][1].features_shape_
         assert_array_equal(features_shape, [3, 4])
@@ -149,7 +150,7 @@ def test_generalization_light():
     n_epochs, _, n_time = X.shape
     # fit
     gl = GeneralizingEstimator(LogisticRegression())
-    assert_equal(repr(gl)[:21], '<GeneralizingEstimator(')
+    assert_equal(repr(gl)[:23], '<GeneralizingEstimator(')
     gl.fit(X, y)
 
     assert_equal(gl.__repr__()[-28:], ', fitted with 10 estimators>')

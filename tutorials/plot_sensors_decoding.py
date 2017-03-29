@@ -14,7 +14,6 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 
-
 import mne
 from mne.datasets import sample
 from mne.decoding import (SlidingEstimator, GeneralizingEstimator,
@@ -28,12 +27,15 @@ plt.close('all')
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-tmin, tmax = -0.2, 0.5
-event_id = dict(aud_l=1, vis_l=3)
+tmin, tmax = -0.200, 0.500
+event_id = dict(audio_left=1, visual_left=3)
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.filter(2, None)  # replace baselining with high-pass
+
+# The subsequent decoding analyses only capture evoked responses, so we can
+# low-pass the MEG data.
+raw.filter(None, 40.)
 events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
@@ -43,11 +45,8 @@ picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=True, eog=True,
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=None, preload=True,
-                    reject=dict(grad=4000e-13, eog=150e-6))
-
-epochs_list = [epochs[k] for k in event_id]
-mne.epochs.equalize_epoch_counts(epochs_list)
+                    picks=picks, baseline=(None, 0.), preload=True,
+                    reject=dict(grad=4000e-13, eog=150e-6), decim=2)
 
 ###############################################################################
 # Temporal decoding
@@ -64,9 +63,9 @@ y = epochs.events[:, 2]  # target: Audio left or right
 
 clf = make_pipeline(StandardScaler(), LogisticRegression())
 
-sl = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc')
+time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc')
 
-scores = cross_val_multiscore(sl, X, y, cv=5, n_jobs=1)
+scores = cross_val_multiscore(time_decod, X, y, cv=5, n_jobs=1)
 
 # Mean scores across cross-validation splits
 scores = np.mean(scores, axis=0)
@@ -76,7 +75,7 @@ fig, ax = plt.subplots()
 ax.plot(epochs.times, scores, label='score')
 ax.axhline(.5, color='k', linestyle='--', label='chance')
 ax.set_xlabel('Times')
-ax.set_ylabel('ROC AUC')
+ax.set_ylabel('AUC')  # Area Under the Curve
 ax.legend()
 ax.axvline(.0, color='k', linestyle='-')
 ax.set_title('Sensor space decoding')
@@ -104,26 +103,21 @@ fig, ax = plt.subplots()
 ax.plot(epochs.times, np.diag(scores), label='score')
 ax.axhline(.5, color='k', linestyle='--', label='chance')
 ax.set_xlabel('Times')
-ax.set_ylabel('ROC AUC')
+ax.set_ylabel('AUC')
 ax.legend()
 ax.axvline(.0, color='k', linestyle='-')
-ax.set_title('Sensor space decoding')
+ax.set_title('Decoding MEG sensors over time')
 plt.show()
 
 # Plot the full matrix
 fig, ax = plt.subplots(1, 1)
-times = epochs.times
-tlim = [times[0], times[-1], times[0], times[-1]]
-vmin, vmax = 0., 1.
-im = ax.imshow(scores, interpolation='nearest', origin='lower',
-               extent=tlim, vmin=vmin, vmax=vmax, cmap='RdBu_r')
+im = ax.imshow(scores, interpolation='nearest', origin='lower', cmap='RdBu_r',
+               extent=epochs.times[[0, -1, 0, -1]], vmin=0., vmax=1.)
 ax.set_xlabel('Testing Time (s)')
 ax.set_ylabel('Training Time (s)')
-ax.set_title('Generalization across time (GAT)')
+ax.set_title('Temporal Generalization')
 ax.axvline(0, color='k')
 ax.axhline(0, color='k')
-ax.set_xlim(tlim[:2])
-ax.set_ylim(tlim[2:])
 plt.colorbar(im, ax=ax)
 plt.show()
 
