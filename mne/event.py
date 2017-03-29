@@ -663,7 +663,7 @@ def find_events(raw, stim_channel=None, output='onset',
                          " x / raw.info['sfreq']. Where x = 1 sample shorter "
                          "than the shortest event length." % (n_short_events))
 
-    return events
+    return eventsBLAH
 
 
 def _mask_trigs(events, mask, mask_type):
