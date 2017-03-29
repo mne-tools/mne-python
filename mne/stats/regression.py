@@ -258,14 +258,15 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
              "to the solver. If you are using a solver that expects a "
              "different format, it will give wrong results and might in "
              "extreme cases crash your session.")
+    else:
+        raise TypeError("The solver must be a str or a callable.")
 
     # build data
     data, info, events = _prepare_rerp_data(raw, events, picks=picks,
                                             decim=decim)
 
     if event_id is None:
-        event_id = dict((str(ii), v) for ii, v in
-                        enumerate(set(events[:, 2])))
+        event_id = dict((str(v), v) for v in set(events[:, 2]))
 
     # build predictors
     X, conds, cond_length, tmin_s, tmax_s = _prepare_rerp_preds(
