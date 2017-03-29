@@ -6,6 +6,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from mne import Epochs, find_events, create_info
 from mne.io import concatenate_raws, read_raw_edf
@@ -13,7 +14,7 @@ from mne.datasets import eegbci
 from mne.decoding import CSP
 from mne.time_frequency import AverageTFR
 
-from sklearn.lda import LDA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from sklearn.pipeline import make_pipeline
 
@@ -33,13 +34,14 @@ events = find_events(raw, shortest_event=0, stim_channel='STI 014')
 raw.pick_types(meg=False, eeg=True, stim=False, eog=False, exclude='bads')
 
 # Assemble the classifier using scikit-learn pipeline
-clf = make_pipeline(CSP(n_components=4, reg=None, log=True), LDA())
+clf = make_pipeline(CSP(n_components=4, reg=None, log=True),
+                    LinearDiscriminantAnalysis())
 n_splits = 5  # how many folds to use for cross-validation
 cv = TimeSeriesSplit(n_splits=n_splits)
 
 # Classification & Time-frequency parameters
 tmin, tmax = -.200, 2.000
-n_cycles = 15.  # how many complete cycles: used to define window size
+n_cycles = 10.  # how many complete cycles: used to define window size
 min_freq = 5.
 max_freq = 25.
 n_freqs = 8  # how many frequency bins to use
@@ -95,4 +97,5 @@ av_tfr = AverageTFR(create_info(['freq'], sfreq), scores[np.newaxis, :],
                     centered_w_times, freqs[1:], 1)
 
 chance = np.mean(y)  # set chance level to white in the plot
-av_tfr.plot([0], vmin=chance, title="Time-Frequency Decoding Scores")
+av_tfr.plot([0], vmin=chance, title="Time-Frequency Decoding Scores",
+            cmap=plt.cm.Reds)
