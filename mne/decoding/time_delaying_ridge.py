@@ -13,15 +13,19 @@ from .base import BaseEstimator
 from ..filter import next_fast_len
 
 
-def _compute_corrs(X, y, smin, smax):
+def _compute_corrs(X, y, smin, smax, fit_intercept):
     """Compute the auto- and cross-correlations."""
     len_trf = smax - smin
     len_x, n_ch_x = X.shape
     len_y, n_ch_y = y.shape
 
-    n_fft = next_fast_len(max(X.shape[0], y.shape[0]) + len_trf - 1)
+    n_fft = next_fast_len(X.shape[0] + y.shape[0] - 1)
     X_in = np.fft.rfft(X.T, n_fft)
     X_out = np.fft.rfft(y.T, n_fft)
+    if fit_intercept:
+        # Remove the mean, i.e. DC value
+        X_in[:, 0] = 0
+        X_out[:, 0] = 0
     del X, y
 
     # compute the autocorrelations
@@ -40,17 +44,14 @@ def _compute_corrs(X, y, smin, smax):
         for ch_out in range(n_ch_y):
             cc_temp = np.fft.irfft(X_out[ch_out] * X_in[ch_in].conj(),
                                    n_fft)
-            # XXX Need to ensure smax > 0
-            if smin < 0:
+            if smin < 0 and smax > 0:
                 x_y[ch_out, ch_in] = np.append(cc_temp[smin:], cc_temp[:smax])
             else:
                 x_y[ch_out, ch_in] = cc_temp[smin:smax]
 
     # make xxt and xy
     x_xt = _make_x_xt(ac)
-    x_xt /= len_x
     x_y.shape = (n_ch_y, n_ch_x * len_trf)
-    x_y /= len_x
     return x_xt, x_y, n_ch_x
 
 
@@ -112,13 +113,14 @@ class TimeDelayingRidge(BaseEstimator):
     reg_type : str
         Can be "ridge" (default) or "laplacian".
     """
-    def __init__(self, smin, smax, alpha=0., reg_type='ridge'):
-        assert smin < 0
-        assert smax >= 0
+    def __init__(self, smin, smax, alpha=0., reg_type='ridge',
+                 fit_intercept=True):
+        assert smin <= smax
         self._smin = -smax
         self._smax = -smin + 1
         self._alpha = float(alpha)
         self._reg_type = reg_type
+        self._fit_intercept = fit_intercept
 
     def fit(self, X, y):
         """Estimate the coefficients of the linear model.
@@ -138,7 +140,8 @@ class TimeDelayingRidge(BaseEstimator):
         # These are split into two functions because it's possible that we
         # might want to allow people to do them separately (e.g., to test
         # different regularization parameters).
-        x_xt, x_y, n_ch_x = _compute_corrs(X, y, self._smin, self._smax)
+        x_xt, x_y, n_ch_x = _compute_corrs(X, y, self._smin, self._smax,
+                                           self._fit_intercept)
         self.coef_ = _fit_corrs(x_xt, x_y, n_ch_x,
                                 self._reg_type, self._alpha, n_ch_x)
         self.coef_ = self.coef_[..., ::-1]
@@ -160,8 +163,9 @@ class TimeDelayingRidge(BaseEstimator):
         out = np.zeros((X.shape[0], self.coef_.shape[0]))
         for oi in range(self.coef_.shape[0]):
             for fi in range(self.coef_.shape[1]):
-                # XXX This truncation is not correct... need to shift based
-                # on tmin/tmax locations
-                temp = np.convolve(X[:, fi], self.coef_[oi, fi])
+                temp = np.convolve(X[:, fi], self.coef_[oi, fi][::-1])
+                # XXX This won't work if it's not a standard neg,pos limit...
+                # Now that the self.coef_ is time-reversed, this might also
+                # need to be updated.
                 out[:, oi] += temp[-self._smin:-self._smax + 1]
         return out
