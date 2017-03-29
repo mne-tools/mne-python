@@ -23,7 +23,13 @@ from mne.time_frequency import psd_multitaper
 print(__doc__)
 
 ###############################################################################
-# Set parameters
+# Load data
+# ---------
+#
+# We'll load a sample MEG dataset, along with SSP projections that will
+# allow us to reduce EOG and ECG artifacts. For more information about
+# reducing artifacts, see the preprocessing section in :ref:`tutorials`.
+
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 proj_fname = data_path + '/MEG/sample/sample_audvis_eog-proj.fif'
@@ -42,10 +48,29 @@ raw.add_proj(projs, remove_existing=True)
 fmin, fmax = 2, 300  # look at frequencies between 2 and 300Hz
 n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
 
-# Let's first check out all channel types
+###############################################################################
+# Plot the raw PSD
+# ----------------
+#
+# First we'll visualize the raw PSD of our data. We'll do this on all of the
+# channels first. Note that there are several parameters to the
+# :meth:`mne.io.Raw.plot_psd` method, some of which will be explained below.
+
 raw.plot_psd(area_mode='range', tmax=10.0, show=False)
 
-# Now let's focus on a smaller subset:
+###############################################################################
+# Plot a cleaned PSD
+# ------------------
+#
+# Next we'll focus the visualization on a subset of channels.
+# This can be useful for identifying particularly noisy channels or
+# investigating how the power spectrum changes across channels.
+#
+# We'll visualize how this PSD changes after applying some standard
+# filtering techniques. We'll first apply the SSP projections, which is
+# accomplished with the ``proj=True`` kwarg. We'll then perform a notch filter
+# to remove particular frequency bands.
+
 # Pick MEG magnetometers in the Left-temporal region
 selection = read_selection('Left-temporal')
 picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
@@ -60,7 +85,6 @@ raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
              n_jobs=1, proj=False, ax=ax, color=(0, 0, 1),  picks=picks,
              show=False)
 
-# And now do the same with SSP applied
 raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
              n_jobs=1, proj=True, ax=ax, color=(0, 1, 0), picks=picks,
              show=False)
@@ -73,9 +97,17 @@ raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
              show=False)
 
 ax.set_title('Four left-temporal magnetometers')
-plt.legend(['Without SSP', 'With SSP', 'SSP + Notch'])
+plt.legend(ax.lines[::3], ['Without SSP', 'With SSP', 'SSP + Notch'])
 
-# Alternatively, you may also create PSDs from Raw objects with ``psd_*``
+###############################################################################
+# Alternative functions for PSDs
+# ------------------------------
+#
+# There are also several functions in MNE that create a PSD using a Raw
+# object. These are in the :mod:`mne.time_frequency` module and begin with
+# ``psd_*``. For example, we'll use a multitaper method to compute the PSD
+# below.
+
 f, ax = plt.subplots()
 psds, freqs = psd_multitaper(raw, low_bias=True, tmin=tmin, tmax=tmax,
                              fmin=fmin, fmax=fmax, proj=True, picks=picks,
