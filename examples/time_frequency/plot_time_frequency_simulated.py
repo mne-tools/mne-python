@@ -80,6 +80,7 @@ epochs = EpochsArray(data=data, info=info, events=events, event_id=event_id,
 # frequency resolution or both in order to get a reduction in variance.
 
 freqs = np.arange(5., 100., 3.)
+vmin, vmax = -3., 3.
 
 ###############################################################################
 # **(1) Least smoothing (most variance/background fluctuations).**
@@ -89,7 +90,7 @@ time_bandwidth = 2.0  # Least possible frequency-smoothing (1 taper)
 power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
 # Plot results. Baseline correct based on first 100 ms.
-power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
+power.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
            title='Sim: Least smoothing, most variance')
 
 ###############################################################################
@@ -100,7 +101,7 @@ time_bandwidth = 4.0  # Same frequency-smoothing as (1) 3 tapers.
 power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
 # Plot results. Baseline correct based on first 100 ms.
-power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
+power.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
            title='Sim: Less frequency smoothing, more time smoothing')
 
 ###############################################################################
@@ -111,13 +112,13 @@ time_bandwidth = 8.0  # Same time-smoothing as (1), 7 tapers.
 power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
 # Plot results. Baseline correct based on first 100 ms.
-power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
+power.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
            title='Sim: Less time smoothing, more frequency smoothing')
 
 ##############################################################################
 # Stockwell (S) transform
 # =======================
-
+#
 # Stockwell uses a Gaussian window to balance temporal and spectral resolution.
 # Importantly, frequency bands are phase-normalized, hence strictly comparable
 # with regard to timing, and, the input signal can be recoverd from the
@@ -148,7 +149,7 @@ all_n_cycles = [1, 3, freqs / 2.]
 for n_cycles, ax in zip(all_n_cycles, axs):
     power = tfr_morlet(epochs, freqs=freqs,
                        n_cycles=n_cycles, return_itc=False)
-    power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
+    power.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
                axes=ax, show=False, colorbar=False)
     n_cycles = 'scaled by freqs' if not isinstance(n_cycles, int) else n_cycles
     ax.set_title('Sim: Using Morlet wavelet, n_cycles = %s' % n_cycles)
@@ -167,7 +168,7 @@ power = tfr_morlet(epochs, freqs=freqs,
                    n_cycles=n_cycles, return_itc=False, average=False)
 print(type(power))
 avgpower = power.average()
-avgpower.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
+avgpower.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
               title='Using Morlet wavelets and EpochsTFR', show=False)
 
 ###############################################################################
@@ -186,7 +187,7 @@ power = tfr_array_morlet(epochs.get_data(), sfreq=epochs.info['sfreq'],
 rescale(power, epochs.times, (0., 0.1), mode='mean', copy=False)
 fig, ax = plt.subplots()
 mesh = ax.pcolormesh(epochs.times * 1000, freqs, power[0],
-                     cmap='RdBu_r', vmin=-1., vmax=3.)
+                     cmap='RdBu_r', vmin=vmin, vmax=vmax)
 ax.set_title('TFR calculated on a numpy array')
 ax.set(ylim=freqs[[0, -1]], xlabel='Time (ms)')
 fig.colorbar(mesh)
