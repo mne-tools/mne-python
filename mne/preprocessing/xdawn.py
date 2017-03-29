@@ -178,7 +178,6 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
 
     filters = list()
     patterns = list()
-    _fast_dot = _get_fast_dot()
     for evo, toeplitz in zip(evokeds, toeplitzs):
         # Estimate covariance matrix of the prototype response
         evo1 = evo * toeplitz
