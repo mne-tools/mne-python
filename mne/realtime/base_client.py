@@ -3,13 +3,13 @@
 #
 # License: BSD (3-clause)
 
-import copy
+import threading
+import time
 import numpy as np
-from ..event import find_events
-
 
 def _buffer_recv_worker(client):
-    """Worker thread that constantly receives buffers."""
+    """Worker thread that constantly receives buffers.
+    """
     try:
         for raw_buffer in client.iter_raw_buffers():
             client._push_raw_buffer(raw_buffer)
@@ -19,15 +19,14 @@ def _buffer_recv_worker(client):
         print('Buffer receive thread stopped: %s' % err)
 
 
-
 class _BaseClient(object):
     """Base Realtime Client.
 
     Parameters
     ----------
-    host : str
-        The IP address of the server.
-    port : int
+    identifier : str
+        The identifier of the server. IP address or LSL id or raw filename.
+    port : int | None
         Port to use for the connection.
     tmin : float | None
         Time instant to start receiving buffers. If None, start from the latest
@@ -43,16 +42,15 @@ class _BaseClient(object):
         and :ref:`Logging documentation <tut_logging>` for more).
     """
 
-    def __init__(self, host, port, tmin, tmax, buffer_size, verbose=None):  # noqa: D102
-        self.host = host
+    def __init__(self, identifier, port=None, tmin=None, tmax=np.inf,
+                 buffer_size=1000, verbose=None):  # noqa: D102
+        self.identifier = identifier
         self.port = port
         self.tmin = tmin
         self.tmax = tmax
         self.buffer_size = buffer_size
         self.verbose = verbose
 
-    def connect(self):
-        pass
 
     def __enter__(self):  # noqa: D105
 
@@ -63,13 +61,37 @@ class _BaseClient(object):
         while current_time < (start_time + self.wait_max):
             try:
                 self.connect()
-                logger.info("FieldTripClient: Connected")
+                logger.info("Client: Connected")
                 success = True
                 break
             except:
                 current_time = time.time()
                 time.sleep(0.1)
 
+        if not success:
+            raise RuntimeError('Could not connect to FieldTrip Buffer')
+
+        self._enter_extra()
+
+        return self
+
+    def connect(self):
+        pass
+
+    def _enter_extra():
+        """For system-specific loading and initializing during the enter
+        """
+        pass
+
+    def iter_raw_buffers(self):
+        """Return an iterator over raw buffers.
+        """
+        pass
+
+    def _push_raw_buffer(self, raw_buffer):
+        """Push raw buffer to clients using callbacks."""
+        for callback in self._recv_callbacks:
+            callback(raw_buffer)
 
     def _register_receive_callback(self, callback):
         """Register a raw buffer receive callback.
@@ -82,22 +104,6 @@ class _BaseClient(object):
         """
         if callback not in self._recv_callbacks:
             self._recv_callbacks.append(callback)
-
-    def _unregister_receive_callback(self, callback):
-        """Unregister a raw buffer receive callback.
-
-        Parameters
-        ----------
-        callback : callable
-            The callback to unregister.
-        """
-        if callback in self._recv_callbacks:
-            self._recv_callbacks.remove(callback)
-
-    def _push_raw_buffer(self, raw_buffer):
-        """Push raw buffer to clients using callbacks."""
-        for callback in self._recv_callbacks:
-            callback(raw_buffer)
 
     def _start_receive_thread(self, nchan):
         """Start the receive thread.
@@ -127,3 +133,14 @@ class _BaseClient(object):
         if self._recv_thread is not None:
             self._recv_thread.stop()
             self._recv_thread = None
+
+    def _unregister_receive_callback(self, callback):
+        """Unregister a raw buffer receive callback.
+
+        Parameters
+        ----------
+        callback : callable
+            The callback to unregister.
+        """
+        if callback in self._recv_callbacks:
+            self._recv_callbacks.remove(callback)

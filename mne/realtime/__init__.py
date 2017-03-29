@@ -9,6 +9,7 @@
 
 from .client import RtClient
 from .epochs import RtEpochs
+from .lsl_client import LSLClient
 from .mockclient import MockRtClient
 from .fieldtrip_client import FieldTripClient
 from .stim_server_client import StimServer, StimClient
