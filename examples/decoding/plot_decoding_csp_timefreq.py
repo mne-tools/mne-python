@@ -1,3 +1,13 @@
+"""
+============================================================================
+Decoding in time-frequency space data using the Common Spatial Pattern (CSP)
+============================================================================
+
+The time-frequency decomposition is estimated by iterating over raw data that
+has been band-passed at different frequencies. This is used to compute a
+covariance matrix over a rolling time-window and extract the CSP filtered
+signals. A linear discriminant classifier is then applied to these signals.
+"""
 # Authors: Laura Gwilliams <laura.gwilliams@nyu.edu>
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #          Alex Barachant <alexandre.barachant@gmail.com>
