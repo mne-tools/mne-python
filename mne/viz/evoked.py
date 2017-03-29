@@ -1366,6 +1366,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         series and the parametric confidence interval is plotted as a shaded
         area. All instances must have the same shape - channel numbers, time
         points etc.
+        If dict, keys must be of type str.
     picks : int | list of int
         If int or list of int, the indices of the sensors to average and plot.
         Must all be of the same channel type.
@@ -1448,6 +1449,10 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     elif not isinstance(evokeds, dict):
         evokeds = dict((str(ii + 1), evoked)
                        for ii, evoked in enumerate(evokeds))
+    for cond in evokeds.keys():
+        if not isinstance(cond, str):
+            t = type(cond)
+            raise TypeError("Conditions must be str, not {}.".format(t))
     conditions = sorted(list(evokeds.keys()))
 
     # get and set a few limits and variables (times, channels, units)
