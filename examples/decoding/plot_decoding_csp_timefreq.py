@@ -81,7 +81,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
 
     # Extract epochs from filtered data, padded by window size
     epochs = Epochs(raw_filter, events, event_id, tmin - w_size, tmax + w_size,
-                    proj=False, baseline=None, add_eeg_ref=False, preload=True)
+                    proj=False, baseline=None, preload=True)
     epochs.drop_bad()
     y = epochs.events[:, 2] - 2
 
