@@ -1,6 +1,16 @@
-import numpy as np
+# -*- coding: utf-8 -*-
+# Authors: Chris Holdgraf <choldgraf@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
+
+# License: BSD (3-clause)
+
 import numbers
+
+import numpy as np
+
 from .base import get_coef, BaseEstimator, _check_estimator
+from .time_delaying_ridge import TimeDelayingRidge
+from ..externals.six import string_types
 
 
 class ReceptiveField(BaseEstimator):
@@ -137,6 +147,7 @@ class ReceptiveField(BaseEstimator):
         self.estimator_ = estimator
         _check_estimator(self.estimator_)
 
+        # Create input features
         n_times, n_epochs, n_feats = X.shape
         n_outputs = y.shape[2]
 
@@ -300,6 +311,18 @@ def _delay_time_series(X, tmin, tmax, sfreq, newaxis=0, axis=0):
     delayed: array, shape(..., n_delays, ...)
         The delayed data. It has the same shape as X, with an extra dimension
         created at ``newaxis`` that corresponds to each delay.
+
+    Examples
+    --------
+    >>> tmin, tmax = -0.2, 0.1
+    >>> sfreq = 10.
+    >>> x = np.arange(1, 6)
+    >>> x_del = _delay_time_series(x, tmin, tmax, sfreq)
+    >>> print(x_del)
+    [[ 0.  0.  1.  2.  3.]
+     [ 0.  1.  2.  3.  4.]
+     [ 1.  2.  3.  4.  5.]
+     [ 2.  3.  4.  5.  0.]]
     """
     _check_delayer_params(tmin, tmax, sfreq)
     delays = _times_to_delays(tmin, tmax, sfreq)

@@ -10,7 +10,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from mne import io, pick_types
 from mne.utils import requires_sklearn_0_15, run_tests_if_main
-from mne.decoding import ReceptiveField
+from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
 
@@ -120,7 +120,7 @@ def test_receptive_field():
                         estimator=0)
     str(rf)  # repr works before fit
     rf.fit(X, y)
-    assert_true(isinstance(rf.estimator_, Ridge))
+    assert_true(isinstance(rf.estimator_, TimeDelayingRidge))
     str(rf)  # repr works after fit
     rf = ReceptiveField(tmin, tmax, 1, ['one'], estimator=0)
     rf.fit(X[:, [0]], y)

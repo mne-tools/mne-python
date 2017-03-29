@@ -46,7 +46,6 @@ from mne.decoding import ReceptiveField
 from scipy.stats import multivariate_normal
 from scipy.io import loadmat
 from sklearn.preprocessing import scale
-from sklearn.linear_model import Ridge
 rng = np.random.RandomState(1337)  # To make this example reproducible
 
 ###############################################################################
@@ -190,7 +189,7 @@ alphas = np.logspace(-4, 0, 10)
 scores = np.zeros_like(alphas)
 models = []
 for ii, alpha in enumerate(alphas):
-    rf = ReceptiveField(tmin, tmax, sfreq, freqs, estimator=Ridge(alpha))
+    rf = ReceptiveField(tmin, tmax, sfreq, freqs, estimator=alpha)
     rf.fit(X_train, y_train)
 
     # Now make predictions about the model output, given input stimuli.
@@ -231,11 +230,11 @@ mne.viz.tight_layout()
 # ---------------------------------------
 #
 # Above we fit a :class:`mne.decoding.ReceptiveField` model for one of many
-# values for the "ridge" parameter. Here we will plot the model score as well
-# as the model coefficients for each value, in order to visualize how
-# coefficients change with different levels of regularization. These issues
-# as well as the STRF pipeline are described in detail in [1]_, [2]_, and
-# [4]_.
+# values for the ridge regularization parameter. Here we will plot the model
+# score as well as the model coefficients for each value, in order to
+# visualize how coefficients change with different levels of regularization.
+# These issues as well as the STRF pipeline are described in detail
+# in [1]_, [2]_, and [4]_.
 
 # Plot model score for each ridge parameter
 fig = plt.figure(figsize=(20, 4))
