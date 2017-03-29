@@ -80,7 +80,7 @@ epochs = EpochsArray(data=data, info=info, events=events, event_id=event_id,
 # frequency resolution or both in order to get a reduction in variance.
 
 freqs = np.arange(5., 100., 3.)
-vmin, vmax = -3., 3.
+vmin, vmax = -3., 3.  # Define our color limits.
 
 ###############################################################################
 # **(1) Least smoothing (most variance/background fluctuations).**
