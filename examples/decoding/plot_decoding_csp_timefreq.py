@@ -91,7 +91,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
 # Plot results
 
 # Set up time frequency object
-av_tfr = AverageTFR(create_info(['freq'], sfreq), scores[None, :],
+av_tfr = AverageTFR(create_info(['freq'], sfreq), scores[np.newaxis, :],
                     centered_w_times, freqs[1:], 1)
 
 chance = np.mean(y)  # set chance level to white in the plot
