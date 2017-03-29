@@ -5,6 +5,7 @@ from . import visual_92_categories
 from . import eegbci
 from . import megsim
 from . import misc
+from . import mtrf
 from . import sample
 from . import somato
 from . import multimodal

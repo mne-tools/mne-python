@@ -16,6 +16,7 @@ dependencies:
     - "~/mne_data/MNE-brainstorm-data"
     - "~/mne_data/MEGSIM"
     - "~/mne_data/MNE-eegbci-data"
+    - "~/mne_data/mTRF_1.5"
     - "~/mne-tools.github.io"
   # Various dependencies
   pre:
@@ -100,6 +101,9 @@ dependencies:
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*mtrf.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.mtrf.data_path(update_path=True))";
             fi;
           fi;
         done;

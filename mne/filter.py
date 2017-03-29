@@ -1384,7 +1384,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
 
 
 @verbose
-def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
+def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
              verbose=None):
     """Resample an array.
 

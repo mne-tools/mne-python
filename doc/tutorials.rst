@@ -157,12 +157,13 @@ For further reading:
 
   .. raw:: html
 
-    <h2>Multivariate Statistics - Decoding</h2>
+    <h2>Decoding and Encoding</h2>
 
   .. toctree::
     :maxdepth: 1
 
     auto_tutorials/plot_sensors_decoding.rst
+    auto_tutorials/plot_receptive_field.rst
 
 .. container:: span box
 

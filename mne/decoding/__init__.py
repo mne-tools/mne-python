@@ -9,3 +9,4 @@ from .csp import CSP
 from .ems import compute_ems, EMS
 from .time_gen import GeneralizationAcrossTime, TimeDecoding
 from .time_frequency import TimeFrequency
+from .receptive_field import ReceptiveField
