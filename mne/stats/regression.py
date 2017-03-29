@@ -171,10 +171,11 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     events : ndarray of int, shape (n_events, 3)
         An array where the first column corresponds to samples in raw
         and the last to integer codes in event_id.
-    event_id : dict
+    event_id : dict | None
         As in Epochs; a dictionary where the values may be integers or
         iterables of integers, corresponding to the 3rd column of
         events, and the keys are condition names.
+        If None, uses all events in the events array.
     tmin : float | dict
         If float, gives the lower limit (in seconds) for the time window for
         which all event types' effects are estimated. If a dict, can be used to
@@ -224,8 +225,11 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     solver : str | function
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
-        matrix b; or a string. If str, must be ``'cholesky'``, in which case
-        the solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``.
+        matrix b; or a string.
+        X is of shape (n_times, n_predictors * time_window_length).
+        y is of shape (n_channels, n_times).
+        If str, must be ``'cholesky'``, in which case the solver used is
+        ``linalg.solve(dot(X.T, X), dot(X.T, y))``.
 
     Returns
     -------
@@ -241,18 +245,28 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
            considerations. Psychophysiology, 52(2), 169-189.
     """
     if isinstance(solver, string_types):
+        if solver not in {"cholesky"}:
+            raise ValueError("No such solver: {0}".format(solver))
         if solver == 'cholesky':
             def solver(X, y):
                 a = (X.T * X).toarray()  # dot product of sparse matrices
-                return linalg.solve(a, X.T * y.T, sym_pos=True,
+                return linalg.solve(a, X.T * y, sym_pos=True,
                                     overwrite_a=True, overwrite_b=True).T
-
-        else:
-            raise ValueError("No such solver: {0}".format(solver))
+    elif callable(solver):
+        warn("When using a custom solver, note that since MNE 0.15, this "
+             "function will pass the transposed data (n_channels, n_times) "
+             "to the solver. If you are using a solver that expects a "
+             "different format, it will give wrong results and might in "
+             "extreme cases crash your session.")
+    else:
+        raise TypeError("The solver must be a str or a callable.")
 
     # build data
     data, info, events = _prepare_rerp_data(raw, events, picks=picks,
                                             decim=decim)
+
+    if event_id is None:
+        event_id = dict((str(v), v) for v in set(events[:, 2]))
 
     # build predictors
     X, conds, cond_length, tmin_s, tmax_s = _prepare_rerp_preds(
@@ -263,7 +277,11 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     X, data = _clean_rerp_input(X, data, reject, flat, decim, info, tstep)
 
     # solve linear system
-    coefs = solver(X, data)
+    coefs = solver(X, data.T)
+    if coefs.shape[0] != data.shape[0]:
+        raise ValueError("solver output has unexcepted shape. Supply a "
+                         "function that returns coefficients in the form "
+                         "(n_targets, n_features), where targets == channels.")
 
     # construct Evoked objects to be returned from output
     evokeds = _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info)
