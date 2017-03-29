@@ -17,7 +17,7 @@ from sklearn.linear_model import LogisticRegression
 import mne
 from mne.datasets import sample
 from mne.decoding import (SlidingEstimator, GeneralizingEstimator,
-                          cross_val_multiscore)
+                          cross_val_multiscore, LinearModel, get_coef)
 
 data_path = sample.data_path()
 
@@ -48,6 +48,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0.), preload=True,
                     reject=dict(grad=4000e-13, eog=150e-6), decim=2)
 
+epochs.pick_types(meg=True, exclude='bads')
+
 ###############################################################################
 # Temporal decoding
 # -----------------
@@ -56,9 +58,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 # learning model.
 
 # We will train the classifier on all left visual vs auditory trials on MEG
-data_picks = mne.pick_types(epochs.info, meg=True, exclude='bads')
+
 X = epochs.get_data()  # MEG signals: n_epochs, n_channels, n_times
-X = X[:, data_picks, :]  # take only MEG channels
 y = epochs.events[:, 2]  # target: Audio left or right
 
 clf = make_pipeline(StandardScaler(), LogisticRegression())
@@ -80,6 +81,16 @@ ax.legend()
 ax.axvline(.0, color='k', linestyle='-')
 ax.set_title('Sensor space decoding')
 plt.show()
+
+# You can retrieve the spatial filters and spatial patterns if you explicitly
+# use a LinearModel
+clf = make_pipeline(StandardScaler(), LinearModel(LogisticRegression()))
+time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc')
+time_decod.fit(X, y)
+
+coef = get_coef(time_decod, 'patterns_', inverse_transform=True)
+evoked = mne.EvokedArray(coef, epochs.info, tmin=epochs.times[0])
+evoked.plot_joint(times=np.arange(0., .500, .100), title='patterns')
 
 ###############################################################################
 # Temporal Generalization

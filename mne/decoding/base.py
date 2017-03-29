@@ -150,6 +150,36 @@ class LinearModel(BaseEstimator):
         """
         return self.model.predict(X)
 
+    def predict_proba(self, X):
+        """Compute probablistic predictions of y from X.
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_features)
+            The data used to compute the predictions.
+
+        Returns
+        -------
+        y_pred : array, shape (n_samples, n_classes)
+            The probabilities.
+        """
+        return self.model.predict_proba(X)
+
+    def decision_function(self, X):
+        """Compute distance from the decision function of y from X.
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_features)
+            The data used to compute the predictions.
+
+        Returns
+        -------
+        y_pred : array, shape (n_samples, n_classes)
+            The distances.
+        """
+        return self.model.decision_function(X)
+
     def score(self, X, y):
         """Score the linear model computed on the given test data.
 
@@ -300,7 +330,7 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
         coef = list()
         for est in estimator.estimators_:
             coef.append(get_coef(est, attr, inverse_transform))
-        return np.array(coef)
+        return np.transpose(coef)
 
     else:
         # Get the coefficients of the last estimator in case of nested pipeline
