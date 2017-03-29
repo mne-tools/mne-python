@@ -366,10 +366,15 @@ def test_split_files():
 
     assert_allclose(raw_1.info['buffer_size_sec'], 10., atol=1e-2)  # samp rate
     split_fname = op.join(tempdir, 'split_raw.fif')
+    raw_1.annotations = Annotations([2.], [5.5], 'test')
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
 
     raw_2 = read_raw_fif(split_fname)
     assert_allclose(raw_2.info['buffer_size_sec'], 1., atol=1e-2)  # samp rate
+    assert_array_equal(raw_1.annotations.onset, raw_2.annotations.onset)
+    assert_array_equal(raw_1.annotations.duration, raw_2.annotations.duration)
+    assert_array_equal(raw_1.annotations.description,
+                       raw_2.annotations.description)
     data_1, times_1 = raw_1[:, :]
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)

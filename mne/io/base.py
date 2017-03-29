@@ -708,6 +708,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             annotations.description = np.delete(annotations.description,
                                                 omit_ind)
 
+            # If all annotations are outside the data range, we set them to
+            # None. Otherwise this causes problems when saving and reading.
+            if len(annotations.onset) == 0:
+                annotations = None
         self._annotations = annotations
 
     def __del__(self):  # noqa: D105
