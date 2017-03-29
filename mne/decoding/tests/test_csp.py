@@ -10,7 +10,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
-from mne.decoding.csp import CSP, _ajd_pham
+from mne.decoding.csp import CSP, _ajd_pham, SPoC
 from mne.utils import requires_sklearn, slow_test
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -201,3 +201,25 @@ def test_ajd():
                 [0.694689013234610, 0.775690358505945, -1.162043086446043],
                 [-0.592603135588066, -0.598996925696260, 1.009550086271192]]
     assert_array_almost_equal(V, V_matlab)
+
+
+def test_spoc():
+    X = np.random.randn(10, 10, 20)
+    y = np.random.randn(10)
+
+    spoc = SPoC(n_components=4)
+    spoc.fit(X, y)
+    Xt = spoc.transform(X)
+    assert_array_equal(Xt.shape, [10, 4])
+    spoc = SPoC(n_components=4, transform_into='csp_space')
+    spoc.fit(X, y)
+    Xt = spoc.transform(X)
+    assert_array_equal(Xt.shape, [10, 4, 20])
+    assert_array_equal(spoc.filters_.shape, [10, 10])
+    assert_array_equal(spoc.patterns_.shape, [10, 10])
+
+    # check y
+    assert_raises(ValueError, spoc.fit, X, y * 0)
+
+    # Check that doesn't take CSP-spcific input
+    assert_raises(TypeError, SPoC, cov_est='epoch')

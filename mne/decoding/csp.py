@@ -736,7 +736,10 @@ class SPoC(CSP):
                              % type(X))
         self._check_Xy(X, y)
 
-        # Code direclty copied from pyRiemann, by Alexandre Barachant
+        if len(set(y)) < 2:
+            raise ValueError("y must have at least two distinct values.")
+
+        # The following code is direclty copied from pyRiemann
 
         # Normalize target variable
         target = np.float64(y.copy())
@@ -744,9 +747,6 @@ class SPoC(CSP):
         target /= target.std()
 
         n_epochs, n_channels = X.shape[:2]
-
-        if len(set(y)) < 2:
-            raise ValueError("y must have at least two distinct values.")
 
         covs = np.zeros((n_epochs, n_channels, n_channels))
         for ii, epoch in enumerate(X):
