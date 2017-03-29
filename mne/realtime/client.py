@@ -13,6 +13,7 @@ import threading
 
 import numpy as np
 
+from .base_client import _BaseClient, _buffer_recv_worker
 from ..utils import logger, verbose
 from ..io.constants import FIFF
 from ..io.meas_info import read_meas_info
