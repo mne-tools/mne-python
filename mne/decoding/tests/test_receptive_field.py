@@ -99,7 +99,7 @@ def test_receptive_field():
                               y_pred.squeeze()[rf.keep_samples_], 2)
     scores = rf.score(X, y)
     assert_true(scores > .99)
-    assert_array_almost_equal(np.hstack(rf.coef_), w, 2)
+    assert_array_almost_equal(rf.coef_.reshape(-1, order='F'), w, 2)
     # Make sure different input shapes work
     rf.fit(X[:, np.newaxis:, ], y[:, np.newaxis])
     rf.fit(X, y[:, np.newaxis])
