@@ -106,7 +106,15 @@ codespell-error:  # running on travis
 	@codespell -i 0 -q 7 -S $(CODESPELL_SKIPS) -D ./dictionary.txt $(CODESPELL_DIRS)
 
 pydocstyle:
+	@echo "Running pydocstyle"
 	@pydocstyle
+
+docstring:
+	@echo "Running docstring tests"
+	@$(NOSETESTS) mne/tests/test_docstring_parameters.py
+
+pep:
+	@$(MAKE) -k flake pydocstyle docstring codespell-error
 
 manpages:
 	@echo "I: generating manpages"
