@@ -185,9 +185,10 @@ power = tfr_array_morlet(epochs.get_data(), sfreq=epochs.info['sfreq'],
 # Baseline the output
 rescale(power, epochs.times, (0., 0.1), mode='mean', copy=False)
 fig, ax = plt.subplots()
-mesh = ax.pcolormesh(epochs.times, freqs, power[0],
+mesh = ax.pcolormesh(epochs.times * 1000, freqs, power[0],
                      cmap='RdBu_r', vmin=-1., vmax=3.)
 ax.set_title('TFR calculated on a numpy array')
+ax.set(ylim=freqs[[0, -1]], xlabel='Time (ms)')
 fig.colorbar(mesh)
 plt.tight_layout()
 
