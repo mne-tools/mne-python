@@ -17,7 +17,7 @@ from sklearn.linear_model import LogisticRegression
 
 import mne
 from mne.datasets import sample
-from mne.decoding import (SearchLight, GeneralizationLight,
+from mne.decoding import (SlidingEstimator, GeneralizingEstimator,
                           cross_val_multiscore)
 
 data_path = sample.data_path()
@@ -64,7 +64,7 @@ y = epochs.events[:, 2]  # target: Audio left or right
 
 clf = make_pipeline(StandardScaler(), LogisticRegression())
 
-sl = SearchLight(clf, n_jobs=1, scoring='roc_auc')
+sl = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc')
 
 scores = cross_val_multiscore(sl, X, y, cv=5, n_jobs=1)
 
@@ -92,7 +92,7 @@ plt.show()
 # generalizes to any other time point.
 
 # define the temporal generalization object
-time_gen = GeneralizationLight(clf, n_jobs=1, scoring='roc_auc')
+time_gen = GeneralizingEstimator(clf, n_jobs=1, scoring='roc_auc')
 
 scores = cross_val_multiscore(time_gen, X, y, cv=5, n_jobs=1)
 

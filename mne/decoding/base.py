@@ -295,7 +295,7 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
        vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
        96-110. doi:10.1016/j.neuroimage.2013.10.067.
     """
-    # If searchlight, loop across estimators
+    # If SlidingEstimator, loop across estimators
     if hasattr(estimator, 'estimators_'):
         coef = list()
         for est in estimator.estimators_:

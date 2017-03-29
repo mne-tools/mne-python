@@ -20,12 +20,11 @@ Changelog
 ~~~~~~~~~
 
 
-<<<<<<< HEAD
     - :meth:`mne.channels.Layout.plot` and :func:`mne.viz.plot_layout` now allows plotting a subset of channels with ``picks`` argument by `Jaakko Leppakangas`_
 
     - Add .bvef extension (BrainVision Electrodes File) to :func:`mne.channels.read_montage` by `Jean-Baptiste Schiratti`_
 
-    - Add :func:`mne.decoding.cross_val_multiscore` to allow scoring of multiple tasks, typically used with :class:`mne.decoding.SearchLight`, by `Jean-Remi King`_
+    - Add :func:`mne.decoding.cross_val_multiscore` to allow scoring of multiple tasks, typically used with :class:`mne.decoding.SlidingEstimator`, by `Jean-Remi King`_
 
     - Add :class:`mne.decoding.ReceptiveField` module for modeling electrode response to input features by `Chris Holdgraf`_
 
@@ -39,15 +38,13 @@ BUG
 API
 ~~~
 
-<<<<<<< HEAD
     - Make the goodness of fit (GOF) of the dipoles returned by :func:`mne.beamformer.rap_music` consistent with the GOF of dipoles returned by :func:`mne.fit_dipole` by `Alex Gramfort`_.
-=======
-    - :class:`mne.decoding.SearchLight` will now replace `mne.decoding.TimeDecoding` to make it generic and fully compatible with scikit-learn, by `Jean-Remi King`_ and `Alexandre Gramfort`_
 
-    - :class:`mne.decoding.GeneralizationLight` will now replace `mne.decoding.GeneralizationAcrossTime` to make it generic and fully compatible with scikit-learn, by `Jean-Remi King`_ and `Alexandre Gramfort`_
+    - :class:`mne.decoding.SlidingEstimator` will now replace `mne.decoding.TimeDecoding` to make it generic and fully compatible with scikit-learn, by `Jean-Remi King`_ and `Alexandre Gramfort`_
+
+    - :class:`mne.decoding.GeneralizingEstimator` will now replace `mne.decoding.GeneralizationAcrossTime` to make it generic and fully compatible with scikit-learn, by `Jean-Remi King`_ and `Alexandre Gramfort`_
 
     - :func:`mne.viz.decoding.plot_gat_times`, :func:`mne.viz.decoding.plot_gat_matrix` are now deprecated. Use matplotlib instead as shown in the examples, by `Jean-Remi King`_ and `Alexandre Gramfort`_
->>>>>>> whats new
 
 
 .. _changes_0_14:

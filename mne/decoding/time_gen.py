@@ -873,7 +873,7 @@ def _predict(X, estimators, vectorize_times, predict_method):
 
 
 @deprecated('GeneralizationAcrossTime is deprecated and will be removed in '
-            ' 0.15, use GeneralizationLight instead.')
+            ' 0.15, use GeneralizingEstimator instead.')
 class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     """Generalize across time and conditions.
 
@@ -1206,7 +1206,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
 
 
 @deprecated('TimeDecoding is deprecated and will be removed in '
-            ' 0.15, use SearchLight instead.')
+            ' 0.15, use SlidingEstimator instead.')
 class TimeDecoding(_GeneralizationAcrossTime):
     """Train and test a series of classifiers at each time point.
 

@@ -127,14 +127,14 @@ Decoding over time
 
 This strategy consists in fitting a multivariate predictive model on each
 time instant and evaluating its performance at the same instant on new
-epochs. The :class:`decoding.SearchLight` will take as input a
+epochs. The :class:`decoding.SlidingEstimator` will take as input a
 pair of features :math:`X` and targets :math:`y`, where :math:`X` has
 more than 2 dimensions. For decoding over time the data :math:`X`
 is the epochs data of shape n_epochs x n_channels x n_times. As the
 last dimension of :math:`X` is the time an estimator will be fit
 on every time instant.
 
-This approach is analogous to searchlight-based approaches in fMRI,
+This approach is analogous to SlidingEstimator-based approaches in fMRI,
 where here we are interested in when one can discriminate experimental
 conditions and therefore figure out when the effect of interest happens.
 
@@ -158,10 +158,10 @@ correspond to decoding the patterns of brain activity recorded at distinct time
 instants.
 
 The object to for Temporal Generalization is
-:class:`decoding.GeneralizationLight`. It expects as input :math:`X` and
-:math:`y` (similarly to :class:`decoding.SearchLight`) but, when generate
+:class:`decoding.GeneralizingEstimator`. It expects as input :math:`X` and
+:math:`y` (similarly to :class:`decoding.SlidingEstimator`) but, when generate
 predictions from each model for all time instants. The class
-:class:`decoding.GeneralizationLight` is generic and will treat the last
+:class:`decoding.GeneralizingEstimator` is generic and will treat the last
 dimension as the one to be used for generalization testing. For convenience,
 here, we refer to it different tasks. If :math:`X` corresponds to epochs data
 then the last dimension is time.

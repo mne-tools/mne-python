@@ -62,8 +62,8 @@ Classes
    decoding.Scale
    decoding.ReceptiveField
    decoding.Scaler
-   decoding.SearchLight
-   decoding.GeneralizationLight
+   decoding.SlidingEstimator
+   decoding.GeneralizingEstimator
    realtime.RtEpochs
    realtime.RtClient
    realtime.MockRtClient
@@ -1116,12 +1116,11 @@ Classes:
    TimeFrequency
    UnsupervisedSpatialFilter
    Vectorizer
-<<<<<<< HEAD
    ReceptiveField
-=======
    SearchLight
    GeneralizationLight
->>>>>>> remove some refs
+   SlidingEstimator
+   GeneralizingEstimator
 
 Functions:
 
