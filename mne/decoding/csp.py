@@ -754,7 +754,7 @@ class SPoC(CSP):
 
         covs = np.zeros((n_epochs, n_channels, n_channels))
         for ii, epoch in enumerate(X):
-            cov = np.cov(epoch)
+            cov = np.cov(epoch, bias=True)
             cov = _regularized_covariance(cov, reg=self.reg)
             # normalize by trace and stack
             covs[ii] = cov / np.trace(cov)
