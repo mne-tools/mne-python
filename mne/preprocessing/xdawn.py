@@ -100,7 +100,7 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq, solver='pinv'):
 
     # shape data correctly (split by class) and return
     evoked_data = np.asarray(np.hsplit(coefs, len(classes)))
-    return evoked_data, np.vsplit(X.toarray().T, len(classes))
+    return evoked_data, np.vsplit(X.T, len(classes))
 
 
 def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
@@ -191,9 +191,10 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
 
     filters = list()
     patterns = list()
+    _fast_dot = _get_fast_dot()
     for evo, toeplitz in zip(evokeds, toeplitzs):
         # Estimate covariance matrix of the prototype response
-        evo = np.dot(evo, toeplitz)
+        evo = _fast_dot(evo, toeplitz)
         evo_cov = np.matrix(_regularized_covariance(evo, reg))
 
         # Fit spatial filters
