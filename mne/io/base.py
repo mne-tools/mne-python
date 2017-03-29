@@ -1559,10 +1559,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # slice and copy to avoid the reference to large array
             self._data = self._data[:, smin:smax + 1].copy()
         self._update_times()
+
         if self.annotations is not None:
             annotations = self.annotations
             annotations.onset -= tmin
             self.annotations = annotations
+
+            # If all annotations are outside the data range, we set them to
+            # None. Otherwise this causes problems when saving and reading.
+            if len(self.annotations.onset) == 0:
+                self.annotations = None
         return self
 
     @verbose

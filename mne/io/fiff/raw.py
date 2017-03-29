@@ -100,8 +100,8 @@ class Raw(BaseRaw):
         # combine annotations
         self.annotations = raws[0].annotations
         if any([r.annotations for r in raws[1:]]):
-            first_samps = list()
-            last_samps = list()
+            first_samps = self._first_samps
+            last_samps = self._last_samps
             for r in raws:
                 self.annotations = _combine_annotations((self.annotations,
                                                          r.annotations),
