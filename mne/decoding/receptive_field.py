@@ -163,7 +163,7 @@ class ReceptiveField(BaseEstimator):
         self.coef_ = coefs
         return self
 
-    def predict(self, X, y=None):
+    def predict(self, X):
         """Generate predictions with a receptive field.
 
         Parameters
@@ -178,7 +178,7 @@ class ReceptiveField(BaseEstimator):
         """
         if not hasattr(self, 'delays_'):
             raise ValueError('Estimator has not been fit yet.')
-        X, y = self._check_dimensions(X, y, predict=True)
+        X, _ = self._check_dimensions(X, None, predict=True)
         X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
                                    newaxis=X.ndim)
         # Convert nans to 0 since scikit-learn will error otherwise
