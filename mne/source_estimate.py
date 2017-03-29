@@ -66,7 +66,7 @@ def _read_stc(filename):
     offset += num_bytes
 
     if (vertices_n and  # vertices_n can be 0 (empty stc)
-            ((len(buf) / 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0):
+            ((len(buf) // 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0):
         raise ValueError('incorrect stc file size')
 
     # read the data matrix
