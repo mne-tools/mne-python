@@ -1031,12 +1031,12 @@ class ClickableImage(object):
         self.ax = self.fig.add_subplot(111)
         self.ymax = self.imdata.shape[0]
         self.xmax = self.imdata.shape[1]
-        self.im = self.ax.imshow(imdata, aspect='auto',
+        self.im = self.ax.imshow(imdata,
                                  extent=(0, self.xmax, 0, self.ymax),
                                  picker=True, **kwargs)
         self.ax.axis('off')
         self.fig.canvas.mpl_connect('pick_event', self.onclick)
-        plt_show()
+        plt_show(block=True)
 
     def onclick(self, event):
         """Handle Mouse clicks.
@@ -1058,6 +1058,9 @@ class ClickableImage(object):
             Arguments are passed to imshow in displaying the bg image.
         """
         from matplotlib.pyplot import subplots
+        if len(self.coords) == 0:
+            raise ValueError('No coordinates found, make sure you click '
+                             'on the image that is first shown.')
         f, ax = subplots()
         ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
         xlim, ylim = [ax.get_xlim(), ax.get_ylim()]
