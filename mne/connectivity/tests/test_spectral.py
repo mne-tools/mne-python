@@ -82,7 +82,6 @@ def test_spectral_connectivity():
 
     for mode in modes:
         for method in methods:
-            print(mode, method)
             if method == 'coh' and mode == 'multitaper':
                 # only check adaptive estimation for coh to reduce test time
                 check_adaptive = [False, True]

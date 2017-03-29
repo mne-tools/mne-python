@@ -1,15 +1,16 @@
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
 from functools import partial
 from inspect import getmembers
-from inspect import getargspec
 
 import numpy as np
 from scipy.fftpack import fftfreq
 
 from .utils import check_indices
+from ..fixes import _get_args
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
 from ..epochs import BaseEpochs
@@ -445,7 +446,7 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
     elif mode in ('cwt_morlet',):  # reminder to add alternative TFR methods
         for i_block, i in enumerate(range(0, n_cons, block_size)):
             con_idx = slice(i, i + block_size)
-            # XXX checkout conversion to slices here / index tricks
+            # this codes can be very slow
             csd = (x_cwt[idx_map[0][con_idx]] *
                    x_cwt[idx_map[1][con_idx]].conjugate())
 
@@ -534,7 +535,7 @@ def _check_estimators(method, mode):
             raise ValueError('%s is not a valid connectivity method' %
                              this_method)
         else:
-            # custom class
+            # support for custom class
             method_valid, msg = _check_method(this_method)
             if not method_valid:
                 raise ValueError('The supplied connectivity method does '
@@ -542,7 +543,7 @@ def _check_estimators(method, mode):
             con_method_types.append(this_method)
 
     # determine how many arguments the compute_con_function needs
-    n_comp_args = [len(getargspec(mtype.compute_con).args)
+    n_comp_args = [len(_get_args(mtype.compute_con))
                    for mtype in con_method_types]
 
     # we currently only support 3 arguments
@@ -647,9 +648,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         number of time points as stc_*. The array-like object can also
         be a list/generator of array, shape =(n_signals, n_times),
         or a list/generator of SourceEstimate or VolSourceEstimate objects.
-    method : string | list of string | callable
-        Connectivity measure(s) to compute. If callable, it takes 3 or 5
-        parameters.
+    method : string | list of string
+        Connectivity measure(s) to compute.
     indices : tuple of arrays | None
         Two arrays with indices of connections for which to compute
         connectivity. If None, all connections are computed.
