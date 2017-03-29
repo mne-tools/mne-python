@@ -8,7 +8,7 @@ from numpy.testing import assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal
 
 from mne.datasets import testing
-from mne.utils import _TempDir, requires_mayavi
+from mne.utils import _TempDir, requires_mayavi, run_tests_if_main
 
 sample_path = testing.data_path(download=False)
 subjects_dir = os.path.join(sample_path, 'subjects')
@@ -35,7 +35,7 @@ def test_mri_model():
 
     bem_fname = os.path.basename(model.bem.file)
     assert_false(model.can_reset)
-    assert_equal(bem_fname, 'lh.seghead')
+    assert_equal(bem_fname, 'sample-head-dense.fif')
 
     model.save(tgt_fname)
     assert_equal(model.fid_file, tgt_fname)
@@ -65,3 +65,6 @@ def test_mri_model():
     assert_true(model.can_reset)
     model.reset = True
     assert_array_equal(model.nasion, [[0, 1, 0]])
+
+
+run_tests_if_main()

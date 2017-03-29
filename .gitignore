@@ -48,6 +48,7 @@ doc/generated/
 doc/auto_examples/
 doc/auto_tutorials/
 doc/modules/generated/
+doc/sphinxext/cachedir
 pip-log.txt
 .coverage
 tags

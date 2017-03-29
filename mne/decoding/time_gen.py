@@ -214,6 +214,13 @@ class _GeneralizationAcrossTime(object):
                     'When predict_mode = "cross-validation", the training '
                     'and predicting cv schemes must be identical.')
 
+            # Check that cv is a partition: i.e. that each tested sample may
+            # have more than one prediction, such as with ShuffleSplit.
+            test_idx = [ii for _, test in self._cv_splits for ii in test]
+            if sum([sum(np.array(test_idx) == idx) > 1 for idx in test_idx]):
+                raise ValueError('cv must be a partition if predict_mode is '
+                                 '"cross-validation".')
+
         # Clean attributes
         for att in ['y_pred_', 'test_times_', 'scores_', 'scorer_', 'y_true_']:
             if hasattr(self, att):
@@ -1459,7 +1466,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     def plot(self, title=None, xmin=None, xmax=None, ymin=None, ymax=None,
              ax=None, show=True, color=None, xlabel=True, ylabel=True,
              legend=True, chance=True, label='Classif. score'):
-        """Plotting function.
+        """Plot the decoding results.
 
         Predict each classifier. If multiple classifiers are passed, average
         prediction across all classifiers to result in a single prediction per

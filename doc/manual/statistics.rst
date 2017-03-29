@@ -31,13 +31,13 @@ Models
 - :func:`mne.stats.ttest_1samp_no_p` is an optimized version of the one sample
   t-test provided by scipy. It is used by default for contrast enhancement in
   :func:`mne.stats.permutation_cluster_1samp_test` and
-  :func:`mne.stats.spatio_temporal_permutation_cluster_1samp_test`.
+  :func:`mne.stats.spatio_temporal_cluster_1samp_test`.
 
-- :func:`mne.stats.parametric.f_oneway` is an optimized version of the F-test
+- :func:`mne.stats.f_oneway` is an optimized version of the F-test
   for independent samples provided by scipy.
   It can be used in the context of non-paramteric permutation tests to
   compute various F-contrasts. It is used by default for contrast enhancement in
-  :func:`mne.stats.spatio_temporal_permutation_cluster_test` and
+  :func:`mne.stats.spatio_temporal_cluster_test` and
   :func:`mne.stats.permutation_cluster_test`.
 
 
@@ -85,9 +85,9 @@ and clustering connectivity prior, i.e., assumptions about the grouping and neig
 
 - :func:`mne.stats.permutation_cluster_test` supports F-contrasts with spatial prior.
 
-- :func:`mne.stats.spatio_temporal_permutation_cluster_1samp_test` supports paired contrasts without spatial prior.
+- :func:`mne.stats.spatio_temporal_cluster_1samp_test` supports paired contrasts without spatial prior.
 
-- :func:`mne.stats.spatio_temporal_permutation_cluster_test` supports F-contrasts without spatial prior.
+- :func:`mne.stats.spatio_temporal_cluster_test` supports F-contrasts without spatial prior.
 
 Using the TFCE option observation- instead of cluster-wise hypothesis testing can be realized.
 

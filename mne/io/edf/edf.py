@@ -14,14 +14,14 @@ import numpy as np
 
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
-from ..base import _BaseRaw, _check_update_montage
+from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info
 from ..constants import FIFF
 from ...filter import resample
 from ...externals.six.moves import zip
 
 
-class RawEDF(_BaseRaw):
+class RawEDF(BaseRaw):
     """Raw object from EDF, EDF+, BDF file.
 
     Parameters
@@ -51,6 +51,9 @@ class RawEDF(_BaseRaw):
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
+    exclude : list of str
+        Channel names to exclude. This can help when reading data with
+        different sampling rates to avoid unnecessary resampling.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -58,7 +61,8 @@ class RawEDF(_BaseRaw):
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -67,13 +71,12 @@ class RawEDF(_BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel=-1, annot=None, annotmap=None,
+                 stim_channel=-1, annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):  # noqa: D102
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        info, edf_info = _get_edf_info(input_fname, stim_channel,
-                                       annot, annotmap,
-                                       eog, misc, preload)
+        info, edf_info = _get_edf_info(input_fname, stim_channel, annot,
+                                       annotmap, eog, misc, exclude, preload)
         logger.info('Creating Raw.info structure...')
         _check_update_montage(info, montage)
 
@@ -99,16 +102,16 @@ class RawEDF(_BaseRaw):
             # and for efficiency we want to be able to combine mult and cals
             # so proj support will have to wait until this is resolved
             raise NotImplementedError('mult is not supported yet')
+        exclude = self._raw_extras[fi]['exclude']
         sel = np.arange(self.info['nchan'])[idx]
 
         n_samps = self._raw_extras[fi]['n_samps']
         buf_len = int(self._raw_extras[fi]['max_samp'])
         sfreq = self.info['sfreq']
-        n_chan = self.info['nchan']
         data_size = self._raw_extras[fi]['data_size']
         data_offset = self._raw_extras[fi]['data_offset']
         stim_channel = self._raw_extras[fi]['stim_channel']
-        tal_channel = self._raw_extras[fi]['tal_channel']
+        tal_channels = self._raw_extras[fi]['tal_channel']
         annot = self._raw_extras[fi]['annot']
         annotmap = self._raw_extras[fi]['annotmap']
         subtype = self._raw_extras[fi]['subtype']
@@ -125,71 +128,93 @@ class RawEDF(_BaseRaw):
         digital_min = self._raw_extras[fi]['digital_min']
 
         offsets = np.atleast_2d(physical_min - (digital_min * gains)).T
-        if tal_channel is not None:
-            offsets[tal_channel] = 0
+        if tal_channels is not None:
+            for tal_channel in tal_channels:
+                offsets[tal_channel] = 0
 
+        # This is needed to rearrange the indices to correspond to correct
+        # chunks on the file if excluded channels exist:
+        selection = sel.copy()
+        idx_map = np.argsort(selection)
+        for ei in sorted(exclude):
+            for ii, si in enumerate(sorted(selection)):
+                if si >= ei:
+                    selection[idx_map[ii]] += 1
+            if tal_channels is not None:
+                tal_channels = [tc + 1 if tc >= ei else tc for tc in
+                                sorted(tal_channels)]
+
+        # We could read this one EDF block at a time, which would be this:
+        ch_offsets = np.cumsum(np.concatenate([[0], n_samps]))
         block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
-        read_size = len(r_lims) * buf_len
+        # But to speed it up, we really need to read multiple blocks at once,
+        # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
+        # Let's do ~10 MB chunks:
+        n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * data_size), 1)
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
             start_offset = (data_offset +
-                            block_start_idx * buf_len * n_chan * data_size)
-            ch_offsets = np.cumsum(np.concatenate([[0], n_samps * data_size]))
-            this_data = np.empty((len(sel), buf_len))
-            for bi in range(len(r_lims)):
-                block_offset = bi * ch_offsets[-1]
-                d_sidx, d_eidx = d_lims[bi]
-                r_sidx, r_eidx = r_lims[bi]
-                n_buf_samp = r_eidx - r_sidx
-                for ii, ci in enumerate(sel):
-                    n_samp = n_samps[ci]
-                    # bdf data: 24bit data
-                    fid.seek(start_offset + block_offset + ch_offsets[ci], 0)
-                    if n_samp == buf_len:
-                        # use faster version with skips built in
-                        fid.seek(r_sidx * data_size, 1)
-                        ch_data = _read_ch(fid, subtype, n_buf_samp, data_size)
-                    else:
-                        # read in all the data and triage appropriately
-                        ch_data = _read_ch(fid, subtype, n_samp, data_size)
-                        if ci == tal_channel:
-                            # don't resample tal_channel,
-                            # pad with zeros instead.
-                            n_missing = int(buf_len - n_samp)
-                            ch_data = np.hstack([ch_data, [0] * n_missing])
-                            ch_data = ch_data[r_sidx:r_eidx]
+                            block_start_idx * ch_offsets[-1] * data_size)
+            for ai in range(0, len(r_lims), n_per):
+                block_offset = ai * ch_offsets[-1] * data_size
+                n_read = min(len(r_lims) - ai, n_per)
+                fid.seek(start_offset + block_offset, 0)
+                # Read and reshape to (n_chunks_read, ch0_ch1_ch2_ch3...)
+                many_chunk = _read_ch(fid, subtype, ch_offsets[-1] * n_read,
+                                      data_size).reshape(n_read, -1)
+                for ii, ci in enumerate(selection):
+                    # This now has size (n_chunks_read, n_samp[ci])
+                    ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
+                    r_sidx = r_lims[ai][0]
+                    r_eidx = (buf_len * (n_read - 1) +
+                              r_lims[ai + n_read - 1][1])
+                    d_sidx = d_lims[ai][0]
+                    d_eidx = d_lims[ai + n_read - 1][1]
+                    if n_samps[ci] != buf_len:
+                        if tal_channels is not None and ci in tal_channels:
+                            # don't resample tal_channels, zero-pad instead.
+                            if n_samps[ci] < buf_len:
+                                z = np.zeros((len(ch_data),
+                                              buf_len - n_samps[ci]))
+                                ch_data = np.append(ch_data, z, -1)
+                            else:
+                                ch_data = ch_data[:, :buf_len]
                         elif ci == stim_channel:
-                            if annot and annotmap or tal_channel is not None:
-                                # don't bother with resampling the stim ch
-                                # because it gets overwritten later on.
-                                ch_data = np.zeros(n_buf_samp)
+                            if annot and annotmap or tal_channels is not None:
+                                # don't resample, it gets overwritten later
+                                ch_data = np.zeros((len(ch_data, buf_len)))
                             else:
                                 # Stim channel will be interpolated
-                                oldrange = np.linspace(0, 1, n_samp + 1, True)
-                                newrange = np.linspace(0, 1, buf_len, False)
-                                newrange = newrange[r_sidx:r_eidx]
-                                ch_data = interp1d(
-                                    oldrange, np.append(ch_data, 0),
-                                    kind='zero')(newrange)
+                                old = np.linspace(0, 1, n_samps[ci] + 1, True)
+                                new = np.linspace(0, 1, buf_len, False)
+                                ch_data = np.append(
+                                    ch_data, np.zeros((len(ch_data), 1)), -1)
+                                ch_data = interp1d(old, ch_data,
+                                                   kind='zero', axis=-1)(new)
                         else:
-                            ch_data = resample(ch_data, buf_len, n_samp,
-                                               npad=0)[r_sidx:r_eidx]
-                    this_data[ii, :n_buf_samp] = ch_data
-                data[:, d_sidx:d_eidx] = this_data[:, :n_buf_samp]
+                            # XXX resampling each chunk isn't great,
+                            # it forces edge artifacts to appear at
+                            # each buffer boundary :(
+                            # it can also be very slow...
+                            ch_data = resample(
+                                ch_data, buf_len, n_samps[ci], npad=0, axis=-1)
+                    assert ch_data.shape == (len(ch_data), buf_len)
+                    data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
         data *= gains.T[sel]
         data += offsets[sel]
 
         # only try to read the stim channel if it's not None and it's
         # actually one of the requested channels
+        read_size = len(r_lims) * buf_len
         if stim_channel is not None and (sel == stim_channel).sum() > 0:
             stim_channel_idx = np.where(sel == stim_channel)[0]
             if annot and annotmap:
                 evts = _read_annot(annot, annotmap, sfreq,
                                    self._last_samps[fi])
                 data[stim_channel_idx, :] = evts[start:stop + 1]
-            elif tal_channel is not None:
-                tal_channel_idx = np.where(sel == tal_channel)[0][0]
-                evts = _parse_tal_channel(data[tal_channel_idx])
+            elif tal_channels is not None:
+                tal_channel_idx = np.intersect1d(sel, tal_channels)
+                evts = _parse_tal_channel(np.atleast_2d(data[tal_channel_idx]))
                 self._raw_extras[fi]['events'] = evts
 
                 unique_annots = sorted(set([e[2] for e in evts]))
@@ -205,7 +230,7 @@ class RawEDF(_BaseRaw):
                     if any(stim[n_start:n_stop]):
                         warn('EDF+ with overlapping events'
                              ' are not fully supported')
-                    stim[n_start:n_stop] = evid
+                    stim[n_start:n_stop] += evid
                 data[stim_channel_idx, :] = stim[start:stop]
             else:
                 # Allows support for up to 17-bit trigger values (2 ** 17 - 1)
@@ -236,7 +261,7 @@ def _parse_tal_channel(tal_channel_data):
 
     Parameters
     ----------
-    tal_channel_data : ndarray, shape = [n_samples]
+    tal_channel_data : ndarray, shape = [n_chans, n_samples]
         channel data in EDF+ TAL format
 
     Returns
@@ -250,9 +275,10 @@ def _parse_tal_channel(tal_channel_data):
     """
     # convert tal_channel to an ascii string
     tals = bytearray()
-    for s in tal_channel_data:
-        i = int(s)
-        tals.extend(np.uint8([i % 256, i // 256]))
+    for chan in tal_channel_data:
+        for s in chan:
+            i = int(s)
+            tals.extend(np.uint8([i % 256, i // 256]))
 
     regex_tal = '([+-]\d+\.?\d*)(\x15(\d+\.?\d*))?(\x14.*?)\x14\x00'
     # use of latin-1 because characters are only encoded for the first 256
@@ -270,7 +296,8 @@ def _parse_tal_channel(tal_channel_data):
     return events
 
 
-def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
+def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
+                  preload):
     """Extract all the information from the EDF+,BDF file."""
     if eog is None:
         eog = []
@@ -290,7 +317,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
                                                        fid.read(8).decode())]
         hour, minute, sec = [int(x) for x in re.findall('(\d+)',
                                                         fid.read(8).decode())]
-        date = datetime.datetime(year + 2000, month, day, hour, minute, sec)
+        century = 2000 if year < 50 else 1900
+        date = datetime.datetime(year + century, month, day, hour, minute, sec)
 
         edf_info['data_offset'] = header_nbytes = int(fid.read(8).decode())
         subtype = fid.read(44).strip().decode()[:5]
@@ -311,25 +339,32 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         nchan = int(fid.read(4).decode())
         channels = list(range(nchan))
         ch_names = [fid.read(16).strip().decode() for ch in channels]
+        exclude = [ch_names.index(idx) for idx in exclude]
         for ch in channels:
             fid.read(80)  # transducer
         units = [fid.read(8).strip().decode() for ch in channels]
+        edf_info['units'] = list()
+        edf_info['exclude'] = exclude
+        include = list()
         for i, unit in enumerate(units):
+            if i in exclude:
+                continue
             if unit == 'uV':
-                units[i] = 1e-6
+                edf_info['units'].append(1e-6)
             else:
-                units[i] = 1
-        edf_info['units'] = units
+                edf_info['units'].append(1)
+            include.append(i)
+        ch_names = [ch_names[idx] for idx in include]
         physical_min = np.array([float(fid.read(8).decode())
-                                 for ch in channels])
+                                 for ch in channels])[include]
         edf_info['physical_min'] = physical_min
         physical_max = np.array([float(fid.read(8).decode())
-                                 for ch in channels])
+                                 for ch in channels])[include]
         digital_min = np.array([float(fid.read(8).decode())
-                                for ch in channels])
+                                for ch in channels])[include]
         edf_info['digital_min'] = digital_min
         digital_max = np.array([float(fid.read(8).decode())
-                                for ch in channels])
+                                for ch in channels])[include]
         prefiltering = [fid.read(80).strip().decode() for ch in channels][:-1]
         highpass = np.ravel([re.findall('HP:\s+(\w+)', filt)
                              for filt in prefiltering])
@@ -337,8 +372,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
                             for filt in prefiltering])
 
         # number of samples per record
-        n_samps = np.array([int(fid.read(8).decode()) for ch in channels])
+        n_samps = np.array([int(fid.read(8).decode()) for ch
+                            in channels])
         edf_info['n_samps'] = n_samps
+        n_samps = n_samps[include]
 
         fid.read(32 * nchan).decode()  # reserved
         assert fid.tell() == header_nbytes
@@ -356,17 +393,25 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
     chs = list()
 
     tal_ch_name = 'EDF Annotations'
-    if tal_ch_name in ch_names:
-        tal_channel = ch_names.index(tal_ch_name)
+    tal_chs = np.where(np.array(ch_names) == tal_ch_name)[0]
+    if len(tal_chs) > 0:
+        if len(tal_chs) > 1:
+            warn('Channel names are not unique, found duplicates for: %s. '
+                 'Adding running numbers to duplicate channel names.'
+                 % tal_ch_name)
+        for idx, tal_ch in enumerate(tal_chs, 1):
+            ch_names[tal_ch] = ch_names[tal_ch] + '-%s' % idx
+        tal_channel = tal_chs
     else:
         tal_channel = None
     edf_info['tal_channel'] = tal_channel
+
     if tal_channel is not None and stim_channel is not None and not preload:
         raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
                                    ' parsed completely on loading.'
                                    ' You must set preload parameter to True.'))
     if stim_channel == -1:
-        stim_channel = nchan - 1
+        stim_channel = len(include) - 1
     pick_mask = np.ones(len(ch_names))
     for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
         ch_name, physical_range, cal = ch_info
@@ -401,10 +446,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
             pick_mask[idx] = False
             chan_info['ch_name'] = 'STI 014'
             ch_names[idx] = chan_info['ch_name']
-            units[idx] = 1
+            edf_info['units'][idx] = 1
             if isinstance(stim_channel, str):
                 stim_channel = idx
-        if tal_channel == idx:
+        if tal_channel is not None and idx in tal_channel:
             chan_info['range'] = 1
             chan_info['cal'] = 1
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
@@ -422,7 +467,6 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
     # sfreq defined as the max sampling rate of eeg
     sfreq = n_samps.max() / record_length
     info = _empty_info(sfreq)
-    info['filename'] = fname
     info['meas_date'] = calendar.timegm(date.utctimetuple())
     info['chs'] = chs
 
@@ -506,7 +550,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
 
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel=-1, annot=None, annotmap=None,
+                 stim_channel=-1, annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):
     """Reader function for EDF+, BDF conversion to FIF.
 
@@ -537,6 +581,9 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
+    exclude : list of str
+        Channel names to exclude. This can help when reading data with
+        different sampling rates to avoid unnecessary resampling.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -544,7 +591,8 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -557,4 +605,4 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     """
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
-                  preload=preload, verbose=verbose)
+                  exclude=exclude, preload=preload, verbose=verbose)

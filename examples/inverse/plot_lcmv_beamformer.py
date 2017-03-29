@@ -3,9 +3,9 @@
 Compute LCMV beamformer on evoked data
 ======================================
 
-Compute LCMV beamformer solutions on evoked dataset for three different choices
-of source orientation and stores the solutions in stc files for visualisation.
-
+Compute LCMV beamformer solutions on an evoked dataset for three different
+choices of source orientation and store the solutions in stc files for
+visualisation.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -69,7 +69,7 @@ descriptions = ['Free orientation', 'Normal orientation', 'Max-power '
 colors = ['b', 'k', 'r']
 
 for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
-    stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
+    stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05,
                pick_ori=pick_ori)
 
     # View activation time-series

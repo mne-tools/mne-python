@@ -11,10 +11,10 @@ from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
 from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
-from ..base import _BaseRaw, _check_update_montage
+from ..base import BaseRaw, _check_update_montage
 from ...utils import logger, verbose, check_version, warn
 from ...channels.montage import Montage
-from ...epochs import _BaseEpochs
+from ...epochs import BaseEpochs
 from ...event import read_events
 from ...externals.six import string_types
 
@@ -55,12 +55,14 @@ def _to_loc(ll):
     if isinstance(ll, (int, float)) or len(ll) > 0:
         return ll
     else:
-        return 0.
+        return np.nan
 
 
 def _get_info(eeg, montage, eog=()):
     """Get measurement info."""
+    from scipy import io
     info = _empty_info(sfreq=eeg.srate)
+    update_ch_names = True
 
     # add the ch_names and info['chs'][idx]['loc']
     path = None
@@ -68,21 +70,33 @@ def _get_info(eeg, montage, eog=()):
             eeg.chanlocs = [eeg.chanlocs]
 
     if len(eeg.chanlocs) > 0:
-        ch_names, pos = list(), list()
+        pos_fields = ['X', 'Y', 'Z']
+        if (isinstance(eeg.chanlocs, np.ndarray) and not isinstance(
+                eeg.chanlocs[0], io.matlab.mio5_params.mat_struct)):
+            has_pos = all(fld in eeg.chanlocs[0].dtype.names
+                          for fld in pos_fields)
+        else:
+            has_pos = all(hasattr(eeg.chanlocs[0], fld)
+                          for fld in pos_fields)
+        get_pos = has_pos and montage is None
+        pos_ch_names, ch_names, pos = list(), list(), list()
         kind = 'user_defined'
-        selection = np.arange(len(eeg.chanlocs))
-        locs_available = True
+        update_ch_names = False
         for chanloc in eeg.chanlocs:
             ch_names.append(chanloc.labels)
-            loc_x = _to_loc(chanloc.X)
-            loc_y = _to_loc(chanloc.Y)
-            loc_z = _to_loc(chanloc.Z)
-            locs = np.r_[-loc_y, loc_x, loc_z]
-            if np.unique(locs).size == 1:
-                locs_available = False
-            pos.append(locs)
-        if locs_available:
-            montage = Montage(np.array(pos), ch_names, kind, selection)
+            if get_pos:
+                loc_x = _to_loc(chanloc.X)
+                loc_y = _to_loc(chanloc.Y)
+                loc_z = _to_loc(chanloc.Z)
+                locs = np.r_[-loc_y, loc_x, loc_z]
+                if not np.any(np.isnan(locs)):
+                    pos_ch_names.append(chanloc.labels)
+                    pos.append(locs)
+        n_channels_with_pos = len(pos_ch_names)
+        info = create_info(ch_names, eeg.srate, ch_types='eeg')
+        if n_channels_with_pos > 0:
+            selection = np.arange(n_channels_with_pos)
+            montage = Montage(np.array(pos), pos_ch_names, kind, selection)
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
     else:  # if eeg.chanlocs is empty, we still need default chan names
@@ -92,7 +106,7 @@ def _get_info(eeg, montage, eog=()):
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
         _check_update_montage(info, montage, path=path,
-                              update_ch_names=True)
+                              update_ch_names=update_ch_names)
 
     info['buffer_size_sec'] = 1.  # reasonable default
     # update the info dict
@@ -153,7 +167,8 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
         preload=False will be effective only if the data is stored in a
         separate binary file.
     verbose : bool | str | int | None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
@@ -214,7 +229,8 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
     verbose : bool | str | int | None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
@@ -242,7 +258,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     return epochs
 
 
-class RawEEGLAB(_BaseRaw):
+class RawEEGLAB(BaseRaw):
     r"""Raw object from EEGLAB .set file.
 
     Parameters
@@ -283,7 +299,8 @@ class RawEEGLAB(_BaseRaw):
         a memory-mapped file which is used to store the data on the hard
         drive (slower, requires less memory).
     verbose : bool | str | int | None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
@@ -379,7 +396,7 @@ class RawEEGLAB(_BaseRaw):
                             n_channels=self.info['nchan'] - 1)
 
 
-class EpochsEEGLAB(_BaseEpochs):
+class EpochsEEGLAB(BaseEpochs):
     r"""Epochs from EEGLAB .set file.
 
     Parameters
@@ -442,7 +459,8 @@ class EpochsEEGLAB(_BaseEpochs):
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
     verbose : bool | str | int | None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
@@ -480,6 +498,8 @@ class EpochsEEGLAB(_BaseEpochs):
             ev_idx = 0
             warn_multiple_events = False
             for ep in eeg.epoch:
+                if isinstance(ep.eventtype, int):
+                    ep.eventtype = str(ep.eventtype)
                 if not isinstance(ep.eventtype, string_types):
                     event_type = '/'.join(ep.eventtype.tolist())
                     event_name.append(event_type)
@@ -528,7 +548,6 @@ class EpochsEEGLAB(_BaseEpochs):
                 raise ValueError('No matching events found for %s '
                                  '(event id %i)' % (key, val))
 
-        self._filename = input_fname
         if isinstance(eeg.data, string_types):
             basedir = op.dirname(input_fname)
             data_fname = op.join(basedir, eeg.data)
@@ -550,7 +569,10 @@ class EpochsEEGLAB(_BaseEpochs):
         super(EpochsEEGLAB, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
-            reject_tmax=reject_tmax, verbose=verbose)
+            reject_tmax=reject_tmax, filename=input_fname, verbose=verbose)
+
+        # data are preloaded but _bad_dropped is not set so we do it here:
+        self._bad_dropped = True
         logger.info('Ready.')
 
 

@@ -69,7 +69,7 @@
 .. _joblib: https://pypi.python.org/pypi/joblib
 .. _scikit-learn: http://scikit-learn.org/stable/
 .. _pysurfer: http://pysurfer.github.io/
-.. _pyDICOM: https://pypi.python.org/pypi/pydicom/ 
+.. _pyDICOM: https://pypi.python.org/pypi/pydicom/
 .. _matplotlib: http://matplotlib.org/
 .. _sphinx: http://sphinx-doc.org/
 .. _pandas: http://pandas.pydata.org/
@@ -84,6 +84,9 @@
 
 .. _FreeSurfer: http://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall/
 
-.. |emdash| unicode:: U+02014
+.. _Sphinx documentation: http://sphinx-doc.org/rest.html
+.. _sphinx gallery documentation: http://sphinx-gallery.readthedocs.org/en/latest/advanced_configuration.html
+.. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 
 .. vim: ft=rst
+

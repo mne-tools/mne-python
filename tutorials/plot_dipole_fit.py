@@ -45,8 +45,8 @@ evoked.crop(0.07, 0.08)
 # Fit a dipole
 dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 
-# Plot the result in 3D brain
-dip.plot_locations(fname_trans, 'sample', subjects_dir)
+# Plot the result in 3D brain with the MRI image.
+dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='orthoview')
 
 ###############################################################################
 # Calculate and visualise magnetic field predicted by dipole with maximum GOF

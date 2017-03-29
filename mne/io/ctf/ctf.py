@@ -12,7 +12,7 @@ import numpy as np
 from ...utils import verbose, logger
 from ...externals.six import string_types
 
-from ..base import _BaseRaw
+from ..base import BaseRaw
 from ..utils import _mult_cal_one, _blk_read_lims
 
 from .res4 import _read_res4, _make_ctf_name
@@ -43,7 +43,8 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -61,7 +62,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
     return RawCTF(directory, system_clock, preload=preload, verbose=verbose)
 
 
-class RawCTF(_BaseRaw):
+class RawCTF(BaseRaw):
     """Raw object from CTF directory.
 
     Parameters
@@ -80,7 +81,8 @@ class RawCTF(_BaseRaw):
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -131,12 +133,13 @@ class RawCTF(_BaseRaw):
             if len(fnames) == 0:
                 info['buffer_size_sec'] = \
                     sample_info['block_size'] / info['sfreq']
-                info['filename'] = directory
             fnames.append(meg4_name)
             last_samps.append(sample_info['n_samp'] - 1)
             raw_extras.append(sample_info)
+            first_samps = [0] * len(last_samps)
         super(RawCTF, self).__init__(
-            info, preload, last_samps=last_samps, filenames=fnames,
+            info, preload, first_samps=first_samps,
+            last_samps=last_samps, filenames=fnames,
             raw_extras=raw_extras, orig_format='int', verbose=verbose)
 
     @verbose
@@ -164,7 +167,7 @@ class RawCTF(_BaseRaw):
 
 
 def _get_sample_info(fname, res4, system_clock):
-    """Helper to determine the number of valid samples."""
+    """Determine the number of valid samples."""
     logger.info('Finding samples for %s: ' % (fname,))
     if CTF.SYSTEM_CLOCK_CH in res4['ch_names']:
         clock_ch = res4['ch_names'].index(CTF.SYSTEM_CLOCK_CH)

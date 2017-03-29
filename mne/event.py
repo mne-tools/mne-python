@@ -420,7 +420,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
 def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0, mask=0,
                  uint_cast=False, mask_type='not_and'):
-    """Helper function for find events."""
+    """Help find events."""
     if min_samples > 0:
         merge = int(min_samples // 1)
         if merge == min_samples:
@@ -480,7 +480,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
         events[:, 2] = event_id
         events[:, 0] -= 1
     else:
-        raise Exception("Invalid output parameter %r" % output)
+        raise ValueError("Invalid output parameter %r" % output)
 
     logger.info("%s events found" % len(events))
     logger.info("Events id: %s" % np.unique(events[:, 2]))
@@ -540,7 +540,8 @@ def find_events(raw, stim_channel=None, output='onset',
         .. versionadded:: 0.13
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -808,8 +809,8 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
     new_events : array
         The new events.
     """
-    from .io.base import _BaseRaw
-    if not isinstance(raw, _BaseRaw):
+    from .io.base import BaseRaw
+    if not isinstance(raw, BaseRaw):
         raise ValueError('Input data must be an instance of Raw, got'
                          ' %s instead.' % (type(raw)))
     if not isinstance(id, int):
@@ -915,6 +916,10 @@ class AcqParserFIF(object):
         Flatness rejection criteria from DACQ that can be used with mne.Epochs.
     acq_dict : dict
         All DACQ parameters.
+
+    See Also
+    --------
+    mne.io.Raw.acqparser : access the parser through a Raw attribute
 
     Notes
     -----

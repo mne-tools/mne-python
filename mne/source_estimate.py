@@ -33,41 +33,47 @@ from .externals.h5io import read_hdf5, write_hdf5
 
 def _read_stc(filename):
     """Aux Function."""
-    fid = open(filename, 'rb')
+    with open(filename, 'rb') as fid:
+        buf = fid.read()
 
     stc = dict()
-
-    fid.seek(0, 2)  # go to end of file
-    file_length = fid.tell()
-    fid.seek(0, 0)  # go to beginning of file
+    offset = 0
+    num_bytes = 4
 
     # read tmin in ms
-    stc['tmin'] = float(np.fromfile(fid, dtype=">f4", count=1))
+    stc['tmin'] = float(np.frombuffer(buf, dtype=">f4", count=1,
+                                      offset=offset))
     stc['tmin'] /= 1000.0
+    offset += num_bytes
 
     # read sampling rate in ms
-    stc['tstep'] = float(np.fromfile(fid, dtype=">f4", count=1))
+    stc['tstep'] = float(np.frombuffer(buf, dtype=">f4", count=1,
+                                       offset=offset))
     stc['tstep'] /= 1000.0
+    offset += num_bytes
 
     # read number of vertices/sources
-    vertices_n = int(np.fromfile(fid, dtype=">u4", count=1))
+    vertices_n = int(np.frombuffer(buf, dtype=">u4", count=1, offset=offset))
+    offset += num_bytes
 
     # read the source vector
-    stc['vertices'] = np.fromfile(fid, dtype=">u4", count=vertices_n)
+    stc['vertices'] = np.frombuffer(buf, dtype=">u4", count=vertices_n,
+                                    offset=offset)
+    offset += num_bytes * vertices_n
 
     # read the number of timepts
-    data_n = int(np.fromfile(fid, dtype=">u4", count=1))
+    data_n = int(np.frombuffer(buf, dtype=">u4", count=1, offset=offset))
+    offset += num_bytes
 
     if (vertices_n and  # vertices_n can be 0 (empty stc)
-            ((file_length / 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0):
+            ((len(buf) // 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0):
         raise ValueError('incorrect stc file size')
 
     # read the data matrix
-    stc['data'] = np.fromfile(fid, dtype=">f4", count=vertices_n * data_n)
+    stc['data'] = np.frombuffer(buf, dtype=">f4", count=vertices_n * data_n,
+                                offset=offset)
     stc['data'] = stc['data'].reshape([data_n, vertices_n]).T
 
-    # close the file
-    fid.close()
     return stc
 
 
@@ -396,7 +402,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -512,8 +519,9 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Notes
         -----
@@ -532,6 +540,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq
         self._update_times()
+        return self
 
     @property
     def data(self):
@@ -554,6 +563,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         self.times = self.tmin + (self.tstep * np.arange(self.shape[1]))
 
     def __add__(self, a):
+        """Add source estimates."""
         stc = copy.deepcopy(self)
         stc += a
         return stc
@@ -584,7 +594,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                                   tstep=tstep, subject=self.subject)
         return mean_stc
 
-    def __sub__(self, a):  # noqa: D105
+    def __sub__(self, a):
+        """Subtract source estimates."""
         stc = copy.deepcopy(self)
         stc -= a
         return stc
@@ -602,6 +613,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return self.__div__(a)
 
     def __div__(self, a):  # noqa: D105
+        """Divide source estimates."""
         stc = copy.deepcopy(self)
         stc /= a
         return stc
@@ -618,7 +630,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             self._data /= a
         return self
 
-    def __mul__(self, a):  # noqa: D105
+    def __mul__(self, a):
+        """Multiply source estimates."""
         stc = copy.deepcopy(self)
         stc *= a
         return stc
@@ -655,6 +668,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return self / a
 
     def __neg__(self):  # noqa: D105
+        """Negate the source estimate."""
         stc = copy.deepcopy(self)
         stc._remove_kernel_sens_data_()
         stc._data *= -1
@@ -944,7 +958,8 @@ class SourceEstimate(_BaseSourceEstimate):
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -987,8 +1002,9 @@ class SourceEstimate(_BaseSourceEstimate):
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
         """
         if ftype not in ('stc', 'w', 'h5'):
             raise ValueError('ftype must be "stc", "w", or "h5", not "%s"'
@@ -1016,7 +1032,8 @@ class SourceEstimate(_BaseSourceEstimate):
             write_hdf5(fname + '-stc.h5',
                        dict(vertices=self.vertices, data=self.data,
                             tmin=self.tmin, tstep=self.tstep,
-                            subject=self.subject), title='mnepython')
+                            subject=self.subject), title='mnepython',
+                       overwrite=True)
         logger.info('[done]')
 
     def __repr__(self):  # noqa: D105
@@ -1193,7 +1210,9 @@ class SourceEstimate(_BaseSourceEstimate):
             Instead of emitting an error, return all-zero time course for
             labels that do not have any vertices in the source estimate.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -1224,7 +1243,7 @@ class SourceEstimate(_BaseSourceEstimate):
                   across time, and vice-versa for each point in time in
                   computing the temporal center of mass. This is useful for
                   quantifying spatio-temporal cluster locations, especially
-                  when combined with :func:`mne.source_space.vertex_to_mni`.
+                  when combined with :func:`mne.vertex_to_mni`.
 
         Parameters
         ----------
@@ -1252,8 +1271,8 @@ class SourceEstimate(_BaseSourceEstimate):
 
         See Also
         --------
-        Label.center_of_mass
-        vertex_to_mni
+        mne.Label.center_of_mass
+        mne.vertex_to_mni
 
         Returns
         -------
@@ -1341,7 +1360,9 @@ class SourceEstimate(_BaseSourceEstimate):
         subjects_dir : string, or None
             Path to SUBJECTS_DIR if it is not set in the environment.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         See Also
         --------
@@ -1400,7 +1421,9 @@ class SourceEstimate(_BaseSourceEstimate):
             parameters used are subject_to and subject_from,
             and grade has to be None.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -1504,7 +1527,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -1549,8 +1573,9 @@ class VolSourceEstimate(_BaseSourceEstimate):
             File format to use. Allowed values are "stc" (default) and "w".
             The "w" format only supports a single time point.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
         """
         if ftype not in ['stc', 'w']:
             raise ValueError('ftype must be "stc" or "w", not "%s"' % ftype)
@@ -1697,7 +1722,8 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -1840,7 +1866,8 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     warn : bool
         If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1915,7 +1942,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
 
 
 def _morph_mult(data, e, use_sparse, idx_use_data, idx_use_out=None):
-    """Helper for morphing.
+    """Help morphing.
 
     Equivalent to "data = (e[:, idx_use_data] * data)[idx_use_out]"
     but faster.
@@ -2036,7 +2063,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     warn : bool
         If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2122,7 +2150,8 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     warn : bool
         If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2182,7 +2211,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     n_jobs : int
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2291,7 +2321,8 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         source space to consider neighbors. If None, immediate neighbors
         are extracted from an ico surface.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2348,7 +2379,8 @@ def grade_to_tris(grade, verbose=None):
     grade : int
         Grade of an icosahedral mesh.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2376,7 +2408,8 @@ def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
         Reassign vertex indices based on unique values. Useful
         to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2411,7 +2444,8 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2448,7 +2482,8 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
         source space to consider neighbors. If None, immediate neighbors
         are extracted from an ico surface.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2470,7 +2505,8 @@ def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
         Reassign vertex indices based on unique values. Useful
         to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2493,7 +2529,8 @@ def spatial_dist_connectivity(src, dist, verbose=None):
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2514,7 +2551,8 @@ def spatial_inter_hemi_connectivity(src, dist, verbose=None):
         Maximal Euclidean distance (in m) between vertices in one hemisphere
         compared to the other to consider neighbors.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2667,8 +2705,23 @@ def _get_label_flip(labels, label_vertidx, src):
 @verbose
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, verbose=None):
-    """Generator for extract_label_time_course."""
-    n_labels = len(labels)
+    """Generate extract_label_time_course."""
+    # if src is a mixed src space, the first 2 src spaces are surf type and
+    # the other ones are vol type. For mixed source space n_labels will be the
+    # given by the number of ROIs of the cortical parcellation plus the number
+    # of vol src space
+
+    if len(src) > 2:
+        if src[0]['type'] != 'surf' or src[1]['type'] != 'surf':
+            raise ValueError('The first 2 source spaces have to be surf type')
+        if any(np.any(s['type'] != 'vol') for s in src[2:]):
+            raise ValueError('source spaces have to be of vol type')
+
+        n_aparc = len(labels)
+        n_aseg = len(src[2:])
+        n_labels = n_aparc + n_aseg
+    else:
+        n_labels = len(labels)
 
     # get vertices from source space, they have to be the same as in the stcs
     vertno = [s['vertno'] for s in src]
@@ -2712,10 +2765,10 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
         pass  # we have this here to catch invalid values for mode
     elif mode == 'mean_flip':
         # get the sign-flip vector for every label
-        label_flip = _get_label_flip(labels, label_vertidx, src)
+        label_flip = _get_label_flip(labels, label_vertidx, src[:2])
     elif mode == 'pca_flip':
         # get the sign-flip vector for every label
-        label_flip = _get_label_flip(labels, label_vertidx, src)
+        label_flip = _get_label_flip(labels, label_vertidx, src[:2])
     elif mode == 'max':
         pass  # we calculate the maximum value later
     else:
@@ -2724,11 +2777,20 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     # loop through source estimates and extract time series
     for stc in stcs:
         # make sure the stc is compatible with the source space
-        if len(stc.vertices[0]) != nvert[0] or \
-                len(stc.vertices[1]) != nvert[1]:
-            raise ValueError('stc not compatible with source space')
+        for i in range(len(src)):
+            if len(stc.vertices[i]) != nvert[i]:
+                raise ValueError('stc not compatible with source space. '
+                                 'stc has %s time series but there are %s '
+                                 'vertices in source space'
+                                 % (len(stc.vertices[i]), nvert[i]))
+
         if any(np.any(svn != vn) for svn, vn in zip(stc.vertices, vertno)):
             raise ValueError('stc not compatible with source space')
+        if sum(nvert) != stc.shape[0]:
+            raise ValueError('stc not compatible with source space. '
+                             'stc has %s vertices but the source space '
+                             'has %s vertices'
+                             % (stc.shape[0], sum(nvert)))
 
         logger.info('Extracting time courses for %d labels (mode: %s)'
                     % (n_labels, mode))
@@ -2764,6 +2826,18 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                     label_tc[i] = np.max(np.abs(stc.data[vertidx, :]), axis=0)
         else:
             raise ValueError('%s is an invalid mode' % mode)
+
+        # extract label time series for the vol src space
+        if len(src) > 2:
+            v1 = nvert[0] + nvert[1]
+            for i, nv in enumerate(nvert[2:]):
+
+                v2 = v1 + nv
+                v = range(v1, v2)
+                if nv != 0:
+                    label_tc[n_aparc + i] = np.mean(stc.data[v, :], axis=0)
+
+                v1 = v2
 
         # this is a generator!
         yield label_tc
@@ -2813,7 +2887,8 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     return_generator : bool
         If True, a generator instead of a list is returned.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose` and
+        :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

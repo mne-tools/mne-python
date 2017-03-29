@@ -3,7 +3,7 @@ import warnings
 import os.path as op
 import copy as cp
 
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_equal
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
@@ -26,27 +26,25 @@ fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-vol-7-fwd.fif')
 fname_event = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc_raw-eve.fif')
-label = 'Aud-lh'
-fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
+fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 
 
-def read_forward_solution_meg(*args, **kwargs):
+def _read_forward_solution_meg(*args, **kwargs):
     fwd = mne.read_forward_solution(*args, **kwargs)
     return mne.pick_types_forward(fwd, meg=True, eeg=False)
 
 
 def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
-    """Read in data used in tests
-    """
+    """Read in data used in tests."""
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)[:10]
     raw = mne.io.read_raw_fif(fname_raw, preload=False)
     raw.add_proj([], remove_existing=True)  # we'll subselect so remove proj
     forward = mne.read_forward_solution(fname_fwd)
     if read_all_forward:
-        forward_surf_ori = read_forward_solution_meg(fname_fwd, surf_ori=True)
-        forward_fixed = read_forward_solution_meg(fname_fwd, force_fixed=True,
-                                                  surf_ori=True)
+        forward_surf_ori = _read_forward_solution_meg(fname_fwd, surf_ori=True)
+        forward_fixed = _read_forward_solution_meg(fname_fwd, force_fixed=True,
+                                                   surf_ori=True)
         forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
     else:
         forward_surf_ori = None
@@ -69,7 +67,7 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
                         picks=picks, baseline=(None, 0), preload=True,
                         reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
     epochs.resample(200, npad=0, n_jobs=2)
-    evoked = epochs.average()
+    evoked = epochs.average().crop(0, None)
 
     # Computing the data and noise cross-spectral density matrices
     if compute_csds:
@@ -88,28 +86,32 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
 
 @testing.requires_testing_data
 def test_dics():
-    """Test DICS with evoked data and single trials
-    """
+    """Test DICS with evoked data and single trials."""
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
+    epochs.crop(0, None)
+    reg = 0.5  # Heavily regularize due to low SNR
 
-    stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd,
-               label=label)
+    for real_filter in (True, False):
+        stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd,
+                   label=label, real_filter=real_filter, reg=reg)
+        stc_pow = np.sum(stc.data, axis=1)
+        idx = np.argmax(stc_pow)
+        max_stc = stc.data[idx]
+        tmax = stc.times[np.argmax(max_stc)]
 
-    stc.crop(0, None)
-    stc_pow = np.sum(stc.data, axis=1)
-    idx = np.argmax(stc_pow)
-    max_stc = stc.data[idx]
-    tmax = stc.times[np.argmax(max_stc)]
-
-    # Incorrect due to limited number of epochs
-    assert_true(0.04 < tmax < 0.05)
-    assert_true(10 < np.max(max_stc) < 13)
+        # Incorrect due to limited number of epochs
+        assert_true(0.04 < tmax < 0.06, msg=tmax)
+        assert_true(3. < np.max(max_stc) < 6., msg=np.max(max_stc))
 
     # Test picking normal orientation
     stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
-                      pick_ori="normal", label=label)
-    stc_normal.crop(0, None)
+                      pick_ori="normal", label=label, real_filter=True,
+                      reg=reg)
+    assert_true(stc_normal.data.min() < 0)  # this doesn't take abs
+    stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
+                      pick_ori="normal", label=label, reg=reg)
+    assert_true(stc_normal.data.min() >= 0)  # this does take abs
 
     # The amplitude of normal orientation results should always be smaller than
     # free orientation results
@@ -132,11 +134,10 @@ def test_dics():
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
-    stcs = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, reg=0.01,
-                       label=label)
+    stcs = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, label=label)
 
     # Testing returning of generator
-    stcs_ = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, reg=0.01,
+    stcs_ = dics_epochs(epochs, forward_fixed, noise_csd, data_csd,
                         return_generator=True, label=label)
     assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
@@ -147,38 +148,39 @@ def test_dics():
     # Average the single trial estimates
     stc_avg = np.zeros_like(stc.data)
     for this_stc in stcs:
-        stc_avg += this_stc.crop(0, None).data
+        stc_avg += this_stc.data
     stc_avg /= len(stcs)
 
     idx = np.argmax(np.max(stc_avg, axis=1))
     max_stc = stc_avg[idx]
     tmax = stc.times[np.argmax(max_stc)]
 
-    assert_true(0.045 < tmax < 0.06)  # incorrect due to limited # of epochs
+    assert_true(0.120 < tmax < 0.150, msg=tmax)  # incorrect due to limited #
     assert_true(12 < np.max(max_stc) < 18.5)
 
 
 @testing.requires_testing_data
 def test_dics_source_power():
-    """Test DICS source power computation
-    """
+    """Test DICS source power computation."""
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
+    epochs.crop(0, None)
+    reg = 0.05
 
     stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
-                                         data_csd, label=label)
+                                         data_csd, label=label, reg=reg)
 
     max_source_idx = np.argmax(stc_source_power.data)
     max_source_power = np.max(stc_source_power.data)
 
     # TODO: Maybe these could be more directly compared to dics() results?
-    assert_true(max_source_idx == 0)
-    assert_true(0.5 < max_source_power < 1.15)
+    assert_true(max_source_idx == 1)
+    assert_true(0.004 < max_source_power < 0.005, msg=max_source_power)
 
     # Test picking normal orientation and using a list of CSD matrices
     stc_normal = dics_source_power(epochs.info, forward_surf_ori,
                                    [noise_csd] * 2, [data_csd] * 2,
-                                   pick_ori="normal", label=label)
+                                   pick_ori="normal", label=label, reg=reg)
 
     assert_true(stc_normal.data.shape == (stc_source_power.data.shape[0], 2))
 
@@ -220,20 +222,19 @@ def test_dics_source_power():
     noise_csds = data_csds
     with warnings.catch_warnings(record=True) as w:
         dics_source_power(epochs.info, forward, noise_csds, data_csds)
-    assert len(w) == 1
+    assert_equal(len(w), 1)
 
 
 @testing.requires_testing_data
 def test_tf_dics():
-    """Test TF beamforming based on DICS
-    """
+    """Test TF beamforming based on DICS."""
     tmin, tmax, tstep = -0.2, 0.2, 0.1
     raw, epochs, _, _, _, label, forward, _, _, _ =\
         _get_data(tmin, tmax, read_all_forward=False, compute_csds=False)
 
     freq_bins = [(4, 20), (30, 55)]
     win_lengths = [0.2, 0.2]
-    reg = 0.001
+    reg = 0.05
 
     noise_csds = []
     for freq_bin, win_length in zip(freq_bins, win_lengths):
@@ -248,6 +249,8 @@ def test_tf_dics():
 
     assert_true(len(stcs) == len(freq_bins))
     assert_true(stcs[0].shape[1] == 4)
+    assert_true(2.2 < stcs[0].data.max() < 2.3)
+    assert_true(0.94 < stcs[0].data.min() < 0.95)
 
     # Manually calculating source power in several time windows to compare
     # results and test overlapping

@@ -50,7 +50,8 @@ class FieldTripClient(object):
     buffer_size : int
         Size of each buffer in terms of number of samples.
     verbose : bool, str, int, or None
-        Log verbosity see mne.verbose.
+        Log verbosity (see :func:`mne.verbose` and
+        :ref:`Logging documentation <tut_logging>` for more).
     """
 
     def __init__(self, info=None, host='localhost', port=1972, wait_max=30,
@@ -184,7 +185,7 @@ class FieldTripClient(object):
                 this_info['cal'] = 1.0
 
                 this_info['ch_name'] = ch
-                this_info['loc'] = None
+                this_info['loc'] = np.zeros(12)
 
                 if ch.startswith('EEG'):
                     this_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
@@ -256,7 +257,7 @@ class FieldTripClient(object):
 
         See Also
         --------
-        Epochs.iter_evoked
+        mne.Epochs.iter_evoked
         """
         ft_header = self.ft_client.getHeader()
         last_samp = ft_header.nSamples - 1

@@ -7,8 +7,7 @@
 import os
 from os import path as op
 
-import setuptools  # noqa; we are using a setuptools namespace
-from numpy.distutils.core import setup
+from setuptools import setup
 
 # get the version (don't import mne here, so dependencies are not needed)
 version = None
@@ -32,6 +31,15 @@ LICENSE = 'BSD (3-clause)'
 DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'
 VERSION = version
 
+
+def package_tree(pkgroot):
+    """Get the submodule list."""
+    # Adapted from VisPy
+    path = os.path.dirname(__file__)
+    subdirs = [os.path.relpath(i[0], path).replace(os.path.sep, '.')
+               for i in os.walk(os.path.join(path, pkgroot))
+               if '__init__.py' in i[2]]
+    return sorted(subdirs)
 
 if __name__ == "__main__":
     if os.path.exists('MANIFEST'):
@@ -59,52 +67,7 @@ if __name__ == "__main__":
                        'Operating System :: Unix',
                        'Operating System :: MacOS'],
           platforms='any',
-          packages=['mne', 'mne.tests',
-                    'mne.beamformer', 'mne.beamformer.tests',
-                    'mne.commands', 'mne.commands.tests',
-                    'mne.connectivity', 'mne.connectivity.tests',
-                    'mne.data',
-                    'mne.datasets',
-                    'mne.datasets.eegbci',
-                    'mne.datasets._fake',
-                    'mne.datasets.megsim',
-                    'mne.datasets.misc',
-                    'mne.datasets.sample',
-                    'mne.datasets.somato',
-                    'mne.datasets.spm_face',
-                    'mne.datasets.brainstorm',
-                    'mne.datasets.testing',
-                    'mne.datasets.tests',
-                    'mne.datasets.multimodal',
-                    'mne.externals',
-                    'mne.externals.h5io',
-                    'mne.externals.tempita',
-                    'mne.io', 'mne.io.tests',
-                    'mne.io.array', 'mne.io.array.tests',
-                    'mne.io.brainvision', 'mne.io.brainvision.tests',
-                    'mne.io.bti', 'mne.io.bti.tests',
-                    'mne.io.cnt', 'mne.io.cnt.tests',
-                    'mne.io.ctf', 'mne.io.ctf.tests',
-                    'mne.io.edf', 'mne.io.edf.tests',
-                    'mne.io.egi', 'mne.io.egi.tests',
-                    'mne.io.fiff', 'mne.io.fiff.tests',
-                    'mne.io.kit', 'mne.io.kit.tests',
-                    'mne.io.nicolet', 'mne.io.nicolet.tests',
-                    'mne.io.eeglab', 'mne.io.eeglab',
-                    'mne.forward', 'mne.forward.tests',
-                    'mne.viz', 'mne.viz.tests',
-                    'mne.gui', 'mne.gui.tests',
-                    'mne.minimum_norm', 'mne.minimum_norm.tests',
-                    'mne.inverse_sparse', 'mne.inverse_sparse.tests',
-                    'mne.preprocessing', 'mne.preprocessing.tests',
-                    'mne.simulation', 'mne.simulation.tests',
-                    'mne.tests',
-                    'mne.stats', 'mne.stats.tests',
-                    'mne.time_frequency', 'mne.time_frequency.tests',
-                    'mne.realtime', 'mne.realtime.tests',
-                    'mne.decoding', 'mne.decoding.tests',
-                    'mne.commands',
-                    'mne.channels', 'mne.channels.tests'],
+          packages=package_tree('mne'),
           package_data={'mne': [op.join('data', '*.sel'),
                                 op.join('data', 'icos.fif.gz'),
                                 op.join('data', 'coil_def*.dat'),
@@ -121,5 +84,7 @@ if __name__ == "__main__":
                                 op.join('channels', 'data', 'neighbors', '*.mat'),
                                 op.join('gui', 'help', '*.json'),
                                 op.join('html', '*.js'),
-                                op.join('html', '*.css')]},
+                                op.join('html', '*.css'),
+                                op.join('io', 'artemis123', 'resources', '*.csv')
+                                ]},
           scripts=['bin/mne'])

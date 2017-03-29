@@ -53,9 +53,6 @@ html_dev-pattern:
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
-html_dev-noslow:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=fast -b html $(ALLSPHINXOPTS) _build/html
-
 html_dev-noplot:
 	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=0 -b html $(ALLSPHINXOPTS) _build/html
 	@echo

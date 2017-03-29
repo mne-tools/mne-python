@@ -38,20 +38,20 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         decomposition.
         If `int`, returns tfr[..., ::decim].
         If `slice`, returns tfr[..., decim].
-        .. note:
-            Decimation may create aliasing artifacts, yet decimation
-            is done after the convolutions.
-    output : str, defaults to 'complex'
 
+        .. note:: Decimation may create aliasing artifacts, yet decimation
+                  is done after the convolutions.
+
+    output : str, defaults to 'complex'
         * 'complex' : single trial complex.
         * 'power' : single trial power.
         * 'phase' : single trial phase.
-
     n_jobs : int, defaults to 1
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
     verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------

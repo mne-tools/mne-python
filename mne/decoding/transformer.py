@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Romain Trachel <trachelr@gmail.com>
@@ -11,40 +12,123 @@ from .base import BaseEstimator
 
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
-from ..time_frequency.psd import _psd_multitaper
-from ..externals import six
-from ..utils import _check_type_picks
+from ..time_frequency.psd import psd_array_multitaper
+from ..externals.six import string_types
+from ..utils import _check_type_picks, check_version
+from ..io.pick import pick_info, _pick_data_channels, _picks_by_type
+from ..cov import _check_scalings_user
 
 
-class Scaler(TransformerMixin):
-    """Standardize data across channels.
+class _ConstantScaler():
+    """Scale channel types using constant values."""
+
+    def __init__(self, info, scalings, do_scaling=True):
+        self._scalings = scalings
+        self._info = info
+        self._do_scaling = do_scaling
+
+    def fit(self, X, y=None):
+        scalings = _check_scalings_user(self._scalings)
+        picks_by_type = _picks_by_type(pick_info(
+            self._info, _pick_data_channels(self._info, exclude=())))
+        std = np.ones(sum(len(p[1]) for p in picks_by_type))
+        if X.shape[1] != len(std):
+            raise ValueError('info had %d data channels but X has %d channels'
+                             % (len(std), len(X)))
+        if self._do_scaling:  # this is silly, but necessary for completeness
+            for kind, picks in picks_by_type:
+                std[picks] = 1. / scalings[kind]
+        self.std_ = std
+        self.mean_ = np.zeros_like(std)
+        return self
+
+    def transform(self, X, y=None):
+        return X / self.std_
+
+    def inverse_transform(self, X, y=None):
+        return X * self.std_
+
+    def fit_transform(self, X, y=None):
+        return self.fit(X, y).transform(X)
+
+
+def _sklearn_reshape_apply(func, return_result, X, *args):
+    """Reshape epochs and apply function."""
+    if not isinstance(X, np.ndarray):
+        raise ValueError("data should be an np.ndarray, got %s." % type(X))
+    X = np.atleast_3d(X)
+    orig_shape = X.shape
+    X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
+    X = func(X, *args)
+    if return_result:
+        X.shape = (orig_shape[0], orig_shape[2], orig_shape[1])
+        X = X.transpose(0, 2, 1)
+        return X
+
+
+class Scaler(TransformerMixin, BaseEstimator):
+    u"""Standardize channel data.
+
+    This class scales data for each channel. It differs from scikit-learn_
+    classes (e.g., :class:`sklearn.preprocessing.StandardScaler`) in that
+    it scales each *channel* by estimating μ and σ using data from all
+    time points and epochs, as opposed to standardizing each *feature*
+    (i.e., each time point for each channel) by estimating using μ and σ
+    using data from all epochs.
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info
-    with_mean : boolean, True by default
-        If True, center the data before scaling.
-    with_std : boolean, True by default
-        If True, scale the data to unit variance (or equivalently,
-        unit standard deviation).
+    info : instance of Info | None
+        The measurement info. Only necessary if ``scalings`` is a dict or
+        None.
+    scalings : dict, string, defaults to None.
+        Scaling method to be applied to data channel wise.
 
-    Attributes
-    ----------
-    info : instance of Info
-        The measurement info
-    ``ch_mean_`` : dict
-        The mean value for each channel type
-    ``std_`` : dict
-        The standard deviation for each channel type
+        * if scalings is None (default), scales mag by 1e15, grad by 1e13,
+          and eeg by 1e6.
+        * if scalings is :class:`dict`, keys are channel types and values
+          are scale factors.
+        * if ``scalings=='median'``,
+          :class:`sklearn.preprocessing.RobustScaler`
+          is used (requires sklearn version 0.17+).
+        * if ``scalings=='mean'``,
+          :class:`sklearn.preprocessing.StandardScaler`
+          is used.
+
+    with_mean : boolean, True by default
+        If True, center the data using mean (or median) before scaling.
+        Ignored for channel-type scaling.
+    with_std : boolean, True by default
+        If True, scale the data to unit variance (``scalings='mean'``),
+        quantile range (``scalings='median``), or using channel type
+        if ``scalings`` is a dict or None).
     """
 
-    def __init__(self, info, with_mean=True, with_std=True):  # noqa: D102
+    def __init__(self, info=None, scalings=None, with_mean=True,
+                 with_std=True):  # noqa: D102
         self.info = info
         self.with_mean = with_mean
         self.with_std = with_std
-        self.ch_mean_ = dict()  # TODO rename attribute
-        self.std_ = dict()  # TODO rename attribute
+        self.scalings = scalings
+
+        if not (scalings is None or isinstance(scalings, (dict, str))):
+            raise ValueError('scalings type should be dict, str, or None, '
+                             'got %s' % type(scalings))
+        if isinstance(scalings, string_types) and \
+                scalings not in ('mean', 'median'):
+            raise ValueError('Invalid method for scaling, must be "mean" or '
+                             '"median" but got %s' % scalings)
+        if scalings is None or isinstance(scalings, dict):
+            self._scaler = _ConstantScaler(info, scalings, self.with_std)
+        elif scalings == 'mean':
+            from sklearn.preprocessing import StandardScaler
+            self._scaler = StandardScaler(self.with_mean, self.with_std)
+        else:  # scalings == 'median':
+            if not check_version('sklearn', '0.17'):
+                raise ValueError("median requires version 0.17 of "
+                                 "sklearn library")
+            from sklearn.preprocessing import RobustScaler
+            self._scaler = RobustScaler(self.with_mean, self.with_std)
 
     def fit(self, epochs_data, y):
         """Standardize data across channels.
@@ -61,30 +145,7 @@ class Scaler(TransformerMixin):
         self : instance of Scaler
             Returns the modified instance.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
-
-        X = np.atleast_3d(epochs_data)
-
-        picks_list = dict()
-        picks_list['mag'] = pick_types(self.info, meg='mag', ref_meg=False,
-                                       exclude='bads')
-        picks_list['grad'] = pick_types(self.info, meg='grad', ref_meg=False,
-                                        exclude='bads')
-        picks_list['eeg'] = pick_types(self.info, eeg=True, ref_meg=False,
-                                       meg=False, exclude='bads')
-
-        self.picks_list_ = picks_list
-
-        for key, this_pick in picks_list.items():
-            if self.with_mean:
-                ch_mean = X[:, this_pick, :].mean(axis=1)[:, None, :]
-                self.ch_mean_[key] = ch_mean  # TODO rename attribute
-            if self.with_std:
-                ch_std = X[:, this_pick, :].mean(axis=1)[:, None, :]
-                self.std_[key] = ch_std  # TODO rename attribute
-
+        _sklearn_reshape_apply(self._scaler.fit, False, epochs_data, y)
         return self
 
     def transform(self, epochs_data, y=None):
@@ -102,23 +163,20 @@ class Scaler(TransformerMixin):
         -------
         X : array, shape (n_epochs, n_channels, n_times)
             The data concatenated over channels.
+
+        Notes
+        -----
+        This function makes a copy of the data before the operations and the
+        memory usage may be large with big data.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
+        return _sklearn_reshape_apply(self._scaler.transform, True,
+                                      epochs_data, y)
 
-        X = np.atleast_3d(epochs_data)
+    def fit_transform(self, epochs_data, y=None):
+        """Fit to data, then transform it.
 
-        for key, this_pick in six.iteritems(self.picks_list_):
-            if self.with_mean:
-                X[:, this_pick, :] -= self.ch_mean_[key]
-            if self.with_std:
-                X[:, this_pick, :] /= self.std_[key]
-
-        return X
-
-    def inverse_transform(self, epochs_data, y=None):
-        """Invert standardization of data across channels.
+        Fits transformer to epochs_data and y and returns a transformed version
+        of epochs_data.
 
         Parameters
         ----------
@@ -126,26 +184,40 @@ class Scaler(TransformerMixin):
             The data.
         y : None | array, shape (n_epochs,)
             The label for each epoch.
-            If None not used. Defaults to None.
+            Defaults to None.
 
         Returns
         -------
         X : array, shape (n_epochs, n_channels, n_times)
             The data concatenated over channels.
+
+        Notes
+        -----
+        This function makes a copy of the data before the operations and the
+        memory usage may be large with big data.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
+        return self.fit(epochs_data, y).transform(epochs_data)
 
-        X = np.atleast_3d(epochs_data)
+    def inverse_transform(self, epochs_data):
+        """Invert standardization of data across channels.
 
-        for key, this_pick in six.iteritems(self.picks_list_):
-            if self.with_mean:
-                X[:, this_pick, :] += self.ch_mean_[key]
-            if self.with_std:
-                X[:, this_pick, :] *= self.std_[key]
+        Parameters
+        ----------
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
+            The data.
 
-        return X
+        Returns
+        -------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data concatenated over channels.
+
+        Notes
+        -----
+        This function makes a copy of the data before the operations and the
+        memory usage may be large with big data.
+        """
+        return _sklearn_reshape_apply(self._scaler.inverse_transform, True,
+                                      epochs_data)
 
 
 class Vectorizer(TransformerMixin):
@@ -276,7 +348,8 @@ class PSDEstimator(TransformerMixin):
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -336,7 +409,7 @@ class PSDEstimator(TransformerMixin):
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
-        psd, _ = _psd_multitaper(
+        psd, _ = psd_array_multitaper(
             epochs_data, sfreq=self.sfreq, fmin=self.fmin, fmax=self.fmax,
             bandwidth=self.bandwidth, adaptive=self.adaptive,
             low_bias=self.low_bias, normalization=self.normalization,
@@ -395,8 +468,9 @@ class FilterEstimator(TransformerMixin):
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to self.verbose.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        self.verbose.
 
     See Also
     --------
@@ -597,7 +671,7 @@ class TemporalFilter(TransformerMixin):
         - l_freq is not None, h_freq is None: low-pass filter
         - l_freq is None, h_freq is not None: high-pass filter
 
-    See ``mne.filter.filter_data``.
+    See :func:`mne.filter.filter_data`.
 
     Parameters
     ----------
@@ -610,6 +684,7 @@ class TemporalFilter(TransformerMixin):
         Sampling frequency in Hz.
     filter_length : str | int, defaults to 'auto'
         Length of the FIR filter to use (if applicable):
+
             * int: specified length in samples.
             * 'auto' (default in 0.14): the filter length is chosen based
               on the size of the transition regions (7 times the reciprocal
@@ -619,17 +694,22 @@ class TemporalFilter(TransformerMixin):
               converted to that number of samples if ``phase="zero"``, or
               the shortest power-of-two length at least that duration for
               ``phase="zero-double"``.
-    l_trans_bandwidth : float | str, defaults to 'auto'
+
+    l_trans_bandwidth : float | str
         Width of the transition band at the low cut-off frequency in Hz
         (high pass or cutoff 1 in bandpass). Can be "auto"
         (default in 0.14) to use a multiple of ``l_freq``::
+
             min(max(l_freq * 0.25, 2), l_freq)
+
         Only used for ``method='fir'``.
-    h_trans_bandwidth : float | str, defaults to 'auto'
+    h_trans_bandwidth : float | str
         Width of the transition band at the high cut-off frequency in Hz
         (low pass or cutoff 2 in bandpass). Can be "auto"
         (default in 0.14) to use a multiple of ``h_freq``::
+
             min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
         Only used for ``method='fir'``.
     n_jobs : int | str, defaults to 1
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -645,8 +725,9 @@ class TemporalFilter(TransformerMixin):
         The window to use in FIR design, can be "hamming", "hann",
         or "blackman".
     verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to self.verbose.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        self.verbose.
 
     See Also
     --------

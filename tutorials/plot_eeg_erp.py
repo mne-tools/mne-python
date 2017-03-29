@@ -76,7 +76,7 @@ montage = mne.channels.read_montage('standard_1020')
 print(montage)
 
 ###############################################################################
-# To apply a montage on your data use the :func:`mne.io.set_montage`
+# To apply a montage on your data use the ``set_montage`` method.
 # function. Here don't actually call this function as our demo dataset
 # already contains good EEG channel locations.
 #
@@ -91,7 +91,7 @@ print(montage)
 # This explicitly prevents MNE from adding a default EEG average reference
 # required for source localization.
 
-raw_no_ref, _ = mne.io.set_eeg_reference(raw, [])
+raw_no_ref, _ = mne.set_eeg_reference(raw, [])
 
 ###############################################################################
 # We next define Epochs and compute an ERP for the left auditory condition.
@@ -111,7 +111,7 @@ evoked_no_ref.plot_topomap(times=[0.1], size=3., title=title)
 ###############################################################################
 # **Average reference**: This is normally added by default, but can also
 # be added explicitly.
-raw_car, _ = mne.io.set_eeg_reference(raw)
+raw_car, _ = mne.set_eeg_reference(raw)
 evoked_car = mne.Epochs(raw_car, **epochs_params).average()
 del raw_car  # save memory
 
@@ -122,7 +122,7 @@ evoked_car.plot_topomap(times=[0.1], size=3., title=title)
 ###############################################################################
 # **Custom reference**: Use the mean of channels EEG 001 and EEG 002 as
 # a reference
-raw_custom, _ = mne.io.set_eeg_reference(raw, ['EEG 001', 'EEG 002'])
+raw_custom, _ = mne.set_eeg_reference(raw, ['EEG 001', 'EEG 002'])
 evoked_custom = mne.Epochs(raw_custom, **epochs_params).average()
 del raw_custom  # save memory
 
@@ -160,7 +160,7 @@ mne.combine_evoked([left, -right], weights='equal').plot_joint()
 # This is an equal-weighting difference. If you have imbalanced trial numbers,
 # you could also consider either equalizing the number of events per
 # condition (using
-# :meth:`epochs.equalize_epochs_counts <mne.Epochs.equalize_event_counts`).
+# :meth:`epochs.equalize_event_counts <mne.Epochs.equalize_event_counts>`).
 # As an example, first, we create individual ERPs for each condition.
 
 aud_l = epochs["auditory", "left"].average()

@@ -15,7 +15,7 @@ from nose.tools import assert_true, assert_equal
 
 
 from mne import read_evokeds, read_proj
-from mne.io import read_raw_fif
+from mne.io import read_raw_fif, read_info
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.channels import read_layout, make_eeg_layout
@@ -39,6 +39,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg-proj.fif')
+triux_fname = op.join(data_dir, 'SSS', 'TRIUX', 'triux_bmlhus_erm_raw.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -88,7 +89,8 @@ def test_plot_topomap():
     mask[[1, 5], :] = True
     evoked.plot_topomap(ch_type='mag', outlines=None)
     times = [0.1]
-    evoked.plot_topomap(times, ch_type='eeg', res=res, scale=1)
+    evoked.plot_topomap(times, ch_type='eeg', res=res, scale=1,
+                        contours=[-100, 0, 100])  # contours as a list
     evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res)
     evoked.plot_topomap(times, ch_type='planar1', res=res)
     evoked.plot_topomap(times, ch_type='planar2', res=res)
@@ -141,7 +143,13 @@ def test_plot_topomap():
                           baseline=(None, 0), proj=False)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        evoked.plot_topomap(0.1, 'mag', proj='interactive', res=res)
+        fig1 = evoked.plot_topomap(0.1, 'mag', proj='interactive', res=res)
+    data_max = np.max(fig1.axes[0].images[0]._A)
+    fig2 = plt.gcf()
+    _fake_click(fig2, fig2.axes[0], (0.075, 0.775))  # toggle projector
+    # make sure projector gets toggled
+    assert_true(np.max(fig1.axes[0].images[0]._A) != data_max)
+
     assert_raises(RuntimeError, plot_evoked_topomap, evoked,
                   np.repeat(.1, 50))
     assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
@@ -153,8 +161,14 @@ def test_plot_topomap():
     plot_projs_topomap(projs, res=res, colorbar=True)
     plt.close('all')
     ax = plt.subplot(111)
-    plot_projs_topomap([projs[0]], res=res, axes=ax)  # test axes param
+    plot_projs_topomap(projs[:1], res=res, axes=ax)  # test axes param
     plt.close('all')
+    plot_projs_topomap(read_info(triux_fname)['projs'][-1:])  # grads
+    plt.close('all')
+    # XXX This one fails due to grads being combined but this proj having
+    # all zeros in the grad values -> matplotlib contour error
+    # plot_projs_topomap(read_info(triux_fname)['projs'][:1])  # mags
+    # plt.close('all')
     for ch in evoked.info['chs']:
         if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
             ch['loc'].fill(0)

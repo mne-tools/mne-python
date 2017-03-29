@@ -14,60 +14,29 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc
 from ..time_frequency import CrossSpectralDensity, csd_epochs
-from ._lcmv import _prepare_beamformer_input, _setup_picks
+from ._lcmv import _prepare_beamformer_input, _setup_picks, _reg_pinv
 from ..externals import six
 
 
 @verbose
 def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
-                label=None, picks=None, pick_ori=None, verbose=None):
-    """Dynamic Imaging of Coherent Sources (DICS).
-
-    Calculate the DICS spatial filter based on a given cross-spectral
-    density object and return estimates of source activity based on given data.
-
-    Parameters
-    ----------
-    data : array or list / iterable
-        Sensor space data. If data.ndim == 2 a single observation is assumed
-        and a single stc is returned. If data.ndim == 3 or if data is
-        a list / iterable, a list of stc's is returned.
-    info : dict
-        Measurement info.
-    tmin : float
-        Time of first sample.
-    forward : dict
-        Forward operator.
-    noise_csd : instance of CrossSpectralDensity
-        The noise cross-spectral density.
-    data_csd : instance of CrossSpectralDensity
-        The data cross-spectral density.
-    reg : float
-        The regularization for the cross-spectral density.
-    label : Label | None
-        Restricts the solution to a given label.
-    picks : array-like of int | None
-        Indices (in info) of data channels. If None, MEG and EEG data channels
-        (without bad channels) will be used.
-    pick_ori : None | 'normal'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    stc : SourceEstimate | VolSourceEstimate
-        Source time courses
-    """
+                label=None, picks=None, pick_ori=None, real_filter=False,
+                verbose=None):
+    """Dynamic Imaging of Coherent Sources (DICS)."""
     is_free_ori, _, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
-    Cm = data_csd.data
+    Cm = data_csd.data.copy()
 
-    # Calculating regularized inverse, equivalent to an inverse operation after
-    # regularization: Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
-    Cm_inv = linalg.pinv(Cm, reg)
+    # Take real part of Cm to compute real filters
+    if real_filter:
+        Cm = Cm.real
+
+    # Tikhonov regularization using reg parameter to control for
+    # trade-off between spatial resolution and noise sensitivity
+    # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
+    Cm_inv = _reg_pinv(Cm, reg)
+    del Cm
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
@@ -137,19 +106,19 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
 
 
 @verbose
-def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
-         pick_ori=None, verbose=None):
+def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
+         pick_ori=None, real_filter=False, verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
 
-    Compute a Dynamic Imaging of Coherent Sources (DICS) beamformer
+    Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ beamformer
     on evoked data and return estimates of source time courses.
 
-    NOTE : Fixed orientation forward operators will result in complex time
-    courses in which case absolute values will be  returned. Therefore the
-    orientation will no longer be fixed.
+    .. note:: Fixed orientation forward operators with ``real_filter=False``
+              will result in complex time courses, in which case absolute
+              values will be returned.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issues or suggestions.
+    .. note:: This implementation has not been heavily tested so please
+              report any issues or suggestions.
 
     Parameters
     ----------
@@ -168,8 +137,12 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
     pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
+    real_filter : bool
+        If True, take only the real part of the cross-spectral-density matrices
+        to compute real filters as in [2]_. Default is False.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -182,10 +155,18 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
 
     Notes
     -----
-    The original reference is:
-    Gross et al. Dynamic imaging of coherent sources: Studying neural
-    interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
-    """
+    For more information about ``real_filter``, see the
+    `supplemental information <http://www.cell.com/cms/attachment/616681/4982593/mmc1.pdf>`_
+    from [2]_.
+
+    References
+    ----------
+    .. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
+           interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
+    .. [2] Hipp JF, Engel AK, Siegel M (2011) Oscillatory Synchronization
+           in Large-Scale Cortical Networks Predicts Perception.
+           Neuron 69:387-396.
+    """  # noqa: E501
     _check_reference(evoked)
     info = evoked.info
     data = evoked.data
@@ -195,24 +176,26 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
     data = data[picks]
 
     stc = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,
-                      label=label, pick_ori=pick_ori, picks=picks)
+                      label=label, pick_ori=pick_ori, picks=picks,
+                      real_filter=real_filter)
     return six.advance_iterator(stc)
 
 
 @verbose
-def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
-                pick_ori=None, return_generator=False, verbose=None):
+def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
+                pick_ori=None, return_generator=False, real_filter=False,
+                verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
 
     Compute a Dynamic Imaging of Coherent Sources (DICS) beamformer
     on single trial data and return estimates of source time courses.
 
-    NOTE : Fixed orientation forward operators will result in complex time
-    courses in which case absolute values will be  returned. Therefore the
-    orientation will no longer be fixed.
+    .. note:: Fixed orientation forward operators with ``real_filter=False``
+              will result in complex time courses, in which case absolute
+              values will be returned.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issues or suggestions.
+    .. warning:: This implementation has not been heavily tested so please
+                 report any issues or suggestions.
 
     Parameters
     ----------
@@ -234,8 +217,12 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
+    real_filter : bool
+        If True, take only the real part of the cross-spectral-density matrices
+        to compute real filters as in [2]_. Default is False.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -245,12 +232,6 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
     See Also
     --------
     dics
-
-    Notes
-    -----
-    The original reference is:
-    Gross et al. Dynamic imaging of coherent sources: Studying neural
-    interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
     """
     _check_reference(epochs)
 
@@ -261,7 +242,8 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
     data = epochs.get_data()[:, picks, :]
 
     stcs = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,
-                       label=label, pick_ori=pick_ori, picks=picks)
+                       label=label, pick_ori=pick_ori, picks=picks,
+                       real_filter=real_filter)
 
     if not return_generator:
         stcs = list(stcs)
@@ -270,8 +252,9 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
 
 
 @verbose
-def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
-                      label=None, pick_ori=None, verbose=None):
+def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
+                      label=None, pick_ori=None, real_filter=False,
+                      verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
 
     Calculate source power in time and frequency windows specified in the
@@ -300,8 +283,12 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
     pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
+    real_filter : bool
+        If True, take only the real part of the cross-spectral-density matrices
+        to compute real filters.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -373,12 +360,17 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
             logger.info('    computing DICS spatial filter %d out of %d' %
                         (i + 1, n_csds))
 
-        Cm = data_csd.data
+        Cm = data_csd.data.copy()
 
-        # Calculating regularized inverse, equivalent to an inverse operation
-        # after the following regularization:
-        # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
-        Cm_inv = linalg.pinv(Cm, reg)
+        # Take real part of Cm to compute real filters
+        if real_filter:
+            Cm = Cm.real
+
+        # Tikhonov regularization using reg parameter to control for
+        # trade-off between spatial resolution and noise sensitivity
+        # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
+        Cm_inv = _reg_pinv(Cm, reg)
+        del Cm
 
         # Compute spatial filters
         W = np.dot(G.T, Cm_inv)
@@ -417,18 +409,18 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 @verbose
 def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, mode='fourier', n_ffts=None,
-            mt_bandwidths=None, mt_adaptive=False, mt_low_bias=True, reg=0.01,
-            label=None, pick_ori=None, verbose=None):
+            mt_bandwidths=None, mt_adaptive=False, mt_low_bias=True, reg=0.05,
+            label=None, pick_ori=None, real_filter=False, verbose=None):
     """5D time-frequency beamforming based on DICS.
 
     Calculate source power in time-frequency windows using a spatial filter
     based on the Dynamic Imaging of Coherent Sources (DICS) beamforming
-    approach. For each time window and frequency bin combination cross-spectral
-    density (CSD) is computed and used to create a beamformer spatial filter
-    with noise CSD used for normalization.
+    approach [1]_. For each time window and frequency bin combination
+    cross-spectral density (CSD) is computed and used to create a beamformer
+    spatial filter with noise CSD used for normalization.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issues or suggestions.
+    .. warning:: This implementation has not been heavily tested so please
+                 report any issues or suggestions.
 
     Parameters
     ----------
@@ -473,8 +465,12 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
     pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
+    real_filter : bool
+        If True, take only the real part of the part of the
+        cross-spectral-density matrices to compute real filters.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -484,13 +480,14 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
     Notes
     -----
-    The original reference is:
-    Dalal et al. Five-dimensional neuroimaging: Localization of the
-    time-frequency dynamics of cortical activity.
-    NeuroImage (2008) vol. 40 (4) pp. 1686-1700
-
-    NOTE : Dalal et al. used a synthetic aperture magnetometry beamformer (SAM)
+    Dalal et al. [1]_ used a synthetic aperture magnetometry beamformer (SAM)
     in each time-frequency window instead of DICS.
+
+    References
+    ----------
+    .. [1] Dalal et al. Five-dimensional neuroimaging: Localization of the
+           time-frequency dynamics of cortical activity.
+           NeuroImage (2008) vol. 40 (4) pp. 1686-1700
     """
     _check_reference(epochs)
 
@@ -561,21 +558,18 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                 win_tmax = win_tmax + 1e-10
 
                 # Calculating data CSD in current time window
-                data_csd = csd_epochs(epochs, mode=mode,
-                                      fmin=freq_bin[0],
-                                      fmax=freq_bin[1], fsum=True,
-                                      tmin=win_tmin, tmax=win_tmax,
-                                      n_fft=n_fft,
-                                      mt_bandwidth=mt_bandwidth,
-                                      mt_low_bias=mt_low_bias)
+                data_csd = csd_epochs(
+                    epochs, mode=mode, fmin=freq_bin[0], fmax=freq_bin[1],
+                    fsum=True, tmin=win_tmin, tmax=win_tmax, n_fft=n_fft,
+                    mt_bandwidth=mt_bandwidth, mt_low_bias=mt_low_bias)
 
                 # Scale data CSD to allow data and noise CSDs to have different
                 # length
                 data_csd.data /= data_csd.n_fft
 
-                stc = dics_source_power(epochs.info, forward, noise_csd,
-                                        data_csd, reg=reg, label=label,
-                                        pick_ori=pick_ori)
+                stc = dics_source_power(
+                    epochs.info, forward, noise_csd, data_csd, reg=reg,
+                    label=label, pick_ori=pick_ori, real_filter=real_filter)
                 sol_single.append(stc.data[:, 0])
 
             # Average over all time windows that contain the current time

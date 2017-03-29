@@ -18,25 +18,26 @@ from .. import pick_types, pick_info
 class EMS(TransformerMixin, EstimatorMixin):
     """Transformer to compute event-matched spatial filters.
 
-    This version operates on the entire time course. The result is a spatial
-    filter at each time point and a corresponding time course. Intuitively,
-    the result gives the similarity between the filter at each time point and
-    the data vector (sensors) at that time point.
+    This version of EMS [1]_ operates on the entire time course. No time
+    window needs to be specified. The result is a spatial filter at each
+    time point and a corresponding time course. Intuitively, the result
+    gives the similarity between the filter at each time point and the
+    data vector (sensors) at that time point.
 
     .. note : EMS only works for binary classification.
 
-    References
-    ----------
-    [1] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
-        multi-sensor data to a single time course that reveals experimental
-        effects", BMC Neuroscience 2013, 14:122
-
     Attributes
     ----------
-    filters_ : ndarray, shape (n_channels, n_times)
+    ``filters_`` : ndarray, shape (n_channels, n_times)
         The set of spatial filters.
-    classes_ : ndarray, shape (n_classes,)
+    ``classes_`` : ndarray, shape (n_classes,)
         The target classes.
+
+    References
+    ----------
+    .. [1] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
+           multi-sensor data to a single time course that reveals experimental
+           effects", BMC Neuroscience 2013, 14:122
     """
 
     def __repr__(self):  # noqa: D105
@@ -94,26 +95,22 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
                 cv=None):
     """Compute event-matched spatial filter on epochs.
 
-    This version operates on the entire time course. No time window needs to
-    be specified. The result is a spatial filter at each time point and a
-    corresponding time course. Intuitively, the result gives the similarity
-    between the filter at each time point and the data vector (sensors) at
-    that time point.
+    This version of EMS [1]_ operates on the entire time course. No time
+    window needs to be specified. The result is a spatial filter at each
+    time point and a corresponding time course. Intuitively, the result
+    gives the similarity between the filter at each time point and the
+    data vector (sensors) at that time point.
 
     .. note : EMS only works for binary classification.
+
     .. note : The present function applies a leave-one-out cross-validation,
               following Schurger et al's paper. However, we recommend using
               a stratified k-fold cross-validation. Indeed, leave-one-out tends
               to overfit and cannot be used to estimate the variance of the
               prediction within a given fold.
-    .. note : Because of the leave-one-out, thise function needs an equal
-              number of epochs in each of the two conditions.
 
-    References
-    ----------
-    [1] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
-        multi-sensor data to a single time course that reveals experimental
-        effects", BMC Neuroscience 2013, 14:122
+    .. note : Because of the leave-one-out, this function needs an equal
+              number of epochs in each of the two conditions.
 
     Parameters
     ----------
@@ -128,7 +125,8 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
     n_jobs : int, defaults to 1
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None, defaults to self.verbose
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     cv : cross-validation object | str | None, defaults to LeaveOneOut
         The cross-validation scheme.
 
@@ -140,6 +138,12 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
         The set of spatial filters.
     conditions : ndarray, shape (n_classes,)
         The conditions used. Values correspond to original event ids.
+
+    References
+    ----------
+    .. [1] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
+           multi-sensor data to a single time course that reveals experimental
+           effects", BMC Neuroscience 2013, 14:122
     """
     logger.info('...computing surrogate time series. This can take some time')
 

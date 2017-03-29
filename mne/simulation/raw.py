@@ -11,11 +11,12 @@ import numpy as np
 
 from .evoked import _generate_noise
 from ..event import _get_stim_channel
+from ..filter import _Interp2
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..source_estimate import VolSourceEstimate
 from ..cov import make_ad_hoc_cov, read_cov
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
-from ..io import RawArray, _BaseRaw
+from ..io import RawArray, BaseRaw
 from ..chpi import read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info
 from ..io.constants import FIFF
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
@@ -25,7 +26,7 @@ from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
 from ..transforms import _get_trans, transform_surface_to
 from ..source_space import _ensure_src, _points_outside_surface
 from ..source_estimate import _BaseSourceEstimate
-from ..utils import logger, verbose, check_random_state, warn
+from ..utils import logger, verbose, check_random_state, warn, _pl
 from ..parallel import check_n_jobs
 from ..externals.six import string_types
 
@@ -91,14 +92,15 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         matrices. If None, the original head position (from
         ``info['dev_head_t']``) will be used. If tuple, should have the
         same format as data returned by `head_pos_to_trans_rot_t`.
-        If array, should be of the form returned by `read_head_pos`.
+        If array, should be of the form returned by
+        :func:`mne.chpi.read_head_pos`.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
     interp : str
-        Either 'cos2', 'linear', or 'zero', the type of forward-solution
-        interpolation to use between forward solutions at different
-        head positions.
+        Either 'hann', 'cos2', 'linear', or 'zero', the type of
+        forward-solution interpolation to use between forward solutions
+        at different head positions.
     iir_filter : None | array
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     n_jobs : int
@@ -107,7 +109,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         The random generator state used for blink, ECG, and sensor
         noise randomization.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -116,10 +119,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
     See Also
     --------
-    read_head_pos
+    mne.chpi.read_head_pos
     simulate_evoked
     simulate_stc
-    simalute_sparse_stc
+    simulate_sparse_stc
 
     Notes
     -----
@@ -168,7 +171,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     .. [1] Bentivoglio et al. "Analysis of blink rate patterns in normal
            subjects" Movement Disorders, 1997 Nov;12(6):1028-34.
     """
-    if not isinstance(raw, _BaseRaw):
+    if not isinstance(raw, BaseRaw):
         raise TypeError('raw should be an instance of Raw')
     times, info, first_samp = raw.times, raw.info, raw.first_samp
     raw_verbose = raw.verbose
@@ -185,53 +188,48 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     n_jobs = check_n_jobs(n_jobs)
 
     rng = check_random_state(random_state)
-    if interp not in ('cos2', 'linear', 'zero'):
-        raise ValueError('interp must be "cos2", "linear", or "zero"')
+    interper = _Interp2(interp)
 
-    if head_pos is None:  # use pos from file
-        dev_head_ts = [info['dev_head_t']] * 2
-        offsets = np.array([0, len(times)])
-        interp = 'zero'
-    # Use position data to simulate head movement
+    if head_pos is None:  # use pos from info['dev_head_t']
+        head_pos = dict()
+    if isinstance(head_pos, string_types):  # can be a head pos file
+        head_pos = read_head_pos(head_pos)
+    if isinstance(head_pos, np.ndarray):  # can be head_pos quats
+        head_pos = head_pos_to_trans_rot_t(head_pos)
+    if isinstance(head_pos, tuple):  # can be quats converted to trans, rot, t
+        transs, rots, ts = head_pos
+        ts -= first_samp / info['sfreq']  # MF files need reref
+        dev_head_ts = [np.r_[np.c_[r, t[:, np.newaxis]], [[0, 0, 0, 1]]]
+                       for r, t in zip(rots, transs)]
+        del transs, rots
+    elif isinstance(head_pos, dict):
+        ts = np.array(list(head_pos.keys()), float)
+        ts.sort()
+        dev_head_ts = [head_pos[float(tt)] for tt in ts]
     else:
-        if isinstance(head_pos, string_types):
-            head_pos = read_head_pos(head_pos)
-        if isinstance(head_pos, np.ndarray):
-            head_pos = head_pos_to_trans_rot_t(head_pos)
-        if isinstance(head_pos, tuple):  # can be an already-loaded pos file
-            transs, rots, ts = head_pos
-            ts -= first_samp / info['sfreq']  # MF files need reref
-            dev_head_ts = [np.r_[np.c_[r, t[:, np.newaxis]], [[0, 0, 0, 1]]]
-                           for r, t in zip(rots, transs)]
-            del transs, rots
-        elif isinstance(head_pos, dict):
-            ts = np.array(list(head_pos.keys()), float)
-            ts.sort()
-            dev_head_ts = [head_pos[float(tt)] for tt in ts]
-        else:
-            raise TypeError('unknown head_pos type %s' % type(head_pos))
-        bad = ts < 0
-        if bad.any():
-            raise RuntimeError('All position times must be >= 0, found %s/%s'
-                               '< 0' % (bad.sum(), len(bad)))
-        bad = ts > times[-1]
-        if bad.any():
-            raise RuntimeError('All position times must be <= t_end (%0.1f '
-                               'sec), found %s/%s bad values (is this a split '
-                               'file?)' % (times[-1], bad.sum(), len(bad)))
-        if ts[0] > 0:
-            ts = np.r_[[0.], ts]
-            dev_head_ts.insert(0, info['dev_head_t']['trans'])
-        dev_head_ts = [{'trans': d, 'to': info['dev_head_t']['to'],
-                        'from': info['dev_head_t']['from']}
-                       for d in dev_head_ts]
-        if ts[-1] < times[-1]:
-            dev_head_ts.append(dev_head_ts[-1])
-            ts = np.r_[ts, [times[-1]]]
-        offsets = raw.time_as_index(ts)
-        offsets[-1] = len(times)  # fix for roundoff error
-        assert offsets[-2] != offsets[-1]
-        del ts
+        raise TypeError('unknown head_pos type %s' % type(head_pos))
+    bad = ts < 0
+    if bad.any():
+        raise RuntimeError('All position times must be >= 0, found %s/%s'
+                           '< 0' % (bad.sum(), len(bad)))
+    bad = ts > times[-1]
+    if bad.any():
+        raise RuntimeError('All position times must be <= t_end (%0.1f '
+                           'sec), found %s/%s bad values (is this a split '
+                           'file?)' % (times[-1], bad.sum(), len(bad)))
+    # If it doesn't start at zero, insert one at t=0
+    if len(ts) == 0 or ts[0] > 0:
+        ts = np.r_[[0.], ts]
+        dev_head_ts.insert(0, info['dev_head_t']['trans'])
+    dev_head_ts = [{'trans': d, 'to': info['dev_head_t']['to'],
+                    'from': info['dev_head_t']['from']}
+                   for d in dev_head_ts]
+    offsets = raw.time_as_index(ts)
+    offsets = np.concatenate([offsets, [len(times)]])
+    assert offsets[-2] != offsets[-1]
+    assert np.array_equal(offsets, np.unique(offsets))
+    assert len(offsets) == len(dev_head_ts) + 1
+    del ts
 
     src = _ensure_src(src, verbose=False)
     if isinstance(bem, string_types):
@@ -241,12 +239,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
             cov = make_ad_hoc_cov(info, verbose=False)
         else:
             cov = read_cov(cov, verbose=False)
-    assert np.array_equal(offsets, np.unique(offsets))
-    assert len(offsets) == len(dev_head_ts)
     approx_events = int((len(times) / info['sfreq']) /
                         (stc.times[-1] - stc.times[0]))
     logger.info('Provided parameters will provide approximately %s event%s'
-                % (approx_events, '' if approx_events == 1 else 's'))
+                % (approx_events, _pl(approx_events)))
 
     # Extract necessary info
     meeg_picks = pick_types(info, meg=True, eeg=True, exclude=[])  # for sim
@@ -254,8 +250,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     fwd_info = pick_info(info, meeg_picks)
     fwd_info['projs'] = []  # Ensure no 'projs' applied
     logger.info('Setting up raw simulation: %s position%s, "%s" interpolation'
-                % (len(dev_head_ts), 's' if len(dev_head_ts) != 1 else '',
-                   interp))
+                % (len(dev_head_ts), _pl(dev_head_ts), interp))
+    del interp
 
     verts = stc.vertices
     verts = [verts] if isinstance(stc, VolSourceEstimate) else verts
@@ -351,8 +347,9 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     used = np.zeros(len(times), bool)
     stc_indices = np.arange(len(times)) % len(stc.times)
     raw_data[meeg_picks, :] = 0.
-    hpi_mag = 70e-9
-    last_fwd = last_fwd_chpi = last_fwd_blink = last_fwd_ecg = src_sel = None
+    if chpi:
+        sinusoids = 70e-9 * np.sin(2 * np.pi * hpi_freqs[:, np.newaxis] *
+                                   (np.arange(len(times)) / info['sfreq']))
     zf = None  # final filter conditions for the noise
     # don't process these any more if no MEG present
     for fi, (fwd, fwd_blink, fwd_ecg, fwd_chpi) in \
@@ -382,86 +379,59 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                                          hpi_nns[ii])
             fwd_chpi = fwd_chpi[:, :len(hpi_rrs)].copy()
 
-        if src_sel is None:
+        interper['fwd'] = fwd['sol']['data']
+        interper['fwd_blink'] = fwd_blink
+        interper['fwd_ecg'] = fwd_ecg
+        interper['fwd_chpi'] = fwd_chpi
+        if fi == 0:
             src_sel = _stc_src_sel(fwd['src'], stc)
             verts = stc.vertices
             verts = [verts] if isinstance(stc, VolSourceEstimate) else verts
             diff_ = sum([len(v) for v in verts]) - len(src_sel)
             if diff_ != 0:
                 warn('%s STC vertices omitted due to fwd calculation' % diff_)
-        if last_fwd is None:
-            last_fwd, last_fwd_blink, last_fwd_ecg, last_fwd_chpi = \
-                fwd, fwd_blink, fwd_ecg, fwd_chpi
+            stc_data = stc.data[src_sel]
+            del stc, src_sel, diff_, verts
             continue
+        del fwd, fwd_blink, fwd_ecg, fwd_chpi
 
-        # set up interpolation
-        n_pts = offsets[fi] - offsets[fi - 1]
-        if interp == 'zero':
-            interps = None
-        else:
-            if interp == 'linear':
-                interps = np.linspace(1, 0, n_pts, endpoint=False)
-            else:  # interp == 'cos2':
-                interps = np.cos(0.5 * np.pi * np.arange(n_pts)) ** 2
-            interps = np.array([interps, 1 - interps])
-
-        assert not used[offsets[fi - 1]:offsets[fi]].any()
-        event_idxs = np.where(stc_indices[offsets[fi - 1]:offsets[fi]] ==
-                              stc_event_idx)[0] + offsets[fi - 1]
+        start, stop = offsets[fi - 1:fi + 1]
+        assert not used[start:stop].any()
+        event_idxs = np.where(stc_indices[start:stop] ==
+                              stc_event_idx)[0] + start
         if stim:
             raw_data[event_ch, event_idxs] = fi
 
         logger.info('  Simulating data for %0.3f-%0.3f sec with %s event%s'
-                    % (tuple(offsets[fi - 1:fi + 1] / info['sfreq']) +
-                       (len(event_idxs), '' if len(event_idxs) == 1 else 's')))
+                    % (start / info['sfreq'], stop / info['sfreq'],
+                       len(event_idxs), _pl(event_idxs)))
 
-        # Process data in large chunks to save on memory
-        chunk_size = 10000
-        chunks = np.concatenate((np.arange(offsets[fi - 1], offsets[fi],
-                                           chunk_size), [offsets[fi]]))
-        for start, stop in zip(chunks[:-1], chunks[1:]):
-            assert stop - start <= chunk_size
+        used[start:stop] = True
+        time_sl = slice(start, stop)
+        stc_idxs = stc_indices[time_sl]
 
-            used[start:stop] = True
-            if interp == 'zero':
-                this_interp = None
-            else:
-                this_interp = interps[:, start - chunks[0]:stop - chunks[0]]
-            time_sl = slice(start, stop)
-            this_t = np.arange(start, stop) / info['sfreq']
-            stc_idxs = stc_indices[time_sl]
-
-            # simulate brain data
-            raw_data[meeg_picks, time_sl] = \
-                _interp(last_fwd['sol']['data'], fwd['sol']['data'],
-                        stc.data[:, stc_idxs][src_sel], this_interp)
-
-            # add sensor noise, ECG, blink, cHPI
-            if cov is not None:
-                noise, zf = _generate_noise(fwd_info, cov, iir_filter, rng,
-                                            len(stc_idxs), zi=zf)
-                raw_data[meeg_picks, time_sl] += noise
-            if blink:
-                raw_data[meeg_picks, time_sl] += \
-                    _interp(last_fwd_blink, fwd_blink, blink_data[:, time_sl],
-                            this_interp)
-            if ecg:
-                raw_data[meg_picks, time_sl] += \
-                    _interp(last_fwd_ecg, fwd_ecg, ecg_data[:, time_sl],
-                            this_interp)
-            if chpi:
-                sinusoids = np.zeros((len(hpi_freqs), len(stc_idxs)))
-                for fidx, freq in enumerate(hpi_freqs):
-                    sinusoids[fidx] = 2 * np.pi * freq * this_t
-                    sinusoids[fidx] = hpi_mag * np.sin(sinusoids[fidx])
-                raw_data[meg_picks, time_sl] += \
-                    _interp(last_fwd_chpi, fwd_chpi, sinusoids, this_interp)
-
-        assert used[offsets[fi - 1]:offsets[fi]].all()
-
-        # prepare for next iteration
-        last_fwd, last_fwd_blink, last_fwd_ecg, last_fwd_chpi = \
-            fwd, fwd_blink, fwd_ecg, fwd_chpi
+        # simulate brain data
+        this_data = raw_data[:, time_sl]
+        this_data[meeg_picks] = 0.
+        interper.n_samp = stop - start
+        interper.interpolate('fwd', stc_data,
+                             this_data, meeg_picks, stc_idxs)
+        if blink:
+            interper.interpolate('fwd_blink', blink_data[:, time_sl],
+                                 this_data, meeg_picks)
+        if ecg:
+            interper.interpolate('fwd_ecg', ecg_data[:, time_sl],
+                                 this_data, meg_picks)
+        if chpi:
+            interper.interpolate('fwd_chpi', sinusoids[:, time_sl],
+                                 this_data, meg_picks)
+        # add sensor noise, ECG, blink, cHPI
+        if cov is not None:
+            noise, zf = _generate_noise(fwd_info, cov, iir_filter, rng,
+                                        len(stc_idxs), zi=zf)
+            raw_data[meeg_picks, time_sl] += noise
+            this_data[meeg_picks] += noise
+        assert used[start:stop].all()
     assert used.all()
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
     raw.verbose = raw_verbose
@@ -493,6 +463,8 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
         eegfwd.update(**update_kwargs)
         for _ in dev_head_ts:
             yield eegfwd, eegblink, None, None
+        # extra one to fill last buffer
+        yield eegfwd, eegblink, None, None
         return
 
     coord_frame = FIFF.FIFFV_COORD_HEAD
@@ -546,6 +518,8 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
         if hpi_rrs is not None:
             fwd_chpi = _magnetic_dipole_field_vec(hpi_rrs, megcoils).T
         yield fwd, fwd_blink, fwd_ecg, fwd_chpi
+    # need an extra one to fill last buffer
+    yield fwd, fwd_blink, fwd_ecg, fwd_chpi
 
 
 def _restrict_source_space_to(src, vertices):
@@ -557,20 +531,7 @@ def _restrict_source_space_to(src, vertices):
         s['nuse'] = len(v)
         s['vertno'] = v
         s['inuse'][s['vertno']] = 1
-        del s['pinfo']
-        del s['nuse_tri']
-        del s['use_tris']
-        del s['patch_inds']
+        for key in ('pinfo', 'nuse_tri', 'use_tris', 'patch_inds'):
+            if key in s:
+                del s[key]
     return src
-
-
-def _interp(data_1, data_2, stc_data, interps):
-    """Interpolate."""
-    out_data = np.dot(data_1, stc_data)
-    if interps is not None:
-        out_data *= interps[0]
-        data_1 = np.dot(data_1, stc_data)
-        data_1 *= interps[1]
-        out_data += data_1
-        del data_1
-    return out_data

@@ -10,7 +10,7 @@ Projections
 The Signal-Space Projection (SSP) method
 ========================================
 
-The Signal-Space Projection (SSP) is one approach to rejection 
+The Signal-Space Projection (SSP) is one approach to rejection
 of external disturbances in software. Unlike many other noise-cancellation
 approaches, SSP does not require additional reference sensors to record the disturbance
 fields. Instead, SSP relies on the fact that the magnetic field
@@ -141,7 +141,7 @@ Once a projector is applied on the data, it is said to be `active`.
 The proj attribute
 ------------------
 
-It is available in all the basic data containers: ``Raw``, ``Epochs`` and ``Evoked``. It is ``True`` if at least one projector is present and all of them are `active`. 
+It is available in all the basic data containers: ``Raw``, ``Epochs`` and ``Evoked``. It is ``True`` if at least one projector is present and all of them are `active`.
 
 Computing projectors
 --------------------
@@ -153,7 +153,7 @@ The general assumption these functions make is that the data passed contains
 raw, epochs or averages of the artifact. Typically this involves continues raw
 data of empty room recordings or averaged ECG or EOG artifacts.
 
-A second set of highlevel convenience functions is provided to compute projection vector for typical usecases. This includes :func:`mne.preprocessing.compute_proj_ecg` and :func:`mne.preprocessing.compute_proj_eog` for computing the ECG and EOG related artifact components, respectively. For computing the eeg reference signal, the function :func:`mne.preprocessing.ssp.make_eeg_average_ref_proj` can be used. The underlying implementation can be found in :mod:`mne.preprocessing.ssp`.
+A second set of highlevel convenience functions is provided to compute projection vector for typical usecases. This includes :func:`mne.preprocessing.compute_proj_ecg` and :func:`mne.preprocessing.compute_proj_eog` for computing the ECG and EOG related artifact components, respectively. For computing the EEG reference signal, the function :func:`mne.set_eeg_reference` can be used.
 
 .. warning:: It is best to compute projectors only on channels that will be
              used (e.g., excluding bad channels). This ensures that
@@ -191,11 +191,9 @@ The projectors might not be applied if data are not :ref:`preloaded <memory>`. I
 Delayed projectors
 ------------------
 
-The suggested pipeline is ``proj=True`` in epochs (it's computationally cheaper than for raw). When you use delayed SSP in ``Epochs``, projectors are applied when you call :func:`mne.Epochs.get_data` method. They are not applied to the ``evoked`` data unless you call ``apply_proj()``. The reason is that you want to reject epochs with projectors although it's not stored in the projector mode. 
+The suggested pipeline is ``proj=True`` in epochs (it's computationally cheaper than for raw). When you use delayed SSP in ``Epochs``, projectors are applied when you call :func:`mne.Epochs.get_data` method. They are not applied to the ``evoked`` data unless you call ``apply_proj()``. The reason is that you want to reject epochs with projectors although it's not stored in the projector mode.
 
 .. topic:: Examples:
 
-	* :ref:`sphx_glr_auto_examples_visualization_plot_evoked_delayed_ssp.py`: Interactive SSP
-	* :ref:`sphx_glr_auto_examples_visualization_plot_evoked_topomap_delayed_ssp.py`: Interactive SSP
-	* :ref:`sphx_glr_auto_examples_visualization_plot_ssp_projs_topomaps.py`: SSP sensitivities in sensor space
-	* :ref:`sphx_glr_auto_examples_visualization_plot_ssp_projs_sensitivity_map.py`: SSP sensitivities in source space
+    * :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_ssp.py`: SSP sensitivities in sensor space
+    * :ref:`sphx_glr_auto_examples_forward_plot_forward_sensitivity_maps.py`: SSP sensitivities in source space

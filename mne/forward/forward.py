@@ -30,9 +30,9 @@ from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
 from ..io.write import (write_int, start_block, end_block,
                         write_coord_trans, write_ch_info, write_name_list,
                         write_string, start_file, end_file, write_id)
-from ..io.base import _BaseRaw
+from ..io.base import BaseRaw
 from ..evoked import Evoked, EvokedArray
-from ..epochs import _BaseEpochs
+from ..epochs import BaseEpochs
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi,
                             _write_source_spaces_to_fid)
@@ -159,6 +159,7 @@ def _inv_block_diag(A, n):
         The matrix.
     n : int
         The block size.
+
     Returns
     -------
     bd : sparse matrix
@@ -398,7 +399,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         List of names of channels to exclude. If empty include all
         channels.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -559,7 +561,8 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     copy : bool
         Whether to return a new instance or modify in place.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -671,7 +674,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     overwrite : bool
         If True, overwrite destination file (if it exists).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -882,7 +886,8 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     loose : float in [0, 1] or None
         The loose orientation parameter.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1022,7 +1027,6 @@ def _fill_measurement_info(info, fwd, sfreq):
     info = pick_info(info, sel)
     info['bads'] = []
 
-    info['filename'] = None
     # this is probably correct based on what's done in meas_info.py...
     info['meas_id'] = fwd['info']['meas_id']
     info['file_id'] = info['meas_id']
@@ -1107,7 +1111,8 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1167,7 +1172,8 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1389,11 +1395,12 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
-    forward.make_forward_solution
+    make_forward_solution
 
     Returns
     -------
@@ -1416,7 +1423,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     if isinstance(meas, string_types):
         if not op.isfile(meas):
             raise IOError('measurement file "%s" could not be found' % meas)
-    elif isinstance(meas, (_BaseRaw, _BaseEpochs, Evoked)):
+    elif isinstance(meas, (BaseRaw, BaseEpochs, Evoked)):
         meas_file = op.join(temp_dir, 'info.fif')
         write_info(meas_file, meas.info)
         meas = meas_file

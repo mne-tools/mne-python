@@ -70,5 +70,5 @@ evoked = mne.EvokedArray(data, evoked.info, tmin=evoked.times[0])
 evoked.plot()
 
 ###############################################################################
-# To write an evoked dataset to a file, use the :func:`mne.Evoked.save' method.
+# To write an evoked dataset to a file, use the :meth:`mne.Evoked.save` method.
 # To save multiple categories to a single file, see :func:`mne.write_evokeds`.

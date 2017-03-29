@@ -78,7 +78,8 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         (irrelevant for 'sum' and 'mean'). Explained variances within
         sub-leadfields are shown in screen output.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -393,7 +394,8 @@ def cross_talk_function(inverse_operator, forward, labels,
         (irrelevant for 'sum' and 'mean'). Explained variances within
         sub-inverses are shown in screen output.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

@@ -84,15 +84,18 @@ class Layout(object):
         f.close()
 
     def __repr__(self):
-        """String representation."""
+        """Return the string representation."""
         return '<Layout | %s - Channels: %s ...>' % (self.kind,
                                                      ', '.join(self.names[:3]))
 
-    def plot(self, show=True):
+    def plot(self, picks=None, show=True):
         """Plot the sensor positions.
 
         Parameters
         ----------
+        picks : array-like
+            Indices of the channels to show. If None (default), all the
+            channels are shown.
         show : bool
             Show figure if True. Defaults to True.
 
@@ -106,7 +109,7 @@ class Layout(object):
         .. versionadded:: 0.12.0
         """
         from ..viz.topomap import plot_layout
-        return plot_layout(self, show=show)
+        return plot_layout(self, picks=picks, show=show)
 
 
 def _read_lout(fname):
@@ -450,7 +453,10 @@ def find_layout(info, ch_type=None, exclude='bads'):
     elif n_kit_grads > 0:
         layout_name = _find_kit_layout(info, n_kit_grads)
     else:
-        return None
+        xy = _auto_topomap_coords(info, picks=range(info['nchan']),
+                                  ignore_overlap=True, to_sphere=False)
+        return generate_2d_layout(xy, ch_names=info['ch_names'], name='custom',
+                                  normalize=False)
 
     layout = read_layout(layout_name)
     if not is_old_vv:
@@ -639,7 +645,7 @@ def _find_topomap_coords(info, picks, layout=None):
     return pos
 
 
-def _auto_topomap_coords(info, picks, ignore_overlap=False):
+def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     """Make a 2 dimensional sensor map from sensor positions in an info dict.
 
     The default is to use the electrode locations. The fallback option is to
@@ -652,6 +658,12 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
         The measurement info.
     picks : list of int
         The channel indices to generate topomap coords for.
+    ignore_overlap : bool
+        Whether to ignore overlapping positions in the layout. If False and
+        positions overlap, an error is thrown.
+    to_sphere : bool
+        If True, the radial distance of spherical coordinates is ignored, in
+        effect fitting the xyz-coordinates to a sphere. Defaults to True.
 
     Returns
     -------
@@ -724,12 +736,15 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
         raise ValueError('The following electrodes have overlapping positions:'
                          '\n    ' + str(problematic_electrodes) + '\nThis '
                          'causes problems during visualization.')
-    # use spherical (theta, pol) as (r, theta) for polar->cartesian
-    return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+
+    if to_sphere:
+        # use spherical (theta, pol) as (r, theta) for polar->cartesian
+        return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+    return _pol_to_cart(_cart_to_sph(locs3d))
 
 
 def _topo_to_sphere(pos, eegs):
-    """Helper function for transforming xy-coordinates to sphere.
+    """Transform xy-coordinates to sphere.
 
     Parameters
     ----------
@@ -849,26 +864,34 @@ def _pair_grad_sensors_from_ch_names(ch_names):
     return grad_chs
 
 
-def _merge_grad_data(data):
-    """Merge data from channel pairs using the RMS.
+def _merge_grad_data(data, method='rms'):
+    """Merge data from channel pairs using the RMS or mean.
 
     Parameters
     ----------
     data : array, shape = (n_channels, n_times)
         Data for channels, ordered in pairs.
+    method : str
+        Can be 'rms' or 'mean'.
 
     Returns
     -------
     data : array, shape = (n_channels / 2, n_times)
-        The root mean square for each pair.
+        The root mean square or mean for each pair.
     """
     data = data.reshape((len(data) // 2, 2, -1))
-    data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
+    if method == 'mean':
+        data = np.mean(data, axis=1)
+    elif method == 'rms':
+        data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
+    else:
+        raise ValueError('method must be "rms" or "mean, got %s.' % method)
     return data
 
 
 def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
-                       ch_indices=None, name='ecog', bg_image=None):
+                       ch_indices=None, name='ecog', bg_image=None,
+                       normalize=True):
     """Generate a custom 2D layout from xy points.
 
     Generates a 2-D layout for plotting with plot_topo methods and
@@ -900,6 +923,9 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
         image file, or an array that can be plotted with plt.imshow. If
         provided, xy points will be normalized by the width/height of this
         image. If not, xy points will be normalized by their own min/max.
+    normalize : bool
+        Whether to normalize the coordinates to run from 0 to 1. Defaults to
+        True.
 
     Returns
     -------
@@ -938,7 +964,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
             img = bg_image
         x /= img.shape[1]
         y /= img.shape[0]
-    else:
+    elif normalize:
         # Normalize x and y by their maxes
         for i_dim in [x, y]:
             i_dim -= i_dim.min(0)

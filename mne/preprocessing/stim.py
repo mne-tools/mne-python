@@ -4,11 +4,12 @@
 
 import numpy as np
 from ..evoked import Evoked
-from ..epochs import _BaseEpochs
-from ..io import _BaseRaw
+from ..epochs import BaseEpochs
+from ..io import BaseRaw
 from ..event import find_events
 
-from ..io.pick import pick_channels
+from ..io.pick import _pick_data_channels
+from ..io.base import _check_preload
 
 
 def _get_window(start, end):
@@ -20,20 +21,12 @@ def _get_window(start, end):
     return window
 
 
-def _check_preload(inst):
-    """Check if inst.preload is False. If it is False, raising error."""
-    if inst.preload is False:
-        raise RuntimeError('Modifying data of Instance is only supported '
-                           'when preloading is used. Use preload=True '
-                           '(or string) in the constructor.')
-
-
 def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
     """Modify original data by using parameter data."""
     from scipy.interpolate import interp1d
     if mode == 'linear':
         x = np.array([first_samp, last_samp])
-        f = interp1d(x, data[:, (first_samp, last_samp)])
+        f = interp1d(x, data[:, (first_samp, last_samp)][picks])
         xnew = np.arange(first_samp, last_samp)
         interp_data = f(xnew)
         data[picks, first_samp:last_samp] = interp_data
@@ -84,11 +77,10 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     window = None
     if mode == 'window':
         window = _get_window(s_start, s_end)
-    ch_names = inst.info['ch_names']
-    picks = pick_channels(ch_names, ch_names)
+    picks = _pick_data_channels(inst.info)
 
-    if isinstance(inst, _BaseRaw):
-        _check_preload(inst)
+    _check_preload(inst, 'fix_stim_artifact')
+    if isinstance(inst, BaseRaw):
         if events is None:
             events = find_events(inst, stim_channel=stim_channel)
         if len(events) == 0:
@@ -104,8 +96,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
             last_samp = int(event_idx) - inst.first_samp + s_end
             _fix_artifact(data, window, picks, first_samp, last_samp, mode)
 
-    elif isinstance(inst, _BaseEpochs):
-        _check_preload(inst)
+    elif isinstance(inst, BaseEpochs):
         if inst.reject is not None:
             raise RuntimeError('Reject is already applied. Use reject=None '
                                'in the constructor.')

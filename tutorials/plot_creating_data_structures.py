@@ -32,7 +32,7 @@ import numpy as np
 # Create some dummy metadata
 n_channels = 32
 sampling_rate = 200
-info = mne.create_info(32, sampling_rate)
+info = mne.create_info(n_channels, sampling_rate)
 print(info)
 
 ###############################################################################
@@ -78,7 +78,16 @@ print(info)
 #
 # To create a :class:`mne.io.Raw` object from scratch, you can use the
 # :class:`mne.io.RawArray` class, which implements raw data that is backed by a
-# numpy array.  Its constructor simply takes the data matrix and
+# numpy array. The correct units for the data are:
+#
+# - V: eeg, eog, seeg, emg, ecg, bio, ecog
+# - T: mag
+# - T/m: grad
+# - M: hbo, hbr
+# - Am: dipole
+# - AU: misc
+#
+# The :class:`mne.io.RawArray` constructor simply takes the data matrix and
 # :class:`mne.Info` object:
 
 # Generate some random data
@@ -102,7 +111,7 @@ print(custom_raw)
 # To create an :class:`mne.Epochs` object from scratch, you can use the
 # :class:`mne.EpochsArray` class, which uses a numpy array directly without
 # wrapping a raw object. The array must be of `shape(n_epochs, n_chans,
-# n_times)`
+# n_times)`. The proper units of measure are listed above.
 
 # Generate some random data: 10 epochs, 5 channels, 2 seconds per epoch
 sfreq = 100
@@ -164,6 +173,7 @@ _ = custom_epochs['smiling'].average().plot()
 # If you already have data that is collapsed across trials, you may also
 # directly create an evoked array.  Its constructor accepts an array of
 # `shape(n_chans, n_times)` in addition to some bookkeeping parameters.
+# The proper units of measure for the data are listed above.
 
 # The averaged data
 data_evoked = data.mean(0)

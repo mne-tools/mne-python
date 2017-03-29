@@ -14,6 +14,7 @@ from .baseline import rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin,
                                 equalize_channels)
+from .channels.layout import _merge_grad_data, _pair_grad_sensors
 from .filter import resample, detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc)
@@ -67,7 +68,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -109,9 +111,20 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 fname, condition, kind, allow_maxshield)
         self.kind = _aspect_rev.get(str(self._aspect_kind), 'Unknown')
         self.verbose = verbose
+        self.preload = True
         # project and baseline correct
         if proj:
             self.apply_proj()
+
+    @property
+    def data(self):
+        """The data matrix."""
+        return self._data
+
+    @data.setter
+    def data(self, data):
+        """Set the data matrix."""
+        self._data = data
 
     @verbose
     def apply_baseline(self, baseline=(None, 0), verbose=None):
@@ -129,7 +142,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             from the data. The baseline (a, b) includes both endpoints, i.e.
             all timepoints t such that a <= t <= b.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -225,7 +240,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         --------
         Epochs.decimate
         Epochs.resample
-        Raw.resample
+        mne.io.Raw.resample
 
         Notes
         -----
@@ -298,7 +313,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                   border='none', ylim=None, scalings=None, title=None,
                   proj=False, vline=[0.0], fig_facecolor='k',
                   fig_background=None, axis_facecolor='k', font_color='w',
-                  merge_grads=False, show=True):
+                  merge_grads=False, legend=True, show=True):
         """
 
         Notes
@@ -312,7 +327,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                 fig_background=fig_background,
                                 axis_facecolor=axis_facecolor,
                                 font_color=font_color, merge_grads=merge_grads,
-                                show=show)
+                                legend=legend, show=show)
 
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
     def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
@@ -545,8 +560,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         out.comment = '-' + (out.comment or 'unknown')
         return out
 
-    def get_peak(self, ch_type=None, tmin=None, tmax=None, mode='abs',
-                 time_as_index=False):
+    def get_peak(self, ch_type=None, tmin=None, tmax=None,
+                 mode='abs', time_as_index=False, merge_grads=False):
         """Get location and latency of peak amplitude.
 
         Parameters
@@ -568,6 +583,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Defaults to 'abs'.
         time_as_index : bool
             Whether to return the time index instead of the latency in seconds.
+        merge_grads : bool
+            If True, compute peak from merged gradiometer data.
 
         Returns
         -------
@@ -597,6 +614,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                'must not be `None`, pass a sensor type '
                                'value instead')
 
+        if merge_grads:
+            if ch_type != 'grad':
+                raise ValueError('Channel type must be grad for merge_grads')
+            elif mode == 'neg':
+                raise ValueError('Negative mode (mode=neg) does not make '
+                                 'sense with merge_grads=True')
+
         meg = eeg = misc = seeg = ecog = fnirs = False
         picks = None
         if ch_type in ('mag', 'grad'):
@@ -613,18 +637,25 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             fnirs = ch_type
 
         if ch_type is not None:
-            picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
-                               seeg=seeg, ecog=ecog, ref_meg=False,
-                               fnirs=fnirs)
-
+            if merge_grads:
+                picks = _pair_grad_sensors(self.info, topomap_coords=False)
+            else:
+                picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
+                                   seeg=seeg, ecog=ecog, ref_meg=False,
+                                   fnirs=fnirs)
         data = self.data
         ch_names = self.ch_names
+
         if picks is not None:
             data = data[picks]
             ch_names = [ch_names[k] for k in picks]
+
+        if merge_grads:
+            data = _merge_grad_data(data)
+            ch_names = [ch_name[:-1] + 'X' for ch_name in ch_names[::2]]
+
         ch_idx, time_idx = _get_peak(data, self.times, tmin,
                                      tmax, mode)
-
         return (ch_names[ch_idx],
                 time_idx if time_as_index else self.times[time_idx])
 
@@ -659,12 +690,12 @@ class EvokedArray(Evoked):
     Parameters
     ----------
     data : array of shape (n_channels, n_times)
-        The channels' evoked response.
+        The channels' evoked response. See notes for proper units of measure.
     info : instance of Info
         Info dictionary. Consider using ``create_info`` to populate
         this structure.
     tmin : float
-        Start time before event.
+        Start time before event. Defaults to 0.
     comment : string
         Comment on dataset. Can be the condition. Defaults to ''.
     nave : int
@@ -672,8 +703,18 @@ class EvokedArray(Evoked):
     kind : str
         Type of data, either average or standard_error. Defaults to 'average'.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to raw.verbose.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    Proper units of measure:
+    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * T: mag
+    * T/m: grad
+    * M: hbo, hbr
+    * Am: dipole
+    * AU: misc
 
     See Also
     --------
@@ -681,7 +722,7 @@ class EvokedArray(Evoked):
     """
 
     @verbose
-    def __init__(self, data, info, tmin, comment='', nave=1, kind='average',
+    def __init__(self, data, info, tmin=0., comment='', nave=1, kind='average',
                  verbose=None):  # noqa: D102
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
@@ -702,12 +743,13 @@ class EvokedArray(Evoked):
         self.last = self.first + np.shape(data)[-1] - 1
         self.times = np.arange(self.first, self.last + 1,
                                dtype=np.float) / info['sfreq']
-        self.info = info
+        self.info = info.copy()  # do not modify original info
         self.nave = nave
         self.kind = kind
         self.comment = comment
         self.picks = None
         self.verbose = verbose
+        self.preload = True
         self._projector = None
         if not isinstance(self.kind, string_types):
             raise TypeError('kind must be a string, not "%s"' % (type(kind),))
@@ -927,7 +969,8 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -966,7 +1009,6 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
     with f as fid:
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree, clean_bads=True)
-        info['filename'] = fname
 
         #   Locate the data of interest
         processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)

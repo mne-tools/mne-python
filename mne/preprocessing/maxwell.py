@@ -25,9 +25,9 @@ from ..surface import _normalize_vectors
 from ..io.constants import FIFF
 from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, _date_now
-from ..io import _loc_to_coil_trans, _BaseRaw
-from ..io.pick import pick_types, pick_info, pick_channels
-from ..utils import verbose, logger, _clean_names, warn, _time_mask
+from ..io import _loc_to_coil_trans, BaseRaw
+from ..io.pick import pick_types, pick_info
+from ..utils import verbose, logger, _clean_names, warn, _time_mask, _pl
 from ..fixes import _get_args, _safe_svd, _get_sph_harm
 from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
@@ -49,12 +49,10 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     .. warning:: Automatic bad channel detection is not currently implemented.
                  It is critical to mark bad channels before running Maxwell
-                 filtering, so data should be inspected and marked accordingly
-                 prior to running this algorithm.
+                 filtering to prevent artifact spreading.
 
-    .. warning:: Not all features of Elekta MaxFilter™ are currently
-                 implemented (see Notes). Maxwell filtering in mne-python
-                 is not designed for clinical use.
+    .. warning:: Maxwell filtering in MNE is not designed or certified
+                 for clinical use.
 
     Parameters
     ----------
@@ -151,7 +149,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         .. versionadded:: 0.13
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose)
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -160,8 +159,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     See Also
     --------
-    mne.epochs.average_movements
+    mne.chpi.filter_chpi
     mne.chpi.read_head_pos
+    mne.epochs.average_movements
 
     Notes
     -----
@@ -171,34 +171,49 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     permission from Jussi Nurminen. These algorithms are based on work
     from [1]_ and [2]_.
 
-    Compared to Elekta's MaxFilter™ software, our Maxwell filtering
-    algorithm currently provides the following features:
+    .. note:: This code may use multiple CPU cores, see the
+              :ref:`FAQ <faq_cpu>` for more information.
 
-        * Bad channel reconstruction
-        * Cross-talk cancellation
-        * Fine calibration correction
-        * tSSS
-        * Coordinate frame translation
-        * Regularization of internal components using information theory
-        * Raw movement compensation
-          (using head positions estimated by MaxFilter)
-        * cHPI subtraction (see :func:`mne.chpi.filter_chpi`)
+    Compared to Elekta's MaxFilter™ software, the MNE Maxwell filtering
+    routines currently provide the following features:
 
-    The following features are not yet implemented:
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Feature                                                                     | MNE | MaxFilter |
+    +=============================================================================+=====+===========+
+    | Maxwell filtering software shielding                                        | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Bad channel reconstruction                                                  | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Cross-talk cancellation                                                     | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Fine calibration correction (1D)                                            | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Fine calibration correction (3D)                                            | X   |           |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Spatio-temporal SSS (tSSS)                                                  | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Coordinate frame translation                                                | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Regularization using information theory                                     | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Movement compensation (raw)                                                 | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Movement compensation (:func:`epochs <mne.epochs.average_movements>`)       | X   |           |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | :func:`cHPI subtraction <mne.chpi.filter_chpi>`                             | X   | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Double floating point precision                                             | X   |           |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Seamless processing of split (``-1.fif``) and concatenated files            | X   |           |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Certified for clinical use                                                  |     | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Automatic bad channel detection                                             |     | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
+    | Head position estimation                                                    |     | X         |
+    +-----------------------------------------------------------------------------+-----+-----------+
 
-        * **Not certified for clinical use**
-        * Automatic bad channel detection
-        * Head position estimation
-
-    Our algorithm has the following enhancements:
-
-        * Double floating point precision
-        * Handling of 3D (in addition to 1D) fine calibration files
-        * Automated processing of split (-1.fif) and concatenated files
-        * Epoch-based movement compensation as described in [1]_ through
-          :func:`mne.epochs.average_movements`
-        * **Experimental** processing of data from (un-compensated)
-          non-Elekta systems
+    Epoch-based movement compensation is described in [1]_.
 
     Use of Maxwell filtering routines with non-Elekta systems is currently
     **experimental**. Worse results for non-Elekta systems are expected due
@@ -224,6 +239,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
               These patents likely preclude the use of Maxwell filtering code
               in commercial applications. Consult a lawyer if necessary.
 
+    Currently, in order to perform Maxwell filtering, the raw data must not
+    have any projectors applied. During Maxwell filtering, the spatial
+    structure of the data is modified, so projectors are discarded (unless
+    in ``st_only=True`` mode).
+
     References
     ----------
     .. [1] Taulu S. and Kajola M. "Presentation of electromagnetic
@@ -237,7 +257,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
            Physics in Medicine and Biology, vol. 51, pp. 1759-1768, 2006.
 
            http://lib.tkk.fi/Diss/2008/isbn9789512295654/article3.pdf
-    """
+    """  # noqa: E501
     # There are an absurd number of different possible notations for spherical
     # coordinates, which confounds the notation for spherical harmonics.  Here,
     # we purposefully stay away from shorthand notation in both and use
@@ -246,7 +266,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
     # triage inputs ASAP to avoid late-thrown errors
-    if not isinstance(raw, _BaseRaw):
+    if not isinstance(raw, BaseRaw):
         raise TypeError('raw must be Raw, not %s' % type(raw))
     _check_usable(raw)
     _check_regularize(regularize)
@@ -293,7 +313,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     raw_sss, pos_picks = _copy_preload_add_channels(
         raw, add_channels=add_channels)
     del raw
-    _remove_meg_projs(raw_sss)  # remove MEG projectors, they won't apply now
+    if not st_only:
+        # remove MEG projectors, they won't apply now
+        _remove_meg_projs(raw_sss)
     info = raw_sss.info
     meg_picks, mag_picks, grad_picks, good_picks, mag_or_fine = \
         _get_mf_picks(info, int_order, ext_order, ignore_ref)
@@ -334,9 +356,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         missing = sorted(list(set(ctc_chs) - set(meg_ch_names)))
         if len(missing) > 0:
             warn('Not all cross-talk channels in raw:\n%s' % missing)
-        ctc_picks = pick_channels(ctc_chs,
-                                  [info['ch_names'][c]
-                                   for c in meg_picks[good_picks]])
+        ctc_picks = [ctc_chs.index(info['ch_names'][c])
+                     for c in meg_picks[good_picks]]
         assert len(ctc_picks) == len(good_picks)  # otherwise we errored
         ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
         # I have no idea why, but MF transposes this for storage..
@@ -420,9 +441,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     reg_moments_0 = reg_moments.copy()
     # Loop through buffer windows of data
     n_sig = int(np.floor(np.log10(max(len(read_lims), 0)))) + 1
-    pl = 's' if len(read_lims) != 2 else ''
     logger.info('    Processing %s data chunk%s of (at least) %0.1f sec'
-                % (len(read_lims) - 1, pl, st_duration / info['sfreq']))
+                % (len(read_lims) - 1, _pl(read_lims),
+                   st_duration / info['sfreq']))
     for ii, (start, stop) in enumerate(zip(read_lims[:-1], read_lims[1:])):
         rel_times = raw_sss.times[start:stop]
         t_str = '%8.3f - %8.3f sec' % tuple(rel_times[[0, -1]])
@@ -511,14 +532,14 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
             _do_tSSS(out_meg_data, orig_in_data, resid, st_correlation,
                      n_positions, t_str)
         elif st_when == 'never' and head_pos[0] is not None:
-            pl = 's' if n_positions > 1 else ''
             logger.info('        Used % 2d head position%s for %s'
-                        % (n_positions, pl, t_str))
+                        % (n_positions, _pl(n_positions), t_str))
         raw_sss._data[meg_picks, start:stop] = out_meg_data
         raw_sss._data[pos_picks, start:stop] = out_pos_data
 
     # Update info
-    info['dev_head_t'] = recon_trans  # set the reconstruction transform
+    if not st_only:
+        info['dev_head_t'] = recon_trans  # set the reconstruction transform
     _update_sss_info(raw_sss, origin, int_order, ext_order, len(good_picks),
                      coord_frame, sss_ctc, sss_cal, max_st, reg_moments_0,
                      st_only)
@@ -906,7 +927,8 @@ def _check_regularize(regularize):
 def _check_usable(inst):
     """Ensure our data are clean."""
     if inst.proj:
-        raise RuntimeError('Projectors cannot be applied to data.')
+        raise RuntimeError('Projectors cannot be applied to data during '
+                           'Maxwell filtering.')
     current_comp = inst.compensation_grade
     if current_comp not in (0, None):
         raise RuntimeError('Maxwell filter cannot be done on compensated '
@@ -939,7 +961,7 @@ def _check_finite(data):
 
 
 def _sph_harm_norm(order, degree):
-    """Normalization factor for spherical harmonics."""
+    """Compute normalization factor for spherical harmonics."""
     # we could use scipy.special.poch(degree + order + 1, -2 * order)
     # here, but it's slower for our fairly small degree
     norm = np.sqrt((2 * degree + 1.) / (4 * np.pi))
@@ -1463,9 +1485,8 @@ def _overlap_projector(data_int, data_res, corr):
     del Q_int
 
     # Compute angles between subspace and which bases to keep
-    S_intersect, Vh_intersect = linalg.svd(C_mat, overwrite_a=True,
-                                           full_matrices=False,
-                                           **check_disable)[1:]
+    S_intersect, Vh_intersect = _safe_svd(C_mat, full_matrices=False,
+                                          **check_disable)[1:]
     del C_mat
     intersect_mask = (S_intersect >= corr)
     del S_intersect
@@ -1477,65 +1498,40 @@ def _overlap_projector(data_int, data_res, corr):
     return V_principal
 
 
-def _read_fine_cal(fine_cal):
-    """Read sensor locations and calib. coeffs from fine calibration file."""
-    # Read new sensor locations
-    cal_chs = list()
-    cal_ch_numbers = list()
-    with open(fine_cal, 'r') as fid:
-        lines = [line for line in fid if line[0] not in '#\n']
-        for line in lines:
-            # `vals` contains channel number, (x, y, z), x-norm 3-vec, y-norm
-            # 3-vec, z-norm 3-vec, and (1 or 3) imbalance terms
-            vals = np.fromstring(line, sep=' ').astype(np.float64)
-
-            # Check for correct number of items
-            if len(vals) not in [14, 16]:
-                raise RuntimeError('Error reading fine calibration file')
-
-            ch_name = 'MEG' + '%04d' % vals[0]  # Zero-pad names to 4 char
-            cal_ch_numbers.append(vals[0])
-
-            # Get orientation information for coil transformation
-            loc = vals[1:13].copy()  # Get orientation information for 'loc'
-            calib_coeff = vals[13:].copy()  # Get imbalance/calibration coeff
-            cal_chs.append(dict(ch_name=ch_name,
-                                loc=loc, calib_coeff=calib_coeff,
-                                coord_frame=FIFF.FIFFV_COORD_DEVICE))
-    return cal_chs, cal_ch_numbers
-
-
 def _update_sensor_geometry(info, fine_cal, ignore_ref):
     """Replace sensor geometry information and reorder cal_chs."""
     from ._fine_cal import read_fine_calibration
     logger.info('    Using fine calibration %s' % op.basename(fine_cal))
     fine_cal = read_fine_calibration(fine_cal)  # filename -> dict
     ch_names = _clean_names(info['ch_names'], remove_whitespace=True)
-    info_order = pick_channels(ch_names, fine_cal['ch_names'])
+    info_to_cal = dict()
+    missing = list()
+    for ci, name in enumerate(fine_cal['ch_names']):
+        if name not in ch_names:
+            missing.append(name)
+        else:
+            oi = ch_names.index(name)
+            info_to_cal[oi] = ci
     meg_picks = pick_types(info, meg=True, exclude=[])
-    if len(set(info_order) - set(meg_picks)) != 0:
-        # this should never happen
-        raise RuntimeError('Found channels in cal file that are not marked '
-                           'as MEG channels in the data file')
-    if len(info_order) != len(meg_picks):
+    if len(info_to_cal) != len(meg_picks):
         raise RuntimeError(
             'Not all MEG channels found in fine calibration file, missing:\n%s'
             % sorted(list(set(ch_names[pick] for pick in meg_picks) -
                           set(fine_cal['ch_names']))))
-    rev_order = np.argsort(info_order)
-    rev_grad = rev_order[np.in1d(meg_picks,
-                                 pick_types(info, meg='grad', exclude=()))]
-    rev_mag = rev_order[np.in1d(meg_picks,
-                                pick_types(info, meg='mag', exclude=()))]
+    if len(missing):
+        warn('Found cal channel%s not in data: %s' % (_pl(missing), missing))
+    grad_picks = pick_types(info, meg='grad', exclude=())
+    mag_picks = pick_types(info, meg='mag', exclude=())
 
     # Determine gradiometer imbalances and magnetometer calibrations
-    grad_imbalances = np.array([fine_cal['imb_cals'][ri] for ri in rev_grad]).T
+    grad_imbalances = np.array([fine_cal['imb_cals'][info_to_cal[gi]]
+                                for gi in grad_picks]).T
     if grad_imbalances.shape[0] not in [1, 3]:
         raise ValueError('Must have 1 (x) or 3 (x, y, z) point-like ' +
                          'magnetometers. Currently have %i' %
                          grad_imbalances.shape[0])
-    mag_cals = np.array([fine_cal['imb_cals'][ri] for ri in rev_mag])
-    del rev_order, rev_grad, rev_mag
+    mag_cals = np.array([fine_cal['imb_cals'][info_to_cal[mi]]
+                         for mi in mag_picks])
     # Now let's actually construct our point-like adjustment coils for grads
     grad_coilsets = _get_grad_point_coilsets(
         info, n_types=len(grad_imbalances), ignore_ref=ignore_ref)
@@ -1547,13 +1543,12 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
     used = np.zeros(len(info['chs']), bool)
     cal_corrs = list()
     cal_chans = list()
-    grad_picks = pick_types(info, meg='grad', exclude=())
     adjust_logged = False
-    for ci, info_idx in enumerate(info_order):
-        assert ch_names[info_idx] == fine_cal['ch_names'][ci]
-        assert not used[info_idx]
-        used[info_idx] = True
-        info_ch = info['chs'][info_idx]
+    for oi, ci in info_to_cal.items():
+        assert ch_names[oi] == fine_cal['ch_names'][ci]
+        assert not used[oi]
+        used[oi] = True
+        info_ch = info['chs'][oi]
         ch_num = int(fine_cal['ch_names'][ci].lstrip('MEG').lstrip('0'))
         cal_chans.append([ch_num, info_ch['coil_type']])
 
@@ -1579,7 +1574,7 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         v2 = _loc_to_coil_trans(info_ch['loc'])[:3, :3]
         _normalize_vectors(v2)
         ang_shift[ci] = np.sum(v1 * v2, axis=0)
-        if info_idx in grad_picks:
+        if oi in grad_picks:
             extra = [1., fine_cal['imb_cals'][ci][0]]
         else:
             extra = [fine_cal['imb_cals'][ci][0], 0.]
@@ -1590,6 +1585,7 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         assert (info_ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE)
     assert used[meg_picks].all()
     assert not used[np.setdiff1d(np.arange(len(used)), meg_picks)].any()
+    ang_shift = ang_shift[list(info_to_cal.values())]  # subselect used ones
     # This gets written to the Info struct
     sss_cal = dict(cal_corrs=np.array(cal_corrs),
                    cal_chans=np.array(cal_chans))
@@ -1751,17 +1747,15 @@ def _compute_sphere_activation_in(degrees):
     Returns
     -------
     a_power : ndarray
-        The a_lm associated for the associated degrees.
+        The a_lm associated for the associated degrees (see [1]_).
     rho_i : float
         The current density.
 
-    Notes
-    -----
-    See also:
-
-        A 122-channel whole-cortex SQUID system for measuring the brain’s
-        magnetic fields. Knuutila et al. IEEE Transactions on Magnetics,
-        Vol 29 No 6, Nov 1993.
+    References
+    ----------
+    .. [1] A 122-channel whole-cortex SQUID system for measuring the brain’s
+       magnetic fields. Knuutila et al. IEEE Transactions on Magnetics,
+       Vol 29 No 6, Nov 1993.
     """
     r_in = 0.080  # radius of the randomly-activated sphere
 

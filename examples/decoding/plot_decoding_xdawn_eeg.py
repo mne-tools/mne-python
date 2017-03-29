@@ -9,14 +9,15 @@ to create features vectors that will be fed into a Logistic Regression.
 
 References
 ----------
-[1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
-algorithm to enhance evoked potentials: application to brain-computer
-interface. Biomedical Engineering, IEEE Transactions on, 56(8), 2035-2043.
 
-[2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J. (2011,
-August). Theoretical analysis of xDAWN algorithm: application to an
-efficient sensor selection in a P300 BCI. In Signal Processing Conference,
-2011 19th European (pp. 1382-1386). IEEE.
+.. [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
+       algorithm to enhance evoked potentials: application to brain-computer
+       interface. Biomedical Engineering, IEEE Transactions on, 56(8),
+       2035-2043.
+.. [2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J. (2011,
+       August). Theoretical analysis of xDAWN algorithm: application to an
+       efficient sensor selection in a P300 BCI. In Signal Processing
+       Conference, 2011 19th European (pp. 1382-1386). IEEE.
 """
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
 #

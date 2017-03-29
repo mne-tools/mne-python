@@ -7,13 +7,11 @@ import glob
 import os
 import os.path as op
 import shutil
-import sys
 import warnings
 
 from nose.tools import assert_true, assert_equal, assert_raises
-from nose.plugins.skip import SkipTest
 
-from mne import Epochs, read_events, pick_types, read_evokeds
+from mne import Epochs, read_events, read_evokeds
 from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report
@@ -66,15 +64,16 @@ def test_render_report():
     # create and add -epo.fif and -ave.fif files
     epochs_fname = op.join(tempdir, 'temp-epo.fif')
     evoked_fname = op.join(tempdir, 'temp-ave.fif')
-    raw = read_raw_fif(raw_fname_new)
-    picks = pick_types(raw.info, meg='mag', eeg=False)  # faster with one type
-    epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2, picks=picks)
+    # Speed it up by picking channels
+    raw = read_raw_fif(raw_fname_new, preload=True)
+    raw.pick_channels(['MEG 0111', 'MEG 0121'])
+    epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
     epochs.save(epochs_fname)
-    epochs.average().save(evoked_fname)
+    # This can take forever (stall Travis), so let's make it fast
+    # Also, make sure crop range is wide enough to avoid rendering bug
+    epochs.average().crop(0.1, 0.2).save(evoked_fname)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
-    if sys.version.startswith('3.5'):  # XXX Some strange MPL/3.5 error...
-        raise SkipTest('Python 3.5 and mpl have unresolved issues')
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         report.parse_folder(data_path=tempdir, on_error='raise')

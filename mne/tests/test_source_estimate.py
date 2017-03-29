@@ -201,6 +201,7 @@ def test_io_stc_h5():
     assert_raises(ValueError, stc.save, op.join(tempdir, 'tmp'), ftype='foo')
     out_name = op.join(tempdir, 'tmp')
     stc.save(out_name, ftype='h5')
+    stc.save(out_name, ftype='h5')  # test overwrite
     stc3 = read_source_estimate(out_name)
     stc4 = read_source_estimate(out_name + '-stc.h5')
     assert_raises(RuntimeError, read_source_estimate, out_name, subject='bar')
@@ -661,7 +662,7 @@ def test_spatio_temporal_src_connectivity():
         warnings.simplefilter('always')
         src_ = inverse_operator['src']
         connectivity = spatio_temporal_src_connectivity(src_, n_times=2)
-        assert len(w) == 1
+    assert_equal(len(w), 1)
     a = connectivity.shape[0] / 2
     b = sum([s['nuse'] for s in inverse_operator['src']])
     assert_true(a == b)

@@ -1,3 +1,4 @@
+.. include:: ../git_links.inc
 
 .. contents:: Contents
    :local:
@@ -17,15 +18,11 @@ Basic Estimators
 
 Scaler
 ^^^^^^
-This will standardize data across channels. Each channel type (mag, grad or eeg) is treated separately. During training time, the mean (`ch_mean_`) and standard deviation (`std_`) is computed in the ``fit`` method and stored as an attribute to the object. The ``transform`` method is called to transform the training set. To perform both the ``fit`` and ``transform`` operations in a single call, the ``fit_transform`` method may be used. During test time, the stored mean and standard deviation are used in the ``transform`` method. To recover the original data, you can use ``inverse_transform``.
+The :class:`mne.decoding.Scaler` will standardize the data based on channel scales. In the simplest modes ``scalings=None`` or ``scalings=dict(...)``, each data channel type (e.g., mag, grad, eeg) is treated separately and scaled by a constant. This is the approach used by e.g., :func:`mne.compute_covariance` to standardize channel scales.
 
-.. note:: This is different from the ``StandarScaler`` estimator offered by Scikit-Learn. The ``StandardScaler`` standardizes each feature, whereas the ``Scaler`` object standardizes by channel type.
+If ``scalings='mean'`` or ``scalings='median'``, each channel is scaled using empirical measures. Each channel is scaled independently by the mean and standand deviation, or median and interquartile range, respectively, across all epochs and time points during :class:`mne.decoding.Scaler.fit` (during training). The :meth:`mne.decoding.Scaler.transform` method is called to transform data (training or test set) by scaling all time points and epochs on a channel-by-channel basis. To perform both the ``fit`` and ``transform`` operations in a single call, the :meth:`mne.decoding.Scaler.fit_transform` method may be used. To invert the transform, :meth:`mne.decoding.Scaler.inverse_transform` can be used. For ``scalings='median'``, scikit-learn_ version 0.17+ is required.
 
-EpochsVectorizer
-^^^^^^^^^^^^^^^^
-Scikit-learn API enforces the requirement that data arrays must be 2D. A common strategy for sensor-space decoding is to tile the sensors into a single vector. This can be achieved using the function :func:`mne.decoding.EpochsVectorizer.transform`. 
-
-To recover the original 3D data, an ``inverse_transform`` can be used. The ``epochs_vectorizer`` is particularly useful when constructing a pipeline object (used mainly for parameter search and cross validation). The ``epochs_vectorizer`` is the first estimator in the pipeline enabling estimators downstream to be more advanced estimators implemented in Scikit-learn. 
+.. note:: This is different from directly applying :class:`sklearn.preprocessing.StandardScaler` or :class:`sklearn.preprocessing.RobustScaler` offered by scikit-learn_. The ``StandardScaler`` and ``RobustScaler`` scale each *classification feature*, e.g. each time point for each channel, with mean and standard deviation computed across epochs, whereas ``Scaler`` scales each *channel* using mean and standard deviation computed across all of its time points and epochs.
 
 Vectorizer
 ^^^^^^^^^^
@@ -54,7 +51,7 @@ This is a technique to analyze multichannel data based on recordings from two cl
 .. math::       x_{CSP}(t) = W^{T}x(t)
    :label: csp
 
-where each column of :math:`W \in R^{C\times C}` is a spatial filter and each row of :math:`x_{CSP}` is a CSP component. The matrix :math:`W` is also called the de-mixing matrix in other contexts. Let :math:`\Sigma^{+} \in R^{C\times C}` and :math:`\Sigma^{-} \in R^{C\times C}` be the estimates of the covariance matrices of the two conditions. 
+where each column of :math:`W \in R^{C\times C}` is a spatial filter and each row of :math:`x_{CSP}` is a CSP component. The matrix :math:`W` is also called the de-mixing matrix in other contexts. Let :math:`\Sigma^{+} \in R^{C\times C}` and :math:`\Sigma^{-} \in R^{C\times C}` be the estimates of the covariance matrices of the two conditions.
 CSP analysis is given by the simultaneous diagonalization of the two covariance matrices
 
 .. math::       W^{T}\Sigma^{+}W = \lambda^{+}
@@ -159,7 +156,8 @@ To generate this plot, you need to initialize a GAT object and then use the meth
 
 .. topic:: Examples:
 
-    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_time_generalization.py`
+    * :ref:`sphx_glr_auto_tutorials_plot_sensors_decoding.py`
+    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_time_generalization_conditions.py`
 
 Source-space decoding
 =====================

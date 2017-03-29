@@ -110,7 +110,8 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     prepared : bool
         If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -132,7 +133,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     stcs = dict()
 
     subject = _subject_from_inverse(inverse_operator)
-    _log_rescale(baseline, baseline_mode)
+    _log_rescale(baseline, baseline_mode)  # for early failure
     for name, band in six.iteritems(bands):
         idx = [k for k, f in enumerate(frequencies) if band[0] <= f <= band[1]]
 
@@ -350,7 +351,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     prepared : bool
         If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     method = _check_method(method)
     pick_ori = _check_ori(pick_ori)
@@ -418,7 +420,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     prepared : bool
         If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -447,7 +450,10 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     freqs_mask = (freqs >= 0) & (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freqs_mask]
     fstep = np.mean(np.diff(freqs))
-    psd = np.zeros((K.shape[0], np.sum(freqs_mask)))
+    if is_free_ori and pick_ori is None:
+        psd = np.zeros((K.shape[0] // 3, np.sum(freqs_mask)))
+    else:
+        psd = np.zeros((K.shape[0], np.sum(freqs_mask)))
     n_windows = 0
 
     for this_start in np.arange(start, stop, int(n_fft * (1. - overlap))):
@@ -492,7 +498,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                                pca=True, inv_split=None, bandwidth=4.,
                                adaptive=False, low_bias=True, n_jobs=1,
                                prepared=False, verbose=None):
-    """Generator for compute_source_psd_epochs."""
+    """Generate compute_source_psd_epochs."""
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
@@ -650,7 +656,8 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     prepared : bool
         If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

@@ -5,7 +5,7 @@
 
 {% block extrahead %}
 
-<link href='http://fonts.googleapis.com/css?family=Open+Sans:400italic,700italic,400,700' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:400italic,700italic,400,700' rel='stylesheet' type='text/css'>
 
 {% if use_google_analytics|tobool %}
     <script type="text/javascript">
@@ -24,7 +24,7 @@
 {% if (use_twitter|tobool) or (use_media_buttons|tobool) %}
     <script type="text/javascript">
     !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);
-    js.id=id;js.src="http://platform.twitter.com/widgets.js";
+    js.id=id;js.src="https://platform.twitter.com/widgets.js";
     fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");
     </script>
 {% endif %}
@@ -44,8 +44,8 @@
 
 {% block relbar1 %}
 {% if build_dev_html|tobool %}
-<div class="devbar">
-This documentation is for the development version ({{ release }}) - <a href="http://martinos.org/mne/stable">Stable version</a>
+<div class="row devbar alert alert-danger">
+This documentation is for the <strong>development version ({{ release }})</strong> - <a href="http://martinos.org/mne/stable">switch to Stable</a>
 </div>
 {% endif %}
 

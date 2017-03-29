@@ -1,3 +1,5 @@
+"""Single-dipole functions and classes."""
+
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
@@ -19,7 +21,6 @@ from .evoked import _read_evoked, _aspect_rev, _write_evokeds
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform, Transform)
 from .viz.evoked import _plot_evoked
-
 from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
 from .forward._compute_forward import (_compute_forwards_meeg,
@@ -32,7 +33,8 @@ from .bem import _bem_find_surface, _bem_explain_surface
 from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
-from .utils import logger, verbose, _time_mask, warn, _check_fname, check_fname
+from .utils import (logger, verbose, _time_mask, warn, _check_fname,
+                    check_fname, _pl)
 
 
 class Dipole(object):
@@ -53,7 +55,7 @@ class Dipole(object):
     pos : array, shape (n_dipoles, 3)
         The dipoles positions (m) in head coordinates.
     amplitude : array, shape (n_dipoles,)
-        The amplitude of the dipoles (nAm).
+        The amplitude of the dipoles (Am).
     ori : array, shape (n_dipoles, 3)
         The dipole orientations (normalized to unit length).
     gof : array, shape (n_dipoles,)
@@ -144,9 +146,12 @@ class Dipole(object):
     def plot_locations(self, trans, subject, subjects_dir=None,
                        bgcolor=(1, 1, 1), opacity=0.3,
                        brain_color=(1, 1, 0), fig_name=None,
-                       fig_size=(600, 600), mode='cone',
-                       scale_factor=0.1e-1, colors=None, verbose=None):
-        """Plot dipole locations as arrows.
+                       fig_size=(600, 600), mode='orthoview',
+                       scale_factor=0.1e-1, colors=None,
+                       coord_frame='mri', idx='gof',
+                       show_all=True, ax=None, block=False,
+                       show=True, verbose=None):
+        """Plot dipole locations in 3d.
 
         Parameters
         ----------
@@ -165,34 +170,82 @@ class Dipole(object):
             Opacity of brain mesh.
         brain_color : tuple of length 3
             Brain color.
-        fig_name : tuple of length 2
+        fig_name : str
             Mayavi figure name.
         fig_size : tuple of length 2
             Mayavi figure size.
         mode : str
-            Should be ``'cone'`` or ``'sphere'`` to specify how the
-            dipoles should be shown.
+            Currently only ``'orthoview'`` is supported.
+
+            .. versionadded:: 0.14.0
         scale_factor : float
-            The scaling applied to amplitudes for the plot.
+            The scaling applied to amplitudes for the plot. Only applies for
+            modes ``cone`` and ``sphere``.
         colors: list of colors | None
-            Color to plot with each dipole. If None defaults colors are used.
+            Color to plot with each dipole. If None default colors are used.
+        coord_frame : str
+            Coordinate frame to use, 'head' or 'mri'. Defaults to 'mri'.
+
+            .. versionadded:: 0.14.0
+        idx : int | 'gof' | 'amplitude'
+            Index of the initially plotted dipole. Can also be 'gof' to plot
+            the dipole with highest goodness of fit value or 'amplitude' to
+            plot the dipole with the highest amplitude. The dipoles can also be
+            browsed through using up/down arrow keys or mouse scroll. Defaults
+            to 'gof'. Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
+        show_all : bool
+            Whether to always plot all the dipoles. If True (default), the
+            active dipole is plotted as a red dot and it's location determines
+            the shown MRI slices. The the non-active dipoles are plotted as
+            small blue dots. If False, only the active dipole is plotted.
+            Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
+        ax : instance of matplotlib Axes3D | None
+            Axes to plot into. If None (default), axes will be created.
+            Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Defaults to False. Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
+        show : bool
+            Show figure if True. Defaults to True.
+            Only used if mode equals 'orthoview'.
+
+            .. versionadded:: 0.14.0
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
-        fig : instance of mlab.Figure
-            The mayavi figure.
+        fig : instance of mlab.Figure or matplotlib Figure
+            The mayavi figure or matplotlib Figure.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         from .viz import plot_dipole_locations
-        dipoles = []
-        for t in self.times:
-            dipoles.append(self.copy())
-            dipoles[-1].crop(t, t)
+        dipoles = self
+        if mode in [None, 'cone', 'sphere']:  # support old behavior
+            dipoles = []
+            for t in self.times:
+                dipoles.append(self.copy())
+                dipoles[-1].crop(t, t)
+        elif mode != 'orthoview':
+            raise ValueError("mode must be 'cone', 'sphere' or 'orthoview'. "
+                             "Got %s." % mode)
         return plot_dipole_locations(
             dipoles, trans, subject, subjects_dir, bgcolor, opacity,
             brain_color, fig_name, fig_size, mode, scale_factor,
-            colors)
+            colors, coord_frame, idx, show_all, ax, block, show)
 
     def plot_amplitudes(self, color='k', show=True):
         """Plot the dipole amplitudes as a function of time.
@@ -239,7 +292,7 @@ class Dipole(object):
             selected_gof, selected_name)
 
     def __len__(self):
-        """The number of dipoles.
+        """Return the number of dipoles.
 
         Returns
         -------
@@ -258,9 +311,8 @@ class Dipole(object):
 
 
 def _read_dipole_fixed(fname):
-    """Helper to read a fixed dipole FIF file."""
+    """Read a fixed dipole FIF file."""
     logger.info('Reading %s ...' % fname)
-    _check_fname(fname, overwrite=True, must_exist=True)
     info, nave, aspect_kind, first, last, comment, times, data = \
         _read_evoked(fname)
     return DipoleFixed(info, data, times, nave, aspect_kind, first, last,
@@ -292,7 +344,8 @@ class DipoleFixed(object):
     comment : str
         The dipole comment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -338,7 +391,9 @@ class DipoleFixed(object):
             ``'.fif.gz'`` to make it explicit that the file contains
             dipole information in FIF format.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
         """
         check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz'),
                     ('.fif', '.fif.gz'))
@@ -375,7 +430,8 @@ def read_dipole(fname, verbose=None):
     fname : str
         The name of the .dip or .fif file.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -387,7 +443,7 @@ def read_dipole(fname, verbose=None):
     mne.Dipole
     mne.DipoleFixed
     """
-    _check_fname(fname, overwrite=True, must_exist=True)
+    _check_fname(fname, overwrite='read', must_exist=True)
     if fname.endswith('.fif') or fname.endswith('.fif.gz'):
         return _read_dipole_fixed(fname)
     else:
@@ -830,7 +886,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         .. versionadded:: 0.12
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -864,6 +921,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         raise ValueError('pos must be provided if ori is not None')
 
     data = evoked.data
+    if not np.isfinite(data).all():
+        raise ValueError('Evoked data must be finite')
     info = evoked.info
     times = evoked.times.copy()
     comment = evoked.comment
@@ -884,7 +943,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         logger.info('MRI transform     : %s' % trans)
         mri_head_t, trans = _get_trans(trans)
     else:
-        mri_head_t = Transform('head', 'mri', np.eye(4))
+        mri_head_t = Transform('head', 'mri')
     bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=False)
     if not bem['is_sphere']:
         if trans is None:
@@ -1049,8 +1108,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     guess_data = dict(fwd=guess_fwd, fwd_svd=guess_fwd_svd,
                       fwd_orig=guess_fwd_orig, scales=guess_fwd_scales)
     del guess_fwd, guess_fwd_svd, guess_fwd_orig, guess_fwd_scales  # destroyed
-    pl = '' if guess_src['nuse'] == 1 else 's'
-    logger.info('[done %d source%s]' % (guess_src['nuse'], pl))
+    logger.info('[done %d source%s]' % (guess_src['nuse'],
+                                        _pl(guess_src['nuse'])))
 
     # Do actual fits
     data = data[picks]
@@ -1099,14 +1158,12 @@ def get_phantom_dipoles(kind='vectorview'):
     Parameters
     ----------
     kind : str
-        Get the information for the given system.
+        Get the information for the given system:
 
             ``vectorview`` (default)
               The Neuromag VectorView phantom.
-
-            ``122``
-              The Neuromag-122 phantom. This has the same dipoles
-              as the VectorView phantom, but in a different order.
+            ``otaniemi``
+              The older Neuromag phantom used at Otaniemi.
 
     Returns
     -------
@@ -1114,40 +1171,67 @@ def get_phantom_dipoles(kind='vectorview'):
         The dipole positions.
     ori : ndarray, shape (n_dipoles, 3)
         The dipole orientations.
+
+    Notes
+    -----
+    The Elekta phantoms have a radius of 79.5mm, and HPI coil locations
+    in the XY-plane at the axis extrema (e.g., (79.5, 0), (0, -79.5), ...).
     """
-    _valid_types = ('122', 'vectorview')
+    _valid_types = ('vectorview', 'otaniemi')
     if not isinstance(kind, string_types) or kind not in _valid_types:
         raise ValueError('kind must be one of %s, got %s'
                          % (_valid_types, kind,))
-    if kind in ('122', 'vectorview'):
+    if kind == 'vectorview':
+        # these values were pulled from a scanned image provided by
+        # Elekta folks
         a = np.array([59.7, 48.6, 35.8, 24.8, 37.2, 27.5, 15.8, 7.9])
-        b = np.array([46.1, 41.9, 38.3, 31.5, 13.9, 16.2, 20, 19.3])
+        b = np.array([46.1, 41.9, 38.3, 31.5, 13.9, 16.2, 20.0, 19.3])
         x = np.concatenate((a, [0] * 8, -b, [0] * 8))
         y = np.concatenate(([0] * 8, -a, [0] * 8, b))
-        c = [22.9, 23.5, 25.5, 23.1, 52, 46.4, 41, 33]
-        d = [44.4, 34, 21.6, 12.7, 62.4, 51.5, 39.1, 27.9]
+        c = [22.9, 23.5, 25.5, 23.1, 52.0, 46.4, 41.0, 33.0]
+        d = [44.4, 34.0, 21.6, 12.7, 62.4, 51.5, 39.1, 27.9]
         z = np.concatenate((c, c, d, d))
-        pos = np.vstack((x, y, z)).T / 1000.
-        if kind == 122:
-            reorder = (list(range(8, 16)) + list(range(0, 8)) +
-                       list(range(24, 32) + list(range(16, 24))))
-            pos = pos[reorder]
-        # Locs are always in XZ or YZ, and so are the oris. The oris are
-        # also in the same plane and tangential, so it's easy to determine
-        # the orientation.
-        ori = list()
-        for this_pos in pos:
-            this_ori = np.zeros(3)
-            idx = np.where(this_pos == 0)[0]
-            # assert len(idx) == 1
-            idx = np.setdiff1d(np.arange(3), idx[0])
-            this_ori[idx] = (this_pos[idx][::-1] /
-                             np.linalg.norm(this_pos[idx])) * [1, -1]
-            # Now we have this quality, which we could uncomment to
-            # double-check:
-            # np.testing.assert_allclose(np.dot(this_ori, this_pos) /
-            #                            np.linalg.norm(this_pos), 0,
-            #                            atol=1e-15)
-            ori.append(this_ori)
-        ori = np.array(ori)
+    elif kind == 'otaniemi':
+        # these values were pulled from an Neuromag manual
+        # (NM20456A, 13.7.1999, p.65)
+        a = np.array([56.3, 47.6, 39.0, 30.3])
+        b = np.array([32.5, 27.5, 22.5, 17.5])
+        c = np.zeros(4)
+        x = np.concatenate((a, b, c, c, -a, -b, c, c))
+        y = np.concatenate((c, c, -a, -b, c, c, b, a))
+        z = np.concatenate((b, a, b, a, b, a, a, b))
+    pos = np.vstack((x, y, z)).T / 1000.
+    # Locs are always in XZ or YZ, and so are the oris. The oris are
+    # also in the same plane and tangential, so it's easy to determine
+    # the orientation.
+    ori = list()
+    for this_pos in pos:
+        this_ori = np.zeros(3)
+        idx = np.where(this_pos == 0)[0]
+        # assert len(idx) == 1
+        idx = np.setdiff1d(np.arange(3), idx[0])
+        this_ori[idx] = (this_pos[idx][::-1] /
+                         np.linalg.norm(this_pos[idx])) * [1, -1]
+        # Now we have this quality, which we could uncomment to
+        # double-check:
+        # np.testing.assert_allclose(np.dot(this_ori, this_pos) /
+        #                            np.linalg.norm(this_pos), 0,
+        #                            atol=1e-15)
+        ori.append(this_ori)
+    ori = np.array(ori)
     return pos, ori
+
+
+def _concatenate_dipoles(dipoles):
+    """Concatenate a list of dipoles."""
+    times, pos, amplitude, ori, gof = [], [], [], [], []
+    for dipole in dipoles:
+        times.append(dipole.times)
+        pos.append(dipole.pos)
+        amplitude.append(dipole.amplitude)
+        ori.append(dipole.ori)
+        gof.append(dipole.gof)
+
+    return Dipole(np.concatenate(times), np.concatenate(pos),
+                  np.concatenate(amplitude), np.concatenate(ori),
+                  np.concatenate(gof), name=None)

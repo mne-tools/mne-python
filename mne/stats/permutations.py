@@ -19,8 +19,8 @@ def bin_perm_rep(ndim, a=0, b=1):
     (0,1) in ndim dimensions.  The array is shaped as (2**ndim,ndim), and is
     ordered with the last index changing fastest.  For examble, for ndim=3:
 
-    Examples:
-
+    Examples
+    --------
     >>> bin_perm_rep(3)
     array([[0, 0, 0],
            [0, 0, 1],
@@ -88,7 +88,8 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
     n_jobs : int
         Number of CPUs to use for computation.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

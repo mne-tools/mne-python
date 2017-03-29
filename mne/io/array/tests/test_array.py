@@ -10,7 +10,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from nose.tools import assert_equal, assert_raises, assert_true
 
-from mne import find_events, Epochs, pick_types
+from mne import find_events, Epochs, pick_types, channels
 from mne.io import read_raw_fif
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
@@ -28,8 +28,7 @@ fif_fname = op.join(base_dir, 'test_raw.fif')
 @slow_test
 @requires_version('scipy', '0.12')
 def test_array_raw():
-    """Test creating raw from array
-    """
+    """Test creating raw from array."""
     import matplotlib.pyplot as plt
     # creating
     raw = read_raw_fif(fif_fname).crop(2, 5)
@@ -93,7 +92,7 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.plot_psd()
+    raw2.plot_psd(tmax=np.inf, average=True, n_fft=1024, spatial_colors=False)
     plt.close('all')
 
     # epoching
@@ -113,5 +112,21 @@ def test_array_raw():
     data = rng.randn(1, 100) + 1j * rng.randn(1, 100)
     raw = RawArray(data, create_info(1, 1000., 'eeg'))
     assert_allclose(raw._data, data)
+
+    # Using digital montage to give MNI electrode coordinates
+    n_elec = 10
+    ts_size = 10000
+    Fs = 512.
+    elec_labels = [str(i) for i in range(n_elec)]
+    elec_coords = np.random.randint(60, size=(n_elec, 3)).tolist()
+
+    electrode = np.random.rand(n_elec, ts_size)
+    dig_ch_pos = dict(zip(elec_labels, elec_coords))
+    mon = channels.DigMontage(dig_ch_pos=dig_ch_pos)
+    info = create_info(elec_labels, Fs, 'ecog', montage=mon)
+
+    raw = RawArray(electrode, info)
+    raw.plot_psd(average=False)  # looking for inexistent layout
+    raw.plot_psd_topo()
 
 run_tests_if_main()

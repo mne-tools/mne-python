@@ -341,19 +341,25 @@ def write_ch_info(fid, ch):
         fid.write(b('\0') * (16 - len(ch_name)))
 
 
-def write_dig_point(fid, dig):
-    """Write a digitizer data point into a fif file."""
-    data_size = 5 * 4
-
-    fid.write(np.array(FIFF.FIFF_DIG_POINT, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFT_DIG_POINT_STRUCT, dtype='>i4').tostring())
-    fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
-
-    #   Start writing fiffDigPointRec
-    fid.write(np.array(dig['kind'], dtype='>i4').tostring())
-    fid.write(np.array(dig['ident'], dtype='>i4').tostring())
-    fid.write(np.array(dig['r'][:3], dtype='>f4').tostring())
+def write_dig_points(fid, dig, block=False, coord_frame=None):
+    """Write a set of digitizer data points into a fif file."""
+    if dig is not None:
+        data_size = 5 * 4
+        if block:
+            start_block(fid, FIFF.FIFFB_ISOTRAK)
+        if coord_frame is not None:
+            write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, coord_frame)
+        for d in dig:
+            fid.write(np.array(FIFF.FIFF_DIG_POINT, '>i4').tostring())
+            fid.write(np.array(FIFF.FIFFT_DIG_POINT_STRUCT, '>i4').tostring())
+            fid.write(np.array(data_size, dtype='>i4').tostring())
+            fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, '>i4').tostring())
+            #   Start writing fiffDigPointRec
+            fid.write(np.array(d['kind'], '>i4').tostring())
+            fid.write(np.array(d['ident'], '>i4').tostring())
+            fid.write(np.array(d['r'][:3], '>f4').tostring())
+        if block:
+            end_block(fid, FIFF.FIFFB_ISOTRAK)
 
 
 def write_float_sparse_rcs(fid, kind, mat):

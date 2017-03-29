@@ -5,35 +5,28 @@ Reading BEM surfaces from a forward solution
 
 Plot BEM surfaces used for forward solution generation.
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Jaakko Leppakangas <jaeilepp@gmail.com>
 #
 # License: BSD (3-clause)
+import os.path as op
+from mayavi import mlab
 
 import mne
-from mne.datasets import sample
+from mne.datasets.sample import data_path
 
 print(__doc__)
 
-data_path = sample.data_path()
-fname = data_path + '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
-
-surfaces = mne.read_bem_surfaces(fname, patch_stats=True)
-
-print("Number of surfaces : %d" % len(surfaces))
+data_path = data_path()
+fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+raw = mne.io.read_raw_fif(fname)
+subjects_dir = op.join(data_path, 'subjects')
 
 ###############################################################################
-# Show result
-head_col = (0.95, 0.83, 0.83)  # light pink
-skull_col = (0.91, 0.89, 0.67)
-brain_col = (0.67, 0.89, 0.91)  # light blue
-colors = [head_col, skull_col, brain_col]
+# Here we use :func:`mne.viz.plot_trans` with ``trans=None`` to plot only the
+# surfaces without any transformations. For plotting transformation, see
+# :ref:`tut_forward`.
 
-# 3D source space
-from mayavi import mlab  # noqa
-
-mlab.figure(size=(600, 600), bgcolor=(0, 0, 0))
-for c, surf in zip(colors, surfaces):
-    points = surf['rr']
-    faces = surf['tris']
-    mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2], faces,
-                         color=c, opacity=0.3)
+mne.viz.plot_trans(raw.info, trans=None, subject='sample',
+                   subjects_dir=subjects_dir, meg_sensors=[], eeg_sensors=[],
+                   head='outer_skin', skull=['inner_skull', 'outer_skull'])
+mlab.view(40, 60)

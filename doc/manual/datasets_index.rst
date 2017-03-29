@@ -12,17 +12,16 @@ use the ``data_path`` (fetches full dataset) or the ``load_data`` (fetches datas
 
 Sample
 ======
-:ref:`ch_sample_data` is recorded using a 306-channel Neuromag vectorview system. 
+:func:`mne.datasets.sample.data_path()`
+
+:ref:`ch_sample_data` is recorded using a 306-channel Neuromag vectorview system.
 
 In this experiment, checkerboard patterns were presented to the subject
 into the left and right visual field, interspersed by tones to the
 left or right ear. The interval between the stimuli was 750 ms. Occasionally
 a smiley face was presented at the center of the visual field.
 The subject was asked to press a key with the right index finger
-as soon as possible after the appearance of the face. To fetch this dataset, do::
-
-    from mne.datasets import sample
-    data_path = sample.data_path()  # returns the folder in which the data is locally stored.
+as soon as possible after the appearance of the face.
 
 Once the ``data_path`` is known, its contents can be examined using :ref:`IO functions <ch_convert>`.
 
@@ -35,12 +34,9 @@ IO for the `ctf` format as well in addition to the C converter utilities. Please
 
 Auditory
 ^^^^^^^^
-To access the data, use the following Python commands::
-    
-    from mne.datasets.brainstorm import bst_raw
-    data_path = bst_raw.data_path()
+:func:`mne.datasets.brainstorm.bst_raw.data_path()`.
 
-Further details about the data can be found at the `auditory dataset tutorial`_ on the Brainstorm website.
+Details about the data can be found at the Brainstorm `auditory dataset tutorial`_.
 
 .. topic:: Examples
 
@@ -48,24 +44,20 @@ Further details about the data can be found at the `auditory dataset tutorial`_ 
 
 Resting state
 ^^^^^^^^^^^^^
-To access the data, use the Python command::
+:func:`mne.datasets.brainstorm.bst_resting.data_path()`
 
-    from mne.datasets.brainstorm import bst_resting
-    data_path = bst_resting.data_path()
-
-Further details can be found at the `resting state dataset tutorial`_ on the Brainstorm website.
+Details can be found at the Brainstorm `resting state dataset tutorial`_.
 
 Median nerve
 ^^^^^^^^^^^^
-To access the data, use the Python command::
+:func:`mne.datasets.brainstorm.bst_raw.data_path()`
 
-    from mne.datasets.brainstorm import bst_raw
-    data_path = bst_raw.data_path()
-
-Further details can be found at the `median nerve dataset tutorial`_ on the Brainstorm website.
+Details can be found at the Brainstorm `median nerve dataset tutorial`_.
 
 MEGSIM
 ======
+:func:`mne.datasets.megsim.load_data()`
+
 This dataset contains experimental and simulated MEG data. To load data from this dataset, do::
 
     from mne.io import Raw
@@ -81,10 +73,9 @@ Detailed description of the dataset can be found in the related publication [1]_
 
 SPM faces
 =========
-The `SPM faces dataset`_ contains EEG, MEG and fMRI recordings on face perception. To access this dataset, do::
+:func:`mne.datasets.spm_face.data_path()`
 
-    from mne.datasets import spm_face
-    data_path = spm_face.data_path()
+The `SPM faces dataset`_ contains EEG, MEG and fMRI recordings on face perception.
 
 .. topic:: Examples
 
@@ -92,6 +83,7 @@ The `SPM faces dataset`_ contains EEG, MEG and fMRI recordings on face perceptio
 
 EEGBCI motor imagery
 ====================
+:func:`mne.datasets.eegbci.load_data()`
 
 The EEGBCI dataset is documented in [2]_. The data set is available at PhysioNet [3]_.
 The dataset contains 64-channel EEG recordings from 109 subjects and 14 runs on each subject in EDF+ format.
@@ -116,6 +108,45 @@ to discuss the possibility to add more publicly available datasets.
 .. _median nerve dataset tutorial: http://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
 .. _SPM faces dataset: http://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
 
+Somatosensory
+=============
+:func:`mne.datasets.somato.data_path()`
+
+This dataset contains somatosensory data with event-related synchronizations
+(ERS) and desynchronizations (ERD).
+
+.. topic:: Examples
+
+    * :ref:`sphx_glr_auto_tutorials_plot_sensors_time_frequency.py`
+
+Multimodal
+==========
+:func:`mne.datasets.multimodal.data_path()`
+
+This dataset contains a single subject recorded at Otaniemi (Aalto University)
+with auditory, visual, and somatosensory stimuli.
+
+.. topic:: Examples
+
+    * :ref:`sphx_glr_auto_examples_io_plot_elekta_epochs.py`
+
+
+Visual 92 object categories
+===========================
+:func:`mne.datasets.visual_92_categories.data_path()`.
+
+This dataset is recorded using a 306-channel Neuromag vectorview system.
+
+Experiment consisted in the visual presentation of 92 images of human, animal
+and inanimate objects either natural or artificial [4]_. Given the high number
+of conditions this dataset is well adapted to an approach based on
+Representational Similarity Analysis (RSA).
+
+.. topic:: Examples
+
+    * :ref:`Representational Similarity Analysis (RSA) <sphx_glr_auto_examples_decoding_decoding_rsa.py>`: Partially replicates the results from Cichy et al. (2014).
+
+
 References
 ==========
 
@@ -124,3 +155,5 @@ References
 .. [2] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N., Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer Interface (BCI) System. IEEE TBME 51(6):1034-1043
 
 .. [3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220
+
+.. [4] Cichy, R. M., Pantazis, D., & Oliva, A. "Resolving human object recognition in space and time." Nature neuroscience (2014): 17(3), 455-462

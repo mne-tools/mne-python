@@ -33,41 +33,41 @@ fname_label_lh = data_path + '/MEG/sample/labels/%s.label' % label_name_lh
 event_id, tmin, tmax = 1, -0.2, 0.5
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
-# Load data
+# Load data.
 inverse_operator = read_inverse_operator(fname_inv)
 label_lh = mne.read_label(fname_label_lh)
 raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
-# Add a bad channel
+# Add a bad channel.
 raw.info['bads'] += ['MEG 2443']
 
-# pick MEG channels
+# pick MEG channels.
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
                        exclude='bads')
 
-# Read epochs
+# Read epochs.
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0),
                     reject=dict(mag=4e-12, grad=4000e-13, eog=150e-6))
 
 # First, we find the most active vertex in the left auditory cortex, which
-# we will later use as seed for the connectivity computation
+# we will later use as seed for the connectivity computation.
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 evoked = epochs.average()
 stc = apply_inverse(evoked, inverse_operator, lambda2, method,
                     pick_ori="normal")
 
-# Restrict the source estimate to the label in the left auditory cortex
+# Restrict the source estimate to the label in the left auditory cortex.
 stc_label = stc.in_label(label_lh)
 
-# Find number and index of vertex with most power
+# Find number and index of vertex with most power.
 src_pow = np.sum(stc_label.data ** 2, axis=1)
 seed_vertno = stc_label.vertices[0][np.argmax(src_pow)]
 seed_idx = np.searchsorted(stc.vertices[0], seed_vertno)  # index in orig stc
 
-# Generate index parameter for seed-based connectivity analysis
+# Generate index parameter for seed-based connectivity analysis.
 n_sources = stc.data.shape[0]
 indices = seed_target_indices([seed_idx], np.arange(n_sources))
 
@@ -91,7 +91,7 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 # to compute the spectra (instead of multitaper estimation, which has a
 # lower variance but is slower). By using faverage=True, we directly
 # average the coherence in the alpha and beta band, i.e., we will only
-# get 2 frequency bins
+# get 2 frequency bins.
 coh, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     stcs, method='coh', mode='fourier', indices=indices,
     sfreq=sfreq, fmin=fmin, fmax=fmax, faverage=True, n_jobs=1)
@@ -103,13 +103,13 @@ print(freqs[1])
 
 # Generate a SourceEstimate with the coherence. This is simple since we
 # used a single seed. For more than one seeds we would have to split coh.
-# Note: We use a hack to save the frequency axis as time
+# Note: We use a hack to save the frequency axis as time.
 tmin = np.mean(freqs[0])
 tstep = np.mean(freqs[1]) - tmin
 coh_stc = mne.SourceEstimate(coh, vertices=stc.vertices, tmin=1e-3 * tmin,
                              tstep=1e-3 * tstep, subject='sample')
 
-# Now we can visualize the coherence using the plot method
+# Now we can visualize the coherence using the plot method.
 brain = coh_stc.plot('sample', 'inflated', 'both',
                      time_label='Coherence %0.1f Hz',
                      subjects_dir=subjects_dir,

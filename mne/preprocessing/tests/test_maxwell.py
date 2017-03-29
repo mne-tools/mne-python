@@ -15,7 +15,7 @@ from mne.forward import _prep_meg_channels
 from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.io import (read_raw_fif, proc_history, read_info, read_raw_bti,
-                    read_raw_kit, _BaseRaw)
+                    read_raw_kit, BaseRaw)
 from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
@@ -421,6 +421,14 @@ def test_basic():
     assert_raises(ValueError, maxwell_filter, raw, origin='foo')
     assert_raises(ValueError, maxwell_filter, raw, origin=[0] * 4)
     assert_raises(ValueError, maxwell_filter, raw, mag_scale='foo')
+    raw_missing = raw.copy().load_data()
+    raw_missing.info['bads'] = ['MEG0111']
+    raw_missing.pick_types(meg=True)  # will be missing the bad
+    maxwell_filter(raw_missing)
+    with warnings.catch_warnings(record=True) as w:
+        maxwell_filter(raw_missing, calibration=fine_cal_fname)
+    assert_equal(len(w), 1)
+    assert_true('not in data' in str(w[0].message))
 
 
 @testing.requires_testing_data
@@ -480,6 +488,7 @@ def test_bads_reconstruction():
     assert_meg_snr(raw_sss, read_crop(sss_bad_recon_fname), 300.)
 
 
+@buggy_mkl_svd
 @requires_svd_convergence
 @testing.requires_testing_data
 def test_spatiotemporal_maxwell():
@@ -534,6 +543,7 @@ def test_spatiotemporal_maxwell():
                   st_correlation=0.)
 
 
+@slow_test
 @requires_svd_convergence
 @testing.requires_testing_data
 def test_spatiotemporal_only():
@@ -544,6 +554,7 @@ def test_spatiotemporal_only():
     power = np.sqrt(np.sum(raw[picks][0] ** 2))
     # basics
     raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True)
+    assert_equal(len(raw.info['projs']), len(raw_tsss.info['projs']))
     assert_equal(raw_tsss.estimate_rank(), 366)
     _assert_shielding(raw_tsss, power, 10)
     # temporal proj will actually reduce spatial DOF with small windows!
@@ -608,6 +619,20 @@ def test_fine_calibration():
     assert_allclose(py_cal['cal_chans'], mf_cal['cal_chans'])
     assert_allclose(py_cal['cal_corrs'], mf_cal['cal_corrs'],
                     rtol=1e-3, atol=1e-3)
+    # with missing channels
+    raw_missing = raw.copy().load_data()
+    raw_missing.info['bads'] = ['MEG0111', 'MEG0943']  # 1 mag, 1 grad
+    raw_missing.info._check_consistency()
+    raw_sss_bad = maxwell_filter(
+        raw_missing, calibration=fine_cal_fname, origin=mf_head_origin,
+        regularize=None, bad_condition='ignore')
+    raw_missing.pick_types()  # actually remove bads
+    raw_sss_bad.pick_channels(raw_missing.ch_names)  # remove them here, too
+    with warnings.catch_warnings(record=True):
+        raw_sss_missing = maxwell_filter(
+            raw_missing, calibration=fine_cal_fname, origin=mf_head_origin,
+            regularize=None, bad_condition='ignore')
+    assert_meg_snr(raw_sss_missing, raw_sss_bad, 1000., 10000.)
 
     # Test 3D SSS fine calibration (no equivalent func in MaxFilter yet!)
     # very low SNR as proc differs, eventually we should add a better test
@@ -741,7 +766,7 @@ def test_head_translation():
 def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
     """Helper to assert a minimum shielding factor using empty-room power."""
     picks = pick_types(raw_sss.info, meg=meg, ref_meg=False)
-    if isinstance(erm_power, _BaseRaw):
+    if isinstance(erm_power, BaseRaw):
         picks_erm = pick_types(raw_sss.info, meg=meg, ref_meg=False)
         assert_allclose(picks, picks_erm)
         erm_power = np.sqrt((erm_power[picks_erm][0] ** 2).sum())

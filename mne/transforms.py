@@ -7,6 +7,8 @@
 import os
 from os import path as op
 import glob
+import copy
+from numbers import Integral
 import numpy as np
 from numpy import sin, cos
 from scipy import linalg
@@ -34,7 +36,8 @@ _str_to_frame = dict(meg=FIFF.FIFFV_COORD_DEVICE,
                      ras=FIFF.FIFFV_MNE_COORD_RAS,
                      fs_tal=FIFF.FIFFV_MNE_COORD_FS_TAL,
                      ctf_head=FIFF.FIFFV_MNE_COORD_CTF_HEAD,
-                     ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE)
+                     ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
+                     unknown=FIFF.FIFFV_COORD_UNKNOWN)
 _frame_to_str = dict((val, key) for key, val in _str_to_frame.items())
 
 _verbose_frames = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
@@ -61,9 +64,9 @@ def _to_const(cf):
         if cf not in _str_to_frame:
             raise ValueError('Unknown cf %s' % cf)
         cf = _str_to_frame[cf]
-    elif not isinstance(cf, int):
+    elif not isinstance(cf, (Integral, np.int32)):
         raise TypeError('cf must be str or int, not %s' % type(cf))
-    return cf
+    return int(cf)
 
 
 class Transform(dict):
@@ -75,16 +78,17 @@ class Transform(dict):
         The starting coordinate frame.
     to : str | int
         The ending coordinate frame.
-    trans : array-like, shape (4, 4)
-        The transformation matrix.
+    trans : array-like, shape (4, 4) | None
+        The transformation matrix. If None, an identity matrix will be
+        used.
     """
 
-    def __init__(self, fro, to, trans):  # noqa: D102
+    def __init__(self, fro, to, trans=None):  # noqa: D102
         super(Transform, self).__init__()
         # we could add some better sanity checks here
         fro = _to_const(fro)
         to = _to_const(to)
-        trans = np.asarray(trans, dtype=np.float64)
+        trans = np.eye(4) if trans is None else np.asarray(trans, np.float64)
         if trans.shape != (4, 4):
             raise ValueError('Transformation must be shape (4, 4) not %s'
                              % (trans.shape,))
@@ -116,6 +120,10 @@ class Transform(dict):
             The name of the file, which should end in '-trans.fif'.
         """
         write_trans(fname, self)
+
+    def copy(self):
+        """Make a copy of the transform."""
+        return copy.deepcopy(self)
 
 
 def _coord_frame_name(cframe):
@@ -241,6 +249,47 @@ def rotation3d(x=0, y=0, z=0):
     return r
 
 
+def rotation3d_align_z_axis(target_z_axis):
+    """Compute a rotation matrix to align [ 0 0 1] with supplied target z axis.
+
+    Parameters
+    ----------
+    target_z_axis : array, shape (1, 3)
+        z axis. computed matrix (r) will map [0 0 1] to target_z_axis
+
+    Returns
+    -------
+    r : array, shape (3, 3)
+        The rotation matrix.
+    """
+    target_z_axis = target_z_axis / np.linalg.norm(target_z_axis)
+    r = np.zeros((3, 3))
+    if ((1. + target_z_axis[2]) < 1E-12):
+        r[0, 0] = 1.
+        r[1, 1] = -1.
+        r[2, 2] = -1.
+    else:
+        f = 1. / (1. + target_z_axis[2])
+        r[0, 0] = 1. - 1. * f * target_z_axis[0] * target_z_axis[0]
+        r[0, 1] = -1. * f * target_z_axis[0] * target_z_axis[1]
+        r[0, 2] = target_z_axis[0]
+        r[1, 0] = -1. * f * target_z_axis[0] * target_z_axis[1]
+        r[1, 1] = 1. - 1. * f * target_z_axis[1] * target_z_axis[1]
+        r[1, 2] = target_z_axis[1]
+        r[2, 0] = -target_z_axis[0]
+        r[2, 1] = -target_z_axis[1]
+        r[2, 2] = 1. - f * (target_z_axis[0] * target_z_axis[0] +
+                            target_z_axis[1] * target_z_axis[1])
+
+    # assert that r is a rotation matrix r^t * r = I and det(r) = 1
+    assert(np.any((r.dot(r.T) - np.identity(3)) < 1E-12))
+    assert((linalg.det(r) - 1.0) < 1E-12)
+    # assert that r maps [0 0 1] on the device z axis (target_z_axis)
+    assert(linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12)
+
+    return r
+
+
 def rotation_angles(m):
     """Find rotation angles from a transformation matrix.
 
@@ -350,7 +399,7 @@ def _get_trans(trans, fro='mri', to='head'):
         fro_to_t = trans
         trans = 'dict'
     elif trans is None:
-        fro_to_t = Transform(fro, to, np.eye(4))
+        fro_to_t = Transform(fro, to)
         trans = 'identity'
     else:
         raise ValueError('transform type %s not known, must be str, dict, '
@@ -577,6 +626,7 @@ def _cart_to_sph(cart):
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
     out[:, 1] = np.arctan2(cart[:, 1], cart[:, 0])
     out[:, 2] = np.arccos(cart[:, 2] / out[:, 0])
+    out = np.nan_to_num(out)
     return out
 
 
@@ -656,13 +706,13 @@ def _deg_ord_idx(deg, order):
 
 
 def _sh_negate(sh, order):
-    """Helper to get the negative spherical harmonic from a positive one."""
+    """Get the negative spherical harmonic from a positive one."""
     assert order >= 0
     return sh.conj() * (-1. if order % 2 else 1.)  # == (-1) ** order
 
 
 def _sh_complex_to_real(sh, order):
-    """Helper function to convert complex to real basis functions.
+    """Convert complex to real basis functions.
 
     Parameters
     ----------
@@ -777,8 +827,6 @@ class _TPSWarp(object):
         from scipy.spatial.distance import cdist
         assert source.shape[1] == destination.shape[1] == 3
         assert source.shape[0] == destination.shape[0]
-        logger.info('Computing TPS warp coefficients using %d matched points'
-                    % (len(source),))
         # Forward warping, different from image warping, use |dist|**2
         dists = _tps(cdist(source, destination, 'sqeuclidean'))
         # Y = L * w
@@ -838,7 +886,7 @@ def _tps(distsq):
 ###############################################################################
 # Spherical harmonic approximation + TPS warp
 
-class SphericalSurfaceWarp(object):
+class _SphericalSurfaceWarp(object):
     """Warp surfaces via spherical harmonic smoothing and thin-plate splines.
 
     Notes
@@ -849,7 +897,7 @@ class SphericalSurfaceWarp(object):
         1. Perform a spherical harmonic approximation to the source and
            destination surfaces, which smooths them and allows arbitrary
            interpolation.
-        2. Choose matched points on the two surfaces.
+        2. Choose a set of matched points on the two surfaces.
         3. Use thin-plate spline warping (common in 2D image manipulation)
            to generate transformation coefficients.
         4. Warp points from the source subject (which should be inside the
@@ -864,9 +912,20 @@ class SphericalSurfaceWarp(object):
            Human Brain Mapping 27:129-143
     """
 
+    def __repr__(self):
+        rep = '<SphericalSurfaceWarp : '
+        if not hasattr(self, '_warp'):
+            rep += 'no fitting done >'
+        else:
+            rep += ('fit %d->%d pts using match=%s (%d pts), order=%s, reg=%s>'
+                    % tuple(self._fit_params[key]
+                            for key in ['n_src', 'n_dest', 'match', 'n_match',
+                                        'order', 'reg']))
+        return rep
+
     @verbose
-    def fit(self, source, destination, order=4, reg=1e-3, center=True,
-            verbose=None):
+    def fit(self, source, destination, order=4, reg=1e-5, center=True,
+            match='oct5', verbose=None):
         """Fit the warp from source points to destination points.
 
         Parameters
@@ -882,8 +941,14 @@ class SphericalSurfaceWarp(object):
         center : bool
             If True, center the points by fitting a sphere to points
             that are in a reasonable region for head digitization.
+        match : str
+            The uniformly-spaced points to match on the two surfaces.
+            Can be "ico#" or "oct#" where "#" is an integer.
+            The default is "oct5".
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose)
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -891,7 +956,10 @@ class SphericalSurfaceWarp(object):
             The warping object (for chaining).
         """
         from .bem import _fit_sphere
+        from .source_space import _check_spacing
+        match_rr = _check_spacing(match, verbose=False)[2]['rr']
         logger.info('Computing TPS warp')
+        src_center = dest_center = np.zeros(3)
         if center:
             logger.info('    Centering data')
             hsp = np.array([p for p in source
@@ -905,31 +973,34 @@ class SphericalSurfaceWarp(object):
             logger.info('    Using centers %s -> %s'
                         % (np.array_str(src_center, None, 3),
                            np.array_str(dest_center, None, 3)))
+        self._fit_params = dict(
+            n_src=len(source), n_dest=len(destination), match=match,
+            n_match=len(match_rr), order=order, reg=reg)
         assert source.shape[1] == destination.shape[1] == 3
         self._destination = destination.copy()
         # 1. Compute spherical coordinates of source and destination points
         logger.info('    Converting to spherical coordinates')
         src_rad_az_pol = _cart_to_sph(source).T
         dest_rad_az_pol = _cart_to_sph(destination).T
+        match_rad_az_pol = _cart_to_sph(match_rr).T
+        del match_rr
         # 2. Compute spherical harmonic coefficients for all points
-        logger.info('    Computing spherical harmonic approximation')
+        logger.info('    Computing spherical harmonic approximation with '
+                    'order %s' % order)
         src_sph = _compute_sph_harm(order, *src_rad_az_pol[1:])
         dest_sph = _compute_sph_harm(order, *dest_rad_az_pol[1:])
+        match_sph = _compute_sph_harm(order, *match_rad_az_pol[1:])
         # 3. Fit spherical harmonics to both surfaces to smooth them
         src_coeffs = linalg.lstsq(src_sph, src_rad_az_pol[0])[0]
         dest_coeffs = linalg.lstsq(dest_sph, dest_rad_az_pol[0])[0]
         # 4. Smooth both surfaces using these coefficients, and evaluate at
-        #     whichever has fewer points
-        if src_sph.shape[0] < dest_sph.shape[0]:
-            use_sph = src_sph
-            dest_rad_az_pol = src_rad_az_pol.copy()
-        else:
-            use_sph = dest_sph
-            src_rad_az_pol = dest_rad_az_pol.copy()
-        logger.info('    Matching %d points on smoothed surfaces'
-                    % (len(use_sph),))
-        src_rad_az_pol[0] = np.abs(np.dot(use_sph, src_coeffs))
-        dest_rad_az_pol[0] = np.abs(np.dot(use_sph, dest_coeffs))
+        #     the "shape" points
+        logger.info('    Matching %d points (%s) on smoothed surfaces'
+                    % (len(match_sph), match))
+        src_rad_az_pol = match_rad_az_pol.copy()
+        src_rad_az_pol[0] = np.abs(np.dot(match_sph, src_coeffs))
+        dest_rad_az_pol = match_rad_az_pol.copy()
+        dest_rad_az_pol[0] = np.abs(np.dot(match_sph, dest_coeffs))
         # 5. Convert matched points to Cartesion coordinates and put back
         source = _sph_to_cart(src_rad_az_pol.T)
         source += src_center
@@ -938,6 +1009,7 @@ class SphericalSurfaceWarp(object):
         # 6. Compute TPS warp of matched points from smoothed surfaces
         self._warp = _TPSWarp().fit(source, destination, reg)
         self._matched = np.array([source, destination])
+        logger.info('[done]')
         return self
 
     @verbose
@@ -952,7 +1024,9 @@ class SphericalSurfaceWarp(object):
             they will be inside the convex hull formed by the original
             source points.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose)
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -967,9 +1041,14 @@ class SphericalSurfaceWarp(object):
 
 def _pol_to_cart(pol):
     """Transform polar coordinates to cartesian."""
-    out = np.empty_like(pol)
-    out[:, 0] = pol[:, 0] * np.cos(pol[:, 1])
-    out[:, 1] = pol[:, 0] * np.sin(pol[:, 1])
+    out = np.empty((len(pol), 2))
+    if pol.shape[1] == 2:  # phi, theta
+        out[:, 0] = pol[:, 0] * np.cos(pol[:, 1])
+        out[:, 1] = pol[:, 0] * np.sin(pol[:, 1])
+    else:  # radial distance, theta, phi
+        d = pol[:, 0] * np.sin(pol[:, 2])
+        out[:, 0] = d * np.cos(pol[:, 1])
+        out[:, 1] = d * np.sin(pol[:, 1])
     return out
 
 
@@ -1053,7 +1132,7 @@ def _one_rot_to_quat(rot):
         qy = (rot[5] + rot[7]) / s
         qz = 0.25 * s
         # qw = (rot[3] - rot[1]) / s
-    return qx, qy, qz
+    return np.array((qx, qy, qz))
 
 
 def rot_to_quat(rot):
@@ -1092,7 +1171,7 @@ def _angle_between_quats(x, y):
 
 
 def _skew_symmetric_cross(a):
-    """The skew-symmetric cross product of a vector."""
+    """Compute the skew-symmetric cross product of a vector."""
     return np.array([[0., -a[2], a[1]], [a[2], 0., -a[0]], [-a[1], a[0], 0.]])
 
 

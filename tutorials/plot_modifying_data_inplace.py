@@ -68,9 +68,9 @@ print(raw_hilb._data.dtype)
 
 # Take the amplitude and phase
 raw_amp = raw_hilb.copy()
-raw_amp.apply_function(np.abs, hilb_picks, float, 1)
+raw_amp.apply_function(np.abs, hilb_picks)
 raw_phase = raw_hilb.copy()
-raw_phase.apply_function(np.angle, hilb_picks, float, 1)
+raw_phase.apply_function(np.angle, hilb_picks)
 
 f, (a1, a2) = plt.subplots(2, 1, figsize=(15, 10))
 a1.plot(raw_band._data[hilb_picks[0]])

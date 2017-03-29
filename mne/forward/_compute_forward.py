@@ -16,11 +16,10 @@
 import numpy as np
 from copy import deepcopy
 
-from ..surface import (fast_cross_3d, _find_nearest_tri_pt, _get_tri_supp_geom,
-                       _triangle_coords)
+from ..surface import fast_cross_3d, _project_onto_surface
 from ..io.constants import FIFF
 from ..transforms import apply_trans
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _pl
 from ..parallel import parallel_func
 from ..io.compensator import get_current_comp, make_compensator
 from ..io.pick import pick_types
@@ -152,7 +151,7 @@ def _do_lin_field_coeff(bem_rr, tris, tn, ta, rmags, cosmags, ws, bins):
 
 
 def _concatenate_coils(coils):
-    """Helper to concatenate MEG coil parameters."""
+    """Concatenate MEG coil parameters."""
     rmags = np.concatenate([coil['rmag'] for coil in coils])
     cosmags = np.concatenate([coil['cosmag'] for coil in coils])
     ws = np.concatenate([coil['w'] for coil in coils])
@@ -234,27 +233,20 @@ def _bem_specify_els(bem, els, mults):
     """
     sol = np.zeros((len(els), bem['solution'].shape[1]))
     scalp = bem['surfs'][0]
-    # Get supplementary geometry information for tris and rr
-    scalp['geom'] = _get_tri_supp_geom(scalp['tris'], scalp['rr'])
-    inds = np.arange(len(scalp['tris']))  # Inds of every BEM vertex
 
-    # Iterate over all electrodes
-    # In principle this could be parallelized, but pickling overhead is huge
-    # (makes it slower than non-parallel)
-    for k, el in enumerate(els):
-        # Get electrode and reference position in head coords
-        el_r = apply_trans(bem['head_mri_t']['trans'], el['rmag'])
-        # Iterate over all integration points
-        for elw, r in zip(el['w'], el_r):
-            # Get index of closest tri on scalp BEM to electrode position
-            best = _find_nearest_tri_pt(inds, r, scalp['geom'], True)[2]
-            # Calculate a linear interpolation between the vertex values
-            tri = scalp['tris'][best]  # Get 3 vertex indices of closest tri
-            # Get coords of pt projected onto closest triangle
-            x, y, z = _triangle_coords(r, scalp['geom'], best)
-            w = elw * np.array([(1.0 - x - y), x, y])
-            amt = np.dot(w, bem['solution'][tri])
-            sol[k] += amt
+    # Operate on all integration points for all electrodes (in MRI coords)
+    rrs = np.concatenate([apply_trans(bem['head_mri_t']['trans'], el['rmag'])
+                          for el in els], axis=0)
+    ws = np.concatenate([el['w'] for el in els])
+    tri_weights, tri_idx = _project_onto_surface(rrs, scalp)
+    tri_weights *= ws
+    weights = np.einsum('ij,jik->jk', tri_weights,
+                        bem['solution'][scalp['tris'][tri_idx]])
+    # there are way more vertices than electrodes generally, so let's iterate
+    # over the electrodes
+    edges = np.concatenate([[0], np.cumsum([len(el['w']) for el in els])])
+    for ii, (start, stop) in enumerate(zip(edges[:-1], edges[1:])):
+        sol[ii] = weights[start:stop].sum(0)
     sol *= mults
     return sol
 
@@ -685,7 +677,8 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     n_jobs : int
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose)
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     bem_rr = mults = mri_Q = head_mri_t = None
     if not bem['is_sphere']:
@@ -769,7 +762,8 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
     n_jobs : int
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose)
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -797,8 +791,7 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
         # Do the actual forward calculation for a list MEG/EEG sensors
         logger.info('Computing %s at %d source location%s '
                     '(free orientations)...'
-                    % (coil_type.upper(), len(rr),
-                       '' if len(rr) == 1 else 's'))
+                    % (coil_type.upper(), len(rr), _pl(rr)))
         # Calculate forward solution using spherical or BEM model
         B = fun(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
                 coil_type)

@@ -701,7 +701,7 @@ MNE software and setup for individual users:
 - The setup scripts have changed.
 
 The installation and user-level effects of the new software
-organization are discussed in :ref:`getting_started`.
+organization are discussed in :ref:`install_mne_c`.
 
 In addition, several minor bugs have been fixed in the source
 code. Most relevant changes visible to the user are listed below.

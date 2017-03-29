@@ -1,4 +1,4 @@
-"""MNE for MEG and EEG data analysis."""
+"""MNE software for MEG and EEG data analysis."""
 
 # PEP0440 compatible formatted version, see:
 # https://www.python.org/dev/peps/pep-0440/
@@ -16,12 +16,12 @@
 # Dev branch marker is: 'X.Y.devN' where N is an integer.
 #
 
-__version__ = '0.14.git'
+__version__ = '0.15.dev0'
 
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
                     get_config, get_config_path, set_cache_dir,
-                    set_memmap_min_size, grand_average, sys_info)
+                    set_memmap_min_size, grand_average, sys_info, open_docs)
 from .io.pick import (pick_types, pick_channels,
                       pick_channels_regexp, pick_channels_forward,
                       pick_types_forward, pick_channels_cov,
@@ -64,9 +64,11 @@ from .source_space import (read_source_spaces, vertex_to_mni,
                            write_source_spaces, setup_source_space,
                            setup_volume_source_space, SourceSpaces,
                            add_source_space_distances, morph_source_spaces,
-                           get_volume_labels_from_aseg)
+                           get_volume_labels_from_aseg,
+                           get_volume_labels_from_src)
 from .annotations import Annotations
-from .epochs import Epochs, EpochsArray, read_epochs, concatenate_epochs
+from .epochs import (BaseEpochs, Epochs, EpochsArray, read_epochs,
+                     concatenate_epochs)
 from .evoked import Evoked, EvokedArray, read_evokeds, write_evokeds, combine_evoked
 from .label import (read_label, label_sign_flip,
                     write_label, stc_to_label, grow_labels, Label, split_label,
@@ -91,6 +93,7 @@ from . import connectivity
 from . import coreg
 from . import cuda
 from . import datasets
+from . import dipole
 from . import epochs
 from . import externals
 from . import io

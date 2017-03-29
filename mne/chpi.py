@@ -1,3 +1,31 @@
+# -*- coding: utf-8 -*-
+u"""Functions for fitting head positions with (c)HPI coils.
+
+To fit head positions (continuously), the procedure using
+``_calculate_chpi_positions`` is:
+
+    1. Get HPI frequencies, HPI coil locations in head coords, HPI status
+       channel, HPI status bits, and digitization order using
+       ``_get_hpi_info``.
+    2. Window data using ``t_window`` (half before and half after ``t``) and
+       ``t_step_min``.
+       (Here Elekta high-passes the data, but we omit this step.)
+    3. Use a linear model (DC + linear slope + sin + cos terms set up
+       in ``_setup_chpi_fits``) to fit sinusoidal amplitudes to MEG
+       channels.
+    4. Use SVD to determine the phase/amplitude of the sinusoids.
+    5. If the amplitudes are 98% correlated with last position
+       (and Δt < t_step_max), skip fitting.
+    5. Fit magnetic dipoles using the amplitudes for each coil frequency
+       (calling ``_fit_magnetic_dipole``).
+    6. Choose good coils based on pairwise distances, taking into account
+       the tolerance ``dist_limit``.
+    7. Fit dev_head_t (using ``_fit_chpi_pos``).
+    8. Accept or reject fit based on GOF threshold ``gof_limit``.
+
+The function ``filter_chpi`` uses the same linear model to filter cHPI
+and (optionally) line frequencies from the data.
+"""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
@@ -49,7 +77,7 @@ def read_head_pos(fname):
     -----
     .. versionadded:: 0.12
     """
-    _check_fname(fname, must_exist=True, overwrite=True)
+    _check_fname(fname, must_exist=True, overwrite='read')
     data = np.loadtxt(fname, skiprows=1)  # first line is header, skip it
     data.shape = (-1, 10)  # ensure it's the right size even if empty
     if np.isnan(data).any():  # make sure we didn't do something dumb
@@ -109,8 +137,8 @@ def head_pos_to_trans_rot_t(quats):
 
     See Also
     --------
-    read_pos
-    write_pos
+    read_head_pos
+    write_head_pos
     """
     t = quats[..., 0].copy()
     rotation = quat_to_rot(quats[..., 1:4])
@@ -123,7 +151,7 @@ def head_pos_to_trans_rot_t(quats):
 
 @verbose
 def _get_hpi_info(info, adjust=False, verbose=None):
-    """Helper to get HPI information from raw."""
+    """Get HPI information from raw."""
     if len(info['hpi_meas']) == 0 or \
             ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
         raise RuntimeError('Appropriate cHPI information not found in'
@@ -231,14 +259,14 @@ def _fit_magnetic_dipole(B_orig, x0, coils, scale, method):
     B2 = np.dot(B, B)
     objective = partial(_magnetic_dipole_objective, B=B, B2=B2,
                         coils=coils, scale=scale, method=method)
-    x = fmin_cobyla(objective, x0, (), rhobeg=1e-2, rhoend=1e-5, disp=False)
+    x = fmin_cobyla(objective, x0, (), rhobeg=1e-4, rhoend=1e-5, disp=False)
     return x, 1. - objective(x) / B2
 
 
 def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
-    """Helper objective function."""
+    """Compute objective function."""
     d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)
-    d += x[3:]
+    d += x[3:] / 10.  # in decimeters to get quats and head units close
     d -= coil_head_rrs
     d *= d
     return d.sum()
@@ -255,16 +283,20 @@ def _fit_chpi_pos(coil_dev_rrs, coil_head_rrs, x0):
     denom = np.sum((coil_head_rrs - np.mean(coil_head_rrs, axis=0)) ** 2)
     objective = partial(_chpi_objective, coil_dev_rrs=coil_dev_rrs,
                         coil_head_rrs=coil_head_rrs)
+    x0 = x0.copy()
+    x0[3:] *= 10.  # decimeters to get quats and head units close
     x = fmin_cobyla(objective, x0, _unit_quat_constraint,
-                    rhobeg=1e-2, rhoend=1e-6, disp=False)
-    return x, 1. - objective(x) / denom
+                    rhobeg=1e-3, rhoend=1e-5, disp=False)
+    result = objective(x)
+    x[3:] /= 10.
+    return x, 1. - result / denom
 
 
 @verbose
 def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
                      exclude='bads', add_hpi_stim_pick=True,
                      remove_aliased=False, verbose=None):
-    """Helper to set up cHPI fits."""
+    """Set up cHPI fits."""
     from scipy.spatial.distance import cdist
     from .preprocessing.maxwell import _prep_mf_coils
     if not (check_version('numpy', '1.7') and check_version('scipy', '0.11')):
@@ -283,8 +315,11 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
         raise RuntimeError('Found HPI frequencies %s above the lowpass '
                            '(or Nyquist) frequency %0.1f'
                            % (hpi_freqs[~keepers].tolist(), highest))
-    line_freqs = np.arange(info['line_freq'], info['sfreq'] / 3.,
-                           info['line_freq'])
+    if info['line_freq'] is not None:
+        line_freqs = np.arange(info['line_freq'], info['sfreq'] / 3.,
+                               info['line_freq'])
+    else:
+        line_freqs = np.zeros([0])
     logger.info('Line interference frequencies: %s Hz'
                 % ' '.join(['%d' % l for l in line_freqs]))
     # initial transforms
@@ -317,6 +352,13 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
 
     # Set up magnetic dipole fits
     picks_meg = pick_types(info, meg=True, eeg=False, exclude=exclude)
+    if len(exclude) > 0:
+        if exclude == 'bads':
+            msg = info['bads']
+        else:
+            msg = exclude
+        logger.debug('Static bad channels (%d): %s'
+                     % (len(msg), u' '.join(msg)))
     if add_hpi_stim_pick:
         if hpi_pick is None:
             raise RuntimeError('Could not find HPI status channel')
@@ -347,7 +389,7 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
 
 
 def _time_prefix(fit_time):
-    """Helper to format log messages."""
+    """Format log messages."""
     return ('    t=%0.3f:' % fit_time).ljust(17)
 
 
@@ -375,7 +417,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     gof_limit : float
         Minimum goodness of fit to accept.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -394,25 +437,32 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     """
     from scipy.spatial.distance import cdist
     hpi, last = _setup_chpi_fits(raw.info, t_window, t_step_min)
-    fit_idxs = raw.time_as_index(np.arange(0., raw.times[-1], t_step_min),
+
+    t_begin = raw.times[0]
+    t_end = raw.times[-1]
+    fit_idxs = raw.time_as_index(np.arange(t_begin + t_window / 2., t_end,
+                                           t_step_min),
                                  use_rounding=True)
     quats = []
     logger.info('Fitting up to %s time points (%0.1f sec duration)'
-                % (len(fit_idxs), raw.times[-1]))
+                % (len(fit_idxs), t_end - t_begin))
     pos_0 = None
     n_freqs = len(hpi['freqs'])
     for midpt in fit_idxs:
         #
         # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
         #
-        fit_time = midpt / raw.info['sfreq']
+        fit_time = (midpt + raw.first_samp - hpi['n_window'] / 2.) /\
+            raw.info['sfreq']
         time_sl = midpt - hpi['n_window'] // 2
         time_sl = slice(max(time_sl, 0),
                         min(time_sl + hpi['n_window'], len(raw.times)))
         with use_log_level(False):
+            # loads good channels with hpi_stim
             meg_chpi_data = raw[hpi['picks'], time_sl][0]
-        this_data = meg_chpi_data[:-1]
-        chpi_data = meg_chpi_data[-1]
+        mchpi_data = np.mean(meg_chpi_data[:-1], axis=1, keepdims=True)
+        this_data = meg_chpi_data[:-1] - mchpi_data
+        chpi_data = meg_chpi_data[-1]  # copies hpi_stim
         ons = (np.round(chpi_data).astype(np.int) &
                hpi['on'][:, np.newaxis]).astype(bool)
         n_on = np.sum(ons, axis=0)
@@ -428,19 +478,25 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
             model = hpi['model'][:this_len]
             inv_model = linalg.pinv(model)
         X = np.dot(inv_model, this_data.T)
+        X_sin, X_cos = X[:n_freqs], X[n_freqs:2 * n_freqs]
+
+        # use SVD across all sensors to estimate the sinusoid phase
+        sin_fit = np.zeros((n_freqs, X_sin.shape[1]))
+        for fi in range(n_freqs):
+            u, s, vt = np.linalg.svd(np.vstack((X_sin[fi, :], X_cos[fi, :])),
+                                     full_matrices=False)
+            # the first component holds the predominant phase direction
+            # (so ignore the second, effectively doing s[1] = 0):
+            X[[fi, fi + n_freqs], :] = np.outer(u[:, 0] * s[0], vt[0])
+            sin_fit[fi, :] = vt[0]
+
         data_diff = np.dot(model, X).T - this_data
         del model, inv_model
-        data_diff *= data_diff
-        this_data *= this_data
-        g_chan = (1 - np.sqrt(data_diff.sum(axis=1) / this_data.sum(axis=1)))
-        g_sin = (1 - np.sqrt(data_diff.sum() / this_data.sum()))
-        del data_diff, this_data
-        X_sin, X_cos = X[:n_freqs], X[n_freqs:2 * n_freqs]
-        signs = np.sign(np.arctan2(X_sin, X_cos))
-        X_sin *= X_sin
-        X_cos *= X_cos
-        X_sin += X_cos
-        sin_fit = np.sqrt(X_sin)
+
+        g_sin = 1 - np.sqrt((data_diff**2).sum() / (this_data**2).sum())
+        g_chan = 1 - np.sqrt((data_diff**2).sum(axis=1) /
+                             (this_data**2).sum(axis=1))
+
         if last['sin_fit'] is not None:  # first iteration
             corr = np.corrcoef(sin_fit.ravel(), last['sin_fit'].ravel())[0, 1]
             # check to see if we need to continue
@@ -448,16 +504,16 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                     corr * corr > 0.98:
                 continue  # don't need to re-fit data
         last['sin_fit'] = sin_fit.copy()  # save *before* inplace sign mult
-        sin_fit *= signs
-        del signs, X_sin, X_cos, X
+
+        del X_sin, X_cos, X
 
         #
         # 2. Fit magnetic dipole for each coil to obtain coil positions
         #    in device coordinates
         #
         logger.debug('    HPI amplitude correlation %0.3f: %0.3f '
-                     '(%s chnls > 0.950)' % (fit_time, np.sqrt(g_sin),
-                                             (np.sqrt(g_chan) > 0.95).sum()))
+                     '(%s chnls > 0.90)' % (fit_time, g_sin,
+                                            (g_chan > 0.90).sum()))
         outs = [_fit_magnetic_dipole(f, pos, hpi['coils'], hpi['scale'],
                                      hpi['method'])
                 for f, pos in zip(sin_fit, last['coil_dev_rrs'])]
@@ -478,8 +534,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                     break  # failure
                 # exclude next worst point
                 badness = (d * d_bad).sum(axis=0)
-                exclude = np.where(use_mask)[0][np.argmax(badness)]
-                use_mask[exclude] = False
+                exclude_coils = np.where(use_mask)[0][np.argmax(badness)]
+                use_mask[exclude_coils] = False
         good = use_mask.sum() >= 3
         if not good:
             warn(_time_prefix(fit_time) + '%s/%s good HPI fits, '
@@ -503,7 +559,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
              this_quat[3:][:, np.newaxis]), axis=1)
         this_dev_head_t = np.concatenate((this_dev_head_t, [[0, 0, 0, 1.]]))
         # velocities, in device coords, of HPI coils
-        dt = fit_time - last['fit_time']
+        # dt = fit_time - last['fit_time'] #
+        dt = t_window
         vs = tuple(1000. * np.sqrt(np.sum((last['coil_dev_rrs'] -
                                            this_coil_dev_rrs) ** 2,
                                           axis=1)) / dt)
@@ -515,7 +572,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
         errs = 1000. * np.sqrt(((hpi['coil_head_rrs'] -
                                  est_coil_head_rrs) ** 2).sum(axis=-1))
-        e = errs.mean() / 1000.  # mm -> m
+        e = errs[use_mask].mean() / 1000.  # mm -> m
         d = 100 * np.sqrt(np.sum(last['quat'][3:] - this_quat[3:]) ** 2)  # cm
         r = _angle_between_quats(last['quat'][:3], this_quat[:3]) / dt
         v = d / dt  # cm/sec
@@ -539,7 +596,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                 log_str += '{8:6.1f} {9:6.1f} {10:6.1f}'
             vals = np.concatenate((1000 * hpi['coil_head_rrs'][ii],
                                    1000 * est_coil_head_rrs[ii],
-                                   [g_coils[ii], errs[ii]]))
+                                   [g_coils[ii], errs[ii]]))  # errs in mm
             if ii <= 2:
                 vals = np.concatenate((vals, this_dev_head_t[ii, :3]))
             elif ii == 3:
@@ -548,7 +605,10 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         logger.debug('    #t = %0.3f, #e = %0.2f cm, #g = %0.3f, '
                      '#v = %0.2f cm/s, #r = %0.2f rad/s, #d = %0.2f cm'
                      % (fit_time, 100 * e, g, v, r, d))
-        quats.append(np.concatenate(([fit_time], this_quat, [g], [e], [v])))
+        logger.debug('    #t = %0.3f, #q = %s '
+                     % (fit_time, ' '.join(map('{:8.5f}'.format, this_quat))))
+        quats.append(np.concatenate(([fit_time], this_quat, [g],
+                                     [e * 100], [v])))  # e in centimeters
         last['fit_time'] = fit_time
         last['quat'] = this_quat
         last['coil_dev_rrs'] = this_coil_dev_rrs
@@ -572,7 +632,8 @@ def filter_chpi(raw, include_line=True, verbose=None):
     include_line : bool
         If True, also filter line noise.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

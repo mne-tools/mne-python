@@ -442,7 +442,8 @@ def test_acqparser():
     assert_true(acqp['Surprise visual'])
     # test TRIUX file
     raw = read_raw_fif(fname_raw_elekta, preload=False)
-    acqp = AcqParserFIF(raw.info)
+    acqp = raw.acqparser
+    assert_true(acqp is raw.acqparser)  # same one, not regenerated
     # test __repr__()
     assert_true(repr(acqp))
     # this file should not be in compatibility mode
