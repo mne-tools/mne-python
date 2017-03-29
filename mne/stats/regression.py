@@ -195,6 +195,9 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
         to additional event types/conditions to be estimated and are matched
         with the time points given by the first column of ```events```. If
         None, only binary events (from event_id) are used.
+        For dense predictors (i.e., a continuous predictor - nonzero at most
+        values), we recommend `mne.decoding.ReceptiveField` instead, which is
+        optimized for the continuous use case.
     reject : None | dict
         For cleaning raw data before the regression is performed: set up
         rejection parameters based on peak-to-peak amplitude in continuously
@@ -345,6 +348,7 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
 
     cond_length = dict()
     xs = []
+    has_warned = False
     for cond in conds:
         tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
         n_lags = int(tmax_ - tmin_)  # width of matrix
@@ -364,6 +368,15 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
             onsets = -(events[np.where(covs != 0), 0] + tmin_)[0]
             v = np.asarray(covs)[np.nonzero(covs)].astype(float)
             values = np.ones((len(onsets), n_lags)) * v[:, np.newaxis]
+            if (len(values) * 2) > len(events):
+                if not has_warned:
+                    has_warned = True
+                    warn("The predictor {} is dense - that is, non-zero at "
+                         "more than half of the samples. This function is not"
+                         " optimized for continuous predictors; consider "
+                         "`mne.decoding.ReceptiveField` instead.".format(cond))
+                else:
+                    warn("{} is also dense.".format(cond)
 
         cond_length[cond] = len(onsets)
         xs.append(sparse.dia_matrix((values, onsets),
