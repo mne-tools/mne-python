@@ -145,7 +145,7 @@ for ii, ix_delay in enumerate(delays):
     X_del[ii][put] = X[take]
 
 # Now set the delayed axis to the 2nd dimension
-X_del = np.rollaxis(X_del, 0, 2)
+X_del = np.rollaxis(X_del, 0, 3)
 X_del = X_del.reshape([n_epochs, -1, n_times])
 n_features = X_del.shape[1]
 weights_sim = weights.ravel()
@@ -241,11 +241,11 @@ fig = plt.figure(figsize=(20, 4))
 ax = plt.subplot2grid([2, 10], [1, 0], 1, 10)
 ax.plot(np.arange(len(alphas)), scores, marker='o', color='r')
 ax.annotate('Best parameter', (ix_best_alpha, scores[ix_best_alpha]),
-            (ix_best_alpha - 1, scores[ix_best_alpha] - .02),
+            (ix_best_alpha - 1, scores[ix_best_alpha] - .005),
             arrowprops={'arrowstyle': '->'})
 plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
 ax.set(xlabel="Ridge regularization value", ylabel="Score ($R^2$)",
-       ylim=[.9, .96], xlim=[-.4, len(alphas) - .6])
+       xlim=[-.4, len(alphas) - .6])
 mne.viz.tight_layout()
 
 # Plot the STRF of each ridge parameter

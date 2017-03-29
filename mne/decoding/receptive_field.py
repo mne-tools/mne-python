@@ -137,19 +137,8 @@ class ReceptiveField(BaseEstimator):
         self.estimator_ = estimator
         _check_estimator(self.estimator_)
 
-        # Create input features
         n_times, n_epochs, n_feats = X.shape
         n_outputs = y.shape[2]
-        X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
-                                   newaxis=X.ndim)
-
-        # Remove timepoints that don't have lag data after delaying
-        X_del = X_del[self.keep_samples_]
-        y = y[self.keep_samples_]
-
-        # Convert to 2d by making epochs 1st axis and vstacking
-        X_del = X_del.reshape([-1, len(self.delays_) * n_feats], order='F')
-        y = y.reshape([-1, n_outputs], order='F')
 
         # Update feature names if we have none
         if self.feature_names is None:
@@ -157,6 +146,19 @@ class ReceptiveField(BaseEstimator):
         if len(self.feature_names) != n_feats:
             raise ValueError('n_features in X does not match feature names '
                              '(%s != %s)' % (n_feats, len(self.feature_names)))
+
+        # Create input features
+        # X is now shape (n_times, n_epochs, n_feats, n_delays)
+        X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
+                                   newaxis=X.ndim)
+
+        # Remove timepoints that don't have lag data after delaying
+        X_del = X_del[self.keep_samples_]
+        y = y[self.keep_samples_]
+        X_del = _reshape_for_est(X_del)
+
+        # Concat times + epochs
+        y = y.reshape(-1, n_outputs, order='F')
 
         self.estimator_.fit(X_del, y)
 
@@ -178,7 +180,7 @@ class ReceptiveField(BaseEstimator):
 
         Returns
         -------
-        y_pred : array, shape (n_times * n_epochs)
+        y_pred : array, shape (n_times * n_epochs[, n_outputs])
             The output predictions with time concatenated.
         """
         if not hasattr(self, 'delays_'):
@@ -188,7 +190,7 @@ class ReceptiveField(BaseEstimator):
                                    newaxis=X.ndim)
         # Convert nans to 0 since scikit-learn will error otherwise
         X_del[np.isnan(X_del)] = 0
-        X_del = X_del.reshape([-1, len(self.delays_) * X.shape[-1]], order='F')
+        X_del = _reshape_for_est(X_del)
         y_pred = self.estimator_.predict(X_del)
         return y_pred
 
@@ -217,8 +219,9 @@ class ReceptiveField(BaseEstimator):
 
         # Generate predictions, then reshape so we can mask time
         X, y = self._check_dimensions(X, y, predict=True)
+        n_times, n_epochs, n_outputs = y.shape
         y_pred = self.predict(X)
-        n_outputs = y_pred.shape[-1]
+
         y_pred = y_pred.reshape(y.shape, order='F')
         y_pred = y_pred[self.keep_samples_]
         y = y[self.keep_samples_]
@@ -350,6 +353,14 @@ def _check_delayer_params(tmin, tmax, sfreq):
         raise ValueError('tmin/tmax must be an integer or float')
     if not tmin <= tmax:
         raise ValueError('tmin must be <= tmax')
+
+
+def _reshape_for_est(X_del):
+    """Convert X_del to a sklearn-compatible shape."""
+    n_times, n_epochs, n_feats, n_delays = X_del.shape
+    X_del = X_del.reshape(n_times, n_epochs, -1)  # concatenate feats
+    X_del = X_del.reshape(n_times * n_epochs, -1, order='F')
+    return X_del
 
 
 # Create a correlation scikit-learn-style scorer
