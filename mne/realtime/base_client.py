@@ -8,6 +8,18 @@ import numpy as np
 from ..event import find_events
 
 
+def _buffer_recv_worker(client):
+    """Worker thread that constantly receives buffers."""
+    try:
+        for raw_buffer in client.iter_raw_buffers():
+            client._push_raw_buffer(raw_buffer)
+    except RuntimeError as err:
+        # something is wrong, the server stopped (or something)
+        client._recv_thread = None
+        print('Buffer receive thread stopped: %s' % err)
+
+
+
 class _BaseClient(object):
     """Base Realtime Client.
 
